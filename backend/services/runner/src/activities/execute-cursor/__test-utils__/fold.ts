@@ -2,7 +2,7 @@
  * Drive Cursor SDK events through the REAL pair the harness runs in production
  * — `CursorTranslator` into `TranscriptBuilder` over an `AgentExecutionStatus`
  * — and hand back what they built. The unit-test seam that replaced
- * `new MessageAccumulator(messages, options)` at S4 M4 (the accumulator folded
+ * `new <accumulator>(messages, options)` at S4 M4 (the accumulator folded
  * rows itself; now the translator emits events and the shared builder folds
  * them), so the arms that read a row's shape after a sequence of SDK events
  * keep their shape while the module under them changed.

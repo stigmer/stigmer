@@ -14,12 +14,12 @@
  * TUI shows it, as it does for native.
  *
  * Moved 2026-09-14 (S4 M4 A1, Q-S4-7), the TWO hunks this golden was
- * predicted to take: until A1 `MessageAccumulator` DROPPED the row
- * (`SUPPRESSED_TOOL_NAMES`) and the transcript showed three AI messages with
+ * predicted to take: until A1 the accumulator DROPPED the row (a suppressed-
+ * tool-names set) and the transcript showed three AI messages with
  * no rows — a per-harness branch on a tool name the canonical builder does
  * not have (native has always kept its `write_todos` row). A1 aligned the
  * accumulator before the swap so the swap moves nothing; `todos` was and is
- * byte-identical. `TodoTracker` went at the swap (B4), where the builder took
+ * byte-identical. The todo tracker went at the swap (B4), where the builder took
  * over projecting the todos from the row.
  *
  * Why this net exists: no Cursor golden before M0 carried a todo.

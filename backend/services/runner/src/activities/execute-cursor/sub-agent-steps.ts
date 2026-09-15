@@ -43,7 +43,7 @@
  * was silently discarded and the UI showed a sub-agent that "did nothing".
  *
  * WHAT THIS MODULE EMITS, AND WHY EVENTS. Until S4 M4 this parser built
- * `AgentMessage` protos itself (`extractConversationSteps` in the accumulator)
+ * `AgentMessage` protos itself (the conversation-steps extractor in the accumulator)
  * — a third copy of the folding rule, whose message boundary drifted from the
  * root's until A5. Now each step becomes the events any harness's translator
  * would emit for the same thing, and the shared `TranscriptBuilder` folds them

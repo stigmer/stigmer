@@ -6,7 +6,7 @@
  * at M4): the Cursor SDK has ONE `run_id` per `send()`, so the transcript's
  * segmentation is not by run but by tool call — a `tool_call` event closes the
  * run's streaming AI and THINKING rows (the translator's `message_finish` for
- * the open segment; until S4 M4 `MessageAccumulator.finalizeStreaming`),
+ * the open segment; until S4 M4 the accumulator's own finalize on a tool call),
  * and the thinking or text that follows opens NEW rows. Hence the shape:
  * THINKING(T1), AI(A1 + the read row), THINKING(T2), AI(A2). The read row lands
  * on A1 (the last AI message by backward scan; a THINKING row is skipped), and

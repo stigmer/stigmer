@@ -6,9 +6,10 @@
  * The one module that knows the SDK's wire shape (S4, `T01_0_plan.md` §3):
  * the shared `TranscriptBuilder` folds what comes out of here and nothing of
  * the engine reaches it otherwise. Until S4 M4 the Cursor harness folded its
- * own transcript — `MessageAccumulator` (the second copy of the folding rule
- * the memo counted), `DeltaEnricher` (row writes from the delta channel) and
- * `TodoTracker` (a third writer of `status.todos`) — and every rule they held
+ * own transcript — the message accumulator (the second copy of the folding
+ * rule the memo counted), the delta enricher (row writes from the delta
+ * channel) and the todo tracker (a third writer of `status.todos`) — and
+ * every rule they held
  * is either the builder's now or answered here. The same word, the same
  * `translate(raw)` signature and the same seat in its adapter as
  * `execute-deep-agent/translator.ts`, so a third harness's author finds one

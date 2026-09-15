@@ -27,7 +27,7 @@
  * and the `content: ""` message that carried it until A5 (`messages[1]`) is
  * gone — the canonical builder attaches a tool row to its scope's current AI
  * message, the shape native's sub-agent transcripts took at M2 (F-M0-1), and
- * A5 aligned `extractConversationSteps` before the swap so the swap moves
+ * A5 aligned the accumulator's steps extractor before the swap so the swap moves
  * nothing.
  *
  * On the record as found (S5's, not S4's): the `task` row's `result` and the

@@ -16,8 +16,8 @@
  * translator QUEUES as they arrive in `onDelta`, are drained into the builder
  * after each stream event — never during an awaited persist, where a row
  * write would land on a row the offload is replacing (M4 finding F-M4-23).
- * Until M4 this loop fed three writers of its own (`MessageAccumulator`,
- * `DeltaEnricher`, `TodoTracker`), the Cursor copy of the folding rule.
+ * Until M4 this loop fed three writers of its own (the message accumulator,
+ * the delta enricher, the todo tracker), the Cursor copy of the folding rule.
  *
  * What the loop asks of the runtime, through the sink (`harness/types.ts`):
  * `recordActivity()` per event (with the tool name) and per delta, so the

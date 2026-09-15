@@ -8,7 +8,7 @@
  * settle, and the unattended-mode SKIPPED stamp.
  *
  * Moved verbatim from the boundary half of `message-translator.ts` at S4 M4
- * B2 (Q-S4-13), so that module's folding half — the `MessageAccumulator`, the
+ * B2 (Q-S4-13), so that module's folding half — the Cursor accumulator, the
  * second copy of the transcript folding rule — can be deleted whole at the
  * swap (B4) and replaced by `translator.ts` over the shared
  * `TranscriptBuilder`. Nothing here folds engine events: every function
