@@ -258,7 +258,7 @@ export function makeToolOutputDelta(
   }, { namespace: opts?.namespace ?? [`tools:${callId}`] });
 }
 
-// ── Ignored channels (for normalizer completeness tests) ──────────
+// ── Ignored channels (for translator completeness tests) ──────────
 
 export function makeCheckpointEvent(): V3ProtocolEvent {
   return makeProtocolEvent("checkpoints", {

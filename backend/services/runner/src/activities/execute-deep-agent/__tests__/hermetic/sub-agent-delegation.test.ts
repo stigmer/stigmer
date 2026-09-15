@@ -8,12 +8,14 @@
  * runner's `shell`) on the SAME model double through `modelFactory`; the root
  * proposes `task({ subagent_type, description })`; the tools node runs the
  * sub-agent graph under a nested namespace (`tools:<uuid>|...`); the
- * `SubAgentTracker` opens a `SubAgentExecution` keyed by the `task` call id
- * (not by the namespace uuid, which never reaches the status), routes the
- * nested model events into its own transcript, and closes it COMPLETED when
- * the `task` tool finishes; the root's transcript carries the `task` row and
- * its closing text. The golden (`goldens/sub-agent-delegation.status.json`)
- * pins the nested transcript shape S4 must reproduce.
+ * translator's `sub_agent_started` opens a `SubAgentExecution` keyed by the
+ * `task` call id (not by the namespace uuid, which never reaches the status),
+ * the builder folds the nested model events into that row's own transcript
+ * scope, and `sub_agent_finished` closes it COMPLETED when the `task` tool
+ * finishes; the root's transcript carries the `task` row and its closing
+ * text. The golden (`goldens/sub-agent-delegation.status.json`) pins the
+ * nested transcript shape; its three S4 moves are quoted below with their
+ * rulings, and every other line is byte-identical through S4.
  *
  * Role selection: `createDeepAgent` gives the sub-agent the same tool set as
  * its parent (`task` included), so the script tells the roles apart by the
@@ -44,6 +46,13 @@
  * content — `[{"type":"text","text":"The fixture value is forty-two."}]`,
  * the blocks array the image offload reads — where they were the whole
  * serialized Command. Those two lines are the whole C2b diff.
+ *
+ * Since S4 M2 C4 (Q-S4-5): the `task` row sits on the AI message whose text
+ * delegated ("Delegating to the helper."), not on an empty AI message of its
+ * own after it — two root AI messages (the delegating text with the row, the
+ * closing text) where there were three; the same scoping fix
+ * `tool-call.test.ts` records. Since S4 M2 C7 (Q-S4-16): the row carries
+ * `argsPreview`, the one preview rule for every row on every harness.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u

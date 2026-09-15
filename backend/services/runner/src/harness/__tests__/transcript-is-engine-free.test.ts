@@ -4,7 +4,7 @@
  * short allow-list — the proto runtime and the generated protos, Node's
  * builtins, and `vitest` inside `__tests__/`.
  *
- * Why it matters (S4, `T01_0_plan.md` §3, the one rule): the builder folds
+ * Why it matters (S4's one disposition rule): the builder folds
  * facts into the status proto; every fact about an engine — a LangGraph
  * namespace, a Cursor `SDKMessage`, a LangChain `ToolMessage` envelope —
  * reaches it as a translator's output, never as an import. A Claude or Codex

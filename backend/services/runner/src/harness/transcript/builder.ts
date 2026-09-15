@@ -3,7 +3,7 @@
  * the AgentExecutionStatus proto it is handed: messages, tool-call rows and
  * their approval status, sub-agent rows, todos, artifacts, write-backs.
  *
- * The one transcript builder, for every harness (S4, `T01_0_plan.md`). It
+ * The one transcript builder, for every harness (S4). It
  * was the native harness's `V3StatusBuilder` (the one builder there since S3
  * M2b retired the v2 `StatusBuilder`, Q-S3-1), promoted here at M1
  * (2026-09-14) unchanged and cut engine-neutral at M2 one ruling per commit:

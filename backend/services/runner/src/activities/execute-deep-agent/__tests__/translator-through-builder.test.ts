@@ -47,8 +47,8 @@ import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 /**
  * A builder over an empty status. Usage never reaches the builder (S4 M2 C1):
  * the loop reads it off the wire through `usageOf` and prices it into the
- * sink — `turn-stream.test.ts` pins that; `v3-protocol-normalizer.test.ts`
- * pins what `usageOf` reads. The `usage:` fields the sequences below still
+ * sink — `turn-stream.test.ts` pins that; `translator.test.ts` pins what
+ * `usageOf` reads. The `usage:` fields the sequences below still
  * carry are the wire's real shape and are ignored by everything here.
  */
 function makeBuilder(): TranscriptBuilder {
@@ -92,7 +92,7 @@ describe("the native translator through the builder", () => {
   // GOLDEN SEQUENCES
   //
   // Same proto assertions as v2 StatusBuilder golden tests, but input
-  // is v3 ProtocolEvent sequences fed through the normalizer.
+  // is v3 ProtocolEvent sequences fed through the translator.
   // ═══════════════════════════════════════════════════════════════════
 
   describe("golden sequences", () => {
@@ -562,7 +562,7 @@ describe("the native translator through the builder", () => {
       const sb = makeBuilder();
       const subNs = ["tools:task-1", "tools:sub-todo"];
       feedAll(sb, [
-        // Register a sub-agent so its namespace routes to the SubAgentTracker.
+        // Open a sub-agent so its namespace routes to the sub-agent's own transcript scope.
         makeToolStarted("task-1", "task", {
           subagent_type: "worker",
           description: "delegate",

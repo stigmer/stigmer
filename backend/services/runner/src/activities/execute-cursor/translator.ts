@@ -3,7 +3,7 @@
  * event channels in, the canonical `TranscriptEvent` union out
  * (`harness/transcript/events.ts`).
  *
- * The one module that knows the SDK's wire shape (S4, `T01_0_plan.md` §3):
+ * The one module that knows the SDK's wire shape (S4's disposition table):
  * the shared `TranscriptBuilder` folds what comes out of here and nothing of
  * the engine reaches it otherwise. Until S4 M4 the Cursor harness folded its
  * own transcript — the message accumulator (the second copy of the folding

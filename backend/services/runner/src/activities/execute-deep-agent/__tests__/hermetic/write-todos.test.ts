@@ -24,7 +24,7 @@
  *    text nested inside it (S4 M0 finding F-M0-2; pinned as found in the M0
  *    golden, regenerated at C2b with that one hunk).
  *
- * The S4 rulings, as landed (`T01_1_review.md`, 2026-09-14): under Q-S4-5 the
+ * The S4 rulings, as landed (2026-09-14): under Q-S4-5 the
  * row joined `messages[0]` ("Planning the two steps.") and the empty message
  * went (C4); under Q-S4-16 the row gained `argsPreview`, the elided preview of
  * its `args` (C7). `todos` is byte-identical (Q-S4-7 keeps native's

@@ -10,7 +10,7 @@
  * that proposes tools without text (`ensureAiMessageForToolCall`), which is
  * why the canonical builder can serve both.
  *
- * Predicted under the S4 rulings (`T01_1_review.md`, 2026-09-14): NO move.
+ * Predicted under the S4 rulings (2026-09-14): NO move.
  * Q-S4-5's rule ("the scope's current AI message, lazily created empty when
  * the scope's latest model run had no text") produces exactly this transcript.
  *

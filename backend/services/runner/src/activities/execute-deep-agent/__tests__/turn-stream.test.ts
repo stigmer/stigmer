@@ -6,7 +6,7 @@
  *
  *  - how the graph is invoked (the two-arg v3 `streamEvents` shape, the
  *    runtime's `langgraphConfig` carried whole, the loop's own abort signal);
- *  - what each event becomes (the normalizer feeds the builder; the sink
+ *  - what each event becomes (the translator feeds the builder; the sink
  *    learns of activity per event, with the tool's name as the detail);
  *  - what the sink is told and when (usage priced per `message_finish`;
  *    a persist requested on the shared cadence rule, a tool start forcing it);
@@ -188,7 +188,7 @@ describe("consumeDeepAgentStream — how the graph is invoked", () => {
 });
 
 describe("consumeDeepAgentStream — what each event becomes", () => {
-  it("feeds every event through the normalizer into the transcript and completes with the run's output", async () => {
+  it("feeds every event through the translator into the transcript and completes with the run's output", async () => {
     const h = harness();
     const result = await h.run(
       scriptedRun(

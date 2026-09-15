@@ -46,7 +46,7 @@
  * and otherwise falls back to a synthesized final-message event sequence
  * (`@langchain/langgraph` `pregel/messages-v2.js` `emitFinalMessage`). The
  * fallback spreads a `tool_call` block's `args` OBJECT into the
- * `tool_call_chunk` fields the runner's normalizer reads as a JSON STRING
+ * `tool_call_chunk` fields the runner's translator reads as a JSON STRING
  * (`translator.ts` `argsChunk`), which no real provider does.
  * Streaming keeps the double on the production event path: `@langchain/core`
  * `language_models/compat.js` `convertChunksToEvents` turns the chunks below

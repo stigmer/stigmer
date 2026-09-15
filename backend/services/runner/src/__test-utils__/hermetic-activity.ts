@@ -486,8 +486,8 @@ export function createHermeticEnvironment(): HermeticEnvironment {
  * advance together; timers stay real (the periodic heartbeat, the stall
  * watchdog, `withTimeout` all need them). The harness double calls
  * {@link ScriptedClock.tick} once per script step, so every clock-based
- * decision on the activity path — status timestamps, the enricher's persist
- * debounce, cache TTLs (`Date`); the streaming scheduler's persist cadence
+ * decision on the activity path — status timestamps, the builder's row
+ * instants, cache TTLs (`Date`); the streaming scheduler's persist cadence
  * (`performance.now()`) — sees the same instants run after run and runs the
  * same branches production runs.
  *

@@ -8,7 +8,7 @@
  * LangGraph's v3 protocol, and promoted here at S4 M1 (2026-09-14) because
  * its own header already called it the thing that isolates the builder from
  * the engine — the same move S2 and S3 made for the turn runtime. S4 M2 cut
- * it engine-neutral one ruling at a time (`T01_0_plan.md` §4a, Q-S4-3):
+ * it engine-neutral one ruling at a time (Q-S4-3):
  *
  *   - C1: every member the builder never folded left — `usage`, `lifecycle`,
  *     `provider`, and the `seq`/`node`/`messageId`/`reason` fields no handler

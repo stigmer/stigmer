@@ -3,7 +3,7 @@
  * protocol events in, the canonical `TranscriptEvent` union out
  * (`harness/transcript/events.ts`).
  *
- * The one module that knows LangGraph's wire shape (S4, `T01_0_plan.md` §3):
+ * The one module that knows LangGraph's wire shape (S4's disposition table):
  * the shared builder folds what comes out of here and nothing of the engine
  * reaches it otherwise. Every engine fact the builder used to read is
  * answered on this side now (S4 M2):

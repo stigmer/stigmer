@@ -1,5 +1,5 @@
 /**
- * Todo-list projection shared by every harness's status writer.
+ * Todo-list projection the one transcript builder applies for every harness.
  *
  * All harnesses expose an agent to-do tool — the Cursor SDK emits `TodoWrite`
  * (legacy) / `updateTodos` (current), the native deepagents harness emits

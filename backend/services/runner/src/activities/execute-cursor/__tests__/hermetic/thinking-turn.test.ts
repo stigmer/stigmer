@@ -12,7 +12,7 @@
  * on A1 (the last AI message by backward scan; a THINKING row is skipped), and
  * no row is left `isStreaming` when the turn ends.
  *
- * Predicted under the S4 rulings (`T01_1_review.md`, 2026-09-14): NO move.
+ * Predicted under the S4 rulings (2026-09-14): NO move.
  * Q-S4-6 keeps one THINKING row per segment on Cursor (the translator mints a
  * segment id per text-or-thinking run between tool calls); Q-S4-5 keeps the
  * tool on the message that proposed it. A diff in this golden at M4 is a
