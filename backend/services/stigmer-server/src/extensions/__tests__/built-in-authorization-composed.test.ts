@@ -27,9 +27,10 @@
  * this file is the entry's definition of done at the wire.
  *
  * Why agents and not sessions: a session create needs an engine and an
- * instance; the blueprint kinds exercise the visibility axis (the model's
- * `organization#member` viewer tuple is written for `visibility_org` only)
- * and the admin-edits / member-reads split with no engine. The agent kind
+ * instance; the blueprint kinds exercise the visibility axis (the
+ * `organization#viewer` userset tuple — cloud#257's shape — is written for
+ * `visibility_org` only) and the admin-edits / member-reads split with no
+ * engine. The agent kind
  * defaults unspecified visibility to org (`defaults_to_org_visibility`),
  * so the private arm sets `visibility_private` explicitly. On a
  * one-organization server 2b's membership rules make every later arrival

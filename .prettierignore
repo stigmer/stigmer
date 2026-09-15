@@ -5,3 +5,8 @@ docs/sdk/
 # generator output (gen-task-registry-check diffs them literally), so
 # formatting must not touch them.
 backend/services/stigmer-server/src/domain/workflow/registry/data/
+
+# Pinned copies of the cloud's OpenFGA store tests (the built-in
+# authorizer's proof oracle); each header names its source and commit and
+# the body must stay byte-identical to it, so formatting must not touch them.
+backend/services/stigmer-server/src/authorization/__tests__/fixtures/fga/

@@ -148,8 +148,14 @@ interface ScannedResource {
   readonly createdBy: string;
 }
 
-/** A creator stamp that names a person: non-empty and not the unconfigured laptop's placeholder. */
-function isPersonStamp(stamp: string): boolean {
+/**
+ * A creator stamp that names a person: non-empty and not the unconfigured
+ * laptop's placeholder. Exported for the built-in authorizer's derivation
+ * (authorization/derived-tuples.ts), which turns a stamp into an owner or
+ * creator tuple only when this says the stamp is somebody's — the one
+ * predicate, read from the module that owns the doctrine above.
+ */
+export function isPersonStamp(stamp: string): boolean {
   return stamp !== "" && stamp !== SYSTEM_OPERATOR_IDENTITY_ID;
 }
 

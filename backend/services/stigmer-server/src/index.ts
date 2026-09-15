@@ -148,6 +148,49 @@ export type { AuthorizationQueryEngine } from "./extensions/authorization-querie
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
+// The built-in authorizer's model seams: the kind
+// declarations (transcripts of the cloud's `.fga` files), the evaluator,
+// and the OpenFGA store-test kit — exported so the cloud's drift test
+// compares the live model against the transcripts and runs its live
+// store tests through the evaluator, both from the published package.
+// The drivers themselves are composed by the root and are not exported.
+export type {
+  DerivedRelation,
+  KindDeclaration,
+  Rewrite,
+  SubjectType,
+} from "./authorization/model/rewrite.js";
+export type { Model } from "./authorization/model/index.js";
+export {
+  builtInModel,
+  declarationFor,
+  newModel,
+} from "./authorization/model/index.js";
+export type {
+  CheckContext,
+  ObjectRef,
+  Person,
+  Subject,
+  Tuple,
+  TupleSource,
+} from "./authorization/tuples.js";
+export type { EvaluationFault } from "./authorization/evaluator.js";
+export {
+  AuthorizationEvaluationError,
+  MAX_RESOLUTION_DEPTH,
+  checkRelation,
+} from "./authorization/evaluator.js";
+export type {
+  StoreTestCase,
+  StoreTestDocument,
+  StoreTestKit,
+  StoreTestSkip,
+  StoreTestSkipReason,
+} from "./authorization/store-test-kit.js";
+export {
+  parseStoreTestDocument,
+  storeTestCases,
+} from "./authorization/store-test-kit.js";
 export type {
   ListReadScope,
   ListEntryMeta,
