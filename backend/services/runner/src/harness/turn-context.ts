@@ -326,14 +326,15 @@ export function decideReinvocation(
  *
  * Why the transcript must be seeded: a resumed engine re-issues the
  * previously gated tool calls with brand-new call ids. Without seeding, the
- * harness's accumulator would rebuild the transcript from empty and emit a
+ * harness's transcript builder would rebuild the transcript from empty and emit a
  * status that drops the already-committed tool-call ids. The backend's
  * append-only-at-identity guard rejects any non-terminal update that drops a
  * committed tool-call id, so the resumed progress would never persist: the
  * run stalls in WAITING_FOR_APPROVAL with no pending approvals and the
  * workflow watchdog fails it. Seeding makes the resume status a strict
  * superset; the re-runs are then reconciled in place onto these seeded calls
- * by canonical identity inside the accumulator.
+ * by canonical identity inside the harness's translator (the Cursor translator's
+ * seeded-row match, Q-S4-9; the native builder's by-id flip).
  *
  * Why the OTHER collections must be seeded too — the server's merge rule
  * (`stigmer-server/src/domain/agentexecution/update-status.ts`): every list
@@ -357,7 +358,7 @@ export function decideReinvocation(
  *
  * Every collection is mutated IN PLACE (pushed into, assigned into), never
  * reassigned: the write-back coordinator already wraps this status through
- * `statusProtoWriter`, and the harness's accumulator wraps `messages` and
+ * `statusProtoWriter`, and the harness's transcript builder wraps `messages` and
  * `subAgentExecutions` by reference after this runs, so a reassigned array
  * would leave a wrapper holding the old one. The persisted protos are
  * cloned so the input execution stays immutable.
@@ -550,7 +551,7 @@ export async function bindTelemetryBaggage(
  *
  * On a reinvocation, first seed the in-progress status from the persisted
  * execution ({@link seedFromPersistedStatus}), BEFORE the harness's
- * accumulator wraps `status.messages`. Then the file-review reconcile (the
+ * transcript builder wraps `status.messages`. Then the file-review reconcile (the
  * dual-source half): every change set the server projected as DECIDED is
  * reconciled from the ledger decisions and the pinned git refs (approved
  * kept at their "after" bytes, rejected snapped back to baseline, all

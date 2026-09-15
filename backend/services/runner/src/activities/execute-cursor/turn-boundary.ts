@@ -34,11 +34,12 @@
  * and the reconcile is idempotent over it.
  *
  * The caller owns everything around the boundary: the stream epilogue
- * (accumulator/enricher finalize), the WAITING_FOR_APPROVAL phase flip +
+ * (the transcript's finalize), the WAITING_FOR_APPROVAL phase flip +
  * persist, and the terminal result mapping.
  */
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { MergedToolPolicy } from "../../shared/approval-policy.js";
 import {
@@ -55,10 +56,6 @@ import {
   stampUnattendedSkippedToolCalls,
   type UnattributedHookBlock,
 } from "./boundary-rows.js";
-import { utcTimestamp } from "../../shared/status.js";
-import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // How long the boundary waits for the first-denial-stop's run.cancel() to
 // settle before reading the final denial ledger. Long enough for the SDK's
@@ -69,8 +66,17 @@ import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v
 const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 export interface TurnBoundaryOptions {
-  /** Mutated in place: gate rows overlaid, narration redacted. */
+  /** Read, and AMENDED in place by identity: gate rows overlaid, twins collapsed, narration redacted. */
   readonly status: AgentExecutionStatus;
+  /**
+   * The turn's transcript builder over `status`: every row the boundary
+   * CREATES — the gate it proposes for a denial no streamed call matched, the
+   * #965 disclosure line — goes through it (`approval_proposed`,
+   * `system_note`), never onto `status.messages` directly (S4 M4, Q-S4-1's
+   * rule: rows are created through the builder; a harness amends rows its
+   * boundary owns and says which).
+   */
+  readonly transcript: TranscriptBuilder;
   readonly executionId: string;
   /** Session HITL dir holding the denial ledger; undefined → no gate installed. */
   readonly hitlDir: string | undefined;
@@ -147,6 +153,7 @@ export interface TurnBoundaryResult {
 export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBoundaryResult> {
   const {
     status,
+    transcript,
     executionId,
     hitlDir,
     primaryWorkspaceDir,
@@ -182,7 +189,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // paths, so no platformDir routing is needed here.
   const gateWorkspaceBackend = new LocalWorkspaceBackend(primaryWorkspaceDir);
   const deniedToolCalls = await reconcileDeniedToolCalls(
-    status.messages,
+    transcript,
     approvalLedger,
     mergedPolicies,
     gateWorkspaceBackend,
@@ -279,14 +286,13 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     );
     if (settledUnresolved.length > 0) {
       const names = [...new Set(settledUnresolved.map((s) => s.toolName))].join(", ");
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content:
+      transcript.apply({
+        kind: "system_note",
+        text:
           `Note: the following tool call(s) never completed and were not executed: ${names}. ` +
           `No approval is pending for them — if the agent said otherwise, disregard that. ` +
           `You can ask the agent to try again.`,
-        timestamp: utcTimestamp(),
-      }));
+      });
       console.warn(
         `ExecuteCursor turn boundary: settled ${settledUnresolved.length} unresolved ` +
         `tool call(s) to INTERRUPTED with disclosure [${names}] — the harness returned ` +

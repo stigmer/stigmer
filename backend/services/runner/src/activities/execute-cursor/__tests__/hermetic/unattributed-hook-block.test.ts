@@ -95,7 +95,7 @@ const USER_HOOKS_JSON =
   JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: FOREIGN_HOOK_COMMAND }] } }, null, 2) + "\n";
 /**
  * The error text Cursor stamps on a hook-blocked tool call
- * (`message-translator.ts` HOOK_BLOCK_ERROR_MARKERS). The SDK has no structured
+ * (`boundary-rows.ts` HOOK_BLOCK_ERROR_MARKERS). The SDK has no structured
  * "denied by hook" signal; this text is the only stream-side trace.
  */
 const HOOK_BLOCK_ERROR = "blocked by a hook";

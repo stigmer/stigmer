@@ -3,9 +3,9 @@
  * and packs the real identity into its args — through the whole
  * `ExecuteCursor` activity.
  *
- * Invariant pinned (S4 M0 net): `extractMcpToolDetails` unwraps
- * `{ providerIdentifier, toolName, args }` from the event's args, and
- * `buildToolCallProto` writes the row as the INNER tool: `name` is `toolName`,
+ * Invariant pinned (S4 M0 net): the translator unwraps
+ * `{ providerIdentifier, toolName, args }` from the event's args
+ * (`extractMcpToolDetails`) and the row is the INNER tool: `name` is `toolName`,
  * `mcpServerSlug` is `providerIdentifier`, `args` is the inner args,
  * `toolKind` is MCP, and `argsPreview` is the elided preview of the row's OWN
  * `args` — `{"query":"fixture"}` — through the platform's one sanitizer. With

@@ -21,7 +21,7 @@
  *  - the resume grant via {@link buildApprovalGrants} -> parseArgs(argsPreview)
  *    (the JSON-string preview only).
  * They agree today only because both derive from the same stream `event.args`.
- * This suite drives the REAL stream path ({@link buildToolCallProto}) so any
+ * This suite drives the REAL stream path (the translator into the builder) so any
  * future change that lets the dual path diverge fails here, loudly, per category.
  *
  * Deterministic; no Cursor API key, no bash. The hook-side half of the equality
@@ -42,10 +42,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
-import {
-  buildToolCallProto,
-} from "../message-translator.js";
 import { reconcileDeniedToolCalls } from "../boundary-rows.js";
+import { builderOver, foldCursorEvents } from "../__test-utils__/fold.js";
 import { toolCallIdentityToken } from "../approval-state.js";
 import {
   buildApprovalGrants,
@@ -96,7 +94,7 @@ function mcpEvent(
  * and return the two identities that must be equal: the token the hook recorded
  * when it denied the gated call, and the grant token a resume mints after the
  * user approves it. Mirrors the activity's real sequence:
- *   buildToolCallProto (stream) -> deny overlay (reconcileDeniedToolCalls) ->
+ *   translator + builder (stream) -> deny overlay (reconcileDeniedToolCalls) ->
  *   persist APPROVE -> reconstructAdjudicatedApprovals -> buildApprovalGrants.
  */
 async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Promise<{
@@ -105,7 +103,7 @@ async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Pro
   resumeStateToken: string | undefined;
   grant: ApprovalGrant;
 }> {
-  const tc = buildToolCallProto(event);
+  const tc = foldCursorEvents([event]).rows()[0];
 
   // The gated turn: the hook denies the call, recording its identity token. The
   // runner's overlay (reconcileDeniedToolCalls) flips the same call to
@@ -120,7 +118,7 @@ async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Pro
     toolCalls: [tc],
   });
   const ledger: DeniedLedgerEntry[] = [{ toolName: tc.name, token: denialToken }];
-  const denied = await reconcileDeniedToolCalls([msg], ledger);
+  const denied = await reconcileDeniedToolCalls(builderOver([msg]), ledger);
   expect(denied, "the overlay must match the denial token and surface the gate").toHaveLength(1);
 
   // The user approves; the backend persists the decision on the tool call.
@@ -234,12 +232,8 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
     // The exact bug this change fixes: approving the rename must NOT authorize
     // the TODO edit. They share a path (same coarse token) but differ in content,
     // so the content-exact identity distinguishes them.
-    const rename = buildToolCallProto(
-      builtInEvent("c1", "edit", { path: "/work/notes.md", old_string: "Planton Cloud", new_string: "Planton" }),
-    );
-    const todo = buildToolCallProto(
-      builtInEvent("c2", "edit", { path: "/work/notes.md", old_string: "", new_string: "## TODO\n" }),
-    );
+    const rename = foldCursorEvents([builtInEvent("c1", "edit", { path: "/work/notes.md", old_string: "Planton Cloud", new_string: "Planton" })]).rows()[0];
+    const todo = foldCursorEvents([builtInEvent("c2", "edit", { path: "/work/notes.md", old_string: "", new_string: "## TODO\n" })]).rows()[0];
     const renameToken = toolCallIdentityToken(rename);
     const todoToken = toolCallIdentityToken(todo);
 
@@ -252,9 +246,7 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
     );
     // Re-issuing the SAME rename content reproduces its identity (identical
     // re-attempt is allowed; a drifted one re-gates).
-    const renameAgain = buildToolCallProto(
-      builtInEvent("c3", "edit", { path: "/work/notes.md", old_string: "Planton Cloud", new_string: "Planton" }),
-    );
+    const renameAgain = foldCursorEvents([builtInEvent("c3", "edit", { path: "/work/notes.md", old_string: "Planton Cloud", new_string: "Planton" })]).rows()[0];
     expect(toolCallIdentityToken(renameAgain)).toBe(renameToken);
   });
 
@@ -263,7 +255,7 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
     event: Extract<SDKMessage, { type: "tool_call" }>,
     action: ApprovalAction,
   ): AgentMessage {
-    const tc = buildToolCallProto(event);
+    const tc = foldCursorEvents([event]).rows()[0];
     tc.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
     tc.requiresApproval = true;
     tc.approvalAction = action;

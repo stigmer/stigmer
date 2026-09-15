@@ -27,6 +27,12 @@ import { CursorTranslator, type CursorTranslatorOptions } from "../translator.js
 export interface CursorFoldOptions {
   /** The status to build into; a fresh empty one when omitted. Its `messages` are the translator's seed. */
   readonly status?: AgentExecutionStatus;
+  /**
+   * An existing `messages` array to build into BY REFERENCE (a test that
+   * hand-built its seeded rows and keeps asserting on the same objects). Wins
+   * over `status`'s own array.
+   */
+  readonly messages?: AgentMessage[];
   readonly policies?: CursorTranslatorOptions["policies"];
   readonly leases?: CursorTranslatorOptions["leases"];
 }
@@ -38,6 +44,7 @@ export class CursorFold {
 
   constructor(options: CursorFoldOptions = {}) {
     this.status = options.status ?? create(AgentExecutionStatusSchema, {});
+    if (options.messages) this.status.messages = options.messages;
     this.translator = new CursorTranslator({
       policies: options.policies ?? new Map(),
       leases: options.leases ?? { global: false, categories: new Set() },
@@ -94,4 +101,16 @@ export class CursorFold {
 /** Fold a sequence of stream events into a fresh transcript; the common one-liner. */
 export function foldCursorEvents(events: readonly SDKMessage[], options: CursorFoldOptions = {}): CursorFold {
   return new CursorFold(options).events(...events);
+}
+
+/**
+ * A builder over an existing `messages` array, kept BY REFERENCE (the status
+ * is given the array itself, never a copy), so a boundary test that built its
+ * rows by hand can hand them to `reconcileDeniedToolCalls` and keep asserting
+ * on the same objects.
+ */
+export function builderOver(messages: AgentMessage[], executionId = "exec-boundary"): TranscriptBuilder {
+  const status = create(AgentExecutionStatusSchema, {});
+  status.messages = messages;
+  return new TranscriptBuilder(executionId, status);
 }

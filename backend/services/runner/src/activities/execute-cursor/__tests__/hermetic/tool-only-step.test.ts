@@ -4,7 +4,7 @@
  *
  * Invariant pinned (S4 M0 net): a tool call with no AI message before it in
  * its scope gets an EMPTY AI message created to carry its row
- * (`MessageAccumulator.findOrCreateLastAiMessage`), and the assistant text
+ * (the builder's AI-message boundary, Q-S4-5), and the assistant text
  * that follows the tool opens a new message. So: AI(`""` + the read row),
  * AI(A1). This is the same shape the native builder produces for a model turn
  * that proposes tools without text (`ensureAiMessageForToolCall`), which is

@@ -3,11 +3,11 @@
  * second a `merge`, through the whole `ExecuteCursor` activity.
  *
  * Invariant pinned: a todo tool call is a row like any other AND a projection.
- * `TodoTracker` acts on the `completed` event and projects `args.todos` into
- * `status.todos` through the shared `applyTodoUpdate` — a full replace by
+ * The shared builder projects a COMPLETED `ToolKind.TODO` row's `args.todos`
+ * into `status.todos` through the shared `applyTodoUpdate` — a full replace by
  * default, a MERGE when the SDK's args say `merge: true` (the first write's
- * `createdAt` survives, `updatedAt` moves). The accumulator closes the run's
- * streaming text on the call like any tool and keeps the row: an `updateTodos`
+ * `createdAt` survives, `updatedAt` moves) — and the row stays on the message
+ * that proposed it: an `updateTodos`
  * row (COMPLETED, `toolKind` TODO, `args`, `argsPreview`, `result`) on
  * `messages[0]` and another on `messages[1]`. So: three AI messages, two
  * rows, two todos. The web console hides the row (`isInternalTool`); the CLI
@@ -19,8 +19,8 @@
  * no rows — a per-harness branch on a tool name the canonical builder does
  * not have (native has always kept its `write_todos` row). A1 aligned the
  * accumulator before the swap so the swap moves nothing; `todos` was and is
- * byte-identical. `TodoTracker` itself goes at the swap, where the builder
- * projects the todos from the row.
+ * byte-identical. `TodoTracker` went at the swap (B4), where the builder took
+ * over projecting the todos from the row.
  *
  * Why this net exists: no Cursor golden before M0 carried a todo.
  *

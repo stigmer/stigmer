@@ -41,7 +41,8 @@
  *     overwrites, an empty one never clears (Q-S4-3(c)); a re-emit that
  *     changes nothing forces no persist (Q-M4-8); a fact the harness
  *     observed earlier and delivers later stamps its own instant
- *     (`observedAt`, Q-M4-14).
+ *     (`observedAt`, Q-M4-14); an output chunk for a settled row is stale
+ *     and dropped — the completion's result is the whole output (Q-M4-15).
  *   - The AI-message boundary (Q-S4-5; native's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
@@ -533,6 +534,11 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
   private handleToolOutputDelta(scope: Transcript, callId: string, delta: string): void {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
+    // A chunk for a row that has already settled is stale: the completion's
+    // result IS the whole output, and appending would double it (S4 M4 B4,
+    // Q-M4-15 — Cursor's delta channel and stream can deliver the output's
+    // chunks and the completion in one loop window, completion first).
+    if (isSettled(tc.status)) return;
     // Output arriving live: the row streams its OUTPUT (Q-S4-3(d); Cursor's
     // enricher), so the client can show the partial result as it grows;
     // the finish, or `finalize()`, closes it.

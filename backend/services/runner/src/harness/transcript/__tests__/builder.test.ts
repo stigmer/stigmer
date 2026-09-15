@@ -395,6 +395,18 @@ describe("TranscriptBuilder — tool_output_delta streams the row's output (Q-S4
     expect(row.result).toBe("partial and complete");
   });
 
+  it("a chunk for a settled row is dropped — the completion's result is the whole output, and a late chunk would double it (Q-M4-15)", () => {
+    const sb = feed(builder(), [
+      ...proposedCall("sh-1", "shell"),
+      { kind: "tool_output_delta", callId: "sh-1", delta: "> test\n" },
+      { kind: "tool_finished", callId: "sh-1", result: "> test\n12 passing\n" },
+      { kind: "tool_output_delta", callId: "sh-1", delta: "12 passing\n" },
+    ]);
+    const row = rowOf(sb, "sh-1");
+    expect(row.result).toBe("> test\n12 passing\n");
+    expect(row.isStreaming).toBe(false);
+  });
+
   it("finalize() closes a row still streaming when the stream ends, and every message with it", () => {
     const sb = feed(builder(), [
       ...proposedCall("sh-1", "execute"),
@@ -743,6 +755,16 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
 });
 
 describe("TranscriptBuilder — finalize() clears every streaming flag in every scope", () => {
+  it("promotes nothing: a RUNNING row with streamed output but no completion stays RUNNING for the harness's boundary to settle (F-M4-10)", () => {
+    const sb = feed(builder(), [...proposedCall("sh-1", "shell"), { kind: "tool_output_delta", callId: "sh-1", delta: "partial output" }]);
+    sb.finalize();
+    const row = rowOf(sb, "sh-1");
+    expect(row.status, "output is not completion").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(row.result).toBe("partial output");
+    expect(row.isStreaming).toBe(false);
+    expect(row.completedAt).toBe("");
+  });
+
   it("messages and rows, root and sub-agents", () => {
     const sb = feed(builder(), [
       { kind: "message_start", runId: "r" },

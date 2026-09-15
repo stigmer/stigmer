@@ -19,13 +19,13 @@ import type { StreamingUpdateScheduler } from "./streaming-scheduler.js";
  * live stream immediately, independent of the scheduler's time cadence.
  */
 export interface ForceFlushSignals {
-  /** Shell/tool output text accumulated past the delta-enricher debounce. */
+  /** Unused since S4 M4 (the Cursor loop passes `false`); M5 collapses the shape to one flag (Q-S4-12). */
   readonly deltaEnricherDirty: boolean;
   /** The agent's todo list changed. */
   readonly todosDirty: boolean;
   /**
    * A tool call started or reached a terminal status, or a sub-agent was
-   * delegated/updated (MessageAccumulator.isDirty).
+   * delegated/updated (the transcript builder's `forceNextUpdate`).
    */
   readonly contentDirty: boolean;
 }

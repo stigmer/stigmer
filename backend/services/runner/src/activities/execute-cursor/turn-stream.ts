@@ -10,13 +10,22 @@
  * retry froze the UI and mis-handled a mid-retry pause. One loop removes that
  * drift by construction.
  *
+ * The transcript (S4 M4): every stream event goes through the harness's
+ * translator (`translator.ts`) into the shared `TranscriptBuilder`
+ * (`harness/transcript/builder.ts`), and the delta channel's facts, which the
+ * translator QUEUES as they arrive in `onDelta`, are drained into the builder
+ * after each stream event — never during an awaited persist, where a row
+ * write would land on a row the offload is replacing (M4 finding F-M4-23).
+ * Until M4 this loop fed three writers of its own (`MessageAccumulator`,
+ * `DeltaEnricher`, `TodoTracker`), the Cursor copy of the folding rule.
+ *
  * What the loop asks of the runtime, through the sink (`harness/types.ts`):
  * `recordActivity()` per event (with the tool name) and per delta, so the
  * runtime's stall watchdog measures the engine; `reportUsage()` per
  * `turn-ended` delta, priced here at the requested variant's rates
  * (`usage-pricing.ts`), so the runtime accounts and enforces the cost cap;
  * `requestPersist()` where a discrete change or the streaming cadence says
- * so (`shared/persist-decision.ts` over this loop's own dirty flags), AWAITED,
+ * so (`shared/persist-decision.ts` over the builder's dirty flag), AWAITED,
  * so a platform STOP the runtime reads from that write aborts the signal
  * before the next event is pulled; and `stopSignal`, checked at every event
  * boundary and listened to inside the pull, where an abort cancels the SDK
@@ -31,11 +40,10 @@
 
 import type { SDKMessage, InteractionUpdate } from "@cursor/sdk";
 import type { TurnSink } from "../../harness/types.js";
+import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { approvalDenials, readDenialLedger } from "./approval-state.js";
-import type { MessageAccumulator } from "./message-translator.js";
-import type { DeltaEnricher } from "./delta-enricher.js";
-import type { TodoTracker } from "./todo-tracker.js";
+import type { CursorTranslator } from "./translator.js";
 import type { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
 import type { CursorUsagePricer } from "./usage-pricing.js";
 import type { createCursorEventRecorder } from "./cursor-event-recorder.js";
@@ -92,23 +100,24 @@ export function newTurnStreamState(): TurnStreamState {
 }
 
 /**
- * The subset of collaborators the shared onDelta needs. Broken out from
- * CursorTurnStreamDeps because the primary send happens BEFORE the accumulator
- * exists — onDelta only touches the sink, the pricer, the enricher, and state.
+ * The subset of collaborators the shared onDelta needs — the sink, the
+ * pricer, the translator (which queues the delta's transcript facts) and the
+ * state. Broken out from CursorTurnStreamDeps so the send that wires onDelta
+ * needs nothing of the stream loop.
  */
 export interface TurnOnDeltaDeps {
   readonly sink: TurnSink;
   /** This harness's pricing of a `turn-ended` delta at the requested variant's rates. */
   readonly usagePricer: CursorUsagePricer;
-  readonly deltaEnricher: DeltaEnricher;
+  readonly translator: CursorTranslator;
   readonly promptEstimatedTokens: number;
   readonly executionId: string;
   readonly state: TurnStreamState;
 }
 
 export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
-  readonly accumulator: MessageAccumulator;
-  readonly todoTracker: TodoTracker;
+  /** The one transcript builder, over `sink.status`; the translator's events fold into it. */
+  readonly transcript: TranscriptBuilder;
   readonly eventRecorder: CursorTurnEventRecorder | undefined;
   readonly scheduler: StreamingUpdateScheduler;
   /** Session HITL dir holding the denial ledger; undefined → no gate installed → no first-denial stop. */
@@ -119,12 +128,13 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
  * Build the shared onDelta callback. The Cursor SDK's fine-grained delta channel
  * carries token usage, live shell output, and precise tool-call timings; it also
  * fires far more often than discrete stream events, so it is where the runtime's
- * stall timer is reset during a long model generation.
+ * stall timer is reset during a long model generation. Usage is priced here
+ * (a loop concern); the transcript facts are the translator's to queue.
  */
 export function makeCursorTurnOnDelta(
   deps: TurnOnDeltaDeps,
 ): (event: { update: InteractionUpdate }) => void {
-  const { sink, usagePricer, deltaEnricher, promptEstimatedTokens, executionId, state } = deps;
+  const { sink, usagePricer, translator, promptEstimatedTokens, executionId, state } = deps;
   return ({ update }) => {
     // Progress on the delta channel too: a long model generation emits token
     // deltas but few discrete stream events, and resetting only in the stream
@@ -146,7 +156,7 @@ export function makeCursorTurnOnDelta(
         );
       }
     }
-    deltaEnricher.processDelta(update);
+    translator.observeDelta(update);
   };
 }
 
@@ -164,16 +174,15 @@ export async function consumeCursorTurnStream(
 ): Promise<TurnStreamReason> {
   const {
     sink,
-    accumulator,
-    todoTracker,
-    deltaEnricher,
+    translator,
+    transcript,
     eventRecorder,
     scheduler,
     hitlDir,
     executionId,
     state,
   } = deps;
-  const { status, stopSignal } = sink;
+  const { stopSignal } = sink;
 
   // The runtime's stop, whatever its cause, ends the run through the SDK's
   // own cancel: that is what unblocks a wedged `for await` (a stall), and it
@@ -207,12 +216,11 @@ export async function consumeCursorTurnStream(
 
       eventRecorder?.record(event, state.eventCount);
 
-      accumulator.processEvent(event);
-      todoTracker.processEvent(event);
-
-      if (event.type === "tool_call" && event.name === "task") {
-        accumulator.trackSubAgentExecution(event as Extract<SDKMessage, { type: "tool_call" }>);
-      }
+      // The stream event, then the deltas that arrived since the last one —
+      // the enricher's order, kept so a completion the delta channel reported
+      // in the same window as the stream's own defers to the stream's instant.
+      for (const fact of translator.translate(event)) transcript.apply(fact);
+      for (const fact of translator.drainDeltas()) transcript.apply(fact);
 
       // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
       // an IRREVERSIBLE tool the hook still gates (shell, MCP, or a gitignored
@@ -228,7 +236,7 @@ export async function consumeCursorTurnStream(
       // post-denial reaction (thinking, narration, a workaround shell) stream and
       // persist live (production case aex_01kwj07f7g23c3wp9sn8496z5g). The
       // tool_call-event read stays as the backstop for platforms where fs.watch
-      // is unreliable; the current event was already accumulated above, so the
+      // is unreliable; the current event was already folded above, so the
       // anchor's own row is always present for the turn-boundary gate overlay.
       if (!state.firstDenialDetected && hitlDir && (state.denialLedgerDirty || event.type === "tool_call")) {
         state.denialLedgerDirty = false;
@@ -262,7 +270,6 @@ export async function consumeCursorTurnStream(
         }
       }
 
-      deltaEnricher.applyEnrichments(status.messages);
       state.eventCount++;
 
       if (event.type === "status") {
@@ -278,27 +285,24 @@ export async function consumeCursorTurnStream(
         }
       }
 
+      // The three-flag shape is the persist decision's until M5 collapses it to
+      // one (Q-S4-12); the builder's flag is the one discrete signal now, as on
+      // native.
       const shouldPersist = shouldPersistStreamingStatus(
-        {
-          deltaEnricherDirty: deltaEnricher.isDirty,
-          todosDirty: todoTracker.isDirty,
-          contentDirty: accumulator.isDirty,
-        },
+        { deltaEnricherDirty: false, todosDirty: false, contentDirty: transcript.forceNextUpdate },
         scheduler,
         state.eventCount,
       );
       if (shouldPersist) {
-        // The accumulator upserts sub-agent rows into `status.subAgentExecutions`
-        // in place (wrapped by reference at construction), so every persist
-        // already carries delegation, IN_PROGRESS included. The runtime attaches
-        // the mid-run file-change progress on this write (the chokepoint's
-        // step 2), as it does on every write.
+        // The builder upserts sub-agent rows into `status.subAgentExecutions`
+        // in place (the status's own array), so every persist already carries
+        // delegation, IN_PROGRESS included. The runtime attaches the mid-run
+        // file-change progress on this write (the chokepoint's step 2), as it
+        // does on every write.
         // Awaited: the runtime reads the control plane's answer to this write,
         // and a STOP must be seen at the next event boundary, not one event late.
         await sink.requestPersist();
-        deltaEnricher.markPersisted();
-        todoTracker.markPersisted();
-        accumulator.markPersisted();
+        transcript.clearForceFlag();
         scheduler.markUpdateSent(state.eventCount);
       }
     }

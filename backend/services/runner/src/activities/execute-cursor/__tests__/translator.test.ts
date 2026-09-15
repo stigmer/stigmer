@@ -163,6 +163,23 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(fold.messages[0].toolCalls.map((tc) => tc.id)).toEqual(["c1"]);
   });
 
+  it("a completion after later text lands on the row where it started, never on the new message (cross-message completion)", () => {
+    const fold = foldCursorEvents([
+      ev.assistant("Running two things."),
+      ev.toolCall("a", "read", "running", { path: "a" }),
+      ev.toolCall("b", "shell", "running", { command: "ls" }),
+      ev.assistant("Meanwhile…"),
+      ev.toolCall("b", "shell", "completed", { command: "ls" }, "files"),
+      ev.toolCall("a", "read", "completed", { path: "a" }, "text"),
+      ev.assistant("Both done."),
+    ]);
+    expect(fold.messages.map((m) => [m.content, m.toolCalls.map((tc) => [tc.id, tc.status, tc.result])])).toEqual([
+      ["Running two things.", [["a", ToolCallStatus.TOOL_CALL_COMPLETED, "text"], ["b", ToolCallStatus.TOOL_CALL_COMPLETED, "files"]]],
+      ["Meanwhile…", []],
+      ["Both done.", []],
+    ]);
+  });
+
   it("a string args payload is parsed when it is JSON, and is nothing when it is not (F-M4-19)", () => {
     const t = translator();
     expect(t.translate(ev.toolCall("c1", "read", "running", '{"path":"a"}'))[0]).toMatchObject({ input: { path: "a" } });
@@ -170,15 +187,24 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(t.translate(ev.toolCall("c3", "read", "running", undefined))[0]).toMatchObject({ input: {} });
   });
 
-  it("a todo write is an ordinary tool call the builder keys on ToolKind.TODO and projects (Q-S4-7)", () => {
-    const fold = foldCursorEvents([
-      ev.assistant("Planning."),
-      ev.toolCall("t1", "updateTodos", "running", { todos: [{ content: "Step 1", status: "pending" }] }),
-      ev.toolCall("t1", "updateTodos", "completed", { todos: [{ content: "Step 1", status: "pending" }] }, "ok"),
-    ]);
+  it("a todo write is an ordinary tool call the builder keys on ToolKind.TODO and projects at completion (Q-S4-7)", () => {
+    const TODOS = { todos: [{ content: "Step 1", status: "pending" }] };
+    const fold = foldCursorEvents([ev.assistant("Planning."), ev.toolCall("t1", "updateTodos", "running", TODOS)]);
     expect(fold.row("t1").toolKind).toBe(ToolKind.TODO);
     expect(fold.row("t1").requiresApproval).toBe(false);
+    expect(fold.status.todos, "a running write projects nothing: its args may be incomplete").toEqual({});
+    fold.event(ev.toolCall("t1", "updateTodos", "completed", TODOS, "ok"));
     expect(Object.keys(fold.status.todos)).toEqual(["todo-0"]);
+    // The legacy name projects too; a write that errors, and a tool that is not a todo tool, never do.
+    fold.event(ev.toolCall("t2", "TodoWrite", "completed", { todos: [{ id: "x", content: "Legacy", status: "completed" }], merge: true }, "ok"));
+    expect(Object.keys(fold.status.todos).sort()).toEqual(["todo-0", "x"]);
+    fold.event(ev.toolCall("t3", "updateTodos", "error", { todos: [] }, "boom"));
+    fold.event(ev.toolCall("t4", "write_notes", "completed", { todos: [] }, "ok"));
+    expect(Object.keys(fold.status.todos).sort()).toEqual(["todo-0", "x"]);
+    // A JSON-string args payload (the SDK's other shape) projects like an object.
+    fold.event(ev.toolCall("t5", "updateTodos", "completed", JSON.stringify({ todos: [{ content: "From a string", status: "pending" }] }), "ok"));
+    expect(Object.keys(fold.status.todos)).toEqual(["todo-0"]);
+    expect(fold.status.todos["todo-0"].content).toBe("From a string");
   });
 
   it("the task SDK event is a system_note; an empty one, the system/status/user/request/usage events, are nothing", () => {

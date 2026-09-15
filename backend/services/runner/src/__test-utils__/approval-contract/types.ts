@@ -137,7 +137,7 @@ export interface SubstrateCapabilities {
    * and stamps the source at interrupt time (`true`); the Cursor substrate's
    * provenance is a reconstruction-time projection over the persisted tool call,
    * not a property of the hook's deny decision, so it is `false` here and is
-   * covered instead by the message-translator and corpus suites.
+   * covered instead by the translator, boundary-rows and corpus suites.
    */
   readonly surfacesGatePolicySource: boolean;
 }

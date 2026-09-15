@@ -55,7 +55,7 @@
  * Determinism: the clock is faked for `Date` ONLY (`vi.useFakeTimers({ toFake:
  * ["Date"] })`) and TICKS — the harness double advances it a fixed quantum per
  * script step through {@link ScriptedClock}. Frozen time would make
- * `delta-enricher.ts`'s persist debounce (`Date.now() - lastPersistTime`) never
+ * the streaming scheduler's cadence (`Date.now()` against its last send) never
  * elapse and silently skip the mid-stream persist path production always runs;
  * a ticking clock runs the same path and lands on the same instants every run.
  * Timers stay real so the periodic heartbeat and the stall watchdog behave.

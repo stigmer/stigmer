@@ -12,7 +12,7 @@
  * builder must reproduce byte for byte.
  *
  * Parent phase rows exercised beyond `plain-turn`: run the turn and consume
- * the engine stream (tool-call folding in `message-translator.ts`); the turn
+ * the engine stream (`translator.ts` into the shared `TranscriptBuilder`); the turn
  * boundary with nothing to gate or capture (a read tool writes no file; the
  * per-session workspace is unchanged, so the capture finds no candidate).
  *

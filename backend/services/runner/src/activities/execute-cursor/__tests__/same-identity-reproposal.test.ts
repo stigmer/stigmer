@@ -11,11 +11,11 @@
  * one — flipped it back to WAITING_APPROVAL with its APPROVE still on it and
  * wiped its result; the actual streamed call was hidden as a twin. On the next
  * invocation `approvalDecisionsOf` read that row as a decision and the new,
- * never-approved proposal ran under the old approval. The accumulator had the
+ * never-approved proposal ran under the old approval. The stream fold had the
  * sibling flaw: a re-issue after a SKIP or REJECT was reconciled onto the
  * declined row by identity, inheriting its decision.
  *
- * The rule, in `message-translator.ts`: a row the server has adjudicated
+ * The rule, in `boundary-rows.ts` and the translator's seeded-row match: a row the server has adjudicated
  * (`isAdjudicatedRow`) is never the home of THIS turn's denial and never a
  * twin to collapse; a row the user DECLINED (`isDeclinedRow`) is never the
  * home of a later same-identity call. The approved re-issue (the
@@ -36,8 +36,8 @@ import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/
 import type { SDKMessage } from "@cursor/sdk";
 
 import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
-import { MessageAccumulator } from "../message-translator.js";
 import { reconcileDeniedToolCalls } from "../boundary-rows.js";
+import { CursorFold, builderOver } from "../__test-utils__/fold.js";
 import { toolCallIdentityToken } from "../approval-state.js";
 import type { DeniedLedgerEntry } from "../approval-state.js";
 
@@ -85,12 +85,9 @@ function allToolCalls(messages: AgentMessage[]): ToolCall[] {
 
 /** The later turn: the model proposes the same edit under a fresh id, the hook denies it, the turn boundary reconciles. */
 async function laterTurnProposesSameEdit(seeded: AgentMessage[]): Promise<ToolCall[]> {
-  const acc = new MessageAccumulator(seeded, {});
-  acc.processEvent(toolCallEvent(LATER_ID, "running"));
-  acc.processEvent(toolCallEvent(LATER_ID, "error", "Blocked by hook"));
-  acc.finalize();
+  new CursorFold({ messages: seeded }).events(toolCallEvent(LATER_ID, "running"), toolCallEvent(LATER_ID, "error", "Blocked by hook")).finalize();
   const ledger: DeniedLedgerEntry[] = [{ toolName: "Write", token: toolCallIdentityToken(allToolCalls(seeded).find((tc) => tc.id === LATER_ID)!) }];
-  return reconcileDeniedToolCalls(seeded, ledger);
+  return reconcileDeniedToolCalls(builderOver(seeded), ledger);
 }
 
 function decisionsTheRuntimeWouldRead(messages: AgentMessage[]): ReadonlyMap<string, ApprovalAction> {
@@ -160,10 +157,9 @@ describe("a later same-identity proposal never lands on a decided row (F9)", () 
       }),
     ];
 
-    const acc = new MessageAccumulator(seeded, {});
-    acc.processEvent(toolCallEvent(`${FIRST_ID}_RESUME`, "running"));
-    acc.processEvent(toolCallEvent(`${FIRST_ID}_RESUME`, "completed", RESULT_OF_FIRST));
-    acc.finalize();
+    new CursorFold({ messages: seeded })
+      .events(toolCallEvent(`${FIRST_ID}_RESUME`, "running"), toolCallEvent(`${FIRST_ID}_RESUME`, "completed", RESULT_OF_FIRST))
+      .finalize();
 
     const tools = allToolCalls(seeded);
     expect(tools.map((tc) => tc.id), "one row, the committed id").toEqual([FIRST_ID]);

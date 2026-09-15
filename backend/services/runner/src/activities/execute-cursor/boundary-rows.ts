@@ -13,10 +13,13 @@
  * swap (B4) and replaced by `translator.ts` over the shared
  * `TranscriptBuilder`. Nothing here folds engine events: every function
  * AMENDS rows the stream already created, by identity (the token the hook and
- * the runner share), and the two that CREATE a row today (`markWaitingApproval`
- * on a streamed row, `synthesizeWaitingApprovalToolCall` for a denial no
- * streamed call matched) become `approval_proposed` through the builder at
- * B4 — the one post-stream fact both harnesses produce (Q-S4-3(e), Q-S4-20).
+ * the runner share); the one row this module ever needs CREATED — the gate for
+ * a denial no streamed call matched — and the one it REOPENS — the streamed
+ * call the hook denied — go through the shared `TranscriptBuilder` as
+ * `approval_proposed`, the one post-stream fact both harnesses produce
+ * (Q-S4-3(e), Q-S4-20; B4). `isTerminalToolStatus` below is the twin
+ * collapse's own settled set (`shared/tool-row.ts` explains why INTERRUPTED is
+ * not in it).
  *
  * The identity this module correlates on lives in `approval-state.ts`
  * (`toolCallIdentityToken` beside `toolIdentity`/`primaryToken`, the same
@@ -26,18 +29,15 @@
  * `turn-boundary.ts`.
  */
 
-import { create } from "@bufbuild/protobuf";
-import type { JsonObject } from "@bufbuild/protobuf";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { lookupMcpToolPolicy, resolveApprovalMessage, getBuiltInApprovalMessage, SALIENT_ARG_FIELDS } from "./approval-policy.js";
+import { lookupMcpToolPolicy, resolveApprovalMessage, getBuiltInApprovalMessage } from "./approval-policy.js";
 import {
   POLICY_ENGINE_VERSION,
   resolveApprovalProvenance,
-  toProtoPolicySource,
   unattendedSkipMessage,
 } from "../../shared/approval-policy.js";
 import {
@@ -52,11 +52,10 @@ import {
 } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { hideToolCallRow, isAdjudicatedRow, isToolCallRowHidden } from "../../shared/tool-row.js";
-import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
+import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { contentDigest, extractFilePath } from "../../shared/file-tools.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
-import { buildElidedArgsPreview } from "../../shared/args-preview.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 
 /** Shared empty set so a synthesized gate's provenance read allocates nothing. */
@@ -147,15 +146,23 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
  * sibling edit. A missing capture (the hook's grep fallback) degrades to the
  * prior behavior.
  *
+ * Every gate this function opens goes through the transcript builder as an
+ * `approval_proposed` (S4 M4 B4; Q-S4-3(e), Q-S4-20): a known row REOPENS
+ * (WAITING, the outcome the stream wrote cleared, the hook's captured input as
+ * its args and preview), an unknown one gets a WAITING row on the message
+ * whose text proposed it. The builder is the one writer of a WAITING row on
+ * both harnesses; this module supplies the fact and reads the row back.
+ *
  * Returns the tool calls now marked WAITING_APPROVAL — the single anchor gate
  * for the turn (overlaid or, rarely, synthesized).
  */
 export async function reconcileDeniedToolCalls(
-  messages: AgentMessage[],
+  transcript: TranscriptBuilder,
   ledger: DeniedLedgerEntry[],
   mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
   workspaceBackend?: WorkspaceBackend,
 ): Promise<ToolCall[]> {
+  const messages = transcript.currentStatus.messages;
   // Defense-in-depth: only APPROVAL-kind denials may become approval gates.
   // The turn boundary already passes the filtered subset; re-filtering here
   // makes it structurally impossible for a secret/capture-error/fail-closed
@@ -201,7 +208,7 @@ export async function reconcileDeniedToolCalls(
     for (const tc of msg.toolCalls) {
       if (isAdjudicatedRow(tc)) continue;
       if (toolCallIdentityToken(tc) !== anchorToken) continue;
-      overlayDeniedStreamCall(tc, anchorInput, mergedPolicies);
+      proposeOnStreamedRow(transcript, tc, anchorInput, mergedPolicies);
       matchedCalls.add(tc);
       result.push(tc);
       anchorMatched = true;
@@ -225,7 +232,7 @@ export async function reconcileDeniedToolCalls(
         messages, matchedCalls, wanted, workspaceRoot,
       );
       if (tc) {
-        overlayDeniedStreamCall(tc, anchorInput, mergedPolicies);
+        proposeOnStreamedRow(transcript, tc, anchorInput, mergedPolicies);
         matchedCalls.add(tc);
         result.push(tc);
         anchorMatched = true;
@@ -303,13 +310,14 @@ export async function reconcileDeniedToolCalls(
     // rebuilt from this tool call on reinvocation keys on the same resource.
     const displayName = anchorEntry.toolName || decoded?.key || "tool";
     const salient = decoded?.salient ?? "";
-    const tc = synthesizeWaitingApprovalToolCall(
-      displayName, salient, decoded?.digest ?? "", anchorToken, mergedPolicies,
-    );
-    // The hook-captured input upgrades the placeholder from a bare {path} to the
-    // full proposed args, so even a synthesized gate shows the proposed change.
-    applyGateInput(tc, anchorInput ?? anchorEntry.input);
-    appendToolCallToLastAiMessage(messages, tc);
+    const tc = proposeSynthesizedGate(transcript, {
+      displayName,
+      salient,
+      digest: decoded?.digest ?? "",
+      token: anchorToken,
+      input: anchorInput ?? anchorEntry.input,
+      mergedPolicies,
+    });
     result.push(tc);
   }
 
@@ -317,23 +325,89 @@ export async function reconcileDeniedToolCalls(
 }
 
 /**
- * Overlay WAITING_APPROVAL onto a streamed tool call the hook denied. Mutates
- * `tc` in place — the call keeps its committed id, so the backend's
+ * Propose the gate ON a streamed tool call the hook denied: the row REOPENS
+ * WAITING through the builder and keeps its committed id, so the backend's
  * append-only-at-identity transcript guard accepts the finalize (an in-place
- * status change is a reconcile, not a drop). The single overlay routine for both
- * the exact and the normalized correlation passes, so the gate diff can never
- * diverge between them. The hook-captured `input` (when present) is the
- * authoritative, complete proposed args — the stream may have carried only
- * partial args before the first-denial cancel — so it supplies the args preview
- * and the content digest (see {@link applyGateInput}).
+ * status change is a reconcile, not a drop). The single routine for both the
+ * exact and the normalized correlation passes, so the gate can never diverge
+ * between them. The message is the one the stream already stamped when the
+ * policy gated the call, else resolved now; the hook-captured `input` (when
+ * present) is the authoritative, complete proposed args — the stream may have
+ * carried only partial args before the first-denial cancel — and supplies the
+ * args, the preview and the content digest (see {@link proposalArgs}).
  */
-function overlayDeniedStreamCall(
+function proposeOnStreamedRow(
+  transcript: TranscriptBuilder,
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
   mergedPolicies: ReadonlyMap<string, MergedToolPolicy> | undefined,
 ): void {
-  markWaitingApproval(tc, mergedPolicies);
-  applyGateInput(tc, input);
+  const args = proposalArgs(input);
+  transcript.apply({
+    kind: "approval_proposed",
+    callId: tc.id,
+    name: tc.name,
+    mcpServerSlug: tc.mcpServerSlug,
+    message: tc.approvalMessage || resolveDeniedApprovalMessage(tc.name, tc.mcpServerSlug, toolCallArgs(tc), mergedPolicies),
+    ...(args !== undefined ? { args, contentDigest: contentDigest(args) } : {}),
+  });
+}
+
+/**
+ * Propose the gate for a denial that matched NO streamed call: a WAITING row
+ * with a synthesized id (`approval:<token>`) on the message whose text proposed
+ * it. It displays the hook's raw tool name and carries the decoded salient as
+ * its args (so the grant rebuilt from it on reinvocation keys on the same
+ * resource) and the anchor's content digest (so its identity equals the
+ * anchor's content token); the hook-captured input, when present, upgrades
+ * both to the full proposed change. A synthesized call is a ledger denial — it
+ * was gated, so it has a governing layer, and a denied call never occurs under
+ * a global bypass or a matching lease, so empty leases + no bypass attribute
+ * it faithfully (a built-in resolves to builtin_category; an MCP placeholder
+ * lacks a reconstructed slug and stays UNSPECIFIED rather than be mislabeled).
+ */
+function proposeSynthesizedGate(
+  transcript: TranscriptBuilder,
+  gate: {
+    displayName: string;
+    salient: string;
+    digest: string;
+    token: string;
+    input: Record<string, unknown> | undefined;
+    mergedPolicies: ReadonlyMap<string, MergedToolPolicy> | undefined;
+  },
+): ToolCall {
+  const { displayName, salient, digest, token, input, mergedPolicies } = gate;
+  const callId = `approval:${token}`;
+  const captured = proposalArgs(input);
+  const args = captured ?? (salient ? { path: salient } : undefined);
+  const provenance = mergedPolicies
+    ? resolveApprovalProvenance(displayName, "", mergedPolicies, NO_LEASED_CATEGORIES, false)
+    : undefined;
+  transcript.apply({
+    kind: "approval_proposed",
+    callId,
+    name: displayName,
+    mcpServerSlug: "",
+    message: salient
+      ? `Tool requires approval: ${displayName} (${salient})`
+      : resolveDeniedApprovalMessage(displayName, "", {}, mergedPolicies),
+    ...(args !== undefined ? { args } : {}),
+    ...(provenance !== undefined ? { provenance } : {}),
+    contentDigest: captured ? contentDigest(captured) : digest,
+  });
+  const row = findToolCallById(transcript.currentStatus.messages, callId);
+  if (!row) throw new Error(`reconcileDeniedToolCalls: the builder did not create the proposed row ${callId}`);
+  return row;
+}
+
+/** The last row with this id in the root transcript (the builder appends; a synthesized gate is always the newest). */
+function findToolCallById(messages: readonly AgentMessage[], id: string): ToolCall | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const found = messages[i].toolCalls.find((tc) => tc.id === id);
+    if (found) return found;
+  }
+  return undefined;
 }
 
 /**
@@ -561,46 +635,35 @@ function collapseDenialTwin(tc: ToolCall): void {
 // rows identically; imported at the top of this module.
 
 /**
- * Overlay the hook-captured authoritative tool input onto a gated tool call so
- * the approval card can show the proposed change before the user approves.
+ * The hook-captured authoritative tool input as a proposal's args, so the
+ * approval card can show the proposed change before the user approves.
  *
- * When `input` is present it becomes the single source for the preview: the full
+ * When present it becomes the single source for the preview: the full
  * structured `args` (the approval card renders the proposed write/edit content
- * from these), a compact-but-always-valid `args_preview` (the field a resumed
- * turn parses to rebuild the grant salient — so salient fields are never elided),
- * and the content digest.
+ * from these), the compact-but-always-valid `args_preview` the builder derives
+ * from them (the field a resumed turn parses to rebuild the grant salient — so
+ * salient fields are never elided), and the content digest the caller stamps
+ * beside them. The digest is the resume identity: it binds the grant to
+ * (category, path, content) so a sibling edit to the same file re-gates rather
+ * than riding an earlier approval through. It is also the identity the Cursor
+ * deny-gate's exact-apply reads on resume — together with the whole-file bytes
+ * in `args` — to write exactly what was approved (see exact-apply.ts). There is
+ * no separate captured `file_changes` mirror; `args` is the single source for
+ * both the preview and the applied bytes.
  *
- * The digest is the resume identity: it binds the grant to (category, path,
- * content) so a sibling edit to the same file re-gates rather than riding an
- * earlier approval through. It is also the identity the Cursor deny-gate's
- * exact-apply reads on resume — together with the whole-file bytes in `args` — to
- * write exactly what was approved (see exact-apply.ts). There is no separate
- * captured `file_changes` mirror; `args` is the single source for both the
- * preview and the applied bytes.
- *
- * With no `input` (the hook's grep fallback) there is nothing authoritative to
- * stamp and the call keeps its existing args.
+ * Defense-in-depth (DD-26 #2): a secret-like write's content never reaches the
+ * persisted approval preview. Normally unreachable — the hook hard-blocks a
+ * secret write and records no ledger input — but if a hook classify failure
+ * fell one through, its content must still never reach args/args_preview; the
+ * Invariant-A backstop is the final net, this closes the path at the source.
+ * With no input (the hook's grep fallback) there is nothing authoritative and
+ * the row keeps its existing args.
  */
-function applyGateInput(
-  tc: ToolCall,
-  input: Record<string, unknown> | undefined,
-): void {
-  if (!input) return;
-  // Defense-in-depth (DD-26 #2): never overlay a secret-like write's content into
-  // the persisted approval preview. Normally unreachable — the hook hard-blocks a
-  // secret write and records no ledger input — but if a hook classify failure fell
-  // one through, its content must still never reach args/args_preview. The
-  // Invariant-A backstop is the final net; this closes the path at the source.
+function proposalArgs(input: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!input) return undefined;
   const gatePath = extractFilePath(input);
-  if (gatePath !== null && isSecretLikePath(gatePath)) return;
-  tc.args = input as JsonObject;
-  tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
-  // Stamp the content digest from the AUTHORITATIVE captured input, so the
-  // approved edit's exact content survives to resume on a small, never-elided
-  // field — the grant then binds to (category, path, content) and a sibling
-  // edit to the same file re-gates. Empty for a non-content tool. This is the
-  // one place the digest is authored; everything downstream reads the field.
-  tc.approvalContentDigest = contentDigest(input);
+  if (gatePath !== null && isSecretLikePath(gatePath)) return undefined;
+  return input;
 }
 
 /**
@@ -1039,70 +1102,6 @@ export function stampUnattendedSkippedToolCalls(
 }
 
 /**
- * Mark a denied tool call as awaiting approval, clearing the result/terminal
- * fields the stream may have set (the tool never actually ran — it was gated).
- */
-function markWaitingApproval(
-  tc: ToolCall,
-  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
-): void {
-  tc.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
-  tc.requiresApproval = true;
-  if (!tc.approvalMessage) {
-    tc.approvalMessage = resolveDeniedApprovalMessage(
-      tc.name, tc.mcpServerSlug, toolCallArgs(tc), mergedPolicies,
-    );
-  }
-  if (!tc.approvalRequestedAt) tc.approvalRequestedAt = utcTimestamp();
-  tc.completedAt = "";
-  tc.error = "";
-  tc.result = "";
-}
-
-function synthesizeWaitingApprovalToolCall(
-  displayName: string,
-  salient: string,
-  digest: string,
-  token: string,
-  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
-): ToolCall {
-  const tc = create(ToolCallSchema, {
-    id: `approval:${token}`,
-    name: displayName,
-    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    requiresApproval: true,
-    startedAt: utcTimestamp(),
-    approvalRequestedAt: utcTimestamp(),
-    toolKind: classifyTool(displayName),
-    // Carry the decoded digest so this placeholder's identity (and the grant
-    // rebuilt from it on resume) equals the anchor's content token. applyGateInput
-    // overwrites it from the authoritative input when one was captured.
-    approvalContentDigest: digest,
-  });
-  // Carry the salient resource so reconstructAdjudicatedApprovals -> the grant
-  // builder keys on the same resource the hook will see on the re-attempt.
-  if (salient) {
-    tc.argsPreview = JSON.stringify({ path: salient });
-  }
-  tc.approvalMessage = salient
-    ? `Tool requires approval: ${displayName} (${salient})`
-    : resolveDeniedApprovalMessage(displayName, "", {}, mergedPolicies);
-  // A synthesized call is a ledger denial — it was gated, so it has a governing
-  // layer. A denied call never occurs under a global bypass or a matching lease,
-  // so empty leases + no bypass faithfully attribute it (a built-in resolves to
-  // builtin_category; an MCP placeholder lacks a reconstructed slug and stays
-  // UNSPECIFIED rather than be mislabeled).
-  if (mergedPolicies) {
-    const source = resolveApprovalProvenance(
-      displayName, "", mergedPolicies, NO_LEASED_CATEGORIES, false,
-    );
-    tc.approvalPolicySource = toProtoPolicySource(source);
-    if (source) tc.policyEngineVersion = POLICY_ENGINE_VERSION;
-  }
-  return tc;
-}
-
-/**
  * Resolve a human-readable approval message for a denied tool, preferring the
  * MCP policy template, then the built-in template, then a generic fallback.
  */
@@ -1121,21 +1120,4 @@ function resolveDeniedApprovalMessage(
     if (template) return resolveApprovalMessage(template, name, args);
   }
   return `Tool requires approval: ${name}`;
-}
-
-/** Append a tool call to the last AI message, creating one if none exists. */
-function appendToolCallToLastAiMessage(messages: AgentMessage[], tc: ToolCall): void {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].type === MessageType.MESSAGE_AI) {
-      messages[i].toolCalls.push(tc);
-      return;
-    }
-  }
-  const msg = create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_AI,
-    content: "",
-    timestamp: utcTimestamp(),
-    toolCalls: [tc],
-  });
-  messages.push(msg);
 }

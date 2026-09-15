@@ -3,13 +3,13 @@
  * hands work to a sub-agent through the SDK's `task` tool, and the sub-agent's
  * own conversation arrives, whole, in the `task` call's result.
  *
- * Invariant pinned (S4 M0 net): `turn-stream.ts` routes every `tool_call`
- * named `task` to `MessageAccumulator.trackSubAgentExecution` as well as to the
- * root transcript. The `running` event opens a `SubAgentExecution` keyed by the
+ * Invariant pinned (S4 M0 net): the translator opens a sub-agent for every
+ * `tool_call` named `task` (`sub_agent_started` before the row's own start) as
+ * well as writing the row to the root transcript. The `running` event opens a `SubAgentExecution` keyed by the
  * task call id (`name` from `subagentType`, `subject` from `description`,
  * `input` from `prompt`, IN_PROGRESS); the `completed` event closes it
  * COMPLETED with `output` (the stringified result) and rebuilds its transcript
- * from the result's `conversationSteps` (`extractConversationSteps`): an
+ * from the result's `conversationSteps` (`sub-agent-steps.ts`): an
  * `assistantMessage` step is an AI row, and a `toolCall` step is a tool row on
  * the transcript's LAST AI message — the assistant step that proposed it — named
  * from its `<kind>ToolCall` key (`buildSubAgentToolCall`), with the SDK's

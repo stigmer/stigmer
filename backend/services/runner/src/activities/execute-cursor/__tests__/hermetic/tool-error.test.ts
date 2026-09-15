@@ -4,7 +4,7 @@
  * the whole `ExecuteCursor` activity.
  *
  * Invariant pinned (S4 M0 net): the error event folds onto the same row
- * (`MessageAccumulator.mergeToolCallEvent`) as FAILED, with the failure text
+ * (the builder's `tool_error` upsert) as FAILED, with the failure text
  * in `error` and `result` EMPTY, `completedAt` stamped, no approval fields (a
  * read-only built-in is not gated, and the text is not Cursor's hook-block
  * copy, so the boundary's #205 pass leaves it alone), and the turn still ends

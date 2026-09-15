@@ -1,9 +1,10 @@
 /**
  * The Cursor harness's settle — from a consumed stream to a `TurnOutcome`.
  *
- * In order: the post-stream finalize (transcript, enrichments, sub-agents,
- * the usage snapshot's carrier, the recorder flush, one persist so the UI
- * sees settled rows); the runtime's stop, if it fired, settled as
+ * In order: the post-stream finalize (the last queued deltas drained, the
+ * transcript's streaming flags closed, a stopped turn's sub-agents cancelled,
+ * the recorder flush, one persist so the UI sees settled rows); the runtime's
+ * stop, if it fired, settled as
  * `interrupted` with nothing further; the turn boundary (`turn-boundary.ts`)
  * that overlays the hook's denials as WAITING rows, ending `awaiting_approval`
  * when a denial pauses or failing on an unattributed hook block (#205);
@@ -20,8 +21,11 @@
  * whole turn after this settle returns, so a recovery's edits reach review
  * without the boundary being re-entered for them; S3 M4). The outcome carries
  * what the runtime cannot read from the status (`failed`'s message and
- * surface, `cancelled`). It does mutate `sink.status`'s transcript rows,
- * which are this harness's to write.
+ * surface, `cancelled`). The transcript's rows are CREATED through the shared
+ * `TranscriptBuilder` (S4 M4: this harness's translator emits, the builder
+ * folds; until M4 the accumulator, the enricher and the todo tracker wrote
+ * them here); the boundary AMENDS rows it owns by identity and proposes its
+ * gate through the same builder.
  *
  * Moved from `index.ts` `executeCursorInner` phases 11 to 13 at S2 M3b; the
  * bodies are the orchestrator's, with the runtime's arms taken out.
@@ -33,10 +37,11 @@ import type { ConversationTurn } from "@cursor/sdk";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
+import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
+import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
-import { DeltaEnricher } from "./delta-enricher.js";
 import {
   extractRunErrorSources,
   formatClassifiedError,
@@ -45,9 +50,8 @@ import {
 } from "./error-classifier.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { collapseRedundantToolCallTwins } from "./boundary-rows.js";
-import { MessageAccumulator } from "./message-translator.js";
 import { clearCapturedRejection, getCapturedRejection } from "./rejection-capture.js";
-import { TodoTracker } from "./todo-tracker.js";
+import { CursorTranslator } from "./translator.js";
 import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";
 import {
   consumeCursorTurnStream,
@@ -81,21 +85,29 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   const { executionId, sessionId, blueprint, workspace, mcp } = input;
   const { status } = sink;
 
-  const deltaEnricher = new DeltaEnricher();
-  const todoTracker = new TodoTracker(status.todos);
+  // The one transcript builder over the turn's status, and this harness's
+  // translator over the run's approval posture and the seeded transcript
+  // (a resumed agent's re-issued call is matched onto its seeded WAITING
+  // row by identity, Q-S4-9). Both live for the whole turn — the primary
+  // stream and both recovery retries fold into them.
+  const transcript = new TranscriptBuilder(executionId, status);
+  const translator = new CursorTranslator({
+    policies: mcp.policies,
+    leases: { global: mcp.leases.global, categories: mcp.leases.categories },
+    seeded: status.messages,
+  });
   const eventRecorder = createCursorEventRecorder(executionId);
 
   // The two recovery retries (poisoned-handle / transport-timeout) below run at
   // most once per turn; this guard is the latch.
   let alreadyRetriedWithFreshAgent = false;
 
-  // The shared onDelta only needs the sink/pricer/enricher/state subset, and
-  // it is wired at SEND time — before the accumulator exists — so it takes the
-  // narrow deps. The primary send and both retry sends reuse this object.
+  // The shared onDelta needs the sink/pricer/translator/state subset and is
+  // wired at SEND time. The primary send and both retry sends reuse this object.
   const onDeltaDeps: TurnOnDeltaDeps = {
     sink,
     usagePricer: engine.usagePricer,
-    deltaEnricher,
+    translator,
     promptEstimatedTokens: prompt.promptEstimatedTokens,
     executionId,
     state: streamState,
@@ -139,15 +151,9 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
 
   // Everything at an index >= this was produced by THIS turn's stream — the
   // positional scope the boundary's #205 attribution and #965 settle read.
-  // Snapshotted before the accumulator can append.
+  // Snapshotted before the builder can append.
   const turnStartMessageIndex = status.messages.length;
 
-  const accumulator = new MessageAccumulator(status.messages, {
-    mergedPolicies: mcp.policies,
-    provenance: { globalBypass: mcp.leases.global, leasedCategories: mcp.leases.categories },
-    workspaceRoot: workspace.primaryDir,
-    subAgentExecutions: status.subAgentExecutions,
-  });
   // Shared cadence with the native harness: discrete state changes force a
   // flush; high-frequency token deltas ride this scheduler's time cadence
   // (env-tunable via STREAMING_* — see loadStreamingConfig).
@@ -157,27 +163,27 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // state. Consumed by the primary stream here and by both recovery retries.
   const streamDeps: CursorTurnStreamDeps = {
     ...onDeltaDeps,
-    accumulator,
-    todoTracker,
+    transcript,
     eventRecorder,
     scheduler,
     hitlDir: gate.hitlDir,
   };
 
   // Post-stream finalize, shared by the primary turn and both recovery retries:
-  // finalize the transcript + streaming flags, mark any in-flight sub-agent
-  // CANCELLED on a stopped turn, keep the usage summary's carrier current,
+  // fold the deltas that arrived after the last stream event (a completion
+  // the delta channel reported last was lost before M4), close every
+  // streaming flag, mark any in-flight sub-agent CANCELLED on a stopped turn,
   // flush the recorder, and persist so the UI sees the settled rows.
   const finalizeStreamPhase = async (): Promise<void> => {
-    accumulator.finalize();
-    deltaEnricher.finalize(status.messages);
+    for (const fact of translator.drainDeltas()) transcript.apply(fact);
+    transcript.finalize();
     // A stopped turn (pause, shutdown, stall, cost cap, platform stop) aborts
     // the Cursor SDK run, so any sub-agent the parent had delegated is no
     // longer executing. Mark it CANCELLED rather than leaving a permanent
-    // IN_PROGRESS "zombie" in the final snapshot (parity with the native
-    // harness's cancelSubAgents()).
+    // IN_PROGRESS "zombie" in the final snapshot, through the one shared act
+    // (parity with the native settle).
     if (sink.stopSignal.aborted) {
-      accumulator.cancelInProgressSubAgents();
+      cancelInProgressSubAgentProtos(status.subAgentExecutions);
     }
     await eventRecorder?.flush();
     console.log(
@@ -197,6 +203,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   const runBoundary = (denialSettled?: Promise<void>): Promise<TurnBoundaryResult> =>
     runTurnBoundary({
       status,
+      transcript,
       executionId,
       hitlDir: gate.hitlDir,
       primaryWorkspaceDir: workspace.primaryDir,
