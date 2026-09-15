@@ -71,21 +71,61 @@
  *     untouched with the org unconsulted (the first line above). Two lanes
  *     have no org on the wire (`session.list`, `apiKey.findAll`) and offer
  *     the kind until P1 entry 12 pages them.
+ *   - A KIND WHOSE AUTHORIZATION IS ITS PARENT'S CARRIES THAT PARENT ON
+ *     EVERY CANDIDATE (stigmer-cloud 20260913.04 T04, Q-LB-33..36). When
+ *     `kind_meta` declares PARENT scope with INHERITED owner
+ *     (`inheritedAuthorizationParentOf`; today agent_execution → session),
+ *     the helper fills `ListEntryMeta.authorizationParent` from the row's
+ *     spec through the same read the tuple lifecycle wrote the parent link
+ *     with. A driver MAY answer the parent's question in place of the
+ *     child's: by the model's construction the two answers are identical
+ *     (the child's `owner`, `viewer` and `can_view` are all `from` the
+ *     parent), and the parent's resolution is direct tuples where the
+ *     child's walks the parent's whole set (OpenFGA's learned `weight2`
+ *     strategy read the founder's 423 sessions per execution; that is what
+ *     rolled back twice on 2026-09-14). A driver that ignores the field is
+ *     still correct. The one observable difference is stated, not hidden:
+ *     a row whose parent tuple never landed (the create chain's "row
+ *     survives, tuple write failed" state, healed by retry) is hidden by
+ *     the child's check and shown by the parent's — the row's truth, read
+ *     from the field the tuple was derived from, and no widening: nobody
+ *     reaches a parent through it who could not create the row in it.
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+// The first VALUE imports from extensions/ into pipeline/ (every other
+// crossing is a type): two pure leaf modules that import nothing but
+// protos, so there is no cycle. Deliberate — one resolver for the tuple
+// writer and the list reader beats a copy in the seam.
+import {
+  getKindEnum,
+  inheritedAuthorizationParentOf,
+} from "../pipeline/apiresource-meta.js";
+import { parentIdOf } from "../pipeline/steps/shapes.js";
+
 import type { CallerIdentity } from "./identity.js";
+import type { ResolvedParentLink } from "./resource-authorization.js";
 
 /**
  * The candidate metadata a post-scan lane offers the scope — the three
  * fields the cloud driver's rules key on (id for the FGA intersection,
  * labels for the guest cookie rule; org rides along for symmetry with
- * the consumer-owned intersection, so a driver can log or assert on it).
+ * the consumer-owned intersection, so a driver can log or assert on it),
+ * plus the parent for kinds whose authorization is their parent's.
  */
 export interface ListEntryMeta {
   readonly id: string;
   readonly org: string;
   readonly labels: Readonly<Record<string, string>>;
+  /**
+   * OPTIONAL (added 20260913.04 T04): the parent this row's authorization
+   * IS — present only for a kind whose `kind_meta` is PARENT scope with
+   * INHERITED owner (the header's last contract line), the same
+   * `ResolvedParentLink` the tuple lifecycle wrote for the row. Absent for
+   * every other kind, and absent when the row's spec does not name its
+   * parent — a driver then asks about the row itself, never drops it.
+   */
+  readonly authorizationParent?: ResolvedParentLink;
 }
 
 /** The scope contract (single-instance point, ExtensionDrivers.listReadScope). */
@@ -117,7 +157,10 @@ export interface ListReadScope {
 
 /**
  * The shape every stored API resource message presents to the shared
- * helper — the metadata fields the scope's candidates are built from.
+ * helper — the metadata fields the scope's candidates are built from, and
+ * the spec the parent is read from (structurally, by `kind_meta`'s
+ * `spec_field`; typed loosely because the field differs per kind and the
+ * read is `parentIdOf`'s).
  */
 export interface ScopedListResource {
   metadata?: {
@@ -125,6 +168,7 @@ export interface ScopedListResource {
     org?: string;
     labels?: Record<string, string>;
   };
+  spec?: object;
 }
 
 /**
@@ -141,8 +185,11 @@ export interface ScopedListResource {
  *     permission-bounded across orgs, verified per lane in the entry's
  *     census — lanes Java does not org-narrow pass ""), then to the kept
  *     ids. The same set either way (both are per-row predicates); the
- *     order is the header's last contract line: the scope sees the org's
- *     rows, not the kind's.
+ *     order is the header's second-to-last contract line: the scope sees
+ *     the org's rows, not the kind's;
+ *   - the candidates of a kind whose authorization is its parent's carry
+ *     `authorizationParent` (the header's last line), resolved once per
+ *     call from `kind_meta` and once per row from the spec.
  */
 export async function restrictListByReadScope<T extends ScopedListResource>(
   scope: ListReadScope | undefined,
@@ -158,11 +205,42 @@ export async function restrictListByReadScope<T extends ScopedListResource>(
     requestOrg === ""
       ? resources
       : resources.filter((resource) => resource.metadata?.org === requestOrg);
-  const entries: ListEntryMeta[] = offered.map((resource) => ({
-    id: resource.metadata?.id ?? "",
-    org: resource.metadata?.org ?? "",
-    labels: resource.metadata?.labels ?? {},
-  }));
+  const parentOf = authorizationParentReader(kind);
+  const entries: ListEntryMeta[] = offered.map((resource) => {
+    const entry: ListEntryMeta = {
+      id: resource.metadata?.id ?? "",
+      org: resource.metadata?.org ?? "",
+      labels: resource.metadata?.labels ?? {},
+    };
+    const authorizationParent = parentOf(resource);
+    return authorizationParent === undefined
+      ? entry
+      : { ...entry, authorizationParent };
+  });
   const keptIds = await scope.restrictListEntries(caller, kind, entries);
   return offered.filter((resource) => keptIds.has(resource.metadata?.id ?? ""));
+}
+
+/**
+ * The per-row parent reader for `kind`: a constant `undefined` for the 27
+ * kinds whose authorization is their own, and for the kind whose
+ * authorization is its parent's, the `ResolvedParentLink` the tuple
+ * lifecycle wrote — or undefined for a row whose spec does not name it
+ * (never a throw: a list is not a create). `kind_meta` is consulted once
+ * per call, not once per row.
+ */
+function authorizationParentReader(
+  kind: ApiResourceKind,
+): (resource: ScopedListResource) => ResolvedParentLink | undefined {
+  const parent = inheritedAuthorizationParentOf(kind);
+  if (parent === undefined) {
+    return () => undefined;
+  }
+  const parentKind = getKindEnum(parent.kind);
+  return (resource) => {
+    const parentId = parentIdOf(resource, parent.specField);
+    return parentId === ""
+      ? undefined
+      : { relation: parent.relation, parentKind, parentId };
+  };
 }

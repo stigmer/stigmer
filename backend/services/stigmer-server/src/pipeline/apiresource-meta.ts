@@ -53,6 +53,11 @@ import {
   kind_meta,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceKindMeta } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  AuthorizationScopeType,
+  OwnerAttributionType,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import type { ParentRelationConfig } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -63,6 +68,38 @@ export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {
     throw new Error(`kind_meta extension not found for kind: ${kind}`);
   }
   return getOption(valueDesc, kind_meta);
+}
+
+/**
+ * The parent a kind's authorization IS — the `kind_meta` declaration that
+ * a kind's permissions are its parent's whole, not its own: PARENT scope
+ * (the one structural link is to that parent) AND INHERITED owner (no
+ * owner tuple of its own; `owner from <parent>` in the FGA model).
+ * Undefined for every other kind, including kinds with additional parents
+ * whose inheritance is partial (a workflow_execution's opt-in
+ * `execution_viewer from workflow_instance` sits beside its own owner).
+ *
+ * Today exactly one kind answers: agent_execution → session (its
+ * `can_view` is `viewer or can_view from session`, and `viewer` is the
+ * session's). The list read scope reads this to carry the parent on every
+ * candidate (`ListEntryMeta.authorizationParent`, 20260913.04 T04), so a
+ * composed driver may ask its authorization backend about the parent —
+ * direct tuples — instead of the child, whose resolution walks the
+ * parent's whole set. A second kind declaring the pair gets the behavior
+ * from this declaration alone; the table pin in __tests__ makes that a
+ * reviewed change.
+ */
+export function inheritedAuthorizationParentOf(
+  kind: ApiResourceKind,
+): ParentRelationConfig | undefined {
+  const config = getKindMeta(kind).authorization;
+  if (
+    config?.scopeType !== AuthorizationScopeType.PARENT ||
+    config.ownerType !== OwnerAttributionType.INHERITED
+  ) {
+    return undefined;
+  }
+  return config.parent;
 }
 
 /** Go GetIdPrefix: e.g. agent → "agt". */
