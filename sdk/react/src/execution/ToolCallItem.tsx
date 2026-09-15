@@ -360,8 +360,12 @@ export const ToolCallItem = memo(function ToolCallItem({
     // The row above is this approval's header, so render only the body (preview
     // + actions). The enclosing card already carries the border + warning/
     // destructive accent for a pending gate, so the body renders borderless.
+    // This row holds the call's authoritative `args`; the body reads the
+    // proposed write content from them, which the approval's sanitized preview
+    // cannot carry for a file of any real size (stigmer#1107).
     <ApprovalCardBody
       pendingApproval={approval.pendingApproval}
+      args={toolCall.args}
       onSubmit={approval.onSubmit}
       isSubmitting={approval.isSubmitting}
       error={approval.error}
