@@ -536,7 +536,7 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
   it("a mutating built-in waits with its category's message (fail-closed), source builtin_category", () => {
     expect(resolveToolApproval("execute", "", { command: "rm -rf build" }, new Map(), NO_CATEGORIES)).toEqual({
       requiresApproval: true,
-      message: "Execute command: rm -rf build",
+      message: "Run command: rm -rf build",
       source: "builtin_category",
     });
   });

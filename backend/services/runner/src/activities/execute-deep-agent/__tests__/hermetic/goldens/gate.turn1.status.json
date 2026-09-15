@@ -14,7 +14,7 @@
           "status": "TOOL_CALL_WAITING_APPROVAL",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "requiresApproval": true,
-          "approvalMessage": "Execute command: echo hermetic-a",
+          "approvalMessage": "Run command: echo hermetic-a",
           "approvalRequestedAt": "2026-01-01T00:00:01.000Z",
           "argsPreview": "{\"command\":\"echo hermetic-a\"}",
           "toolKind": "TOOL_KIND_SHELL",

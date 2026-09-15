@@ -29,6 +29,7 @@ export {
   resolveApprovalMessage,
   POLICY_ENGINE_VERSION,
 } from "../../shared/approval-policy.js";
+import { CATEGORY_APPROVAL_MESSAGE } from "../../shared/approval-policy.js";
 export type { MergedToolPolicy, PolicySource } from "../../shared/approval-policy.js";
 
 /**
@@ -70,20 +71,6 @@ const BUILT_IN_GATED: ReadonlySet<string> = new Set([
 export type ApprovalCategory = ToolApprovalCategory;
 
 export const approvalCategory = toolApprovalCategory;
-
-/**
- * Human-readable approval-message template per canonical category. Keyed by
- * category (not raw tool name) so a denial surfaced from either taxonomy renders
- * the same message. Placeholders resolve against the tool args via
- * {@link resolveApprovalMessage}; `{{args.path}}` and `{{args.command}}` are the
- * stream-side field names (the runner builds the approval surface from the
- * streamed tool call, whose args use `path`/`command`).
- */
-const CATEGORY_APPROVAL_MESSAGE: Record<ApprovalCategory, string> = {
-  write: "Write file: {{args.path}}",
-  delete: "Delete: {{args.path}}",
-  shell: "Run command: {{args.command}}",
-};
 
 /**
  * The salient argument fields — the resource a built-in acts on — are the
@@ -151,7 +138,9 @@ export function getBuiltInGatedCategories(): Array<[string, ApprovalCategory]> {
  * Approval-message template for a gated built-in tool (either taxonomy), or
  * undefined when the tool is not gated. Resolved via {@link approvalCategory}
  * so stream-side names (`edit`/`shell`/`delete`) and hook-side names
- * (`Write`/`Shell`/`Delete`) both map to the same template. Callers resolve the
+ * (`Write`/`Shell`/`Delete`) both map to the same template — the platform's
+ * ONE table, `shared/approval-policy.ts` `CATEGORY_APPROVAL_MESSAGE`, shared
+ * with the native gate since S4 M4 B6 (Q-M4-11). Callers resolve the
  * placeholders against the tool args via resolveApprovalMessage.
  */
 export function getBuiltInApprovalMessage(toolName: string): string | undefined {

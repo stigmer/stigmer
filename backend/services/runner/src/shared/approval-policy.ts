@@ -470,21 +470,26 @@ export function resolveApprovalMessage(
 // ── The gate's decision ─────────────────────────────────────────────
 
 /**
- * Approval-message template per mutating built-in category, as the NATIVE
- * gate words it. Keyed by category (not raw tool name) so every alias of a
- * mutation renders one message; placeholders resolve against the deep-agent
- * stream arg shape (`path`/`command`).
+ * THE approval-message template per mutating built-in category — the one
+ * table both harnesses word their approval cards from (S4 M4 B6, Q-M4-11).
+ * Keyed by category (not raw tool name) so every alias of a mutation renders
+ * one message; placeholders resolve against the stream arg shape
+ * (`path`/`command`; `resolveApprovalMessage`). The native gate decides with
+ * it (`resolveToolApproval`), the Cursor translator words its `gate` from it
+ * (`execute-cursor/approval-policy.ts` `getBuiltInApprovalMessage`), and the
+ * Cursor boundary resolves a denied call's message through the same path.
  *
- * The Cursor harness carries its own table (`execute-cursor/approval-policy.ts`
- * `getBuiltInApprovalMessage`) and the two are NOT identical: `shell` reads
- * "Run command" there and "Execute command" here (S4 M2 finding F-M2-18).
- * Whether they unify is M4's question, where the Cursor translator reads the
- * built-in table — a Cursor golden mover, not this module's to decide.
+ * Until B6 the Cursor harness carried a table of its own and the two differed
+ * by a word — `shell` read "Run command" there and "Execute command" here
+ * (F-M2-18). Unified on the plainer word: a user reads "Run command" and knows
+ * what is being asked. Known and deliberately left (F-M2-26, outside S4):
+ * `write` resolves `{{args.path}}`, while deepagents' file tools send
+ * `file_path`, so a gated native write reads "Write file: <unknown>".
  */
 export const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
   write: "Write file: {{args.path}}",
   delete: "Delete: {{args.path}}",
-  shell: "Execute command: {{args.command}}",
+  shell: "Run command: {{args.command}}",
 };
 
 /** What the gate decides for one call: whether it waits, the message the card shows, and which layer said so. */

@@ -210,7 +210,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
       callId,
       name: "execute",
       mcpServerSlug: "",
-      message: "Execute command: rm -rf build",
+      message: "Run command: rm -rf build",
       ...extra,
     }) as const satisfies TranscriptEvent;
 
@@ -225,7 +225,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     const row = rowOf(sb, "exec-1");
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(row.requiresApproval).toBe(true);
-    expect(row.approvalMessage).toBe("Execute command: rm -rf build");
+    expect(row.approvalMessage).toBe("Run command: rm -rf build");
     expect(row.approvalRequestedAt).toContain("T");
     expect(row.startedAt).toContain("T");
     expect(row.args).toEqual({ command: "rm -rf build" });
