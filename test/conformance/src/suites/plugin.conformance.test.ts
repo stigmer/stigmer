@@ -44,9 +44,12 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
 import {
+  claudeLike,
   mcpOnly,
   pluginArchive,
   thermosLike,
+  VENDORED_CURSOR_PLUGINS,
+  vendoredPlugin,
   withFile,
 } from "../support/plugins";
 import { zipFiles } from "../support/skills";
@@ -675,5 +678,252 @@ describe("Plugin conformance — refusals before any write", () => {
       Code.InvalidArgument,
       "both sources",
     );
+  });
+});
+
+describe("Plugin conformance — the other dialects and the overlay", () => {
+  it("installs a Claude Code plugin: userConfig becomes a secret variable on an npx stdio server, and the agent carries the skill", async () => {
+    const name = uniqueName("plg-claude");
+    const plugin = await install(pluginArchive(claudeLike(name)));
+    expect(plugin.status?.materialized).toMatchObject({
+      skills: 1,
+      mcpServers: 1,
+      agents: 1,
+    });
+    const server = await clients.mcpServerQuery.getByReference(
+      ref(ApiResourceKind.mcp_server, `${name}-notes`),
+    );
+    expect(server.spec?.serverType.case).toBe("stdio");
+    expect(server.spec?.env["NOTES_TOKEN"]).toMatchObject({
+      isSecret: true,
+      optional: false,
+    });
+    const agent = await clients.agentQuery.getByReference(
+      ref(ApiResourceKind.agent, name),
+    );
+    expect(agent.spec?.skillRefs.map((r) => r.slug)).toEqual([`${name}-notes`]);
+  });
+
+  it("applies a workflow overlay as a member and a server overlay's Stigmer-only fields onto the declared server", async () => {
+    const name = uniqueName("plg-overlay");
+    const workflow = [
+      "apiVersion: agentic.stigmer.ai/v1",
+      "kind: Workflow",
+      "metadata:",
+      `  name: ${name}-digest`,
+      "spec:",
+      "  description: A digest over the plugin's tools",
+      "  document:",
+      '    dsl: "1.0.0"',
+      "    namespace: plugin",
+      `    name: ${name}-digest`,
+      '    version: "1.0.0"',
+      "  tasks:",
+      "    - name: setVars",
+      "      kind: set_vars",
+      "      task_config:",
+      "        variables:",
+      "          greeting: hello",
+      "      export:",
+      '        as: "${ . }"',
+      "",
+    ].join("\n");
+    const serverOverlay = [
+      "apiVersion: agentic.stigmer.ai/v1",
+      "kind: McpServer",
+      "metadata:",
+      `  name: ${name}-github`,
+      "spec:",
+      "  description: GitHub through Copilot's MCP endpoint",
+      "  tags:",
+      "    - github",
+      "    - source-control",
+      "",
+    ].join("\n");
+    const fixture = withFile(
+      withFile(
+        thermosLike(name),
+        `ai.stigmer/workflows/${name}-digest.yaml`,
+        workflow,
+      ),
+      `ai.stigmer/mcp-servers/${name}-github.yaml`,
+      serverOverlay,
+    );
+    const plugin = await install(pluginArchive(fixture));
+    expect(plugin.status?.state).toBe(PluginState.READY);
+    expect(plugin.status?.materialized).toMatchObject({
+      skills: 1,
+      mcpServers: 1,
+      agents: 1,
+      workflows: 1,
+    });
+
+    const { members } = await clients.pluginQuery.listMembers({
+      value: plugin.metadata!.id,
+    });
+    expect(members.map((m) => ApiResourceKind[m.kind])).toEqual([
+      "skill",
+      "mcp_server",
+      "agent",
+      "workflow",
+    ]);
+    const flow = await clients.workflowQuery.getByReference(
+      ref(ApiResourceKind.workflow, `${name}-digest`),
+    );
+    expect(flow.metadata?.labels[PLUGIN_LABEL]).toBe(plugin.metadata?.id);
+    const server = await clients.mcpServerQuery.getByReference(
+      ref(ApiResourceKind.mcp_server, `${name}-github`),
+    );
+    expect(server.spec?.description).toBe(
+      "GitHub through Copilot's MCP endpoint",
+    );
+    expect(server.spec?.tags).toEqual(["github", "source-control"]);
+    expect(
+      server.spec?.serverType.case,
+      "the portable transport is untouched",
+    ).toBe("http");
+  });
+
+  it("installs a version the tag pattern rejects with a warning and no tag", async () => {
+    const name = uniqueName("plg-untaggable");
+    const fixture = withFile(
+      thermosLike(name),
+      ".cursor-plugin/plugin.json",
+      JSON.stringify({
+        name,
+        version: "1.2.0+build.7",
+        description: "Code review with a thermonuclear standard",
+        skills: "./skills/",
+        agents: "./agents/",
+        mcpServers: "./mcp.json",
+        variables: {
+          type: "object",
+          properties: {
+            GITHUB_TOKEN: {
+              type: "string",
+              title: "GitHub token",
+              description: "A personal access token",
+            },
+          },
+          required: ["GITHUB_TOKEN"],
+        },
+      }),
+    );
+    const plugin = await install(pluginArchive(fixture));
+    expect(plugin.status?.state).toBe(PluginState.READY);
+    expect(plugin.status?.warnings.map((w) => w.kind)).toContain(
+      "version-not-taggable",
+    );
+    const versions = await clients.pluginQuery.listVersions({
+      org: org(),
+      slug: name,
+    });
+    expect(versions.versions[0]?.tag).toBe("");
+    // The reference contract itself refuses the string: a version that is not
+    // latest, a digest or a tag can never name a version.
+    await expectGrpcCode(
+      () =>
+        clients.pluginQuery.getByReference(
+          ref(ApiResourceKind.plugin, name, "1.2.0+build.7"),
+        ),
+      Code.InvalidArgument,
+      "not a version reference",
+    );
+  });
+});
+
+describe("Plugin conformance — the transfer lane", () => {
+  it("installs from a staged upload exactly as from inline bytes", async (ctx) => {
+    if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const name = uniqueName("plg-staged");
+    const archive = pluginArchive(thermosLike(name));
+    const minted = await clients.pluginCommand.createArtifactUploadUrl({
+      org: org(),
+      sizeBytes: BigInt(archive.length),
+    });
+    expect(minted.url).toMatch(/^https?:\/\//);
+    expect(minted.artifactUploadRef).not.toBe("");
+    const put = await fetch(minted.url, {
+      method: "PUT",
+      body: Buffer.from(archive),
+      headers: { "content-type": "application/zip" },
+    });
+    expect(put.ok, `staging PUT succeeds (HTTP ${put.status})`).toBe(true);
+
+    const plugin = await clients.pluginCommand.push({
+      org: org(),
+      artifactUploadRef: minted.artifactUploadRef,
+    });
+    fixtures.defer(() =>
+      clients.pluginCommand.delete({ value: plugin.metadata!.id }).then(
+        () => undefined,
+        () => undefined,
+      ),
+    );
+    expect(plugin.status?.state).toBe(PluginState.READY);
+    expect(plugin.status?.materialized?.skills).toBe(1);
+
+    // Content addressing must not care how the bytes travelled.
+    const inline = await clients.pluginCommand.push({
+      org: org(),
+      artifact: archive,
+    });
+    expect(inline.status?.digest).toBe(plugin.status?.digest);
+    expect(
+      (await clients.pluginQuery.listVersions({ org: org(), slug: name }))
+        .totalCount,
+    ).toBe(1);
+  });
+});
+
+describe("Plugin conformance — the vendored Cursor plugins", () => {
+  // The published catalogue's shapes, read from disk: five install as the
+  // library describes them, `salesforce` is refused with the library's own
+  // sentence. Slugs are the plugins' real names, so this block provisions
+  // its own tenancy and the fixture cleanup removes every install.
+  it("installs five and refuses the sixth with the library's sentence", async () => {
+    const { org: vendorOrg } = await target.provisionTenancy();
+    try {
+      for (const name of VENDORED_CURSOR_PLUGINS) {
+        const archive = pluginArchive(vendoredPlugin(name));
+        if (name === "salesforce") {
+          const error = await expectGrpcCode(
+            () =>
+              clients.pluginCommand.push({ org: vendorOrg, artifact: archive }),
+            Code.InvalidArgument,
+            "salesforce",
+          );
+          expect(error.rawMessage).toContain("has a variable in its 'url'");
+          continue;
+        }
+        const plugin = await clients.pluginCommand.push({
+          org: vendorOrg,
+          artifact: archive,
+        });
+        fixtures.defer(() =>
+          clients.pluginCommand.delete({ value: plugin.metadata!.id }).then(
+            () => undefined,
+            () => undefined,
+          ),
+        );
+        expect(plugin.status?.state, name).toBe(PluginState.READY);
+        expect(plugin.metadata?.slug, name).toBe(name);
+        const { members } = await clients.pluginQuery.listMembers({
+          value: plugin.metadata!.id,
+        });
+        expect(members.length, `${name} materialises members`).toBeGreaterThan(
+          0,
+        );
+        expect(members.length, `${name} counts match`).toBe(
+          (plugin.status?.materialized?.skills ?? 0) +
+            (plugin.status?.materialized?.mcpServers ?? 0) +
+            (plugin.status?.materialized?.agents ?? 0) +
+            (plugin.status?.materialized?.workflows ?? 0),
+        );
+      }
+    } finally {
+      await fixtures.cleanup();
+      await target.cleanupTenancy({ org: vendorOrg });
+    }
   });
 });
