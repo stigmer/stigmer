@@ -14,7 +14,7 @@ import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifa
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 
 // The publisher registers artifacts on the transcript builder (`addArtifact`);
-// the one builder since S3 M2b.
+// the one builder since #1096.
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
 function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentExecutionStatus } {
   const status = create(AgentExecutionStatusSchema, {});

@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readlinkSync } from 
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { WorkspaceProvisioner } from "../provisioner.js";
-import { SourceType, WorkspaceProvisionError } from "../types.js";
+import { WorkspaceProvisionError } from "../types.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
 
 function makeTempDir(): string {
@@ -22,7 +22,7 @@ describe("WorkspaceProvisioner", () => {
       const root = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
       const result = await provisioner.provision(undefined, backend, {}, true);
-      expect(result.sourceType).toBe(SourceType.EMPTY);
+      expect(result.sourceType).toBe("empty");
       expect(result.rootDir).toBe(root);
       expect(result.consumedKeys).toEqual([]);
     });
@@ -34,7 +34,7 @@ describe("WorkspaceProvisioner", () => {
         { source: { case: undefined, value: undefined } },
         backend, {}, true,
       );
-      expect(result.sourceType).toBe(SourceType.EMPTY);
+      expect(result.sourceType).toBe("empty");
     });
   });
 
@@ -47,7 +47,7 @@ describe("WorkspaceProvisioner", () => {
         { source: { case: "localPath", value: { path: projectDir } } },
         backend, {}, true,
       );
-      expect(result.sourceType).toBe(SourceType.LOCAL_PATH);
+      expect(result.sourceType).toBe("local_path");
       expect(result.rootDir).toBe(projectDir);
     });
 
@@ -102,7 +102,7 @@ describe("WorkspaceProvisioner", () => {
       );
       expect(results).toHaveLength(1);
       expect(results[0].entryName).toBe("app");
-      expect(results[0].sourceType).toBe(SourceType.EMPTY);
+      expect(results[0].sourceType).toBe("empty");
     });
   });
 

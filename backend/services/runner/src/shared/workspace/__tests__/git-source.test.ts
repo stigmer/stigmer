@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import { provisionGit } from "../sources/git.js";
-import { SourceType, WorkspaceProvisionError } from "../types.js";
+import { WorkspaceProvisionError } from "../types.js";
 
 /**
  * Command-routing mock for `backend.execute`.
@@ -55,7 +55,7 @@ describe("provisionGit", () => {
 
   it("returns GIT_REPO source type", async () => {
     const result = await provisionGit(makeOptions());
-    expect(result.sourceType).toBe(SourceType.GIT_REPO);
+    expect(result.sourceType).toBe("git_repo");
   });
 
   it("clones in place (init/remote/fetch/checkout) instead of git clone", async () => {
@@ -119,7 +119,7 @@ describe("provisionGit", () => {
     });
 
     const result = await provisionGit(makeOptions({ backend }));
-    expect(result.sourceType).toBe(SourceType.GIT_REPO);
+    expect(result.sourceType).toBe("git_repo");
     expect(result.workspaceDescription).toContain("existing repo detected");
 
     expect(calls(backend).some((c) => c.includes("git init"))).toBe(false);

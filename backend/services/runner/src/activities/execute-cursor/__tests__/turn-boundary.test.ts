@@ -6,7 +6,7 @@
  * row that hung inside the harness on a completing turn is settled and
  * disclosed (#965).
  *
- * The turn's FILE CHANGES are not the boundary's since S3 M4: the runtime
+ * The turn's FILE CHANGES are not the boundary's since #1096: the runtime
  * captures them once after `runTurn` returns (`harness/capture.ts`, proven
  * in `harness/__tests__/capture.test.ts` and the kit's runtime arm), so the
  * five capture arms this file carried until then — the candidate, the clean
@@ -15,7 +15,7 @@
  * runtime's status-based rules. One arm changed meaning with the lift and is
  * pinned below: a turn whose only pause would have been a file review is a
  * COMPLETING turn to this boundary, so its hung rows are settled before the
- * runtime's review, not after it (F-M4-P9, Q-M4-11).
+ * runtime's review, not after it.
  *
  * Runs against a temp workspace dir with in-memory transcript + status
  * protos; the gate reads a denied file's `before` from that dir.
@@ -327,9 +327,9 @@ describe("runTurnBoundary — unresolved tool calls on a completing turn (issue 
     expect(isToolCallRowHidden(hung), "collapsed by the reconcile, not settled by the sweep").toBe(true);
   });
 
-  it("a turn whose only change is a flowed file edit is COMPLETING here: the hung row is settled before the runtime's review (F-M4-P9)", async () => {
+  it("a turn whose only change is a flowed file edit is COMPLETING here: the hung row is settled before the runtime's review", async () => {
     const status = newStatus();
-    // The edit flowed and the tree changed — until S3 M4 that made the turn
+    // The edit flowed and the tree changed — until #1096 that made the turn
     // `waiting` and hid the hung row behind the review; the runtime captures
     // the edit after this boundary, so the boundary now tells the truth
     // about the row first.

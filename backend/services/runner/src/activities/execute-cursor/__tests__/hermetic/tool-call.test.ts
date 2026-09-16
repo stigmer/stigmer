@@ -8,8 +8,8 @@
  * event's args, `result` from the completed event, `startedAt`/`completedAt`
  * from the two events' instants, `toolKind` classified, no approval fields set
  * (a read-only built-in is not gated) — and the turn ends COMPLETED. The golden
- * (`goldens/tool-call.status.json`) is the row shape S4's canonical transcript
- * builder must reproduce byte for byte.
+ * (`goldens/tool-call.status.json`) is the row shape the canonical transcript
+ * builder (#1097) must reproduce byte for byte.
  *
  * Parent phase rows exercised beyond `plain-turn`: run the turn and consume
  * the engine stream (`translator.ts` into the shared `TranscriptBuilder`); the turn

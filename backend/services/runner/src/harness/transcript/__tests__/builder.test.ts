@@ -5,19 +5,19 @@
  * reads to learn what a translator's events do to the transcript; the arms
  * that drive the builder through a real translator over a real wire are
  * the translator's own (`execute-deep-agent/__tests__/`, the native
- * translator's integration arms; Q-M2-6).
+ * translator's integration arms).
  *
  * Fence-clean by construction: this file names the proto runtime, the
  * generated protos, `vitest` and the builder — nothing of any engine
  * (`harness/__tests__/transcript-is-engine-free.test.ts`).
  *
- * Opened at S4 M2 C5b with the row rules that are byte-identical on native
- * and therefore have no golden (Q-S4-3(c)(d), the gated `tool_error` stamp);
- * `approval_proposed` and `system_note` joined at C6, the every-row preview
- * at C7, the todo projection at C8, and the rest of the header's rules —
+ * Opened in #1097 with the row rules that are byte-identical on native
+ * and therefore have no golden (the upsert, the output stream, the gated
+ * `tool_error` stamp); `approval_proposed` and `system_note`, the every-row
+ * preview, the todo projection, and the rest of the header's rules —
  * the row per id, the message boundary, the thinking row, the sub-agent
  * rows, finalize, artifacts and write-backs, the dirty flag, the error
- * guard — at C9.
+ * guard — joined commit by commit in the same PR.
  */
 
 import { describe, it, expect } from "vitest";
@@ -76,7 +76,7 @@ function rowOf(status: AgentExecutionStatus, callId: string) {
   return row;
 }
 
-describe("TranscriptBuilder — tool_finished and tool_error are upserts (Q-S4-3(c))", () => {
+describe("TranscriptBuilder — tool_finished and tool_error are upserts", () => {
   it("a finish completes the row, stamps completedAt once and stores the result", () => {
     const { status } = feed(builder(), [...proposedCall(), { kind: "tool_finished", callId: "call-1", result: "contents" }]);
     const row = rowOf(status, "call-1");
@@ -144,7 +144,7 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts (Q-S4-3
     expect(rowOf(status, "call-1").approvalRequestedAt).toBe("");
   });
 
-  it("a finish or an error the harness observed earlier stamps the observed instant, not the fold's (Q-M4-14)", () => {
+  it("a finish or an error the harness observed earlier stamps the observed instant, not the fold's", () => {
     const { sb, status } = feed(builder(), [
       ...proposedCall("obs-1"),
       { kind: "tool_finished", callId: "obs-1", result: "", observedAt: "2026-01-01T00:00:07.000Z" },
@@ -172,7 +172,7 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts (Q-S4-3
   });
 });
 
-describe("TranscriptBuilder — every row with args carries an elided, redacted argsPreview (Q-S4-16)", () => {
+describe("TranscriptBuilder — every row with args carries an elided, redacted argsPreview", () => {
   it("an ungated row's preview is its args, secret keys redacted", () => {
     const { status } = feed(builder(), [
       { kind: "tool_started", callId: "c-1", name: "connect", input: { host: "localhost", password: "super-secret" }, mcpServerSlug: "db" },
@@ -216,7 +216,7 @@ describe("TranscriptBuilder — every row with args carries an elided, redacted 
   });
 });
 
-describe("TranscriptBuilder — approval_proposed is the one place a row is ever WAITING (Q-S4-20, Q-S4-3(e))", () => {
+describe("TranscriptBuilder — approval_proposed is the one place a row is ever WAITING", () => {
   const proposal = (callId: string, extra: Partial<Extract<TranscriptEvent, { kind: "approval_proposed" }>> = {}) =>
     ({
       kind: "approval_proposed",
@@ -286,7 +286,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     expect(sb.awaitingApproval).toBe(true);
   });
 
-  it("a known row's reopen takes the proposal's args and re-derives the preview when carried; keeps its own when not (Q-M4-7)", () => {
+  it("a known row's reopen takes the proposal's args and re-derives the preview when carried; keeps its own when not", () => {
     const { sb, status } = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
       { kind: "text_delta", runId: "run-1", text: "Editing notes." },
@@ -304,7 +304,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     expect(rowOf(status, "ed-1").args).toEqual({ path: "notes.md", content: "the whole file" });
   });
 
-  it("proposing a call the stream already showed never duplicates it (F-M2-13)", () => {
+  it("proposing a call the stream already showed never duplicates it", () => {
     const { status } = feed(builder(), [...proposedCall("exec-1", "execute"), proposal("exec-1")]);
     expect(status.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id)).toEqual(["exec-1"]);
   });
@@ -318,7 +318,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
   });
 });
 
-describe("TranscriptBuilder — a completed TODO call is projected into status.todos (Q-S4-7)", () => {
+describe("TranscriptBuilder — a completed TODO call is projected into status.todos", () => {
   const todoCall = (callId: string, name: string, args: Record<string, unknown>): TranscriptEvent[] => [
     { kind: "tool_started", callId, name, input: args, mcpServerSlug: "" },
     { kind: "tool_finished", callId, result: "ok" },
@@ -356,7 +356,7 @@ describe("TranscriptBuilder — a completed TODO call is projected into status.t
   });
 });
 
-describe("TranscriptBuilder — system_note is the harness's line in its own voice (Q-S4-18)", () => {
+describe("TranscriptBuilder — system_note is the harness's line in its own voice", () => {
   it("appends a SYSTEM message to the scope; it hosts no rows and moves no boundary", () => {
     const { status } = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
@@ -382,7 +382,7 @@ describe("TranscriptBuilder — system_note is the harness's line in its own voi
   });
 });
 
-describe("TranscriptBuilder — tool_output_delta streams the row's output (Q-S4-3(d))", () => {
+describe("TranscriptBuilder — tool_output_delta streams the row's output", () => {
   it("appends the delta and marks the row streaming its OUTPUT", () => {
     const { status } = feed(builder(), [
       ...proposedCall("sh-1", "execute"),
@@ -408,7 +408,7 @@ describe("TranscriptBuilder — tool_output_delta streams the row's output (Q-S4
     expect(row.result).toBe("partial and complete");
   });
 
-  it("a chunk for a settled row is dropped — the completion's result is the whole output, and a late chunk would double it (Q-M4-15)", () => {
+  it("a chunk for a settled row is dropped — the completion's result is the whole output, and a late chunk would double it", () => {
     const { status } = feed(builder(), [
       ...proposedCall("sh-1", "shell"),
       { kind: "tool_output_delta", callId: "sh-1", delta: "> test\n" },
@@ -438,7 +438,7 @@ describe("TranscriptBuilder — tool_output_delta streams the row's output (Q-S4
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// The header's rules, in its order (S4 M2 C9)
+// The header's rules, in its order
 // ═══════════════════════════════════════════════════════════════════
 
 describe("TranscriptBuilder — a row per callId, reconciled in place, never duplicated", () => {
@@ -478,7 +478,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
     expect(sb.awaitingApproval, "a resumed tool never re-gates").toBe(false);
   });
 
-  it("a re-emitted start advances a seeded INTERRUPTED row to RUNNING — the recovery replay's supersede (Q-M4-8) — and previews the args it fills", () => {
+  it("a re-emitted start advances a seeded INTERRUPTED row to RUNNING — the recovery replay's supersede — and previews the args it fills", () => {
     const status = create(AgentExecutionStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
@@ -512,7 +512,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
     expect(status.messages.flatMap((m) => m.toolCalls)).toHaveLength(1);
   });
 
-  describe("seed(): a reinvocation's prior rows, appended and indexed after the builder is born (Q-M5-1)", () => {
+  describe("seed(): a reinvocation's prior rows, appended and indexed after the builder is born", () => {
     /** Last turn's transcript as the server holds it: a text, a WAITING row, a sub-agent with its own row, an artifact, a write-back, a todo. */
     function persisted() {
       return create(AgentExecutionStatusSchema, {
@@ -648,7 +648,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
   });
 });
 
-describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins the text that proposed it", () => {
+describe("TranscriptBuilder — the AI-message boundary: a row joins the text that proposed it", () => {
   it("a tool row attaches to the scope's current AI message; the next run's text is a new message", () => {
     const { status } = feed(builder(), [
       ...proposedCall("c-1"),
@@ -687,7 +687,7 @@ describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins th
     expect(status.messages[0].isStreaming).toBe(false);
   });
 
-  it("over a seeded transcript the first fresh row joins the seed's last AI message (Q-M2-2)", () => {
+  it("over a seeded transcript the first fresh row joins the seed's last AI message", () => {
     const status = create(AgentExecutionStatusSchema, {
       messages: [
         create(AgentMessageSchema, { type: MessageType.MESSAGE_THINKING, content: "hm" }),
@@ -714,7 +714,7 @@ describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins th
 });
 
 describe("TranscriptBuilder — a THINKING row and a text message per runId; a new run closes the previous message", () => {
-  it("thinking streams into its own row before the run's text, and the run's finish closes both (Q-M4-6)", () => {
+  it("thinking streams into its own row before the run's text, and the run's finish closes both", () => {
     const { sb, status } = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
       { kind: "reasoning_delta", runId: "run-1", text: "Let me analyze " },
@@ -726,7 +726,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
       { kind: "text_delta", runId: "run-1", text: "that." },
       { kind: "message_finish", runId: "run-1" },
     ]);
-    // A finished run's thinking is finished (until S4 M4 B1 the THINKING row
+    // A finished run's thinking is finished (before #1097 the THINKING row
     // spun until finalize — a live spinner on a block the model had left).
     expect(status.messages.map((m) => [m.type, m.content, m.isStreaming])).toEqual([
       [MessageType.MESSAGE_THINKING, "Let me analyze this.", false],
@@ -743,7 +743,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
     expect(status.messages.map((m) => [m.type, m.isStreaming])).toEqual([[MessageType.MESSAGE_THINKING, false]]);
   });
 
-  it("a second run's thinking is a second THINKING row (Q-S4-6), and its start closes the first run's text", () => {
+  it("a second run's thinking is a second THINKING row, and its start closes the first run's text", () => {
     const { status } = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
       { kind: "reasoning_delta", runId: "run-1", text: "one" },
@@ -776,7 +776,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
   });
 });
 
-describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript of its own (Q-S4-4)", () => {
+describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript of its own", () => {
   const open: TranscriptEvent = { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "Look it up.", input: "Look it up." };
 
   it("opens IN_PROGRESS with the translator's name and subject, and folds scoped events into its own messages", () => {
@@ -856,7 +856,7 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
 });
 
 describe("TranscriptBuilder — finalize() clears every streaming flag in every scope", () => {
-  it("promotes nothing: a RUNNING row with streamed output but no completion stays RUNNING for the harness's boundary to settle (F-M4-10)", () => {
+  it("promotes nothing: a RUNNING row with streamed output but no completion stays RUNNING for the harness's boundary to settle", () => {
     const { sb, status } = feed(builder(), [...proposedCall("sh-1", "shell"), { kind: "tool_output_delta", callId: "sh-1", delta: "partial output" }]);
     sb.finalize();
     const row = rowOf(status, "sh-1");
@@ -886,7 +886,7 @@ describe("TranscriptBuilder — finalize() clears every streaming flag in every 
   });
 });
 
-describe("TranscriptBuilder — artifacts and write-backs (Q-S4-8)", () => {
+describe("TranscriptBuilder — artifacts and write-backs", () => {
   const artifact = (sandboxPath: string, contentHash: string) =>
     create(ExecutionArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
 
@@ -932,7 +932,7 @@ describe("TranscriptBuilder — the dirty flag and the error guard", () => {
     expect(sb.dirty).toBe(true);
   });
 
-  it("a settled re-emit that changes nothing forces no persist; one that carries a new result or message does (Q-M4-8)", () => {
+  it("a settled re-emit that changes nothing forces no persist; one that carries a new result or message does", () => {
     const { sb, status } = feed(builder(), [...proposedCall(), { kind: "tool_finished", callId: "call-1", result: "" }]);
     sb.markPersisted();
     // Cursor's shape: the timing delta completed the row; the stream's own

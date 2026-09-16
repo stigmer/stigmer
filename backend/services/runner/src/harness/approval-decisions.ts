@@ -34,7 +34,7 @@
  *
  * This is the contract as of stigmer#197: REJECT denies the tool and the run
  * CONTINUES; it never fails the execution. The native harness proved it
- * (`hitl.ts` `reconcileNonExecutingDecisions`, moved here at S3 M1) and the
+ * (`hitl.ts` `reconcileNonExecutingDecisions`, moved here in #1096) and the
  * conformance suite (`agentexecution-approval.conformance.test.ts`) is its
  * arbiter for both harnesses.
  */

@@ -53,8 +53,7 @@ const AUTO_MODEL_IDS = new Set(["default", "auto"]);
  * the served variant deterministic while leaving effort knobs on their
  * catalog defaults. `fast` changes the per-token price; `thinking` is
  * price-neutral but changes token consumption and must never follow the
- * account default. Sourced from the Cursor catalog survey
- * (stigmer-cloud _projects/2026-08/20260806.04.model-service-tier).
+ * account default. Sourced from a survey of the Cursor catalog (2026-08).
  */
 const FAST_PARAM_ID = "fast";
 const THINKING_PARAM_ID = "thinking";

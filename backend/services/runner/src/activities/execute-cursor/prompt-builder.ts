@@ -6,7 +6,7 @@
  * user message and persist in the agent's own conversation store; a resumed
  * agent receives only what is per-turn).
  *
- * What is this harness's and what is shared (S3 M5, Q-S3-10 / Q-M5-2):
+ * What is this harness's and what is shared (since #1096):
  *  - Shared through `shared/prompt-sections.ts`: WHICH standing sections
  *    render and in WHAT order (`standingContextSections`) and the input-files
  *    bullet and disclosure lines (`inputFileLines`). Their WORDS come from
@@ -70,7 +70,7 @@ const RUNNER_PATH_MARKERS = [
 ] as const;
 
 // The prompt renders the attachment resolver's own result type — a local
-// structural twin (`AttachmentPromptEntry`) lived here until S3 M5 and the
+// structural twin (`AttachmentPromptEntry`) lived here until #1096 and the
 // projection into it was the one reason `turn-setup.ts` had a
 // `prepareAttachmentPrompt` step; the twin dropped the size, so this
 // harness's input-files line never carried it. One type, one truth: the
@@ -315,7 +315,7 @@ export function buildReinvocationPrompt(
     } else if (action === ApprovalAction.REJECT) {
       // A REJECT denies the tool and the run continues (stigmer#197); the
       // runtime settles its row SKIPPED. Told apart from a SKIP in the prose
-      // so the model reads a refusal, not an omission (S3 M1, Q-S3-2).
+      // so the model reads a refusal, not an omission (since #1096).
       rejected.push(describeApproval(pa));
     }
   }
@@ -566,8 +566,8 @@ export function formatWorkspaceContext(dirs: string[]): string {
 /**
  * The `<input_files>` section: this harness's intro around the shared lines
  * (`prompt-sections.ts` `inputFileLines` says what each bullet and disclosure
- * carries and why). The size on each bullet is new to this harness at S3 M5
- * (Q-M5-3): the twin this builder rendered from had dropped it.
+ * carries and why). The size on each bullet is new to this harness in #1096:
+ * the twin this builder rendered from had dropped it.
  */
 export function formatInputFiles(
   attachments: readonly ResolvedAttachment[],
@@ -755,7 +755,7 @@ export function buildToolApprovalRuleFile(): string {
 // ---------------------------------------------------------------------------
 // Prompt selection — which of the four shapes a turn sends, from how the
 // agent resolved and whether the turn carries adjudicated approvals. Moved
-// from `index.ts` at S2 M3b, body unchanged; `__tests__/build-prompt.test.ts`
+// from `index.ts` in #1070, body unchanged; `__tests__/build-prompt.test.ts`
 // pins every branch.
 // ---------------------------------------------------------------------------
 

@@ -38,7 +38,7 @@
  *     is carried to COMPLETED; with REJECT or SKIP → never executes and the
  *     turn continues (the row's SKIPPED status is the runtime's to write,
  *     `harness/approval-decisions.ts`, proven in the runtime half — the
- *     driver stands in for that write between turns, Q-M1-3); reinvoked again
+ *     driver stands in for that write between turns); reinvoked again
  *     after the approval → still once, never re-gated.
  *  4. Aborting `stopSignal` mid-hang settles `runTurn` as `interrupted` within
  *     {@link INTERRUPT_SETTLE_BOUND_MS} and nothing after the stop executes or
@@ -48,8 +48,8 @@
  *     executes on the resumed turn is the pause primitive's business — an
  *     interrupt engine completes the pending task before its model speaks,
  *     a deny-and-retry engine re-reaches it whenever its model does — so it
- *     is below the contract line (S3 M3 Q-M3-2; each harness's own kit file
- *     observes its order).
+ *     is below the contract line (each harness's own kit file observes its
+ *     order).
  *  5. Usage reaches the sink as non-negative deltas summing to what the engine
  *     emitted.
  *  6. Capability and behaviour agree on the state id: an `engine-minted`
@@ -335,8 +335,8 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
  * turn continues — the row's terminal status is NOT asserted here because
  * it is not the adapter's to write (the decision is the server's field and
  * the WAITING → SKIPPED transition follows from it with no engine knowledge,
- * so it is the runtime's — `terminalizeNonExecutingDecisions`, landed at
- * S3 M1 and pinned by the runtime half's REJECT / SKIP arms; S2 M4 Q-M4-1).
+ * so it is the runtime's — `terminalizeNonExecutingDecisions`, landed in
+ * #1096 and pinned by the runtime half's REJECT / SKIP arms).
  * The reinvocation sees a CLONE of the persisted status, as it would from
  * the server.
  */

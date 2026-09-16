@@ -3,13 +3,13 @@
  * transcript row carries — the translator's half of `tool_finished.result`
  * (`harness/transcript/events.ts`): the engine's output envelope is the
  * harness's to unwrap, the builder stores what it is handed, and the persist
- * chokepoint bounds it (S4 M2 C2a, Q-S4-3). Native's twin is
+ * chokepoint bounds it. Native's twin is
  * `extractToolResult` in `execute-deep-agent/translator.ts` (the LangChain
  * ToolMessage envelope and the LangGraph Command).
  *
  * Its own module because two readers need it — the translator for a root
  * row's result, `sub-agent-steps.ts` for a sub-agent's — and the second would
- * otherwise import the first, which imports the second (S4 M4 B3). Moved from
+ * otherwise import the first, which imports the second. Moved from
  * `message-translator.ts` verbatim.
  */
 

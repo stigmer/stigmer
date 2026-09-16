@@ -3,21 +3,20 @@
  * protocol events in, the canonical `TranscriptEvent` union out
  * (`harness/transcript/events.ts`).
  *
- * The one module that knows LangGraph's wire shape (S4's disposition table):
+ * The one module that knows LangGraph's wire shape:
  * the shared builder folds what comes out of here and nothing of the engine
  * reaches it otherwise. Every engine fact the builder used to read is
- * answered on this side now (S4 M2):
+ * answered on this side now (since #1097):
  *
  *   - the tool's result, rendered to the string the row carries — the
- *     LangChain ToolMessage envelope and the LangGraph Command unwrapped
- *     (C2a, C2b; Q-S4-3, Q-S4-21);
+ *     LangChain ToolMessage envelope and the LangGraph Command unwrapped;
  *   - the tool's attribution (`mcpServerSlug`) and authorization provenance,
- *     from the gate's posture (C3; `resolveApprovalProvenance`, the gate's
+ *     from the gate's posture (`resolveApprovalProvenance`, the gate's
  *     read-side twin);
  *   - the SCOPE of every event — the root's transcript or one sub-agent's —
  *     from LangGraph's namespace grammar, and the sub-agent's own lifecycle
  *     (`sub_agent_started/finished/failed`) from deepagents' `task` tool
- *     (C4; Q-S4-3, Q-S4-4). Until C4 the builder read the namespace and the
+ *     Until #1097 the builder read the namespace and the
  *     tool's name itself, and kept a second copy of every handler for the
  *     sub-agents' transcripts.
  *
@@ -30,16 +29,15 @@
  * resume. The gate's decision has arms this side cannot evaluate (capture
  * mode asks the workspace's git state, asynchronously;
  * `middleware/approval-gate.ts`), and duplicating them would be a second copy
- * of the decision — the drift Q-M2-9 exists to end. So native emits no
- * `tool_started.gate`; the held call reaches the transcript as
- * `approval_proposed` from the post-stream seed (C6). Until C3 the builder
+ * of the decision — exactly the drift one writer per fact exists to end. So
+ * native emits no `tool_started.gate`; the held call reaches the transcript
+ * as `approval_proposed` from the post-stream seed. Until #1097 the builder
  * carried a copy of the decision that gated MCP tools only, a path
- * production never took — M2 finding F-M2-27, option A.
+ * production never took.
  *
  * Attribution and provenance are answered for ROOT-scope calls only: a
- * sub-agent's rows carry none on either harness today (S4 review finding
- * 11), and one handler set would otherwise stamp them as a side effect
- * (F-M2-23; S5's question).
+ * sub-agent's rows carry none on either harness today (#1133), and one
+ * handler set would otherwise stamp them as a side effect.
  *
  * The scope, in LangGraph 1.3.2's grammar (mirrors deepagents'
  * `createSubagentTransformer`): the root's model events arrive under
@@ -50,13 +48,13 @@
  * more segments). An event with a REGISTERED first segment and two or more
  * segments is the sub-agent's; everything else is the root's — including a
  * nested namespace whose prefix nobody registered, which folds into the
- * root as it always did (F-M2-17; a sub-agent resumed inside its own gate
+ * root as it always did (a sub-agent resumed inside its own gate
  * with no re-emitted `task` start is the production case). A `task` inside
  * a sub-agent is an ordinary row of that sub-agent's transcript: one level
  * of delegation is tracked, as before.
  *
  * Beside the transcript, {@link usageOf} answers the loop's one
- * non-transcript question about the wire (C1) — the usage a
+ * non-transcript question about the wire — the usage a
  * `message-finish` carries — so the loop never parses a raw event itself.
  * What the wire carries that the transcript does not: `lifecycle` and
  * `provider` events, the standalone `usage` event, each event's `seq` and
@@ -64,8 +62,8 @@
  * a replay.
  *
  * The file was `v3-protocol-normalizer.ts` (a stateless `normalize`) until
- * C4 made it stateful (Q-M2-4) — the same word as `execute-cursor/translator.ts`
- * (M4), so a third harness's author finds one shape in both.
+ * #1097 made it stateful — the same word as `execute-cursor/translator.ts`,
+ * so a third harness's author finds one shape in both.
  *
  * Defensive parsing: handles both snake_case and camelCase field names
  * for tool IDs/names (protocol spec uses camelCase but recordings show
@@ -224,10 +222,10 @@ export interface V3UsagePayload {
  * The usage one raw event carries, or `undefined`. Read from `message-finish`
  * ONLY — v3 also emits a standalone `usage` event for the same turn, and
  * reading both would double-count. Every namespace's finish counts: a
- * sub-agent's spend is the execution's spend (S3 M2b, Q-M2b-1), and the cost
+ * sub-agent's spend is the execution's spend (since #1096), and the cost
  * cap the runtime enforces reads the whole execution.
  *
- * A loop concern, deliberately NOT a `TranscriptEvent` (S4 M2 C1, Q-M2-3):
+ * A loop concern, deliberately NOT a `TranscriptEvent`:
  * usage is neither a row nor a message, and `translate`'s return type stays
  * the one signature every harness's translator shares. The Cursor loop reads
  * its usage from the SDK's `turn-ended` delta — the same division.
@@ -371,9 +369,9 @@ function serializeToolContent(content: unknown): string | undefined {
 
 /**
  * The `result: string` a `tool_finished` carries, from the v3 `tool-finished`
- * output — engine knowledge that stays on this side of the union (S4 M2 C2a,
- * Q-S4-3; it was `extractToolResultV3` in `harness/transcript/tool-result.ts`
- * between M1 and M2). v3 wraps a LangChain `ToolMessage` in a constructor
+ * output — engine knowledge that stays on this side of the union (it was
+ * `extractToolResultV3` in `harness/transcript/tool-result.ts` for a few
+ * commits of #1097). v3 wraps a LangChain `ToolMessage` in a constructor
  * envelope, `{ lc, type, id, kwargs: { content, status, ... } }`; the content
  * is what the row shows. Anything else is serialized as it came.
  *
@@ -381,8 +379,8 @@ function serializeToolContent(content: unknown): string | undefined {
  * `{ lg_name: "Command", update: { ..., messages: [ToolMessage] }, goto }` —
  * with its ToolMessage nested in the update (deepagents' `write_todos` and
  * `task` both do). The row shows that ToolMessage's content, not the whole
- * Command (S4 M2 C2b, Q-S4-21; until then the row carried the serialized
- * Command, the todos array twice over — M0 finding F-M0-2).
+ * Command (since #1097; until then the row carried the serialized
+ * Command, the todos array twice over).
  */
 function extractToolResult(output: unknown): string {
   if (typeof output === "string") return output;

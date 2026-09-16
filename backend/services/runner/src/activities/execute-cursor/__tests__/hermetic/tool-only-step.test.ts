@@ -2,20 +2,20 @@
  * Hermetic golden: a turn whose FIRST event after `init` is a tool call — no
  * assistant text proposed it — through the whole `ExecuteCursor` activity.
  *
- * Invariant pinned (S4 M0 net): a tool call with no AI message before it in
+ * Invariant pinned: a tool call with no AI message before it in
  * its scope gets an EMPTY AI message created to carry its row
- * (the builder's AI-message boundary, Q-S4-5), and the assistant text
+ * (the builder's AI-message boundary), and the assistant text
  * that follows the tool opens a new message. So: AI(`""` + the read row),
  * AI(A1). This is the same shape the native builder produces for a model turn
  * that proposes tools without text (`ensureAiMessageForToolCall`), which is
  * why the canonical builder can serve both.
  *
- * Predicted under the S4 rulings (2026-09-14): NO move.
- * Q-S4-5's rule ("the scope's current AI message, lazily created empty when
+ * Predicted for the swap to the shared builder (2026-09-14): NO move.
+ * The boundary rule ("the scope's current AI message, lazily created empty when
  * the scope's latest model run had no text") produces exactly this transcript.
  *
  * Why this net exists: `tool-call.status.json` pins text→tool→text; nothing
- * pinned a tool with no proposing text before M0.
+ * pinned a tool with no proposing text before this net.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u

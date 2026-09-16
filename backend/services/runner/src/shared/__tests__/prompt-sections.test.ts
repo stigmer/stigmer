@@ -2,7 +2,7 @@
  * The shared prompt glue (`shared/prompt-sections.ts`): the standing order,
  * the input-files lines, the skill selection and the also-available sentence
  * (the sentence's arms came from `skill-writer.test.ts`, retired with its
- * module at S3 M5). What each harness renders AROUND these is pinned whole by
+ * module in #1096). What each harness renders AROUND these is pinned whole by
  * the two builders' prompt goldens (`execute-deep-agent/__tests__/
  * prompt-goldens.test.ts`, `execute-cursor/__tests__/prompt-goldens.test.ts`);
  * this file pins the glue's own contract, harness-free.

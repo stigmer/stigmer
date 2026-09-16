@@ -14,13 +14,13 @@
  *    (`activities/execute-cursor/__tests__/approval-state.test.ts`), because
  *    `src/harness/` never imports `src/activities/`, tests included.
  *  - `decideReinvocation`: the three ways a resume proceeds (any decision
- *    runs the agent — REJECT included since S3 M1 —, a clean file-review
+ *    runs the agent — REJECT included since #1096 —, a clean file-review
  *    resume completes, a failed or partially discarded one completes with
  *    its facts carried).
  *  - `regeneratesApprovedWrites`: which pause primitives make the runner pin
  *    an approved whole-file write's bytes itself (the engine re-runs the
  *    model) and which never do (the engine applies the exact args it paused
- *    on). S3 M2a, Q-M2a-3.
+ *    on).
  *
  * The phases that fetch and provision are exercised end to end by the
  * hermetic goldens (`activities/execute-cursor/__tests__/hermetic/`), which
@@ -163,10 +163,10 @@ describe("decideReinvocation", () => {
     expect(decideReinvocation(facts())).toBeUndefined();
   });
 
-  it("a REJECT runs the agent like any other decision — the run continues without the tool (stigmer#197; S3 M1, Q-S3-2)", () => {
-    // Until S3 M1 this returned `{ kind: "rejected-by-user" }` and the runtime
+  it("a REJECT runs the agent like any other decision — the run continues without the tool (stigmer#197)", () => {
+    // Until #1096 this returned `{ kind: "rejected-by-user" }` and the runtime
     // FAILED the execution before any engine ran, contradicting the proto, the
-    // conformance suite and the native harness (S2 M4 finding F1).
+    // conformance suite and the native harness.
     const decisions = new Map([
       ["tc-1", ApprovalAction.APPROVE],
       ["tc-2", ApprovalAction.REJECT],

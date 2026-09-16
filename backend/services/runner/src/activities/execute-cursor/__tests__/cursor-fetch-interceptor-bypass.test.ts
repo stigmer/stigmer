@@ -1,11 +1,22 @@
 /**
- * Test that reproduces the desktop runner's EXACT execution path.
+ * Live probe: which of the SDK's calls a `globalThis.fetch` interceptor can
+ * see. A fetch wrapper that notes any call to a cursor.sh / cursor.com URL is
+ * installed, then `Agent.create()` runs (local mode, no model named).
  *
- * Simulates proxy mode: fetch interceptor installed, apiKey="proxy-managed",
- * to verify whether the proxy rewriting actually intercepts @cursor/sdk calls.
+ * What the one arm proves: `Agent.create()` completes WITHOUT a global-fetch
+ * call to a Cursor URL — its transport is connect-node over Node's HTTP/2, so
+ * a fetch-level interceptor alone cannot rewrite it. That is why the adapter
+ * installs BOTH interceptors in proxy mode (`fetch-interceptor.ts` and
+ * `http2-interceptor.ts`). Measured true at SDK 1.0.31 on 2026-09-16 (#1097's
+ * live run, 1/1).
  *
- * Expected result: THIS TEST WILL FAIL because @cursor/sdk uses connect-node
- * (Node.js native HTTP), not globalThis.fetch. The fetch interceptor never fires.
+ * What it does NOT prove: that the fetch interceptor is useless. A reading of
+ * the 1.0.31 bundle the same day found the SDK's cloud-api client and its
+ * token exchange on global `fetch`, on paths this arm never exercises; the
+ * fetch interceptor exists for those.
+ *
+ * Skipped without `CURSOR_API_KEY`; the suite never runs it. Run it by hand:
+ *   CURSOR_API_KEY=<key> npx vitest run src/activities/execute-cursor/__tests__/cursor-fetch-interceptor-bypass.test.ts
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -39,7 +50,7 @@ describeWithCursorKey("Fetch Interceptor vs Connect-Node Transport", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("Agent.create() does NOT go through globalThis.fetch (proving interceptor is useless)", async () => {
+  it("Agent.create() completes without a globalThis.fetch call to a Cursor URL", async () => {
     const { Agent } = await import("@cursor/sdk");
     const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
 
@@ -58,8 +69,8 @@ describeWithCursorKey("Fetch Interceptor vs Connect-Node Transport", () => {
     expect(agent.agentId).toBeTruthy();
     console.log(`Agent created: ${agent.agentId}, interceptCalled=${interceptCalled}`);
 
-    // This assertion proves the fetch interceptor pattern is broken:
-    // connect-node uses Node.js http module, NOT globalThis.fetch
+    // The create path is connect-node over Node's HTTP/2, not globalThis.fetch;
+    // see the header for what this does and does not say about proxy mode.
     expect(interceptCalled).toBe(false);
   }, 30_000);
 });

@@ -14,7 +14,7 @@
  * adapter's interceptors must patch `node:http2` before anything dials the
  * control plane, so it boots first. The native deep-agent adapter boots
  * second; its `boot` registers the deepagents harness profiles and loads
- * LangChain, both after the patch (S3 M2b, 2026-09-13; until then the roots
+ * LangChain, both after the patch (#1096, 2026-09-13; until then the roots
  * imported the native orchestrator directly beside this table).
  *
  * THIS MODULE'S STATIC GRAPH MUST STAY CONNECT- AND SDK-FREE. The roots

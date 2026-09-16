@@ -22,7 +22,7 @@
  * resolved, over the runtime's timeline (`sink.setupTiming`), so the one
  * timeline reads end to end.
  *
- * Moved from `index.ts` `executeCursorInner` phases 4c to 10c at S2 M3b; the
+ * Moved from `index.ts` `executeCursorInner` phases 4c to 10c in #1070; the
  * step bodies are the orchestrator's, verbatim where nothing changed.
  */
 
@@ -286,7 +286,7 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
 /**
  * Resolve the Cursor agent (parked, created, resumed, or created after a
  * resume failure), emit the cold-start line, and bind a NEW agent's id
- * through the sink before anything else runs (Q-S2-11: a rejected bind ends
+ * through the sink before anything else runs (a rejected bind ends
  * the turn `failed`; the sink rejects and the caller's catch names it).
  *
  * The requested name and the effective tier and thinking mode are the
@@ -446,7 +446,7 @@ export async function resolveEngine(input: TurnInput, sink: TurnSink, config: Cu
   // A NEW agent's id is bound at once, before anything else runs, so a crash
   // mid-turn still resumes on the next invocation. The mode is this
   // harness's field on the session record, set before the runtime writes it
-  // (one writer per field, Q-S2-11); the runtime sets harness_state_id and
+  // (one writer per field); the runtime sets harness_state_id and
   // clears the slug.
   if (resolution.isNew && resolution.agentId) {
     if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
@@ -459,8 +459,8 @@ export async function resolveEngine(input: TurnInput, sink: TurnSink, config: Cu
       // receives the engine only when this returns) and its id was never
       // saved, so no later turn can resume it: close it here, or its executor
       // lease and MCP subprocesses outlive the failed turn with nothing to
-      // release them (S2 M4, Q-M4-8). Then let the rejection settle the turn
-      // `failed` as R3 rules.
+      // release them (found by the contract kit in #1070). Then let the
+      // rejection settle the turn `failed`, as the contract states.
       try {
         resolution.agent.close();
       } catch {

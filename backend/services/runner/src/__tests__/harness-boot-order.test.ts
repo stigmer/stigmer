@@ -20,7 +20,7 @@
  * `adapter.ts`'s graph, or a static client import on the registry's, fails
  * the first arm; a `boot` that stopped asserting fails the second.
  *
- * The table has two rows since S3 M2b (2026-09-13): the child boots the
+ * The table has two rows since #1096 (2026-09-13): the child boots the
  * Cursor adapter and then the native deep-agent adapter, whose `boot`
  * registers the deepagents profiles and loads LangChain — after the patch,
  * because it is the second row. A `boot` that reordered the rows, or a

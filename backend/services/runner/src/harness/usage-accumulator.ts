@@ -4,7 +4,7 @@
  * the persist chokepoint writes before every status write, and the running
  * cost the `max_cost_usd` cap is enforced against.
  *
- * Who owns what (Q-S2-12): the ADAPTER prices, because only it has its
+ * Who owns what: the ADAPTER prices, because only it has its
  * vendor's rate table and variant semantics (`execute-cursor/usage-pricing.ts`
  * for Cursor); the RUNTIME accounts and enforces, because the cap and the
  * summary are the platform's, the same for every engine. A delta therefore
@@ -14,7 +14,7 @@
  * preferences (`TurnInput.model`), the audit trail that the account default
  * was never left in control (#357, #772).
  *
- * Moved from `activities/execute-cursor/usage-accumulator.ts` at S2 M3, the
+ * Moved from `activities/execute-cursor/usage-accumulator.ts` in #1070, the
  * pricing call split out; the sums, the snapshot shape and the empty
  * snapshot are unchanged, so `streamingUsage` is byte-for-byte what the
  * Cursor orchestrator wrote.

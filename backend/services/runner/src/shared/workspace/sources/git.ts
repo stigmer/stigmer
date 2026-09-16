@@ -12,7 +12,6 @@
 
 import { join } from "node:path";
 import {
-  SourceType,
   WorkspaceProvisionError,
   type ProvisionResult,
   type GitMetadata,
@@ -63,7 +62,7 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
       ? message.replaceAll(githubToken, "***")
       : message;
     throw new WorkspaceProvisionError(
-      SourceType.GIT_REPO,
+      "git_repo",
       `Git clone failed: ${sanitized}`,
       { cause: err instanceof Error ? err : undefined, transient: true },
     );
@@ -82,7 +81,7 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
 
   return {
     rootDir: cloneDir,
-    sourceType: SourceType.GIT_REPO,
+    sourceType: "git_repo",
     consumedKeys,
     workspaceDescription:
       `Your workspace is a git clone of ${url}` +
@@ -113,7 +112,7 @@ async function reuseExistingRepo(
 
   return {
     rootDir: cloneDir,
-    sourceType: SourceType.GIT_REPO,
+    sourceType: "git_repo",
     consumedKeys: [],
     workspaceDescription:
       `Your workspace is a git clone of ${url}` +

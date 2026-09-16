@@ -13,7 +13,7 @@
  * heartbeat subject — `@temporalio/activity/lib/index.js`
  * `Context.heartbeat`, `@temporalio/worker/lib/worker.js` the heartbeat
  * callback; the SDK's own doc: "Cancellation is not propagated from this
- * function"). Until S2 M3 this handle carried two flags for a throw that
+ * function"). Until #1070 this handle carried two flags for a throw that
  * cannot happen; a turn reads its interruption from the signal's reason
  * instead (`worker-shutdown.ts` `classifyTurnInterruption`).
  */

@@ -19,15 +19,15 @@
  * `terminal-table.ts`); capture the turn's file changes or decide whether a
  * review is pending — the runtime's too (`harness/capture.ts`, once over the
  * whole turn after this settle returns, so a recovery's edits reach review
- * without the boundary being re-entered for them; S3 M4). The outcome carries
+ * without the boundary being re-entered for them; since #1096). The outcome carries
  * what the runtime cannot read from the status (`failed`'s message and
  * surface, `cancelled`). The transcript's rows are CREATED through the shared
- * `TranscriptBuilder` (S4 M4: this harness's translator emits, the builder
- * folds; until M4 the accumulator, the enricher and the todo tracker wrote
+ * `TranscriptBuilder` (#1097: this harness's translator emits, the builder
+ * folds; until then the accumulator, the enricher and the todo tracker wrote
  * them here); the boundary AMENDS rows it owns by identity and proposes its
  * gate through the same builder.
  *
- * Moved from `index.ts` `executeCursorInner` phases 11 to 13 at S2 M3b; the
+ * Moved from `index.ts` `executeCursorInner` phases 11 to 13 in #1070; the
  * bodies are the orchestrator's, with the runtime's arms taken out.
  */
 
@@ -87,7 +87,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // The runtime's one transcript builder over the turn's status, and this
   // harness's translator over the run's approval posture and the seeded
   // transcript (a resumed agent's re-issued call is matched onto its seeded
-  // WAITING row by identity, Q-S4-9). Both live for the whole turn — the
+  // WAITING row by identity). Both live for the whole turn — the
   // primary stream and both recovery retries fold into them.
   const transcript = sink.transcript;
   const translator = new CursorTranslator({
@@ -171,7 +171,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
 
   // Post-stream finalize, shared by the primary turn and both recovery retries:
   // fold the deltas that arrived after the last stream event (a completion
-  // the delta channel reported last was lost before M4), close every
+  // the delta channel reported last was lost before #1097), close every
   // streaming flag, mark any in-flight sub-agent CANCELLED on a stopped turn,
   // flush the recorder, and persist so the UI sees the settled rows.
   const finalizeStreamPhase = async (): Promise<void> => {

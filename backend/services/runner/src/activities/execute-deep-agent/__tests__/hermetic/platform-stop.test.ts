@@ -11,14 +11,14 @@
  * runtime's table maps the stop to COMPLETED with `platformStopArm`'s one
  * row, "Execution stopped by the platform.", no `status.error`, and RETURNS.
  *
- * Ruled at Q-S3-3 (a platform STOP is the platform saying "stop spending
- * now"; the runtime's abort is the one stop) and landed at S3 M2a. Until
+ * The rule (a platform STOP is the platform saying "stop spending
+ * now"; the runtime's abort is the one stop) landed in #1096. Until
  * then the orchestrator answered STOP by activating `graceful-stop.ts`,
  * which handed the model one more tool-free round: the transcript carried
  * the model's wrap-up ("Stopping here as asked.") AND the middleware's own
- * notice rendered as the agent's words (F-M0-7), and the run ended
- * COMPLETED with no row. The graceful-stop middleware was deleted at S3 M2b
- * (Q-M2a-4 sequenced it after the legacy loop that activated it); nothing in
+ * notice rendered as the agent's words, and the run ended
+ * COMPLETED with no row. The graceful-stop middleware was deleted in #1096
+ * (after the legacy loop that activated it); nothing in
  * the graph answers a STOP any more, so the second scripted turn is never
  * reached — this golden was byte-identical across the deletion.
  *
@@ -74,7 +74,7 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     env.dispose();
   });
 
-  it("stops the run at the STOP and completes with the platform-stop row (Q-S3-3)", async () => {
+  it("stops the run at the STOP and completes with the platform-stop row", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     let stopsAnswered = 0;
     const record = deepAgentExecutionRecord({
@@ -114,7 +114,7 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     ]);
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
     expect(ai, "no wrap-up round and no injected notice: the run stopped at the STOP").toEqual(["Let me look."]);
-    expect(final.messages[0].toolCalls.map((tc) => tc.name), "the row sits on the text that proposed it (Q-S4-5)").toEqual(["read_file"]);
+    expect(final.messages[0].toolCalls.map((tc) => tc.name), "the row sits on the text that proposed it").toEqual(["read_file"]);
     expect(ai).not.toContain(WRAP_UP);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────

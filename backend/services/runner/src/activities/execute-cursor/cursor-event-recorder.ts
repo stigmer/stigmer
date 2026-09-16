@@ -16,8 +16,8 @@
  * `tool-call-completed` arrives before or after the stream's own completed
  * `tool_call` — are questions about the ORDER across channels. So the recorder
  * owns one monotonic `seq` and stamps every line with its `channel`; a reader
- * sorts nothing, it reads the file top to bottom. Until S4's live-run gate
- * (Q-L-2) this module recorded the stream channel alone, under the loop's own
+ * sorts nothing, it reads the file top to bottom. Until #1097's live-run gate
+ * this module recorded the stream channel alone, under the loop's own
  * event counter, which could not place a delta relative to a stream event.
  *
  * Output: `<dir>/<executionId>.cursor-events.jsonl`, one JSON object per line,

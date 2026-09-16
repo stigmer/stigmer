@@ -13,16 +13,16 @@
  * rows, two todos. The web console hides the row (`isInternalTool`); the CLI
  * TUI shows it, as it does for native.
  *
- * Moved 2026-09-14 (S4 M4 A1, Q-S4-7), the TWO hunks this golden was
- * predicted to take: until A1 the accumulator DROPPED the row (a suppressed-
+ * Moved 2026-09-14 (#1097), the TWO hunks this golden was
+ * predicted to take: until then the accumulator DROPPED the row (a suppressed-
  * tool-names set) and the transcript showed three AI messages with
  * no rows — a per-harness branch on a tool name the canonical builder does
- * not have (native has always kept its `write_todos` row). A1 aligned the
- * accumulator before the swap so the swap moves nothing; `todos` was and is
- * byte-identical. The todo tracker went at the swap (B4), where the builder took
- * over projecting the todos from the row.
+ * not have (native has always kept its `write_todos` row). The accumulator
+ * was aligned before the swap to the shared builder so the swap moved nothing;
+ * `todos` was and is byte-identical. The todo tracker went at the swap, where
+ * the builder took over projecting the todos from the row.
  *
- * Why this net exists: no Cursor golden before M0 carried a todo.
+ * Why this net exists: no earlier Cursor golden carried a todo.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -130,7 +130,7 @@ describe("ExecuteCursor hermetic — todo writes", () => {
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
     expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
 
-    // ── Assert: the transcript — a row per write, on the message that proposed it (Q-S4-7) ──
+    // ── Assert: the transcript — a row per write, on the message that proposed it ──
     const final = record.lastFullStatus!;
     expect(
       final.messages.map((m) => [m.type, m.content, m.toolCalls.length]),
@@ -146,7 +146,7 @@ describe("ExecuteCursor hermetic — todo writes", () => {
       [SECOND_CALL_ID, ToolKind.TODO, ToolCallStatus.TOOL_CALL_COMPLETED],
     ]);
 
-    // ── Assert: the todos, by key (Q-S4-7 keeps these byte-identical) ────────
+    // ── Assert: the todos, by key (byte-identical across the swap) ──────────
     expect(Object.keys(final.todos).sort()).toEqual(["todo-0", "todo-1"]);
     const first = final.todos["todo-0"];
     const second = final.todos["todo-1"];

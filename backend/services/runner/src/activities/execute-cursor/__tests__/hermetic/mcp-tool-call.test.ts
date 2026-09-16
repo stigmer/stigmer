@@ -3,7 +3,7 @@
  * and packs the real identity into its args — through the whole
  * `ExecuteCursor` activity.
  *
- * Invariant pinned (S4 M0 net): the translator unwraps
+ * Invariant pinned: the translator unwraps
  * `{ providerIdentifier, toolName, args }` from the event's args
  * (`extractMcpToolDetails`) and the row is the INNER tool: `name` is `toolName`,
  * `mcpServerSlug` is `providerIdentifier`, `args` is the inner args,
@@ -12,15 +12,16 @@
  * no MCP server declared on the record there is no policy for the tool, so it
  * is not gated; the provenance stamp still names the layer that cleared it.
  *
- * Moved 2026-09-14 (S4 M4 A2, Q-S4-16), the ONE hunk this golden was
- * predicted to take: until A2 the stream path stamped the OUTER
+ * Moved 2026-09-14 (#1097), the ONE hunk this golden was
+ * predicted to take: until then the stream path stamped the OUTER
  * `{ providerIdentifier, toolName, args }` envelope stringified — the
  * envelope, not the arguments. The canonical builder derives every row's
- * preview from its `args` and never from an engine's envelope; A2 aligned
- * the accumulator to that rule before the swap so the swap moves nothing.
+ * preview from its `args` and never from an engine's envelope; the
+ * accumulator was aligned to that rule before the swap to the shared builder,
+ * so the swap moved nothing.
  *
- * Why this net exists: no Cursor golden before M0 carried an MCP-attributed
- * row, and the unwrapping moves whole into the Cursor translator at M4.
+ * Why this net exists: no earlier Cursor golden carried an MCP-attributed
+ * row, and #1097 moved the unwrapping whole into the Cursor translator.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -127,7 +128,7 @@ describe("ExecuteCursor hermetic — MCP tool call", () => {
     expect(row.mcpServerSlug).toBe(MCP_SERVER);
     expect(row.toolKind).toBe(ToolKind.MCP);
     expect(row.args, "the inner args").toEqual(INNER_ARGS);
-    expect(row.argsPreview, "the row's own args, never the engine's envelope (Q-S4-16)").toBe(
+    expect(row.argsPreview, "the row's own args, never the engine's envelope").toBe(
       JSON.stringify(INNER_ARGS),
     );
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);

@@ -1,6 +1,6 @@
 /**
  * A later, same-identity proposal is a NEW act: it never lands on a row the
- * user already decided (S2 M4 finding F9).
+ * user already decided (found by the contract kit in #1070).
  *
  * The defect the harness contract kit found against this adapter: within one
  * execution, after the user APPROVED `edit a.txt` and the resumed agent ran

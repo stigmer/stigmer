@@ -3,13 +3,13 @@
  *
  * Harness-agnostic, and both adapters' stream loops read it
  * (`execute-cursor/turn-stream.ts`, `execute-deep-agent/turn-stream.ts`; the
- * native orchestrator's own copy of the rule retired with it at S3 M2b):
+ * native orchestrator's own copy of the rule retired with it in #1096):
  * `shouldPersist = transcriptDirty || scheduler.shouldSendUpdate(eventCount)`.
  * Both harnesses thus share one cadence model — a discrete state change
  * flushes immediately, high-frequency token deltas ride a bounded time
  * cadence.
  *
- * One flag, the transcript builder's `dirty` (S4 M5, Q-S4-12). Until then the
+ * One flag, the transcript builder's `dirty` (since #1097). Until then the
  * decision took three Cursor-named flags — the delta enricher's, the todo
  * tracker's and the accumulator's — of which two were constant `false` on
  * both loops once the one builder folded every discrete change; a shape

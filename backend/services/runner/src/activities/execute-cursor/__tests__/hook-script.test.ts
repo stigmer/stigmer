@@ -1,5 +1,6 @@
 /**
- * @regression file-hitl-phase0 — pins file-edit HITL fix #2 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ * @regression file-hitl-phase0 — pins that decisions bind to the active turn's
+ * denial ledger, never a stale one, and that a resume respects its order.
  *
  * Behavior tests for the generated preToolUse bash hook.
  *

@@ -7,17 +7,17 @@
  * redaction, the #205 foreign-hook-block detector, the #965 unresolved-row
  * settle, and the unattended-mode SKIPPED stamp.
  *
- * Moved verbatim from the boundary half of `message-translator.ts` at S4 M4
- * B2 (Q-S4-13), so that module's folding half — the Cursor accumulator, the
- * second copy of the transcript folding rule — can be deleted whole at the
- * swap (B4) and replaced by `translator.ts` over the shared
+ * Moved verbatim from the boundary half of `message-translator.ts` in #1097,
+ * so that module's folding half — the Cursor accumulator, the
+ * second copy of the transcript folding rule — could be deleted whole at the
+ * swap and replaced by `translator.ts` over the shared
  * `TranscriptBuilder`. Nothing here folds engine events: every function
  * AMENDS rows the stream already created, by identity (the token the hook and
  * the runner share); the one row this module ever needs CREATED — the gate for
  * a denial no streamed call matched — and the one it REOPENS — the streamed
  * call the hook denied — go through the shared `TranscriptBuilder` as
  * `approval_proposed`, the one post-stream fact both harnesses produce
- * (Q-S4-3(e), Q-S4-20; B4). `isTerminalToolStatus` below is the twin
+ * (#1097). `isTerminalToolStatus` below is the twin
  * collapse's own settled set (`shared/tool-row.ts` explains why INTERRUPTED is
  * not in it).
  *
@@ -147,7 +147,7 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
  * prior behavior.
  *
  * Every gate this function opens goes through the transcript builder as an
- * `approval_proposed` (S4 M4 B4; Q-S4-3(e), Q-S4-20): a known row REOPENS
+ * `approval_proposed` (since #1097): a known row REOPENS
  * (WAITING, the outcome the stream wrote cleared, the hook's captured input as
  * its args and preview), an unknown one gets a WAITING row on the message
  * whose text proposed it. The builder is the one writer of a WAITING row on

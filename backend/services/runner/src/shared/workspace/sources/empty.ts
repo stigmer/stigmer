@@ -5,12 +5,12 @@
  * This handler simply records the fact and returns the existing root.
  */
 
-import { SourceType, type ProvisionResult, type WorkspaceBackend } from "../types.js";
+import type { ProvisionResult, WorkspaceBackend } from "../types.js";
 
 export function provisionEmpty(backend: WorkspaceBackend): ProvisionResult {
   return {
     rootDir: backend.rootDir,
-    sourceType: SourceType.EMPTY,
+    sourceType: "empty",
     consumedKeys: [],
     workspaceDescription:
       "Your workspace is empty. " +

@@ -13,9 +13,9 @@
  * `Agent.create`, no `harness_state_id` bind, nothing streamed.
  *
  * Why this is the one terminal arm WITHOUT a file golden (owner ruling,
- * 2026-09-11, entry 20260911.03 M0): the wire copy embeds the absolute
+ * 2026-09-11, #1070): the wire copy embeds the absolute
  * workspace path, which is a per-run temp directory and differs between macOS
- * and CI. The S0 driver's rule is to control a volatile source at its origin
+ * and CI. The hermetic driver's rule (#1048) is to control a volatile source at its origin
  * or escalate — never redact — so this scenario pins every byte the path does
  * not touch with explicit assertions and builds the expected message with the
  * SAME error class over the real resolved path.

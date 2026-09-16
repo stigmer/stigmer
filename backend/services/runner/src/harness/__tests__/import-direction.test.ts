@@ -17,8 +17,8 @@
  * Temporal-free fence), so a path quoted in a header comment (several
  * `shared/` modules cite `activities/...` in prose) cannot trip it, and no
  * import form can slip past it: static, type-only, side-effect, re-export
- * and dynamic `import()` are all module specifiers to the parser. Ruled at
- * the S2 gate (Q-S2-9); the `shared/` half ruled at the M1 gate (Q-M1-5).
+ * and dynamic `import()` are all module specifiers to the parser. The
+ * `harness/` fence landed in #1070; the `shared/` half in #1097.
  */
 
 import { describe, it, expect } from "vitest";

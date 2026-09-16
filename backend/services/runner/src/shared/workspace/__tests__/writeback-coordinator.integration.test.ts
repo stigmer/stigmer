@@ -22,7 +22,6 @@ import { WriteBackCoordinator } from "../writeback-coordinator.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import type { ProvisionResult } from "../types.js";
-import { SourceType } from "../types.js";
 import { AGENT_GIT_AUTHOR_EMAIL } from "../git-identity.js";
 
 const SESSION_ID = "ses-int-01";
@@ -56,7 +55,7 @@ function makeCoordinator(
 ): WriteBackCoordinator {
   const provisionResult: ProvisionResult = {
     rootDir: workDir,
-    sourceType: SourceType.GIT_REPO,
+    sourceType: "git_repo",
     consumedKeys: [],
     workspaceDescription: "integration",
     entryName: "repo",

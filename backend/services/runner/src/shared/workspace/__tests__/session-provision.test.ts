@@ -2,8 +2,8 @@
  * Pins session workspace provisioning: git-repo workspace entries are cloned
  * locally (never delegated to a cloud agent), local-path entries are
  * mounted, and a session with no entries gets its own empty per-session root.
- * Harness-agnostic; the Cursor activity is today's only caller and the turn
- * runtime takes it over in S2 M3.
+ * Harness-agnostic; the Cursor activity was its only caller until the turn
+ * runtime took it over in #1070.
  *
  * Uses a real, hermetic local git repository (no network, no harness API) so
  * the clone is deterministic.

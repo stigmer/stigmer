@@ -15,7 +15,7 @@
  *     the tree is read at most once per floor interval and only re-attached
  *     when it moved (`shared/filereview/progress.ts`), so a write that
  *     changed nothing on disk carries the snapshot it already had. Before
- *     S3 M4 each adapter's stream loop did this before its own persists; the
+ *     #1096 each adapter's stream loop did this before its own persists; the
  *     runtime owns the capture now, so the display field it derives is
  *     refreshed where every other runtime-owned field is — here.
  *  3. `streaming_usage` is refreshed from the accumulator when it has turns,
@@ -23,7 +23,7 @@
  *  4. `persistStatus` (`shared/status.ts`): tool-output offload, the
  *     aggregate size cap, transient retry, oversize recovery. Never rejects.
  *  5. A Temporal heartbeat, so a long streaming turn's liveness is proven by
- *     the writes it makes (Q-S2-10).
+ *     the writes it makes.
  *  6. The control plane's answer: STOP becomes the runtime's platform-stop
  *     cause on the stop controller, which aborts the adapter's signal.
  *
@@ -34,7 +34,7 @@
  * and resolves when that follow-up has. The promise it returns therefore
  * always means "the state as of my request is on the control plane", which
  * is what lets the Cursor loop await it and see a STOP before it pulls the
- * next event, exactly as its own inline persist did (Q-M3-2).
+ * next event, exactly as its own inline persist did.
  *
  * The runtime's terminal writes use the same path (`write()`), so the
  * secret backstop and the usage summary ride the final status too, as they

@@ -5,10 +5,10 @@
  * Turn 1: the model thinks (a leading reasoning block, persisted as a
  * THINKING message), says it will run two commands, and proposes the first
  * gated `execute`; the gate pauses; WAITING_FOR_APPROVAL. The THINKING row
- * is closed — since S4 M2 C5 the settle finalizes every streaming flag
- * however the stream ended (Q-S4-6); until then this row persisted
- * `isStreaming: true` in both goldens, the one rendered defect the S4
- * review found on native (finding 6).
+ * is closed — since #1097 the settle finalizes every streaming flag
+ * however the stream ended; until then this row persisted
+ * `isStreaming: true` in both goldens, the one rendered defect that PR's
+ * review found on native.
  *
  * Between turns: APPROVE_ALL on the WAITING row. `deriveActiveLeases`
  * reduces it to the scope of the tool it was made on — for a built-in, its
@@ -27,12 +27,12 @@
  * reconciled in place (exactly one copy, now COMPLETED), and the leased
  * follow-up is appended COMPLETED with no interrupt. That test leased an MCP
  * SERVER (`getAppState` on open-computer-use); this arm leases a CATEGORY,
- * the same `deriveLeaseScope` path with the other scope kind (S3 M0 ruling
- * Q-M0-4). The server-scoped lease stays pinned by `approval-policy`'s unit
+ * the same `deriveLeaseScope` path with the other scope kind. The
+ * server-scoped lease stays pinned by `approval-policy`'s unit
  * tests and the conformance execution class.
  *
- * What every reinvocation golden here shows since S3 M2a (the runtime over
- * the native adapter; Q-S3-16 and Q-M2a-2): `startedAt` is THIS turn's own,
+ * What every reinvocation golden here shows since #1096 (the runtime over
+ * the native adapter): `startedAt` is THIS turn's own,
  * not turn 1's carried by the orchestrator's whole-status clone; the
  * `fileReviewEventStream` carries only the events THIS turn authored (the
  * runtime seeds messages, sub-agents, artifacts, write-backs, todos, usage,

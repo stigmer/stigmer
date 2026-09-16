@@ -2,13 +2,14 @@
  * The native system prompt, whole, as goldens.
  *
  * Every other prompt test in this directory asserts with `toContain`; the
- * hermetic goldens are status JSON and never see a prompt. So until S3 M5 no
+ * hermetic goldens are status JSON and never see a prompt. So until #1096 no
  * test pinned a rendered prompt byte for byte, and the relevance-filtered
  * `## Skills` section (eight or more skills, `turn-setup.ts`
  * `renderRootSkillsSection`) had no test at all. These goldens are the
  * photograph taken BEFORE the shared prompt glue moved into
- * `shared/prompt-sections.ts` (S3 M5, Q-M5-1), so the move could be proven
- * byte-identical — the same discipline M0 applied to the activity's status.
+ * `shared/prompt-sections.ts` (#1096), so the move could be proven
+ * byte-identical — the same discipline the hermetic net applied to the
+ * activity's status.
  *
  * Why bytes matter here beyond taste: `ScriptedModel` tells its scripted
  * roles apart by the system prompt's text (`__test-utils__/scripted-model.ts`
@@ -25,9 +26,10 @@
  *
  * The goldens are taken through `turn-setup.ts` `composeSystemPrompt`, the
  * production mapping from the runtime's resolved record to the builder's
- * input, so they pin the mapping too, not a copy of it. (C0 photographed the
- * prompt through a field-for-field copy of the mapping as it then sat inline
- * in `buildEngine`; C1 extracted it and re-took the goldens through the
+ * input, so they pin the mapping too, not a copy of it. (The first cut
+ * photographed the prompt through a field-for-field copy of the mapping as
+ * it then sat inline in `buildEngine`; the next extracted it and re-took the
+ * goldens through the
  * extraction — byte-identical, which is the proof the extraction is one.)
  *
  * A golden moves only under a ruling quoted in this header; never a quiet
@@ -49,7 +51,7 @@ import type { TurnInput } from "../../../harness/types.js";
 import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import type { RecalledMemoriesContent } from "../../../shared/recalled-memories.js";
-import { SourceType, type ProvisionResult } from "../../../shared/workspace/types.js";
+import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
 import { composeSystemPrompt } from "../turn-setup.js";
 
@@ -81,7 +83,7 @@ const THREE_SKILLS: readonly SkillMetadata[] = NINE_SKILLS.slice(0, 3);
 const PROVISION_RESULTS: readonly ProvisionResult[] = [
   {
     rootDir: "/ws/app",
-    sourceType: SourceType.GIT_REPO,
+    sourceType: "git_repo",
     consumedKeys: [],
     workspaceDescription: "The payments service, cloned from git.",
     entryName: "app",
@@ -90,7 +92,7 @@ const PROVISION_RESULTS: readonly ProvisionResult[] = [
   },
   {
     rootDir: "/ws/docs",
-    sourceType: SourceType.LOCAL_PATH,
+    sourceType: "local_path",
     consumedKeys: [],
     workspaceDescription: "The docs folder on the user's machine.",
     entryName: "docs",
@@ -209,7 +211,7 @@ async function systemPromptOf(input: TurnInput): Promise<string> {
 // Goldens
 // ---------------------------------------------------------------------------
 
-describe("native system prompt goldens (S3 M5, Q-M5-1)", () => {
+describe("native system prompt goldens", () => {
   it("everything at once, nine skills so the relevance filter fires", async () => {
     const prompt = await systemPromptOf(everythingInput({ skills: NINE_SKILLS }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.everything.prompt.md");

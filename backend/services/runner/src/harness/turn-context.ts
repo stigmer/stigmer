@@ -6,7 +6,7 @@
  * with the engine that will run it: the execution and its session, the
  * agent blueprint, the environment, the workspace and its lock, what the
  * previous turn left waiting for approval, the MCP servers and their
- * approval policies, the attachments, the standing context. Until S2 M2
+ * approval policies, the attachments, the standing context. Until #1070
  * that sequence lived inline in the Cursor orchestrator
  * (`activities/execute-cursor/index.ts` `executeCursorInner`, phases 1 to
  * 9c); the native orchestrator carried a second copy in its `performSetup`.
@@ -16,16 +16,16 @@
  * sequences them, and the adapter runs its own harness-specific steps after
  * the whole record exists.
  *
- * Shape, chosen against the native orchestrator's `setup.ts` (deleted at S3
- * M2b): a typed record built from small functions (the `SetupResult` mold),
+ * Shape, chosen against the native orchestrator's `setup.ts` (deleted in
+ * #1096): a typed record built from small functions (the `SetupResult` mold),
  * never one 775-line `performSetup`. The record is the adapter contract's `TurnInput`
  * (`types.ts`): every phase returns a named slice of it, and
  * {@link resolveTurnContext} composes the whole. There is no wider
  * "runtime-private" record beside it — the lock release and the write-back
  * coordinator a phase produces are the caller's `TurnFrame` resources, set
- * the instant they exist so a `finally` sees them on every path (M2 had a
- * `TurnContext extends TurnInput` for them; once the groups lifted, nothing
- * read the extension after composition, so M3 deleted it).
+ * the instant they exist so a `finally` sees them on every path (a first cut
+ * had a `TurnContext extends TurnInput` for them; once the groups lifted,
+ * nothing read the extension after composition, so #1070 shipped without it).
  *
  * Three rules every phase obeys:
  *
@@ -41,17 +41,17 @@
  *  - Its heartbeat pulse and its cold-start timing marks are its own: the
  *    step name it enters under is the mark name it emits, one vocabulary for
  *    "where in setup are we" in Temporal heartbeat details and the
- *    `execution_setup` log (Q-S2-10).
+ *    `execution_setup` log.
  *
  * What is deliberately NOT here, and where it is instead:
  *
  *  - Cursor's catalog validation of the requested model (`resolveModelId`),
  *    the pricing preload and the MCP env pre-flight warning stay in the
- *    Cursor adapter for S2: each reads a module in the adapter column of the
- *    entry's disposition table, and the runtime carries the REQUESTED model
- *    name so every harness validates against its own catalog (S2 M2 gate,
- *    Q-M2-1). The skill mount was in that list until M3b found it reads the
- *    control plane, which only the runtime holds; it is {@link mountSkills}.
+ *    Cursor adapter: each reads a module that is the adapter's own, and the
+ *    runtime carries the REQUESTED model name so every harness validates
+ *    against its own catalog. The skill mount was in that list until #1070
+ *    found it reads the control plane, which only the runtime holds; it is
+ *    {@link mountSkills}.
  *  - The approval grants, the HITL gate, the capture baseline pin and the
  *    Cursor agent itself (phases 5c, 7, 8a, 9) are the adapter's.
  *  - The memory selection is a memoized thunk, not a value: whether a prompt
@@ -135,7 +135,7 @@ import type {
  * What every phase reads from its caller. The activity's identity and the
  * runtime's own seams; nothing harness-specific. The four function members
  * are the caller's, injected so the phase bodies are the same code under
- * the Cursor orchestrator today and under `run-turn.ts` in M3 (only the
+ * the Cursor orchestrator it left and under `run-turn.ts` (only the
  * binding changes), and so a test can drive a phase without a Temporal
  * activity context.
  */
@@ -209,7 +209,7 @@ export interface TurnReinvocation {
  * A turn that ended during resolution, before any harness ran. Each arm
  * names what was decided and carries only the facts the caller's status
  * writes need; the copy, the phase flip, the persist and the slim return are
- * the caller's (the orchestrator today, the runtime's terminal table in M3).
+ * the caller's (the runtime's terminal table).
  *
  *  - `workspace-lock-timeout`: another turn held the primary tree past
  *    `Config.workspaceLockTimeoutMs`. FAILED, returned (a Temporal retry
@@ -248,7 +248,7 @@ export type ReinvocationOutcome =
 /**
  * Whether the engine already holds state for this execution, so this
  * invocation resumes rather than begins. One function keyed on how the
- * harness mints its state id (Q-S2-8):
+ * harness mints its state id:
  *
  *  - `engine-minted` (Cursor: the agent id): the runtime knows nothing until
  *    the adapter binds an id, so a non-empty `threadId` IS the evidence.
@@ -270,7 +270,7 @@ export type ReinvocationOutcome =
  * the exact-apply). An adapter that needs create-vs-resume for its ENGINE
  * reads `input.threadId` itself — for an engine-minted harness that is the
  * same bit, for a deterministic one the engine's checkpoint is the adapter's
- * to consult — so the contract carries no flag with two meanings (Q-M1-7).
+ * to consult — so the contract carries no flag with two meanings.
  */
 export function isReinvocation(
   stateIdSource: StateIdSource,
@@ -309,10 +309,10 @@ export interface ReinvocationFacts {
  * nothing else is complete, because keeping or discarding a file never
  * re-prompts the agent (Cursor-like). `undefined` means "run the agent".
  *
- * Until S3 M1 a REJECT failed the turn here with its own FAILED arm, Cursor's
+ * Until #1096 a REJECT failed the turn here with its own FAILED arm, Cursor's
  * legacy; the proto (`APPROVAL_ACTION_REJECT`: "does NOT fail the run"), the
  * conformance suite and the native harness said otherwise since stigmer#197,
- * and the runtime now agrees (S2 M4 finding F1; Q-S3-2).
+ * and the runtime now agrees.
  */
 export function decideReinvocation(
   facts: ReinvocationFacts,
@@ -344,7 +344,7 @@ export function decideReinvocation(
  * workflow watchdog fails it. Seeding makes the resume status a strict
  * superset; the re-runs are then reconciled in place onto these seeded calls
  * by canonical identity inside the harness's translator (the Cursor translator's
- * seeded-row match, Q-S4-9; the native builder's by-id flip).
+ * seeded-row match; the native builder's by-id flip).
  *
  * Why the OTHER collections must be seeded too — the server's merge rule
  * (`stigmer-server/src/domain/agentexecution/update-status.ts`): every list
@@ -375,10 +375,10 @@ export function decideReinvocation(
  * are cloned so the input execution stays immutable.
  *
  * Moved from `execute-cursor/index.ts` `seedCursorTranscriptFromExecution`
- * (messages only) and widened at S3 M1 to what native's whole-status clone
+ * (messages only) and widened in #1096 to what native's whole-status clone
  * (`execute-deep-agent/index.ts` `seedStatusFromExecution`, retired with its
  * orchestrator) always carried, minus the fields above that it carried by
- * accident (Q-S3-16). Until S4 M5 the transcript half was pushed straight
+ * accident. Until #1097 the transcript half was pushed straight
  * onto the status here and the adapters constructed their builders after
  * this ran — an ordering the builder's index depended on and nothing
  * enforced; the seed through the builder makes it a non-question.
@@ -797,10 +797,10 @@ export async function resolveMcpServersAndPolicies(
  * its to render. One progress label for the whole phase, as before.
  *
  * The `.stigmer` link this and the attachment phase create is removed in
- * the runtime's finally, after the harness's own teardown. Until S3 M1 the
+ * the runtime's finally, after the harness's own teardown. Until #1096 the
  * native orchestrator fetched and mounted sub-agent skills itself
  * (`subagent-transformer.ts` with a client); this phase is where that read
- * lives now (Q-S3-5).
+ * lives now.
  */
 export async function mountSkills(
   deps: ResolutionDeps,
@@ -839,8 +839,8 @@ export async function mountSkills(
  * actually see the image. Full model validation is not needed for this. The
  * Cursor harness with no model named builds its own catalog default instead
  * (`resolveModelId("default")`), so for it this is an approximation: today
- * both answers read as sighted, and the exact per-harness default is S4's
- * to declare (S3 M1 finding F-M1-4). The vision profile is the harness's
+ * both answers read as sighted, and the exact per-harness default is not yet
+ * declared. The vision profile is the harness's
  * (each engine accepts different image shapes), so it arrives as an
  * argument.
  */
@@ -893,9 +893,9 @@ export async function resolveTurnAttachments(
  * re-attempts the call — both regenerate. An `interrupt` engine checkpoints
  * AT the call and applies its exact args on `approve`, so a runner-side
  * write would land the same bytes twice and pre-empt a row the engine is
- * about to execute; `none` gates nothing. Until S3 M2a the phase ran for
+ * about to execute; `none` gates nothing. Until #1096 the phase ran for
  * every harness — a deny-and-retry mechanism the native harness would have
- * met on its first deny-gated file approval (F-M2a-2, Q-M2a-3).
+ * met on its first deny-gated file approval.
  */
 export function regeneratesApprovedWrites(pausePrimitive: PausePrimitive): boolean {
   switch (pausePrimitive) {

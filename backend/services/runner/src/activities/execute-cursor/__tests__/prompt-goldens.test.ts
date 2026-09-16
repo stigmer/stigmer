@@ -2,12 +2,12 @@
  * The Cursor prompt, whole, as goldens — one per shape `buildPrompt` selects.
  *
  * `build-prompt.test.ts` pins every branch with `toContain`; the hermetic
- * goldens are status JSON and never see a prompt. So until S3 M5 no test
+ * goldens are status JSON and never see a prompt. So until #1096 no test
  * pinned a rendered Cursor prompt byte for byte. These goldens are the
  * photograph taken BEFORE the shared prompt glue moved into
- * `shared/prompt-sections.ts` (S3 M5, Q-M5-1), so the move could be proven
+ * `shared/prompt-sections.ts` (#1096), so the move could be proven
  * byte-identical except where a ruling says otherwise — the same discipline
- * M0 applied to the activity's status.
+ * the hermetic net applied to the activity's status (#1048).
  *
  * The shapes (`buildPrompt`'s four, plus the two per-execution directives):
  * the enhanced prompt on a first execution with every section populated
@@ -22,7 +22,7 @@
  * and the HITL recovery on a fresh agent mid-HITL.
  *
  * Rulings that moved a golden are quoted here:
- *  - Q-M5-3 (2026-09-14, owner: A). Every `<input_files>` bullet gained the
+ *  - 2026-09-14 (#1096). Every `<input_files>` bullet gained the
  *    file's size — `- \`.stigmer/inputs/spec.pdf\`` became
  *    `- \`.stigmer/inputs/spec.pdf\` (204800 bytes)` — in the four goldens
  *    that carry attachments (`enhanced.everything`, `enhanced.plan-mode`,
@@ -176,7 +176,7 @@ function everything(reason: AgentResolutionReason, overrides: Partial<BuildPromp
 // Goldens
 // ---------------------------------------------------------------------------
 
-describe("Cursor prompt goldens (S3 M5, Q-M5-1)", () => {
+describe("Cursor prompt goldens", () => {
   it("the enhanced prompt on a first execution, every section populated", async () => {
     const prompt = buildPrompt(everything("created_first_execution"));
     await expect(prompt).toMatchFileSnapshot("./goldens/prompt.enhanced.everything.prompt.md");

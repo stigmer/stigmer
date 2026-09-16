@@ -2,11 +2,11 @@
  * `StreamingSideEffects`: a `tool_started` carries the tool INPUT and a
  * `tool_finished` its completion, so the trigger correlates the two by
  * `callId` and publishes a file-modifying tool's target path once the call
- * has finished. Driven the way the loop drives it (S4 M2 C3b): raw v3 events
+ * has finished. Driven the way the loop drives it (since #1097): raw v3 events
  * through the translator, the canonical events into the trigger.
  *
  * Carried from the legacy v3 loop's suite (`streaming-v3.test.ts`, retired
- * with the loop at S3 M2b) — the trigger itself never had a test of its own.
+ * with the loop in #1096) — the trigger itself never had a test of its own.
  */
 
 import { describe, it, expect, vi } from "vitest";

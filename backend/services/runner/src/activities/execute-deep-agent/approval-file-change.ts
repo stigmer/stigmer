@@ -11,7 +11,7 @@
  * `file_changes` (removed in Phase 5 Slice 4 — the args are the single
  * source, and the Cursor deny-gate's exact-apply reads the same args on
  * resume; see shared/exact-apply.ts). The row's `args_preview` is the
- * builder's to write from these args (S4 M2 C6; until then this module
+ * builder's to write from these args (since #1097; until then this module
  * rendered it too, a second call of the one sanitizer).
  *
  * @since First-Class Diff Review (#186), approval-gate phase

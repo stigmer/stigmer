@@ -4,7 +4,7 @@
  * `TranscriptBuilder` (`__test-utils__/fold.ts`) — what that does to the
  * transcript. One arm per rule the translator's header states.
  *
- * Opened at S4 M4 B3 with the arms re-keyed from `message-translator.test.ts`
+ * Opened in #1097 with the arms re-keyed from `message-translator.test.ts`
  * (the accumulator's status map, MCP unpacking, sub-agent name extraction and
  * `conversationSteps` parsing), `delta-enricher.test.ts` (the buffering keyed
  * by call id) and `todo-tracker.test.ts` (which events carry todos); the row
@@ -39,7 +39,7 @@ function kinds(events: readonly TranscriptEvent[]): string[] {
 
 // ── The stream channel ────────────────────────────────────────────
 
-describe("CursorTranslator — text and thinking stream into segments; a tool call ends one (Q-S4-3(a))", () => {
+describe("CursorTranslator — text and thinking stream into segments; a tool call ends one", () => {
   it("the first text of a run opens a segment (message_start) and streams into it; later text only streams", () => {
     const t = translator();
     expect(t.translate(ev.assistant("Hello, "))).toEqual([
@@ -87,7 +87,7 @@ describe("CursorTranslator — text and thinking stream into segments; a tool ca
     ]);
   });
 
-  it("thinking after a tool call is a new THINKING row, not a continuation of the run's earlier one (Q-S4-6)", () => {
+  it("thinking after a tool call is a new THINKING row, not a continuation of the run's earlier one", () => {
     const fold = foldCursorEvents([
       ev.thinking("First thought."),
       ev.assistant("Reading."),
@@ -118,7 +118,7 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(started).toEqual({ kind: "tool_started", callId: "c1", name: "read", input: { path: "a.md" }, mcpServerSlug: "" });
   });
 
-  it("a gated built-in carries the policy's word: the category's message over the args (Q-M4-10)", () => {
+  it("a gated built-in carries the policy's word: the category's message over the args", () => {
     const [started] = translator().translate(ev.toolCall("c1", "shell", "running", { command: "npm test" }));
     expect(started).toMatchObject({ kind: "tool_started", gate: { message: "Run command: npm test" }, provenance: "builtin_category" });
     const fold = foldCursorEvents([ev.toolCall("c1", "shell", "running", { command: "npm test" })]);
@@ -127,7 +127,7 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(fold.row("c1").status, "gated but RUNNING: the boundary parks it, never the stream").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
   });
 
-  it("a leased category is still the policy's word (lease-blind, as the accumulator was; the harness difference is S5's — F-M4-14)", () => {
+  it("a leased category is still the policy's word (lease-blind, as the accumulator was; the harness difference is #1117)", () => {
     const t = new CursorTranslator({ policies: new Map(), leases: { global: false, categories: new Set(["shell"]) }, seeded: [] });
     const [started] = t.translate(ev.toolCall("c1", "shell", "running", { command: "ls" }));
     expect(started).toMatchObject({ gate: { message: "Run command: ls" }, provenance: "approval_lease" });
@@ -145,7 +145,7 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(finished).toEqual({ kind: "tool_finished", callId: "c2", result: JSON.stringify(envelope) });
   });
 
-  it("error → tool_error with the failure text (or the generic text for a structured failure); the row carries it as error alone (Q-M4-3)", () => {
+  it("error → tool_error with the failure text (or the generic text for a structured failure); the row carries it as error alone", () => {
     const t = translator();
     expect(t.translate(ev.toolCall("c1", "read", "error", {}, "ENOENT")).at(-1)).toEqual({ kind: "tool_error", callId: "c1", message: "ENOENT" });
     expect(t.translate(ev.toolCall("c2", "read", "error", {}, { code: 1 })).at(-1)).toEqual({ kind: "tool_error", callId: "c2", message: "Tool call failed" });
@@ -155,7 +155,7 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(fold.row("c1").result).toBe("");
   });
 
-  it("a completion with no running before it is a start and a finish in one — startedAt equals completedAt (Q-S4-17)", () => {
+  it("a completion with no running before it is a start and a finish in one — startedAt equals completedAt", () => {
     const fold = foldCursorEvents([ev.assistant("Go."), ev.toolCall("c1", "read", "completed", { path: "x" }, "done")]);
     const row = fold.row("c1");
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
@@ -180,14 +180,14 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     ]);
   });
 
-  it("a string args payload is parsed when it is JSON, and is nothing when it is not (F-M4-19)", () => {
+  it("a string args payload is parsed when it is JSON, and is nothing when it is not", () => {
     const t = translator();
     expect(t.translate(ev.toolCall("c1", "read", "running", '{"path":"a"}'))[0]).toMatchObject({ input: { path: "a" } });
     expect(t.translate(ev.toolCall("c2", "read", "running", '{"path":"tru'))[0]).toMatchObject({ input: {} });
     expect(t.translate(ev.toolCall("c3", "read", "running", undefined))[0]).toMatchObject({ input: {} });
   });
 
-  it("a todo write is an ordinary tool call the builder keys on ToolKind.TODO and projects at completion (Q-S4-7)", () => {
+  it("a todo write is an ordinary tool call the builder keys on ToolKind.TODO and projects at completion", () => {
     const TODOS = { todos: [{ content: "Step 1", status: "pending" }] };
     const fold = foldCursorEvents([ev.assistant("Planning."), ev.toolCall("t1", "updateTodos", "running", TODOS)]);
     expect(fold.row("t1").toolKind).toBe(ToolKind.TODO);
@@ -236,7 +236,7 @@ describe("CursorTranslator — the MCP envelope is unwrapped to the inner tool",
     expect(started).toMatchObject({ gate: { message: "Search db on search_services" }, provenance: "pinned_override" });
     const fold = new CursorFold({ policies }).events(ev.toolCall("m1", "mcp", "running", MCP_ARGS));
     expect(fold.row("m1").toolKind).toBe(ToolKind.MCP);
-    expect(fold.row("m1").argsPreview, "the row's own args, never the envelope (Q-S4-16)").toBe(JSON.stringify({ query: "db" }));
+    expect(fold.row("m1").argsPreview, "the row's own args, never the envelope").toBe(JSON.stringify({ query: "db" }));
   });
 
   it("an mcp event with no toolName is an ordinary tool named mcp, and is never gated by a built-in category", () => {
@@ -248,7 +248,7 @@ describe("CursorTranslator — the MCP envelope is unwrapped to the inner tool",
 
 // ── Sub-agents ────────────────────────────────────────────────────
 
-describe("CursorTranslator — a task tool call is a sub-agent (Q-S4-4), its transcript delivered at completion", () => {
+describe("CursorTranslator — a task tool call is a sub-agent, its transcript delivered at completion", () => {
   const TASK_ARGS = { subagentType: "helper", description: "Read README.md", prompt: "Read README.md and report." };
   const STEPS = {
     status: "success",
@@ -286,7 +286,7 @@ describe("CursorTranslator — a task tool call is a sub-agent (Q-S4-4), its tra
     expect(out[1]).toEqual({ kind: "tool_finished", callId: "task-1", result: JSON.stringify(STEPS) });
   });
 
-  it("through the builder: the row is SUBAGENT kind, the sub-agent COMPLETED, and the child's tool joins the assistant step that proposed it (Q-S4-5)", () => {
+  it("through the builder: the row is SUBAGENT kind, the sub-agent COMPLETED, and the child's tool joins the assistant step that proposed it", () => {
     const fold = foldCursorEvents([
       ev.assistant("Delegating."),
       ev.toolCall("task-1", "task", "running", TASK_ARGS),
@@ -308,7 +308,7 @@ describe("CursorTranslator — a task tool call is a sub-agent (Q-S4-4), its tra
     expect(read.argsPreview).toBe(JSON.stringify({ path: "README.md" }));
   });
 
-  it("a completion with no running before it still opens the sub-agent and delivers its transcript (F-M4-9)", () => {
+  it("a completion with no running before it still opens the sub-agent and delivers its transcript", () => {
     const fold = foldCursorEvents([ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS)]);
     expect(fold.status.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
     expect(fold.status.subAgentExecutions[0].messages).toHaveLength(2);
@@ -345,7 +345,7 @@ describe("CursorTranslator — a task tool call is a sub-agent (Q-S4-4), its tra
     const sub = fold.status.subAgentExecutions[0];
     expect(sub.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => [tc.id, tc.status, tc.error])])).toEqual([
       [MessageType.MESSAGE_THINKING, "Let me look.", []],
-      // Four tool steps with no assistant step before them share one empty message (A5's rule).
+      // Four tool steps with no assistant step before them share one empty message.
       [MessageType.MESSAGE_AI, "", [
         ["glob-1", ToolCallStatus.TOOL_CALL_COMPLETED, ""],
         ["sh-1", ToolCallStatus.TOOL_CALL_FAILED, JSON.stringify({ error: "blocked by approval gate" })],
@@ -378,7 +378,7 @@ describe("CursorTranslator — a task tool call is a sub-agent (Q-S4-4), its tra
 
 // ── The resumed agent's re-issued call ────────────────────────────
 
-describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAITING row by identity (Q-S4-9)", () => {
+describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAITING row by identity", () => {
   function seededStatus(rows: Array<{ id: string; action?: ApprovalAction; path?: string }>) {
     return create(AgentExecutionStatusSchema, {
       messages: [
@@ -411,7 +411,7 @@ describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAIT
     expect(fold.row("seeded-1").approvalAction, "the decision is kept for audit").toBe(ApprovalAction.APPROVE);
   });
 
-  it("a declined seeded row is a closed gate: a same-identity call is a NEW row (S2 M4 F9)", () => {
+  it("a declined seeded row is a closed gate: a same-identity call is a NEW row", () => {
     const status = seededStatus([{ id: "declined-1", action: ApprovalAction.REJECT }]);
     const fold = new CursorFold({ status }).events(ev.toolCall("fresh-1", "edit", "running", { path: "notes.md", content: "A\n" }));
     expect(fold.rows().map((tc) => tc.id)).toEqual(["declined-1", "fresh-1"]);
@@ -483,7 +483,7 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
     expect(t.drainDeltas()).toEqual([]);
   });
 
-  it("an output delta before the stream announces its call is held and replayed after the tool_started (F-M4-7)", () => {
+  it("an output delta before the stream announces its call is held and replayed after the tool_started", () => {
     const t = translator();
     t.observeDelta(output("c1", "early "));
     expect(t.drainDeltas(), "nothing to apply: no row yet").toEqual([]);
@@ -510,7 +510,7 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
     expect(fresh.drainDeltas()).toEqual([]);
   });
 
-  it("the completion delta is a tool_finished with no result and the instant it was OBSERVED, not applied (Q-M4-14)", () => {
+  it("the completion delta is a tool_finished with no result and the instant it was OBSERVED, not applied", () => {
     const t = translator();
     t.translate(ev.toolCall("c1", "shell", "running", { command: "make" }));
     vi.setSystemTime(new Date("2026-01-01T00:00:07.000Z"));
@@ -530,7 +530,7 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
     expect(fold.row("c2").completedAt).toBe("2026-01-01T00:00:07.000Z");
   });
 
-  it("a completion delta whose result status is error is a tool_error at the observed instant; the stream's text follows (Q-M4-5)", () => {
+  it("a completion delta whose result status is error is a tool_error at the observed instant; the stream's text follows", () => {
     const failedDelta: InteractionUpdate = {
       type: "tool-call-completed", callId: "c1", modelCallId: MODEL_CALL,
       toolCall: { type: "shell", args: { command: "make" }, result: { status: "error", error: "command not found" } },

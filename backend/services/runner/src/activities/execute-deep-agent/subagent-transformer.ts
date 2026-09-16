@@ -140,8 +140,8 @@ export interface SubagentTransformOptions {
   /**
    * Each sub-agent's mounted skills, keyed by the sub-agent's name — the
    * runtime's `TurnSkills.bySubAgent` (resolved and mounted by its skills
-   * phase, S3 M1 Q-S3-5). A sub-agent with no entry renders no skills
-   * section. Until S3 M2a this module fetched and mounted them itself with
+   * phase, since #1096). A sub-agent with no entry renders no skills
+   * section. Until then this module fetched and mounted them itself with
    * a control-plane client; the compile step is client-free now.
    */
   readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
@@ -432,7 +432,7 @@ export function resolveSubagentSkillPrompt(
  * Heuristic check for native extended thinking support. Models with thinking
  * support don't need the explicit think tool. Read for the parent (does its
  * graph carry `think`?) and inherited by every sub-agent that names no model
- * of its own. Moved from `setup.ts` at S3 M2a: the compile step is where it
+ * of its own. Moved from `setup.ts` in #1096: the compile step is where it
  * is consumed, and the adapter's setup reads it from here too.
  */
 export function modelHasNativeThinking(modelId: string): boolean {

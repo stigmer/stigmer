@@ -18,7 +18,7 @@
  *
  * The posture is sqlite, the production local default (`config.ts`): the
  * test-only memory saver re-interrupts on replay and duplicates the gated
- * row (S3 M0 finding F-M0-3), so it cannot carry the HITL arms. One sqlite
+ * row (found in #1096), so it cannot carry the HITL arms. One sqlite
  * file per session lands under the hermetic `HOME`, opened and closed per
  * turn by the adapter.
  *
@@ -32,7 +32,7 @@
  * express — the interrupt primitive's own facts: an APPROVED pending action
  * executes at the resume, before the model is asked (the order the kit's
  * invariant 4 used to assert the other way round, until this adapter showed
- * it is the primitive's and not the contract's — S3 M3 F-M3-1, Q-M3-2); a
+ * it is the primitive's and not the contract's, in #1096); a
  * REJECT reaches the model as the gate's denial `ToolMessage` in the
  * conversation, and the model proposes the call exactly once (the denial is
  * a tool result the model reads, never a second gate); and one sqlite
@@ -93,7 +93,7 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
       await subject.adapter.boot(subject.config);
     });
 
-    it("executes an APPROVED pending action at the resume, before the model is asked — even when the model then hangs and the turn is stopped (interrupt order, F-M3-1)", async () => {
+    it("executes an APPROVED pending action at the resume, before the model is asked — even when the model then hangs and the turn is stopped (interrupt order)", async () => {
       const driver = new ExecutionDriver(subject, "obs-approved-at-resume");
       const id = "obs-approved-at-resume-write";
 

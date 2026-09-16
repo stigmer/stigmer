@@ -1,5 +1,9 @@
 /**
- * @regression file-hitl-phase0 — pins file-edit HITL fixes #1, #2, #3, #5 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ * @regression file-hitl-phase0 — pins four rules of the file-edit gate: one
+ * approval gate per turn (a distinct co-pending sibling defers to SKIPPED);
+ * decisions bind to the active turn's ledger, never a stale one; the executed
+ * capture supersedes the model's proposal; the hook-captured input is
+ * authoritative over the streamed snapshot.
  *
  * Unit tests for the Cursor-harness HITL denial-ledger flow.
  *

@@ -3,9 +3,9 @@
  * raw LangGraph v3 protocol event in, the `TranscriptEvent`s out. Two layers,
  * tested apart: `normalize`, the stateless core that reads the wire's shape
  * (root-scoped, unattributed), and `DeepAgentTranslator`, which lays scope
- * and the gate's answers on top and speaks a sub-agent's lifecycle (S4 M2
- * C3, C4). Beside them, what `usageOf` reads off the same wire for the loop
- * (C1, Q-M2-3). The events the wire carries and the transcript does not
+ * and the gate's answers on top and speaks a sub-agent's lifecycle.
+ * Beside them, what `usageOf` reads off the same wire for the loop.
+ * The events the wire carries and the transcript does not
  * (`lifecycle`, `provider`, the standalone `usage`) are pinned as producing
  * NOTHING, so a member cannot creep back into the union unnoticed.
  */
@@ -194,7 +194,7 @@ describe("V3ProtocolNormalizer", () => {
     });
   });
 
-  // ── The tool result: the engine's envelope, rendered here (S4 M2 C2a) ──
+  // ── The tool result: the engine's envelope, rendered here ──
 
   describe("tool-finished output → result string", () => {
     // Image/mixed content blocks (e.g. a computer-use screenshot). The result
@@ -237,7 +237,7 @@ describe("V3ProtocolNormalizer", () => {
       expect(resultOf({ foo: "bar" })).toBe(JSON.stringify({ foo: "bar" }));
     });
 
-    // Q-S4-21 (S4 M2 C2b): a state-mutating tool (deepagents' write_todos,
+    // Since #1097: a state-mutating tool (deepagents' write_todos,
     // task) returns a LangGraph Command with its ToolMessage nested in the
     // update; the row shows that message's content, never the whole Command.
     it("unwraps a LangGraph Command to its ToolMessage's content", () => {
@@ -265,7 +265,7 @@ describe("V3ProtocolNormalizer", () => {
     });
   });
 
-  // ── Usage, read beside the transcript (S4 M2 C1) ─────────────────
+  // ── Usage, read beside the transcript ────────────────────────────
 
   describe("usageOf — what the loop reads off the wire", () => {
     it("reads a message-finish's usage, the cache buckets included", () => {
@@ -287,7 +287,7 @@ describe("V3ProtocolNormalizer", () => {
       expect(usageOf(makeUsageEvent("run-1", { input_tokens: 50, output_tokens: 10 }))).toBeUndefined();
     });
 
-    it("reads a sub-agent's finish too — its spend is the execution's (S3 M2b, Q-M2b-1)", () => {
+    it("reads a sub-agent's finish too — its spend is the execution's", () => {
       expect(usageOf(makeMessageFinish("sub-run", {
         namespace: ["tools:task-1", "model_request:sub-run"],
         usage: { input_tokens: 600, output_tokens: 12 },
@@ -351,7 +351,7 @@ describe("V3ProtocolNormalizer", () => {
       expect(normalize(event)).toHaveLength(0);
     });
 
-    it("carries no namespace and no scope — the core is root-scoped; scope is the translator's (S4 M2 C4)", () => {
+    it("carries no namespace and no scope — the core is root-scoped; scope is the translator's", () => {
       const result = normalize(makeTextDelta("run-1", "hi", { namespace: ["tools:x", "model_request:y"] }));
       expect(result[0]).not.toHaveProperty("namespace");
       expect(result[0]).not.toHaveProperty("subAgentId");
@@ -385,7 +385,7 @@ describe("V3ProtocolNormalizer", () => {
     });
   });
 
-  // ── Scope and the sub-agent lifecycle: the translator over the core (S4 M2 C4) ──
+  // ── Scope and the sub-agent lifecycle: the translator over the core ──
 
   describe("DeepAgentTranslator — scope by LangGraph namespace, a sub-agent per task call", () => {
     const TASK_NS = ["tools:pregel-1"];
@@ -439,7 +439,7 @@ describe("V3ProtocolNormalizer", () => {
       expect(events[0]).toMatchObject({ subAgentId: "task-1" });
     });
 
-    it("a nested namespace whose prefix nobody registered folds into the root (F-M2-17)", () => {
+    it("a nested namespace whose prefix nobody registered folds into the root", () => {
       const [event] = translator().translate(makeTextDelta("r", "hi", { namespace: ["tools:unknown", "model_request:x"] }));
       expect(event).not.toHaveProperty("subAgentId");
     });

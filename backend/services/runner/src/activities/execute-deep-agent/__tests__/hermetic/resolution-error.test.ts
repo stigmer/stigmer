@@ -12,11 +12,11 @@
  * Temporal retry a deterministic failure). Nothing streamed, no lock taken
  * (the fault precedes the lock phase), no artifacts.
  *
- * The row shape is one of Q-S3-7's ruled alignments, landed at S3 M2a: the
+ * The row shape is one of the alignments #1096 made on purpose: the
  * orchestrator wrote one row `"Error: [Error] <message>"`; the runtime's arm
  * writes the boilerplate plus the details row. `status.error` itself did
  * not move (the conformance suite pins it). The setup labels are the
- * runtime's resolution phases' (a stated default of the M2a plan).
+ * runtime's resolution phases'.
  *
  * Carried from `index.test.ts` ("returns EXECUTION_FAILED status when setup
  * fails", "includes error message in failed status", "always returns a

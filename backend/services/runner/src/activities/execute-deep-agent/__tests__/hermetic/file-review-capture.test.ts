@@ -11,11 +11,11 @@
  * file, stamps the flowed edit row with the change-set id
  * (`stampFlowedFileEditRows`), and the activity persists
  * WAITING_FOR_APPROVAL and RETURNS. The change-set id is the deterministic
- * `executionId:turnSeq`. The ledger shape is what M4's capture lift must
+ * `executionId:turnSeq`. The ledger shape is what the runtime's capture must
  * reproduce, beside Cursor's `file-review-capture.status.json`.
  *
- * Why this arm has a golden file since S3 M2a (Q-M2a-8; S3 M0 finding F-M0-9
- * closed): the orchestrator created the workspace's `.stigmer` symlink
+ * Why this arm has a golden file since #1096: the orchestrator created the
+ * workspace's `.stigmer` symlink
  * unconditionally BEFORE the baseline snapshot, and the link's TARGET is the
  * platform dir under `HOME`, so the baseline and candidate tree OIDs the
  * ledger carries were per-host — and per-run here, where `HOME` is a temp
@@ -23,7 +23,7 @@
  * needs it (the same rule that makes Cursor's golden byte-stable); this
  * scenario mounts neither, so no link enters either tree and both OIDs are
  * content-derived. Every content-derived byte is still asserted in code
- * (the owner's lock-timeout ruling, entry 20260911.03 M0, is the shape for
+ * (the lock-timeout arm's rule, #1070, is the shape for
  * a status the host could reach), and `goldens/file-review-capture.status.json`
  * pins the whole ledger beside Cursor's.
  *
@@ -33,17 +33,17 @@
  * pin; the turn boundary's candidate capture and row stamping; the pause for
  * review with file cards.
  *
- * Scope, recorded: this arm records turn 1 to parity with Cursor's S0 golden.
+ * Scope, recorded: this arm records turn 1 to parity with Cursor's first golden.
  * The second invocation that reconciles a DECIDED change set needs the
  * server's `file_change_sets` projection staged on the record; staging that by
- * hand would pin a hand-built shape, so the reconcile arm rides M4's own net
- * with both harnesses in view.
+ * hand would pin a hand-built shape, so the reconcile arm rides the runtime's
+ * own net with both harnesses in view.
  *
  * Determinism: the fixture repo's commit and tree ids are byte-stable because
  * `initGitWorkspace` pins author, committer and both dates; the script's path
  * is virtual-absolute (`/notes.md`) so no temp directory can reach the golden.
  *
- * The first turn's stamps are `:01` (S4 M4R, 2026-09-15): until then the
+ * The first turn's stamps are `:01` (#1097, 2026-09-15): until then the
  * golden held `:02` for message 1, its row's `startedAt`/`completedAt`, and
  * the flip to `:01` in CI was a producer/consumer race, not a change of rule.
  * This is the one native scenario whose first mid-stream persist shells out
@@ -198,7 +198,7 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     expect(final.fileChangeProgress?.linesAdded).toBe(1);
 
     // The two tree OIDs are content-derived now that no host path enters the
-    // trees (F-M0-9 closed at M2a, Q-M2a-8): well-formed, distinct, and pinned
+    // trees (since #1096): well-formed, distinct, and pinned
     // byte for byte by the golden below.
     const baselineOid = baseline.value.baselineSnapshot?.git?.treeOid ?? "";
     const candidateOid = candidate.value.candidateSnapshot?.git?.treeOid ?? "";

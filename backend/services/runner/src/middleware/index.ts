@@ -21,7 +21,7 @@
  * Every middleware here either shapes the graph's tool surface or ADVISES
  * the model; none of them stops the run. A stop — the platform's, the
  * cost cap's, a stall's — is the turn runtime's, delivered to the graph
- * through its abort signal (harness runtime program, S3 Q-S3-3; until M2b a
+ * through its abort signal (since #1096; until then a
  * graceful-stop middleware and the cost cap's tool block were second stops
  * inside the graph that the runtime could not see).
  *

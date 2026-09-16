@@ -3,7 +3,7 @@
  * as `running` and then `error` with the failure text as its result — through
  * the whole `ExecuteCursor` activity.
  *
- * Invariant pinned (S4 M0 net): the error event folds onto the same row
+ * Invariant pinned: the error event folds onto the same row
  * (the builder's `tool_error` upsert) as FAILED, with the failure text
  * in `error` and `result` EMPTY, `completedAt` stamped, no approval fields (a
  * read-only built-in is not gated, and the text is not Cursor's hook-block
@@ -11,17 +11,17 @@
  * COMPLETED: a failed read is the model's problem to route around, not the
  * turn's.
  *
- * Moved 2026-09-14 (S4 M4 A4, Q-M4-3), one line: until A4 the accumulator
+ * Moved 2026-09-14 (#1097), one line: until then the accumulator
  * wrote the failure text to BOTH `error` and `result`. Native writes `error`
  * alone, as do this harness's own sub-agent rows, and every reader shows
  * `error || result`; the duplicate's one behavioral reader was the twin
  * collapse's `carriesOwnChange`, which took a hook-denied shell for a row
- * carrying its own output (M4 finding F-M4-2). `startedAt` was already
+ * carrying its own output. `startedAt` was already
  * present because the `running` event came first.
  *
  * Why this net exists: the one FAILED row among the seventeen Cursor goldens
  * is the gate's own case (`unattributed-hook-block`); the ordinary tool
- * failure — the fold M4 rewrites — had no end-to-end net.
+ * failure — the fold #1097 rewrote — had no end-to-end net.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -122,7 +122,7 @@ describe("ExecuteCursor hermetic — an ungated tool call that fails", () => {
     expect(row.id).toBe(CALL_ID);
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(row.error, "the failure text is the error").toBe(READ_ERROR);
-    expect(row.result, "and only the error (Q-M4-3)").toBe("");
+    expect(row.result, "and only the error").toBe("");
     expect(row.requiresApproval, "an ordinary failure is not an approval gate").toBe(false);
     expect(row.approvalRequestedAt).toBe("");
     expect(row.startedAt < row.completedAt).toBe(true);

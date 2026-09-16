@@ -41,22 +41,22 @@
  *    network. A scenario picks one; the HITL arms record both.
  *
  * The ONE knowledge of production this driver holds is `activityFactory`: how
- * to obtain the `ExecuteDeepAgent` function from a `Config`. Since S3 M2a it
+ * to obtain the `ExecuteDeepAgent` function from a `Config`. Since #1096 it
  * is the harness registry's: the native adapter booted and bound to its
  * byte-pinned activity name through `createHarnessActivities`, exactly the
- * way the composition roots bind it since S3 M2b through `harness-adapters.ts`
+ * way the composition roots bind it since #1096 through `harness-adapters.ts`
  * (and the way the Cursor driver binds its own, `hermetic-cursor.ts`). The
- * orchestrator this adapter replaced (`index.ts`, `setup.ts`) was deleted at
- * M2b; the goldens moved once, with the M2a flip, each hunk quoted with its
- * ruling in its test's header (Q-M2a-1), and the switch of the roots moved
- * none (Q-M2b-4).
+ * orchestrator this adapter replaced (`index.ts`, `setup.ts`) was deleted in
+ * #1096; the goldens moved once, with the flip onto the runtime, each hunk
+ * quoted with its reason in its test's header, and the switch of the roots
+ * moved none.
  *
  * `boot` registers the deepagents harness profiles as production does
- * (S3 M2a F-M2a-14: the orchestrator-driven runs never did, so deepagents
- * auto-injected its ungated `general-purpose` sub-agent into every M0
+ * (found in #1096: the orchestrator-driven runs never did, so deepagents
+ * auto-injected its ungated `general-purpose` sub-agent into every earlier
  * scenario; the scripted model never delegated to it).
  *
- * Determinism beyond S0's: the clock ticks once per model turn (the scripted
+ * Determinism beyond the Cursor driver's (#1048): the clock ticks once per model turn (the scripted
  * model's `onTurn`), so status timestamps and the persist cadence land on the
  * same instants every run; a scenario's interruption (pause, worker shutdown)
  * is scheduled on a model turn through the same hook, never on a timer. And
@@ -179,7 +179,7 @@ export function sessionWorkspaceDir(env: HermeticEnvironment): string {
 /** The `ExecuteDeepAgent` function as the runner serves it: the typed object OR the legacy positional pair. */
 export type ExecuteDeepAgentFn = (arg0: ExecuteActivityInput | string, arg1?: string) => Promise<unknown>;
 
-/** How the driver obtains the activity from a `Config` — the one seam M2 flips. */
+/** How the driver obtains the activity from a `Config` — the one seam the move onto the runtime flipped. */
 export type ActivityFactory = (config: Config) => Promise<ExecuteDeepAgentFn>;
 
 /**

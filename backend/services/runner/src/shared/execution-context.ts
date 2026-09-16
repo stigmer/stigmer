@@ -15,8 +15,8 @@
  * `setInterceptorExecutionId`) is whichever turn set it last; this store is
  * what makes concurrent turns not overwrite each other's headers.
  *
- * Moved from `activities/execute-cursor/fetch-interceptor.ts` (S2 M3,
- * Q-M3-12) so `harness/run-turn.ts` can enter it without importing the
+ * Moved from `activities/execute-cursor/fetch-interceptor.ts` (#1070)
+ * so `harness/run-turn.ts` can enter it without importing the
  * adapter; the interceptors import it from here. No harness enters it: the
  * contract lists it among the things deliberately NOT on `TurnSink`.
  */

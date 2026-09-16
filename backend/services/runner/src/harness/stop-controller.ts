@@ -14,7 +14,7 @@
  *
  * Nothing here is engine-specific and nothing here persists; the Cursor
  * orchestrator kept the same facts as flags on its stream state
- * (`turn-stream.ts` `TurnStreamState`, before S2 M3 moved them out).
+ * (`turn-stream.ts` `TurnStreamState`, before #1070 moved them out).
  */
 
 import type { StallTimeoutError } from "../shared/stall-watchdog.js";

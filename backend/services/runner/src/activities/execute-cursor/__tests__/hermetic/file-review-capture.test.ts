@@ -11,7 +11,7 @@
  * row with the change-set id, and the activity persists WAITING_FOR_APPROVAL
  * and RETURNS without consulting `run.wait()`. The change-set id is the
  * deterministic `executionId:turnSeq`. The golden
- * (`goldens/file-review-capture.status.json`) pins the ledger shape S2 must
+ * (`goldens/file-review-capture.status.json`) pins the ledger shape the runtime must
  * reproduce.
  *
  * Parent phase rows exercised beyond `deny-and-retry`: provision a `local_path`
