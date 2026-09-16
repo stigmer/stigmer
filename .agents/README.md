@@ -46,6 +46,11 @@ them.
   Add the worktree to the window when you create it (`cursor --add <worktree>`)
   and reload the window: instruction files are enumerated per folder at window
   load, so a folder added mid-session is not scanned until then.
+- In a folder added mid-session, before the reload, a glob shim already fires on
+  a matching read but its `@<path>` line arrives literal and the nested guide is
+  not attached; after the reload the same read attaches the shim, the guide and
+  any other matching rule. A shim seen without its guide means the window has
+  not been reloaded since the folder was added.
 - Cursor also reads `CLAUDE.md`. A repository that ships both a `CLAUDE.md` and
   an `AGENTS.md` (langfuse, symlinked) loads the same text twice in every chat.
 - An `AGENTS.md` placed inside a `.agents` folder (a vendored skill bundle's own
