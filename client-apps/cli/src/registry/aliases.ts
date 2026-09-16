@@ -15,7 +15,12 @@
  *                              "OAuthApp" it contributes "oauth_app"/"oauth-app"
  * Plus the plural of every form above.
  */
-export function generateAliases(name: string, displayName: string, idPrefix: string, protoName: string): string[] {
+export function generateAliases(
+  name: string,
+  displayName: string,
+  idPrefix: string,
+  protoName: string,
+): string[] {
   const seen = new Set<string>();
   const aliases: string[] = [];
 

@@ -1,7 +1,9 @@
 // `stigmer push <type> [path]` — package and upload an artifact to the registry.
-// Only skills are pushable today. Two source modes: a local directory (default,
-// git provenance auto-detected) or a remote repo via --git-url (cloned to a
-// temp dir, then pushed). Heavy modules are lazy-imported so `--help` stays fast.
+// Two kinds are pushable: skills (a local directory with git provenance
+// auto-detected, a remote repo via --git-url, or a pre-built --archive) and
+// plugins (a local plugin directory, installed or upgraded as one unit; the
+// manifest's version is its tag, so --tag does not apply). Heavy modules are
+// lazy-imported so `--help` stays fast.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,11 +11,16 @@ import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  type OutputFlags,
+  renderResult as renderCommandResult,
+} from "../output/index.js";
 import { defaultRegistry, Verb } from "../registry/index.js";
-import { globalOrg } from "./shared.js";
+import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
-interface PushFlags {
+interface PushFlags extends OutputFlags {
   tag?: string;
+  visibility?: string;
   message?: string;
   dryRun?: boolean;
   gitUrl?: string;
@@ -26,41 +33,96 @@ interface PushFlags {
   verbose?: boolean;
 }
 
-const collect = (value: string, previous: string[]): string[] => [...previous, value];
+const collect = (value: string, previous: string[]): string[] => [
+  ...previous,
+  value,
+];
 
 export function registerPush(program: Command): void {
-  program
+  const push = program
     .command("push <type> [path]")
-    .description("push an artifact to the registry (supported types: skill)")
-    .option("--tag <tag>", "version tag for the artifact", "latest")
-    .option("-m, --message <message>", "version message describing what changed")
+    .description(
+      "push an artifact to the registry (supported types: skill, plugin)",
+    )
+    .option(
+      "--tag <tag>",
+      "version tag for the artifact (skills; a plugin's tag is its manifest version)",
+      "latest",
+    )
+    .option(
+      "-m, --message <message>",
+      "version message describing what changed",
+    )
+    .option(
+      "--visibility <level>",
+      "plugins: visibility for the plugin and everything it installs (private, org, public, platform)",
+    )
     .option("--dry-run", "validate without pushing")
     .option("--git-url <url>", "push from a remote git repository URL")
-    .option("--git-ref <ref>", "git reference (tag, branch, or commit SHA) for remote push")
-    .option("--subdir <dir>", "subdirectory within the git repository containing the artifact")
-    .option("--archive <file>", "push a pre-packaged ZIP archive as-is (version hash = the file's SHA-256)")
-    .option("--ignore <pattern>", "additional pattern to ignore (repeatable)", collect, [])
-    .option("--include <pattern>", "pattern to force-include (repeatable)", collect, [])
+    .option(
+      "--git-ref <ref>",
+      "git reference (tag, branch, or commit SHA) for remote push",
+    )
+    .option(
+      "--subdir <dir>",
+      "subdirectory within the git repository containing the artifact",
+    )
+    .option(
+      "--archive <file>",
+      "push a pre-packaged ZIP archive as-is (version hash = the file's SHA-256)",
+    )
+    .option(
+      "--ignore <pattern>",
+      "additional pattern to ignore (repeatable)",
+      collect,
+      [],
+    )
+    .option(
+      "--include <pattern>",
+      "pattern to force-include (repeatable)",
+      collect,
+      [],
+    )
     .option("--no-gitignore", "don't respect .gitignore patterns")
     .option("--verbose", "show detailed output including ignore decisions")
-    .action((type: string, path: string | undefined, options: PushFlags, command: Command) =>
-      runPush(type, path, options, command),
+    .action(
+      (
+        type: string,
+        path: string | undefined,
+        options: PushFlags,
+        command: Command,
+      ) => runPush(type, path, options, command),
     );
+  addResultFlags(push);
 }
 
-async function runPush(type: string, path: string | undefined, options: PushFlags, command: Command): Promise<void> {
+async function runPush(
+  type: string,
+  path: string | undefined,
+  options: PushFlags,
+  command: Command,
+): Promise<void> {
   const info = defaultRegistry().getByAlias(type);
   if (info === undefined) {
-    throw new UsageError(`unknown resource type: ${type}\n\nAvailable types: skill`);
+    throw new UsageError(
+      `unknown resource type: ${type}\n\nAvailable types: skill, plugin`,
+    );
   }
   if (!info.supportedVerbs.has(Verb.Push)) {
     throw new UsageError(`${info.displayName} does not support 'push'`);
+  }
+  if (info.kind === ApiResourceKind.plugin) {
+    await runPushPlugin(path, options, command);
+    return;
   }
   if (info.kind !== ApiResourceKind.skill) {
     throw new UsageError(`push not implemented for ${info.displayName}`);
   }
 
-  const [{ connectBackend }, skill] = await Promise.all([import("../backend.js"), import("../resources/skill.js")]);
+  const [{ connectBackend }, skill] = await Promise.all([
+    import("../backend.js"),
+    import("../resources/skill.js"),
+  ]);
   const client = connectBackend();
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
@@ -70,17 +132,33 @@ async function runPush(type: string, path: string | undefined, options: PushFlag
     extraIgnore: options.ignore ?? [],
     extraInclude: options.include ?? [],
   };
-  const decisionSink = options.verbose === true ? (line: string) => process.stderr.write(`${line}\n`) : undefined;
+  const decisionSink =
+    options.verbose === true
+      ? (line: string) => process.stderr.write(`${line}\n`)
+      : undefined;
   const tag = options.tag ?? "latest";
   const message = options.message ?? "";
 
   if (options.archive !== undefined && options.archive !== "") {
-    await pushArchive(client.stigmer, skill, { org, tag, message, path, options });
+    await pushArchive(client.stigmer, skill, {
+      org,
+      tag,
+      message,
+      path,
+      options,
+    });
     return;
   }
 
   if (options.gitUrl !== undefined && options.gitUrl !== "") {
-    await pushRemote(client.stigmer, skill, { org, tag, message, ignoreOptions, decisionSink, options });
+    await pushRemote(client.stigmer, skill, {
+      org,
+      tag,
+      message,
+      ignoreOptions,
+      decisionSink,
+      options,
+    });
     return;
   }
 
@@ -94,12 +172,102 @@ async function runPush(type: string, path: string | undefined, options: PushFlag
   skill.parseSkillMetadata(directory);
 
   if (options.dryRun === true) {
-    process.stdout.write(renderDryRun(directory, skill.analyzeDryRun(directory, ignoreOptions), skill));
+    process.stdout.write(
+      renderDryRun(
+        directory,
+        skill.analyzeDryRun(directory, ignoreOptions),
+        skill,
+      ),
+    );
     return;
   }
 
-  const result = await skill.pushSkill(client.stigmer, directory, org, tag, message, ignoreOptions, decisionSink);
+  const result = await skill.pushSkill(
+    client.stigmer,
+    directory,
+    org,
+    tag,
+    message,
+    ignoreOptions,
+    decisionSink,
+  );
   process.stdout.write(renderResult(result, skill));
+}
+
+/**
+ * `stigmer push plugin <dir>`: install or upgrade a plugin from its folder.
+ * The folder is read through the same walk `validate -f` uses, refused
+ * offline with the same sentences, zipped deterministically and pushed;
+ * `--dry-run` stops after the offline read and prints what would install.
+ * Skill-only flags (`--archive`, `--git-url`) are a contradiction here.
+ */
+async function runPushPlugin(
+  path: string | undefined,
+  options: PushFlags,
+  command: Command,
+): Promise<void> {
+  const conflicts: string[] = [];
+  if (options.archive !== undefined && options.archive !== "")
+    conflicts.push("--archive");
+  if (options.gitUrl !== undefined && options.gitUrl !== "")
+    conflicts.push("--git-url");
+  if (options.gitRef !== undefined && options.gitRef !== "")
+    conflicts.push("--git-ref");
+  if (options.subdir !== undefined && options.subdir !== "")
+    conflicts.push("--subdir");
+  if (conflicts.length > 0) {
+    throw new UsageError(
+      `push plugin takes a plugin directory and cannot be combined with: ${conflicts.join(", ")}`,
+    );
+  }
+  const format = resultFormat(options);
+  const directory = path !== undefined && path !== "" ? path : process.cwd();
+  const plugin = await import("../resources/plugin.js");
+  if (!plugin.isPluginDirectory(directory)) {
+    throw new UsageError(
+      `${directory} is not a plugin directory\n\nA plugin directory holds one of: ${plugin.PLUGIN_MANIFEST_PATHS.join(", ")}`,
+    );
+  }
+  const ignoreOptions = {
+    respectGitignore: options.gitignore !== false,
+    extraIgnore: options.ignore ?? [],
+    extraInclude: options.include ?? [],
+  };
+  const { parseVisibility } = await import("../resources/skill.js");
+  const visibility = parseVisibility(options.visibility, "--visibility");
+
+  if (options.dryRun === true) {
+    const { readPluginPackage } = await import("@stigmer/plugin-package");
+    const read = plugin.readPluginDirectory(directory, ignoreOptions);
+    const outcome = readPluginPackage(read.files);
+    if (!outcome.ok) {
+      throw plugin.pluginRefusal(directory, outcome.errors, outcome.warnings);
+    }
+    const { CommandResult } = await import("../output/index.js");
+    const result = plugin.describePackageOn(
+      CommandResult.success(
+        `Dry run: plugin '${outcome.plugin.name}' would install`,
+      ),
+      outcome.plugin,
+      outcome.warnings,
+      read.stats,
+    );
+    result.hint("Run without --dry-run to install it.");
+    renderCommandResult(result, format);
+    return;
+  }
+
+  const { connectBackend } = await import("../backend.js");
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+  const org = resolveOrganization(client.config, globalOrg(command));
+  const outcome = await plugin.pushPlugin(client.stigmer, directory, {
+    org,
+    visibility,
+    message: options.message ?? "",
+    ignoreOptions,
+  });
+  renderCommandResult(plugin.renderPushOutcome(outcome), format);
 }
 
 interface ArchiveContext {
@@ -123,9 +291,12 @@ async function pushArchive(
 ): Promise<void> {
   const conflicts: string[] = [];
   if (ctx.path !== undefined && ctx.path !== "") conflicts.push("[path]");
-  if (ctx.options.gitUrl !== undefined && ctx.options.gitUrl !== "") conflicts.push("--git-url");
-  if (ctx.options.gitRef !== undefined && ctx.options.gitRef !== "") conflicts.push("--git-ref");
-  if (ctx.options.subdir !== undefined && ctx.options.subdir !== "") conflicts.push("--subdir");
+  if (ctx.options.gitUrl !== undefined && ctx.options.gitUrl !== "")
+    conflicts.push("--git-url");
+  if (ctx.options.gitRef !== undefined && ctx.options.gitRef !== "")
+    conflicts.push("--git-ref");
+  if (ctx.options.subdir !== undefined && ctx.options.subdir !== "")
+    conflicts.push("--subdir");
   if ((ctx.options.ignore ?? []).length > 0) conflicts.push("--ignore");
   if ((ctx.options.include ?? []).length > 0) conflicts.push("--include");
   if (ctx.options.gitignore === false) conflicts.push("--no-gitignore");
@@ -138,11 +309,23 @@ async function pushArchive(
 
   const archivePath = ctx.options.archive ?? "";
   if (ctx.options.dryRun === true) {
-    process.stdout.write(renderArchiveDryRun(archivePath, skill.readSkillArchive(archivePath), skill));
+    process.stdout.write(
+      renderArchiveDryRun(
+        archivePath,
+        skill.readSkillArchive(archivePath),
+        skill,
+      ),
+    );
     return;
   }
 
-  const result = await skill.pushSkillFromArchive(client, archivePath, ctx.org, ctx.tag, ctx.message);
+  const result = await skill.pushSkillFromArchive(
+    client,
+    archivePath,
+    ctx.org,
+    ctx.tag,
+    ctx.message,
+  );
   process.stdout.write(renderResult(result, skill));
 }
 
@@ -173,7 +356,11 @@ interface RemoteContext {
   org: string;
   tag: string;
   message: string;
-  ignoreOptions: { respectGitignore: boolean; extraIgnore: string[]; extraInclude: string[] };
+  ignoreOptions: {
+    respectGitignore: boolean;
+    extraIgnore: string[];
+    extraInclude: string[];
+  };
   decisionSink?: (line: string) => void;
   options: PushFlags;
 }
@@ -206,7 +393,15 @@ async function pushRemote(
     const result = await skill.pushSkillFromClone(
       client,
       skillDir,
-      { gitUrl, gitRef, subdir, org: ctx.org, tag: ctx.tag, message: ctx.message, options: ctx.ignoreOptions },
+      {
+        gitUrl,
+        gitRef,
+        subdir,
+        org: ctx.org,
+        tag: ctx.tag,
+        message: ctx.message,
+        options: ctx.ignoreOptions,
+      },
       ctx.decisionSink,
     );
     process.stdout.write(renderResult(result, skill));
@@ -215,8 +410,15 @@ async function pushRemote(
   }
 }
 
-function renderResult(result: import("../resources/skill.js").PushResult, skill: typeof import("../resources/skill.js")): string {
-  const status = result.isNewResource ? "new resource" : result.versionChanged ? "new version" : "unchanged";
+function renderResult(
+  result: import("../resources/skill.js").PushResult,
+  skill: typeof import("../resources/skill.js"),
+): string {
+  const status = result.isNewResource
+    ? "new resource"
+    : result.versionChanged
+      ? "new version"
+      : "unchanged";
   const lines = [
     "",
     `Pushed skill '${result.skillName}'`,
@@ -250,25 +452,52 @@ function renderDryRun(
     `Directories skipped: ${stats.dirsSkipped}`,
   ];
   if (analysis.sampleIncluded.length > 0) {
-    lines.push("", "Sample included:", ...analysis.sampleIncluded.map((f) => `  + ${f}`));
+    lines.push(
+      "",
+      "Sample included:",
+      ...analysis.sampleIncluded.map((f) => `  + ${f}`),
+    );
   }
   if (analysis.sampleIgnored.length > 0) {
-    lines.push("", "Sample ignored:", ...analysis.sampleIgnored.map((f) => `  - ${f}`));
+    lines.push(
+      "",
+      "Sample ignored:",
+      ...analysis.sampleIgnored.map((f) => `  - ${f}`),
+    );
   }
   lines.push("", "Run without --dry-run to push the skill artifact.", "");
   return `${lines.join("\n")}\n`;
 }
 
-function renderRemoteDryRun(gitUrl: string, gitRef: string, subdir: string, ctx: RemoteContext): string {
-  const lines = ["", "Dry run mode - would push skill from remote git repository:", "", "Git Source:", `  URL:    ${gitUrl}`];
+function renderRemoteDryRun(
+  gitUrl: string,
+  gitRef: string,
+  subdir: string,
+  ctx: RemoteContext,
+): string {
+  const lines = [
+    "",
+    "Dry run mode - would push skill from remote git repository:",
+    "",
+    "Git Source:",
+    `  URL:    ${gitUrl}`,
+  ];
   if (gitRef !== "") lines.push(`  Ref:    ${gitRef}`);
   if (subdir !== "") lines.push(`  Subdir: ${subdir}`);
   lines.push(`  Tag:    ${ctx.tag}`, "", "Ignore Configuration:");
-  lines.push(`  Gitignore:         ${ctx.ignoreOptions.respectGitignore ? "enabled" : "disabled"}`);
+  lines.push(
+    `  Gitignore:         ${ctx.ignoreOptions.respectGitignore ? "enabled" : "disabled"}`,
+  );
   lines.push("  Security defaults: enabled");
   lines.push("  Stigmerignore:     will load if present");
-  if (ctx.ignoreOptions.extraIgnore.length > 0) lines.push(`  Extra ignore:      ${ctx.ignoreOptions.extraIgnore.join(", ")}`);
-  if (ctx.ignoreOptions.extraInclude.length > 0) lines.push(`  Force include:     ${ctx.ignoreOptions.extraInclude.join(", ")}`);
+  if (ctx.ignoreOptions.extraIgnore.length > 0)
+    lines.push(
+      `  Extra ignore:      ${ctx.ignoreOptions.extraIgnore.join(", ")}`,
+    );
+  if (ctx.ignoreOptions.extraInclude.length > 0)
+    lines.push(
+      `  Force include:     ${ctx.ignoreOptions.extraInclude.join(", ")}`,
+    );
   lines.push(
     "",
     "Note: Full analysis requires cloning the repository.",

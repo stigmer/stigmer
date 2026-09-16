@@ -7,6 +7,7 @@ import { ManifestClient } from "./manifest/index.js";
 import { PlatformClient } from "./platform.js";
 import { ProviderStandingClient } from "./provider-standing.js";
 import { SearchClient } from "./search.js";
+import { RoutedPluginClient } from "./plugin.js";
 import { RoutedSkillClient } from "./skill.js";
 import { createStigmerTransport } from "./transport.js";
 import {
@@ -92,6 +93,12 @@ export class Stigmer extends GeneratedClient {
    * `stigmer.skill.push` simply works for any valid skill size.
    */
   override readonly skill: RoutedSkillClient;
+  /**
+   * Plugin operations, with `push` routed by archive size over the same
+   * transfer lane — shadows the inherited generated client so
+   * `stigmer.plugin.push` simply works for any valid archive size.
+   */
+  override readonly plugin: RoutedPluginClient;
 
   private readonly _tokenProvider: TokenProvider;
 
@@ -106,7 +113,7 @@ export class Stigmer extends GeneratedClient {
     this.defaultExecutionTarget = toExecutionTarget(config.executionTarget);
     this._tokenProvider = config.apiKey
       ? () => config.apiKey!
-      : config.getAccessToken ?? (() => null);
+      : (config.getAccessToken ?? (() => null));
 
     this.activity = new ActivityClient(transport);
     this.billing = new BillingClient(transport);
@@ -117,6 +124,7 @@ export class Stigmer extends GeneratedClient {
     this.github = new GitHubClient(transport);
     this.manifest = new ManifestClient(transport);
     this.skill = new RoutedSkillClient(transport, config.fetch);
+    this.plugin = new RoutedPluginClient(transport, config.fetch);
 
     if (this.defaultExecutionTarget != null) {
       this._applyExecutionTargetDefaults();
@@ -148,7 +156,10 @@ export class Stigmer extends GeneratedClient {
     this.agentExecution.create = (input) =>
       origExecutionCreate(
         input.sessionSpec
-          ? { ...input, sessionSpec: applySessionDefault(input.sessionSpec, target) }
+          ? {
+              ...input,
+              sessionSpec: applySessionDefault(input.sessionSpec, target),
+            }
           : input,
       );
   }
@@ -193,4 +204,3 @@ function applySessionDefault<T extends { executionTarget?: ExecutionTarget }>(
   }
   return input;
 }
-

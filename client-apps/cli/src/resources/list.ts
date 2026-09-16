@@ -35,7 +35,14 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import type { OutputFormat } from "../output/index.js";
-import { bool, type JsonObject, obj, renderCollection, str, type TableShape } from "./render.js";
+import {
+  bool,
+  type JsonObject,
+  obj,
+  renderCollection,
+  str,
+  type TableShape,
+} from "./render.js";
 
 // Kinds that list through the SearchService (list mode: empty query, org
 // scope). Must stay in step with the server's SearchableKinds allowlist
@@ -43,14 +50,16 @@ import { bool, type JsonObject, obj, renderCollection, str, type TableShape } fr
 // search_criteria.go): a kind present here but absent there silently lists
 // as empty. The LIST_HANDLERS kinds are deliberately NOT here — see the
 // header: not search-indexed, or better served by their dedicated RPC.
-export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> = new Set<ApiResourceKind>([
-  ApiResourceKind.agent,
-  ApiResourceKind.workflow,
-  ApiResourceKind.mcp_server,
-  ApiResourceKind.project,
-  ApiResourceKind.skill,
-  ApiResourceKind.environment,
-]);
+export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> =
+  new Set<ApiResourceKind>([
+    ApiResourceKind.agent,
+    ApiResourceKind.workflow,
+    ApiResourceKind.mcp_server,
+    ApiResourceKind.project,
+    ApiResourceKind.skill,
+    ApiResourceKind.plugin,
+    ApiResourceKind.environment,
+  ]);
 
 // One fetched page of a listing: what to render (entries + schema) and how
 // (table). Rendering and --limit truncation happen centrally in
@@ -64,12 +73,19 @@ interface ListPage {
 // Where the RPC paginates, the handler still forwards `limit` as the page
 // size so the server does the bounding; the dispatcher's slice is then a
 // no-op. Where it doesn't, the slice IS the bound.
-type ListFn = (client: Stigmer, org: string, limit: number) => Promise<ListPage>;
+type ListFn = (
+  client: Stigmer,
+  org: string,
+  limit: number,
+) => Promise<ListPage>;
 
 // Dedicated-RPC list handlers for the non-search-indexed kinds. Every kind
 // declaring List in the verb matrix must appear here or in SEARCH_KINDS —
 // the conformance test enforces it, so the two cannot drift.
-export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiResourceKind, ListFn>([
+export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
+  ApiResourceKind,
+  ListFn
+>([
   [
     ApiResourceKind.organization,
     async (client) => {
@@ -77,7 +93,11 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiRe
       // a caller's org set is small by nature). The paginated `find` RPC is
       // platform-admin-only — the wrong surface for `list organization`.
       const result = await client.organization.findMyOrganizations();
-      return { schema: OrganizationSchema, entries: result.entries, table: ORG_TABLE };
+      return {
+        schema: OrganizationSchema,
+        entries: result.entries,
+        table: ORG_TABLE,
+      };
     },
   ],
   [
@@ -85,25 +105,43 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiRe
     async (client) => {
       // findAll is caller-scoped and unpaginated (Empty request).
       const result = await client.apiKey.findAll();
-      return { schema: ApiKeySchema, entries: result.entries, table: APIKEY_TABLE };
+      return {
+        schema: ApiKeySchema,
+        entries: result.entries,
+        table: APIKEY_TABLE,
+      };
     },
   ],
   [
     ApiResourceKind.agent_instance,
     async (client, org, limit) => {
       const result = await client.agentInstance.list(
-        create(ListAgentInstancesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+        create(ListAgentInstancesRequestSchema, {
+          org,
+          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
+        }),
       );
-      return { schema: AgentInstanceSchema, entries: result.items, table: INSTANCE_TABLE };
+      return {
+        schema: AgentInstanceSchema,
+        entries: result.items,
+        table: INSTANCE_TABLE,
+      };
     },
   ],
   [
     ApiResourceKind.agent_channel,
     async (client, org, limit) => {
       const result = await client.agentChannel.list(
-        create(ListAgentChannelsRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+        create(ListAgentChannelsRequestSchema, {
+          org,
+          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
+        }),
       );
-      return { schema: AgentChannelSchema, entries: result.items, table: AGENT_CHANNEL_TABLE };
+      return {
+        schema: AgentChannelSchema,
+        entries: result.items,
+        table: AGENT_CHANNEL_TABLE,
+      };
     },
   ],
   [
@@ -112,8 +150,14 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiRe
       // listByOrg has no pagination on its contract (the per-org set is small
       // by design); the dispatcher's slice bounds the output.
       // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
-      const result = await client.channelapp.listByOrg(create(ListChannelAppsByOrgInputSchema, { org }));
-      return { schema: ChannelAppSchema, entries: result.entries, table: CHANNEL_APP_TABLE };
+      const result = await client.channelapp.listByOrg(
+        create(ListChannelAppsByOrgInputSchema, { org }),
+      );
+      return {
+        schema: ChannelAppSchema,
+        entries: result.entries,
+        table: CHANNEL_APP_TABLE,
+      };
     },
   ],
   [
@@ -128,9 +172,16 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiRe
         );
       }
       const result = await client.schedule.list(
-        create(ListSchedulesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+        create(ListSchedulesRequestSchema, {
+          org,
+          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
+        }),
       );
-      return { schema: ScheduleSchema, entries: result.items, table: SCHEDULE_TABLE };
+      return {
+        schema: ScheduleSchema,
+        entries: result.items,
+        table: SCHEDULE_TABLE,
+      };
     },
   ],
   [
@@ -142,8 +193,14 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiRe
       // api_key above — the agent_instance precedent, not an oversight.
       // Promoted from a bespoke pre-gate route in commands/list.ts by
       // stigmer/stigmer#469 (it had shipped working-but-unadvertised).
-      const result = await client.session.list(create(ListSessionsRequestSchema, { pageSize: limit }));
-      return { schema: SessionSchema, entries: result.entries, table: SESSION_TABLE };
+      const result = await client.session.list(
+        create(ListSessionsRequestSchema, { pageSize: limit }),
+      );
+      return {
+        schema: SessionSchema,
+        entries: result.entries,
+        table: SESSION_TABLE,
+      };
     },
   ],
 ]);
@@ -162,7 +219,12 @@ export async function listResources(
   // rather than per-handler is what keeps the flag honest for every kind —
   // organization and api_key shipped ignoring it when handlers owned this
   // (stigmer/stigmer#312).
-  return renderCollection(page.schema, page.entries.slice(0, limit), format, page.table);
+  return renderCollection(
+    page.schema,
+    page.entries.slice(0, limit),
+    format,
+    page.table,
+  );
 }
 
 async function fetchListPage(
@@ -178,8 +240,16 @@ async function fetchListPage(
   if (!SEARCH_KINDS.has(kind)) {
     throw new UsageError("list is not implemented for this resource type");
   }
-  const result = await client.search.query({ kinds: [kind], org, page: { num: 1, size: limit } });
-  return { schema: SearchResultSchema, entries: result.entries, table: SEARCH_TABLE };
+  const result = await client.search.query({
+    kinds: [kind],
+    org,
+    page: { num: 1, size: limit },
+  });
+  return {
+    schema: SearchResultSchema,
+    entries: result.entries,
+    table: SEARCH_TABLE,
+  };
 }
 
 // Shared with `search` — both render SearchService results identically.
@@ -258,7 +328,9 @@ const CHANNEL_APP_TABLE: TableShape = {
       str(metadata, "id"),
       str(metadata, "slug"),
       providerOf(obj(json, "spec")),
-      date(str(obj(obj(obj(json, "status"), "audit"), "spec_audit"), "created_at")),
+      date(
+        str(obj(obj(obj(json, "status"), "audit"), "spec_audit"), "created_at"),
+      ),
     ];
   },
 };
@@ -332,7 +404,9 @@ function apiKeyExpiry(spec: JsonObject): string {
 
 function truncate(text: string, max: number): string {
   const normalized = text.replace(/\s+/g, " ").trim();
-  return normalized.length > max ? `${normalized.slice(0, max - 1)}…` : normalized;
+  return normalized.length > max
+    ? `${normalized.slice(0, max - 1)}…`
+    : normalized;
 }
 
 function date(timestamp: string): string {

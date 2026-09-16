@@ -23,7 +23,12 @@ import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { defaultRegistry, type TypeInfo, Verb } from "../registry/index.js";
-import { cancelAgentExecution, formatAgentPhase, isAgentExecutionId, isExecutionAlias } from "./execution.js";
+import {
+  cancelAgentExecution,
+  formatAgentPhase,
+  isAgentExecutionId,
+  isExecutionAlias,
+} from "./execution.js";
 import { fetchResource } from "./get.js";
 import { getterFor } from "./get-bindings.js";
 import { parseReference } from "./reference.js";
@@ -42,13 +47,22 @@ export interface DeletePlan {
 // the structural slice the delete UI needs. Reading it generically keeps the
 // dispatch kind-agnostic without a per-kind accessor.
 interface HasMetadata {
-  readonly metadata?: { readonly id?: string; readonly name?: string; readonly slug?: string; readonly org?: string };
+  readonly metadata?: {
+    readonly id?: string;
+    readonly name?: string;
+    readonly slug?: string;
+    readonly org?: string;
+  };
 }
 
 // `force` is the RPC-level acknowledgment of destructive side effects —
 // distinct from, but carried by, the CLI's `-f/--force` flag. Kinds whose delete RPC takes a plain typed ID have no
 // force field and simply ignore the argument.
-type DeleteFn = (client: Stigmer, id: string, force: boolean) => Promise<HasMetadata>;
+type DeleteFn = (
+  client: Stigmer,
+  id: string,
+  force: boolean,
+) => Promise<HasMetadata>;
 
 // Kinds the unified delete handles directly, each bound to its SDK delete call.
 // Every kind declaring Delete in the verb matrix must have an entry here (or a
@@ -56,20 +70,33 @@ type DeleteFn = (client: Stigmer, id: string, force: boolean) => Promise<HasMeta
 // enforces it, so the two cannot drift.
 // Kinds whose delete takes a DeleteResourceInput (not an ID) thread the force
 // acknowledgment through — force is the contract's generic ack carrier.
-export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<ApiResourceKind, DeleteFn>([
+export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
+  ApiResourceKind,
+  DeleteFn
+>([
   [ApiResourceKind.agent, (c, id) => c.agent.delete(id)],
   [ApiResourceKind.agent_instance, (c, id) => c.agentInstance.delete(id)],
   [ApiResourceKind.workflow, (c, id) => c.workflow.delete(id)],
   [ApiResourceKind.workflow_instance, (c, id) => c.workflowInstance.delete(id)],
-  [ApiResourceKind.mcp_server, (c, id, force) => c.mcpServer.delete({ resourceId: id, force })],
+  [
+    ApiResourceKind.mcp_server,
+    (c, id, force) => c.mcpServer.delete({ resourceId: id, force }),
+  ],
   [ApiResourceKind.project, (c, id) => c.project.delete(id)],
-  [ApiResourceKind.environment, (c, id, force) => c.environment.delete({ resourceId: id, force })],
+  [
+    ApiResourceKind.environment,
+    (c, id, force) => c.environment.delete({ resourceId: id, force }),
+  ],
   [ApiResourceKind.agent_channel, (c, id) => c.agentChannel.delete(id)],
-  [ApiResourceKind.channel_app, (c, id, force) => c.channelapp.delete({ resourceId: id, force })],
+  [
+    ApiResourceKind.channel_app,
+    (c, id, force) => c.channelapp.delete({ resourceId: id, force }),
+  ],
   // A schedule delete also tears down its Temporal Schedule artifact
   // server-side; the RPC takes a bare ScheduleId, so force is ignored.
   [ApiResourceKind.schedule, (c, id) => c.schedule.delete(id)],
   [ApiResourceKind.skill, (c, id) => c.skill.delete(id)],
+  [ApiResourceKind.plugin, (c, id) => c.plugin.delete(id)],
   [ApiResourceKind.api_key, (c, id) => c.apiKey.delete(id)],
 ]);
 
@@ -107,7 +134,9 @@ export async function planDelete(
 
   const info = defaultRegistry().getByAlias(typeArg);
   if (info === undefined) {
-    throw new UsageError(`unknown resource type: ${typeArg}\n\nAvailable types: ${availableDeleteTypes()}`);
+    throw new UsageError(
+      `unknown resource type: ${typeArg}\n\nAvailable types: ${availableDeleteTypes()}`,
+    );
   }
 
   if (info.kind === ApiResourceKind.organization) {
@@ -143,25 +172,38 @@ async function planStandardDelete(
   const parsed = parseReference(reference, org, info.idPrefix);
   // ResourceResult.message is the opaque proto Message; every resource carries
   // the ApiResourceMetadata envelope, so read it through the structural view.
-  const resource = (await getter(client, parsed)).message as unknown as HasMetadata;
+  const resource = (await getter(client, parsed))
+    .message as unknown as HasMetadata;
   const id = metaOf(resource).id;
 
   return {
     warning: buildDeleteWarning(info, resource),
     confirmPrompt: "Proceed with deletion? [y/N]",
-    perform: async () => buildDeleteSuccess(info, await deleteFn(client, id, force)),
+    perform: async () =>
+      buildDeleteSuccess(info, await deleteFn(client, id, force)),
   };
 }
 
-async function planOrganizationDelete(client: Stigmer, reference: string): Promise<DeletePlan> {
+async function planOrganizationDelete(
+  client: Stigmer,
+  reference: string,
+): Promise<DeletePlan> {
   // Organizations are not org-scoped: a bare token is a slug resolved against
   // the caller's memberships (fetchResource handles the id-vs-slug split).
   const parsed = parseReference(reference, "", "org");
-  const resource = (await fetchResource(client, ApiResourceKind.organization, parsed)).message as unknown as HasMetadata;
+  const resource = (
+    await fetchResource(client, ApiResourceKind.organization, parsed)
+  ).message as unknown as HasMetadata;
   const meta = metaOf(resource);
 
-  const warning = CommandResult.warning("You are about to delete the following organization:");
-  warning.addSection("").field("ID", meta.id).field("Name", meta.name).field("Slug", meta.slug);
+  const warning = CommandResult.warning(
+    "You are about to delete the following organization:",
+  );
+  warning
+    .addSection("")
+    .field("ID", meta.id)
+    .field("Name", meta.name)
+    .field("Slug", meta.slug);
   warning.hint("This will delete the organization and all its resources.");
   warning.hint("This action cannot be undone.");
 
@@ -171,7 +213,11 @@ async function planOrganizationDelete(client: Stigmer, reference: string): Promi
     perform: async () => {
       const deleted = metaOf(await client.organization.delete(meta.id));
       const out = CommandResult.success("Organization deleted successfully");
-      out.addSection("Deleted Organization").field("ID", deleted.id).field("Name", deleted.name).field("Slug", deleted.slug);
+      out
+        .addSection("Deleted Organization")
+        .field("ID", deleted.id)
+        .field("Name", deleted.name)
+        .field("Slug", deleted.slug);
       return out;
     },
   };
@@ -185,16 +231,23 @@ function planExecutionCancel(client: Stigmer, reference: string): DeletePlan {
     );
   }
 
-  const warning = CommandResult.warning(`You are about to cancel execution: ${reference}`);
+  const warning = CommandResult.warning(
+    `You are about to cancel execution: ${reference}`,
+  );
   warning.hint("This will gracefully stop the running agent.");
 
   return {
     warning,
     confirmPrompt: "Proceed with cancellation? [y/N]",
     perform: async () => {
-      const { execution, wasAlreadyTerminal } = await cancelAgentExecution(client, reference);
+      const { execution, wasAlreadyTerminal } = await cancelAgentExecution(
+        client,
+        reference,
+      );
       const id = execution.metadata?.id ?? "";
-      const status = formatAgentPhase(execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+      const status = formatAgentPhase(
+        execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+      );
 
       const out = wasAlreadyTerminal
         ? CommandResult.warning("Execution was already in terminal state")
@@ -207,13 +260,18 @@ function planExecutionCancel(client: Stigmer, reference: string): DeletePlan {
 
 // --- Warning + success rendering (mirrors Go's per-type delete handlers) ---
 
-function buildDeleteWarning(info: TypeInfo, message: HasMetadata): CommandResult {
+function buildDeleteWarning(
+  info: TypeInfo,
+  message: HasMetadata,
+): CommandResult {
   if (info.kind === ApiResourceKind.api_key) {
     return buildApiKeyWarning(message);
   }
 
   const meta = metaOf(message);
-  const warning = CommandResult.warning(`You are about to delete the following ${info.displayName.toLowerCase()}:`);
+  const warning = CommandResult.warning(
+    `You are about to delete the following ${info.displayName.toLowerCase()}:`,
+  );
   const section = warning
     .addSection("")
     .field("ID", meta.id)
@@ -227,10 +285,19 @@ function buildDeleteWarning(info: TypeInfo, message: HasMetadata): CommandResult
     warning.hint("This will delete the skill and all its versions.");
   }
 
+  if (info.kind === ApiResourceKind.plugin) {
+    warning.hint(
+      "This removes the plugin and every skill, MCP server, agent and workflow it installed. " +
+        "It is refused while another agent or workflow of yours still references one of them.",
+    );
+  }
+
   if (info.kind === ApiResourceKind.agent_channel) {
     // The server's documented distinction: delete is the connection's full
     // teardown; disabling is the config-preserving pause.
-    warning.hint("Delete is the connection's full teardown; to pause instead, apply with spec.enabled: false.");
+    warning.hint(
+      "Delete is the connection's full teardown; to pause instead, apply with spec.enabled: false.",
+    );
   }
 
   warning.hint("This action cannot be undone.");
@@ -239,20 +306,28 @@ function buildDeleteWarning(info: TypeInfo, message: HasMetadata): CommandResult
 
 function buildApiKeyWarning(message: HasMetadata): CommandResult {
   const meta = metaOf(message);
-  const warning = CommandResult.warning("You are about to delete the following API key:");
+  const warning = CommandResult.warning(
+    "You are about to delete the following API key:",
+  );
   const section = warning.addSection("").field("ID", meta.id);
   if (meta.name) section.field("Name", meta.name);
-  const fingerprint = (message as { spec?: { fingerprint?: string } }).spec?.fingerprint;
+  const fingerprint = (message as { spec?: { fingerprint?: string } }).spec
+    ?.fingerprint;
   if (fingerprint) section.field("Fingerprint", `***${fingerprint}`);
   warning.hint("This will permanently revoke the API key.");
   warning.hint("This action cannot be undone.");
   return warning;
 }
 
-function buildDeleteSuccess(info: TypeInfo, deleted: HasMetadata): CommandResult {
+function buildDeleteSuccess(
+  info: TypeInfo,
+  deleted: HasMetadata,
+): CommandResult {
   const meta = metaOf(deleted);
   const out = CommandResult.success(`${info.displayName} deleted successfully`);
-  const section = out.addSection(`Deleted ${info.displayName}`).field("ID", meta.id);
+  const section = out
+    .addSection(`Deleted ${info.displayName}`)
+    .field("ID", meta.id);
 
   if (info.kind === ApiResourceKind.api_key) {
     if (meta.name) section.field("Name", meta.name);
@@ -263,7 +338,12 @@ function buildDeleteSuccess(info: TypeInfo, deleted: HasMetadata): CommandResult
   return out;
 }
 
-function metaOf(message: HasMetadata): { id: string; name: string; slug: string; org: string } {
+function metaOf(message: HasMetadata): {
+  id: string;
+  name: string;
+  slug: string;
+  org: string;
+} {
   return {
     id: message.metadata?.id ?? "",
     name: message.metadata?.name ?? "",

@@ -22,24 +22,90 @@ export interface KindMeta {
 }
 
 export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
-  [ApiResourceKind.organization, { name: "Organization", displayName: "Organization", idPrefix: "org" }],
-  [ApiResourceKind.agent, { name: "Agent", displayName: "Agent", idPrefix: "agt" }],
-  [ApiResourceKind.workflow, { name: "Workflow", displayName: "Workflow", idPrefix: "wfl" }],
-  [ApiResourceKind.skill, { name: "Skill", displayName: "Skill", idPrefix: "skl" }],
-  [ApiResourceKind.mcp_server, { name: "McpServer", displayName: "MCP Server", idPrefix: "mcp" }],
-  [ApiResourceKind.project, { name: "Project", displayName: "Project", idPrefix: "prj" }],
-  [ApiResourceKind.api_key, { name: "ApiKey", displayName: "API Key", idPrefix: "key" }],
-  [ApiResourceKind.identity_provider, { name: "IdentityProvider", displayName: "Identity Provider", idPrefix: "idp" }],
-  [ApiResourceKind.oauth_app, { name: "OAuthApp", displayName: "OAuth App", idPrefix: "oapp" }],
-  [ApiResourceKind.environment, { name: "Environment", displayName: "Environment", idPrefix: "env" }],
-  [ApiResourceKind.agent_share, { name: "AgentShare", displayName: "Agent Share", idPrefix: "ash" }],
-  [ApiResourceKind.agent_channel, { name: "AgentChannel", displayName: "Agent Channel", idPrefix: "ach" }],
-  [ApiResourceKind.channel_app, { name: "ChannelApp", displayName: "Channel App", idPrefix: "chapp" }],
-  [ApiResourceKind.schedule, { name: "Schedule", displayName: "Schedule", idPrefix: "sch" }],
-  [ApiResourceKind.agent_instance, { name: "AgentInstance", displayName: "Agent Instance", idPrefix: "ain" }],
-  [ApiResourceKind.workflow_instance, { name: "WorkflowInstance", displayName: "Workflow Instance", idPrefix: "win" }],
-  [ApiResourceKind.session, { name: "Session", displayName: "Session", idPrefix: "ses" }],
-  [ApiResourceKind.agent_execution, { name: "AgentExecution", displayName: "Agent Execution", idPrefix: "aex" }],
+  [
+    ApiResourceKind.organization,
+    { name: "Organization", displayName: "Organization", idPrefix: "org" },
+  ],
+  [
+    ApiResourceKind.agent,
+    { name: "Agent", displayName: "Agent", idPrefix: "agt" },
+  ],
+  [
+    ApiResourceKind.workflow,
+    { name: "Workflow", displayName: "Workflow", idPrefix: "wfl" },
+  ],
+  [
+    ApiResourceKind.skill,
+    { name: "Skill", displayName: "Skill", idPrefix: "skl" },
+  ],
+  [
+    ApiResourceKind.plugin,
+    { name: "Plugin", displayName: "Plugin", idPrefix: "plg" },
+  ],
+  [
+    ApiResourceKind.mcp_server,
+    { name: "McpServer", displayName: "MCP Server", idPrefix: "mcp" },
+  ],
+  [
+    ApiResourceKind.project,
+    { name: "Project", displayName: "Project", idPrefix: "prj" },
+  ],
+  [
+    ApiResourceKind.api_key,
+    { name: "ApiKey", displayName: "API Key", idPrefix: "key" },
+  ],
+  [
+    ApiResourceKind.identity_provider,
+    {
+      name: "IdentityProvider",
+      displayName: "Identity Provider",
+      idPrefix: "idp",
+    },
+  ],
+  [
+    ApiResourceKind.oauth_app,
+    { name: "OAuthApp", displayName: "OAuth App", idPrefix: "oapp" },
+  ],
+  [
+    ApiResourceKind.environment,
+    { name: "Environment", displayName: "Environment", idPrefix: "env" },
+  ],
+  [
+    ApiResourceKind.agent_share,
+    { name: "AgentShare", displayName: "Agent Share", idPrefix: "ash" },
+  ],
+  [
+    ApiResourceKind.agent_channel,
+    { name: "AgentChannel", displayName: "Agent Channel", idPrefix: "ach" },
+  ],
+  [
+    ApiResourceKind.channel_app,
+    { name: "ChannelApp", displayName: "Channel App", idPrefix: "chapp" },
+  ],
+  [
+    ApiResourceKind.schedule,
+    { name: "Schedule", displayName: "Schedule", idPrefix: "sch" },
+  ],
+  [
+    ApiResourceKind.agent_instance,
+    { name: "AgentInstance", displayName: "Agent Instance", idPrefix: "ain" },
+  ],
+  [
+    ApiResourceKind.workflow_instance,
+    {
+      name: "WorkflowInstance",
+      displayName: "Workflow Instance",
+      idPrefix: "win",
+    },
+  ],
+  [
+    ApiResourceKind.session,
+    { name: "Session", displayName: "Session", idPrefix: "ses" },
+  ],
+  [
+    ApiResourceKind.agent_execution,
+    { name: "AgentExecution", displayName: "Agent Execution", idPrefix: "aex" },
+  ],
 ]);
 
 // Kinds that are user-facing in the CLI and therefore registered as addressable
@@ -54,6 +120,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.agent,
   ApiResourceKind.workflow,
   ApiResourceKind.skill,
+  ApiResourceKind.plugin,
   ApiResourceKind.mcp_server,
   ApiResourceKind.project,
   ApiResourceKind.api_key,
