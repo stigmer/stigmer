@@ -51,7 +51,7 @@ import type { TurnInput } from "../../../harness/types.js";
 import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import type { RecalledMemoriesContent } from "../../../shared/recalled-memories.js";
-import { SourceType, type ProvisionResult } from "../../../shared/workspace/types.js";
+import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
 import { composeSystemPrompt } from "../turn-setup.js";
 
@@ -83,7 +83,7 @@ const THREE_SKILLS: readonly SkillMetadata[] = NINE_SKILLS.slice(0, 3);
 const PROVISION_RESULTS: readonly ProvisionResult[] = [
   {
     rootDir: "/ws/app",
-    sourceType: SourceType.GIT_REPO,
+    sourceType: "git_repo",
     consumedKeys: [],
     workspaceDescription: "The payments service, cloned from git.",
     entryName: "app",
@@ -92,7 +92,7 @@ const PROVISION_RESULTS: readonly ProvisionResult[] = [
   },
   {
     rootDir: "/ws/docs",
-    sourceType: SourceType.LOCAL_PATH,
+    sourceType: "local_path",
     consumedKeys: [],
     workspaceDescription: "The docs folder on the user's machine.",
     entryName: "docs",

@@ -37,7 +37,6 @@ import {
 import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
-import { SourceType } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
 
 /**
@@ -155,7 +154,7 @@ export class WriteBackCoordinator {
     }
 
     for (const pr of provisionResults) {
-      if (pr.sourceType !== SourceType.GIT_REPO) continue;
+      if (pr.sourceType !== "git_repo") continue;
       if (!pr.gitMetadata) continue;
       if (!pr.gitMetadata.gitCredentialsConfigured) continue;
 

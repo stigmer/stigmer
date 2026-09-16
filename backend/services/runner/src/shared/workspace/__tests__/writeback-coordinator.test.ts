@@ -9,7 +9,6 @@ import {
   parseGithubRepo,
 } from "../writeback-coordinator.js";
 import type { WorkspaceBackend, ProvisionResult } from "../types.js";
-import { SourceType } from "../types.js";
 import {
   AGENT_GIT_AUTHOR_NAME,
   AGENT_GIT_AUTHOR_EMAIL,
@@ -30,7 +29,7 @@ function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentExecutionSta
 function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): ProvisionResult {
   return {
     rootDir: "/workspace/my-app",
-    sourceType: SourceType.GIT_REPO,
+    sourceType: "git_repo",
     consumedKeys: [],
     workspaceDescription: "test",
     entryName: "my-app",
@@ -156,7 +155,7 @@ describe("WriteBackCoordinator", () => {
   it("filters out non-git workspace entries", () => {
     const coord = makeCoordinator({
       sb,
-      provisionResults: [makeProvisionResult({ sourceType: SourceType.LOCAL_PATH })],
+      provisionResults: [makeProvisionResult({ sourceType: "local_path" })],
     });
     expect(coord.hasEligibleEntries).toBe(false);
   });

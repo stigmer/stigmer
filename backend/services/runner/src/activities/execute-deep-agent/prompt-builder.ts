@@ -29,7 +29,6 @@
 import { relative } from "node:path";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
-import { SourceType } from "../../shared/workspace/types.js";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import type { SenderIdentity } from "../../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
@@ -446,7 +445,7 @@ function workspaceRelativePath(rootDir: string, containerRoot: string): string {
 function formatEntryDescription(result: ProvisionResult): string {
   const name = result.entryName || "this entry";
 
-  if (result.sourceType === SourceType.LOCAL_PATH) {
+  if (result.sourceType === "local_path") {
     return (
       `Workspace entry **${name}** is the user's project directory ` +
       `at \`${result.rootDir}\`.\n` +
@@ -455,7 +454,7 @@ function formatEntryDescription(result: ProvisionResult): string {
     );
   }
 
-  if (result.sourceType === SourceType.GIT_REPO && result.gitMetadata) {
+  if (result.sourceType === "git_repo" && result.gitMetadata) {
     const meta: GitMetadata = result.gitMetadata;
     const shortSha = meta.baseCommit.length >= 7
       ? meta.baseCommit.slice(0, 7)
@@ -467,7 +466,7 @@ function formatEntryDescription(result: ProvisionResult): string {
     );
   }
 
-  if (result.sourceType === SourceType.EMPTY) {
+  if (result.sourceType === "empty") {
     return (
       `Workspace entry **${name}** is an empty workspace.\n` +
       "Create files and directories as needed for your task."
