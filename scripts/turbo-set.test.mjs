@@ -99,6 +99,7 @@ test("runner-deps set in this repo names the libs both standalone packages link 
     "backend/services/stigmer-server/package.json",
   ]);
   assert.deepEqual(runnerLinkedSet(), [
+    "@stigmer/plugin-package",
     "@stigmer/protos",
     "@stigmer/temporal-codecs",
     "@stigmer/zip-structure",
@@ -225,6 +226,7 @@ test("turboArgs: task first, one --filter per package, caller flags last", () =>
   assert.deepEqual(args, [
     "run",
     "build",
+    "--filter=@stigmer/plugin-package",
     "--filter=@stigmer/protos",
     "--filter=@stigmer/temporal-codecs",
     "--filter=@stigmer/zip-structure",

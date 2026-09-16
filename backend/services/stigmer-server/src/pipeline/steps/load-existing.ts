@@ -15,7 +15,11 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { getKindName } from "../apiresource-meta.js";
-import { internalError, invalidArgumentError, notFoundError } from "../errors.js";
+import {
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { findResourceBySlug } from "./helpers.js";
@@ -32,7 +36,10 @@ export function newLoadExistingStep<Desc extends DescMessage>(
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
-        throw internalError(new Error("resource metadata is nil"), "load existing");
+        throw internalError(
+          new Error("resource metadata is nil"),
+          "load existing",
+        );
       }
 
       let existing: MessageShape<Desc>;
@@ -64,7 +71,9 @@ export function newLoadExistingStep<Desc extends DescMessage>(
         // Populate the id so merge and persist have it.
         metadata.id = metadataOf(existing)?.id ?? "";
       } else {
-        throw invalidArgumentError("resource id or slug is required for update");
+        throw invalidArgumentError(
+          "resource id or slug is required for update",
+        );
       }
 
       ctx.set(EXISTING_RESOURCE_KEY, existing);

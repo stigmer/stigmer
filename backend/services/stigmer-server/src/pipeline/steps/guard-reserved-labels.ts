@@ -40,12 +40,15 @@
  *
  * Placement: after BuildNewState/BuildUpdateState — the step inspects the
  * state that will persist, and update chains have LoadExisting's stored
- * labels for echo detection. The infrastructure-failure arm answers a
+ * labels for echo detection. A push-shaped chain (skill push, whose
+ * PushSkillRequest carries `labels`) places it after its populate step and
+ * names its own positions (GuardReservedLabelsPositions), since its
+ * resource rides a domain key, not newState. The infrastructure-failure arm answers a
  * sanitized INTERNAL (the TS store-fault doctrine, #478) where Java
  * echoes raw exception text — an unpinned outage-lane difference.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { DescMessage } from "@bufbuild/protobuf";
+import type { DescMessage, Message } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -69,9 +72,7 @@ export const RESERVED_LABEL_PREFIX = "stigmer.ai/";
 const CLIENT_CONTRACT_ALLOWLIST: ReadonlyMap<
   ApiResourceKind,
   ReadonlySet<string>
-> = new Map([
-  [ApiResourceKind.environment, new Set(["stigmer.ai/personal"])],
-]);
+> = new Map([[ApiResourceKind.environment, new Set(["stigmer.ai/personal"])]]);
 
 /**
  * The reserved keys `requested` would introduce or change relative to
@@ -91,9 +92,27 @@ export function reservedLabelMutations(
   return mutations.sort();
 }
 
+/**
+ * Where the guard finds the state that will persist and the stored state
+ * it is judged against. The create and update chains carry both in the
+ * shared positions (`ctx.newState`, EXISTING_RESOURCE_KEY); a push-shaped
+ * chain builds its resource from an artifact and rides its own keys, so
+ * it names them here. Defaults are the shared positions.
+ */
+export interface GuardReservedLabelsPositions<Desc extends DescMessage> {
+  /** The resource about to persist; defaults to the chain's newState. */
+  readonly stateOf?: (ctx: RequestContext<Desc>) => Message | undefined;
+  /** The context key the stored resource rides; defaults to EXISTING_RESOURCE_KEY. */
+  readonly existingKey?: string;
+}
+
 export function newGuardReservedLabelsStep<Desc extends DescMessage>(
   authorizer: Authorizer,
+  positions: GuardReservedLabelsPositions<Desc> = {},
 ): PipelineStep<Desc> {
+  const stateOf =
+    positions.stateOf ?? ((ctx: RequestContext<Desc>) => ctx.newState);
+  const existingKey = positions.existingKey ?? EXISTING_RESOURCE_KEY;
   return {
     name: "GuardReservedLabels",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
@@ -108,12 +127,14 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
         // identity for attribution (ruling R5).
         return;
       }
-      const requested = metadataOf(ctx.newState)?.labels ?? {};
-      const existing = ctx.get(EXISTING_RESOURCE_KEY);
+      const state = stateOf(ctx);
+      const requested =
+        state === undefined ? {} : (metadataOf(state)?.labels ?? {});
+      const existing = ctx.get(existingKey);
       const stored =
         existing === undefined
           ? {}
-          : (metadataOf(existing as typeof ctx.newState)?.labels ?? {});
+          : (metadataOf(existing as Message)?.labels ?? {});
 
       const allowlist =
         CLIENT_CONTRACT_ALLOWLIST.get(ctx.apiResourceKind) ?? new Set();

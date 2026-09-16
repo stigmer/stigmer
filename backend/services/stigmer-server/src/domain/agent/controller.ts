@@ -64,6 +64,7 @@ import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
 } from "../../pipeline/steps/load-existing.js";
+import { newGuardPluginManagedStep } from "../../pipeline/steps/guard-plugin-managed.js";
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
@@ -216,6 +217,10 @@ async function update(
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
+    // A resource a plugin materialised is the plugin's to redefine; a client
+    // write is refused naming the plugin (GuardPluginManaged, keyed on the
+    // STORED labels and the plugin row's existence).
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
@@ -294,6 +299,7 @@ async function deleteAgent(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentSchema))
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newCascadeDeleteInstancesStep(deps.store, deps.logger))
     .addStep(newCascadeDeleteSharesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
@@ -349,6 +355,11 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadAgentForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newGuardPluginManagedStep(deps.store, {
+        existingKey: UPDATE_VISIBILITY_AGENT_KEY,
+      }),
+    )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(

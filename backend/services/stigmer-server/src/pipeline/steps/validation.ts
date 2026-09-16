@@ -23,7 +23,9 @@ export function validator(): Validator {
   return sharedValidator;
 }
 
-export function newValidateProtoStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newValidateProtoStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "ValidateProto",
     execute(ctx: RequestContext<Desc>): void {

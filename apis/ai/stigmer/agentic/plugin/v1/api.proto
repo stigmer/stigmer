@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugin.v1;
+
+import "ai/stigmer/agentic/plugin/v1/spec.proto";
+import "ai/stigmer/agentic/plugin/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Plugin is an installed Agent Plugins package: the unit of install, upgrade
+// and removal for a set of skills, MCP servers, an agent and workflows.
+//
+// A plugin is what you install; an agent is what runs. Installing a plugin
+// materialises ordinary Stigmer resources in the organization, each labelled
+// with the plugin's id; the plugin owns their grouping, version and removal
+// while execution, authorization and sharing stay on the resources.
+//
+// @internal
+// Identity is the archive: the SHA-256 of the pushed ZIP is the version
+// (status.digest, metadata.version.id) and the previous head is archived on
+// every push, the skill discipline. Membership is derived on read from the
+// stigmer.ai/plugin label on the children and is never stored here.
+message Plugin {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Plugin'];
+
+  // Standard resource metadata including name, id, labels, and tags.
+  // The name and slug come from the package manifest's name.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Manifest metadata extracted from the package (desired state).
+  PluginSpec spec = 4;
+
+  // System-managed install state (observed state).
+  PluginStatus status = 5;
+}
+
+// PluginList represents a paginated list of plugins.
+message PluginList {
+  // API version for this list type.
+  string api_version = 1;
+
+  // Resource kind identifier for the list.
+  string kind = 2;
+
+  // List of plugin resources.
+  repeated Plugin items = 3;
+}

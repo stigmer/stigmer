@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugin.v1;
+
+import "ai/stigmer/agentic/plugin/v1/api.proto";
+import "ai/stigmer/agentic/plugin/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// PluginQueryController handles read operations for plugins.
+service PluginQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = plugin;
+
+  // Get a single plugin by ID.
+  rpc get(PluginId) returns (Plugin) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get plugin";
+  }
+
+  // Get a plugin by API resource reference with version support.
+  //
+  // Version resolution (via ApiResourceReference.version field):
+  // - Empty/"latest" → Returns the installed version
+  // - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
+  // - SHA-256 digest (64 hex chars) → Returns the exact immutable version
+  //
+  // @internal
+  // Authorization is handled in the handler after resolving the reference to
+  // a plugin ID (the input carries org and slug, not an id).
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Plugin) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List the resources an installed plugin materialised.
+  //
+  // Returns every skill, MCP server, agent and workflow the plugin owns, in
+  // materialisation order.
+  //
+  // @internal
+  // Derived on read from the stigmer.ai/plugin label on the four child kinds.
+  rpc listMembers(PluginId) returns (ListPluginMembersResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list plugin members";
+  }
+
+  // List version history for a plugin.
+  //
+  // Returns every installed version ordered by push time (newest first), with
+  // its digest, tag, actor and archive storage key.
+  //
+  // @internal
+  // Authorization is handled in the handler after resolving the plugin (the
+  // input carries org and slug, not an id).
+  rpc listVersions(ListPluginVersionsInput) returns (ListPluginVersionsResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

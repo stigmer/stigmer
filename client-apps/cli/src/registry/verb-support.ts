@@ -13,50 +13,121 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Verb } from "./verbs.js";
 
-export const VERB_SUPPORT: ReadonlyMap<ApiResourceKind, ReadonlySet<Verb>> = new Map([
-  [ApiResourceKind.organization, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
+export const VERB_SUPPORT: ReadonlyMap<
+  ApiResourceKind,
+  ReadonlySet<Verb>
+> = new Map([
+  [
+    ApiResourceKind.organization,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+  ],
   [
     ApiResourceKind.agent,
-    new Set<Verb>([Verb.Apply, Verb.Validate, Verb.Get, Verb.List, Verb.Delete, Verb.Run, Verb.Search]),
+    new Set<Verb>([
+      Verb.Apply,
+      Verb.Validate,
+      Verb.Get,
+      Verb.List,
+      Verb.Delete,
+      Verb.Run,
+      Verb.Search,
+    ]),
   ],
   [
     ApiResourceKind.workflow,
-    new Set<Verb>([Verb.Apply, Verb.Validate, Verb.Get, Verb.List, Verb.Delete, Verb.Run, Verb.Search]),
+    new Set<Verb>([
+      Verb.Apply,
+      Verb.Validate,
+      Verb.Get,
+      Verb.List,
+      Verb.Delete,
+      Verb.Run,
+      Verb.Search,
+    ]),
   ],
-  [ApiResourceKind.skill, new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Push])],
-  [ApiResourceKind.mcp_server, new Set<Verb>([Verb.Apply, Verb.Validate, Verb.Get, Verb.List, Verb.Delete])],
+  [
+    ApiResourceKind.skill,
+    new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Push]),
+  ],
+  // A plugin is installed from its folder (`push plugin <dir>`, or `apply`
+  // pointed at one); it is never authored as YAML, so no Validate/Apply of a
+  // document — `validate -f <dir>` reads the folder through the plugin route.
+  [
+    ApiResourceKind.plugin,
+    new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Push]),
+  ],
+  [
+    ApiResourceKind.mcp_server,
+    new Set<Verb>([
+      Verb.Apply,
+      Verb.Validate,
+      Verb.Get,
+      Verb.List,
+      Verb.Delete,
+    ]),
+  ],
   // Project apply is the stigmer.yaml declarative/synthesis track, not
   // `apply -f project.yaml` — resolveHandlerForKind carries the teaching
   // refusal, and the conformance test documents it as a special case.
-  [ApiResourceKind.project, new Set<Verb>([Verb.Apply, Verb.Validate, Verb.Get, Verb.List, Verb.Delete])],
+  [
+    ApiResourceKind.project,
+    new Set<Verb>([
+      Verb.Apply,
+      Verb.Validate,
+      Verb.Get,
+      Verb.List,
+      Verb.Delete,
+    ]),
+  ],
   [ApiResourceKind.api_key, new Set<Verb>([Verb.Get, Verb.List, Verb.Delete])],
   // agent_execution is special — uses dedicated AgentExecutionQueryController
   // RPCs, not the unified SearchService. delete maps to cancel.
-  [ApiResourceKind.agent_execution, new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Download])],
+  [
+    ApiResourceKind.agent_execution,
+    new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Download]),
+  ],
   // IAM apps are configured declaratively; read/ops verbs are deliberately
   // not promised (never wired, no demand — stigmer/stigmer#354). To add one:
   // dispatch entry + this line, in the same change.
   [ApiResourceKind.identity_provider, new Set<Verb>([Verb.Apply])],
   [ApiResourceKind.oauth_app, new Set<Verb>([Verb.Apply])],
-  [ApiResourceKind.environment, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
+  [
+    ApiResourceKind.environment,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+  ],
   // Enable/disable flows through `stigmer share agent`, which is the whole
   // read/ops surface today; only the declarative apply path is promised
   // (stigmer/stigmer#354 records the narrowing).
   [ApiResourceKind.agent_share, new Set<Verb>([Verb.Apply])],
   // The provider install flow is console-driven and cloud-only; the generic
   // verbs cover the declarative path (apply a manifest, inspect, tear down).
-  [ApiResourceKind.agent_channel, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
+  [
+    ApiResourceKind.agent_channel,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+  ],
   // Secret fields round-trip as ***REDACTED***; applying a fetched manifest
   // preserves the stored secrets (the OAuthApp marker convention).
-  [ApiResourceKind.channel_app, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
+  [
+    ApiResourceKind.channel_app,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+  ],
   // Firing is the platform's job (Temporal Schedules); the generic verbs
   // cover the declarative path, and get/list surface the state the dedicated
   // `stigmer schedule` commands act on — spec.enabled (the owner's switch)
   // versus status.paused_reason (the platform's failure latch).
-  [ApiResourceKind.schedule, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
-  [ApiResourceKind.agent_instance, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
+  [
+    ApiResourceKind.schedule,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+  ],
+  [
+    ApiResourceKind.agent_instance,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+  ],
   // No list: proto exposes getByWorkflow (requires workflow_id), not a generic list.
-  [ApiResourceKind.workflow_instance, new Set<Verb>([Verb.Apply, Verb.Get, Verb.Delete])],
+  [
+    ApiResourceKind.workflow_instance,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.Delete]),
+  ],
   // Session list is served by its dedicated query RPC (a LIST_HANDLERS
   // entry); stigmer/stigmer#469 promoted it into the matrix after it shipped
   // working-but-unadvertised through a pre-gate bypass. get/delete remain

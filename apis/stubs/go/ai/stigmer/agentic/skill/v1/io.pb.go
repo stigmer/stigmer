@@ -114,8 +114,11 @@ type PushSkillRequest struct {
 	//
 	// Mutually exclusive with artifact (see the message comment).
 	ArtifactUploadRef string `protobuf:"bytes,7,opt,name=artifact_upload_ref,json=artifactUploadRef,proto3" json:"artifact_upload_ref,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Labels to set on the skill, replacing any stored labels: a push is the
+	// skill's definition, so the labels it carries are the labels it has.
+	Labels        map[string]string `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PushSkillRequest) Reset() {
@@ -188,6 +191,13 @@ func (x *PushSkillRequest) GetArtifactUploadRef() string {
 		return x.ArtifactUploadRef
 	}
 	return ""
+}
+
+func (x *PushSkillRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // CreateSkillArtifactUploadUrlRequest asks the server to mint a staging
@@ -821,14 +831,18 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd3\x03\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xe1\x04\n" +
 	"\x10PushSkillRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
 	"\bartifact\x18\x02 \x01(\fR\bartifact\x12-\n" +
 	"\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n" +
 	"\x0egit_provenance\x18\x04 \x01(\v2*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n" +
 	"\amessage\x18\x06 \x01(\tR\amessage\x12.\n" +
-	"\x13artifact_upload_ref\x18\a \x01(\tR\x11artifactUploadRef:\xb6\x01\xbaH\xb2\x01\x1a\xaf\x01\n" +
+	"\x13artifact_upload_ref\x18\a \x01(\tR\x11artifactUploadRef\x12Q\n" +
+	"\x06labels\x18\b \x03(\v29.ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\xb6\x01\xbaH\xb2\x01\x1a\xaf\x01\n" +
 	"\"push_skill_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != '')J\x04\b\x05\x10\x06\"g\n" +
 	"#CreateSkillArtifactUploadUrlRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12&\n" +
@@ -890,7 +904,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*SkillId)(nil),                               // 0: ai.stigmer.agentic.skill.v1.SkillId
 	(*PushSkillRequest)(nil),                      // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
@@ -903,21 +917,23 @@ var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*ListSkillVersionsInput)(nil),                // 8: ai.stigmer.agentic.skill.v1.ListSkillVersionsInput
 	(*SkillVersionEntry)(nil),                     // 9: ai.stigmer.agentic.skill.v1.SkillVersionEntry
 	(*ListSkillVersionsResponse)(nil),             // 10: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse
-	(*GitProvenance)(nil),                         // 11: ai.stigmer.agentic.skill.v1.GitProvenance
-	(*timestamppb.Timestamp)(nil),                 // 12: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAuditActor)(nil),     // 13: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	nil,                                           // 11: ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
+	(*GitProvenance)(nil),                         // 12: ai.stigmer.agentic.skill.v1.GitProvenance
+	(*timestamppb.Timestamp)(nil),                 // 13: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil),     // 14: ai.stigmer.commons.apiresource.ApiResourceAuditActor
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
-	11, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
-	12, // 1: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
-	13, // 2: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	11, // 3: ai.stigmer.agentic.skill.v1.SkillVersionEntry.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
-	9,  // 4: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse.versions:type_name -> ai.stigmer.agentic.skill.v1.SkillVersionEntry
-	5,  // [5:5] is the sub-list for method output_type
-	5,  // [5:5] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	12, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
+	11, // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest.labels:type_name -> ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
+	13, // 2: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
+	14, // 3: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	12, // 4: ai.stigmer.agentic.skill.v1.SkillVersionEntry.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
+	9,  // 5: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse.versions:type_name -> ai.stigmer.agentic.skill.v1.SkillVersionEntry
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_io_proto_init() }
@@ -932,7 +948,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

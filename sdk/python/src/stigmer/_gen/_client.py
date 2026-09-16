@@ -23,6 +23,7 @@ from ._memory import MemoryClient
 from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
 from ._platformclient import PlatformClientClient
+from ._plugin import PluginClient
 from ._project import ProjectClient
 from ._schedule import ScheduleClient
 from ._session import SessionClient
@@ -55,6 +56,7 @@ class GeneratedClient:
         self.oauthapps = OAuthAppClient(channel)
         self.organizations = OrganizationClient(channel)
         self.platformclients = PlatformClientClient(channel)
+        self.plugins = PluginClient(channel)
         self.projects = ProjectClient(channel)
         self.schedules = ScheduleClient(channel)
         self.sessions = SessionClient(channel)

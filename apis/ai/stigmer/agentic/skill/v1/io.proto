@@ -80,6 +80,18 @@ message PushSkillRequest {
   //
   // Mutually exclusive with artifact (see the message comment).
   string artifact_upload_ref = 7;
+
+  // Labels to set on the skill, replacing any stored labels: a push is the
+  // skill's definition, so the labels it carries are the labels it has.
+  //
+  // @internal
+  // Keys in the reserved stigmer.ai/* namespace pass the same
+  // GuardReservedLabels step every other write boundary runs: a client may
+  // not introduce or change them; a server-composed push (a plugin
+  // materialising its skills as the installing caller) stamps them by
+  // design. Visibility is deliberately NOT carried here: it lands through
+  // updateVisibility, the one door metadata.proto names.
+  map<string, string> labels = 8;
 }
 
 // CreateSkillArtifactUploadUrlRequest asks the server to mint a staging

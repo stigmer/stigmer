@@ -25,6 +25,7 @@ type Client struct {
 	OAuthApp          *OAuthAppClient
 	Organization      *OrganizationClient
 	PlatformClient    *PlatformClientClient
+	Plugin            *PluginClient
 	Project           *ProjectClient
 	Schedule          *ScheduleClient
 	Session           *SessionClient
@@ -56,6 +57,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		OAuthApp:          NewOAuthAppClient(conn),
 		Organization:      NewOrganizationClient(conn),
 		PlatformClient:    NewPlatformClientClient(conn),
+		Plugin:            NewPluginClient(conn),
 		Project:           NewProjectClient(conn),
 		Schedule:          NewScheduleClient(conn),
 		Session:           NewSessionClient(conn),

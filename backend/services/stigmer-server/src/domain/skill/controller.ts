@@ -70,8 +70,10 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { authorizeResolvedResource,
-  newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeResolvedResource,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newCleanupIamPoliciesStep,
@@ -80,7 +82,6 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import {
-  RESOURCE_ID_KEY,
   newDeleteResourceStep,
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
@@ -91,11 +92,15 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
+import { newGuardPluginManagedStep } from "../../pipeline/steps/guard-plugin-managed.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityUpdateStep } from "../../pipeline/steps/validate-visibility.js";
+import { newDeleteVersionArchivesStep } from "../../pipeline/steps/version-archive.js";
 import type { Store } from "../../store/interface.js";
 import { MAX_ZIP_SIZE, TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
 import {
+  EXISTING_SKILL_KEY,
   SKILL_KEY,
   newArchiveCurrentSkillStep,
   newBuildInitialSkillStep,
@@ -189,8 +194,9 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Push — the 12-step upsert-by-slug pipeline (push.ts holds the steps and
- * the versioning discipline). Returns the built skill from context: the
+ * Push — the upsert-by-slug pipeline (push.ts holds the steps and the
+ * versioning discipline; GuardReservedLabels is spliced here because the
+ * request's labels persist). Returns the built skill from context: the
  * pipeline's message type is the request, so the resource rides SKILL_KEY.
  *
  * `method` is the AUTHORIZING descriptor, passed by the caller because two
@@ -220,9 +226,30 @@ async function push(
     .addStep(newExtractAndHashArtifactStep())
     .addStep(newResolveSlugForPushStep())
     .addStep(newFindExistingBySlugStep(deps.store))
+    // A skill has no update RPC: a second push under the same name IS the
+    // client's mutation path, so a plugin-managed skill refuses it here,
+    // naming the plugin. The controller's own re-materialisation passes by
+    // origin.
+    .addStep(
+      newGuardPluginManagedStep<typeof PushSkillRequestSchema>(deps.store, {
+        existingKey: EXISTING_SKILL_KEY,
+      }),
+    )
     .addStep(newGenerateIdIfNeededStep())
     .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
     .addStep(newPopulateSkillFieldsStep())
+    // The reserved-namespace guard every write boundary runs, positioned
+    // after the populate step because the skill rides SKILL_KEY (not
+    // newState) and its stored labels ride EXISTING_SKILL_KEY.
+    .addStep(
+      newGuardReservedLabelsStep<typeof PushSkillRequestSchema>(
+        deps.authorizer,
+        {
+          stateOf: (stepCtx) => stepCtx.get(SKILL_KEY) as Skill | undefined,
+          existingKey: EXISTING_SKILL_KEY,
+        },
+      ),
+    )
     .addStep(newArchiveCurrentSkillStep(deps.store, deps.logger))
     .addStep(newStoreSkillStep(deps.store))
     .addStep(
@@ -415,6 +442,11 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSkillForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newGuardPluginManagedStep(deps.store, {
+        existingKey: UPDATE_VISIBILITY_SKILL_KEY,
+      }),
+    )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(
@@ -562,6 +594,7 @@ async function deleteSkill(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, SkillSchema))
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newDeleteSkillArchivesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
@@ -583,42 +616,17 @@ async function deleteSkill(
 
 /**
  * DeleteSkillArchives — best-effort audit cleanup (Go
- * DeleteSkillArchivesStep): failures log and never block the delete.
+ * DeleteSkillArchivesStep): failures log and never block the delete. The
+ * mechanics are the shared content-addressed step's.
  */
 function newDeleteSkillArchivesStep(
   store: Store,
   logger: Logger,
 ): PipelineStep<typeof SkillCommandController.method.delete.input> {
-  return {
-    name: "DeleteSkillArchives",
-    async execute(
-      ctx: RequestContext<typeof SkillCommandController.method.delete.input>,
-    ): Promise<void> {
-      const resourceId = ctx.get(RESOURCE_ID_KEY);
-      if (typeof resourceId !== "string") {
-        throw new Error(
-          "resource id not found in context (ExtractResourceIdStep must run first)",
-        );
-      }
-      try {
-        const deletedCount = await store.deleteAuditByResourceId(
-          ctx.apiResourceKind,
-          resourceId,
-        );
-        if (deletedCount > 0) {
-          logger.info("Deleted archive records for skill", {
-            skillId: resourceId,
-            count: deletedCount,
-          });
-        }
-      } catch (error) {
-        logger.warn("failed to delete skill archives (best-effort)", {
-          skillId: resourceId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    },
-  };
+  return newDeleteVersionArchivesStep(store, logger, {
+    stepName: "DeleteSkillArchives",
+    noun: "skill",
+  });
 }
 
 /** Get — the standard LoadTarget-by-id pipeline. */

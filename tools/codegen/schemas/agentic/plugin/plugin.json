@@ -1,0 +1,110 @@
+{
+  "name": "PluginSpec",
+  "kind": "PLUGIN_SPEC",
+  "description": "PluginSpec is the manifest metadata of an installed plugin.",
+  "protoType": "ai.stigmer.agentic.plugin.v1.PluginSpec",
+  "protoFile": "apis/ai/stigmer/agentic/plugin/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Plugin name as written in the manifest; the source of the resource's slug.",
+      "required": false
+    },
+    {
+      "name": "Version",
+      "jsonName": "version",
+      "protoField": "version",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Version string as written in the manifest, typically Semantic Versioning.",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description from the manifest.",
+      "required": false
+    },
+    {
+      "name": "Author",
+      "jsonName": "author",
+      "protoField": "author",
+      "type": {
+        "kind": "message",
+        "messageType": "PluginAuthor"
+      },
+      "description": "Author information from the manifest.",
+      "required": false
+    },
+    {
+      "name": "Homepage",
+      "jsonName": "homepage",
+      "protoField": "homepage",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Homepage URL from the manifest.",
+      "required": false
+    },
+    {
+      "name": "Repository",
+      "jsonName": "repository",
+      "protoField": "repository",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Source repository URL from the manifest.",
+      "required": false
+    },
+    {
+      "name": "License",
+      "jsonName": "license",
+      "protoField": "license",
+      "type": {
+        "kind": "string"
+      },
+      "description": "License identifier from the manifest.",
+      "required": false
+    },
+    {
+      "name": "Keywords",
+      "jsonName": "keywords",
+      "protoField": "keywords",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Keywords from the manifest, for search and marketplace display.",
+      "required": false
+    },
+    {
+      "name": "Dialect",
+      "jsonName": "dialect",
+      "protoField": "dialect",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.plugin.v1.PluginDialect",
+        "enumValues": [
+          "PLUGIN_DIALECT_AGENT_PLUGINS",
+          "PLUGIN_DIALECT_CLAUDE",
+          "PLUGIN_DIALECT_CURSOR",
+          "PLUGIN_DIALECT_CODEX"
+        ]
+      },
+      "description": "The manifest dialect the package was written in.",
+      "required": false
+    }
+  ]
+}

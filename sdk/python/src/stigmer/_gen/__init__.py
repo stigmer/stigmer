@@ -21,6 +21,7 @@ from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
+from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._project import ProjectClient, ProjectInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._session import SessionClient, SessionInput
@@ -121,6 +122,9 @@ __all__ = [
     "OrganizationPreferencesInput",
     "PlatformClientClient",
     "PlatformClientInput",
+    "PluginClient",
+    "PluginInput",
+    "PluginAuthorInput",
     "ProjectClient",
     "ProjectInput",
     "ScheduleClient",

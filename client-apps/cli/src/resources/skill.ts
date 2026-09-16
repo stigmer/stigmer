@@ -31,7 +31,7 @@ export const SKILL_FILE = "SKILL.md";
 // byte-level variance. Local-field Date construction is deliberate: DOS
 // timestamps store wall-clock fields, so this encodes identically in every
 // timezone.
-const DETERMINISTIC_ZIP_MTIME = new Date(1980, 0, 1);
+export const DETERMINISTIC_ZIP_MTIME = new Date(1980, 0, 1);
 // Kebab-case, optionally scoped with dot-separated namespaces (e.g.
 // "platform.planton-architecture"). Every segment must be alphanumeric, so no
 // leading/trailing/consecutive separators. The derived slug renders dots as hyphens.

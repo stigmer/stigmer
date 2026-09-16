@@ -3,10 +3,15 @@
  * arm-for-arm. Validates an uploaded artifact (size caps, ZIP-bomb
  * budgets, entry-count and filename rules, root-SKILL.md presence with the
  * #452 hint), extracts SKILL.md IN MEMORY ONLY (never to disk), and parses
- * its frontmatter. Structural parsing rides @stigmer/zip-structure
- * (central-directory-based, issues #450/#567); the safearchive-parity
- * entry pre-filter runs first (prefilter.ts, sub-project DD-001) exactly
- * as Go's reader rewrites its entry list before validation.
+ * its frontmatter.
+ *
+ * The kind-agnostic half (open, hash, prefilter, structural walk, capped
+ * inflate with CRC) is src/archive's, shared with the plugin gate since
+ * plugins are pushed as archives too; this module composes it and owns
+ * what is a SKILL's: the root-SKILL.md rule, the 1 MB document cap, the
+ * frontmatter parse, and every sentence below. The observable error order
+ * is the Go gate's exactly: the structural walk tracks SKILL.md placement
+ * in the same pass it validates, and rules on presence last.
  *
  * Error strings are wire-visible contract (the push pipeline wraps them
  * into the InvalidArgument "failed to extract SKILL.md: ..." arm), pinned
@@ -21,23 +26,21 @@
  * Proven by __tests__/zip-gate.test.ts and the skill conformance suite's
  * push-validation negatives (CONFORMANCE_TARGET=local).
  */
-import { createHash } from "node:crypto";
-import { inflateRawSync } from "node:zlib";
-
-import { crc32, parseZipStructure } from "@stigmer/zip-structure";
-import type { ZipStructuralEntry } from "@stigmer/zip-structure";
-
+import { InflateError, inflateEntry } from "../../../archive/inflate.js";
+import { PLATFORM_ARCHIVE_LIMITS } from "../../../archive/limits.js";
 import {
-  MAX_COMPRESSION_RATIO,
-  MAX_FILES,
+  openArchive,
+  validateArchiveStructure,
+} from "../../../archive/open.js";
+import type { PrefilteredEntry } from "../../../archive/prefilter.js";
+import {
   MAX_SKILL_MD_SIZE,
-  MAX_UNCOMPRESSED_SIZE,
   MAX_ZIP_SIZE,
   NESTED_SKILL_MD_HINT,
 } from "../constants.js";
-import { applyEntryPrefilter } from "./prefilter.js";
-import type { PrefilteredEntry } from "./prefilter.js";
 import { parseFrontmatter } from "./frontmatter.js";
+
+export { calculateHash } from "../../../archive/open.js";
 
 /** Result of a successful gate pass (Go ExtractSkillMdResult). */
 export interface ExtractSkillMdResult {
@@ -51,41 +54,35 @@ export interface ExtractSkillMdResult {
   readonly description: string;
 }
 
-/** ZIP compression methods the gate can open (Go registers the same two). */
-const METHOD_STORED = 0;
-const METHOD_DEFLATED = 8;
-
 /**
  * Validates the artifact and extracts SKILL.md + frontmatter (Go
  * ExtractSkillMd). Throws plain Errors with byte-pinned messages; the
  * push pipeline owns the gRPC code.
  */
 export function extractSkillMd(zipData: Uint8Array): ExtractSkillMdResult {
-  if (zipData.length > MAX_ZIP_SIZE) {
-    throw new Error(
-      `ZIP file too large: ${zipData.length} bytes (max: ${MAX_ZIP_SIZE})`,
-    );
+  const { hash, entries } = openArchive(zipData, MAX_ZIP_SIZE);
+
+  // SKILL.md must be at the archive root. Nested occurrences are tracked
+  // only to make the rejection actionable (the #452 hint), in the same
+  // pass the structural checks run so their precedence stays Go's.
+  let hasSkillMd = false;
+  let hasNestedSkillMd = false;
+  validateArchiveStructure(entries, PLATFORM_ARCHIVE_LIMITS, (name) => {
+    if (name === "SKILL.md") {
+      hasSkillMd = true;
+    } else if (name.endsWith("/SKILL.md")) {
+      hasNestedSkillMd = true;
+    }
+  });
+
+  if (!hasSkillMd) {
+    if (hasNestedSkillMd) {
+      throw new Error(NESTED_SKILL_MD_HINT);
+    }
+    throw new Error("SKILL.md not found in ZIP archive");
   }
 
-  const hash = calculateHash(zipData);
-
-  let entries: readonly ZipStructuralEntry[];
-  try {
-    entries = parseZipStructure(zipData);
-  } catch {
-    // Go's zip.NewReader surfaces stdlib ErrFormat here; its text is what
-    // clients see via the %w chain, so it is pinned verbatim.
-    throw new Error("invalid ZIP file: zip: not a valid zip file");
-  }
-
-  // safearchive MaximumSecurityMode rewrites the entry list before any
-  // validation sees it (DD-001) — sanitized names, shadowed/special/8.3
-  // entries dropped.
-  const filtered = applyEntryPrefilter(entries);
-
-  validateZipContent(filtered);
-
-  const content = extractSkillMdContent(filtered);
+  const content = extractSkillMdContent(entries);
 
   let frontmatter;
   try {
@@ -105,75 +102,9 @@ export function extractSkillMd(zipData: Uint8Array): ExtractSkillMdResult {
 }
 
 /**
- * Security validation over the (pre-filtered) entry list — Go
- * validateZipContent, checks in its exact order: empty archive, file-count
- * cap, then per entry SKILL.md placement tracking, filename
- * control-character rejection, the running declared-uncompressed budget
- * (fail-fast), and the per-file compression-ratio cap; finally the
- * root-SKILL.md presence rule with the #452 nested-only hint.
- */
-function validateZipContent(entries: readonly PrefilteredEntry[]): void {
-  if (entries.length === 0) {
-    throw new Error("ZIP file is empty");
-  }
-
-  if (entries.length > MAX_FILES) {
-    throw new Error(`too many files in ZIP: ${entries.length} (max: ${MAX_FILES})`);
-  }
-
-  let totalUncompressedSize = 0;
-  let hasSkillMd = false;
-  let hasNestedSkillMd = false;
-
-  for (const { name, entry } of entries) {
-    // SKILL.md must be at the archive root. Nested occurrences are tracked
-    // only to make the rejection actionable (below).
-    if (name === "SKILL.md") {
-      hasSkillMd = true;
-    } else if (name.endsWith("/SKILL.md")) {
-      hasNestedSkillMd = true;
-    }
-
-    // Reject null bytes and control characters in entry names (code
-    // points, not UTF-16 units — Go ranges over runes).
-    for (const ch of name) {
-      const codePoint = ch.codePointAt(0)!;
-      if (codePoint < 32 || codePoint === 127) {
-        throw new Error(`invalid character in filename: ${name}`);
-      }
-    }
-
-    // Track the declared uncompressed total (fail fast once exceeded).
-    totalUncompressedSize += entry.uncompressedSize;
-    if (totalUncompressedSize > MAX_UNCOMPRESSED_SIZE) {
-      throw new Error(
-        `total uncompressed size too large: ${totalUncompressedSize} bytes (max: ${MAX_UNCOMPRESSED_SIZE})`,
-      );
-    }
-
-    // Per-file compression ratio (ZIP-bomb guard); integer division as Go.
-    if (entry.compressedSize > 0) {
-      const ratio = Math.floor(entry.uncompressedSize / entry.compressedSize);
-      if (ratio > MAX_COMPRESSION_RATIO) {
-        throw new Error(
-          `suspicious compression ratio in ${name}: ${ratio}:1 (max: ${MAX_COMPRESSION_RATIO}:1)`,
-        );
-      }
-    }
-  }
-
-  if (!hasSkillMd) {
-    if (hasNestedSkillMd) {
-      throw new Error(NESTED_SKILL_MD_HINT);
-    }
-    throw new Error("SKILL.md not found in ZIP archive");
-  }
-}
-
-/**
  * Extracts SKILL.md's content in memory (Go extractSkillMdContent): the
- * first root-named entry, decompressed under the 1MB cap, CRC-verified
- * (Go's reader checks the checksum on every read), UTF-8 decoded.
+ * first root-named entry, decompressed under the 1MB cap, CRC-verified,
+ * UTF-8 decoded. The typed inflate outcome maps to Go's sentences here.
  */
 function extractSkillMdContent(entries: readonly PrefilteredEntry[]): string {
   for (const { name, entry } of entries) {
@@ -182,41 +113,28 @@ function extractSkillMdContent(entries: readonly PrefilteredEntry[]): string {
     }
 
     let contentBytes: Uint8Array;
-    switch (entry.compressionMethod) {
-      case METHOD_STORED:
-        contentBytes = entry.compressedData;
-        break;
-      case METHOD_DEFLATED:
-        try {
-          // The cap bounds the ACTUAL inflated output — declared sizes are
-          // client claims (the ratio check upstream only sees declarations).
-          contentBytes = new Uint8Array(
-            inflateRawSync(entry.compressedData, {
-              maxOutputLength: MAX_SKILL_MD_SIZE + 1,
-            }),
-          );
-        } catch (error) {
-          if (isOutputLengthError(error)) {
-            throw new Error(`SKILL.md too large (max: ${MAX_SKILL_MD_SIZE} bytes)`);
-          }
+    try {
+      contentBytes = inflateEntry(entry, MAX_SKILL_MD_SIZE);
+    } catch (error) {
+      if (!(error instanceof InflateError)) {
+        throw error;
+      }
+      switch (error.kind) {
+        case "too-large":
           throw new Error(
-            `failed to read SKILL.md: ${error instanceof Error ? error.message : String(error)}`,
+            `SKILL.md too large (max: ${MAX_SKILL_MD_SIZE} bytes)`,
           );
+        case "read-failed":
+          throw new Error(`failed to read SKILL.md: ${error.detail}`);
+        case "unsupported-method":
+          throw new Error(`failed to open SKILL.md: ${error.detail}`);
+        case "checksum":
+          throw new Error(`failed to read SKILL.md: ${error.detail}`);
+        default: {
+          const exhaustive: never = error.kind;
+          throw new Error(`unknown inflate failure ${String(exhaustive)}`);
         }
-        break;
-      default:
-        // Go: File.Open returns ErrAlgorithm for methods without a
-        // registered decompressor; the text is pinned via the %w chain.
-        throw new Error("failed to open SKILL.md: zip: unsupported compression algorithm");
-    }
-
-    if (contentBytes.length > MAX_SKILL_MD_SIZE) {
-      throw new Error(`SKILL.md too large (max: ${MAX_SKILL_MD_SIZE} bytes)`);
-    }
-
-    if (crc32(contentBytes) !== entry.crc32) {
-      // Go's checksumReader: stdlib ErrChecksum via the read-error arm.
-      throw new Error("failed to read SKILL.md: zip: checksum error");
+      }
     }
 
     if (contentBytes.length === 0) {
@@ -227,18 +145,4 @@ function extractSkillMdContent(entries: readonly PrefilteredEntry[]): string {
   }
 
   throw new Error("SKILL.md not found in ZIP archive");
-}
-
-/** node:zlib's maxOutputLength violation (the output-cap arm). */
-function isOutputLengthError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    (("code" in error && (error as { code?: string }).code === "ERR_BUFFER_TOO_LARGE") ||
-      error.message.includes("maxOutputLength"))
-  );
-}
-
-/** SHA-256 hex of the artifact bytes (Go CalculateHash). */
-export function calculateHash(data: Uint8Array): string {
-  return createHash("sha256").update(data).digest("hex");
 }

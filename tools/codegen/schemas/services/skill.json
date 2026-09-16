@@ -172,6 +172,22 @@
           },
           "description": "Reference to an artifact staged via createArtifactUploadUrl().\n Set this instead of artifact when the ZIP exceeds the gRPC message-size\n cap. The reference is single-use and expires with its upload URL.\n\n Mutually exclusive with artifact (see the message comment).",
           "required": false
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Labels to set on the skill, replacing any stored labels: a push is the\n skill's definition, so the labels it carries are the labels it has.",
+          "required": false
         }
       ]
     },
@@ -397,6 +413,7 @@
               "execution_context",
               "schedule",
               "memory",
+              "plugin",
               "project"
             ]
           },
@@ -775,6 +792,11 @@
           "name": "memory",
           "number": 57,
           "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers, an agent and workflows, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
         },
         {
           "name": "project",

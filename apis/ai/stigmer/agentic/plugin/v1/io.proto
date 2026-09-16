@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugin.v1;
+
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
+import "ai/stigmer/commons/apiresource/enum.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// PluginId wraps a plugin identifier.
+message PluginId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// PushPluginRequest installs or upgrades a plugin from its archive.
+// Creates the plugin if it does not exist, or installs a new version of an
+// existing plugin; pushing the archive already installed changes nothing.
+//
+// The archive travels one of two ways (exactly one must be set):
+// - artifact: inline ZIP bytes, bounded by the gRPC message-size cap (10MB).
+// - artifact_upload_ref: a reference to bytes staged via
+//   createArtifactUploadUrl() + HTTP PUT, for archives above the cap.
+//
+// @internal
+// The manifest, skills, servers, sub-agents, variables and overlay are read
+// by the backend from the archive with @stigmer/plugin-package, the same
+// library `stigmer validate -f` runs offline, so a refusal here carries the
+// sentences the CLI already printed. The client sends no metadata.
+message PushPluginRequest {
+  option (buf.validate.message).cel = {
+    id: "push_plugin_request.artifact_source"
+    message: "exactly one of artifact (inline bytes) or artifact_upload_ref must be set"
+    expression: "(this.artifact.size() > 0) != (this.artifact_upload_ref != '')"
+  };
+
+  // Organization the plugin is installed into.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // The plugin package as a ZIP archive: the plugin folder with its manifest,
+  // skills/, mcp.json, agents/ and ai.stigmer/ at the archive root.
+  //
+  // Mutually exclusive with artifact_upload_ref (see the message comment).
+  bytes artifact = 2;
+
+  // Reference to an archive staged via createArtifactUploadUrl().
+  //
+  // Mutually exclusive with artifact (see the message comment).
+  string artifact_upload_ref = 3;
+
+  // Visibility for the plugin and every resource it materialises.
+  // Unspecified means the kind's default (organization).
+  //
+  // @internal
+  // PUBLIC is operator-gated exactly as on every other kind; the same gates
+  // run on the head and, in-process, on each child.
+  ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [(buf.validate.field).enum.defined_only = true];
+
+  // Optional human-readable message describing this version, kept in
+  // metadata.version.message for the version history.
+  string message = 5;
+}
+
+// CreatePluginArtifactUploadUrlRequest asks the server to mint a staging
+// slot for a plugin archive too large to travel inline.
+message CreatePluginArtifactUploadUrlRequest {
+  // Organization that will own the plugin (the authorization scope; the
+  // caller needs the same can_create_plugin permission push requires).
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Declared size of the archive in bytes; an over-limit declaration is
+  // refused before any bytes move.
+  int64 size_bytes = 2 [(buf.validate.field).int64.gt = 0];
+}
+
+// PluginArtifactUploadUrl is a short-lived, single-use capability for
+// staging a plugin archive over HTTP.
+message PluginArtifactUploadUrl {
+  // URL to PUT the archive bytes to. Content-Type: application/zip.
+  string url = 1;
+
+  // Opaque reference to pass as PushPluginRequest.artifact_upload_ref after
+  // the PUT succeeds. Single-use; invalid after the push consumes it or the
+  // TTL lapses.
+  string artifact_upload_ref = 2;
+
+  // Time-to-live for the upload URL in seconds.
+  int32 ttl_seconds = 3;
+}
+
+// PluginMember is one resource an installed plugin materialised.
+message PluginMember {
+  // The member's resource kind.
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1;
+
+  // The member's resource id.
+  string id = 2;
+
+  // The member's slug within the organization.
+  string slug = 3;
+
+  // The member's display name.
+  string name = 4;
+}
+
+// ListPluginMembersResponse lists the resources an installed plugin owns.
+//
+// @internal
+// Derived on read from the stigmer.ai/plugin label on the four child kinds;
+// nothing is stored on the plugin, so nothing can drift.
+message ListPluginMembersResponse {
+  // Members in materialisation order: skills, MCP servers, agents, workflows.
+  repeated PluginMember members = 1;
+}
+
+// ListPluginVersionsInput requests the version history for a plugin.
+message ListPluginVersionsInput {
+  // Organization that owns the plugin.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Plugin slug (unique within the organization).
+  string slug = 2 [(buf.validate.field).required = true];
+
+  // Opaque token for cursor-based pagination. Empty for the first page.
+  string page_token = 3;
+
+  // Maximum number of versions to return per page. Default is 50.
+  int32 page_size = 4;
+}
+
+// PluginVersionEntry is one historical version of a plugin.
+message PluginVersionEntry {
+  // SHA-256 of the archive, the immutable version identifier.
+  string digest = 1;
+
+  // When this version was pushed.
+  google.protobuf.Timestamp pushed_at = 2;
+
+  // Who pushed this version.
+  ai.stigmer.commons.apiresource.ApiResourceAuditActor pushed_by = 3;
+
+  // The tag this version holds: the manifest version when it fits the tag
+  // pattern, otherwise empty.
+  string tag = 4;
+
+  // Whether this is the currently installed version.
+  bool is_current = 5;
+
+  // The version message given at push time.
+  string message = 6;
+
+  // Storage key of this version's archive.
+  string artifact_storage_key = 7;
+}
+
+// ListPluginVersionsResponse is a page of plugin version history.
+message ListPluginVersionsResponse {
+  // Versions, newest first.
+  repeated PluginVersionEntry versions = 1;
+
+  // Token for the next page. Empty when no more pages exist.
+  string next_page_token = 2;
+
+  // Total number of versions across all pages.
+  int32 total_count = 3;
+}

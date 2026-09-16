@@ -14,14 +14,19 @@ import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { metadataOf } from "./shapes.js";
 
-export function newResolveSlugStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newResolveSlugStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "ResolveSlug",
     execute(ctx: RequestContext<Desc>): void {
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
         // A server-side programming error, not bad client input (Go).
-        throw internalError(new Error("resource metadata is nil"), "slug resolution");
+        throw internalError(
+          new Error("resource metadata is nil"),
+          "slug resolution",
+        );
       }
       if (metadata.slug !== "") {
         return; // already set — idempotent

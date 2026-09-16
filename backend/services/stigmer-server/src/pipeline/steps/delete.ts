@@ -15,7 +15,11 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { getKindName } from "../apiresource-meta.js";
-import { internalError, invalidArgumentError, notFoundError } from "../errors.js";
+import {
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
@@ -24,7 +28,9 @@ import { idValueOf } from "./shapes.js";
 /** Context key for the extracted id (Go ResourceIdKey). */
 export const RESOURCE_ID_KEY = "resourceId";
 
-export function newExtractResourceIdStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newExtractResourceIdStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "ExtractResourceId",
     execute(ctx: RequestContext<Desc>): void {
@@ -90,7 +96,9 @@ function requireResourceId<Desc extends DescMessage>(
   const id = ctx.get(RESOURCE_ID_KEY);
   if (typeof id !== "string" || id === "") {
     throw internalError(
-      new Error("resource id not found in context (ExtractResourceId must run first)"),
+      new Error(
+        "resource id not found in context (ExtractResourceId must run first)",
+      ),
       "delete pipeline ordering",
     );
   }

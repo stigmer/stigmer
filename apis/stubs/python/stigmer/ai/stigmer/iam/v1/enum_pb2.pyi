@@ -43,6 +43,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_write_reserved_labels: _ClassVar[IamPermission]
     can_view_provider_standing: _ClassVar[IamPermission]
     can_set_public_visibility: _ClassVar[IamPermission]
+    can_create_plugin: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -89,6 +90,7 @@ can_participate: IamPermission
 can_write_reserved_labels: IamPermission
 can_view_provider_standing: IamPermission
 can_set_public_visibility: IamPermission
+can_create_plugin: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

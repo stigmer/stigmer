@@ -39,6 +39,7 @@ export const organizationDeclaration = declareKind({
     ["can_create_session", union(computed("member"), computed("guest"))],
     ["can_create_environment", computed("member")],
     ["can_create_skill", computed("admin")],
+    ["can_create_plugin", computed("admin")],
     ["can_create_idp", computed("admin")],
     ["can_create_identity_account", computed("admin")],
     ["can_create_oauth_app", computed("admin")],

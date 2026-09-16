@@ -109,7 +109,10 @@ export function requireOrgForReference(
     scopeType = meta.authorization?.scopeType;
     kindName = meta.name;
   } catch (error) {
-    throw internalError(error, "failed to resolve kind metadata for reference org check");
+    throw internalError(
+      error,
+      "failed to resolve kind metadata for reference org check",
+    );
   }
   // protobuf-es strips the shared enum prefix: proto
   // AUTHORIZATION_SCOPE_TYPE_ORGANIZATION generates as ORGANIZATION.

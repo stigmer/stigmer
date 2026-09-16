@@ -8,21 +8,18 @@
  */
 
 /**
- * The compressed-artifact ceiling. Exported because it is the platform's
- * skill size limit, not just an extraction guard: the transfer lane
- * (createArtifactUploadUrl) enforces it before any bytes move, and clients
- * quote it in fail-loud size errors (#675). Go: storage.MaxZipSize.
+ * The archive budgets (compressed ceiling, uncompressed total, ratio, file
+ * count) are the platform's, shared with every archive-shaped push since
+ * plugins arrived; they live in src/archive/limits.ts and are re-exported
+ * here so the skill domain's consumers keep their names. Go:
+ * storage.MaxZipSize and its three siblings.
  */
-export const MAX_ZIP_SIZE = 100 * 1024 * 1024;
-
-/** Total declared-uncompressed budget across all entries (ZIP-bomb guard). */
-export const MAX_UNCOMPRESSED_SIZE = 500 * 1024 * 1024;
-
-/** Per-file declared compression ratio ceiling (ZIP-bomb guard). */
-export const MAX_COMPRESSION_RATIO = 100;
-
-/** Entry-count ceiling. */
-export const MAX_FILES = 10_000;
+export {
+  MAX_COMPRESSION_RATIO,
+  MAX_FILES,
+  MAX_UNCOMPRESSED_SIZE,
+  MAX_ZIP_SIZE,
+} from "../../archive/limits.js";
 
 /** SKILL.md in-memory extraction cap (memory-exhaustion guard). */
 export const MAX_SKILL_MD_SIZE = 1 * 1024 * 1024;

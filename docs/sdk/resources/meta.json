@@ -21,6 +21,7 @@
     "oauth-app",
     "organization",
     "platform-client",
+    "plugin",
     "project",
     "schedule",
     "session",

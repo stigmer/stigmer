@@ -53,6 +53,7 @@
           "execution_context",
           "schedule",
           "memory",
+          "plugin",
           "project"
         ]
       },

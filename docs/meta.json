@@ -13,6 +13,7 @@
     "---Agents---",
     "concepts/agents",
     "concepts/skills",
+    "guides/plugins",
     "concepts/sessions",
     "concepts/approval-flows",
     "guides/sharing",
