@@ -57,6 +57,13 @@ advances. This guide is an index; the files it names are the truth.
   ESLint in this package by design. Tests are co-located in a `__tests__` folder
   beside the module, never in a parallel tree.
 
+## Skills
+
+- `.agents/skills/ts-server-dev-guidelines/SKILL.md`: the reasoning behind the
+  laws above, the extension-point conventions, the error contract in full, and
+  how a core change reaches the cloud edition. Load it before changing a chain,
+  an extension point, a store driver or a workflow.
+
 ## Verify
 
 The root map's row (`make test-server`), plus from this directory

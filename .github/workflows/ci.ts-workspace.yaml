@@ -64,9 +64,11 @@
 # own devDependencies discipline: npm hoists, so no install-shaped job can
 # see that class.
 #
-# @stigmer/protos exports ./dist (everything else exports src in dev); its
-# dist is never committed, so every job that needs it builds it, which turbo
-# does through `^build`.
+# @stigmer/protos and @stigmer/plugin-package export ./dist (every other
+# workspace package exports src in dev; the backend libs export dist because
+# the standalone server and runner link them); neither dist is committed, so
+# every job that needs one builds it, which turbo does through `^build` and
+# the clean-room job does by hand.
 # =============================================================================
 
 name: ci.ts-workspace
@@ -348,8 +350,13 @@ jobs:
           rm package-lock.json
           npm install --no-package-lock --no-audit --no-fund
 
-      - name: Build @stigmer/protos dist
-        run: npm run build -w @stigmer/protos
+      # The two dist-exporting libs a consumer package imports (see the
+      # header): the CLI resolves both from their dist, so both are built
+      # before it is typechecked.
+      - name: Build the dist-exporting libs the consumers import
+        run: |
+          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/plugin-package
 
       # Build configs only: the resolution-split class this job exists for
       # surfaces in the shipping surface. Test-file typechecking is the locked

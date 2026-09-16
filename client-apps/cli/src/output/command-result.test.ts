@@ -32,6 +32,15 @@ describe("resultToJson", () => {
     expect(parsed.sections[1]).toEqual({ title: "Items", items: ["first", "second"] });
     expect(parsed.hints).toEqual(["try this", "and that"]);
   });
+
+  it("emits the data payload in JSON only, and omits it when unset", () => {
+    const result = CommandResult.warning("Plugin is valid").withData({ plugin: { name: "x" }, warnings: [] });
+    const parsed = JSON.parse(resultToJson(result));
+    expect(parsed.data).toEqual({ plugin: { name: "x" }, warnings: [] });
+    expect(JSON.parse(resultToJson(CommandResult.success("ok")))).not.toHaveProperty("data");
+    expect(resultToHuman(result, false)).not.toContain("plugin");
+    expect(resultToQuiet(result, false)).toBe("⚠ Plugin is valid\n");
+  });
 });
 
 describe("resultToHuman (plain, no color)", () => {

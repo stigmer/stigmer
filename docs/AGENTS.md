@@ -49,6 +49,13 @@ The site that renders it lives in `site/`; the tours the pages embed live in
 - Generated pages under `sdk/` and `cli/commands/` are never hand-edited; fix
   the proto comment, the TSDoc or the generator and re-run `make codegen`.
 
+## Skills
+
+- `.agents/skills/docs-writing/SKILL.md`: the doctrine behind the laws above:
+  registers, the two medium doctrines, Scenar authoring, narration and alt text,
+  tutorial sequences, overview files, refusals. Load it before writing a page or
+  a tour.
+
 ## Verify
 
 The root map's rows, plus `make build-site` when `meta.json`, a section or a

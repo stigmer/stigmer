@@ -5,8 +5,8 @@
 // surface it to tool handlers, and build a per-request client from it — using a
 // single stateless McpServer shared across all requests?
 //
-// Findings: _projects/.../design-decisions/008-... and the session checkpoint.
-// Retained as a T02 seed for the full HTTP hardening work.
+// Finding: yes, and this file is the proof. Retained as the seed for the full
+// HTTP hardening work; the production transport in ../src grew from it.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";

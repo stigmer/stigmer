@@ -24,7 +24,8 @@ These files previously contained their own terminology sections. Those sections
 have been replaced with pointers to this document:
 
 - `docs/STYLE.md`---capitalization and formatting rules for terms
-- `_roles/002_document_writer.md`---term definitions for AI writing context
+- `.agents/skills/docs-writing/SKILL.md`---the writing doctrine coding agents
+  load; it points here for every term and register
 - `site/src/components/docs/glossary.ts`---runtime tooltip definitions (keeps
   inline data for performance, but must match this file)
 
@@ -971,19 +972,17 @@ Define Agents and Workflows as code."
 
 ---
 
-### 3. Audience definition conflict between document writer role and STYLE.md---RESOLVED
+### 3. Audience definition conflict between the writing guidance and STYLE.md---RESOLVED
 
-**What**: The document writer role (`_roles/002_document_writer.md`, line 3)
-says "Write for a smart person who is not technical." The style guide
-(`docs/STYLE.md`, line 14) says "Assume readers are comfortable with APIs, CLIs,
-and infrastructure concepts."
+**What**: The writing guidance coding agents followed said "Write for a smart
+person who is not technical." The style guide (`docs/STYLE.md`, line 14) says
+"Assume readers are comfortable with APIs, CLIs, and infrastructure concepts."
 
-**Resolution**: The document writer role has been rewritten with a
-context-sensitive register framework (Session 9). It now references the
-vocabulary guide's five writing contexts. Plain language remains the default for
-sales site and introductory docs; reference and SDK docs use precise technical
-language. See `_roles/002_document_writer.md` "Match your register to the
-context" section.
+**Resolution**: The writing guidance was rewritten around a context-sensitive
+register framework that references this guide's five writing contexts. Plain
+language remains the default for the sales site and introductory docs; reference
+and SDK docs use precise technical language. The guidance now lives in
+`.agents/skills/docs-writing/SKILL.md` ("Match the register to the reader").
 
 ---
 

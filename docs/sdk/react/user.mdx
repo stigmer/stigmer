@@ -17,7 +17,9 @@ settings navigation, app-specific extra items, and sign out.
 
 Designed for sidebar placement — the trigger uses `sidebar-*` design
 tokens. The portaled dropdown uses standard `popover-*` / main-area
-tokens per theme-token-guidelines (DD-005).
+tokens, because portaled content renders outside the sidebar's DOM tree
+(the theme-token reference in the repository's sdk-console-architecture
+skill).
 
 Framework-agnostic: all actions are expressed as callback props
 (DD-004). The consumer bridges to their routing, auth, and theme
