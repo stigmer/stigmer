@@ -64,6 +64,12 @@ there. This guide is an index; the READMEs and headers it names are the truth.
 - The same word for the same thing and the same confirmation for the same
   destructive act across CLI, console, desktop and SDK.
 
+## Skills
+
+- `.agents/skills/sdk-console-architecture/SKILL.md`: the SDK-first decisions
+  the web and desktop shells live under, client-app parity in full, and the
+  theme-token reference. Load it before wiring an SDK component into a client.
+
 ## Verify
 
 The root map's rows for `cli`, `web` and `desktop`, plus `make gen-cli-docs`

@@ -64,6 +64,12 @@ This guide is an index; the READMEs and headers it names are the truth.
 - Embedded components announce new messages to screen readers and never trap
   focus, hijack shortcuts or inject global styles.
 
+## Skills
+
+- `.agents/skills/sdk-console-architecture/SKILL.md`: every decision above with
+  its reason, the dont-dos, and the theme-token reference. Load it before a new
+  hook, component, token or streaming view.
+
 ## Verify
 
 The root map's rows for `sdk/typescript`, `sdk/react` and `sdk/ink`, plus

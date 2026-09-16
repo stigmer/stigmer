@@ -54,7 +54,9 @@ export interface OrgSwitcherProps {
  *
  * Designed for sidebar placement — the trigger uses `sidebar-*` design
  * tokens. The portaled dropdown and dialog use standard `popover-*` /
- * main-area tokens per theme-token-guidelines.
+ * main-area tokens, because portaled content renders outside the sidebar's
+ * DOM tree (the theme-token reference in the repository's
+ * sdk-console-architecture skill).
  *
  * Must be rendered inside an {@link OrgProvider}.
  *
