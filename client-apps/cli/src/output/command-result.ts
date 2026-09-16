@@ -43,6 +43,13 @@ export class CommandResult {
   readonly message: string;
   readonly sections: Section[] = [];
   readonly hints: string[] = [];
+  /**
+   * A machine-readable payload for the JSON form only: the thing the command
+   * computed, in full, where the sections carry its human summary (a
+   * validated plugin's normalised description, for example). Human and quiet
+   * output never render it; `undefined` omits it from the JSON.
+   */
+  data: unknown = undefined;
 
   private constructor(status: ResultStatus, message: string) {
     this.status = status;
@@ -71,6 +78,11 @@ export class CommandResult {
     this.hints.push(text);
     return this;
   }
+
+  withData(data: unknown): this {
+    this.data = data;
+    return this;
+  }
 }
 
 const ICONS: Record<ResultStatus, string> = {
@@ -84,6 +96,7 @@ interface JsonResult {
   message: string;
   sections?: JsonSection[];
   hints?: string[];
+  data?: unknown;
 }
 
 interface JsonSection {
@@ -109,6 +122,7 @@ export function resultToJson(result: CommandResult): string {
   }
 
   if (result.hints.length > 0) out.hints = [...result.hints];
+  if (result.data !== undefined) out.data = result.data;
 
   return JSON.stringify(out, null, 2) + "\n";
 }

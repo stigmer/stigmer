@@ -37,7 +37,8 @@ skill" when it could be misread.
 - `backend/services/runner/`: the Temporal worker that executes agent sessions
   and workflow tasks through two harnesses (Cursor, native deep-agent). Own
   lockfile.
-- `backend/libs/ts/`: `temporal-codecs`, `zip-structure`.
+- `backend/libs/ts/`: `temporal-codecs`, `zip-structure`, `plugin-package` (the
+  Agent Plugins reader the CLI validates with and the server installs from).
 - `sdk/`: `typescript` (`@stigmer/sdk`), `react`, `theme`, `ink`, `embed`, `go`,
   `python`, `java`. Generated clients live under each SDK's `gen` directory.
 - `client-apps/`: `cli` (the `stigmer` command), `web` (Next.js console),

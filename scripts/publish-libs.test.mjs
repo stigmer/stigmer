@@ -44,6 +44,21 @@ test("PACKAGES publishes @stigmer/seedpack before the CLI that acquires it", () 
   );
 });
 
+test("PACKAGES publishes @stigmer/plugin-package before the CLI that depends on it", () => {
+  // The CLI's offline plugin validation imports the library and declares it
+  // as a workspace dependency ("*"), which the publisher pins to the lockstep
+  // version; a library missing from the publish set would leave every
+  // installed CLI with an unresolvable dependency.
+  assert.ok(
+    PACKAGES.includes("backend/libs/ts/plugin-package"),
+    "@stigmer/plugin-package must be in PACKAGES",
+  );
+  assert.ok(
+    PACKAGES.indexOf("backend/libs/ts/plugin-package") < PACKAGES.indexOf("client-apps/cli"),
+    "@stigmer/plugin-package must publish before client-apps/cli",
+  );
+});
+
 test("PACKAGES publishes the workspace libs the runner's release stamps as deps", () => {
   // The runner release workflows rewrite these file: links to the exact
   // release version right before `npm publish` — a lib missing from the

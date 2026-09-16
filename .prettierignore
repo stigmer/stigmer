@@ -10,3 +10,8 @@ backend/services/stigmer-server/src/domain/workflow/registry/data/
 # authorizer's proof oracle); each header names its source and commit and
 # the body must stay byte-identical to it, so formatting must not touch them.
 backend/services/stigmer-server/src/authorization/__tests__/fixtures/fga/
+
+# Vendored plugins from cursor/plugins (the plugin reader's real-world
+# fixtures); the NOTICE names the source and commit and the files must stay
+# byte-identical to it, so formatting must not touch them.
+backend/libs/ts/plugin-package/src/__tests__/fixtures/cursor-plugins/
