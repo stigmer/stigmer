@@ -27,6 +27,11 @@ Read this before proposing a new concept, a new layer or a new copy of anything.
   behaviour hooks and themed components, and the console and desktop app consume
   them as thin shells. If a platform builder embedding Stigmer would need it, it
   belongs in the SDK.
+- One experience across surfaces. The CLI, the console, the desktop app and the
+  SDKs use the same word for the same thing, group resources the same way, and
+  ask the same confirmation for the same destructive act. An error message on
+  any surface says what happened, why, and what to do next. A difference between
+  surfaces that has no platform reason is a defect, not a style.
 - Storage sits behind one interface. Domain code depends on the store contract,
   never on a driver; SQLite and Postgres are interchangeable behind it, and a
   behavioural contract test proves they agree.
