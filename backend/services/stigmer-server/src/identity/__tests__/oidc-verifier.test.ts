@@ -218,6 +218,28 @@ describe("the byte-pinned classifyAuthError arms", () => {
     expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
     expect(ConnectError.from(error).rawMessage).toBe(INVALID_TOKEN_MESSAGE);
   });
+
+  it("a JWT whose algorithm the JWKS cannot serve (HS256 against RS256 keys) → 'invalid token', a CREDENTIAL rejection, never a plain error the chassis maps INTERNAL", async () => {
+    // The shape the server's own execution-scoped runner token has
+    // (runnerauth.ts). Whether this verifier should ever SEE it is the
+    // chain order's business (the runner verifier claims it first); that
+    // it must not answer INTERNAL when it does is this arm's. Until
+    // 2026-09-16 it threw jose's JOSENotSupported unclassified, and a
+    // self-host with sign-in on failed every agent execution with
+    // "internal server error" (stigmer#1137).
+    const segment = (value: unknown): string =>
+      Buffer.from(JSON.stringify(value)).toString("base64url");
+    const hs256 = `${segment({ alg: "HS256", typ: "JWT" })}.${segment({
+      token_type: "execution_scoped",
+      execution_id: "aex_1",
+      iat: 1,
+      exp: 4102444800,
+    })}.${segment("a-mac-this-verifier-cannot-check")}`;
+    const error = await rejectionOf(verifier().verify(hs256));
+    expect(error).toBeInstanceOf(ConnectError);
+    expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
+    expect(ConnectError.from(error).rawMessage).toBe(INVALID_TOKEN_MESSAGE);
+  });
 });
 
 describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
