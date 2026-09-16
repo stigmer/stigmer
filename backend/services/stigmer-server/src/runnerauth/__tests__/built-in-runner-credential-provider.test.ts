@@ -21,27 +21,39 @@
  *   - `authorizeMemoryCapture`: an AGENT-bound runner is ADMITTED with
  *     the human's account id as the memory's subject (the row's one
  *     principal under the model — without it every memory an enforcing
- *     self-host writes is nobody's); a workflow-bound runner is refused
- *     (the cloud refuses every non-session lane); a person is no-opinion
- *     (the gate's own logic applies).
+ *     self-host writes is nobody's) and the run's SESSION as the proved
+ *     provenance, read off the execution row (the cloud reads it off its
+ *     session-scoped token; ours names only the execution); a capture
+ *     addressed to an org that is not the run's is refused with the
+ *     cloud's copy; a workflow-bound runner is refused (the cloud refuses
+ *     every non-session lane); a person is no-opinion (the gate's own
+ *     logic applies).
  *
  * Written failing on 2026-09-16, before src/runnerauth/built-in-runner-credential-provider.ts
- * exists; the module that follows turns it green. What the admit's
- * `provedSessionId` carries is that module's design (the capability is synchronous and the
- * session lives on the row, not in the token) and is deliberately not
- * asserted here.
+ * existed; the module turned it green.
  */
 import { randomBytes } from "node:crypto";
 
+import { create } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
+import type { BoundExecutionStore } from "../bound-execution.js";
 import {
   newBuiltInRunnerCredentialProvider,
   runnerBindingOf,
 } from "../built-in-runner-credential-provider.js";
-import { WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE } from "../constants.js";
+import {
+  MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE,
+  WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE,
+} from "../constants.js";
 import {
   RunnerAuthService,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -49,7 +61,29 @@ import {
 
 const KEY = randomBytes(32);
 const service = RunnerAuthService.create(KEY);
-const provider = newBuiltInRunnerCredentialProvider({ service });
+
+/** The one agent execution the capture arms read: Carol's run in `acme`, on session `ses_carol`. */
+const AGENT_RUN = create(AgentExecutionSchema, {
+  metadata: { id: "aex_agent_run", name: "aex_agent_run", org: "acme" },
+  spec: { sessionId: "ses_carol" },
+  status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+});
+
+/** A store that knows exactly one row and answers the typed not-found for every other id. */
+const store: BoundExecutionStore = {
+  getResource<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    _schema: Desc,
+  ): Promise<MessageShape<Desc>> {
+    if (id === AGENT_RUN.metadata?.id) {
+      return Promise.resolve(AGENT_RUN as unknown as MessageShape<Desc>);
+    }
+    return Promise.reject(new ResourceNotFoundError(`${kind}/${id}`));
+  },
+};
+
+const provider = newBuiltInRunnerCredentialProvider({ service, store });
 
 const HUMAN = "ida_carol";
 
@@ -177,28 +211,53 @@ describe("vouchRunnerLineageLabels", () => {
 });
 
 describe("authorizeMemoryCapture", () => {
-  const decide = provider.authorizeMemoryCapture!;
+  const decide = (caller: CallerIdentity, org: string) =>
+    Promise.resolve(provider.authorizeMemoryCapture!(caller, org));
 
-  it("an agent-bound runner is admitted, and the memory's subject is the human the verifier resolved", () => {
-    const decision = decide(agentBound, "acme");
-    expect(decision.verdict).toBe("admit");
-    if (decision.verdict === "admit") {
-      expect(decision.subjectIdentityAccountId).toBe(HUMAN);
-    }
+  it("an agent-bound runner is admitted: the memory's subject is the human the verifier resolved, the proved session is the run's", async () => {
+    expect(await decide(agentBound, "acme")).toEqual({
+      verdict: "admit",
+      subjectIdentityAccountId: HUMAN,
+      provedSessionId: "ses_carol",
+    });
   });
 
-  it("a workflow-bound runner is refused — the cloud refuses every non-session lane", () => {
-    expect(decide(workflowBound, "acme")).toEqual({ verdict: "refuse" });
+  it("an empty capture org is admitted — the org-required refusal belongs to the defaults step (the cloud's check order)", async () => {
+    expect((await decide(agentBound, "")).verdict).toBe("admit");
   });
 
-  it("a person is no-opinion — the gate's own eligibility logic applies unchanged", () => {
-    expect(decide(person, "acme")).toEqual({ verdict: "no-opinion" });
+  it("a capture addressed to an org that is not the run's is refused with the cloud's copy — a forged address, not a routing choice", async () => {
+    const failure = await decide(agentBound, "someone-elses-org").then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.PermissionDenied);
+    expect((failure as ConnectError).rawMessage).toBe(
+      MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE,
+    );
+    expect(MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE).toBe(
+      "memory capture is scoped to the session's organization",
+    );
   });
 
-  it("a runner-class caller whose token this server did not sign is no-opinion, never a throw — the gate then applies its own logic", () => {
+  it("a workflow-bound runner is refused — the cloud refuses every non-session lane", async () => {
+    expect(await decide(workflowBound, "acme")).toEqual({ verdict: "refuse" });
+  });
+
+  it("an agent-bound runner whose run has vanished is refused — a memory the server cannot attribute is not written as nobody's", async () => {
+    const orphan = runnerCaller(service.mintRunCredential("aex_vanished"));
+    expect(await decide(orphan, "acme")).toEqual({ verdict: "refuse" });
+  });
+
+  it("a person is no-opinion — the gate's own eligibility logic applies unchanged", async () => {
+    expect(await decide(person, "acme")).toEqual({ verdict: "no-opinion" });
+  });
+
+  it("a runner-class caller whose token this server did not sign is no-opinion, never a throw — the gate then applies its own logic", async () => {
     const stranger = runnerCaller(
       RunnerAuthService.create(randomBytes(32)).mintRunCredential("aex_other"),
     );
-    expect(decide(stranger, "acme")).toEqual({ verdict: "no-opinion" });
+    expect(await decide(stranger, "acme")).toEqual({ verdict: "no-opinion" });
   });
 });

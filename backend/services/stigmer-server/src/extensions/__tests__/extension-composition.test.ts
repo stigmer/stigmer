@@ -544,7 +544,13 @@ describe("extension composition (require-authentication posture)", () => {
     };
     expect(parsed.posture).toBe("required");
     expect(parsed.source).toBe("extension 'fake-identity'");
-    expect(parsed.verifiers).toBe("apikey, fake-verifier");
+    // A unit that declares the posture and brings verifiers but NO
+    // Authorizer is the BUILT-IN authorization posture: open source
+    // composes its Authorizer, and with it the runner-subject verifier
+    // between the API-key lane and the unit's own (runnerauth/
+    // runner-subject-verifier.ts). A unit with its own Authorizer gets
+    // neither (runner-subject-composed.test.ts pins that chain).
+    expect(parsed.verifiers).toBe("apikey, runner, fake-verifier");
   });
 
   it("a declared posture whose unit registers no verifier of its own is a boot throw naming the unit — the API-key lane alone cannot bootstrap", async () => {

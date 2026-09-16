@@ -159,7 +159,14 @@ function classifyJoseError(error: unknown): unknown {
   }
   if (
     error instanceof joseErrors.JWTInvalid ||
-    error instanceof joseErrors.JWSInvalid
+    error instanceof joseErrors.JWSInvalid ||
+    // A JWT whose algorithm the issuer's key set cannot serve (an HS256
+    // token against an RS256 JWKS): a credential this verifier recognizes
+    // but cannot verify, so a credential rejection — never the
+    // infrastructure arm. Until 2026-09-16 it fell through to INTERNAL,
+    // and a self-host with sign-in on failed every agent execution on its
+    // own runner token (stigmer#1137).
+    error instanceof joseErrors.JOSENotSupported
   ) {
     return new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
   }

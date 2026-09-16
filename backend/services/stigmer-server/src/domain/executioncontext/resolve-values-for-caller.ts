@@ -14,21 +14,37 @@
  * distinguishes itself with an execution-scoped token minted by
  * getRunnerScopedToken and presented as a Bearer authorization header
  * (the same header shape a cloud runner uses for its sandbox credential).
- * Decrypt requires the FULL binding: a valid, unexpired token whose
- * execution_id claim equals this EC's spec.execution_id. Everything else
- * — no header, malformed or expired token, or a token minted for a
- * different execution — falls closed to the same redaction
- * get/getByReference apply, as a SUCCESSFUL response, not an error.
+ * Decrypt requires the FULL binding: a valid token whose execution_id
+ * claim equals this EC's spec.execution_id, and — for a RUN credential,
+ * the no-`exp` token the dispatch path hands the runner — a bound
+ * execution that is still live (runnerauth/bound-execution.ts: not
+ * terminal, or ended within the grace). Everything else — no header, a
+ * malformed or expired token, a token minted for a different execution,
+ * a run credential whose run is over — falls closed to the same
+ * redaction get/getByReference apply, as a SUCCESSFUL response, not an
+ * error.
  *
- * Token verification lives HERE, in the domain, not on the identity
- * chassis (O2, 20260827.01): the runner token is a lane discriminator,
- * not a caller identity — the chassis deliberately lets it fall through
- * to the trusted-local identity (ruling Q6), and this is the one RPC
- * that reads the raw header — exactly the consumer the runnerauth module
- * header reserves ("the executioncontext resolve step"). The
- * redaction-as-success contract is pinned by the conformance suites and
- * must survive every future verifier: a runner token is NEVER an
- * authentication credential.
+ * The decrypt decision lives HERE, in the domain, whatever the identity
+ * chassis makes of the token. Under trusted-local no verifier claims it
+ * and this is the one RPC that reads the raw header (the consumer the
+ * runnerauth module header reserves, "the executioncontext resolve
+ * step"). Under the built-in authorization posture the runner-subject
+ * verifier ALSO admits the same token as the run's human at position 1
+ * (runnerauth.ts header, 2026-09-16) — that decides WHO is calling and
+ * whether they may read the row; whether the row's secrets are decrypted
+ * for them is still this lane's binding check, so a person who can view
+ * an execution's context never receives its plaintext by holding a
+ * credential for a different one. The redaction-as-success contract is
+ * pinned by the conformance suites and holds on every arm.
+ *
+ * Why liveness is read only for a no-`exp` token: a clocked token's
+ * validity was decided by `verify` (its clock) and its binding, and the
+ * ExecutionContext it opens need not name an execution row at all — the
+ * connect lane's token opens an EC for an MCP discovery, and the rosters
+ * pin a clocked token decrypting an EC whose execution id names no row.
+ * A run credential has no clock; the row is the only thing that can end
+ * it, and a plaintext token in Temporal history must not decrypt a
+ * finished run's secrets for good.
  *
  * # Decrypt error doctrine (the oss#405 runtime-resolution doctrine,
  * # arms per the two-armed taxonomy in encryption/errors.ts)
@@ -56,8 +72,13 @@ import { EncryptionUnavailableError } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
 import { parseBearerToken } from "../../pipeline/interceptors/auth.js";
+import { loadBoundExecution } from "../../runnerauth/bound-execution.js";
+import type { BoundExecutionStore } from "../../runnerauth/bound-execution.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
-import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
+import {
+  isClockedToken,
+  TOKEN_TYPE_EXECUTION_SCOPED,
+} from "../../runnerauth/runnerauth.js";
 import { encryptionKeyMissingMessage } from "./constants.js";
 import { redactExecutionContextSecrets } from "./redact.js";
 
@@ -65,6 +86,8 @@ export interface ResolveValuesDeps {
   readonly logger: Logger;
   readonly secretService: SecretService;
   readonly runnerAuthService: RunnerCredentialProvider;
+  /** Where the bound execution lives — read for a run credential's liveness only. */
+  readonly store: BoundExecutionStore;
 }
 
 /**
@@ -123,15 +146,23 @@ async function runnerMayDecrypt(
     }
   }
 
-  const executionId = verifyRunnerToken(deps, ctx, ec);
-  if (executionId !== undefined) {
+  const token = bearerToken(ctx);
+  const executionId = verifyRunnerToken(deps, token, ec);
+  if (executionId === undefined) {
+    return false;
+  }
+  if (!isClockedToken(token) && !(await runIsLive(deps, executionId))) {
     deps.logger.debug(
-      "Scope-bound runner token presented - decrypting execution context secrets",
+      "Run credential presented for a run that is over - redacting execution context secrets",
       { executionId },
     );
-    return true;
+    return false;
   }
-  return false;
+  deps.logger.debug(
+    "Scope-bound runner token presented - decrypting execution context secrets",
+    { executionId },
+  );
+  return true;
 }
 
 /**
@@ -148,10 +179,9 @@ async function runnerMayDecrypt(
  */
 function verifyRunnerToken(
   deps: ResolveValuesDeps,
-  ctx: HandlerContext,
+  token: string,
   ec: ExecutionContext,
 ): string | undefined {
-  const token = bearerToken(ctx);
   if (token === "") {
     return undefined;
   }
@@ -181,6 +211,26 @@ function verifyRunnerToken(
   }
 
   return tokenExecutionId;
+}
+
+/**
+ * A run credential's liveness: the bound execution exists and is live
+ * (runnerauth/bound-execution.ts). A missing row is "not live" — the
+ * credential opens nothing. A store fault is an infrastructure fault,
+ * sanitized here as every direct handler does (the store-fault doctrine):
+ * an outage must not read as a redaction decision, and the same store
+ * just served the row this read is for.
+ */
+async function runIsLive(
+  deps: ResolveValuesDeps,
+  executionId: string,
+): Promise<boolean> {
+  try {
+    const execution = await loadBoundExecution(deps.store, executionId);
+    return execution?.live === true;
+  } catch (error) {
+    throw internalError(error, "failed to load the run credential's execution");
+  }
 }
 
 /**

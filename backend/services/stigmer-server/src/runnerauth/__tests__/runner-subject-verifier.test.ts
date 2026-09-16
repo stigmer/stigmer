@@ -53,7 +53,9 @@ import type { OpenedStore } from "../../authorization/__tests__/drivers.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
+import { newOrganizationOnlyGrantScope } from "../../domain/iampolicy/grant-scope.js";
 import {
+  RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS,
   RUNNER_CREDENTIAL_INVALID_MESSAGE,
   RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE,
   RUNNER_VERIFIER_NAME,
@@ -287,6 +289,58 @@ describe.each(
         },
       );
 
+      it("a run that ended moments ago still admits — the grace covers the writes that trail the terminal stamp", async () => {
+        await opened.store.saveResource(
+          ApiResourceKind.agent_execution,
+          "aex_just_over",
+          AgentExecutionSchema,
+          create(AgentExecutionSchema, {
+            metadata: {
+              id: "aex_just_over",
+              name: "aex_just_over",
+              org: "acme",
+            },
+            status: {
+              phase: ExecutionPhase.EXECUTION_COMPLETED,
+              completedAt: new Date().toISOString(),
+              audit: { specAudit: { createdBy: { id: CAROL } } },
+            },
+          }),
+        );
+        expect(
+          (await verifier().verify(service.mintRunCredential("aex_just_over")))
+            ?.identityId,
+        ).toBe(CAROL);
+      });
+
+      it("a run that ended past the grace is refused — the grace is a constant, not a second clock", async () => {
+        await opened.store.saveResource(
+          ApiResourceKind.agent_execution,
+          "aex_long_over",
+          AgentExecutionSchema,
+          create(AgentExecutionSchema, {
+            metadata: {
+              id: "aex_long_over",
+              name: "aex_long_over",
+              org: "acme",
+            },
+            status: {
+              phase: ExecutionPhase.EXECUTION_COMPLETED,
+              completedAt: new Date(
+                Date.now() - RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS - 1000,
+              ).toISOString(),
+              audit: { specAudit: { createdBy: { id: CAROL } } },
+            },
+          }),
+        );
+        expectUnauthenticated(
+          await rejectionOf(
+            verifier().verify(service.mintRunCredential("aex_long_over")),
+          ),
+          RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE,
+        );
+      });
+
       it("a terminal WORKFLOW execution's credential is refused the same way", async () => {
         await workflowExecution(
           "wex_over",
@@ -371,6 +425,18 @@ describe.each(
         expectUnauthenticated(failure, RUNNER_CREDENTIAL_INVALID_MESSAGE);
       });
     });
+  });
+});
+
+describe("the person admitted is the person the model lets report", () => {
+  it("open source grants nobody a role on a session, so a run's creator is its session's owner — the fact the verifier's header rests on", () => {
+    // `agent_execution.can_edit` is `owner from session`; this verifier
+    // admits the execution's CREATOR. They are one person only while a
+    // session's viewers are its owner alone. The contract lists `viewer`
+    // as grantable on a session; open source's grant scope refuses it.
+    expect(
+      newOrganizationOnlyGrantScope().grantableRoles(ApiResourceKind.session),
+    ).toEqual([]);
   });
 });
 

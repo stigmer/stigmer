@@ -60,7 +60,10 @@ function memoryCtx(
 
 /** A provider whose only relevant surface is the capture capability. */
 function providerWith(
-  decide?: (caller: CallerIdentity, org: string) => MemoryCaptureDecision,
+  decide?: (
+    caller: CallerIdentity,
+    org: string,
+  ) => MemoryCaptureDecision | Promise<MemoryCaptureDecision>,
 ): RunnerCredentialProvider {
   return {
     isEnabled: () => false,
@@ -79,8 +82,34 @@ function jwtWith(payload: Record<string, unknown>): string {
   return `header.${body}.signature`;
 }
 
+async function rejectionOf(run: void | Promise<void>): Promise<unknown> {
+  return Promise.resolve(run).then(
+    () => {
+      throw new Error("expected the step to refuse");
+    },
+    (error: unknown) => error,
+  );
+}
+
 describe("GuardMemoryCapture with the capability composed", () => {
-  it("admit stashes the proved claims for ResolveMemoryDefaults", () => {
+  it("a capability that answers with a promise is awaited — the built-in provider reads the run's row for the session", async () => {
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
+      providerWith(() =>
+        Promise.resolve({
+          verdict: "admit" as const,
+          subjectIdentityAccountId: "ida_human",
+          provedSessionId: "ses_from_row",
+        }),
+      ),
+    );
+    const ctx = memoryCtx(SANDBOX_CALLER);
+    await step.execute(ctx);
+    expect(memoryCaptureCredentialOf(ctx)?.provedSessionId).toBe(
+      "ses_from_row",
+    );
+  });
+
+  it("admit stashes the proved claims for ResolveMemoryDefaults", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
       providerWith(() => ({
         verdict: "admit",
@@ -89,23 +118,18 @@ describe("GuardMemoryCapture with the capability composed", () => {
       })),
     );
     const ctx = memoryCtx(SANDBOX_CALLER);
-    step.execute(ctx);
+    await step.execute(ctx);
     expect(memoryCaptureCredentialOf(ctx)).toEqual({
       subjectIdentityAccountId: "ida_human",
       provedSessionId: "ses_proved",
     });
   });
 
-  it("refuse answers the byte-pinned PERMISSION_DENIED copy", () => {
+  it("refuse answers the byte-pinned PERMISSION_DENIED copy", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
       providerWith(() => ({ verdict: "refuse" })),
     );
-    let error: unknown;
-    try {
-      step.execute(memoryCtx(SANDBOX_CALLER));
-    } catch (e) {
-      error = e;
-    }
+    const error = await rejectionOf(step.execute(memoryCtx(SANDBOX_CALLER)));
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.PermissionDenied);
     expect((error as ConnectError).rawMessage).toBe(
@@ -113,7 +137,7 @@ describe("GuardMemoryCapture with the capability composed", () => {
     );
   });
 
-  it("hands the capability the caller and the capture org", () => {
+  it("hands the capability the caller and the capture org", async () => {
     const observed: Array<{ caller: CallerIdentity; org: string }> = [];
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
       providerWith((caller, org) => {
@@ -121,11 +145,11 @@ describe("GuardMemoryCapture with the capability composed", () => {
         return { verdict: "no-opinion" };
       }),
     );
-    step.execute(memoryCtx(SANDBOX_CALLER, "org_zeta"));
+    await step.execute(memoryCtx(SANDBOX_CALLER, "org_zeta"));
     expect(observed).toEqual([{ caller: SANDBOX_CALLER, org: "org_zeta" }]);
   });
 
-  it("an org-mismatch throw from the capability propagates untouched", () => {
+  it("an org-mismatch throw from the capability propagates untouched", async () => {
     const mismatch = new ConnectError(
       "memory capture is scoped to the session's organization",
       Code.PermissionDenied,
@@ -135,16 +159,12 @@ describe("GuardMemoryCapture with the capability composed", () => {
         throw mismatch;
       }),
     );
-    let error: unknown;
-    try {
-      step.execute(memoryCtx(SANDBOX_CALLER, "org_other"));
-    } catch (e) {
-      error = e;
-    }
-    expect(error).toBe(mismatch);
+    expect(
+      await rejectionOf(step.execute(memoryCtx(SANDBOX_CALLER, "org_other"))),
+    ).toBe(mismatch);
   });
 
-  it("no-opinion falls through: platform_client_id carriers still refuse", () => {
+  it("no-opinion falls through: platform_client_id carriers still refuse", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
       providerWith(() => ({ verdict: "no-opinion" })),
     );
@@ -154,18 +174,18 @@ describe("GuardMemoryCapture with the capability composed", () => {
       issuer: "stigmer",
       rawToken: jwtWith({ platform_client_id: "pc_1" }),
     };
-    expect(() => step.execute(memoryCtx(minted))).toThrowError(
+    await expect(step.execute(memoryCtx(minted))).rejects.toThrowError(
       MEMORY_CAPTURE_CALLER_MESSAGE,
     );
   });
 
-  it("internal and in-process callers never consult the capability", () => {
+  it("internal and in-process callers never consult the capability", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
       providerWith(() => {
         throw new Error("must not be consulted");
       }),
     );
-    step.execute(
+    await step.execute(
       memoryCtx({
         identityId: "internal",
         callerClass: "internal",
@@ -173,17 +193,15 @@ describe("GuardMemoryCapture with the capability composed", () => {
         rawToken: "",
       }),
     );
-    step.execute(memoryCtx({ ...LOCAL_USER, origin: "in-process" }));
+    await step.execute(memoryCtx({ ...LOCAL_USER, origin: "in-process" }));
   });
 });
 
 describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => {
-  it("admits trusted-local and OIDC callers", () => {
-    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
-      providerWith(),
-    );
-    step.execute(memoryCtx(LOCAL_USER));
-    step.execute(
+  it("admits trusted-local and OIDC callers", async () => {
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
+    await step.execute(memoryCtx(LOCAL_USER));
+    await step.execute(
       memoryCtx({
         identityId: "ida_oidc",
         callerClass: "user",
@@ -193,30 +211,26 @@ describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => 
     );
   });
 
-  it("refuses machine callers and platform_client_id carriers", () => {
-    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
-      providerWith(),
-    );
-    expect(() =>
+  it("refuses machine callers and platform_client_id carriers", async () => {
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
+    await expect(
       step.execute(memoryCtx({ ...LOCAL_USER, callerClass: "machine" })),
-    ).toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
-    expect(() =>
+    ).rejects.toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
+    await expect(
       step.execute(
         memoryCtx({
           ...LOCAL_USER,
           rawToken: jwtWith({ platform_client_id: "pc_1" }),
         }),
       ),
-    ).toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
+    ).rejects.toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
   });
 
-  it("admits a runner-shaped caller — the recorded pre-fix posture", () => {
+  it("admits a runner-shaped caller — the recorded pre-fix posture", async () => {
     // With no capability composed the gate cannot classify runner
     // credentials — the single-user OSS posture admits them (the #564
     // narrowing is CLOUD policy, shipped in the cloud capability).
-    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
-      providerWith(),
-    );
-    step.execute(memoryCtx(SANDBOX_CALLER));
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
+    await step.execute(memoryCtx(SANDBOX_CALLER));
   });
 });

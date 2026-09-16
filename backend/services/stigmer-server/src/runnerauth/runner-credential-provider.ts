@@ -287,13 +287,19 @@ export interface RunnerCredentialProvider {
    * `captureOrg` is the request's metadata.org, checked against the
    * token's own org claim).
    *
+   * May answer synchronously or with a promise: the cloud's credential
+   * carries the subject and the session in its own claims, so its answer
+   * is a decode; open source's run credential names only the execution,
+   * so the built-in provider reads the execution row for its session and
+   * org (built-in-runner-credential-provider.ts). The gate awaits either.
+   *
    * Absent method → the gate's existing logic exactly (today's OSS
    * behavior: the trusted-local single-user posture admits, honestly).
    */
   authorizeMemoryCapture?(
     caller: CallerIdentity,
     captureOrg: string,
-  ): MemoryCaptureDecision;
+  ): MemoryCaptureDecision | Promise<MemoryCaptureDecision>;
 }
 
 /**

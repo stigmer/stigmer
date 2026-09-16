@@ -402,8 +402,8 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | Method | Annotation | Handler |
 |---|---|---|
 | PlatformQueryController.getServerInfo | is_public | direct: static edition + version read |
-| PlatformQueryController.getRunnerBootstrapConfig | is_skip_authorization | direct: publishes the Temporal coordinates for embedded runners (token fields deliberately empty on OSS) |
-| PlatformQueryController.getRunnerScopedToken | is_skip_authorization | direct: mints the execution-scoped runner token for the ExecutionContext decrypt lane; fail-soft (empty id, keyless service, or mint error answer the not-minted shape). On OSS there is no caller credential to verify — the token is the lane discriminator, not a trust boundary (DD-004). |
+| PlatformQueryController.getRunnerBootstrapConfig | is_skip_authorization | direct: publishes the Temporal coordinates for embedded runners (token fields empty on OSS: the runner's process credential is the operator's API key it already holds; its per-run credential arrives in the workflow input, not here) |
+| PlatformQueryController.getRunnerScopedToken | is_skip_authorization | direct: mints the execution-scoped runner token; fail-soft (empty id, keyless service, or mint error answer the not-minted shape). Under trusted-local the token is the ExecutionContext decrypt-lane discriminator and nothing more. Under the built-in authorization posture the same token is also an identity: the runner-subject verifier (`src/runnerauth/runner-subject-verifier.ts`, composed between `apikey` and `oidc`) admits its bearer as the human whose run it is, for as long as the run lives — so the exchange is a mint gate there, and today still mints for any authenticated caller naming an execution (see the runnerauth header, 2026-09-16). |
 
 ## Config-annotated methods served by direct handlers
 
