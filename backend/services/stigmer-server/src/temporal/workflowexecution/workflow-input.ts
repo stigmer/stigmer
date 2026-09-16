@@ -28,6 +28,20 @@ export interface InvokeWorkflowExecutionWorkflowInput {
    * recover pipeline; normal executions omit it (Go omitempty).
    */
   readonly recovery_mode?: boolean;
+  /**
+   * The run credential (runnerauth: a clockless execution-scoped token
+   * bound to this execution), minted by the engine client at dispatch
+   * when the composed credential provider defines `mintRunCredential`
+   * and omitted otherwise. The connect lane's key for the same token
+   * type (domain/mcpserver/engine.ts). The orchestrator passes this
+   * object whole to the runner's child workflow, so the runner reads it
+   * from here and presents it on the run's own RPCs: under the built-in
+   * authorization posture it admits the runner as the human whose run
+   * this is, for as long as the run lives. In Temporal history in the
+   * clear, like the connect lane's — history is operator-only, and the
+   * operator holds the signing key already.
+   */
+  readonly execution_context_token?: string;
 }
 
 /**

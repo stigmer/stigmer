@@ -28,6 +28,13 @@
  * UNAUTHENTICATED. A forged token that names our type is refused by the
  * runner verifier's sentence — never INTERNAL, never the OIDC copy.
  *
+ * And the exchange as a MINT GATE (2026-09-16): over the same boot, a
+ * second person asking getRunnerScopedToken for Carol's run is
+ * PERMISSION_DENIED — the line the live claim check recorded the other
+ * way round ("A's key … for B's run: minted") — while Carol is minted a
+ * run credential that admits her on the wire, and a run that does not
+ * exist is NOT_FOUND with the copy a `get` would answer.
+ *
  * Written failing on 2026-09-16; the verifier that follows turns it green. The per-arm
  * proofs live in runner-subject-verifier.test.ts and
  * built-in-runner-credential-provider.test.ts; this file is the entry's
@@ -53,6 +60,7 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
@@ -65,11 +73,12 @@ import {
 } from "../../extensions/__tests__/composed-support.js";
 import { authenticateBearerToken } from "../../pipeline/interceptors/auth.js";
 import {
+  RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE,
   RUNNER_CREDENTIAL_INVALID_MESSAGE,
   RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE,
   RUNNER_VERIFIER_NAME,
 } from "../constants.js";
-import { TOKEN_TYPE_EXECUTION_SCOPED } from "../runnerauth.js";
+import { isClockedToken, TOKEN_TYPE_EXECUTION_SCOPED } from "../runnerauth.js";
 
 const AUDIENCE = "https://api.stigmer.test/";
 const ORG = "runner-subject-org";
@@ -334,6 +343,85 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     expect((await asRunner.get({ value: "wex_other" })).metadata?.id).toBe(
       "wex_other",
     );
+  });
+
+  describe("the exchange is a mint gate", () => {
+    let bruceToken: string;
+
+    beforeAll(async () => {
+      // A second signed-in person. Provisioning after Carol makes Bruce a
+      // member of every organization she created — the roles rule — which
+      // is exactly the caller the gate must refuse: a legitimate member
+      // asking for someone else's run.
+      bruceToken = await issuer.mint("auth0|bruce", "bruce@example.com");
+      const bruce = createClient(
+        IdentityAccountCommandController,
+        transportFor(port, bruceToken),
+      );
+      expect((await bruce.provisionMyAccount({})).metadata?.id).not.toBe("");
+      await seedWorkflowExecution(
+        "wex_carols",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+      );
+    });
+
+    it("another member asking for Carol's run is PERMISSION_DENIED — the impersonation path, closed", async () => {
+      const platform = createClient(
+        PlatformQueryController,
+        transportFor(port, bruceToken),
+      );
+      const failure = await failureOf(
+        platform.getRunnerScopedToken({
+          scope: { case: "workflowExecutionId", value: "wex_carols" },
+        }),
+      );
+      expect(failure.code).toBe(Code.PermissionDenied);
+      expect(failure.rawMessage).toBe(RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE);
+    });
+
+    it("the run's own person is minted a run credential that admits her on the wire", async () => {
+      const platform = createClient(
+        PlatformQueryController,
+        transportFor(
+          port,
+          await issuer.mint("auth0|carol", "carol@example.com"),
+        ),
+      );
+      const minted = await platform.getRunnerScopedToken({
+        scope: { case: "workflowExecutionId", value: "wex_carols" },
+      });
+      expect(minted.runnerScopedToken).not.toBe("");
+      expect(minted.tokenType).toBe("Bearer");
+      // A run credential has no clock; the proto default says so.
+      expect(minted.expiresInSeconds).toBe(0);
+      expect(isClockedToken(minted.runnerScopedToken)).toBe(false);
+
+      const identity = await authenticateBearerToken(
+        server.identityVerifiers,
+        minted.runnerScopedToken,
+        silentLogger,
+      );
+      expect(identity).toMatchObject({
+        identityId: carolId,
+        callerClass: "runner",
+      });
+    });
+
+    it("a run that does not exist is NOT_FOUND with the copy a `get` would answer — never a hint about who may hold it", async () => {
+      const platform = createClient(
+        PlatformQueryController,
+        transportFor(port, bruceToken),
+      );
+      const failure = await failureOf(
+        platform.getRunnerScopedToken({
+          scope: { case: "workflowExecutionId", value: "wex_nowhere" },
+        }),
+      );
+      expect(failure.code).toBe(Code.NotFound);
+      expect(failure.rawMessage).toBe(
+        "WorkflowExecution not found: wex_nowhere",
+      );
+    });
   });
 });
 

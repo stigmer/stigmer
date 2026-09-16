@@ -4,10 +4,11 @@
  * byte-pinned copy lives in one constants module per domain, never
  * inline at the refusal site).
  *
- * Two refusal sentences, deliberately not more (the InvalidTokenError
- * doctrine of runnerauth.ts: a finer reason invites branching on it).
- * The runner is the only caller that ever presents a run credential, and
- * the person reading these is its operator, in the runner's log:
+ * Two refusal sentences for a PRESENTED credential, deliberately not
+ * more (the InvalidTokenError doctrine of runnerauth.ts: a finer reason
+ * invites branching on it). The runner is the only caller that ever
+ * presents a run credential, and the person reading these is its
+ * operator, in the runner's log:
  *
  *   - the TOKEN sentence: the credential itself is not one this server
  *     will honor — forged, the wrong shape, bound to an execution this
@@ -19,6 +20,13 @@
  *     over, or its run was created by nobody this server recognizes as a
  *     person (the schedule fire caller's deterministic-refusal shape: no
  *     retry will make that run anyone's).
+ *
+ * And one for a REQUESTED credential — the platform exchange under the
+ * built-in posture (built-in-runner-credential-provider.ts), where the
+ * caller is a signed-in person asking for a run's credential and the
+ * answer is a permission, not a token verdict: only the person whose run
+ * it is may hold its credential. A run whose creator stamp names nobody
+ * gets the same sentence — no one is its person.
  *
  * The lineage mismatch copy is the cloud edition's, transcribed byte for
  * byte (credentials/provider.ts in the composition; the Java
@@ -36,6 +44,10 @@ export const RUNNER_CREDENTIAL_INVALID_MESSAGE =
 /** The resolution arms: a terminal execution; a run stamped by nobody the server recognizes. */
 export const RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE =
   "runner credential names a run that is over or belongs to nobody this server recognizes";
+
+/** The exchange's refusal under the built-in posture: the caller is not the run's person (PERMISSION_DENIED). */
+export const RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE =
+  "a run credential is minted only for the person whose run it is";
 
 /** The cloud's byte-pinned lineage refusal (the Java step's copy). */
 export const WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE =

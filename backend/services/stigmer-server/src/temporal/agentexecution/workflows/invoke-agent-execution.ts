@@ -157,26 +157,59 @@ const approvalGateResolvedSignal = defineSignal(SIGNAL_APPROVAL_GATE_RESOLVED);
 
 // ─── Activity proxies (options are contract; see the census table) ──────
 
+/**
+ * The typed input of ExecuteDeepAgent and ExecuteCursor — the runner's
+ * ExecuteActivityInput (shared/activity-input.ts), snake_case keys, a
+ * cross-component wire contract. `execution_context_token` is the run
+ * credential the workflow input carries (workflow-input.ts), handed on
+ * so the activity can present it on the run's own RPCs; omitted when the
+ * dispatch carried none (the omitempty convention). Adding the key needed
+ * no patch marker: an in-flight history's input has no token, so the
+ * commands its replay generates are byte-for-byte what they were.
+ */
+interface ExecuteActivityInput {
+  readonly execution_id: string;
+  readonly thread_id: string;
+  readonly invoker_identity_account_id: string;
+  readonly turn_seq: number;
+  readonly execution_context_token?: string;
+}
+
 interface RunnerActivities {
   [ENSURE_THREAD_ACTIVITY_NAME]: (
     sessionId: string,
     agentId: string,
   ) => Promise<string>;
-  [EXECUTE_DEEP_AGENT_ACTIVITY_NAME]: (input: {
-    execution_id: string;
-    thread_id: string;
-    invoker_identity_account_id: string;
-    turn_seq: number;
-  }) => Promise<RunnerActivityResult | null>;
-  [EXECUTE_CURSOR_ACTIVITY_NAME]: (input: {
-    execution_id: string;
-    thread_id: string;
-    invoker_identity_account_id: string;
-    turn_seq: number;
-  }) => Promise<RunnerActivityResult | null>;
+  [EXECUTE_DEEP_AGENT_ACTIVITY_NAME]: (
+    input: ExecuteActivityInput,
+  ) => Promise<RunnerActivityResult | null>;
+  [EXECUTE_CURSOR_ACTIVITY_NAME]: (
+    input: ExecuteActivityInput,
+  ) => Promise<RunnerActivityResult | null>;
   [GENERATE_SESSION_SUBJECT_ACTIVITY_NAME]: (
     executionId: string,
   ) => Promise<void>;
+}
+
+/**
+ * The ONE builder of an Execute* input for both harness flows and both
+ * invocations (first turn and every HITL re-invocation): the run's
+ * coordinates from the workflow input, the harness thread and the turn
+ * from the caller.
+ */
+function executeActivityInput(
+  input: InvokeAgentExecutionWorkflowInput,
+  threadId: string,
+  turnSeq: number,
+): ExecuteActivityInput {
+  const runCredential = input.execution_context_token ?? "";
+  return {
+    execution_id: input.execution_id,
+    thread_id: threadId,
+    invoker_identity_account_id: input.invoker_identity_account_id ?? "",
+    turn_seq: turnSeq,
+    ...(runCredential !== "" ? { execution_context_token: runCredential } : {}),
+  };
 }
 
 function newEnsureThreadProxy(taskQueue: string) {
@@ -516,7 +549,6 @@ async function executeDeepAgentFlow(
 ): Promise<RunnerActivityResult> {
   const executionId = input.execution_id;
   const sessionId = input.session_id;
-  const invoker = input.invoker_identity_account_id ?? "";
 
   log.info("Step 1: Ensuring thread", { sessionId, agentId: input.agent_id });
   const ensureThread = newEnsureThreadProxy(activityTaskQueue);
@@ -547,20 +579,14 @@ async function executeDeepAgentFlow(
         signals,
         parentWorkflowId: input.parent_workflow_id ?? "",
         firstInvoke: () =>
-          agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME]({
-            execution_id: executionId,
-            thread_id: threadId,
-            invoker_identity_account_id: invoker,
-            turn_seq: 0,
-          }),
+          agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME](
+            executeActivityInput(input, threadId, 0),
+          ),
         // The LangGraph thread id is stable — re-invocations reuse it.
         reinvoke: (turnSeq) =>
-          agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME]({
-            execution_id: executionId,
-            thread_id: threadId,
-            invoker_identity_account_id: invoker,
-            turn_seq: turnSeq,
-          }),
+          agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME](
+            executeActivityInput(input, threadId, turnSeq),
+          ),
         nullResultMessage: "activity returned null status - this should never happen",
         nullResultAfterApprovalMessage:
           "activity returned null status after approval - this should never happen",
@@ -584,7 +610,6 @@ async function executeCursorFlow(
 ): Promise<RunnerActivityResult> {
   const executionId = input.execution_id;
   const sessionId = input.session_id;
-  const invoker = input.invoker_identity_account_id ?? "";
 
   fireGenerateSessionSubject(activityTaskQueue, executionId);
 
@@ -612,12 +637,9 @@ async function executeCursorFlow(
             );
             harnessStateId = "";
           }
-          return agentProxy[EXECUTE_CURSOR_ACTIVITY_NAME]({
-            execution_id: executionId,
-            thread_id: harnessStateId,
-            invoker_identity_account_id: invoker,
-            turn_seq: 0,
-          });
+          return agentProxy[EXECUTE_CURSOR_ACTIVITY_NAME](
+            executeActivityInput(input, harnessStateId, 0),
+          );
         },
         reinvoke: async (turnSeq) => {
           let harnessStateId: string;
@@ -634,12 +656,9 @@ async function executeCursorFlow(
             cycle: turnSeq,
             harnessStateId,
           });
-          return agentProxy[EXECUTE_CURSOR_ACTIVITY_NAME]({
-            execution_id: executionId,
-            thread_id: harnessStateId,
-            invoker_identity_account_id: invoker,
-            turn_seq: turnSeq,
-          });
+          return agentProxy[EXECUTE_CURSOR_ACTIVITY_NAME](
+            executeActivityInput(input, harnessStateId, turnSeq),
+          );
         },
         nullResultMessage:
           "cursor activity returned null status - this should never happen",

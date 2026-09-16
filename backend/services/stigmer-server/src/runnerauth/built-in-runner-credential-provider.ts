@@ -1,14 +1,14 @@
 /**
  * The built-in RunnerCredentialProvider — the open-source execution-scoped
- * default (runner-credential-provider.ts) plus the two capabilities an
+ * default (runner-credential-provider.ts) plus the three capabilities an
  * ENFORCING self-host needs, composed under the built-in authorization
  * posture beside the runner-subject verifier (boot/compose.ts). The
  * cloud's shape, kept on purpose: one provider object carries the
  * edition's whole credential story, so the composition root binds one
  * thing and every OSS touchpoint that consults the seam sees the same
- * policy. Mint, verify and isEnabled are the default provider's, byte
- * for byte; under trusted-local the default alone is composed and none
- * of this exists.
+ * policy. Mint, verify, isEnabled and the dispatch's `mintRunCredential`
+ * are the default provider's, byte for byte; under trusted-local the
+ * default alone is composed and none of what follows exists.
  *
  * ONE reading of "what is this runner bound to" — `runnerBindingOf` —
  * feeds everything here and the Authorizer's lane admission
@@ -54,17 +54,46 @@
  *     applies. A run that has vanished between the verifier's read and
  *     this one is refused: a memory the server cannot attribute to a run
  *     must not be written as nobody's (fail closed).
+ *   - `exchangeScopedToken`: the platform exchange (getRunnerScopedToken)
+ *     becomes a MINT GATE. Under trusted-local the controller's own arms
+ *     mint a clocked decrypt-lane token for any caller naming an
+ *     execution, and that is harmless — the token unlocks a decrypt lane
+ *     and nothing more. Under this posture the same token IS an identity
+ *     (the verifier admits its bearer as the run's human), so minting
+ *     one for another person's run would be impersonation. The execution
+ *     arms therefore mint only for the run's own person — the account
+ *     the row's creator stamp resolves to, the same reading the verifier
+ *     makes — and mint the RUN credential (no `exp`; `expires_in_seconds`
+ *     0, the proto default), so under the posture there is one credential
+ *     shape and the exchange is the runner's true fallback for a dispatch
+ *     that carried none. The ladder is the platform's own: a row that
+ *     does not exist → NOT_FOUND with the load-first copy (what a `get`
+ *     on that id answers), a caller who is not the run's person, or a run
+ *     whose stamp names nobody → PERMISSION_DENIED with one sentence
+ *     (constants.ts). The id decides which execution kind is read (the
+ *     lane's rule everywhere); the request's arm only chooses the
+ *     not-found copy. Liveness is NOT judged at mint — both lanes that
+ *     accept the token judge it, by one rule (bound-execution.ts), and a
+ *     third judge here would be a divergence waiting to happen. The
+ *     pool-claim, renewal and unset arms answer not-minted, the
+ *     controller's arms verbatim; keyless answers not-minted too.
  *
- * Deliberately UNDEFINED here: `exchangeScopedToken`, `bootstrapCredentials`,
+ * Deliberately UNDEFINED here: `bootstrapCredentials`,
  * `mintSandboxCredential`, `authorizeExecutionContextRead`,
  * `resolvePayloadKey`. Their open-source arms stay where they are (the
- * platform controller's exchange, the sandbox lane's mint, the decrypt
- * lane's binding-equality decision); this provider adds policy an
- * enforcing server lacks and takes over nothing that already works.
+ * sandbox lane's mint, the decrypt lane's binding-equality decision);
+ * this provider adds policy an enforcing server lacks and takes over
+ * nothing that already works.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
+import { accountForStamp } from "../domain/identityaccount/resolve.js";
+import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import type { CallerIdentity } from "../extensions/identity.js";
+import { getKindName } from "../pipeline/apiresource-meta.js";
+import { notFoundError } from "../pipeline/errors.js";
 import { boundExecutionKindOf, loadBoundExecution } from "./bound-execution.js";
 import type {
   BoundExecutionKind,
@@ -72,11 +101,14 @@ import type {
 } from "./bound-execution.js";
 import {
   MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE,
+  RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE,
   WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE,
 } from "./constants.js";
 import type {
   MemoryCaptureDecision,
   RunnerCredentialProvider,
+  RunnerScopedTokenExchange,
+  RunnerScopedTokenRequest,
 } from "./runner-credential-provider.js";
 import { newExecutionScopedRunnerCredentialProvider } from "./runner-credential-provider.js";
 import type { RunnerAuthService } from "./runnerauth.js";
@@ -90,8 +122,10 @@ export interface RunnerBinding {
 export interface BuiltInRunnerCredentialProviderDeps {
   /** The service that signed every token this provider reads. */
   readonly service: RunnerAuthService;
-  /** Where the bound executions live — the capture capability's one read. */
+  /** Where the bound executions live — the capture and exchange capabilities' one read each. */
   readonly store: BoundExecutionStore;
+  /** Resolves a run's creator stamp to its person — the exchange's owner check, the verifier's reading. */
+  readonly accounts: AccountsByCaller;
 }
 
 /**
@@ -124,15 +158,84 @@ export function isWorkflowBoundRunner(
   return runnerBindingOf(service, caller)?.kind === "workflow-execution";
 }
 
+/** The kind name the not-found copy carries, by the request's arm (what a `get` on that kind would say). */
+function requestedKindName(
+  arm: "agent-execution" | "workflow-execution",
+): string {
+  switch (arm) {
+    case "agent-execution":
+      return getKindName(ApiResourceKind.agent_execution);
+    case "workflow-execution":
+      return getKindName(ApiResourceKind.workflow_execution);
+    default: {
+      const exhaustive: never = arm;
+      throw new Error(`unhandled exchange arm: ${JSON.stringify(exhaustive)}`);
+    }
+  }
+}
+
 export function newBuiltInRunnerCredentialProvider(
   deps: BuiltInRunnerCredentialProviderDeps,
 ): RunnerCredentialProvider {
-  const { service, store } = deps;
+  const { service, store, accounts } = deps;
   const lane = newExecutionScopedRunnerCredentialProvider(service);
+  const mintRunCredential = lane.mintRunCredential!.bind(lane);
   return {
     isEnabled: lane.isEnabled,
     mint: lane.mint,
     verify: lane.verify,
+    mintRunCredential,
+
+    async exchangeScopedToken(
+      request: RunnerScopedTokenRequest,
+      caller: CallerIdentity,
+    ): Promise<RunnerScopedTokenExchange> {
+      switch (request.arm) {
+        case "agent-execution":
+        case "workflow-execution": {
+          if (request.executionId === "" || !service.isEnabled()) {
+            return { minted: false };
+          }
+          const execution = await loadBoundExecution(
+            store,
+            request.executionId,
+          );
+          if (execution === undefined) {
+            throw notFoundError(
+              requestedKindName(request.arm),
+              request.executionId,
+            );
+          }
+          const person = await accountForStamp(accounts, execution.createdBy);
+          if (
+            person === undefined ||
+            person.metadata?.id !== caller.identityId
+          ) {
+            throw new ConnectError(
+              RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE,
+              Code.PermissionDenied,
+            );
+          }
+          return {
+            minted: true,
+            token: mintRunCredential(execution.executionId),
+            // No `exp` on a run credential; 0 is the proto default and
+            // the runner's acquire sites read no expiry from it.
+            expiresInSeconds: 0,
+          };
+        }
+        case "pool-claim":
+        case "renewal":
+        case "unset":
+          return { minted: false };
+        default: {
+          const exhaustive: never = request;
+          throw new Error(
+            `unhandled exchange arm: ${JSON.stringify(exhaustive)}`,
+          );
+        }
+      }
+    },
 
     vouchRunnerLineageLabels(
       caller: CallerIdentity,

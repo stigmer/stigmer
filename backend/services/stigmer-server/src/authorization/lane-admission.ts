@@ -36,8 +36,11 @@
  * and any other caller on any check, delegate untouched. The cloud's
  * header records one caveat — a human who can view a workflow execution
  * can exchange for its token and replay it against the run gate. Open
- * source closes that at the exchange itself, which under this posture
- * mints only for the run's own human (domain/platform/controller.ts).
+ * source has no such caveat: under this posture the exchange is a mint
+ * gate that answers only the run's own person (the built-in provider's
+ * exchangeScopedToken, runnerauth/built-in-runner-credential-provider.ts),
+ * so the only human who can hold a workflow's credential is the one whose
+ * workflow it is — and their own run gate already passed.
  */
 import type { CallerIdentity } from "../extensions/identity.js";
 import type {

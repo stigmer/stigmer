@@ -34,12 +34,15 @@
  *   {"token_type":"execution_scoped","execution_id":"<id>","iat":…,"exp":…}
  *
  * Two mints, one shape:
- *   - `mint(executionId, ttl)` — the CLOCKED token: the platform exchange
- *     and the connect and sandbox lanes, whose one unit of work has a
- *     bounded lifetime. `exp` is present and enforced.
- *   - `mintRunCredential(executionId)` — the RUN credential the dispatch
- *     path hands the runner in the workflow input: NO `exp`. A run waits
- *     on humans with no timeout and outlives any clock; its credential's
+ *   - `mint(executionId, ttl)` — the CLOCKED token: the trusted-local
+ *     exchange and the connect and sandbox lanes, whose one unit of work
+ *     has a bounded lifetime. `exp` is present and enforced.
+ *   - `mintRunCredential(executionId)` — the RUN credential: the two
+ *     execution engines put it on every dispatch's workflow input
+ *     (dispatch-credential.ts), and under the built-in posture the
+ *     exchange mints it too, for the run's own person only
+ *     (built-in-runner-credential-provider.ts). NO `exp`. A run waits on
+ *     humans with no timeout and outlives any clock; its credential's
  *     validity is the ROW's — the execution is live, or ended within a
  *     short grace (bound-execution.ts) — read by both lanes that accept
  *     the token, because a plaintext token in Temporal history must not
@@ -48,8 +51,9 @@
  * `verify` enforces `exp` when present and accepts its absence; it never
  * decides liveness, which needs the store.
  *
- * Consumers arrive with their own domains: the platform exchange RPC and
- * the dispatch path (mint), the executioncontext resolve step and the
+ * Consumers arrive with their own domains, through the provider seam
+ * (runner-credential-provider.ts): the platform exchange RPC and the two
+ * engine clients (mint), the executioncontext resolve step and the
  * runner-subject verifier (verify). This module lands with the
  * encryption sub-project because its signing key rides the shared key
  * ladder and its boot posture is a ratified cross-domain invariant

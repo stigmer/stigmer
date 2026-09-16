@@ -441,12 +441,17 @@ export async function composeServer(
   // the edition's whole credential story in one object: a composed
   // driver; otherwise, under the built-in authorization posture, open
   // source's built-in provider (runnerauth/built-in-runner-credential-
-  // provider.ts — the execution-scoped default plus the lineage-vouching
-  // and memory-capture capabilities an enforcing self-host needs, and the
-  // one reading of a runner's binding the Authorizer below admits a
-  // workflow-bound runner on); otherwise the execution-scoped default,
-  // byte-identical to the wiring this seam replaced. Bound HERE, before
-  // the Authorizer, because the lane admission reads the binding.
+  // provider.ts — the execution-scoped default plus the lineage-vouching,
+  // memory-capture and exchange-gating capabilities an enforcing
+  // self-host needs, and the one reading of a runner's binding the
+  // Authorizer below admits a workflow-bound runner on); otherwise the
+  // execution-scoped default, byte-identical to the wiring this seam
+  // replaced. Both open-source providers also mint the RUN credential the
+  // two execution engines put on every dispatch (the engines below take
+  // this object; runnerauth/dispatch-credential.ts) — a composed driver
+  // that leaves that capability undefined dispatches without one, its
+  // runners being credentialed another way. Bound HERE, before the
+  // Authorizer, because the lane admission reads the binding.
   const runnerAuthService = RunnerAuthService.fromEnv();
   const runnerCredentials =
     extensions.drivers.runnerCredentialProvider ??
@@ -454,6 +459,7 @@ export async function composeServer(
       ? newBuiltInRunnerCredentialProvider({
           service: runnerAuthService,
           store,
+          accounts: identityAccounts,
         })
       : newExecutionScopedRunnerCredentialProvider(runnerAuthService));
   // The ONE composed Authorizer (DD-007 §3), bound here — after the store,
@@ -859,6 +865,7 @@ export async function composeServer(
     manager: temporalManager,
     config: temporalConfig,
     store,
+    runnerCredentials,
     logger,
   });
   // The workflow-execution twin: the same provider-is-the-injection
@@ -866,6 +873,7 @@ export async function composeServer(
   const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider({
     manager: temporalManager,
     config: workflowExecutionTemporalConfig,
+    runnerCredentials,
     logger,
   });
   // The artifact blob store (Go server.go 349: shared by agentexecution
