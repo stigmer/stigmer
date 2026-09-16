@@ -177,13 +177,15 @@ test("a citation resolves relative to the citing file or the root; anything else
   }
 });
 
-test("private-record identifiers fail public guidance; --private-repo relaxes only the record path", () => {
+test("private-record identifiers fail public guidance; --private-repo relaxes the record path and id, never the record-internal ids", () => {
   const root = repo({
     "AGENTS.md": [
       "Decided in _projects/2026-09/some-record/tasks/T01_0_plan.md.",
       "Ruled at Q-AB-1; see F-CD-2.",
       "Record 20260101.07 chose DD-012.",
       "T0 alone, 2026-09-16, a 2026.09 release, DD-MM dates, or PR #1136, are fine.",
+      // A private repository's guidance may point at a record by path: the path carries the id.
+      "Seam changes follow _projects/2026-09/20260101.07.some-record/coding-guidelines/001-seam.md.",
     ].join("\n"),
   });
   try {
@@ -197,11 +199,21 @@ test("private-record identifiers fail public guidance; --private-repo relaxes on
         "finding id in public guidance: F-CD-2",
         "planning-record id in public guidance: 20260101.07",
         "decision id in public guidance: DD-012",
+        "planning-record path in public guidance: _projects/",
+        "planning-record id in public guidance: 20260101.07",
       ],
     );
     const privateFindings = checkLeakage(root, ["AGENTS.md"], { privateRepo: true });
-    assert.equal(privateFindings.length, 5);
-    assert.ok(privateFindings.every((f) => !f.includes("planning-record path")));
+    assert.deepEqual(
+      privateFindings.map((f) => f.split(": ").slice(1).join(": ")),
+      [
+        "task file id in public guidance: T01_0",
+        "ruling id in public guidance: Q-AB-1",
+        "finding id in public guidance: F-CD-2",
+        "decision id in public guidance: DD-012",
+      ],
+      "private mode keeps every record-internal id a finding and lets the record path line through",
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

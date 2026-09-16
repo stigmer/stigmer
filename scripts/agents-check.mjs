@@ -31,8 +31,12 @@
  *      must read as if the current design always existed and must cite nothing
  *      a reader of the public repo cannot open. Planning-record paths and ids,
  *      task file names, and decision, ruling or finding identifiers fail the
- *      gate. `--private-repo` relaxes only the record-path pattern for a
- *      repository that legitimately holds its own planning records.
+ *      gate. `--private-repo` relaxes the two patterns that locate a record
+ *      (its path and its `YYYYMMDD.NN` folder id, which every record path
+ *      contains) for a repository that legitimately holds its own planning
+ *      records; the record-internal ids stay findings there too, so private
+ *      guidance still points at code and durable homes rather than at a
+ *      ruling only the record's author can follow.
  *
  *   4. Guides stay within a word budget. The root guide is injected into every
  *      conversation in the window and a nested guide into every conversation
@@ -97,14 +101,17 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
 
 /**
  * Private-record identifier patterns. The first two locate the planning-record
- * tree (its path, and a record's `YYYYMMDD.NN` folder id); the rest are the
+ * tree (its path, and a record's `YYYYMMDD.NN` folder id) and are the ones a
+ * private repository may cite (`privateOk`), because a record path carries its
+ * id and the cited-path check then proves the record exists; the rest are the
  * record-internal ids (task files `T01_`, decisions `DD-012`, rulings `Q-AB-1`,
- * findings `F-CD-2`) that only a holder of the records can resolve. The shapes
- * are illustrative; none of these examples names a real record.
+ * findings `F-CD-2`) that only a holder of the records can resolve, and stay
+ * findings everywhere. The shapes are illustrative; none of these examples
+ * names a real record.
  */
 const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },
-  { name: "planning-record id", re: /\b20[0-9]{6}\.[0-9]{2}\b/, privateOk: false },
+  { name: "planning-record id", re: /\b20[0-9]{6}\.[0-9]{2}\b/, privateOk: true },
   { name: "task file id", re: /\bT0[0-9]_[0-9]/, privateOk: false },
   { name: "decision id", re: /\bDD-[0-9]{3}\b/, privateOk: false },
   { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*-[0-9]+\b/, privateOk: false },

@@ -61,6 +61,16 @@ them.
   not attached; after the reload the same read attaches the shim, the guide and
   any other matching rule. A shim seen without its guide means the window has
   not been reloaded since the folder was added.
+- A glob shim fires only on paths inside its own workspace folder. Measured
+  2026-09-17 with four folders in one window (this repository's primary
+  checkout, two of its worktrees, and a second repository whose server tree has
+  the same relative path and an identically named shim): reading that second
+  repository's `backend/services/stigmer-server/src/main.ts` attached only its
+  own shim and guide; none of this repository's server shims fired.
+- A rule deleted from disk stays in Cursor's list, and can still be attached,
+  until the window reloads (measured 2026-09-16 on the merged primary: a read
+  attached a `.cursor/rules` file that no longer existed). A listing that names
+  a deleted rule means the window has not been reloaded since the deletion.
 - Cursor also reads `CLAUDE.md`. A repository that ships both a `CLAUDE.md` and
   an `AGENTS.md` (langfuse, symlinked) loads the same text twice in every chat.
 - An `AGENTS.md` placed inside a `.agents` folder (a vendored skill bundle's own
