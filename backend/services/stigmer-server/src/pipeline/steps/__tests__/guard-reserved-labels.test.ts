@@ -11,7 +11,9 @@ import { describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
+import type { Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -71,6 +73,75 @@ describe("reservedLabelMutations", () => {
       "stigmer.ai/changed",
       "stigmer.ai/new",
     ]);
+  });
+});
+
+describe("GuardReservedLabels on a push-shaped chain (named positions)", () => {
+  // Skill push builds its resource from an artifact and rides SKILL_KEY /
+  // EXISTING_SKILL_KEY rather than newState / EXISTING_RESOURCE_KEY; the
+  // positions parameter points the guard at them. Pins that a reserved
+  // introduction on the BUILT resource is judged (the request itself has
+  // no metadata), that a stored echo under the named existing key passes,
+  // and that the in-process origin passes by structure.
+  const BUILT_KEY = "builtResource";
+  const STORED_KEY = "storedResource";
+  function pushCtx(
+    labels: Record<string, string>,
+    stored?: Record<string, string>,
+    caller: CallerIdentity = USER,
+  ) {
+    const ctx = new RequestContext(
+      PushSkillRequestSchema,
+      create(PushSkillRequestSchema, {
+        org: "acme",
+        artifact: new Uint8Array(1),
+        labels,
+      }),
+      caller,
+      ApiResourceKind.skill,
+    );
+    ctx.set(
+      BUILT_KEY,
+      create(AgentSchema, { metadata: { name: "s", labels } }),
+    );
+    if (stored !== undefined) {
+      ctx.set(
+        STORED_KEY,
+        create(AgentSchema, { metadata: { name: "s", labels: stored } }),
+      );
+    }
+    return ctx;
+  }
+  const positioned = (authorizer: Authorizer) =>
+    newGuardReservedLabelsStep<typeof PushSkillRequestSchema>(authorizer, {
+      stateOf: (ctx) => ctx.get(BUILT_KEY) as Message,
+      existingKey: STORED_KEY,
+    });
+
+  it("rejects a reserved introduction read from the named state", async () => {
+    const error = await positioned(denying())
+      .execute(pushCtx({ "stigmer.ai/plugin": "plg_1" }))
+      ?.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+  });
+
+  it("passes an echo of the label stored under the named existing key", async () => {
+    await positioned(denying()).execute(
+      pushCtx(
+        { "stigmer.ai/plugin": "plg_1" },
+        { "stigmer.ai/plugin": "plg_1" },
+      ),
+    );
+  });
+
+  it("passes the in-process origin by structure", async () => {
+    await positioned(denying()).execute(
+      pushCtx({ "stigmer.ai/plugin": "plg_1" }, undefined, {
+        ...USER,
+        origin: "in-process",
+      }),
+    );
   });
 });
 

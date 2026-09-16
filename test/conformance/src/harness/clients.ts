@@ -44,6 +44,8 @@ import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/sc
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
@@ -127,6 +129,8 @@ export interface ConformanceClients {
   sessionQuery: Client<typeof SessionQueryController>;
   skillCommand: Client<typeof SkillCommandController>;
   skillQuery: Client<typeof SkillQueryController>;
+  pluginCommand: Client<typeof PluginCommandController>;
+  pluginQuery: Client<typeof PluginQueryController>;
   platformQuery: Client<typeof PlatformQueryController>;
   // The standard gRPC health service — an external proto both editions serve
   // on the RPC port. The authentication suite pins its tokenless reachability
@@ -269,6 +273,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     sessionQuery: createClient(SessionQueryController, transport),
     skillCommand: createClient(SkillCommandController, transport),
     skillQuery: createClient(SkillQueryController, transport),
+    pluginCommand: createClient(PluginCommandController, transport),
+    pluginQuery: createClient(PluginQueryController, transport),
     platformQuery: createClient(PlatformQueryController, transport),
     health: createClient(Health, transport),
     github: createClient(GitHubService, transport),

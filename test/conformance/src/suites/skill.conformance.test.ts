@@ -28,7 +28,11 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
-import { makeSkillArtifact, makeStreamingSkillArtifact, zipFiles } from "../support/skills";
+import {
+  makeSkillArtifact,
+  makeStreamingSkillArtifact,
+  zipFiles,
+} from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -61,42 +65,108 @@ interface PushOptions {
   viaRef?: string;
 }
 
-async function pushSkill(org: string, artifact: Uint8Array, opts: PushOptions = {}) {
+async function pushSkill(
+  org: string,
+  artifact: Uint8Array,
+  opts: PushOptions = {},
+) {
   const skill = await clients.skillCommand.push(
     opts.viaRef !== undefined
-      ? { org, artifactUploadRef: opts.viaRef, tag: opts.tag, message: opts.message }
+      ? {
+          org,
+          artifactUploadRef: opts.viaRef,
+          tag: opts.tag,
+          message: opts.message,
+        }
       : { org, artifact, tag: opts.tag, message: opts.message },
   );
   if (opts.track ?? true) {
-    fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }));
+    fixtures.defer(() =>
+      clients.skillCommand.delete({ value: skill.metadata!.id }),
+    );
   }
   return skill;
 }
 
 describe("Skill conformance — push & identity", () => {
+  it("push carries the request's labels onto the skill, and a re-push replaces them", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+    const artifact = makeSkillArtifact({
+      name,
+      description: "a labelled skill",
+    });
+
+    const first = await clients.skillCommand.push({
+      org,
+      artifact,
+      labels: { team: "platform", tier: "gold" },
+    });
+    fixtures.defer(() =>
+      clients.skillCommand.delete({ value: first.metadata!.id }),
+    );
+    expect(first.metadata?.labels).toEqual({ team: "platform", tier: "gold" });
+
+    // A push is the skill's definition: the labels it carries are the labels it has.
+    const second = await clients.skillCommand.push({
+      org,
+      artifact,
+      labels: { team: "runtime" },
+    });
+    expect(second.metadata?.id).toBe(first.metadata?.id);
+    expect(second.metadata?.labels).toEqual({ team: "runtime" });
+    expect(
+      (await clients.skillQuery.get({ value: first.metadata!.id })).metadata
+        ?.labels,
+    ).toEqual({ team: "runtime" });
+  });
+
   it("push assigns a skl_ id, derives name+slug from the artifact frontmatter, and computes a version hash", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
 
     // The request carries no name; the backend extracts it from SKILL.md.
-    const pushed = await pushSkill(org, makeSkillArtifact({ name, description: "a conformance skill" }));
+    const pushed = await pushSkill(
+      org,
+      makeSkillArtifact({ name, description: "a conformance skill" }),
+    );
 
-    expect(pushed.metadata?.id, "push should assign a prefixed id").toMatch(/^skl_[0-9a-z]+$/);
-    expect(pushed.metadata?.name, "name is derived from frontmatter").toBe(name);
-    expect(pushed.metadata?.slug, "slug equals the frontmatter name").toBe(name);
+    expect(pushed.metadata?.id, "push should assign a prefixed id").toMatch(
+      /^skl_[0-9a-z]+$/,
+    );
+    expect(pushed.metadata?.name, "name is derived from frontmatter").toBe(
+      name,
+    );
+    expect(pushed.metadata?.slug, "slug equals the frontmatter name").toBe(
+      name,
+    );
     expect(pushed.metadata?.org).toBe(org);
-    expect(pushed.status?.versionHash, "push computes a SHA-256 content hash").toMatch(/^[a-f0-9]{64}$/);
-    expect(pushed.status?.artifactStorageKey, "push records a content-addressable storage key").not.toBe("");
+    expect(
+      pushed.status?.versionHash,
+      "push computes a SHA-256 content hash",
+    ).toMatch(/^[a-f0-9]{64}$/);
+    expect(
+      pushed.status?.artifactStorageKey,
+      "push records a content-addressable storage key",
+    ).not.toBe("");
     // Skill is a blueprint kind, so a pushed skill defaults to org visibility
     // (defaults_to_org_visibility); public is an explicit opt-in via updateVisibility.
-    expect(pushed.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
+    expect(
+      pushed.metadata?.visibility,
+      "visibility defaults to org (blueprint default)",
+    ).toBe(ApiResourceVisibility.visibility_org);
   });
 
   it("get round-trips the pushed skill (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
-    const pushed = await pushSkill(org, makeSkillArtifact({ name: uniqueName("skill") }));
+    const pushed = await pushSkill(
+      org,
+      makeSkillArtifact({ name: uniqueName("skill") }),
+    );
 
-    const fetched = await clients.skillQuery.get({ value: pushed.metadata!.id });
+    const fetched = await clients.skillQuery.get({
+      value: pushed.metadata!.id,
+    });
 
     expect(fetched.metadata?.id).toBe(pushed.metadata?.id);
     assertResourceParity(SkillSchema, pushed, fetched, "push vs get");
@@ -107,7 +177,10 @@ describe("Skill conformance — push & identity", () => {
     const name = uniqueName("skill");
     const pushed = await pushSkill(org, makeSkillArtifact({ name }));
 
-    const fetched = await clients.skillQuery.getByReference({ org, slug: name });
+    const fetched = await clients.skillQuery.getByReference({
+      org,
+      slug: name,
+    });
 
     expect(fetched.metadata?.id).toBe(pushed.metadata?.id);
     expect(fetched.status?.versionHash).toBe(pushed.status?.versionHash);
@@ -123,11 +196,20 @@ describe("Skill conformance — push & identity", () => {
     // parser can. Both editions must accept it (#336: the cloud edition
     // rejected it while the OSS server accepted it). fflate's zipSync cannot
     // emit this shape, which is why no other case in this suite covers it.
-    const pushed = await pushSkill(org, makeStreamingSkillArtifact({ name, description: "go-shaped artifact" }));
+    const pushed = await pushSkill(
+      org,
+      makeStreamingSkillArtifact({ name, description: "go-shaped artifact" }),
+    );
 
-    expect(pushed.metadata?.name, "identity derives from frontmatter as for any other shape").toBe(name);
+    expect(
+      pushed.metadata?.name,
+      "identity derives from frontmatter as for any other shape",
+    ).toBe(name);
     expect(pushed.metadata?.slug).toBe(name);
-    expect(pushed.status?.versionHash, "version hash is computed over the raw bytes").toMatch(/^[a-f0-9]{64}$/);
+    expect(
+      pushed.status?.versionHash,
+      "version hash is computed over the raw bytes",
+    ).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("resolves the root SKILL.md when a stray nested one also exists (#452)", async () => {
@@ -145,7 +227,10 @@ describe("Skill conformance — push & identity", () => {
       }),
     );
 
-    expect(pushed.metadata?.name, "identity must derive from the ROOT SKILL.md").toBe(name);
+    expect(
+      pushed.metadata?.name,
+      "identity must derive from the ROOT SKILL.md",
+    ).toBe(name);
     expect(pushed.metadata?.slug).toBe(name);
   });
 
@@ -161,25 +246,46 @@ describe("Skill conformance — push & identity", () => {
     const inB = await pushSkill(b.org, artifact);
 
     expect(inA.metadata?.slug).toBe(inB.metadata?.slug);
-    expect(inA.metadata?.id, "the same name in different orgs yields distinct skills").not.toBe(inB.metadata?.id);
+    expect(
+      inA.metadata?.id,
+      "the same name in different orgs yields distinct skills",
+    ).not.toBe(inB.metadata?.id);
 
-    const fromA = await clients.skillQuery.getByReference({ org: a.org, slug: name });
-    const fromB = await clients.skillQuery.getByReference({ org: b.org, slug: name });
+    const fromA = await clients.skillQuery.getByReference({
+      org: a.org,
+      slug: name,
+    });
+    const fromB = await clients.skillQuery.getByReference({
+      org: b.org,
+      slug: name,
+    });
     expect(fromA.metadata?.id).toBe(inA.metadata?.id);
     expect(fromB.metadata?.id).toBe(inB.metadata?.id);
   });
 
   it("get rejects an empty id with InvalidArgument", () =>
-    expectGrpcCode(() => clients.skillQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
+    expectGrpcCode(
+      () => clients.skillQuery.get({ value: "" }),
+      Code.InvalidArgument,
+      "get empty id",
+    ));
 
   it("get of a missing id returns NotFound", () =>
-    expectGrpcCode(() => clients.skillQuery.get({ value: "skl_doesnotexist" }), Code.NotFound, "get missing id"));
+    expectGrpcCode(
+      () => clients.skillQuery.get({ value: "skl_doesnotexist" }),
+      Code.NotFound,
+      "get missing id",
+    ));
 });
 
 describe("Skill conformance — push validation negatives", () => {
   it("rejects a push with no org (InvalidArgument)", async () => {
     await expectGrpcCode(
-      () => clients.skillCommand.push({ org: "", artifact: makeSkillArtifact({ name: uniqueName("skill") }) }),
+      () =>
+        clients.skillCommand.push({
+          org: "",
+          artifact: makeSkillArtifact({ name: uniqueName("skill") }),
+        }),
       Code.InvalidArgument,
       "push without org",
     );
@@ -197,7 +303,11 @@ describe("Skill conformance — push validation negatives", () => {
   it("rejects a non-ZIP artifact (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () => clients.skillCommand.push({ org, artifact: new Uint8Array([1, 2, 3, 4]) }),
+      () =>
+        clients.skillCommand.push({
+          org,
+          artifact: new Uint8Array([1, 2, 3, 4]),
+        }),
       Code.InvalidArgument,
       "push non-zip bytes",
     );
@@ -206,7 +316,11 @@ describe("Skill conformance — push validation negatives", () => {
   it("rejects a ZIP without SKILL.md (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () => clients.skillCommand.push({ org, artifact: zipFiles({ "README.md": "# not a skill file" }) }),
+      () =>
+        clients.skillCommand.push({
+          org,
+          artifact: zipFiles({ "README.md": "# not a skill file" }),
+        }),
       Code.InvalidArgument,
       "push zip missing SKILL.md",
     );
@@ -236,7 +350,13 @@ describe("Skill conformance — push validation negatives", () => {
   it("rejects a SKILL.md with no YAML frontmatter (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () => clients.skillCommand.push({ org, artifact: zipFiles({ "SKILL.md": "# Just a heading, no frontmatter" }) }),
+      () =>
+        clients.skillCommand.push({
+          org,
+          artifact: zipFiles({
+            "SKILL.md": "# Just a heading, no frontmatter",
+          }),
+        }),
       Code.InvalidArgument,
       "push SKILL.md without frontmatter",
     );
@@ -249,7 +369,9 @@ describe("Skill conformance — push validation negatives", () => {
       () =>
         clients.skillCommand.push({
           org,
-          artifact: zipFiles({ "SKILL.md": "---\nname: Not Kebab\n---\n# body" }),
+          artifact: zipFiles({
+            "SKILL.md": "---\nname: Not Kebab\n---\n# body",
+          }),
         }),
       Code.InvalidArgument,
       "push non-kebab frontmatter name",
@@ -260,13 +382,23 @@ describe("Skill conformance — push validation negatives", () => {
     const { org } = await target.provisionTenancy();
     // Dots namespace the skill (issue #144); the slug renders them as hyphens.
     const name = `platform.${uniqueName("skill")}`;
-    const pushed = await pushSkill(org, makeSkillArtifact({ name, description: "a namespaced skill" }));
+    const pushed = await pushSkill(
+      org,
+      makeSkillArtifact({ name, description: "a namespaced skill" }),
+    );
 
-    expect(pushed.metadata?.name, "name preserves the dotted namespace").toBe(name);
-    expect(pushed.metadata?.slug, "slug converts dots to hyphens").toBe(name.replace(/\./g, "-"));
+    expect(pushed.metadata?.name, "name preserves the dotted namespace").toBe(
+      name,
+    );
+    expect(pushed.metadata?.slug, "slug converts dots to hyphens").toBe(
+      name.replace(/\./g, "-"),
+    );
 
     // The hyphenated slug is the reference key.
-    const fetched = await clients.skillQuery.getByReference({ org, slug: name.replace(/\./g, "-") });
+    const fetched = await clients.skillQuery.getByReference({
+      org,
+      slug: name.replace(/\./g, "-"),
+    });
     expect(fetched.metadata?.id).toBe(pushed.metadata?.id);
   });
 });
@@ -283,7 +415,10 @@ describe("Skill conformance — version history", () => {
     await pushSkill(org, artifact, { track: false });
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    expect(history.versions, "re-pushing the same bytes must not create a version").toHaveLength(1);
+    expect(
+      history.versions,
+      "re-pushing the same bytes must not create a version",
+    ).toHaveLength(1);
     expect(history.totalCount).toBe(1);
     expect(history.versions[0]?.versionHash).toBe(first.status?.versionHash);
   });
@@ -293,9 +428,15 @@ describe("Skill conformance — version history", () => {
     const name = uniqueName("skill");
 
     const v1 = await pushSkill(org, makeSkillArtifact({ name, body: "# v1" }));
-    const v2 = await pushSkill(org, makeSkillArtifact({ name, body: "# v2 changed" }), { track: false });
+    const v2 = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# v2 changed" }),
+      { track: false },
+    );
 
-    expect(v2.metadata?.id, "a new version updates the same skill").toBe(v1.metadata?.id);
+    expect(v2.metadata?.id, "a new version updates the same skill").toBe(
+      v1.metadata?.id,
+    );
     expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
@@ -307,7 +448,10 @@ describe("Skill conformance — version history", () => {
     expect(history.versions[0]?.versionHash).toBe(v2.status?.versionHash);
     expect(history.versions.filter((entry) => entry.isCurrent)).toHaveLength(1);
     for (const entry of history.versions) {
-      expect(entry.artifactStorageKey, "each version carries its artifact storage key").not.toBe("");
+      expect(
+        entry.artifactStorageKey,
+        "each version carries its artifact storage key",
+      ).not.toBe("");
     }
   });
 });
@@ -318,22 +462,48 @@ describe("Skill conformance — getByReference resolution", () => {
     const name = uniqueName("skill");
 
     // v1 carries a push-time tag; v2 (untagged) becomes the head.
-    const v1 = await pushSkill(org, makeSkillArtifact({ name, body: "# v1" }), { tag: "stable" });
-    const v2 = await pushSkill(org, makeSkillArtifact({ name, body: "# v2" }), { track: false });
+    const v1 = await pushSkill(org, makeSkillArtifact({ name, body: "# v1" }), {
+      tag: "stable",
+    });
+    const v2 = await pushSkill(org, makeSkillArtifact({ name, body: "# v2" }), {
+      track: false,
+    });
 
     const latest = await clients.skillQuery.getByReference({ org, slug: name });
-    expect(latest.status?.versionHash, "empty version resolves to the head").toBe(v2.status?.versionHash);
+    expect(
+      latest.status?.versionHash,
+      "empty version resolves to the head",
+    ).toBe(v2.status?.versionHash);
 
-    const explicitLatest = await clients.skillQuery.getByReference({ org, slug: name, version: "latest" });
-    expect(explicitLatest.status?.versionHash, '"latest" resolves to the head').toBe(v2.status?.versionHash);
+    const explicitLatest = await clients.skillQuery.getByReference({
+      org,
+      slug: name,
+      version: "latest",
+    });
+    expect(
+      explicitLatest.status?.versionHash,
+      '"latest" resolves to the head',
+    ).toBe(v2.status?.versionHash);
 
-    const byHash = await clients.skillQuery.getByReference({ org, slug: name, version: v1.status!.versionHash });
-    expect(byHash.status?.versionHash, "a 64-hex version resolves to the exact archived version").toBe(
-      v1.status?.versionHash,
-    );
+    const byHash = await clients.skillQuery.getByReference({
+      org,
+      slug: name,
+      version: v1.status!.versionHash,
+    });
+    expect(
+      byHash.status?.versionHash,
+      "a 64-hex version resolves to the exact archived version",
+    ).toBe(v1.status?.versionHash);
 
-    const byTag = await clients.skillQuery.getByReference({ org, slug: name, version: "stable" });
-    expect(byTag.status?.versionHash, "a push-time tag resolves to the version it tagged").toBe(v1.status?.versionHash);
+    const byTag = await clients.skillQuery.getByReference({
+      org,
+      slug: name,
+      version: "stable",
+    });
+    expect(
+      byTag.status?.versionHash,
+      "a push-time tag resolves to the version it tagged",
+    ).toBe(v1.status?.versionHash);
   });
 
   it("treats an uppercase 64-hex version as a tag and returns NotFound", async () => {
@@ -345,7 +515,8 @@ describe("Skill conformance — getByReference resolution", () => {
     // as a tag (which does not exist), not as the version it spells.
     const upper = v1.status!.versionHash.toUpperCase();
     await expectGrpcCode(
-      () => clients.skillQuery.getByReference({ org, slug: name, version: upper }),
+      () =>
+        clients.skillQuery.getByReference({ org, slug: name, version: upper }),
       Code.NotFound,
       "uppercase hash treated as tag",
     );
@@ -357,7 +528,12 @@ describe("Skill conformance — getByReference resolution", () => {
     await pushSkill(org, makeSkillArtifact({ name }));
 
     await expectGrpcCode(
-      () => clients.skillQuery.getByReference({ org, slug: name, version: "0".repeat(64) }),
+      () =>
+        clients.skillQuery.getByReference({
+          org,
+          slug: name,
+          version: "0".repeat(64),
+        }),
       Code.NotFound,
       "getByReference unknown hash",
     );
@@ -383,7 +559,12 @@ describe("Skill conformance — getByReference resolution", () => {
 
   it("getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
-      () => clients.skillQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      () =>
+        clients.skillQuery.getByReference({
+          org: "acme",
+          slug: "web-search",
+          kind: ApiResourceKind.agent,
+        }),
       Code.InvalidArgument,
       "getByReference kind mismatch",
     ));
@@ -396,11 +577,14 @@ describe("Skill conformance — artifact download (getArtifact)", () => {
     const artifact = makeSkillArtifact({ name, body: "# downloadable" });
     const pushed = await pushSkill(org, artifact);
 
-    const res = await clients.skillQuery.getArtifact({ artifactStorageKey: pushed.status!.artifactStorageKey });
+    const res = await clients.skillQuery.getArtifact({
+      artifactStorageKey: pushed.status!.artifactStorageKey,
+    });
 
-    expect(Buffer.from(res.artifact).equals(Buffer.from(artifact)), "getArtifact returns the pushed ZIP verbatim").toBe(
-      true,
-    );
+    expect(
+      Buffer.from(res.artifact).equals(Buffer.from(artifact)),
+      "getArtifact returns the pushed ZIP verbatim",
+    ).toBe(true);
   });
 
   it("downloads a historical version's artifact via its storage key", async () => {
@@ -408,13 +592,22 @@ describe("Skill conformance — artifact download (getArtifact)", () => {
     const name = uniqueName("skill");
     const v1Bytes = makeSkillArtifact({ name, body: "# v1" });
     const v1 = await pushSkill(org, v1Bytes);
-    await pushSkill(org, makeSkillArtifact({ name, body: "# v2" }), { track: false });
+    await pushSkill(org, makeSkillArtifact({ name, body: "# v2" }), {
+      track: false,
+    });
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    const v1Entry = history.versions.find((entry) => entry.versionHash === v1.status!.versionHash);
-    expect(v1Entry, "v1 remains in the version history after v2 is pushed").toBeDefined();
+    const v1Entry = history.versions.find(
+      (entry) => entry.versionHash === v1.status!.versionHash,
+    );
+    expect(
+      v1Entry,
+      "v1 remains in the version history after v2 is pushed",
+    ).toBeDefined();
 
-    const res = await clients.skillQuery.getArtifact({ artifactStorageKey: v1Entry!.artifactStorageKey });
+    const res = await clients.skillQuery.getArtifact({
+      artifactStorageKey: v1Entry!.artifactStorageKey,
+    });
     expect(
       Buffer.from(res.artifact).equals(Buffer.from(v1Bytes)),
       "the historical artifact is byte-identical to the v1 push",
@@ -431,7 +624,11 @@ describe("Skill conformance — artifact download (getArtifact)", () => {
 
   it("returns NotFound for an unknown storage key", async () => {
     await expectGrpcCode(
-      () => clients.skillQuery.getArtifact({ artifactStorageKey: "skills/0000000000000000000000000000000000000000000000000000000000000000.zip" }),
+      () =>
+        clients.skillQuery.getArtifact({
+          artifactStorageKey:
+            "skills/0000000000000000000000000000000000000000000000000000000000000000.zip",
+        }),
       Code.NotFound,
       "getArtifact unknown key",
     );
@@ -443,7 +640,9 @@ describe("Skill conformance — artifact download (getArtifact)", () => {
     // the store to return foreign content.
     let thrown: ConnectError | undefined;
     try {
-      await clients.skillQuery.getArtifact({ artifactStorageKey: "../../../../etc/passwd" });
+      await clients.skillQuery.getArtifact({
+        artifactStorageKey: "../../../../etc/passwd",
+      });
     } catch (err) {
       thrown = ConnectError.from(err);
     }
@@ -484,20 +683,39 @@ describe("Skill conformance — listVersions", () => {
     const name = uniqueName("skill");
 
     const v1 = await pushSkill(org, makeSkillArtifact({ name, body: "# v1" }));
-    const v2 = await pushSkill(org, makeSkillArtifact({ name, body: "# v2" }), { track: false });
-    const v3 = await pushSkill(org, makeSkillArtifact({ name, body: "# v3" }), { track: false });
+    const v2 = await pushSkill(org, makeSkillArtifact({ name, body: "# v2" }), {
+      track: false,
+    });
+    const v3 = await pushSkill(org, makeSkillArtifact({ name, body: "# v3" }), {
+      track: false,
+    });
 
-    const page1 = await clients.skillQuery.listVersions({ org, slug: name, pageSize: 2 });
+    const page1 = await clients.skillQuery.listVersions({
+      org,
+      slug: name,
+      pageSize: 2,
+    });
     expect(page1.versions).toHaveLength(2);
     expect(page1.totalCount).toBe(3);
-    expect(page1.nextPageToken, "a partial page yields a continuation token").not.toBe("");
+    expect(
+      page1.nextPageToken,
+      "a partial page yields a continuation token",
+    ).not.toBe("");
     expect(page1.versions[0]?.versionHash).toBe(v3.status?.versionHash);
     expect(page1.versions[1]?.versionHash).toBe(v2.status?.versionHash);
 
-    const page2 = await clients.skillQuery.listVersions({ org, slug: name, pageSize: 2, pageToken: page1.nextPageToken });
+    const page2 = await clients.skillQuery.listVersions({
+      org,
+      slug: name,
+      pageSize: 2,
+      pageToken: page1.nextPageToken,
+    });
     expect(page2.versions).toHaveLength(1);
     expect(page2.versions[0]?.versionHash).toBe(v1.status?.versionHash);
-    expect(page2.nextPageToken, "the final page has no continuation token").toBe("");
+    expect(
+      page2.nextPageToken,
+      "the final page has no continuation token",
+    ).toBe("");
   });
 
   it("rejects a malformed page token (InvalidArgument)", async () => {
@@ -506,7 +724,12 @@ describe("Skill conformance — listVersions", () => {
     await pushSkill(org, makeSkillArtifact({ name }));
 
     await expectGrpcCode(
-      () => clients.skillQuery.listVersions({ org, slug: name, pageToken: "@@@not-a-valid-token@@@" }),
+      () =>
+        clients.skillQuery.listVersions({
+          org,
+          slug: name,
+          pageToken: "@@@not-a-valid-token@@@",
+        }),
       Code.InvalidArgument,
       "listVersions malformed page token",
     );
@@ -515,14 +738,20 @@ describe("Skill conformance — listVersions", () => {
   it("maps version entry fields (hash, storage key, pushed_at, tag, message)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
-    const v1 = await pushSkill(org, makeSkillArtifact({ name }), { tag: "stable", message: "initial release" });
+    const v1 = await pushSkill(org, makeSkillArtifact({ name }), {
+      tag: "stable",
+      message: "initial release",
+    });
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
     const entry = history.versions[0];
 
     expect(entry?.versionHash).toBe(v1.status?.versionHash);
     expect(entry?.artifactStorageKey).toBe(v1.status?.artifactStorageKey);
-    expect(entry?.pushedAt, "a version records when it was pushed").toBeDefined();
+    expect(
+      entry?.pushedAt,
+      "a version records when it was pushed",
+    ).toBeDefined();
     expect(entry?.tag).toBe("stable");
     expect(entry?.message).toBe("initial release");
     expect(entry?.isCurrent).toBe(true);
@@ -539,54 +768,102 @@ describe("Skill conformance — content-addressed versioning (repoint, single-ho
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
 
-    const vA = await pushSkill(org, makeSkillArtifact({ name, body: "# body A" }), { tag: "stable" });
-    const vB = await pushSkill(org, makeSkillArtifact({ name, body: "# body B" }), { tag: "stable", track: false });
+    const vA = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# body A" }),
+      { tag: "stable" },
+    );
+    const vB = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# body B" }),
+      { tag: "stable", track: false },
+    );
     expect(vB.status?.versionHash).not.toBe(vA.status?.versionHash);
 
     // Re-push A's content: the artifact hash is deterministic, so this is
     // hash A again — the head must repoint, not insert a third row.
-    const rolledBack = await pushSkill(org, makeSkillArtifact({ name, body: "# body A" }), {
-      tag: "stable",
-      track: false,
-    });
-    expect(rolledBack.status?.versionHash, "re-pushed prior content keeps its hash").toBe(vA.status?.versionHash);
+    const rolledBack = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# body A" }),
+      {
+        tag: "stable",
+        track: false,
+      },
+    );
+    expect(
+      rolledBack.status?.versionHash,
+      "re-pushed prior content keeps its hash",
+    ).toBe(vA.status?.versionHash);
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    expect(history.versions, "one content, one history row — no duplicate for the re-push").toHaveLength(2);
+    expect(
+      history.versions,
+      "one content, one history row — no duplicate for the re-push",
+    ).toHaveLength(2);
 
     // Newest-archived first (B), but currency and the tag sit on the OLDER
     // repointed-to row (A): recency and currency legitimately diverge.
     expect(history.versions[0]?.versionHash).toBe(vB.status?.versionHash);
     expect(history.versions[0]?.isCurrent).toBe(false);
-    expect(history.versions[0]?.tag, "the moved-away holder is untagged").toBe("");
+    expect(history.versions[0]?.tag, "the moved-away holder is untagged").toBe(
+      "",
+    );
     expect(history.versions[1]?.versionHash).toBe(vA.status?.versionHash);
-    expect(history.versions[1]?.isCurrent, "is_current follows the live head, not row recency").toBe(true);
+    expect(
+      history.versions[1]?.isCurrent,
+      "is_current follows the live head, not row recency",
+    ).toBe(true);
     expect(history.versions[1]?.tag).toBe("stable");
 
-    const byTag = await clients.skillQuery.getByReference({ org, slug: name, version: "stable" });
-    expect(byTag.status?.versionHash, "the tag resolves to its sole holder").toBe(vA.status?.versionHash);
+    const byTag = await clients.skillQuery.getByReference({
+      org,
+      slug: name,
+      version: "stable",
+    });
+    expect(
+      byTag.status?.versionHash,
+      "the tag resolves to its sole holder",
+    ).toBe(vA.status?.versionHash);
   });
 
   it("re-pushing identical content under a new tag moves the tag without a new row", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
 
-    const v1 = await pushSkill(org, makeSkillArtifact({ name, body: "# same body" }), { tag: "v1" });
-    const retagged = await pushSkill(org, makeSkillArtifact({ name, body: "# same body" }), {
-      tag: "v2",
-      track: false,
-    });
-    expect(retagged.status?.versionHash, "identical content keeps its hash").toBe(v1.status?.versionHash);
+    const v1 = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# same body" }),
+      { tag: "v1" },
+    );
+    const retagged = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# same body" }),
+      {
+        tag: "v2",
+        track: false,
+      },
+    );
+    expect(
+      retagged.status?.versionHash,
+      "identical content keeps its hash",
+    ).toBe(v1.status?.versionHash);
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
     expect(history.versions, "retagging adds no history row").toHaveLength(1);
-    expect(history.versions[0]?.tag, "the tag moved to the new name").toBe("v2");
+    expect(history.versions[0]?.tag, "the tag moved to the new name").toBe(
+      "v2",
+    );
 
-    const byNewTag = await clients.skillQuery.getByReference({ org, slug: name, version: "v2" });
+    const byNewTag = await clients.skillQuery.getByReference({
+      org,
+      slug: name,
+      version: "v2",
+    });
     expect(byNewTag.status?.versionHash).toBe(v1.status?.versionHash);
 
     await expectGrpcCode(
-      () => clients.skillQuery.getByReference({ org, slug: name, version: "v1" }),
+      () =>
+        clients.skillQuery.getByReference({ org, slug: name, version: "v1" }),
       Code.NotFound,
       "a moved-away tag stops resolving",
     );
@@ -596,13 +873,23 @@ describe("Skill conformance — content-addressed versioning (repoint, single-ho
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
 
-    const vA = await pushSkill(org, makeSkillArtifact({ name, body: "# first" }), { tag: "latest" });
-    const vB = await pushSkill(org, makeSkillArtifact({ name, body: "# second" }), { tag: "latest", track: false });
+    const vA = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# first" }),
+      { tag: "latest" },
+    );
+    const vB = await pushSkill(
+      org,
+      makeSkillArtifact({ name, body: "# second" }),
+      { tag: "latest", track: false },
+    );
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
     expect(history.versions).toHaveLength(2);
     expect(history.versions[0]?.versionHash).toBe(vB.status?.versionHash);
-    expect(history.versions[0]?.tag, '"latest" names the newest push').toBe("latest");
+    expect(history.versions[0]?.tag, '"latest" names the newest push').toBe(
+      "latest",
+    );
     expect(history.versions[0]?.isCurrent).toBe(true);
     expect(history.versions[1]?.versionHash).toBe(vA.status?.versionHash);
     expect(history.versions[1]?.tag, "the prior holder is untagged").toBe("");
@@ -620,26 +907,42 @@ describe("Skill conformance — updateVisibility", () => {
     if (!target.capabilities.clientPublicVisibilityWrites) return;
 
     const { org } = await target.provisionTenancy();
-    const pushed = await pushSkill(org, makeSkillArtifact({ name: uniqueName("skill") }));
-    expect(pushed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    const pushed = await pushSkill(
+      org,
+      makeSkillArtifact({ name: uniqueName("skill") }),
+    );
+    expect(pushed.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
 
     const updated = await clients.skillCommand.updateVisibility({
       resourceId: pushed.metadata!.id,
       visibility: ApiResourceVisibility.visibility_public,
     });
-    expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(updated.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_public,
+    );
 
     // The change is durable and observable via a fresh read.
-    const fetched = await clients.skillQuery.get({ value: pushed.metadata!.id });
-    expect(fetched.metadata?.visibility).toBe(ApiResourceVisibility.visibility_public);
+    const fetched = await clients.skillQuery.get({
+      value: pushed.metadata!.id,
+    });
+    expect(fetched.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_public,
+    );
 
     // Cross-edition audit-slot contract (stigmer#540): a visibility flip is
     // a lifecycle change, not a definition change, so the live skill's
     // spec_audit.updated_at — what search recency and version history read
     // as "definition changed" — must not move from its post-push value.
     const pushedSpecUpdatedAt = pushed.status?.audit?.specAudit?.updatedAt;
-    expect(pushedSpecUpdatedAt, "push stamps spec_audit.updated_at").toBeDefined();
-    expect(fetched.status?.audit?.specAudit?.updatedAt).toEqual(pushedSpecUpdatedAt);
+    expect(
+      pushedSpecUpdatedAt,
+      "push stamps spec_audit.updated_at",
+    ).toBeDefined();
+    expect(fetched.status?.audit?.specAudit?.updatedAt).toEqual(
+      pushedSpecUpdatedAt,
+    );
   });
 
   it("rejects escalation to public from a non-operator (PermissionDenied) and leaves the stored level untouched", async () => {
@@ -652,8 +955,13 @@ describe("Skill conformance — updateVisibility", () => {
     if (target.capabilities.clientPublicVisibilityWrites) return;
 
     const { org } = await target.provisionTenancy();
-    const pushed = await pushSkill(org, makeSkillArtifact({ name: uniqueName("skill") }));
-    expect(pushed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    const pushed = await pushSkill(
+      org,
+      makeSkillArtifact({ name: uniqueName("skill") }),
+    );
+    expect(pushed.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
 
     await expectGrpcCode(
       () =>
@@ -666,9 +974,10 @@ describe("Skill conformance — updateVisibility", () => {
     );
 
     const stored = await clients.skillQuery.get({ value: pushed.metadata!.id });
-    expect(stored.metadata?.visibility, "the rejected escalation must not change the stored level").toBe(
-      ApiResourceVisibility.visibility_org,
-    );
+    expect(
+      stored.metadata?.visibility,
+      "the rejected escalation must not change the stored level",
+    ).toBe(ApiResourceVisibility.visibility_org);
   });
 
   it("returns NotFound for an unknown skill", async () => {
@@ -690,7 +999,10 @@ describe("Skill conformance — delete", () => {
     const name = uniqueName("skill");
     // Push without the deferred-cleanup helper: this test deletes the skill
     // itself, so a deferred delete would just no-op against an absent resource.
-    const pushed = await clients.skillCommand.push({ org, artifact: makeSkillArtifact({ name }) });
+    const pushed = await clients.skillCommand.push({
+      org,
+      artifact: makeSkillArtifact({ name }),
+    });
     const { id } = pushed.metadata!;
 
     const deleted = await clients.skillCommand.delete({ value: id });
@@ -700,7 +1012,11 @@ describe("Skill conformance — delete", () => {
     // disk after delete (getArtifact by storage key still works). That is an OSS
     // storage detail, not part of the shared cross-edition contract, so it is
     // documented here but deliberately not asserted.
-    await expectGrpcCode(() => clients.skillQuery.get({ value: id }), Code.NotFound, "get after delete");
+    await expectGrpcCode(
+      () => clients.skillQuery.get({ value: id }),
+      Code.NotFound,
+      "get after delete",
+    );
     await expectGrpcCode(
       () => clients.skillQuery.getByReference({ org, slug: name }),
       Code.NotFound,
@@ -714,10 +1030,18 @@ describe("Skill conformance — delete", () => {
   });
 
   it("delete of a missing id returns NotFound", () =>
-    expectGrpcCode(() => clients.skillCommand.delete({ value: "skl_doesnotexist" }), Code.NotFound, "delete missing id"));
+    expectGrpcCode(
+      () => clients.skillCommand.delete({ value: "skl_doesnotexist" }),
+      Code.NotFound,
+      "delete missing id",
+    ));
 
   it("delete rejects an empty id with InvalidArgument", () =>
-    expectGrpcCode(() => clients.skillCommand.delete({ value: "" }), Code.InvalidArgument, "delete empty id"));
+    expectGrpcCode(
+      () => clients.skillCommand.delete({ value: "" }),
+      Code.InvalidArgument,
+      "delete empty id",
+    ));
 });
 
 describe("Skill conformance — pushFromExecutionArtifact (input validation)", () => {
@@ -750,7 +1074,12 @@ describe("Skill conformance — pushFromExecutionArtifact (input validation)", (
   it("rejects an empty storage_key (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () => clients.skillCommand.pushFromExecutionArtifact({ org, executionId: "aex_example", storageKey: "" }),
+      () =>
+        clients.skillCommand.pushFromExecutionArtifact({
+          org,
+          executionId: "aex_example",
+          storageKey: "",
+        }),
       Code.InvalidArgument,
       "pushFromExecutionArtifact empty storage_key",
     );
@@ -806,7 +1135,12 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
   it("push rejects a request carrying both artifact sources", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () => clients.skillCommand.push({ org, artifact: makeSkillArtifact({ name: uniqueName("skill") }), artifactUploadRef: "sau_x" }),
+      () =>
+        clients.skillCommand.push({
+          org,
+          artifact: makeSkillArtifact({ name: uniqueName("skill") }),
+          artifactUploadRef: "sau_x",
+        }),
       Code.InvalidArgument,
       "push with both artifact sources",
     );
@@ -816,14 +1150,20 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
-    const artifact = makeSkillArtifact({ name, description: "transfer-lane skill" });
+    const artifact = makeSkillArtifact({
+      name,
+      description: "transfer-lane skill",
+    });
 
     const minted = await clients.skillCommand.createArtifactUploadUrl({
       org,
       sizeBytes: BigInt(artifact.length),
     });
     expect(minted.url, "mint returns an http(s) URL").toMatch(/^https?:\/\//);
-    expect(minted.artifactUploadRef, "mint returns the ref push consumes").not.toBe("");
+    expect(
+      minted.artifactUploadRef,
+      "mint returns the ref push consumes",
+    ).not.toBe("");
 
     const put = await fetch(minted.url, {
       method: "PUT",
@@ -836,15 +1176,21 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     // unsatisfiable by one edition.
     expect(put.ok, `staging PUT succeeds (HTTP ${put.status})`).toBe(true);
 
-    const pushed = await pushSkill(org, new Uint8Array(0), { viaRef: minted.artifactUploadRef });
+    const pushed = await pushSkill(org, new Uint8Array(0), {
+      viaRef: minted.artifactUploadRef,
+    });
 
     // Identity derives from the artifact exactly as for an inline push, and
     // content addressing must not care how the bytes traveled: what getArtifact
     // returns is byte-identical to what was staged.
     expect(pushed.metadata?.name).toBe(name);
     expect(pushed.status?.versionHash).toMatch(/^[a-f0-9]{64}$/);
-    const stored = await clients.skillQuery.getArtifact({ artifactStorageKey: pushed.status!.artifactStorageKey });
-    expect(stored.artifact, "stored bytes equal the staged bytes").toEqual(artifact);
+    const stored = await clients.skillQuery.getArtifact({
+      artifactStorageKey: pushed.status!.artifactStorageKey,
+    });
+    expect(stored.artifact, "stored bytes equal the staged bytes").toEqual(
+      artifact,
+    );
   });
 
   it("an upload ref is single-use — replaying it after a push is rejected", async (ctx) => {
@@ -852,12 +1198,25 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     const { org } = await target.provisionTenancy();
     const artifact = makeSkillArtifact({ name: uniqueName("skill") });
 
-    const minted = await clients.skillCommand.createArtifactUploadUrl({ org, sizeBytes: BigInt(artifact.length) });
-    await fetch(minted.url, { method: "PUT", body: Buffer.from(artifact), headers: { "content-type": "application/zip" } });
-    await pushSkill(org, new Uint8Array(0), { viaRef: minted.artifactUploadRef });
+    const minted = await clients.skillCommand.createArtifactUploadUrl({
+      org,
+      sizeBytes: BigInt(artifact.length),
+    });
+    await fetch(minted.url, {
+      method: "PUT",
+      body: Buffer.from(artifact),
+      headers: { "content-type": "application/zip" },
+    });
+    await pushSkill(org, new Uint8Array(0), {
+      viaRef: minted.artifactUploadRef,
+    });
 
     await expectGrpcCode(
-      () => clients.skillCommand.push({ org, artifactUploadRef: minted.artifactUploadRef }),
+      () =>
+        clients.skillCommand.push({
+          org,
+          artifactUploadRef: minted.artifactUploadRef,
+        }),
       Code.InvalidArgument,
       "replayed upload ref",
     );
@@ -867,7 +1226,11 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () => clients.skillCommand.createArtifactUploadUrl({ org, sizeBytes: BigInt(101 * 1024 * 1024) }),
+      () =>
+        clients.skillCommand.createArtifactUploadUrl({
+          org,
+          sizeBytes: BigInt(101 * 1024 * 1024),
+        }),
       Code.InvalidArgument,
       "over-limit upload declaration",
     );
@@ -883,7 +1246,9 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
       artifactStorageKey: pushed.status!.artifactStorageKey,
     });
     expect(minted.url).toMatch(/^https?:\/\//);
-    expect(minted.sizeBytes, "mint reports the stored size").toBe(BigInt(artifact.length));
+    expect(minted.sizeBytes, "mint reports the stored size").toBe(
+      BigInt(artifact.length),
+    );
 
     const resp = await fetch(minted.url);
     expect(resp.status).toBe(200);
@@ -895,12 +1260,16 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     if (target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () => clients.skillCommand.createArtifactUploadUrl({ org, sizeBytes: 1024n }),
+      () =>
+        clients.skillCommand.createArtifactUploadUrl({ org, sizeBytes: 1024n }),
       Code.Unimplemented,
       "mint on a lane-less target",
     );
     await expectGrpcCode(
-      () => clients.skillQuery.getArtifactDownloadUrl({ artifactStorageKey: "skills/x.zip" }),
+      () =>
+        clients.skillQuery.getArtifactDownloadUrl({
+          artifactStorageKey: "skills/x.zip",
+        }),
       Code.Unimplemented,
       "download-url mint on a lane-less target",
     );
