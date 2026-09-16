@@ -166,10 +166,10 @@ export class RunnerAuthService {
   /**
    * Go NewServiceFromEnv: key via the shared ladder (env var → key file →
    * auto-generate). Errors only on unusable explicit configuration; the
-   * composition root maps that to the BOOT-FATAL posture (the ratified D2
-   * asymmetry: a server that cannot mint runner tokens would hand every
-   * execution redaction markers instead of its secrets — the silent-junk
-   * failure the oss#405 fail-loud doctrine forbids).
+   * composition root maps that to the BOOT-FATAL posture: a server that
+   * cannot mint runner tokens would hand every execution redaction markers
+   * instead of its secrets — the silent-junk failure the encryption work
+   * (stigmer#405) made fail-loud.
    */
   static fromEnv(options: KeyLoaderOptions = {}): RunnerAuthService {
     const key = getOrCreateNamedKey(

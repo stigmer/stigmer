@@ -117,6 +117,25 @@ export interface CapabilityFlags {
   // execution is created) — which is what lets this be the first
   // execution-class behavior asserted cross-edition.
   scheduleFiring: boolean;
+  // The target's runner serves every person's runs AS THE PERSON WHOSE RUN
+  // IT IS (the row's created_by stamp), whichever credential the runner
+  // process itself holds. Observable only where the server enforces who may
+  // report on a run: on the enforcing lane, a member's run dispatched to a
+  // runner keyed with the operator's API key completes, its status writes
+  // land, and the rows the runner creates for it carry the member's stamp.
+  //
+  // True for local-execution: the open-source runner presents each run's
+  // own credential (server-minted at dispatch, carried on the workflow
+  // input) and the built-in verifier admits its bearer as the run's human
+  // (stigmer#1137, stigmer#1138). False for the plain local target, which
+  // spawns no runner (the scheduleFiring precedent). False for the cloud
+  // targets: the conformance runner there is an EMBEDDED runner
+  // bootstrapped as the primary user (runner-process.ts `cloudBootstrap`),
+  // which acts as itself, narrowed by its own exchange — the cloud's
+  // shared-runner shape is the managed sandbox the composition provisions
+  // per session, and that lane's proof belongs to the composition's own
+  // suites, not to a harness that never boots a sandbox.
+  runnerActsAsRunCreator: boolean;
   // The ORDINARY conformance caller may write labels in the reserved
   // stigmer.ai/* namespace.
   //
@@ -469,6 +488,24 @@ export interface EnforcingLane {
   // one; the cloud's platform tenant does through directLoginTenant.
   // Absent where the lane has neither; the arm skips VISIBLY.
   unprovisionedCaller?(): Promise<ConformanceClients>;
+  // Clients presenting exactly the given bearer against THE LANE'S server —
+  // the sibling on the local targets, the primary where it enforces. The
+  // same seam as TargetProfile.clientsPresenting and
+  // SiblingServer.clientsPresenting, mirrored here because a credential an
+  // arm holds without a person behind it (a minted API key, a run
+  // credential from the exchange) has to reach the server the lane's people
+  // live on, and the primary's transport would reach the wrong one.
+  clientsPresenting(bearerToken: string): ConformanceClients;
+  // The scripted model the lane's OWN runner answers with. A lane has the
+  // shape of its target: on an execution target the enforcing server runs
+  // beside its own engine and a runner keyed with the founder's API key (the
+  // Helm chart's single-operator-key install, driven by the harness), and
+  // this is the mock that runner dials — never the primary's, so the two
+  // FIFOs cannot interleave. Absent on a lane without an engine (the Class
+  // A targets, the cloud's primary lane); the execution arms gate on
+  // CapabilityFlags.runnerActsAsRunCreator before asking. The same seam as
+  // TargetProfile.llmProxy, mirrored on the lane.
+  llmProxy?(): MockLlmProxy;
 }
 
 // A SECOND server of the same edition, booted beside the target's primary
@@ -482,6 +519,21 @@ export interface SiblingServer {
   clientsPresenting(bearerToken: string): ConformanceClients;
   // Stops the server and releases its storage.
   teardown(): Promise<void>;
+}
+
+// A sibling on an EXECUTION target: the same second server, booted beside
+// its OWN Temporal (the primary's cannot be shared — same namespace, same
+// task queue, so the trusted-local runner would take the sibling's work),
+// with what a runner needs to be booted against it. The execution target's
+// spawnSibling returns this; its enforcing lane boots a runner from it, and
+// a suite that needs a posture-specific server WITH an engine (an MCP
+// connect under the OIDC posture, say) spawns one directly. Teardown stops
+// the server, releases its storage and stops its Temporal.
+export interface SiblingExecutionServer extends SiblingServer {
+  readonly engine: EngineCoordinates;
+  // The sibling server's on-disk artifact store, shared with a runner the
+  // way the primary shares its own (#285).
+  readonly artifactStore: { readonly dir: string; readonly serveUrl: string };
 }
 
 export interface SpawnSiblingOptions {

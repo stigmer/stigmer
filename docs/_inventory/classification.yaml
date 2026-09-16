@@ -726,7 +726,8 @@ pages:
     teaches:
       Turn on authentication for a self-hosted server with your own OIDC
       identity provider (issuer + audience) and API keys — including minting
-      keys before enabling, the runner's key, pointing the CLI at the
+      keys before enabling, the runner's key (its own credential; runs stay
+      attributed to the person who started them), pointing the CLI at the
       authenticated stack as a named backend, and registering the web console
       as a public PKCE client so it signs in through the provider (redirect
       and post-logout URIs, web origins, refresh tokens, the audience on the

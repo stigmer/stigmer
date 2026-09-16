@@ -100,6 +100,15 @@ From the next boot, every request needs a credential:
   person**, including people outside its Organization. New Public marks are
   refused on a self-hosted server; an admin can set an existing one back to
   Organization from its page.
+- **Runs belong to the person who started them, whoever's key the runner
+  holds.** The runner's API key is its own credential. For each run, the server
+  gives the runner a credential for that run alone, and everything the runner
+  does for it, including the Sessions and executions it creates and the status
+  it reports, is recorded as that person. A run that was already in flight when
+  you turned authentication on belongs to no signed-in person and stops with a
+  message saying so; start it again while signed in. A run's credential is
+  written into the run's Temporal history and stays valid for ten minutes after
+  the run ends, so protect Temporal the way you protect the database.
 - Requests without a credential are rejected with
   `authentication token missing`. Requests with a bad credential get a specific
   reason (`token has expired`, `token signature verification failed`, and so

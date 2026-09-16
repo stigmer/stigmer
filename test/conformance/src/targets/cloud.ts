@@ -84,6 +84,11 @@ export class CloudTarget implements TargetProfile {
     // The hermetic cloud env boots Temporal and the Java service runs the
     // schedule clock (T04 slice 2) — triggers fire for real.
     scheduleFiring: true,
+    // The cloud-execution runner is an embedded runner bootstrapped as the
+    // primary user and acts as itself, narrowed by its own exchange; the
+    // cloud's shared-runner shape (the managed sandbox, provisioned per
+    // session) is never booted by this harness — see CapabilityFlags.
+    runnerActsAsRunCreator: false,
     // GuardReservedLabelsStep (stigmer-cloud#320, platform-wide since
     // stigmer-cloud#386) rejects reserved-label writes from the ordinary
     // conformance user — the suite pins that rejection where this is false.
