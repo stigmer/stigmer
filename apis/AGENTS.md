@@ -19,8 +19,6 @@ the truth.
   annotation, pagination.
 - `ai/stigmer/agentic/agent/`: the reference resource, its versioned file split
   and its `docs/` folder.
-- `_rules/model-stigmer-oss-protos/`: the procedure and checklist for adding a
-  resource, with its learning log.
 - `tools/codegen/README.md` and
   `tools/codegen/src/internalcomment/internalcomment.ts`: how the generators
   read the protos and the one owner of the `@internal` comment convention.
@@ -53,6 +51,13 @@ the truth.
 - After any `.proto` change, `make codegen` from the repository root, and the
   generated output is committed. Hand edits under `stubs/` or any `gen`
   directory are defects.
+
+## Skills
+
+- `.agents/skills/model-proto-resource/SKILL.md`: the procedure for adding or
+  reshaping a resource: files, envelope, kind registration, the authorization
+  annotation on every RPC, spec against status, codegen. Load it before a new
+  kind or RPC.
 
 ## Verify
 
