@@ -38,9 +38,19 @@ them.
   `.cursor/rules/*.mdc` whose `globs:` match does attach, and an `@<path>` line
   in its body makes Cursor attach the referenced file beside it. That is why
   each nested guide has a generated shim.
-- Skills under `.agents/skills/` are listed by name and description at launch;
+- Skills under `.agents/skills/` are listed by path and description at launch;
   `paths:` frontmatter and package-local skill folders both defer a skill until
-  a matching file is touched.
+  a matching file is touched, and `disable-model-invocation: true` keeps a skill
+  out of the model's list entirely (it stays in the `/` menu).
+- A skill whose frontmatter is not valid YAML is listed by path with no
+  description and none of its flags honoured: `paths:` no longer defers it and
+  `disable-model-invocation` no longer hides it. The usual cause is a plain
+  (unquoted) description containing `: ` or ending a wrapped line with `:`,
+  which YAML reads as a nested mapping. `make agents-check` reports it; the fix
+  is to rephrase without the colon.
+- A skill file is indexed when Cursor first sees it. Later edits are not re-read
+  until the window reloads, so a skill you have just written or changed is
+  listed as it first was (or not at all) until then.
 - Nothing inside a git worktree is discovered unless the worktree is a workspace
   folder, and the primary checkout's glob rules do not fire for worktree paths.
   Add the worktree to the window when you create it (`cursor --add <worktree>`)
@@ -64,10 +74,23 @@ AGENTS.md                         the always-on root guide (a real file, not a s
 .agents/
   README.md                       this file
   ARCHITECTURE_PRINCIPLES.md      what the codebase optimises for; the reasons behind the laws
-  skills/<name>/SKILL.md          repo skills, with optional references/ and scripts/
-.cursor/rules/agents-<slug>.mdc   generated shim per nested guide; never edited by hand
-scripts/agents-check.mjs          the gate: shims in sync, cited paths resolve, no private ids, guides within budget
+  skills/<name>/SKILL.md          repo skills, with optional references/ beside each
+.cursor/rules/agents-<slug>.mdc   generated shim per nested guide; the ONLY files allowed in .cursor/rules
+scripts/agents-check.mjs          the gate: shims in sync, cited paths resolve, no private ids, guides within
+                                  budget, skill frontmatter well-formed, nothing hand-written in .cursor/rules
 ```
+
+The skills are of two kinds. Package doctrine skills carry `paths:` and surface
+when a matching file is touched: `ts-server-dev-guidelines`,
+`sdk-console-architecture`, `runner-dev-guidelines`, `docs-writing`,
+`conformance-test-authoring`, `model-proto-resource`. Action skills are
+procedures a person invokes by name (`disable-model-invocation: true`), because
+they act on git, GitHub or a release: `commit-stigmer-oss-changes`,
+`create-stigmer-oss-pull-request`, `release-stigmer-oss`,
+`wrap-up-github-issue`, and `test-gate` (a posture rather than an action, but
+one a session should not adopt uninvited). `verify-stigmer-oss-changes` is the
+one action skill the model may reach for on its own, because a session should
+verify before it commits.
 
 `CLAUDE.md` and a `.claude` skills folder are deliberately absent: no Claude
 Code session runs here yet, and Cursor also reads `CLAUDE.md`, so an import file
@@ -88,14 +111,25 @@ is adopted, add a one-line `CLAUDE.md` containing `@AGENTS.md` beside each
    target: a guide that needs more room is restating something it should point
    at. Write it from the tree as it is, not from memory.
 3. A skill's `description` is its trigger: say what it does and when to use it,
-   in the third person. Package doctrine skills carry `paths:`. Keep `SKILL.md`
-   under 500 lines and move detail into a `references` folder beside it.
-4. Run `make agents-sync` (writes or removes shims) and `make agents-check`
+   in the third person, within sixty words (it is listed in every conversation),
+   and without `: ` or a trailing `:` in the unquoted text (YAML would read a
+   mapping and Cursor would list the skill with no description at all). Package
+   doctrine skills carry `paths:`; skills that act carry
+   `disable-model-invocation: true`. Keep `SKILL.md` under 500 lines and move
+   detail into a `references` folder beside it. Write it from the tree as it is,
+   never from the rule or document it replaces.
+4. Guidance cross-references are paths, never bare names: a guide names its
+   skill as `.agents/skills/<name>/SKILL.md`, and a skill that hands to another
+   cites it the same way, so the gate fails on a renamed or deleted skill.
+   Cursor's `/name` form appears only where a person is told what to type.
+5. Run `make agents-sync` (writes or removes shims) and `make agents-check`
    (fails on drift, a cited path that does not resolve, a private-record
-   identifier, or a guide over budget). `check-prep` and `ci.docs` run both.
-5. Format with the repo's Prettier config; `make format-docs` covers guidance
+   identifier, a guide over budget, malformed skill frontmatter, or any file in
+   `.cursor/rules/` that is not a generated shim). `check-prep` and `ci.docs`
+   run both.
+6. Format with the repo's Prettier config; `make format-docs` covers guidance
    files.
-6. Nothing in this repository cites a private planning record, task id, ruling
+7. Nothing in this repository cites a private planning record, task id, ruling
    id or finding id. Say the reason, or cite a PR, an issue, a SHA or a file.
 
 ## The learning loop

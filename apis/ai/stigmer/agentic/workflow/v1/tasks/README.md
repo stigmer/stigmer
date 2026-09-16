@@ -192,7 +192,6 @@ Each task config has **two layers** of validation:
 
 ## Reference Documentation
 
-- **Pattern Catalog**: `_projects/2026-01/20260115.01.workflow-orchestration-proto-redesign/reference/zigflow-dsl-pattern-catalog.md`
 - **Main Spec**: `../spec.proto`
 - **Enum Definition**: `ai/stigmer/commons/apiresource/enum.proto`
 

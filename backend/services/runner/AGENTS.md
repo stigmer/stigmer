@@ -10,6 +10,8 @@ headers it names are the truth.
 
 - `README.md`: run modes, execution location versus transport, every environment
   variable. Operating knowledge lives there, not in `config.ts`.
+- `src/harness/README.md`: the harness layer's own index, including every site a
+  new harness touches and the contract kit.
 - `src/harness/types.ts` header: the adapter contract, what the runtime owns
   versus what a harness owns, and what is deliberately not on the contract.
 - `src/harness/run-turn.ts` header: the turn runtime, what runs there and
@@ -57,6 +59,13 @@ headers it names are the truth.
 - LLM-dependent behaviour is tested with deterministic mocks and asserted on
   structure and side effects, never on prose; concurrent scenarios (two
   approvals at once, a status write racing an approval) get their own tests.
+
+## Skills
+
+- `.agents/skills/runner-dev-guidelines/SKILL.md`: the design procedure (map the
+  data flow, find the framework's primitive, carry identity), the reasons behind
+  the laws above, and the worked cases. Load it before changing turns,
+  approvals, interrupts, MCP handling or Temporal coordination.
 
 ## Verify
 

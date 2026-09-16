@@ -1084,7 +1084,23 @@ gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md
 
 # ─── Release ──────────────────────────────────
 
-.PHONY: release release-pins
+.PHONY: release release-pins release-preflight
+# A release hold is a file, not a memory. RELEASE_HOLD.md at the root names a
+# change that is merged on main but must not ship until another has merged
+# too; while it exists nothing tags, and the maintainer who lands the awaited
+# change deletes the file in that same pull request. Both routes to a tag run
+# this: `make release` depends on it, and the release procedure the coding
+# agents follow (.agents/skills/release-stigmer-oss) runs it as its first step,
+# because that procedure tags by hand to carry release notes.
+release-preflight: ## Refuse to release while RELEASE_HOLD.md exists at the repository root
+	@if [ -f RELEASE_HOLD.md ]; then \
+		echo "error: a release hold is in force (RELEASE_HOLD.md); nothing tags until it is lifted:"; \
+		echo ""; \
+		cat RELEASE_HOLD.md; \
+		exit 1; \
+	fi
+	@echo "release preflight OK: no hold"
+
 # The four release pins travel in the commit the tag is cut from: the
 # mcp-server bridge pin (release.npm-libs refuses to publish on a mismatch),
 # the compose stack pin in docker-compose.yml + .env.example (the release
@@ -1104,7 +1120,7 @@ release-pins: ## Bump the release pins to version=X.Y.Z (mcp-server bridge, comp
 	@perl -pi -e 's/^version: .*/version: $(version)/; s/^appVersion: .*/appVersion: "$(version)"/' deploy/helm/stigmer/Chart.yaml
 	@echo "release pins set to $(version):"; git --no-pager diff --stat -- mcp-server/Dockerfile docker-compose.yml .env.example deploy/helm/stigmer/Chart.yaml
 
-release: ## Tag and push a release (usage: make release [bump=patch|minor|major]); run `make release-pins` and commit first
+release: release-preflight ## Tag and push a release (usage: make release [bump=patch|minor|major]); run `make release-pins` and commit first
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
 	[ -z "$$LATEST_TAG" ] && LATEST_TAG="v0.0.0"; \
 	VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \

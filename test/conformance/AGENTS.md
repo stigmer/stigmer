@@ -51,6 +51,14 @@ index; `README.md` is the reference.
   upstreams through the cloud fixtures' control client, never by importing a
   fake into the worker.
 
+## Skills
+
+- `.agents/skills/conformance-test-authoring/SKILL.md`: which class a behaviour
+  belongs to, the three shapes with code, the harness components to reuse, and
+  the test discipline. Load it before adding or extending a suite.
+- `.agents/skills/test-gate/SKILL.md`: the adversarial gate, invoked by name
+  when a change must not leave the conversation without tests.
+
 ## Verify
 
 The root map's rows, plus from the package: `npm run test:unit` for the
