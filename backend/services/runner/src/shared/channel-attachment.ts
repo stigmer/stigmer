@@ -11,13 +11,16 @@
  * model composes template sends in context without spending a tool
  * round (DD-003 D5).
  *
- * Two connection shapes, one roster (the records pattern):
+ * Two connection shapes, one roster (the records pattern), one
+ * credential — the run's own — presented on both:
  *   - Bridge endpoint configured (cloud): Streamable HTTP against the
- *     bridge's /channels route with the execution's own session-scoped
- *     credential as the Bearer token.
+ *     bridge's /channels route with the run's credential as the Bearer
+ *     token.
  *   - No bridge endpoint (OSS/local): a spawned `stigmer mcp-server`
- *     stdio child with STIGMER_MCP_ROSTER=channels. In practice OSS
- *     answers the discovery read with an empty list (DD-006 D3), so
+ *     stdio child with STIGMER_MCP_ROSTER=channels and the run's
+ *     credential as its startup credential (synthesized-attachment.ts
+ *     `stdioCredentialEnv`, the memory attachment's twin). In practice
+ *     OSS answers the discovery read with an empty list (DD-006 D3), so
  *     this shape only serves local deployments that grow a messaging
  *     runtime later — it exists for symmetry with the deployment
  *     topology, not for a live OSS path today.
@@ -42,7 +45,11 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
-import { grpcTarget, type SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
+import {
+  grpcTarget,
+  stdioCredentialEnv,
+  type SynthesizedAttachmentOptions,
+} from "./synthesized-attachment.js";
 
 /**
  * The synthesized attachment's slug. Reserved: a user McpServer with
@@ -151,6 +158,7 @@ export function synthesizeChannelAttachment(
     env: {
       STIGMER_MCP_ROSTER: "channels",
       STIGMER_SERVER_ADDRESS: grpcTarget(options.backendEndpoint),
+      ...stdioCredentialEnv(options.credential),
     },
   };
 }

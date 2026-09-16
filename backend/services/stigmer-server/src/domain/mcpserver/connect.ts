@@ -17,7 +17,6 @@
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { randomUUID } from "node:crypto";
 
 import type {
   EnvironmentList,
@@ -62,6 +61,7 @@ import type {
 } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
+import { newConnectExecutionId } from "./connect-execution-id.js";
 import {
   persistConnectFailure,
   persistConnectResult,
@@ -169,10 +169,21 @@ export interface ConnectEnvironmentReader {
 /**
  * The ExecutionContext lifecycle surface for the ephemeral connect EC —
  * Go's downstream executioncontext client (create + delete).
+ *
+ * `create` takes the connecting caller and the composition creates the
+ * row AS THAT PERSON (boot/inprocess.ts, the `asCaller` lane of ruling
+ * R5), never under the internal class: the row's creator stamp is what
+ * the runner-subject verifier resolves the connect's person from when
+ * the runner presents the connect token under the built-in posture
+ * (runnerauth/bound-execution.ts, the `mcp-connect` binding). A row
+ * stamped `internal` would name nobody, and the credentialed connect
+ * would be refused at identity on every enforcing self-host. `delete`
+ * stays the server's own act: the row is the lane's, whoever asked.
  */
 export interface ConnectExecutionContextClient {
   create(
     executionContext: MessageInitShape<typeof ExecutionContextSchema>,
+    caller: CallerIdentity,
   ): Promise<ExecutionContext>;
   delete(
     input: MessageInitShape<typeof ApiResourceDeleteInputSchema>,
@@ -272,7 +283,7 @@ export async function connect(
     input,
   );
 
-  const prepared = await prepareConnect(deps, mcpServer, input);
+  const prepared = await prepareConnect(deps, mcpServer, input, identity);
 
   try {
     let run: ConnectRun;
@@ -385,11 +396,28 @@ export async function connect(
  * read the caller's grant and secrets, which a background task has no
  * request context to do (the same constraint that scopes
  * startBestEffortConnect to env-less servers).
+ *
+ * A connect's discovery runs on the runner with TWO credentials, and the
+ * split is deliberate. The runner's own process credential reads the
+ * McpServer's metadata — under the built-in posture that credential is
+ * the operator's API key, and the operator is an organization admin
+ * (deploy/helm/stigmer: the signed-in operator mints the runner's key),
+ * whom the model makes an owner of every McpServer in the organization
+ * (authorization/model/mcp_server.ts), so a member's private server is
+ * readable. The connect token minted below reads the SECRETS: it is
+ * bound to this connect's ExecutionContext, and under the built-in
+ * posture the runner-subject verifier resolves its bearer to the person
+ * that row was created by — which is why the row is created as `identity`
+ * and not as the server. The end state where every RPC of a discovery
+ * acts as the person (the cloud's connect-sandbox shape) needs a row an
+ * env-less connect would also create; it creates none today, so that is
+ * a design act of its own, not a widening to make here.
  */
 export async function prepareConnect(
   deps: McpServerConnectDeps,
   mcpServer: McpServer,
   input: ConnectInput,
+  identity: CallerIdentity,
 ): Promise<PreparedConnect> {
   const mcpServerId = mcpServer.metadata?.id ?? "";
   const callerOrg = input.org;
@@ -402,7 +430,7 @@ export async function prepareConnect(
     await refreshOAuthTokenIfNeeded(deps, mcpServer, callerOrg);
   }
 
-  const executionId = `connect-${mcpServerId}-${randomUUID().slice(0, 8)}`;
+  const executionId = newConnectExecutionId(mcpServerId);
 
   const ecResourceId = await createConnectExecutionContext(
     deps,
@@ -410,6 +438,7 @@ export async function prepareConnect(
     executionId,
     callerOrg,
     input.runtimeEnv,
+    identity,
   );
 
   const workflowInput: ConnectWorkflowInput = {
@@ -464,6 +493,10 @@ export async function prepareConnect(
  * sources: OAuth-managed variables from the grant's managed environment,
  * the remainder from the user's personal environment. Returns "" when the
  * MCP server has no env declarations and no runtime_env.
+ *
+ * The row is created as `caller`, the person connecting (see the
+ * ConnectExecutionContextClient doc): its creator stamp is the connect
+ * token's person under the built-in posture.
  */
 async function createConnectExecutionContext(
   deps: McpServerConnectDeps,
@@ -471,6 +504,7 @@ async function createConnectExecutionContext(
   executionId: string,
   callerOrg: string,
   runtimeEnv: { [key: string]: ExecutionValue },
+  caller: CallerIdentity,
 ): Promise<string> {
   let ecData: { [key: string]: ExecutionValue };
 
@@ -540,6 +574,7 @@ async function createConnectExecutionContext(
           data: ecData,
         },
       }),
+      caller,
     );
   } catch (error) {
     throw internalError(error, "failed to create connect ExecutionContext");

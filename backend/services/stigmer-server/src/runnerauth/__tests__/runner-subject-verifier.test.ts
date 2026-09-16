@@ -1,9 +1,13 @@
 /**
  * Pins the runner-subject identity verifier on both store drivers: the
  * OSS execution-scoped runner token, presented as a bearer under the
- * built-in authorization posture, admits its bearer AS THE HUMAN WHOSE
- * RUN IT IS — the person the execution row's creator stamp names — in
- * the `runner` caller class, for exactly as long as that execution lives.
+ * built-in authorization posture, admits its bearer AS THE HUMAN WHO
+ * ASKED — for a run, the person the execution row's creator stamp
+ * names, for exactly as long as that execution lives; for an MCP
+ * connect, the person the connect's ExecutionContext row was created by,
+ * for as long as that row exists — in the `runner` caller class. A
+ * clockless token bound to a connect is a shape no mint produces and is
+ * refused as the credential it is not.
  *
  * Why a verifier reads the store: the token is a capability for one
  * execution, not an identity assertion. Its claims name only the
@@ -39,6 +43,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -52,6 +57,7 @@ import {
 import type { OpenedStore } from "../../authorization/__tests__/drivers.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
+import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
 import { newOrganizationOnlyGrantScope } from "../../domain/iampolicy/grant-scope.js";
 import {
@@ -107,6 +113,7 @@ describe.each(
   driverFixtures([
     ApiResourceKind.agent_execution,
     ApiResourceKind.workflow_execution,
+    ApiResourceKind.execution_context,
     ApiResourceKind.identity_account,
   ]),
 )("the runner-subject verifier on $name", (fixture) => {
@@ -169,6 +176,27 @@ describe.each(
             phase,
             audit: { specAudit: { createdBy: { id: createdBy } } },
           },
+        }),
+      );
+    }
+
+    /** The connect lane's ephemeral EC, created as `createdBy` (connect.ts `prepareConnect`). */
+    async function connectContext(
+      executionId: string,
+      createdBy: string,
+    ): Promise<void> {
+      await opened.store.saveResource(
+        ApiResourceKind.execution_context,
+        `ectx_${executionId}`,
+        ExecutionContextSchema,
+        create(ExecutionContextSchema, {
+          metadata: {
+            id: `ectx_${executionId}`,
+            name: `exec-ctx-${executionId}`,
+            org: "acme",
+          },
+          spec: { executionId },
+          status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
         }),
       );
     }
@@ -270,6 +298,47 @@ describe.each(
         await agentExecution("aex_clocked", CAROL);
         const minted = service.mint("aex_clocked", 300);
         expect((await verifier().verify(minted.token))?.identityId).toBe(CAROL);
+      });
+    });
+
+    describe("the connect token admits its bearer as the person who asked for the connect", () => {
+      const connectId = newConnectExecutionId("mcps_carols");
+
+      it("the connect lane's clocked token resolves through the connect's ExecutionContext row: its creator, class runner", async () => {
+        await connectContext(connectId, CAROL);
+        const { token } = service.mint(connectId, 300);
+        expect(await verifier().verify(token)).toEqual({
+          ...CAROL_IDENTITY,
+          rawToken: token,
+        });
+      });
+
+      it("once the connect settles and its row is gone, the token is the token sentence — it names no row", async () => {
+        const { token } = service.mint(connectId, 300);
+        expectUnauthenticated(
+          await rejectionOf(verifier().verify(token)),
+          RUNNER_CREDENTIAL_INVALID_MESSAGE,
+        );
+      });
+
+      it("a clockless token bound to a connect is refused even while the row exists — no mint produces that shape", async () => {
+        await connectContext(connectId, CAROL);
+        expectUnauthenticated(
+          await rejectionOf(
+            verifier().verify(service.mintRunCredential(connectId)),
+          ),
+          RUNNER_CREDENTIAL_INVALID_MESSAGE,
+        );
+      });
+
+      it("a connect row created by nobody the server recognizes is the liveness sentence — a discovery for no one", async () => {
+        await connectContext(connectId, "system");
+        expectUnauthenticated(
+          await rejectionOf(
+            verifier().verify(service.mint(connectId, 300).token),
+          ),
+          RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE,
+        );
       });
     });
 

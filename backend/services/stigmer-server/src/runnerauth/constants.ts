@@ -11,15 +11,17 @@
  * operator, in the runner's log:
  *
  *   - the TOKEN sentence: the credential itself is not one this server
- *     will honor — forged, the wrong shape, bound to an execution this
- *     server does not have, a present `exp` in the past, or minted by a
- *     key this server does not hold. A missing execution is this
- *     sentence and not NOT_FOUND on purpose: the credential is invalid,
- *     and the run is not the caller's to learn about.
+ *     will honor — forged, the wrong shape, bound to an execution or a
+ *     connect this server does not have (a connect's row is gone once
+ *     the connect settles), a clockless token bound to a connect (a shape
+ *     no mint produces), a present `exp` in the past, or minted by a key
+ *     this server does not hold. A missing row is this sentence and not
+ *     NOT_FOUND on purpose: the credential is invalid, and the run is
+ *     not the caller's to learn about.
  *   - the LIVENESS sentence: the credential is genuine but its run is
- *     over, or its run was created by nobody this server recognizes as a
- *     person (the schedule fire caller's deterministic-refusal shape: no
- *     retry will make that run anyone's).
+ *     over, or its run or connect was created by nobody this server
+ *     recognizes as a person (the schedule fire caller's
+ *     deterministic-refusal shape: no retry will make that run anyone's).
  *
  * And one for a REQUESTED credential — the platform exchange under the
  * built-in posture (built-in-runner-credential-provider.ts), where the

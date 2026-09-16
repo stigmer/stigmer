@@ -32,31 +32,41 @@
 //     purpose;
 //   - a workflow that calls an agent runs to terminal under enforcement, and
 //     the child the runner created carries the workflow lineage labels and
-//     the member's stamp.
+//     the member's stamp;
+//   - a workflow calling an agent the member CANNOT VIEW: the workflow-bound
+//     runner is admitted on the child's run-gate checks (the cloud's
+//     `workflow_sandbox` admission, mirrored), so the child IS created as the
+//     member; the child's own run then reads the agent's blueprint and
+//     instance as the member and is refused, and the workflow fails. That is
+//     the reach the model gives a run's credential today, the same in both
+//     editions — a shared workflow runs its agents as the person who ran it,
+//     who must be able to view them — pinned so a widening of that reach
+//     turns this arm red on purpose;
+//   - the runner's MCP children act as the person who asked. A member's
+//     connect of their own server that declares a credential SUCCEEDS with
+//     the fixture's tools: the connect's ExecutionContext is created as the
+//     member and the connect token admits the runner as the member for the
+//     secret read (stigmer#1137's connect half). A member's run with memory
+//     on, whose agent calls `remember`, writes a Memory whose subject is the
+//     member and whose provenance session is the run's, which the operator —
+//     an organization owner — cannot list (stigmer#1147: the stdio child
+//     presented no credential, and every capture was refused).
 //
 // Deliberately out of scope, with the reason:
-//   - a workflow calling an agent the member CANNOT VIEW. The workflow-bound
-//     runner is admitted on the child's run-gate checks (the cloud's
-//     `workflow_sandbox` admission, mirrored), so the child IS created; the
-//     child's own run then reads the agent's blueprint and instance as the
-//     member and is refused `can_view`, and the workflow fails. Whether that
-//     child should be able to read the blueprint it runs is a question of
-//     the model's reach, open in both editions, and not one this suite
-//     settles by pinning either outcome;
 //   - the credential refused AFTER its run is terminal: the grace is ten
 //     wall-clock minutes measured from the row's completed_at, not
 //     observable over the wire in a test's budget; the verifier's unit arms
 //     pin it with an injectable clock;
-//   - the memory row a `remember` call writes: on open source the memory
-//     tool is a stdio child that presents no credential yet (stigmer#1147);
 //   - an Artifact the runner writes: it does so only for a workflow task
 //     output above the promotion threshold, which no fixture produces; the
 //     child rows already prove the stamp;
 //   - "the runner made no exchange call": the runner's own unit arm on
 //     acquireScopedRunnerToken pins the short-circuit; a conformance arm
 //     reads outcomes, never a server log;
-//   - a credentialed MCP connect under the OIDC posture (stigmer#1137's
-//     connect half; its own change).
+//   - the discovery's McpServer metadata read: it rides the runner's own
+//     credential, an organization admin's under the chart's install, whom
+//     the model makes an owner of every McpServer in the organization; the
+//     connect arm's private server proves that read as a side effect.
 //
 // The arms run on the target's ENFORCING LANE (targets/target.ts): on the
 // execution targets an open-source sibling in the OIDC posture WITH its own
@@ -68,7 +78,9 @@
 import { Code } from "@connectrpc/connect";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
   ExecutionPhase as WorkflowExecutionPhase,
   WorkflowTaskStatus,
@@ -79,12 +91,24 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { anthropicText } from "../harness/llm-wire";
-import type { MockLlmProxy } from "../harness/mock-llm";
+import {
+  anthropicText,
+  anthropicToolUse,
+  type AnthropicMessageBody,
+} from "../harness/llm-wire";
+import { ECHO_TOOL_NAME } from "../harness/mcp-server";
+import { connectClassifierVerdict, type MockLlmProxy } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution } from "../support/agentexecutions";
+import {
+  awaitTerminal,
+  makeAgentExecution,
+  requireMcpFixture,
+} from "../support/agentexecutions";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
+import { makePersonalEnvironment } from "../support/environments";
 import { pollUntil } from "../support/execution-poll";
+import { makeHttpMcpServer } from "../support/mcpservers";
+import { MEMORY_CAP } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import {
   AGENT_CALL_AFTER_TASK_NAME,
@@ -202,17 +226,21 @@ describe.skipIf(!runnerActsAsRunCreator)(
       return agent;
     }
 
-    // A run dispatched by `by` on `agentId`, scripted with one text turn on the
-    // lane's runner (the mock answers the runner's background title call out of
-    // band, so a run costs exactly one queued turn).
+    // A run dispatched by `by` on `agentId`, scripted on the lane's runner with
+    // `script` — one text turn unless an arm needs a tool call first (the mock
+    // answers the runner's background title call out of band, so a run costs
+    // exactly its scripted turns).
     async function dispatchRun(
       mock: MockLlmProxy,
       by: ConformanceClients,
       org: string,
       agentId: string,
       label: string,
+      script: AnthropicMessageBody[] = [
+        anthropicText(`Hello from the ${label} run.`),
+      ],
     ): Promise<AgentExecution> {
-      mock.enqueue(anthropicText(`Hello from the ${label} run.`));
+      for (const turn of script) mock.enqueue(turn);
       const created = await by.agentExecutionCommand.create(
         makeAgentExecution({
           org,
@@ -263,14 +291,13 @@ describe.skipIf(!runnerActsAsRunCreator)(
     }
 
     // A founder-owned, org-visible workflow whose first task calls `agentSlug`,
-    // run by the member; resolves once the downstream task completed, which is
-    // the proof the child ran to terminal and the workflow continued.
-    async function runAgentCallWorkflow(
+    // dispatched by the member, with one text turn scripted for the child.
+    async function dispatchAgentCallWorkflow(
       mock: MockLlmProxy,
       people: People,
       agentSlug: string,
       label: string,
-    ) {
+    ): Promise<WorkflowExecution> {
       const input = makeAgentCallWorkflow({
         org: people.org,
         name: uniqueName(label),
@@ -299,7 +326,24 @@ describe.skipIf(!runnerActsAsRunCreator)(
           value: execution.metadata!.id,
         }),
       );
+      return execution;
+    }
 
+    // The workflow run to COMPLETED: resolves once the downstream task
+    // completed, which is the proof the child ran to terminal and the
+    // workflow continued.
+    async function runAgentCallWorkflow(
+      mock: MockLlmProxy,
+      people: People,
+      agentSlug: string,
+      label: string,
+    ) {
+      const execution = await dispatchAgentCallWorkflow(
+        mock,
+        people,
+        agentSlug,
+        label,
+      );
       await awaitTaskStatus(
         people.member,
         execution.metadata!.id,
@@ -627,6 +671,186 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(outsiderSees.entries.map((e) => e.metadata?.id)).not.toContain(
         child.metadata!.id,
       );
+    });
+
+    it("a shared workflow calling an agent the member cannot view: the child is created as the member and then refused at its blueprint read, and the workflow fails (the recorded reach)", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+      const privateAgent = await createAgent(
+        people,
+        ApiResourceVisibility.visibility_private,
+        "ras-private-callee",
+      );
+
+      const execution = await dispatchAgentCallWorkflow(
+        mock,
+        people,
+        privateAgent.metadata!.slug,
+        "ras-private-call",
+      );
+      const settled = await awaitWorkflowTerminal(
+        people.member,
+        execution.metadata!.id,
+      );
+
+      // The reach the model gives a run's credential today, the same in both
+      // editions: the workflow-bound runner is admitted on the child's
+      // run-gate checks, so the child EXISTS and is the member's; the
+      // child's own run then reads the agent it runs as the member and is
+      // refused, because a shared workflow runs its agents as the person who
+      // ran it. A widening of that reach turns this arm red on purpose.
+      expect(
+        settled.status?.phase,
+        `the workflow: ${settled.status?.error}`,
+      ).toBe(WorkflowExecutionPhase.EXECUTION_FAILED);
+      const child = await childExecutionOf(
+        people.member,
+        people.org,
+        settled.metadata!.id,
+      );
+      expect(
+        child.status?.audit?.specAudit?.createdBy?.id,
+        "the child was created as the member before its run was refused",
+      ).toBe(people.memberId);
+      expect(child.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+      expect(
+        child.status?.error,
+        "the child failed at an authorization refusal, not a fault",
+      ).toMatch(/unauthorized/i);
+      expect(
+        mock.consumed(),
+        "no model turn was spent: the refusal came before the child's first call",
+      ).toBe(0);
+    });
+
+    it("a member's connect of their own credentialed server succeeds: the connect's ExecutionContext is created as the member, and the connect token admits the runner as the member for the secret read", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+      const mcpTools = requireMcpFixture(target);
+
+      // The member saves the credential the server declares, in the
+      // organization's personal environment, and owns a PRIVATE server that
+      // declares it — so the discovery's metadata read (the runner's own key,
+      // an organization admin's) and its secret read (the connect token, the
+      // member's) are both exercised by one connect.
+      const personal = await people.member.environmentCommand.create(
+        makePersonalEnvironment({
+          org: people.org,
+          name: uniqueName("ras-personal"),
+          data: {
+            RAS_REQUIRED_KEY: { value: "member-credential", isSecret: true },
+          },
+        }),
+      );
+      fixtures.defer(() =>
+        people.member.environmentCommand.delete({
+          resourceId: personal.metadata!.id,
+        }),
+      );
+      const input = makeHttpMcpServer({
+        org: people.org,
+        name: uniqueName("ras-credentialed"),
+        url: mcpTools.url(),
+        env: { RAS_REQUIRED_KEY: { description: "a required credential", isSecret: true } },
+      });
+      input.metadata = {
+        ...input.metadata,
+        visibility: ApiResourceVisibility.visibility_private,
+      };
+      const server = await people.member.mcpServerCommand.create(input);
+      fixtures.defer(() =>
+        people.member.mcpServerCommand.delete({ resourceId: server.metadata!.id }),
+      );
+
+      // A redacted or refused secret read fails discovery loudly (the runner's
+      // CredentialResolutionError), so SUCCEEDED with the fixture's tool is the
+      // proof the secret was read as the member and decrypted for the runner.
+      mock.enqueue(connectClassifierVerdict(ECHO_TOOL_NAME, false));
+      const connected = await people.member.mcpServerCommand.connect({
+        mcpServerId: server.metadata!.id,
+        org: people.org,
+      });
+      expect(
+        connected.status?.connectStatus?.phase,
+        `the member's connect: ${connected.status?.connectStatus?.failureMessage ?? ""}`,
+      ).toBe(ConnectPhase.succeeded);
+      expect(
+        (connected.status?.discoveredCapabilities?.tools ?? []).map((t) => t.name),
+      ).toEqual([ECHO_TOOL_NAME]);
+      expect(mock.consumed(), "one classifier turn").toBe(1);
+    });
+
+    it("a member's run with memory on proposes a memory that is the member's: the stdio remember child acts as the run's person, and the operator cannot list it", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+
+      // Memory is an organization preference an admin turns on; the founder
+      // owns the organization.
+      const organization = await people.founder.organizationQuery.get({
+        value: people.org,
+      });
+      await people.founder.organizationCommand.update({
+        apiVersion: organization.apiVersion,
+        kind: organization.kind,
+        metadata: {
+          id: organization.metadata!.id,
+          name: organization.metadata!.name,
+        },
+        spec: { preferences: { memoryEnabled: true } },
+      });
+      const agent = await createAgent(
+        people,
+        ApiResourceVisibility.visibility_org,
+        "ras-remembering",
+      );
+
+      // The agent proposes one fact through `remember`, then answers. The
+      // remember tool is the runner-synthesized stdio child, which now holds
+      // the run's credential — without it every capture is refused as
+      // nobody's on a server that signs people in.
+      const fact = "Prefers concise answers with code examples.";
+      const run = await dispatchRun(
+        mock,
+        people.member,
+        people.org,
+        agent.metadata!.id,
+        "member-remember",
+        [
+          anthropicToolUse("toolu_remember", "remember", { fact }),
+          anthropicText("I have suggested that as a memory."),
+        ],
+      );
+      const settled = await awaitTerminal(people.member, run.metadata!.id);
+      expect(
+        settled.status?.phase,
+        `the remembering run: ${settled.status?.error}`,
+      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(mock.consumed(), "the tool turn and the answer").toBe(2);
+
+      // The memory model is subject-only: the person a memory is ABOUT is its
+      // one principal. The member lists exactly the fact the run proposed,
+      // stamped with the member as subject and the run's session as provenance
+      // — the server derived both from the credential, nothing the child said.
+      const mine = await people.member.memoryQuery.list({
+        org: people.org,
+        pageInfo: { num: 1, size: MEMORY_CAP },
+      });
+      expect(mine.items.map((m) => m.spec?.content)).toEqual([fact]);
+      const memory = mine.items[0]!;
+      fixtures.defer(() =>
+        people.member.memoryCommand.delete({ value: memory.metadata!.id }),
+      );
+      expect(memory.spec?.subjectIdentityAccountId).toBe(people.memberId);
+      expect(memory.spec?.provenance?.sessionId).toBe(settled.spec?.sessionId);
+      expect(memory.spec?.provenance?.agentExecutionId).toBe(run.metadata!.id);
+
+      // The operator — an organization owner, whose key the runner holds —
+      // is not the memory's subject and sees nothing.
+      const operatorSees = await people.founder.memoryQuery.list({
+        org: people.org,
+        pageInfo: { num: 1, size: MEMORY_CAP },
+      });
+      expect(operatorSees.items).toEqual([]);
     });
   },
 );

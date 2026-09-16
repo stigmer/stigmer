@@ -44,9 +44,14 @@ export interface Config {
   /** gRPC dial target for stigmer-server (e.g. "localhost:7234"). */
   readonly stigmerServerAddress: string;
   /**
-   * API key for stigmer-server. Used for stdio/both; in http mode every
-   * request carries its own Bearer token. Empty when targeting an
-   * unauthenticated local backend.
+   * The startup bearer for stigmer-server (STIGMER_API_KEY) — any
+   * credential the server honours: an `stk_` API key when an IDE client
+   * runs this server, or the run's own credential when the runner spawns
+   * it as a stdio child for a run (the runner's synthesized attachments;
+   * the server derives who is acting from the credential, so what the
+   * child writes is the run's person's). Used for stdio/both; in http
+   * mode every request carries its own Bearer token. Empty when targeting
+   * an unauthenticated local backend.
    */
   readonly apiKey: string;
   readonly transport: Transport;

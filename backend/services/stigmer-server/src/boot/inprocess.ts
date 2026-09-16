@@ -318,8 +318,14 @@ export function createInProcessClients(
     executionContextCreator: {
       create: (ec) => executionContextCommand.create(ec),
     },
+    // The connect lane's ephemeral EC is created AS THE CONNECTING PERSON
+    // (ruling R5's asCaller lane): its creator stamp is what the
+    // runner-subject verifier resolves the connect token's bearer to under
+    // the built-in posture (runnerauth/bound-execution.ts). The delete
+    // stays the server's own act — the row is the lane's, whoever asked.
     connectExecutionContextClient: {
-      create: (ec) => executionContextCommand.create(ec),
+      create: (ec, caller) =>
+        executionContextCommand.create(ec, asCaller(caller)),
       delete: (input) => executionContextCommand.delete(input),
     },
     // The workflowexecution edges: the default-instance self-heal creates

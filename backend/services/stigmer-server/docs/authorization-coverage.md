@@ -92,11 +92,11 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | ExecutionContextCommandController.apply | none | chain-with-Authorize |
-| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeExecutionContextCreate mid-chain check: can_create_execution_in on the organization, before the duplicate check — the Java AuthorizeCreate order, stigmer-cloud#297) |
+| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeExecutionContextCreate mid-chain check: can_create_execution_in on the organization, before the duplicate check — the Java AuthorizeCreate order, stigmer-cloud#297); the MCP connect lane creates its ephemeral EC through this chain AS THE CONNECTING PERSON (`boot/inprocess.ts`, the in-process `asCaller` lane), so the row's creator stamp is the connect token's person under the built-in posture) |
 | ExecutionContextCommandController.delete | is_skip_authorization | chain-with-Authorize |
 | ExecutionContextQueryController.get | is_skip_authorization | chain-with-Authorize (response redacted) |
 | ExecutionContextQueryController.getByReference | is_skip_authorization | chain-with-Authorize (response redacted) |
-| ExecutionContextQueryController.getByExecutionId | is_skip_authorization | chain-with-Authorize (runner-token verified in domain; redaction-as-success) |
+| ExecutionContextQueryController.getByExecutionId | is_skip_authorization | chain-with-Authorize (runner-token verified in domain; redaction-as-success; under the built-in posture the runner-subject verifier admits the bearer of a RUN credential as the run's person and the bearer of a CONNECT token as the person the connect's EC was created by — `src/runnerauth/bound-execution.ts`, the three bindings; a clockless token bound to a connect falls closed to redaction through the same `bindsARun` predicate the verifier refuses it with) |
 
 ## 6. Agent (`src/domain/agent/controller.ts`)
 
@@ -329,7 +329,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | McpServerCommandController.update | config: can_edit on mcp_server (field metadata.id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.updateVisibility | config: can_edit on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.delete | config: can_delete on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
-| McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start); authorizeDirect AFTER the load (#224) |
+| McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start); authorizeDirect AFTER the load (#224). The ephemeral EC is created as the caller and the connect token, under the built-in posture, admits the runner as that caller for the EC read (`src/domain/mcpserver/connect-execution-id.ts`; `src/runnerauth/bound-execution.ts` `mcp-connect`); the discovery's McpServer read rides the runner's own credential, an organization admin's key under the chart's install, whom the model makes an owner of every McpServer in the organization |
 | McpServerCommandController.startConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: async connect lane over the engine seam; authorizeDirect AFTER the load (#224) |
 | McpServerCommandController.initiateOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth authorize-URL mint (refuses FAILED_PRECONDITION without a configured redirect URI); authorizeDirect AFTER the load (#224) |
 | McpServerCommandController.completeOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth code exchange + grant persistence; authorizeDirect against the PENDING RECORD's server id (target override — the Java confused-deputy discipline; the single-use state is burned before a denial lands) |

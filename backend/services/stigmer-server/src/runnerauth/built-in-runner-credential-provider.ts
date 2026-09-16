@@ -20,8 +20,12 @@
  * for every caller, and only the runner-subject verifier mints `runner`,
  * so a person costs nothing here. It never throws: a person, a runner
  * holding no token, a token this server did not sign, or a binding that
- * names no execution kind is simply "not a runner binding", and each
- * caller answers its own default for that.
+ * names no kind is simply "not a runner binding", and each caller
+ * answers its own default for that. A CONNECT binding (`mcp-connect`, a
+ * runner reading one discovery's secrets as the person who asked) IS a
+ * runner binding, and every capability below answers it by name: it is
+ * admitted on no run gate, vouches no lineage, captures no memory, and
+ * the exchange mints nothing for it.
  *
  * The capabilities, and where they follow or narrow the cloud:
  *
@@ -72,7 +76,9 @@
  *     whose stamp names nobody → PERMISSION_DENIED with one sentence
  *     (constants.ts). The id decides which execution kind is read (the
  *     lane's rule everywhere); the request's arm only chooses the
- *     not-found copy. Liveness is NOT judged at mint — both lanes that
+ *     not-found copy; an id that resolves to a CONNECT binding is
+ *     NOT_FOUND too, because the exchange mints run credentials and a
+ *     connect is not a run. Liveness is NOT judged at mint — both lanes that
  *     accept the token judge it, by one rule (bound-execution.ts), and a
  *     third judge here would be a divergence waiting to happen. The
  *     pool-claim, renewal and unset arms answer not-minted, the
@@ -94,7 +100,11 @@ import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import { getKindName } from "../pipeline/apiresource-meta.js";
 import { notFoundError } from "../pipeline/errors.js";
-import { boundExecutionKindOf, loadBoundExecution } from "./bound-execution.js";
+import {
+  bindsARun,
+  boundExecutionKindOf,
+  loadBoundExecution,
+} from "./bound-execution.js";
 import type {
   BoundExecutionKind,
   BoundExecutionStore,
@@ -200,7 +210,9 @@ export function newBuiltInRunnerCredentialProvider(
             store,
             request.executionId,
           );
-          if (execution === undefined) {
+          // A connect binding is not a run: the exchange mints RUN
+          // credentials, and the requested kind's row does not exist.
+          if (execution === undefined || !bindsARun(execution.kind)) {
             throw notFoundError(
               requestedKindName(request.arm),
               request.executionId,

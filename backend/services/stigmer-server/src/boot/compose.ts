@@ -1377,8 +1377,8 @@ export async function composeServer(
             requireInProcess().executionEnvironmentReader.getSecretValue(input),
         },
         executionContext: {
-          create: (ec) =>
-            requireInProcess().connectExecutionContextClient.create(ec),
+          create: (ec, caller) =>
+            requireInProcess().connectExecutionContextClient.create(ec, caller),
           delete: (input) =>
             requireInProcess().connectExecutionContextClient.delete(input),
         },

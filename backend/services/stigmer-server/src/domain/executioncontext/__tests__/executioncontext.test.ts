@@ -55,6 +55,7 @@ import {
 } from "../../../encryption/encryption.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { REDACTED_MARKER } from "../../environment/constants.js";
+import { newConnectExecutionId } from "../../mcpserver/connect-execution-id.js";
 import {
   DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   deleteExecutionContextForExecution,
@@ -497,6 +498,28 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
         { headers: bearerHeaders(credential) },
       );
       expect(ec.spec!.data["API_TOKEN"]!.value).toBe(REDACTED_MARKER);
+    });
+
+    it("redacts for a clockless token bound to a connect's EC — a connect is not a run, and no mint produces that shape (the verifier refuses it through the same predicate)", async () => {
+      const connectId = newConnectExecutionId("mcps_conn");
+      await ts.command.create(ecInput({ executionId: connectId }));
+      const clockless =
+        ts.server.runnerAuthService.mintRunCredential(connectId);
+      const redacted = await ts.query.getByExecutionId(
+        { executionId: connectId },
+        { headers: bearerHeaders(clockless) },
+      );
+      expect(redacted.spec!.data["API_TOKEN"]!.value).toBe(REDACTED_MARKER);
+      // The connect lane's own CLOCKED token keeps decrypting the same EC:
+      // the clocked arms above are untouched by the run-credential rule.
+      const clocked = ts.server.runnerAuthService.mint(connectId, 300).token;
+      const decrypted = await ts.query.getByExecutionId(
+        { executionId: connectId },
+        { headers: bearerHeaders(clocked) },
+      );
+      expect(decrypted.spec!.data["API_TOKEN"]!.value).toBe(
+        "super-secret-token",
+      );
     });
   });
 

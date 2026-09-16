@@ -103,12 +103,18 @@ From the next boot, every request needs a credential:
 - **Runs belong to the person who started them, whoever's key the runner
   holds.** The runner's API key is its own credential. For each run, the server
   gives the runner a credential for that run alone, and everything the runner
-  does for it, including the Sessions and executions it creates and the status
-  it reports, is recorded as that person. A run that was already in flight when
-  you turned authentication on belongs to no signed-in person and stops with a
-  message saying so; start it again while signed in. A run's credential is
-  written into the run's Temporal history and stays valid for ten minutes after
-  the run ends, so protect Temporal the way you protect the database.
+  does for it, including the Sessions and executions it creates, the status it
+  reports and the memories its agent proposes with `remember`, is recorded as
+  that person. Connecting an MCP server that declares credentials works the same
+  way: the runner reads those credentials as the person who asked for the
+  connect. A workflow shared with the organization runs the agents it calls as
+  the person who ran the workflow, so that person must be able to view them; a
+  call to a private agent fails at the agent's read. A run that was already in
+  flight when you turned authentication on belongs to no signed-in person and
+  stops with a message saying so; start it again while signed in. A run's
+  credential is written into the run's Temporal history and stays valid for ten
+  minutes after the run ends, so protect Temporal the way you protect the
+  database.
 - Requests without a credential are rejected with
   `authentication token missing`. Requests with a bad credential get a specific
   reason (`token has expired`, `token signature verification failed`, and so

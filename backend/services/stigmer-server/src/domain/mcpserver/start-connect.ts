@@ -118,7 +118,7 @@ export async function startConnect(
     }
   }
 
-  const prepared = await prepareConnect(deps, mcpServer, input);
+  const prepared = await prepareConnect(deps, mcpServer, input, identity);
 
   // Taken before the start so the advisory describes the queue the run is
   // about to join. Warn-only by design: a worker may be booting (the

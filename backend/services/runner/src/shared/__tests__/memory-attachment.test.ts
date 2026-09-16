@@ -30,6 +30,7 @@ import {
   type MemoryCaptureContext,
 } from "../memory-attachment.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
+import { STDIO_CREDENTIAL_ENV } from "../synthesized-attachment.js";
 
 const context: MemoryCaptureContext = {
   org: "acme",
@@ -115,6 +116,22 @@ describe("synthesizeMemoryAttachment", () => {
         [MEMORY_EXECUTION_ID_ENV]: "aex_1",
       },
     });
+  });
+
+  it("the stdio child receives the run's credential as its startup bearer — the same credential the bridge shape presents per request", () => {
+    const attachment = synthesizeMemoryAttachment(enabled, context, {
+      ...ossOptions,
+      credential: "run-credential",
+    });
+    expect(attachment?.connectionType).toBe("stdio");
+    expect(attachment?.env).toMatchObject({
+      [STDIO_CREDENTIAL_ENV]: "run-credential",
+      STIGMER_MCP_ROSTER: "memory",
+    });
+    // The child's environment is byte-for-byte today's when the run carried no credential.
+    expect(synthesizeMemoryAttachment(enabled, context, ossOptions)?.env).not.toHaveProperty(
+      STDIO_CREDENTIAL_ENV,
+    );
   });
 
   it("omits empty context fields from the carrier — best-effort attribution, never blank entries", () => {

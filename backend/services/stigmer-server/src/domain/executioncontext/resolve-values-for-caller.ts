@@ -72,7 +72,10 @@ import { EncryptionUnavailableError } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
 import { parseBearerToken } from "../../pipeline/interceptors/auth.js";
-import { loadBoundExecution } from "../../runnerauth/bound-execution.js";
+import {
+  bindsARun,
+  loadBoundExecution,
+} from "../../runnerauth/bound-execution.js";
 import type { BoundExecutionStore } from "../../runnerauth/bound-execution.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import {
@@ -214,12 +217,14 @@ function verifyRunnerToken(
 }
 
 /**
- * A run credential's liveness: the bound execution exists and is live
- * (runnerauth/bound-execution.ts). A missing row is "not live" — the
- * credential opens nothing. A store fault is an infrastructure fault,
- * sanitized here as every direct handler does (the store-fault doctrine):
- * an outage must not read as a redaction decision, and the same store
- * just served the row this read is for.
+ * A run credential's liveness: the bound execution exists, IS a run
+ * (`bindsARun` — a clockless token bound to a connect is a shape no mint
+ * produces, refused here and by the verifier through the one predicate)
+ * and is live (runnerauth/bound-execution.ts). A missing row is "not
+ * live" — the credential opens nothing. A store fault is an
+ * infrastructure fault, sanitized here as every direct handler does (the
+ * store-fault doctrine): an outage must not read as a redaction decision,
+ * and the same store just served the row this read is for.
  */
 async function runIsLive(
   deps: ResolveValuesDeps,
@@ -227,7 +232,9 @@ async function runIsLive(
 ): Promise<boolean> {
   try {
     const execution = await loadBoundExecution(deps.store, executionId);
-    return execution?.live === true;
+    return (
+      execution !== undefined && bindsARun(execution.kind) && execution.live
+    );
   } catch (error) {
     throw internalError(error, "failed to load the run credential's execution");
   }

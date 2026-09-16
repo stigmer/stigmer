@@ -36,7 +36,12 @@
  * Two mints, one shape:
  *   - `mint(executionId, ttl)` — the CLOCKED token: the trusted-local
  *     exchange and the connect and sandbox lanes, whose one unit of work
- *     has a bounded lifetime. `exp` is present and enforced.
+ *     has a bounded lifetime. `exp` is present and enforced. The connect
+ *     lane's token binds no execution row but the connect's own
+ *     ExecutionContext (domain/mcpserver/connect-execution-id.ts), and
+ *     under the built-in posture it too is an identity: its bearer acts
+ *     as the person who asked for the connect, whom that row was created
+ *     by (bound-execution.ts, the `mcp-connect` binding).
  *   - `mintRunCredential(executionId)` — the RUN credential: the two
  *     execution engines put it on every dispatch's workflow input
  *     (dispatch-credential.ts), and under the built-in posture the

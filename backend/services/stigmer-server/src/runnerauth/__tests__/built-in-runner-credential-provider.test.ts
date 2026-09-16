@@ -9,9 +9,11 @@
  *
  *   - `runnerBindingOf(caller)`: what the caller's credential is bound to
  *     — an agent execution, a workflow execution (the kind read off the
- *     bound id's prefix), or nothing (a person; a token that is not ours;
- *     a forged one). One HMAC, no store read; the lane-admission
- *     decorator asks the same question.
+ *     bound id's prefix), an MCP connect (its own predicate), or nothing
+ *     (a person; a token that is not ours; a forged one). One HMAC, no
+ *     store read; the lane-admission decorator asks the same question. A
+ *     connect binding is answered BY NAME by every capability: it vouches
+ *     nothing, captures nothing, and the exchange mints nothing for it.
  *   - `vouchRunnerLineageLabels`: a WORKFLOW-bound runner vouches the two
  *     lineage keys for its own workflow execution and REFUSES (the
  *     cloud's byte-pinned copy, transcribed) a stamp naming another; an
@@ -49,12 +51,14 @@ import { describe, expect, it } from "vitest";
 
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
+import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { BoundExecutionStore } from "../bound-execution.js";
@@ -114,7 +118,15 @@ const ROWS: Record<string, unknown> = {
   aex_nobodys_run: NOBODYS_RUN,
 };
 
-/** A store that knows three rows and answers the typed not-found for every other id. */
+/** Carol's connect: the ephemeral EC the connect lane created as her, keyed by the connect's execution id. */
+const CONNECT_ID = newConnectExecutionId("mcps_carols_server");
+const CONNECT_CONTEXT = create(ExecutionContextSchema, {
+  metadata: { id: "ectx_carol", name: `exec-ctx-${CONNECT_ID}`, org: "acme" },
+  spec: { executionId: CONNECT_ID },
+  status: { ...stampedBy(HUMAN) },
+});
+
+/** A store that knows three rows and one connect EC, and answers the typed not-found for everything else. */
 const store: BoundExecutionStore = {
   getResource<Desc extends DescMessage>(
     kind: ApiResourceKind,
@@ -126,6 +138,17 @@ const store: BoundExecutionStore = {
       return Promise.reject(new ResourceNotFoundError(`${kind}/${id}`));
     }
     return Promise.resolve(row as MessageShape<Desc>);
+  },
+  findByField<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    fieldPath: string,
+    value: string,
+    _schema: Desc,
+  ): Promise<MessageShape<Desc>> {
+    if (fieldPath === "spec.executionId" && value === CONNECT_ID) {
+      return Promise.resolve(CONNECT_CONTEXT as unknown as MessageShape<Desc>);
+    }
+    return Promise.reject(new ResourceNotFoundError(`${kind}/${value}`));
   },
 };
 
@@ -171,6 +194,8 @@ const agentBound = runnerCaller(service.mintRunCredential("aex_agent_run"));
 const workflowBound = runnerCaller(
   service.mintRunCredential("wex_workflow_run"),
 );
+/** The connect lane's runner: the clocked token bound to Carol's connect EC (connect.ts `prepareConnect`). */
+const connectBound = runnerCaller(service.mint(CONNECT_ID, 300).token);
 
 describe("the default lane is byte-identical", () => {
   it("mints and verifies on execution_scoped exactly as the default provider", () => {
@@ -287,6 +312,14 @@ describe("exchangeScopedToken — the mint gate", () => {
     );
   });
 
+  it("a connect binding is NOT_FOUND under either arm — the exchange mints run credentials, and a connect is not a run", async () => {
+    const failure = await refusal(
+      exchange({ arm: "agent-execution", executionId: CONNECT_ID }, carol),
+    );
+    expect(failure.code).toBe(Code.NotFound);
+    expect(failure.rawMessage).toBe(`AgentExecution not found: ${CONNECT_ID}`);
+  });
+
   it("the id decides which execution is read, never the arm — an agent id under the workflow arm mints for the agent run", async () => {
     const minted = await exchange(
       { arm: "workflow-execution", executionId: "aex_agent_run" },
@@ -355,6 +388,13 @@ describe("runnerBindingOf — the one reading of what a runner is bound to", () 
     expect(runnerBindingOf(service, clocked)?.executionId).toBe("aex_clocked");
   });
 
+  it("the connect lane's token IS a runner binding, named — every capability answers it by kind, none by accident", () => {
+    expect(runnerBindingOf(service, connectBound)).toEqual({
+      kind: "mcp-connect",
+      executionId: CONNECT_ID,
+    });
+  });
+
   it.each([
     ["a person", person],
     ["a runner-class caller holding no token", { ...agentBound, rawToken: "" }],
@@ -410,6 +450,10 @@ describe("vouchRunnerLineageLabels", () => {
     expect(vouch(agentBound, "wex_workflow_run")).toBe(false);
   });
 
+  it("a connect-bound runner vouches nothing — a discovery creates no execution", () => {
+    expect(vouch(connectBound, "wex_workflow_run")).toBe(false);
+  });
+
   it("a person vouches nothing", () => {
     expect(vouch(person, "wex_workflow_run")).toBe(false);
   });
@@ -448,6 +492,10 @@ describe("authorizeMemoryCapture", () => {
 
   it("a workflow-bound runner is refused — the cloud refuses every non-session lane", async () => {
     expect(await decide(workflowBound, "acme")).toEqual({ verdict: "refuse" });
+  });
+
+  it("a connect-bound runner is refused — a discovery has no session to capture for", async () => {
+    expect(await decide(connectBound, "acme")).toEqual({ verdict: "refuse" });
   });
 
   it("an agent-bound runner whose run has vanished is refused — a memory the server cannot attribute is not written as nobody's", async () => {
