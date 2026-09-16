@@ -238,7 +238,7 @@ black box.
 `npm run typecheck -w @stigmer/conformance` is the package's own gate. It runs in
 `ci.ts-workspace` (the TS workspace lane, as the turbo `typecheck` task whenever
 this package is affected), in `make check-node`, and in the
-`test/conformance/**` row of `@verify-stigmer-oss-changes`. It must be clean;
+`test/conformance/**` row of the root guide's verification map. It must be clean;
 `vitest` does not typecheck, so a suite can run green over a type error that
 this step is the only thing catching (stigmer/stigmer#999).
 

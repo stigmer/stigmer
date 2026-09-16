@@ -488,6 +488,7 @@ export function runGate(root, { sync = false, privateRepo = false } = {}) {
     ...checkCitations(root, files),
     ...checkLeakage(root, files, { privateRepo }),
     ...budgets.findings,
+    ...checkRulesDir(root),
     ...skills.findings,
   ];
   return { findings, written: shims.written, removed: shims.removed, files, measured: budgets.measured, skills: skills.skills };

@@ -17,7 +17,7 @@
 #                   container's filesystem and network, not your host's.
 #
 # Image pins: the STIGMER_VERSION default below is bumped in the release
-# commit the tag is cut from (`make release` / @release-stigmer-oss refuse
+# commit the tag is cut from (`make release` and the release procedure refuse
 # to tag without it, alongside the mcp-server bridge pin); release.npm-libs
 # then proves the pinned images with the compose smoke on both
 # architectures. Override in .env to run a different released version.

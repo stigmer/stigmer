@@ -352,15 +352,17 @@ test("runGate composes the checks and reports green only when all pass", () => {
     ".agents/skills/runner-dev-guidelines/SKILL.md":
       "---\nname: runner-dev-guidelines\ndescription: Runner doctrine. Use when editing the runner.\npaths:\n  - backend/services/runner/**\n---\n# Runner\n\nRead `backend/services/runner/src/main.ts` first.\n",
     ".agents/skills/broken/SKILL.md": "# no frontmatter\n",
+    ".cursor/rules/legacy-doctrine.mdc": "---\ndescription: a hand-written rule\n---\n",
   });
   try {
     const before = runGate(root, { sync: false });
     assert.deepEqual(
       before.findings.map((f) => f.split(":")[0]),
-      [".cursor/rules/agents-backend-services-runner.mdc", ".agents/skills/broken/SKILL.md"],
-      "the missing shim and the malformed skill are the two findings",
+      [".cursor/rules/agents-backend-services-runner.mdc", ".cursor/rules/legacy-doctrine.mdc", ".agents/skills/broken/SKILL.md"],
+      "the missing shim, the authored rule and the malformed skill are the three findings",
     );
     rmSync(join(root, ".agents/skills/broken"), { recursive: true });
+    rmSync(join(root, ".cursor/rules/legacy-doctrine.mdc"));
     const synced = runGate(root, { sync: true });
     assert.deepEqual(synced.findings, []);
     assert.deepEqual(synced.written, [".cursor/rules/agents-backend-services-runner.mdc"]);
