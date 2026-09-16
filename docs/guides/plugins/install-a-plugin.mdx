@@ -5,11 +5,12 @@ description:
   get an Agent that uses its skills and tools.
 ---
 
-A plugin is a folder of skills, MCP servers and sub-agents in the layout the
-Cursor, Claude Code and Codex communities already publish. Installing it on
-Stigmer creates ordinary Skills and MCP Servers in your Organization and an
-Agent that uses them, as one unit. You talk to that Agent the way you talk to
-any other; the plugin is what you install, the Agent is what runs.
+A plugin is a folder of skill files, MCP server entries, and sub-agent prompts
+in the layout the Cursor, Claude Code, and Codex communities already publish.
+Installing it on Stigmer creates ordinary Skills and MCP Servers in your
+Organization and an Agent that uses them, as one unit. You talk to that Agent
+the way you talk to any other; the plugin is what you install, the Agent is what
+runs.
 
 Before you start, [sign in](/docs/guides/authentication) with
 `stigmer auth login`. Every command below takes `--org <slug>` if you work in
@@ -73,8 +74,8 @@ Installed
 repository that is a plugin installs with the command you already run.
 
 The Agent it created is `thermos`, named after the plugin. It carries the
-plugin's skills, uses its MCP server, and has the plugin's sub-agents as its
-own. Open it in the console or start a session:
+plugin's Skills, uses its MCP Server, and has the plugin's sub-agent prompts as
+its own. Open it in the console or start a Session:
 
 ```bash
 stigmer run thermos
@@ -82,11 +83,11 @@ stigmer run thermos
 
 ## Give it its secrets
 
-The MCP server declared a variable, `GITHUB_TOKEN`. The server was created with
-that variable marked secret, and the Agent's session asks for it the first time
-the tool is used, exactly as it would for an MCP server you added by hand. Set
-it once on the [Environment](/docs/concepts/environments) and every session has
-it.
+The MCP server declared a variable, `GITHUB_TOKEN`. The MCP Server was created
+with that variable marked secret, and the Agent's Session asks for it the first
+time the tool is used, exactly as it would for an MCP Server you added by hand.
+Set it once on the [Environment](/docs/concepts/environments) and every Session
+has it.
 
 ## Upgrade
 
