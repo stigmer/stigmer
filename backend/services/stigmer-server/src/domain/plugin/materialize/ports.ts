@@ -3,7 +3,7 @@
  * consumer-defined, method-segregated surface the composition root
  * satisfies with in-process clients (boot/inprocess.ts), the
  * `AgentInstanceApplier` shape. Every call rides the in-process router
- * transport AS THE INSTALLING CALLER (ruling R5's `asCaller` lane): each
+ * transport AS THE INSTALLING CALLER (the `asCaller` call options): each
  * child's full chain runs — validation, the caller's own permission for
  * that kind, references, the reserved-label and managed guards (both pass
  * by origin), persist, tuples, index — so a materialised skill is a skill

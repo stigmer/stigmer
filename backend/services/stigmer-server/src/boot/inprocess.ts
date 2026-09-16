@@ -160,7 +160,7 @@ export interface InProcessClients {
    * The plugin controller's materialisation edge: every member a plugin
    * installs, upgrades, re-levels or removes goes through the owning
    * domain's FULL chain (skill push, the three applies, updateVisibility,
-   * delete) AS THE INSTALLING CALLER (ruling R5's asCaller lane), so a
+   * delete) AS THE INSTALLING CALLER (the asCaller call options), so a
    * materialised skill is attributed to the user who installed it and
    * carries the plugin's reserved labels by the in-process origin the
    * guards pass structurally. The delete routing is the reconciler's

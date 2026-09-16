@@ -9,7 +9,7 @@
  *
  * Skills carried this step alone (the Go ResolveArtifactSource port);
  * plugins are pushed the same two ways over the same upload slots (one
- * upload surface, the ruling boot/compose.ts quotes), so the step lives
+ * upload surface, as boot/compose.ts wires it), so the step lives
  * here and each kind names its lane-absent sentence and the request
  * fields it reads.
  *
