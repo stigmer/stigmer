@@ -61,6 +61,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@stigmer/ink": "*",
     "@stigmer/mcp-server": "*",
+    "@stigmer/plugin-package": "*",
     "@stigmer/protos": "*",
     "@stigmer/sdk": "*",
     "commander": "^12.1.0",

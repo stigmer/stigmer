@@ -60,6 +60,11 @@ export const PACKAGES = [
   // It MUST publish for the same reason as temporal-codecs: the runner links
   // it and pins the exact release version at stamp time.
   "backend/libs/ts/zip-structure",
+  // @stigmer/plugin-package has no @stigmer/* deps, so its position is
+  // order-free. It MUST publish: @stigmer/cli depends on it (pinned to the
+  // lockstep version at stamp time), and the server links it once the plugin
+  // install pipeline lands.
+  "backend/libs/ts/plugin-package",
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",

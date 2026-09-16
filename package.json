@@ -5,6 +5,7 @@
     "apis/stubs/ts",
     "backend/libs/ts/temporal-codecs",
     "backend/libs/ts/zip-structure",
+    "backend/libs/ts/plugin-package",
     "sdk/typescript",
     "sdk/theme",
     "sdk/react",
