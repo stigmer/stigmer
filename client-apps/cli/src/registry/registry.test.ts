@@ -49,7 +49,9 @@ describe("registry — alias resolution", () => {
   });
 
   it("resolution is case-insensitive", () => {
-    expect(registry.getByAlias("MCP-SERVER")?.kind).toBe(ApiResourceKind.mcp_server);
+    expect(registry.getByAlias("MCP-SERVER")?.kind).toBe(
+      ApiResourceKind.mcp_server,
+    );
   });
 
   it("returns undefined for an unknown alias", () => {
@@ -61,7 +63,10 @@ describe("registry — alias resolution", () => {
   // row in `list types` that the pre-gate route then shadows — the
   // stigmer/stigmer#469 class (see the alias-shadowing suite below).
   it("does not register the runtime execution kinds as addressable types", () => {
-    for (const kind of [ApiResourceKind.agent_execution, ApiResourceKind.workflow_execution]) {
+    for (const kind of [
+      ApiResourceKind.agent_execution,
+      ApiResourceKind.workflow_execution,
+    ]) {
       expect(registry.getByKind(kind)).toBeUndefined();
     }
   });
@@ -69,14 +74,26 @@ describe("registry — alias resolution", () => {
 
 describe("registry — YAML kind resolution", () => {
   it("resolves the exact YAML kind", () => {
-    expect(registry.getByYamlKind("McpServer")?.kind).toBe(ApiResourceKind.mcp_server);
-    expect(registry.getByYamlKind("Workflow")?.kind).toBe(ApiResourceKind.workflow);
+    expect(registry.getByYamlKind("McpServer")?.kind).toBe(
+      ApiResourceKind.mcp_server,
+    );
+    expect(registry.getByYamlKind("Workflow")?.kind).toBe(
+      ApiResourceKind.workflow,
+    );
   });
 });
 
 describe("registry — verb support matrix", () => {
   it("agent supports read + run + search verbs", () => {
-    for (const v of [Verb.Apply, Verb.Validate, Verb.Get, Verb.List, Verb.Delete, Verb.Run, Verb.Search]) {
+    for (const v of [
+      Verb.Apply,
+      Verb.Validate,
+      Verb.Get,
+      Verb.List,
+      Verb.Delete,
+      Verb.Run,
+      Verb.Search,
+    ]) {
       expect(registry.supportsVerb(ApiResourceKind.agent, v)).toBe(true);
     }
     expect(registry.supportsVerb(ApiResourceKind.agent, Verb.Push)).toBe(false);
@@ -84,21 +101,33 @@ describe("registry — verb support matrix", () => {
 
   it("skill supports push but not apply", () => {
     expect(registry.supportsVerb(ApiResourceKind.skill, Verb.Push)).toBe(true);
-    expect(registry.supportsVerb(ApiResourceKind.skill, Verb.Apply)).toBe(false);
+    expect(registry.supportsVerb(ApiResourceKind.skill, Verb.Apply)).toBe(
+      false,
+    );
   });
 
   it("workflow_instance has no list verb", () => {
-    expect(registry.supportsVerb(ApiResourceKind.workflow_instance, Verb.Get)).toBe(true);
-    expect(registry.supportsVerb(ApiResourceKind.workflow_instance, Verb.List)).toBe(false);
+    expect(
+      registry.supportsVerb(ApiResourceKind.workflow_instance, Verb.Get),
+    ).toBe(true);
+    expect(
+      registry.supportsVerb(ApiResourceKind.workflow_instance, Verb.List),
+    ).toBe(false);
   });
 
   it("agent_channel supports the full declarative verb set", () => {
     for (const v of [Verb.Apply, Verb.Get, Verb.List, Verb.Delete]) {
-      expect(registry.supportsVerb(ApiResourceKind.agent_channel, v)).toBe(true);
+      expect(registry.supportsVerb(ApiResourceKind.agent_channel, v)).toBe(
+        true,
+      );
     }
     // The install flow is console-driven and cloud-only — never a CLI verb.
-    expect(registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Run)).toBe(false);
-    expect(registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Search)).toBe(false);
+    expect(registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Run)).toBe(
+      false,
+    );
+    expect(
+      registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Search),
+    ).toBe(false);
   });
 
   it("schedule supports the full declarative verb set", () => {
@@ -106,19 +135,27 @@ describe("registry — verb support matrix", () => {
       expect(registry.supportsVerb(ApiResourceKind.schedule, v)).toBe(true);
     }
     // Firing rides `stigmer schedule trigger`, never the generic run verb.
-    expect(registry.supportsVerb(ApiResourceKind.schedule, Verb.Run)).toBe(false);
+    expect(registry.supportsVerb(ApiResourceKind.schedule, Verb.Run)).toBe(
+      false,
+    );
   });
 
   it("agent_share promises only apply (narrowed — stigmer/stigmer#354)", () => {
-    expect(registry.supportsVerb(ApiResourceKind.agent_share, Verb.Apply)).toBe(true);
+    expect(registry.supportsVerb(ApiResourceKind.agent_share, Verb.Apply)).toBe(
+      true,
+    );
     for (const v of [Verb.Get, Verb.List, Verb.Delete]) {
       expect(registry.supportsVerb(ApiResourceKind.agent_share, v)).toBe(false);
     }
   });
 
   it("session promises apply + list; get/delete stay narrowed (stigmer/stigmer#354, #469)", () => {
-    expect(registry.supportsVerb(ApiResourceKind.session, Verb.Apply)).toBe(true);
-    expect(registry.supportsVerb(ApiResourceKind.session, Verb.List)).toBe(true);
+    expect(registry.supportsVerb(ApiResourceKind.session, Verb.Apply)).toBe(
+      true,
+    );
+    expect(registry.supportsVerb(ApiResourceKind.session, Verb.List)).toBe(
+      true,
+    );
     for (const v of [Verb.Get, Verb.Delete]) {
       expect(registry.supportsVerb(ApiResourceKind.session, v)).toBe(false);
     }
@@ -248,27 +285,33 @@ describe("registry — verb/dispatch conformance", () => {
     },
   ];
 
-  it.each(DISPATCH)("every kind promising '$label' has a dispatch entry", ({ verb, wired, specialCases }) => {
-    for (const info of registry.all()) {
-      if (!info.supportedVerbs.has(verb)) continue;
-      if (specialCases.has(info.kind)) continue;
-      expect(
-        wired.has(info.kind),
-        `${info.name} promises '${verb}' in the verb matrix but has no dispatch entry — ` +
-          "wire it or narrow the matrix (stigmer/stigmer#353, #354)",
-      ).toBe(true);
-    }
-  });
+  it.each(DISPATCH)(
+    "every kind promising '$label' has a dispatch entry",
+    ({ verb, wired, specialCases }) => {
+      for (const info of registry.all()) {
+        if (!info.supportedVerbs.has(verb)) continue;
+        if (specialCases.has(info.kind)) continue;
+        expect(
+          wired.has(info.kind),
+          `${info.name} promises '${verb}' in the verb matrix but has no dispatch entry — ` +
+            "wire it or narrow the matrix (stigmer/stigmer#353, #354)",
+        ).toBe(true);
+      }
+    },
+  );
 
-  it.each(DISPATCH)("every '$label' dispatch entry is promised in the matrix", ({ verb, wired }) => {
-    for (const kind of wired) {
-      expect(
-        registry.supportsVerb(kind, verb),
-        `${ApiResourceKind[kind]} is wired for '${verb}' but the verb matrix does not promise it — ` +
-          "dead dispatch the command-layer gate blocks",
-      ).toBe(true);
-    }
-  });
+  it.each(DISPATCH)(
+    "every '$label' dispatch entry is promised in the matrix",
+    ({ verb, wired }) => {
+      for (const kind of wired) {
+        expect(
+          registry.supportsVerb(kind, verb),
+          `${ApiResourceKind[kind]} is wired for '${verb}' but the verb matrix does not promise it — ` +
+            "dead dispatch the command-layer gate blocks",
+        ).toBe(true);
+      }
+    },
+  );
 
   it("special cases do not shadow a real dispatch entry", () => {
     for (const { label, wired, specialCases } of DISPATCH) {
@@ -292,8 +335,14 @@ describe("registry — verb/dispatch conformance", () => {
 // alias set, so a future bypass for an addressable kind is a red test, not
 // a silently lying `list types` row.
 describe("registry — pre-gate list aliases cannot shadow registered kinds", () => {
-  const PRE_GATE_PREDICATES: ReadonlyArray<{ name: string; matches: (type: string) => boolean }> = [
-    { name: "executions (resources/execution.ts isExecutionAlias)", matches: isExecutionAlias },
+  const PRE_GATE_PREDICATES: ReadonlyArray<{
+    name: string;
+    matches: (type: string) => boolean;
+  }> = [
+    {
+      name: "executions (resources/execution.ts isExecutionAlias)",
+      matches: isExecutionAlias,
+    },
   ];
 
   it("no registered kind's alias is intercepted by a pre-gate predicate", () => {

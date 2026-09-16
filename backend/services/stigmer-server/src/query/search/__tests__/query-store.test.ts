@@ -95,7 +95,9 @@ function newSession(
     status: {
       audit: {
         specAudit: {
-          createdAt: { seconds: BigInt(opts?.createdAtSeconds ?? 1_700_000_000) },
+          createdAt: {
+            seconds: BigInt(opts?.createdAtSeconds ?? 1_700_000_000),
+          },
         },
       },
     },
@@ -432,7 +434,12 @@ describe("rebuildIndex", () => {
     const adopted = SqliteStore.open(fixture.dbPath);
     try {
       const project = create(ProjectSchema, {
-        metadata: { id: "prj_1", name: "billing", slug: "billing", org: "acme" },
+        metadata: {
+          id: "prj_1",
+          name: "billing",
+          slug: "billing",
+          org: "acme",
+        },
         spec: { description: "the billing project" },
         status: {
           audit: { specAudit: { createdAt: { seconds: 1_700_000_000n } } },

@@ -59,7 +59,8 @@
  *   4. Consumer typecheck (when declared).
  *
  * The dev-tree `file:` links to the workspace libs (@stigmer/protos,
- * @stigmer/temporal-codecs, @stigmer/zip-structure) cannot resolve from
+ * @stigmer/temporal-codecs, @stigmer/zip-structure, @stigmer/plugin-package)
+ * cannot resolve from
  * inside a packed tarball, so when the manifest still carries them (every
  * context except the release workflow, where publish-standalone.mjs pins
  * the published versions before this runs) the script packs each local lib

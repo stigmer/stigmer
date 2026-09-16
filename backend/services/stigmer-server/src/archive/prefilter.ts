@@ -28,6 +28,11 @@
  * bits; FAT/NTFS/VFAT creators carry MSDOS bits that can never encode a
  * symlink or special file; unknown creators decode to a regular file.
  *
+ * Shared by every archive gate the server runs (skills, plugins): the
+ * filter describes what an archive IS before any kind reads it, so it
+ * lives with the archive plumbing rather than with the first kind that
+ * needed it.
+ *
  * Proven by __tests__/prefilter.test.ts (byte-crafted fixtures per DD-001).
  */
 import type { ZipStructuralEntry } from "@stigmer/zip-structure";

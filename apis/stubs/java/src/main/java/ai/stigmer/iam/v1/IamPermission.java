@@ -305,6 +305,19 @@ public enum IamPermission
    * <code>can_set_public_visibility = 39;</code>
    */
   can_set_public_visibility(39),
+  /**
+   * <pre>
+   * Organization-level permission to install a plugin: push an Agent
+   * Plugins archive that the server materialises into skills, MCP servers,
+   * an agent and workflows in the organization. Distinct from the child
+   * kinds' create permissions, which the materialisation also evaluates for
+   * the installing caller: who may bring a package into an organization is a
+   * policy an administrator sets on its own.
+   * </pre>
+   *
+   * <code>can_create_plugin = 40;</code>
+   */
+  can_create_plugin(40),
   UNRECOGNIZED(-1),
   ;
 
@@ -597,6 +610,19 @@ public enum IamPermission
    * <code>can_set_public_visibility = 39;</code>
    */
   public static final int can_set_public_visibility_VALUE = 39;
+  /**
+   * <pre>
+   * Organization-level permission to install a plugin: push an Agent
+   * Plugins archive that the server materialises into skills, MCP servers,
+   * an agent and workflows in the organization. Distinct from the child
+   * kinds' create permissions, which the materialisation also evaluates for
+   * the installing caller: who may bring a package into an organization is a
+   * policy an administrator sets on its own.
+   * </pre>
+   *
+   * <code>can_create_plugin = 40;</code>
+   */
+  public static final int can_create_plugin_VALUE = 40;
 
 
   public final int getNumber() {
@@ -660,6 +686,7 @@ public enum IamPermission
       case 37: return can_write_reserved_labels;
       case 38: return can_view_provider_standing;
       case 39: return can_set_public_visibility;
+      case 40: return can_create_plugin;
       default: return null;
     }
   }

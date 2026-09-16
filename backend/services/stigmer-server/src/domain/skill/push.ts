@@ -7,10 +7,14 @@
  *   ValidateProto → ResolveArtifactSource → BuildInitialSkill →
  *   ExtractAndHashArtifact → ResolveSlugForPush → FindExistingBySlug →
  *   GenerateIDIfNeeded → CheckAndStoreArtifact → PopulateSkillFields →
- *   ArchiveCurrentSkill → StoreSkill → IndexSkillSearch
+ *   GuardReservedLabels → ArchiveCurrentSkill → StoreSkill →
+ *   IndexSkillSearch
  *
- * Step names and context keys are Go's, verbatim. The load-bearing
- * semantics, all preserved:
+ * Step names and context keys are Go's, verbatim; GuardReservedLabels
+ * joined when PushSkillRequest gained `labels` (a plugin materialises its
+ * skills with the plugin label through this chain, so the chain must run
+ * the same reserved-namespace guard every other write boundary runs). The
+ * load-bearing semantics, all preserved:
  *   - exactly one artifact source (inline bytes XOR upload ref — proto
  *     CEL); a staged ref is consumed (retired) whatever happens downstream;
  *   - content addressing: same bytes = same SHA-256 = one stored copy;
@@ -52,11 +56,7 @@ import {
   defaultVisibilityFor,
   getIdPrefix,
 } from "../../pipeline/apiresource-meta.js";
-import {
-  failedPreconditionError,
-  internalError,
-  invalidArgumentError,
-} from "../../pipeline/errors.js";
+import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
@@ -70,7 +70,11 @@ import {
 } from "../../pipeline/steps/defaults.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { generateSlug } from "../../pipeline/steps/slug.js";
-import { AuditNotFoundError } from "../../store/interface.js";
+import {
+  ARTIFACT_BYTES_KEY,
+  newResolveArtifactSourceStep as newSharedResolveArtifactSourceStep,
+} from "../../pipeline/steps/resolve-artifact-source.js";
+import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
 import type { Store } from "../../store/interface.js";
 import { TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
 import { skillSearchExtractor } from "./search-extractor.js";
@@ -83,49 +87,27 @@ type PushDesc = typeof PushSkillRequestSchema;
 
 // Context keys for the push operation (Go push.go, verbatim).
 export const SKILL_KEY = "skill";
-export const ARTIFACT_BYTES_KEY = "pushArtifactBytes";
+export { ARTIFACT_BYTES_KEY };
 export const EXTRACT_RESULT_KEY = "extractResult";
 export const ARTIFACT_STORAGE_KEY_KEY = "artifactStorageKey";
 export const EXISTING_SKILL_KEY = "existingSkill";
 export const SHOULD_CREATE_SKILL_KEY = "shouldCreateSkill";
 
 /**
- * ResolveArtifactSource — materializes the artifact ZIP bytes from
- * whichever source the request carries (proto validation has already
- * guaranteed exactly one): inline bytes pass through; an upload ref is
- * consumed HERE, which retires the single-use reference regardless of how
- * the rest of the pipeline fares. Downstream steps read ARTIFACT_BYTES_KEY
- * and never touch the request's artifact field, so the two sources are
- * indistinguishable past this point.
+ * ResolveArtifactSource — the shared step bound to PushSkillRequest's two
+ * sources and the skill lane's FailedPrecondition copy (see
+ * pipeline/steps/resolve-artifact-source.ts for the semantics).
  */
 export function newResolveArtifactSourceStep(
   slots: UploadSlots | undefined,
 ): PipelineStep<PushDesc> {
-  return {
-    name: "ResolveArtifactSource",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const req = ctx.input;
-      if (req.artifactUploadRef === "") {
-        ctx.set(ARTIFACT_BYTES_KEY, req.artifact);
-        return;
-      }
-      if (slots === undefined) {
-        throw failedPreconditionError(TRANSFER_LANE_NOT_CONFIGURED);
-      }
-      let data: Uint8Array;
-      try {
-        data = await slots.consume(req.artifactUploadRef);
-      } catch (error) {
-        // The reference is client-supplied state, not server fault:
-        // unknown, expired, already consumed, or minted-but-never-uploaded
-        // all mean the client must re-mint and re-upload.
-        throw invalidArgumentError(
-          `artifact_upload_ref not usable: ${error instanceof Error ? error.message : String(error)} — request a new upload URL via createArtifactUploadUrl`,
-        );
-      }
-      ctx.set(ARTIFACT_BYTES_KEY, data);
-    },
-  };
+  return newSharedResolveArtifactSourceStep<PushDesc>(slots, {
+    source: (req) => ({
+      artifact: req.artifact,
+      artifactUploadRef: req.artifactUploadRef,
+    }),
+    laneNotConfigured: TRANSFER_LANE_NOT_CONFIGURED,
+  });
 }
 
 /**
@@ -138,10 +120,16 @@ export function newBuildInitialSkillStep(): PipelineStep<PushDesc> {
     name: "BuildInitialSkill",
     execute(ctx: RequestContext<PushDesc>): void {
       const req = ctx.input;
+      // The request's labels ARE the skill's labels (replace, never merge):
+      // a push is the skill's definition. GuardReservedLabels, spliced after
+      // FindExistingBySlug, judges them against the stored skill's.
       const skill = create(SkillSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Skill",
-        metadata: create(ApiResourceMetadataSchema, { org: req.org }),
+        metadata: create(ApiResourceMetadataSchema, {
+          org: req.org,
+          labels: { ...req.labels },
+        }),
         spec: create(SkillSpecSchema, { tag: req.tag }),
         status: create(SkillStatusSchema, { state: SkillState.READY }),
       });
@@ -306,6 +294,13 @@ export function newPopulateSkillFieldsStep(): PipelineStep<PushDesc> {
       skill.spec!.name = extractResult.name;
       skill.spec!.description = extractResult.description;
 
+      // A push IS the skill's definition: the labels it carries are the
+      // labels the skill has (replace, never merge), so a re-push that
+      // omits a label removes it — the apply chains' BuildUpdateState
+      // posture. The reserved namespace is judged by GuardReservedLabels
+      // right after this step, against the stored skill's labels.
+      skill.metadata!.labels = { ...req.labels };
+
       if (
         skill.metadata!.visibility ===
         ApiResourceVisibility.api_resource_visibility_unspecified
@@ -360,126 +355,36 @@ export function newPopulateSkillFieldsStep(): PipelineStep<PushDesc> {
  * ArchiveCurrentSkill — the versioning heart (#341/#475): repoint or
  * archive, then the single-holder tag assignment, each with its safe
  * degradation (see the module doc). Runs AFTER PopulateSkillFields so the
- * archived snapshot is the fully-populated head.
+ * archived snapshot is the fully-populated head. The mechanism is the
+ * shared version-archive step; this binding says where a skill keeps its
+ * hash (status.version_hash, mirrored in metadata.version.id) and its tag
+ * (spec.tag).
  */
 export function newArchiveCurrentSkillStep(
   store: Store,
   logger: Logger,
 ): PipelineStep<PushDesc> {
-  return {
-    name: "ArchiveCurrentSkill",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const skill = ctx.get(SKILL_KEY) as Skill;
-      const versionHash = skill.status?.versionHash ?? "";
-      if (versionHash === "") {
-        return;
-      }
-      const tag = skill.spec?.tag ?? "";
-      const skillId = skill.metadata!.id;
-
-      // Repoint, never duplicate: if this content was ever archived, the
-      // head simply repoints to the existing row and only the tag
-      // assignment below still runs. An unexpected lookup failure degrades
-      // to archiving anyway — a possible duplicate row beats a failed push
-      // (readers resolve duplicates newest-wins).
-      let alreadyArchived = false;
-      try {
-        await store.getAuditByHash(
-          ctx.apiResourceKind,
-          skillId,
-          versionHash,
-          SkillSchema,
-        );
-        alreadyArchived = true;
-      } catch (error) {
-        if (!(error instanceof AuditNotFoundError)) {
-          logger.warn(
-            "Could not check for an existing archived skill version — archiving anyway",
-            {
-              skillId,
-              versionHash,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          );
+  return newArchiveCurrentVersionStep<typeof SkillSchema, PushDesc>(
+    store,
+    logger,
+    {
+      stepName: "ArchiveCurrentSkill",
+      resourceKey: SKILL_KEY,
+      schema: SkillSchema,
+      noun: "skill",
+      headHashOf: (skill) => skill.status?.versionHash ?? "",
+      clearHeadHash: (skill) => {
+        skill.status!.versionHash = "";
+        if (skill.metadata?.version !== undefined) {
+          skill.metadata.version.id = "";
         }
-      }
-
-      if (!alreadyArchived) {
-        // Archive the snapshot tagless: the tag lives only in the audit
-        // tag column (the source of truth), assigned below through the
-        // single-holder primitive — a later tag move never rewrites this
-        // immutable content.
-        try {
-          await store.saveAudit(
-            ctx.apiResourceKind,
-            skillId,
-            SkillSchema,
-            skill,
-            versionHash,
-            "",
-          );
-        } catch (error) {
-          logger.error(
-            "Failed to archive skill version — reverting the version hash to maintain the audit-resolvability invariant",
-            {
-              skillId,
-              versionHash,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          );
-          // Revert: the persisted head must never reference an audit entry
-          // that does not exist. The push still succeeds, but without
-          // version tracking for this apply.
-          skill.status!.versionHash = "";
-          if (skill.metadata?.version !== undefined) {
-            skill.metadata.version.id = "";
-          }
-          return;
-        }
-      }
-
-      // Assign the requested tag through setAuditTag — the single-holder
-      // primitive — so the head version (freshly archived or repointed-to)
-      // becomes the tag's sole holder; any prior holder is cleared.
-      if (tag !== "") {
-        try {
-          await store.setAuditTag(
-            ctx.apiResourceKind,
-            skillId,
-            versionHash,
-            tag,
-          );
-        } catch (error) {
-          logger.error(
-            "Archived skill version but failed to assign its tag — clearing the live tag to stay consistent with the audit column",
-            {
-              skillId,
-              versionHash,
-              tag,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          );
-          // The audit head is now untagged; keep the live head consistent
-          // so get / getByReference never advertise a tag the store cannot
-          // resolve.
-          skill.spec!.tag = "";
-        }
-      }
-
-      if (alreadyArchived) {
-        logger.info(
-          "Skill version content already archived — repointed head without a new history row",
-          { skillId, versionHash, tag },
-        );
-      } else {
-        logger.info("Archived skill version to audit history", {
-          skillId,
-          versionHash,
-          tag,
-        });
-      }
+      },
+      liveTagOf: (skill) => skill.spec?.tag ?? "",
+      clearLiveTag: (skill) => {
+        skill.spec!.tag = "";
+      },
     },
-  };
+  );
 }
 
 /** StoreSkill — persists the fully populated head. */

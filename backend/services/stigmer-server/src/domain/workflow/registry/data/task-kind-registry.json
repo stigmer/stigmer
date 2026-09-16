@@ -1517,6 +1517,7 @@
                     "execution_context",
                     "schedule",
                     "memory",
+                    "plugin",
                     "project"
                   ],
                   "type": "string"

@@ -20,6 +20,7 @@ import { file_ai_stigmer_agentic_environment_v1_api } from "@stigmer/protos/ai/s
 import { file_ai_stigmer_agentic_executioncontext_v1_api } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_api } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { file_ai_stigmer_agentic_memory_v1_api } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
+import { file_ai_stigmer_agentic_plugin_v1_api } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { file_ai_stigmer_agentic_schedule_v1_api } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { file_ai_stigmer_agentic_session_v1_api } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { file_ai_stigmer_agentic_skill_v1_api } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -71,6 +72,7 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_executioncontext_v1_api,
   file_ai_stigmer_agentic_mcpserver_v1_api,
   file_ai_stigmer_agentic_memory_v1_api,
+  file_ai_stigmer_agentic_plugin_v1_api,
   file_ai_stigmer_agentic_schedule_v1_api,
   file_ai_stigmer_agentic_session_v1_api,
   file_ai_stigmer_agentic_skill_v1_api,

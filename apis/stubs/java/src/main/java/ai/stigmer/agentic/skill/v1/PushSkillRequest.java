@@ -64,6 +64,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillRequest_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 8:
+        return internalGetLabels();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -363,6 +375,137 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int LABELS_FIELD_NUMBER = 8;
+  private static final class LabelsDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillRequest_LabelsEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> labels_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetLabels() {
+    if (labels_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          LabelsDefaultEntryHolder.defaultEntry);
+    }
+    return labels_;
+  }
+  public int getLabelsCount() {
+    return internalGetLabels().getMap().size();
+  }
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public boolean containsLabels(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetLabels().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getLabelsMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getLabels() {
+    return getLabelsMap();
+  }
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
+    return internalGetLabels().getMap();
+  }
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getLabelsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetLabels().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public java.lang.String getLabelsOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetLabels().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -395,6 +538,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(artifactUploadRef_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, artifactUploadRef_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetLabels(),
+        LabelsDefaultEntryHolder.defaultEntry,
+        8);
     getUnknownFields().writeTo(output);
   }
 
@@ -423,6 +572,16 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(artifactUploadRef_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, artifactUploadRef_);
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetLabels().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      labels__ = LabelsDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(8, labels__);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -454,6 +613,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMessage())) return false;
     if (!getArtifactUploadRef()
         .equals(other.getArtifactUploadRef())) return false;
+    if (!internalGetLabels().equals(
+        other.internalGetLabels())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -479,6 +640,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getMessage().hashCode();
     hash = (37 * hash) + ARTIFACT_UPLOAD_REF_FIELD_NUMBER;
     hash = (53 * hash) + getArtifactUploadRef().hashCode();
+    if (!internalGetLabels().getMap().isEmpty()) {
+      hash = (37 * hash) + LABELS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetLabels().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -607,6 +772,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillRequest_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 8:
+          return internalGetLabels();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 8:
+          return internalGetMutableLabels();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -645,6 +832,7 @@ private static final long serialVersionUID = 0L;
       }
       message_ = "";
       artifactUploadRef_ = "";
+      internalGetMutableLabels().clear();
       return this;
     }
 
@@ -700,6 +888,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.artifactUploadRef_ = artifactUploadRef_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.labels_ = internalGetLabels();
+        result.labels_.makeImmutable();
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -741,6 +933,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000020;
         onChanged();
       }
+      internalGetMutableLabels().mergeFrom(
+          other.internalGetLabels());
+      bitField0_ |= 0x00000040;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -799,6 +994,15 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 58
+            case 66: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              labels__ = input.readMessage(
+                  LabelsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableLabels().getMutableMap().put(
+                  labels__.getKey(), labels__.getValue());
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1519,6 +1723,224 @@ private static final long serialVersionUID = 0L;
       artifactUploadRef_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> labels_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetLabels() {
+      if (labels_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            LabelsDefaultEntryHolder.defaultEntry);
+      }
+      return labels_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableLabels() {
+      if (labels_ == null) {
+        labels_ = com.google.protobuf.MapField.newMapField(
+            LabelsDefaultEntryHolder.defaultEntry);
+      }
+      if (!labels_.isMutable()) {
+        labels_ = labels_.copy();
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return labels_;
+    }
+    public int getLabelsCount() {
+      return internalGetLabels().getMap().size();
+    }
+    /**
+     * <pre>
+     * Labels to set on the skill, replacing any stored labels: a push is the
+     * skill's definition, so the labels it carries are the labels it has.
+     *
+     * &#64;internal
+     * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+     * GuardReservedLabels step every other write boundary runs: a client may
+     * not introduce or change them; a server-composed push (a plugin
+     * materialising its skills as the installing caller) stamps them by
+     * design. Visibility is deliberately NOT carried here: it lands through
+     * updateVisibility, the one door metadata.proto names.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public boolean containsLabels(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetLabels().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getLabelsMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getLabels() {
+      return getLabelsMap();
+    }
+    /**
+     * <pre>
+     * Labels to set on the skill, replacing any stored labels: a push is the
+     * skill's definition, so the labels it carries are the labels it has.
+     *
+     * &#64;internal
+     * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+     * GuardReservedLabels step every other write boundary runs: a client may
+     * not introduce or change them; a server-composed push (a plugin
+     * materialising its skills as the installing caller) stamps them by
+     * design. Visibility is deliberately NOT carried here: it lands through
+     * updateVisibility, the one door metadata.proto names.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
+      return internalGetLabels().getMap();
+    }
+    /**
+     * <pre>
+     * Labels to set on the skill, replacing any stored labels: a push is the
+     * skill's definition, so the labels it carries are the labels it has.
+     *
+     * &#64;internal
+     * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+     * GuardReservedLabels step every other write boundary runs: a client may
+     * not introduce or change them; a server-composed push (a plugin
+     * materialising its skills as the installing caller) stamps them by
+     * design. Visibility is deliberately NOT carried here: it lands through
+     * updateVisibility, the one door metadata.proto names.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getLabelsOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetLabels().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Labels to set on the skill, replacing any stored labels: a push is the
+     * skill's definition, so the labels it carries are the labels it has.
+     *
+     * &#64;internal
+     * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+     * GuardReservedLabels step every other write boundary runs: a client may
+     * not introduce or change them; a server-composed push (a plugin
+     * materialising its skills as the installing caller) stamps them by
+     * design. Visibility is deliberately NOT carried here: it lands through
+     * updateVisibility, the one door metadata.proto names.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public java.lang.String getLabelsOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetLabels().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearLabels() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      internalGetMutableLabels().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Labels to set on the skill, replacing any stored labels: a push is the
+     * skill's definition, so the labels it carries are the labels it has.
+     *
+     * &#64;internal
+     * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+     * GuardReservedLabels step every other write boundary runs: a client may
+     * not introduce or change them; a server-composed push (a plugin
+     * materialising its skills as the installing caller) stamps them by
+     * design. Visibility is deliberately NOT carried here: it lands through
+     * updateVisibility, the one door metadata.proto names.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     */
+    public Builder removeLabels(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableLabels().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableLabels() {
+      bitField0_ |= 0x00000040;
+      return internalGetMutableLabels().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Labels to set on the skill, replacing any stored labels: a push is the
+     * skill's definition, so the labels it carries are the labels it has.
+     *
+     * &#64;internal
+     * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+     * GuardReservedLabels step every other write boundary runs: a client may
+     * not introduce or change them; a server-composed push (a plugin
+     * materialising its skills as the installing caller) stamps them by
+     * design. Visibility is deliberately NOT carried here: it lands through
+     * updateVisibility, the one door metadata.proto names.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     */
+    public Builder putLabels(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableLabels().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000040;
+      return this;
+    }
+    /**
+     * <pre>
+     * Labels to set on the skill, replacing any stored labels: a push is the
+     * skill's definition, so the labels it carries are the labels it has.
+     *
+     * &#64;internal
+     * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+     * GuardReservedLabels step every other write boundary runs: a client may
+     * not introduce or change them; a server-composed push (a plugin
+     * materialising its skills as the installing caller) stamps them by
+     * design. Visibility is deliberately NOT carried here: it lands through
+     * updateVisibility, the one door metadata.proto names.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     */
+    public Builder putAllLabels(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableLabels().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000040;
       return this;
     }
 

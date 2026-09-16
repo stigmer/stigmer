@@ -429,6 +429,7 @@ const skill = await stigmer.skill.push({
   gitProvenance: {},
   message: "...",
   artifactUploadRef: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -441,6 +442,7 @@ skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
   GitProvenance:     &stigmer.GitProvenanceInput{},
   Message:           "...",
   ArtifactUploadRef: "...",
+  Labels:            map[string]string{},
 })
 ```
 </Tab>
@@ -453,6 +455,7 @@ skill = client.skills.push(PushSkillRequest(
     git_provenance=None,
     message="...",
     artifact_upload_ref="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -465,6 +468,7 @@ Skill skill = client.skills().push(PushSkillRequest.builder()
     .gitProvenance(null)
     .message("...")
     .artifactUploadRef("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -555,6 +559,7 @@ PushSkillRequest contains the skill artifact and metadata for upload.
     gitProvenance: { type: "GitProvenanceInput", description: "Git provenance for this skill version." },
     message: { type: "string", description: "Optional human-readable message describing what changed in this version." },
     artifactUploadRef: { type: "string", description: "Reference to an artifact staged via createArtifactUploadUrl()." },
+    labels: { type: "Record<string, string>", description: "Labels to set on the skill, replacing any stored labels: a push is the skill's definition, so the labels it carries are the labels it has." },
   }}
 />
 

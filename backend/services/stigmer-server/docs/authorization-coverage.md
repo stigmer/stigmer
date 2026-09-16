@@ -13,10 +13,10 @@ Verification notes: every registration map in `src/boot/compose.ts`'s routes clo
 
 ## Totals
 
-- Registered services: 29 (28 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06).
-- Registered RPC methods: 233.
-- Handler classes: 179 `chain-with-Authorize`, 54 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
-- Annotation classes: 139 `config`, 74 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
+- Registered services: 31 (30 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06; Plugin command + query with the Plugin kind).
+- Registered RPC methods: 241.
+- Handler classes: 187 `chain-with-Authorize`, 54 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
+- Annotation classes: 145 `config`, 76 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
 - What the classes mean under each open-source posture: on a trusted-local server (no authentication) the composed Authorizer is the permissive single-team default and no list scope is composed, so every class admits every caller. Under an authentication posture with no unit Authorizer (`STIGMER_OIDC_ISSUER` set; `src/authorization/posture.ts`) the server composes its BUILT-IN Authorizer and ListReadScope — the cloud's OpenFGA model evaluated over tuples derived from the row — so every `config` lane enforces the model and every list lane marked "a composed ListReadScope narrows" below narrows to the caller's rows. `is_skip_authorization` lanes reach neither Authorizer in either posture: what guards each is the mid-chain step or driver its Handler column names, and a skip lane whose column names nothing is open to every authenticated caller in every edition.
 - Config-annotated methods served by direct handlers: 30, dispositioned at the C2 Stage-4 gate (17 `authorizeDirect`, 9 on the composed channel runtime, 1 deliberate skip, 3 recorded-gap stubs) — the full table before the notes section.
 
@@ -355,6 +355,19 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | SkillQueryController.getArtifact | is_skip_authorization | chain-with-Authorize |
 | SkillQueryController.getArtifactDownloadUrl | is_skip_authorization | chain-with-Authorize |
 | SkillQueryController.listVersions | is_skip_authorization | chain-with-Authorize (the AuthorizeResolvedSkill mid-chain can_view on the resolved id — the Java handler's hand-rolled check, ported 20260830.01 Q8) |
+
+## 21a. Plugin (`src/domain/plugin/controller.ts` + push.ts)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| PluginCommandController.push | config: can_create_plugin on organization (field org), error_msg yes | chain-with-Authorize (two chains over one context, plan then install; the plan chain additionally pre-authorises the caller for every member kind's create permission — can_create_skill, can_create_agent, can_create_workflow — before any write, and each member's own chain evaluates it again in-process as the caller) |
+| PluginCommandController.createArtifactUploadUrl | config: can_create_plugin on organization (field org), error_msg yes | chain-with-Authorize |
+| PluginCommandController.updateVisibility | config: can_edit on plugin (field resource_id), error_msg yes | chain-with-Authorize (the fan-out to members rides each member kind's own updateVisibility chain in-process as the caller) |
+| PluginCommandController.delete | config: can_delete on plugin (field value), error_msg yes | chain-with-Authorize (members are deleted through their own delete chains in-process as the caller) |
+| PluginQueryController.get | config: can_view on plugin (field value), error_msg yes | chain-with-Authorize |
+| PluginQueryController.getByReference | is_skip_authorization | chain-with-Authorize (the AuthorizeResolvedPlugin mid-chain can_view on the resolved id — the ListVersions pattern) |
+| PluginQueryController.listMembers | config: can_view on plugin (field value), error_msg yes | chain-with-Authorize |
+| PluginQueryController.listVersions | is_skip_authorization | chain-with-Authorize (the AuthorizeResolvedPlugin mid-chain can_view on the resolved id) |
 
 ## 22. Artifact (`src/domain/artifact/controller.ts`)
 

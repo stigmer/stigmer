@@ -110,12 +110,15 @@ import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
 import { registerProjectServices } from "../domain/project/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
+import { registerPluginServices } from "../domain/plugin/controller.js";
+import { PLUGIN_ARTIFACT_KEY_PREFIX } from "../domain/plugin/constants.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
 import {
   DEFAULT_SLOT_TTL_MS,
   MAX_ZIP_SIZE,
 } from "../domain/skill/constants.js";
 import { newSkillArtifactStorage } from "../domain/skill/storage/artifact-storage.js";
+import { newContentAddressedArchiveStore } from "../archive/content-store.js";
 import {
   newSkillTransferLane,
   uploadUrl as skillUploadUrl,
@@ -967,6 +970,14 @@ export async function composeServer(
     );
   })();
   const skillArtifactStorage = newSkillArtifactStorage(skillStorageDriver);
+  // Plugin archives are pushed archives exactly as skills' are, so they
+  // ride the same blob driver and backend selection; the key prefix
+  // (`plugins/`) keeps the two stores apart and the plugin store owns its
+  // keys (src/archive/content-store.ts).
+  const pluginArtifactStorage = newContentAddressedArchiveStore(
+    skillStorageDriver,
+    PLUGIN_ARTIFACT_KEY_PREFIX,
+  );
   const skillTransferLane = newSkillTransferLane(
     skillUploadSlots,
     skillArtifactStorage,
@@ -1401,6 +1412,22 @@ export async function composeServer(
       // The agentexecution blob store (server.go:362-363) — read side of
       // pushFromExecutionArtifact.
       executionArtifactStorage: artifactStorage,
+      transferLane: {
+        slots: skillUploadSlots,
+        baseUrl: config.skillTransferBaseUrl,
+      },
+    });
+    // Plugins materialise their members through the in-process lane as
+    // the installing caller; the lazy provider resolves the clients built
+    // from these same routes after boot. The upload slots are the skill
+    // lane's: one upload surface for every archive.
+    registerPluginServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+      artifactStorage: pluginArtifactStorage,
+      materializerProvider: () => requireInProcess().pluginMaterializer,
       transferLane: {
         slots: skillUploadSlots,
         baseUrl: config.skillTransferBaseUrl,

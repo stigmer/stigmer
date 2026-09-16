@@ -261,6 +261,11 @@ const (
 	ApiResourceKind_schedule ApiResourceKind = 56
 	// Agent-proposed, user-confirmed fact the platform remembers about a person.
 	ApiResourceKind_memory ApiResourceKind = 57
+	// An installed Agent Plugins package: the archive Stigmer materialised into
+	// skills, MCP servers, an agent and workflows, and the handle that upgrades
+	// and removes them together. A plugin is what you install; an agent is what
+	// runs. Members are the resources labelled with the plugin's id.
+	ApiResourceKind_plugin ApiResourceKind = 58
 	// Aggregate root grouping related resources for lifecycle management.
 	ApiResourceKind_project ApiResourceKind = 60
 )
@@ -296,6 +301,7 @@ var (
 		54: "execution_context",
 		56: "schedule",
 		57: "memory",
+		58: "plugin",
 		60: "project",
 	}
 	ApiResourceKind_value = map[string]int32{
@@ -327,6 +333,7 @@ var (
 		"execution_context":         54,
 		"schedule":                  56,
 		"memory":                    57,
+		"plugin":                    58,
 		"project":                   60,
 	}
 )
@@ -520,7 +527,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x83\x12\n" +
+	"\astigmer\x10\x01*\xc6\x12\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -566,7 +573,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x12=\n" +
 	"\bschedule\x108\x1a/\xaa\xff++\b\x01\x10\x01\x1a\bSchedule\"\bSchedule*\x03sch8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12m\n" +
 	"\x06memory\x109\x1aa\xaa\xff+]\b\x01\x10\x01\x1a\x06Memory\"\x06Memory*\x03mem8\x01@\x01J>\b\x02\x10\x04\"8\n" +
-	"\x10identity_account\x12\asubject\x1a\x1bsubject_identity_account_id\x128\n" +
+	"\x10identity_account\x12\asubject\x1a\x1bsubject_identity_account_id\x12A\n" +
+	"\x06plugin\x10:\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\x06Plugin\"\x06Plugin*\x03plg0\x01@\x01J\x12\b\x02\x10\x01*\b\b\x01\x10\x01\x18\x01 \x01:\x02\x01\x04\x128\n" +
 	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04\"\x04\b1\x101*\tdatastore:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"

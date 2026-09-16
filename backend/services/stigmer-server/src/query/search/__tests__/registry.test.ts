@@ -78,15 +78,17 @@ describe("SearchableResourceRegistry (Go registry_test.go)", () => {
 
   it("supportedKinds sorts by the kind NAME string (Go's kind.String() sort)", () => {
     const registry = newSearchableResourceRegistry();
-    const names = registry.supportedKinds().map((kind) => ApiResourceKind[kind]);
+    const names = registry
+      .supportedKinds()
+      .map((kind) => ApiResourceKind[kind]);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
   it("validateExpectedKinds warns with the missing kinds (never throws)", () => {
     const logger = testLogger();
-    new SearchableResourceRegistry([agentSearchExtractor]).validateExpectedKinds(
-      logger,
-    );
+    new SearchableResourceRegistry([
+      agentSearchExtractor,
+    ]).validateExpectedKinds(logger);
     expect(logger.warns).toHaveLength(1);
     const missing = logger.warns[0]?.missing_kinds as string[];
     expect(missing).toContain("skill");

@@ -46,10 +46,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import type {
-  Authorizer,
-  AuthzDecision,
-} from "../../extensions/authorizer.js";
+import type { Authorizer, AuthzDecision } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
@@ -92,9 +89,10 @@ export function newGuardPublicVisibilityStep<Desc extends DescMessage>(
  * chain's own context key (every updateVisibility chain stores it —
  * the RecordVisibilityBeforeUpdate pattern).
  */
-export function newAuthorizeVisibilityTransitionStep<
-  Desc extends DescMessage,
->(targetKey: string, authorizer: Authorizer): PipelineStep<Desc> {
+export function newAuthorizeVisibilityTransitionStep<Desc extends DescMessage>(
+  targetKey: string,
+  authorizer: Authorizer,
+): PipelineStep<Desc> {
   return {
     name: "AuthorizeVisibilityTransition",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
@@ -127,8 +125,13 @@ export function newAuthorizeVisibilityTransitionStep<
   };
 }
 
-/** The single owner of "may this caller set public?" — both doors call it. */
-async function requireOperatorMaySetPublic(
+/**
+ * The single owner of "may this caller set public?" — both doors call it,
+ * and so does the plugin push chain, whose requested level rides the
+ * request (the level then flows to every member through the members' own
+ * create and updateVisibility doors, which run this check again).
+ */
+export async function requireOperatorMaySetPublic(
   authorizer: Authorizer,
   caller: CallerIdentity,
 ): Promise<void> {

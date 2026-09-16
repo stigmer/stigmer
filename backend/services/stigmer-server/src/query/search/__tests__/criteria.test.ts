@@ -42,7 +42,7 @@ function criteria(overrides?: {
 }
 
 describe("searchIndexedKinds derivation (kind_meta)", () => {
-  it("derives exactly the 13 searchable kinds, project included", () => {
+  it("derives exactly the 14 searchable kinds, project and plugin included", () => {
     // Go's SearchableKinds map, pinned by its invariant test against the
     // same kind_meta derivation. project rides #14 (DD-D) although its
     // domain ports with #16 — RebuildIndex on an adopted Go database
@@ -62,6 +62,7 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
         ApiResourceKind.organization,
         ApiResourceKind.workflow_execution,
         ApiResourceKind.workflow_instance,
+        ApiResourceKind.plugin,
       ].sort((a, b) => a - b),
     );
   });
@@ -112,9 +113,7 @@ describe("SearchCriteria normalization (Go NewSearchCriteria)", () => {
   it("rejects a query over the cap with Go's exact message", () => {
     expect(() =>
       criteria({ query: "x".repeat(MAX_QUERY_LENGTH + 1) }),
-    ).toThrowError(
-      "search query exceeds maximum length of 500 characters",
-    );
+    ).toThrowError("search query exceeds maximum length of 500 characters");
   });
 
   it("accepts a query at exactly the cap", () => {
@@ -141,9 +140,9 @@ describe("SearchCriteria normalization (Go NewSearchCriteria)", () => {
 describe("mode selection", () => {
   it("empty kinds is discover mode; requested kinds is not", () => {
     expect(criteria({ kinds: [] }).isDiscoverMode()).toBe(true);
-    expect(
-      criteria({ kinds: [ApiResourceKind.agent] }).isDiscoverMode(),
-    ).toBe(false);
+    expect(criteria({ kinds: [ApiResourceKind.agent] }).isDiscoverMode()).toBe(
+      false,
+    );
   });
 
   it("hasQuery: empty and whitespace-only queries mean list mode", () => {

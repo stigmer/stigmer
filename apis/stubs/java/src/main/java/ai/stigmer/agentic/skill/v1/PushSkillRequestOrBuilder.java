@@ -175,4 +175,103 @@ public interface PushSkillRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getArtifactUploadRefBytes();
+
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  int getLabelsCount();
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  boolean containsLabels(
+      java.lang.String key);
+  /**
+   * Use {@link #getLabelsMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.String>
+  getLabels();
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  java.util.Map<java.lang.String, java.lang.String>
+  getLabelsMap();
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  /* nullable */
+java.lang.String getLabelsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue);
+  /**
+   * <pre>
+   * Labels to set on the skill, replacing any stored labels: a push is the
+   * skill's definition, so the labels it carries are the labels it has.
+   *
+   * &#64;internal
+   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
+   * GuardReservedLabels step every other write boundary runs: a client may
+   * not introduce or change them; a server-composed push (a plugin
+   * materialising its skills as the installing caller) stamps them by
+   * design. Visibility is deliberately NOT carried here: it lands through
+   * updateVisibility, the one door metadata.proto names.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   */
+  java.lang.String getLabelsOrThrow(
+      java.lang.String key);
 }

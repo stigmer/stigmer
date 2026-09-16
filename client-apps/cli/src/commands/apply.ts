@@ -2,6 +2,10 @@
 //
 //   File mode (-f):     apply individual YAML resource files (or a directory)
 //   Declarative mode:   a stigmer.yaml project directory (scan + reconcile)
+//   Plugin track:       a directory holding a plugin manifest (either flag,
+//                       or the working directory) installs as a plugin — the
+//                       same read, zip and push as `push plugin <dir>`, so the
+//                       two verbs are one code path
 //
 // Resources marshal strictly from YAML to full protos and apply through the raw
 // command controllers (preserving metadata.id so updates aren't misrouted as
@@ -9,7 +13,12 @@
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
-import { CommandResult, type OutputFlags, type OutputFormat, renderResult } from "../output/index.js";
+import {
+  CommandResult,
+  type OutputFlags,
+  type OutputFormat,
+  renderResult,
+} from "../output/index.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
 interface ApplyFlags extends OutputFlags {
@@ -30,7 +39,9 @@ export function registerApply(program: Command): void {
     // parity; it is intentionally a no-op client-side. Tracked as a Go follow-up.
     .option("--prune", "delete orphaned resources (declarative mode)", true)
     .option("--dry-run", "validate without applying")
-    .action((options: ApplyFlags, command: Command) => runApply(options, command));
+    .action((options: ApplyFlags, command: Command) =>
+      runApply(options, command),
+    );
   addResultFlags(apply);
 }
 
@@ -38,12 +49,80 @@ async function runApply(options: ApplyFlags, command: Command): Promise<void> {
   const format = resultFormat(options);
   const orgOverride = globalOrg(command);
 
+  // A plugin manifest at the given directory's root selects the plugin
+  // track before any YAML scan: a repository holding both is applied as a
+  // plugin, and its `ai.stigmer/*.yaml` documents are the plugin's, not
+  // loose resources.
+  const target =
+    options.file !== undefined && options.file !== ""
+      ? options.file
+      : options.config !== undefined && options.config !== ""
+        ? options.config
+        : process.cwd();
+  const { isPluginDirectory } = await import("../resources/plugin.js");
+  if (isPluginDirectory(target)) {
+    await runPluginApply(target, orgOverride, options.dryRun === true, format);
+    return;
+  }
+
   if (options.file !== undefined && options.file !== "") {
-    await runFileApply(options.file, orgOverride, options.dryRun === true, format);
+    await runFileApply(
+      options.file,
+      orgOverride,
+      options.dryRun === true,
+      format,
+    );
     return;
   }
 
   await runDeclarativeApply(options, orgOverride, format);
+}
+
+// Plugin track: install or upgrade the plugin folder as one unit through the
+// same read, zip and push `push plugin` runs; the org resolves like every
+// other apply (--org, then the configured context).
+async function runPluginApply(
+  dir: string,
+  orgOverride: string | undefined,
+  dryRun: boolean,
+  format: OutputFormat,
+): Promise<void> {
+  const plugin = await import("../resources/plugin.js");
+  const ignoreOptions = {
+    respectGitignore: true,
+    extraIgnore: [],
+    extraInclude: [],
+  };
+  if (dryRun) {
+    const { readPluginPackage } = await import("@stigmer/plugin-package");
+    const read = plugin.readPluginDirectory(dir, ignoreOptions);
+    const outcome = readPluginPackage(read.files);
+    if (!outcome.ok) {
+      throw plugin.pluginRefusal(dir, outcome.errors, outcome.warnings);
+    }
+    const result = plugin.describePackageOn(
+      CommandResult.success(
+        `Dry run: plugin '${outcome.plugin.name}' would install`,
+      ),
+      outcome.plugin,
+      outcome.warnings,
+      read.stats,
+    );
+    result.hint("Run without --dry-run to install it.");
+    renderResult(result, format);
+    return;
+  }
+  const { connectBackend } = await import("../backend.js");
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+  const org = resolveOrganization(client.config, orgOverride);
+  const outcome = await plugin.pushPlugin(client.stigmer, dir, {
+    org,
+    visibility: undefined,
+    message: "",
+    ignoreOptions,
+  });
+  renderResult(plugin.renderPushOutcome(outcome), format);
 }
 
 // Declarative mode: detect stigmer.yaml (walk up). Absent → atomic guidance.
@@ -54,9 +133,13 @@ async function runDeclarativeApply(
   orgOverride: string | undefined,
   format: OutputFormat,
 ): Promise<void> {
-  const { detectTrack, applyDeclarative, previewDeclarative } = await import("../resources/apply/declarative.js");
+  const { detectTrack, applyDeclarative, previewDeclarative } =
+    await import("../resources/apply/declarative.js");
 
-  const startDir = options.config !== undefined && options.config !== "" ? options.config : process.cwd();
+  const startDir =
+    options.config !== undefined && options.config !== ""
+      ? options.config
+      : process.cwd();
   const detect = detectTrack(startDir);
 
   if (detect.track === "atomic") {
@@ -82,7 +165,11 @@ async function runDeclarativeApply(
   const { connectBackend } = await import("../backend.js");
   const client = connectBackend();
   ensureAuthenticated(client.config);
-  const org = resolveDeclarativeOrg(client.config, detect.project?.metadata?.org, orgOverride);
+  const org = resolveDeclarativeOrg(
+    client.config,
+    detect.project?.metadata?.org,
+    orgOverride,
+  );
 
   const result = await applyDeclarative(detect, {
     controller: client.controller,
@@ -104,7 +191,8 @@ async function runProjectApply(
   format: OutputFormat,
   dryRun: boolean,
 ): Promise<void> {
-  const { applyProjectTrack, previewProjectTrack } = await import("../resources/apply/synth/project-track.js");
+  const { applyProjectTrack, previewProjectTrack } =
+    await import("../resources/apply/synth/project-track.js");
 
   if (dryRun) {
     renderResult(previewProjectTrack(detect), format);
@@ -114,7 +202,11 @@ async function runProjectApply(
   const { connectBackend } = await import("../backend.js");
   const client = connectBackend();
   ensureAuthenticated(client.config);
-  const org = resolveDeclarativeOrg(client.config, detect.project?.metadata?.org, orgOverride);
+  const org = resolveDeclarativeOrg(
+    client.config,
+    detect.project?.metadata?.org,
+    orgOverride,
+  );
 
   const result = await applyProjectTrack(detect, {
     controller: client.controller,
@@ -134,7 +226,10 @@ function resolveDeclarativeOrg(
   projectOrg: string | undefined,
   override: string | undefined,
 ): string {
-  const resolved = resolveOrganization(config, override ?? (projectOrg !== "" ? projectOrg : undefined));
+  const resolved = resolveOrganization(
+    config,
+    override ?? (projectOrg !== "" ? projectOrg : undefined),
+  );
   if (resolved === "") {
     throw new UsageError(
       "organization not set\n\n" +
@@ -153,12 +248,15 @@ async function runFileApply(
   dryRun: boolean,
   format: OutputFormat,
 ): Promise<void> {
-  const [{ connectBackend }, { resolveApplyItems, requiresOrgContext, applyItem }, { discoverAppliedMcpServers }] =
-    await Promise.all([
-      import("../backend.js"),
-      import("../resources/apply/apply.js"),
-      import("../resources/apply/discovery.js"),
-    ]);
+  const [
+    { connectBackend },
+    { resolveApplyItems, requiresOrgContext, applyItem },
+    { discoverAppliedMcpServers },
+  ] = await Promise.all([
+    import("../backend.js"),
+    import("../resources/apply/apply.js"),
+    import("../resources/apply/discovery.js"),
+  ]);
 
   const items = resolveApplyItems(path);
 
@@ -174,31 +272,45 @@ async function runFileApply(
 
   const client = connectBackend();
   ensureAuthenticated(client.config);
-  const org = requiresOrgContext(items) ? resolveOrganization(client.config, orgOverride) : "";
+  const org = requiresOrgContext(items)
+    ? resolveOrganization(client.config, orgOverride)
+    : "";
 
   const appliedMcpServers = [];
   for (const item of items) {
     const outcome = await applyItem(client.controller, item, org, false);
     emitWarning(outcome.warning);
     renderResult(outcome.result, format);
-    if (outcome.appliedMcpServer !== undefined) appliedMcpServers.push(outcome.appliedMcpServer);
+    if (outcome.appliedMcpServer !== undefined)
+      appliedMcpServers.push(outcome.appliedMcpServer);
   }
 
-  await discoverAppliedMcpServers(client.stigmer, appliedMcpServers, org, (line) => process.stderr.write(`${line}\n`));
+  await discoverAppliedMcpServers(
+    client.stigmer,
+    appliedMcpServers,
+    org,
+    (line) => process.stderr.write(`${line}\n`),
+  );
 }
 
 function buildAtomicGuidance(): CommandResult {
-  const result = CommandResult.warning("No stigmer.yaml found in current directory or parents");
+  const result = CommandResult.warning(
+    "No stigmer.yaml found in current directory or parents",
+  );
   result
     .addSection("")
-    .item("The 'stigmer apply' command (without -f) requires a project with stigmer.yaml")
+    .item(
+      "The 'stigmer apply' command (without -f) requires a project with stigmer.yaml",
+    )
     .item("This enables resource discovery and project-based reconciliation");
   result
     .addSection("For single-resource deployment, use file mode")
     .item("stigmer apply -f agent.yaml")
     .item("stigmer apply -f workflow.yaml")
     .item("stigmer apply -f mcpserver.yaml");
-  result.hint("To create a project: add a stigmer.yaml with your project name, then run 'stigmer apply'");
+  result.hint(
+    "To create a project: add a stigmer.yaml with your project name, then run 'stigmer apply'",
+  );
   return result;
 }
 

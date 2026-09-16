@@ -12,21 +12,54 @@
 // `describePlugin` is the JSON projection for `--json`: the normalised
 // package with overlay documents reduced to their paths (the bytes are the
 // user's own files, and a byte array serialises badly).
+//
+// The push half: the same walked file list, zipped the way the skill
+// packager zips (deterministic bytes, so the server's digest is a function
+// of content), pushed through the SDK's routed plugin client, and the
+// members read back for the install summary. `validate -f`, `push plugin
+// --dry-run` and `push plugin` share one description renderer so the
+// author reads one vocabulary at every step.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { create, toJson } from "@bufbuild/protobuf";
+import { zipSync } from "fflate";
 import {
   MANIFEST_LOCATIONS,
+  readPluginPackage,
+  type PluginDialect,
   type PluginFileEntry,
   type PluginFiles,
   type PluginFinding,
   type PluginPackage,
 } from "@stigmer/plugin-package";
+import {
+  PluginSchema,
+  type Plugin,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import {
+  PluginMemberSchema,
+  PushPluginRequestSchema,
+  type PluginMember,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginDialect as PluginDialectProto } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { Stigmer } from "@stigmer/sdk";
+import { UsageError } from "../errors/index.js";
+import { CommandResult } from "../output/index.js";
 import { createMatcher } from "./ignore/index.js";
-import type { IgnoreOptions, ZipStats } from "./skill.js";
+import {
+  DETERMINISTIC_ZIP_MTIME,
+  formatBytes,
+  shortHash,
+  type IgnoreOptions,
+  type ZipStats,
+} from "./skill.js";
 
 /** The four manifest locations; a directory holding any of them is a plugin. */
-export const PLUGIN_MANIFEST_PATHS: readonly string[] = Object.values(MANIFEST_LOCATIONS);
+export const PLUGIN_MANIFEST_PATHS: readonly string[] =
+  Object.values(MANIFEST_LOCATIONS);
 
 /** True when `path` is a directory holding one of the four plugin manifests. */
 export function isPluginDirectory(path: string): boolean {
@@ -51,10 +84,17 @@ export interface PluginDirectory {
 }
 
 /** Validate's ignore posture: the defaults and the directory's own ignore files, no flags. */
-export const DEFAULT_IGNORE_OPTIONS: IgnoreOptions = { respectGitignore: true, extraIgnore: [], extraInclude: [] };
+export const DEFAULT_IGNORE_OPTIONS: IgnoreOptions = {
+  respectGitignore: true,
+  extraIgnore: [],
+  extraInclude: [],
+};
 
 /** Walk `dir` through the ignore matcher into a `PluginFiles`. */
-export function readPluginDirectory(dir: string, options: IgnoreOptions = DEFAULT_IGNORE_OPTIONS): PluginDirectory {
+export function readPluginDirectory(
+  dir: string,
+  options: IgnoreOptions = DEFAULT_IGNORE_OPTIONS,
+): PluginDirectory {
   const matcher = createMatcher({
     rootDir: dir,
     respectGitignore: options.respectGitignore,
@@ -62,11 +102,18 @@ export function readPluginDirectory(dir: string, options: IgnoreOptions = DEFAUL
     extraIgnore: options.extraIgnore,
     extraInclude: options.extraInclude,
   });
-  const stats: ZipStats = { filesIncluded: 0, filesIgnored: 0, dirsSkipped: 0, totalSize: 0 };
+  const stats: ZipStats = {
+    filesIncluded: 0,
+    filesIgnored: 0,
+    dirsSkipped: 0,
+    totalSize: 0,
+  };
   const entries: PluginFileEntry[] = [];
 
   const walk = (currentDir: string, prefix: string): void => {
-    const dirents = readdirSync(currentDir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    const dirents = readdirSync(currentDir, { withFileTypes: true }).sort(
+      (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+    );
     for (const dirent of dirents) {
       const relPath = prefix === "" ? dirent.name : `${prefix}/${dirent.name}`;
       const full = join(currentDir, dirent.name);
@@ -95,7 +142,8 @@ export function readPluginDirectory(dir: string, options: IgnoreOptions = DEFAUL
   return {
     files: {
       entries,
-      read: (path) => new Uint8Array(readFileSync(join(dir, ...path.split("/")))),
+      read: (path) =>
+        new Uint8Array(readFileSync(join(dir, ...path.split("/")))),
     },
     stats,
   };
@@ -106,26 +154,279 @@ export interface PluginDescription {
   readonly plugin: Omit<PluginPackage, "overlay"> & {
     readonly overlay: {
       readonly agent?: string;
-      readonly workflows: readonly { readonly name: string; readonly path: string }[];
-      readonly mcpServers: readonly { readonly server: string; readonly path: string }[];
+      readonly workflows: readonly {
+        readonly name: string;
+        readonly path: string;
+      }[];
+      readonly mcpServers: readonly {
+        readonly server: string;
+        readonly path: string;
+      }[];
     };
   };
   readonly warnings: readonly PluginFinding[];
   readonly excludedFiles: number;
 }
 
-export function describePlugin(plugin: PluginPackage, warnings: readonly PluginFinding[], stats: ZipStats): PluginDescription {
+export function describePlugin(
+  plugin: PluginPackage,
+  warnings: readonly PluginFinding[],
+  stats: ZipStats,
+): PluginDescription {
   const { overlay, ...rest } = plugin;
   return {
     plugin: {
       ...rest,
       overlay: {
         ...(overlay.agent !== undefined && { agent: overlay.agent.path }),
-        workflows: overlay.workflows.map((w) => ({ name: w.name, path: w.path })),
-        mcpServers: overlay.mcpServers.map((s) => ({ server: s.server, path: s.path })),
+        workflows: overlay.workflows.map((w) => ({
+          name: w.name,
+          path: w.path,
+        })),
+        mcpServers: overlay.mcpServers.map((s) => ({
+          server: s.server,
+          path: s.path,
+        })),
       },
     },
     warnings,
     excludedFiles: stats.filesIgnored,
   };
+}
+
+// ─── Rendering, shared by `validate -f <dir>` and `push plugin --dry-run` ────
+
+/** Human labels for the four dialects, in the vocabulary the docs use. */
+export const DIALECT_LABELS: Readonly<Record<PluginDialect, string>> = {
+  "agent-plugins": "Agent Plugins 1.0",
+  claude: "Claude Code plugin",
+  cursor: "Cursor plugin",
+  codex: "Codex plugin",
+};
+
+/** The library's refusal as the CLI's one UsageError: every problem, then every warning. */
+export function pluginRefusal(
+  dir: string,
+  errors: readonly PluginFinding[],
+  warnings: readonly PluginFinding[],
+): UsageError {
+  const lines = [
+    `${dir}: plugin cannot be installed, ${count(errors.length, "problem")} found:`,
+    ...errors.map((finding) => `  - ${finding.message}`),
+  ];
+  if (warnings.length > 0) {
+    lines.push(
+      `and ${count(warnings.length, "warning")}:`,
+      ...warnings.map((finding) => `  - ${finding.message}`),
+    );
+  }
+  return new UsageError(lines.join("\n"));
+}
+
+/**
+ * What the package would install, as sections on a result — the one
+ * description `validate` prints and `push --dry-run` prints under its own
+ * headline, so an author reads the same words offline and before a push.
+ */
+export function describePackageOn(
+  result: CommandResult,
+  plugin: PluginPackage,
+  warnings: readonly PluginFinding[],
+  stats: ZipStats,
+): CommandResult {
+  const about = result.addSection("Plugin");
+  about.field("Name", plugin.name);
+  if (plugin.version !== undefined) about.field("Version", plugin.version);
+  about.field("Format", DIALECT_LABELS[plugin.dialect]);
+  about.field("Manifests", plugin.manifestsFound.join(", "));
+  about.field(
+    "Files",
+    `${stats.filesIncluded} read, ${stats.filesIgnored} excluded by ignore rules`,
+  );
+
+  const contents = result.addSection("Installs");
+  contents.field("Skills", named(plugin.skills.map((s) => s.name)));
+  contents.field(
+    "MCP servers",
+    named(plugin.mcpServers.map((s) => `${s.name} (${s.transport})`)),
+  );
+  contents.field("Sub-agents", named(plugin.subAgents.map((a) => a.name)));
+  contents.field(
+    "Variables",
+    named(
+      plugin.variables.map(
+        (v) =>
+          `${v.name}${v.optional ? " (optional)" : ""}${v.declaredBy === "inferred" ? " (inferred)" : ""}`,
+      ),
+    ),
+  );
+  const overlay = [
+    ...(plugin.overlay.agent !== undefined ? ["agent"] : []),
+    ...plugin.overlay.workflows.map((w) => `workflow ${w.name}`),
+    ...plugin.overlay.mcpServers.map((s) => `server overlay ${s.server}`),
+  ];
+  if (overlay.length > 0) contents.field("Stigmer overlay", overlay.join(", "));
+
+  if (warnings.length > 0) {
+    const section = result.addSection("Warnings");
+    for (const warning of warnings) section.item(warning.message);
+  }
+  if (plugin.ignored.length > 0) {
+    const section = result.addSection("Not installed");
+    for (const component of plugin.ignored)
+      section.item(`${component.kind} (${component.path})`);
+  }
+  return result.withData(describePlugin(plugin, warnings, stats));
+}
+
+export function count(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;
+}
+
+function named(items: readonly string[]): string {
+  return items.length === 0 ? "none" : `${items.length}: ${items.join(", ")}`;
+}
+
+// ─── Push ────────────────────────────────────────────────────────────────
+
+/**
+ * The archive a push sends: the SAME file list `validate` read, zipped
+ * deterministically (sorted entries, one DOS-epoch mtime, the skill
+ * packager's level), so the digest the server records is a pure function
+ * of the plugin's content and a second push of an unchanged directory is
+ * the server's no-op.
+ */
+export function zipPluginFiles(files: PluginFiles): Uint8Array {
+  const tree: Record<string, Uint8Array> = {};
+  for (const entry of files.entries) {
+    tree[entry.path] = files.read(entry.path);
+  }
+  return zipSync(tree, { level: 6, mtime: DETERMINISTIC_ZIP_MTIME });
+}
+
+export interface PushPluginOptions {
+  readonly org: string;
+  readonly visibility: ApiResourceVisibility | undefined;
+  readonly message: string;
+  readonly ignoreOptions: IgnoreOptions;
+}
+
+export interface PushPluginOutcome {
+  readonly plugin: Plugin;
+  readonly members: readonly PluginMember[];
+  readonly archiveBytes: number;
+}
+
+/**
+ * Read, validate offline (the same refusal `validate` prints, before a byte
+ * moves), zip, push, then read the members back. The server re-validates
+ * with the same library; the offline pass exists so an author never waits
+ * on the network to hear a sentence the CLI could say.
+ */
+export async function pushPlugin(
+  client: Stigmer,
+  dir: string,
+  options: PushPluginOptions,
+): Promise<PushPluginOutcome> {
+  const directory = readPluginDirectory(dir, options.ignoreOptions);
+  const outcome = readPluginPackage(directory.files);
+  if (!outcome.ok) {
+    throw pluginRefusal(dir, outcome.errors, outcome.warnings);
+  }
+  const archive = zipPluginFiles(directory.files);
+  const plugin = await client.plugin.push(
+    create(PushPluginRequestSchema, {
+      org: options.org,
+      artifact: archive,
+      message: options.message,
+      ...(options.visibility !== undefined && {
+        visibility: options.visibility,
+      }),
+    }),
+  );
+  const members = (await client.plugin.listMembers(plugin.metadata?.id ?? ""))
+    .members;
+  return { plugin, members, archiveBytes: archive.length };
+}
+
+/** The install as the user reads it: what landed, what was skipped, what to know. */
+export function renderPushOutcome(outcome: PushPluginOutcome): CommandResult {
+  const { plugin, members } = outcome;
+  const warnings = plugin.status?.warnings ?? [];
+  const counts = plugin.status?.materialized;
+  const summary = [
+    count(counts?.skills ?? 0, "skill"),
+    count(counts?.mcpServers ?? 0, "MCP server"),
+    count(counts?.agents ?? 0, "agent"),
+    ...(counts !== undefined && counts.workflows > 0
+      ? [count(counts.workflows, "workflow")]
+      : []),
+  ].join(", ");
+  const headline = `Installed plugin '${plugin.metadata?.slug ?? plugin.spec?.name ?? ""}' (${summary})`;
+  const result =
+    warnings.length === 0
+      ? CommandResult.success(headline)
+      : CommandResult.warning(
+          `${headline} with ${count(warnings.length, "warning")}`,
+        );
+
+  const about = result.addSection("Plugin");
+  about.field("ID", plugin.metadata?.id ?? "");
+  about.field("Slug", plugin.metadata?.slug ?? "");
+  if (plugin.spec?.version) about.field("Version", plugin.spec.version);
+  about.field("Digest", shortHash(plugin.status?.digest ?? ""));
+  about.field(
+    "Format",
+    plugin.spec === undefined ? "" : dialectLabel(plugin.spec.dialect),
+  );
+  about.field("Size", formatBytes(outcome.archiveBytes));
+
+  const installed = result.addSection("Installed");
+  for (const kind of [
+    ApiResourceKind.skill,
+    ApiResourceKind.mcp_server,
+    ApiResourceKind.agent,
+    ApiResourceKind.workflow,
+  ]) {
+    const slugs = members.filter((m) => m.kind === kind).map((m) => m.slug);
+    if (slugs.length > 0)
+      installed.field(
+        MEMBER_KIND_LABELS[kind] ?? ApiResourceKind[kind],
+        slugs.join(", "),
+      );
+  }
+  if (warnings.length > 0) {
+    const section = result.addSection("Warnings");
+    for (const warning of warnings) section.item(warning.message);
+  }
+  return result.withData({
+    plugin: toJson(PluginSchema, plugin),
+    members: members.map((m) => toJson(PluginMemberSchema, m)),
+  });
+}
+
+const MEMBER_KIND_LABELS: Partial<Record<ApiResourceKind, string>> = {
+  [ApiResourceKind.skill]: "Skills",
+  [ApiResourceKind.mcp_server]: "MCP servers",
+  [ApiResourceKind.agent]: "Agents",
+  [ApiResourceKind.workflow]: "Workflows",
+};
+
+function dialectLabel(dialect: PluginDialectProto): string {
+  switch (dialect) {
+    case PluginDialectProto.AGENT_PLUGINS:
+      return DIALECT_LABELS["agent-plugins"];
+    case PluginDialectProto.CLAUDE:
+      return DIALECT_LABELS.claude;
+    case PluginDialectProto.CURSOR:
+      return DIALECT_LABELS.cursor;
+    case PluginDialectProto.CODEX:
+      return DIALECT_LABELS.codex;
+    case PluginDialectProto.UNSPECIFIED:
+      return "";
+    default: {
+      const exhaustive: never = dialect;
+      return String(exhaustive);
+    }
+  }
 }

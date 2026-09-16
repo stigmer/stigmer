@@ -37,26 +37,34 @@ export function newIndexSearchStep<Desc extends DescMessage>(
       const resource = ctx.newState;
       const metadata = metadataOf(resource);
       if (metadata === undefined || metadata.id === "") {
-        logger.warn("IndexSearch: resource has no metadata or ID, skipping indexing");
+        logger.warn(
+          "IndexSearch: resource has no metadata or ID, skipping indexing",
+        );
         return;
       }
 
       const entry = extractor.getSearchIndexEntry(resource);
       if (entry === undefined) {
-        logger.warn("IndexSearch: extractor returned no entry, skipping indexing", {
-          id: metadata.id,
-        });
+        logger.warn(
+          "IndexSearch: extractor returned no entry, skipping indexing",
+          {
+            id: metadata.id,
+          },
+        );
         return;
       }
 
       try {
         await store.upsertSearchIndex(ctx.apiResourceKind, metadata.id, entry);
       } catch (error) {
-        logger.warn("IndexSearch: failed to update search index (best-effort)", {
-          id: metadata.id,
-          kind: apiResourceKindName(ctx.apiResourceKind),
-          error: error instanceof Error ? error.message : String(error),
-        });
+        logger.warn(
+          "IndexSearch: failed to update search index (best-effort)",
+          {
+            id: metadata.id,
+            kind: apiResourceKindName(ctx.apiResourceKind),
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
       }
     },
   };
@@ -72,18 +80,23 @@ export function newDeleteSearchIndexStep<Desc extends DescMessage>(
       const id = ctx.get(RESOURCE_ID_KEY);
       if (typeof id !== "string" || id === "") {
         throw internalError(
-          new Error("resource id not found in context (ExtractResourceId must run first)"),
+          new Error(
+            "resource id not found in context (ExtractResourceId must run first)",
+          ),
           "delete search index ordering",
         );
       }
       try {
         await store.deleteSearchIndex(ctx.apiResourceKind, id);
       } catch (error) {
-        logger.warn("DeleteSearchIndex: failed to remove search index entry (best-effort)", {
-          id,
-          kind: apiResourceKindName(ctx.apiResourceKind),
-          error: error instanceof Error ? error.message : String(error),
-        });
+        logger.warn(
+          "DeleteSearchIndex: failed to remove search index entry (best-effort)",
+          {
+            id,
+            kind: apiResourceKindName(ctx.apiResourceKind),
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
       }
     },
   };

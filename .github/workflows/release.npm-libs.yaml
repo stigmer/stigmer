@@ -210,8 +210,8 @@ jobs:
   # the exports-map typecheck over the packed tarball and a worker-start boot
   # against a real Temporal dev server — the posture a consumer's hoisted
   # node_modules tree runs, which nothing in this checkout exercises.
-  # Needs `publish`: the tarball pins @stigmer/protos, temporal-codecs and
-  # zip-structure to this release's registry versions.
+  # Needs `publish`: the tarball pins @stigmer/protos, temporal-codecs,
+  # zip-structure and plugin-package to this release's registry versions.
   publish-server:
     needs: [determine-version, publish]
     runs-on: ubuntu-latest

@@ -8,9 +8,12 @@
  * instances) but never to GRANT anything. Where a grant-shaped decision is
  * needed, key it on server-owned state instead (e.g. the parent blueprint's
  * status.default_instance_id, written only by the create/self-heal flows).
- * The cloud edition additionally guards the whole reserved namespace at its
- * write boundaries (GuardReservedLabelsStep); OSS has no such guard, which
- * is one of the reasons OSS predicates must not trust these labels alone.
+ * Every write boundary runs GuardReservedLabels over the namespace
+ * (pipeline/steps/guard-reserved-labels.ts), but the open-source
+ * authorizer's permissive default ALLOWS reserved-label writes by design
+ * (the self-hosted operator owns the store), which is why a restrict-shaped
+ * predicate here still pairs the label with server-owned state: the
+ * plugin-managed guard refuses only beside an existing plugin row.
  */
 import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -43,6 +46,31 @@ export const SYSTEM_MANAGED_LABEL = `${RESERVED_LABEL_PREFIX}system-managed`;
  * read by the predicates here.
  */
 export const RESERVED_LABEL_TRUE = "true";
+
+/**
+ * The plugin that materialised a resource: the label's value is the
+ * plugin's id (`plg_...`), never its slug, because `findAllByLabel` is
+ * org-agnostic and two organizations may both install `thermos`. Written
+ * only by the plugin controller (in-process, as the installing caller);
+ * membership is derived on read from it and stored nowhere else.
+ */
+export const PLUGIN_LABEL = `${RESERVED_LABEL_PREFIX}plugin`;
+
+/**
+ * The archive digest a member was last materialised from — the per-child
+ * convergence marker. A re-push compares every member's value with the
+ * head's digest before deciding it has nothing to do, so a member another
+ * lane deleted or an older install left behind is re-materialised.
+ */
+export const PLUGIN_VERSION_LABEL = `${RESERVED_LABEL_PREFIX}plugin-version`;
+
+/** The plugin id a resource's labels claim, or undefined when unlabelled. */
+export function pluginIdOf(
+  metadata: ApiResourceMetadata | undefined,
+): string | undefined {
+  const value = metadata?.labels[PLUGIN_LABEL];
+  return value === undefined || value === "" ? undefined : value;
+}
 
 /**
  * Whether the metadata carries the DEFAULT_INSTANCE_LABEL marker

@@ -209,6 +209,15 @@ pages:
     embeds:
       DemoToolCallsPlayback: replace
 
+  guides/plugins/install-a-plugin:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Validate a Cursor, Claude Code, Codex or Agent Plugins folder offline,
+      install it as one unit, upgrade it by pushing again, and understand why
+      its members are the plugin's to redefine.
+    medium: none
+
   guides/sharing/share-an-agent:
     fate: keep
     diataxis: how-to

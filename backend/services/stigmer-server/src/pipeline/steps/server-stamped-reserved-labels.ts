@@ -36,7 +36,8 @@ export function recordServerStampedReservedLabels<Desc extends DescMessage>(
   ...keys: ReadonlyArray<string>
 ): void {
   const existing = ctx.get(STAMPED_KEYS_CONTEXT_KEY);
-  const stamped = existing instanceof Set ? (existing as Set<string>) : new Set<string>();
+  const stamped =
+    existing instanceof Set ? (existing as Set<string>) : new Set<string>();
   for (const key of keys) {
     stamped.add(key);
   }

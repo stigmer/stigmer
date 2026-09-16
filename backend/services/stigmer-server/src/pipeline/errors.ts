@@ -24,7 +24,10 @@ export function invalidArgumentError(message: string): ConnectError {
 
 /** Go AlreadyExistsError: "%s already exists: %s". */
 export function alreadyExistsError(resource: string, id: string): ConnectError {
-  return new ConnectError(`${resource} already exists: ${id}`, Code.AlreadyExists);
+  return new ConnectError(
+    `${resource} already exists: ${id}`,
+    Code.AlreadyExists,
+  );
 }
 
 /**
@@ -109,10 +112,7 @@ export function goWrappedStatusError(
   prefix: string,
   error: ConnectError,
 ): ConnectError {
-  return new ConnectError(
-    `${prefix}: ${goGrpcErrorText(error)}`,
-    error.code,
-  );
+  return new ConnectError(`${prefix}: ${goGrpcErrorText(error)}`, error.code);
 }
 
 /**

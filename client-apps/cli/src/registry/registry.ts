@@ -64,7 +64,12 @@ function buildTypeInfo(kind: ApiResourceKind): TypeInfo | undefined {
     // ApiResourceKind[kind] reverse-maps to the proto enum value name (e.g.
     // "oauth_app") — the canonical spelling, taken from the enum itself so it
     // can never drift from the proto.
-    aliases: generateAliases(meta.name, meta.displayName, meta.idPrefix, ApiResourceKind[kind]),
+    aliases: generateAliases(
+      meta.name,
+      meta.displayName,
+      meta.idPrefix,
+      ApiResourceKind[kind],
+    ),
     supportedVerbs: verbsForKind(kind),
   };
 }
@@ -91,7 +96,8 @@ function buildRegistry(): Registry {
     getByAlias: (input) => byAlias.get(normalizeAlias(input)),
     getByYamlKind: (yamlKind) => byYamlKind.get(yamlKind),
     all: () => all,
-    supportsVerb: (kind, verb) => byKind.get(kind)?.supportedVerbs.has(verb) ?? false,
+    supportsVerb: (kind, verb) =>
+      byKind.get(kind)?.supportedVerbs.has(verb) ?? false,
     typesForVerb: (verb) => all.filter((info) => info.supportedVerbs.has(verb)),
   };
 }

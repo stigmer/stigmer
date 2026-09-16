@@ -1,8 +1,11 @@
 Push an artifact to the Stigmer registry.
 
-`stigmer push` packages and uploads artifacts (currently skills) to the
-registry. You can push from a local directory or directly from a remote git
-repository.
+`stigmer push` packages and uploads two kinds of artifact. A **skill** is a
+directory holding a `SKILL.md`, pushed from a local directory or directly from
+a remote git repository. A **plugin** is a directory in the Agent Plugins,
+Cursor, Claude Code or Codex layout; pushing it installs the plugin, or
+upgrades it when it is already installed, and Stigmer materializes its skills,
+MCP servers, agent and workflows in your organization as one unit.
 
 {/* AUTO_USAGE */}
 
@@ -20,9 +23,26 @@ stigmer push skill --tag v1.2.0
 
 # Preview without pushing
 stigmer push skill --dry-run
+
+# Install a plugin from its folder (or upgrade the installed one)
+stigmer push plugin ./thermos
+
+# See what a plugin would install, offline
+stigmer push plugin ./thermos --dry-run
 ```
 
 {/* AUTO_FLAGS */}
+
+### Plugins
+
+`stigmer push plugin <dir>` reads the folder the way `stigmer validate -f <dir>`
+does, refuses offline with the same sentences, and pushes the whole folder as
+one archive. The plugin's version is its manifest's `version`, so `--tag` does
+not apply; `--visibility` sets the level for the plugin and every resource it
+installs. Pushing an unchanged folder again changes nothing. The resources a
+plugin installs are the plugin's to redefine: edit the plugin and push it again
+rather than editing them directly, or compose your own agent over its skills
+and servers. `stigmer delete plugin <name>` removes everything it installed.
 
 ### Source modes
 

@@ -15,7 +15,7 @@ import {
   entryTypeBits,
   hasWindowsShortFilenames,
   sanitizePath,
-} from "../storage/prefilter.js";
+} from "../prefilter.js";
 
 // versionMadeBy high byte 3 = Unix creator; POSIX mode rides the attribute
 // high 16 bits (how zip writers encode symlinks and special files).

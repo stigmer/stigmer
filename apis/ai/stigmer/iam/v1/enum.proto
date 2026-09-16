@@ -146,6 +146,14 @@ enum IamPermission {
   // deliberately unguarded: the self-hosted operator owns the store,
   // the same scoping cloud#320 applied to reserved labels.
   can_set_public_visibility = 39;
+
+  // Organization-level permission to install a plugin: push an Agent
+  // Plugins archive that the server materialises into skills, MCP servers,
+  // an agent and workflows in the organization. Distinct from the child
+  // kinds' create permissions, which the materialisation also evaluates for
+  // the installing caller: who may bring a package into an organization is a
+  // policy an administrator sets on its own.
+  can_create_plugin = 40;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources
