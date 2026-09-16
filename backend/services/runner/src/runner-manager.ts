@@ -29,7 +29,12 @@ import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TI
 // desktop manager never calls emitRunnerBootTiming, so marks cost nothing).
 import { markBoot } from "./shared/cold-start-timing.js";
 import type { WorkerActivities } from "./worker.js";
-import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
+import {
+  resolveWorkflowSource,
+  runCredentialWorkflowInterceptorModule,
+  OTEL_WORKFLOW_INTERCEPTOR_MODULE,
+} from "./workflow-source.js";
+import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
 import {
@@ -816,9 +821,14 @@ async function buildInterceptorConfig(): Promise<InterceptorConfig> {
     "./interceptors/workflow-metrics-sink.js"
   );
 
-  const activityInterceptors: ActivityInterceptorsFactory[] = [];
+  // The run credential's two ends (shared/run-credential.ts), always on and
+  // inert without a credential — the same pair the static root registers
+  // (worker.ts). The workflow module reaches the bundle through
+  // `workflowInterceptorModules` on the runtime path and is baked in on the
+  // pre-built path (scripts/bundle-slim.mjs).
+  const activityInterceptors: ActivityInterceptorsFactory[] = [runCredentialActivityInterceptor];
   let sinks: InjectedSinks<any> = { ...createWorkflowMetricsSinks() };
-  const workflowInterceptorModules: string[] = [];
+  const workflowInterceptorModules: string[] = [runCredentialWorkflowInterceptorModule()];
 
   // In-flight activity counter: keeps a session/wfexec worker alive while one of
   // its activities (notably the long ExecuteCursor) is running, so a view close

@@ -20,6 +20,8 @@ vi.mock("@connectrpc/connect", () => ({
 }));
 
 import { StigmerClient } from "../stigmer-client.js";
+import { withRunCredential } from "../../shared/run-credential-store.js";
+import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -276,6 +278,96 @@ describe("StigmerClient", () => {
       await runInterceptor(req);
 
       expect(req.header.get("authorization")).toBe("Bearer per-call-scoped-tok");
+    });
+  });
+
+  describe("run credential (the activity's own, shared/run-credential-store.ts)", () => {
+    // The server mints a credential for ONE execution at dispatch and, with
+    // sign-in on, admits its bearer as that run's human. The activity boundary
+    // enters it into the store; these arms pin that the client presents it on
+    // every RPC about a run, on no process-bound RPC, below an explicit
+    // per-call header and above every process credential — and that two
+    // concurrent activities never see each other's.
+
+    function clientWithEveryProcessCredential(): StigmerClient {
+      return new StigmerClient({
+        endpoint: "http://localhost",
+        token: "static-tok",
+        tokenRef: { current: "control-plane-tok" },
+        runnerTokenRef: { current: "runner-tok" },
+      });
+    }
+
+    it("presents the run credential on an ordinary control-plane RPC", async () => {
+      clientWithEveryProcessCredential();
+      const req = makeRequest();
+      await withRunCredential("run-cred", () => runInterceptor(req));
+      expect(req.header.get("authorization")).toBe("Bearer run-cred");
+    });
+
+    it("presents it above the runner credential on the three runner-credential RPCs", async () => {
+      clientWithEveryProcessCredential();
+      for (const req of [
+        makeExecutionContextRequest(),
+        makeScopedTokenExchangeRequest(),
+        makeRequest(AgentExecutionCommandController.typeName, "create"),
+      ]) {
+        await withRunCredential("run-cred", () => runInterceptor(req));
+        expect(req.header.get("authorization")).toBe("Bearer run-cred");
+      }
+    });
+
+    it("never presents it on the process-bound bootstrap read", async () => {
+      clientWithEveryProcessCredential();
+      const req = makeRequest(PlatformQueryController.typeName, "getRunnerBootstrapConfig");
+      await withRunCredential("run-cred", () => runInterceptor(req));
+      expect(req.header.get("authorization")).toBe("Bearer control-plane-tok");
+    });
+
+    it("yields to an explicit per-call credential", async () => {
+      clientWithEveryProcessCredential();
+      const req = makeRequest();
+      req.header.set("authorization", "Bearer explicit-tok");
+      await withRunCredential("run-cred", () => runInterceptor(req));
+      expect(req.header.get("authorization")).toBe("Bearer explicit-tok");
+    });
+
+    it("leaves every rule below untouched when no activity credential is current", async () => {
+      clientWithEveryProcessCredential();
+      const ordinary = makeRequest();
+      await runInterceptor(ordinary);
+      expect(ordinary.header.get("authorization")).toBe("Bearer control-plane-tok");
+      const ec = makeExecutionContextRequest();
+      await runInterceptor(ec);
+      expect(ec.header.get("authorization")).toBe("Bearer runner-tok");
+    });
+
+    it("never crosses between two concurrent activities sharing one client", async () => {
+      clientWithEveryProcessCredential();
+      const reqA = makeRequest();
+      const reqB = makeRequest();
+      await Promise.all([
+        withRunCredential("run-cred-A", async () => {
+          await new Promise((resolve) => setTimeout(resolve, 2));
+          await runInterceptor(reqA);
+        }),
+        withRunCredential("run-cred-B", async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          await runInterceptor(reqB);
+        }),
+      ]);
+      expect(reqA.header.get("authorization")).toBe("Bearer run-cred-A");
+      expect(reqB.header.get("authorization")).toBe("Bearer run-cred-B");
+    });
+
+    it("acquireScopedRunnerToken answers the run credential without an exchange", async () => {
+      const client = clientWithEveryProcessCredential();
+      const exchange = vi.spyOn(client, "getRunnerScopedToken");
+      const token = await withRunCredential("run-cred", () =>
+        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
+      );
+      expect(token).toBe("run-cred");
+      expect(exchange).not.toHaveBeenCalled();
     });
   });
 

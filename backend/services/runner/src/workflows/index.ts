@@ -13,9 +13,11 @@
  * us map TypeScript function names to the slash-delimited Temporal
  * workflow type names that the backend expects.
  *
- * OTel workflow interceptors are registered at bundle time — not
- * imported here. Pre-built bundles (scripts/bundle-slim.mjs) bake them
- * in; the runtime-bundling fallback passes them to the bundler (see
+ * Workflow interceptors are registered at bundle time — not imported
+ * here: the runner's own run-credential interceptor
+ * (./interceptors/run-credential.ts, always) and OTel's (when the host
+ * configures the sink). Pre-built bundles (scripts/bundle-slim.mjs) bake
+ * them in; the runtime-bundling fallback passes them to the bundler (see
  * src/workflow-source.ts).
  */
 

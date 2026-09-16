@@ -175,6 +175,22 @@ interface ExecuteActivityInput {
   readonly execution_context_token?: string;
 }
 
+/**
+ * The typed input of GenerateSessionSubject — the runner's
+ * GenerateSessionSubjectInput (activities/generate-session-subject.ts),
+ * snake_case keys. Sent ONLY when the dispatch carries a run credential;
+ * otherwise the activity is called with the positional execution id it has
+ * always received, byte for byte, because a server whose dispatches carry
+ * no credential (the cloud's: its runner credential is provisioned, not
+ * dispatched) talks to desktop runners in the field that predate the object
+ * shape, and a session title is not worth breaking for them. A runner that
+ * knows the object accepts both.
+ */
+interface GenerateSessionSubjectInput {
+  readonly execution_id: string;
+  readonly execution_context_token: string;
+}
+
 interface RunnerActivities {
   [ENSURE_THREAD_ACTIVITY_NAME]: (
     sessionId: string,
@@ -187,7 +203,7 @@ interface RunnerActivities {
     input: ExecuteActivityInput,
   ) => Promise<RunnerActivityResult | null>;
   [GENERATE_SESSION_SUBJECT_ACTIVITY_NAME]: (
-    executionId: string,
+    input: GenerateSessionSubjectInput | string,
   ) => Promise<void>;
 }
 
@@ -563,7 +579,7 @@ async function executeDeepAgentFlow(
   }
   log.info("Thread ensured", { threadId });
 
-  fireGenerateSessionSubject(activityTaskQueue, executionId);
+  fireGenerateSessionSubject(activityTaskQueue, input);
 
   log.info("Step 2: Executing deep agent", { executionId, threadId });
   const agentProxy = newExecuteAgentProxy(activityTaskQueue);
@@ -611,7 +627,7 @@ async function executeCursorFlow(
   const executionId = input.execution_id;
   const sessionId = input.session_id;
 
-  fireGenerateSessionSubject(activityTaskQueue, executionId);
+  fireGenerateSessionSubject(activityTaskQueue, input);
 
   log.info("Executing Cursor agent", { executionId, sessionId });
   const agentProxy = newExecuteAgentProxy(activityTaskQueue);
@@ -668,15 +684,26 @@ async function executeCursorFlow(
   });
 }
 
-/** GenerateSessionSubject: fire-and-forget, non-blocking (issue #665). */
+/**
+ * GenerateSessionSubject: fire-and-forget, non-blocking (issue #665). The
+ * argument shape follows the run credential's presence — see
+ * GenerateSessionSubjectInput for why the credential-less dispatch keeps
+ * the positional string.
+ */
 function fireGenerateSessionSubject(
   activityTaskQueue: string,
-  executionId: string,
+  input: InvokeAgentExecutionWorkflowInput,
 ): void {
+  const executionId = input.execution_id;
+  const runCredential = input.execution_context_token ?? "";
+  const argument: GenerateSessionSubjectInput | string =
+    runCredential !== ""
+      ? { execution_id: executionId, execution_context_token: runCredential }
+      : executionId;
   const subjectProxy = newSubjectProxy(activityTaskQueue);
   void (async () => {
     try {
-      await subjectProxy[GENERATE_SESSION_SUBJECT_ACTIVITY_NAME](executionId);
+      await subjectProxy[GENERATE_SESSION_SUBJECT_ACTIVITY_NAME](argument);
     } catch (error) {
       log.warn("Session subject generation failed (non-critical)", {
         executionId,
