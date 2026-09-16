@@ -87,7 +87,8 @@ AGENTS.md                         the always-on root guide (a real file, not a s
   skills/<name>/SKILL.md          repo skills, with optional references/ beside each
 .cursor/rules/agents-<slug>.mdc   generated shim per nested guide; the ONLY files allowed in .cursor/rules
 scripts/agents-check.mjs          the gate: shims in sync, cited paths resolve, no private ids, guides within
-                                  budget, skill frontmatter well-formed, nothing hand-written in .cursor/rules
+                                  budget, skill frontmatter well-formed, nothing hand-written in .cursor/rules,
+                                  no .mdc anywhere else (a rule filed where no tool reads it)
 ```
 
 The skills are of two kinds. Package doctrine skills carry `paths:` and surface
@@ -134,9 +135,10 @@ is adopted, add a one-line `CLAUDE.md` containing `@AGENTS.md` beside each
    Cursor's `/name` form appears only where a person is told what to type.
 5. Run `make agents-sync` (writes or removes shims) and `make agents-check`
    (fails on drift, a cited path that does not resolve, a private-record
-   identifier, a guide over budget, malformed skill frontmatter, or any file in
-   `.cursor/rules/` that is not a generated shim). `check-prep` and `ci.docs`
-   run both.
+   identifier, a guide over budget, malformed skill frontmatter, any file in
+   `.cursor/rules/` that is not a generated shim, or a `.mdc` file anywhere else
+   in the tree, since Cursor reads rules from that folder only). `check-prep`
+   and `ci.docs` run both.
 6. Format with the repo's Prettier config; `make format-docs` covers guidance
    files.
 7. Nothing in this repository cites a private planning record, task id, ruling
