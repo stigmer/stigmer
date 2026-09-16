@@ -235,3 +235,4 @@ These tune internal behavior or support testing. Most operators never set them.
 - **[Embedding integration guide](https://stigmer.ai/docs/guides/runners/embedding)** — building a desktop client (local execution) and a web client (cloud execution), including the per-audience configuration each one passes.
 - **SDK `RunnerAdapter` and `executionTarget`** — the local-execution surfaces in `@stigmer/react` and `@stigmer/sdk`. The [embedding guide](https://stigmer.ai/docs/guides/runners/embedding) covers them today; a dedicated SDK reference is forthcoming.
 - **Public API** — `src/index.ts` exports `createStigmerRunner` and `createStigmerRunnerManager` with typed options and inline examples.
+- **[Adding a harness](src/harness/README.md)** — the turn runtime, the adapter contract, the contract kit, and the checklist of files inside and outside the runner a new harness touches.

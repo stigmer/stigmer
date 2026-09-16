@@ -53,12 +53,22 @@ import type { VisionProfile } from "../shared/attachment-vision.js";
  *  - `deny-and-retry`: an out-of-process hook denies the tool, the adapter
  *    records the denial, cancels the run, and re-runs with grants on the next
  *    invocation.
- *  - `callback`: an in-process callback decides per tool; the runtime still
- *    returns `awaiting_approval` and reinvokes, so the adapter answers the
- *    callback with "deny, stop" and resumes with the decisions.
- *  - `none`: the engine offers no gate; the runtime confines it to
- *    capture-only work (a read-only sandbox) and gated actions never reach
- *    the engine.
+ *  - `callback`: an in-process callback decides per tool. The intended shape
+ *    is the `interrupt` one seen from the runtime: the turn still ends
+ *    `awaiting_approval` and reinvokes, and the adapter answers the callback
+ *    with "deny, stop" and resumes with the decisions.
+ *  - `none`: the engine offers no gate. The intended shape is that the
+ *    runtime confines such a harness to capture-only work (a read-only
+ *    sandbox) so a gated action never reaches the engine.
+ *
+ * Two of the four are built and two are reserved. `interrupt` (native) and
+ * `deny-and-retry` (Cursor) each have a real adapter and the contract kit
+ * runs under both. `callback` and `none` come from the 2026-09 survey of the
+ * Claude and Codex SDKs: the type carries them so an adapter can declare
+ * them, but no adapter does, and the runtime reads `pausePrimitive` in one
+ * place only (`turn-context.ts` `regeneratesApprovedWrites`, which returns
+ * false for `none`). The capture-only confinement for `none` is design
+ * still to be done before the first gate-less harness lands.
  */
 export type PausePrimitive = "interrupt" | "deny-and-retry" | "callback" | "none";
 
