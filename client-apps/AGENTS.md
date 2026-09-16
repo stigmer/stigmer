@@ -58,8 +58,8 @@ there. This guide is an index; the READMEs and headers it names are the truth.
 - Console chrome (`WorkspaceSidebar`, `SettingsSidebar`) is an SDK component
   extended through its seams; never re-transcribe it into a client or a demo.
 - The web console's Turbopack loader (`web/turbopack-js-to-ts-loader.js`) strips
-  the `.js` the SDK's specifiers carry; when Next.js or Turbopack changes,
-  confirm it still covers `from`, dynamic `import(` and side-effect forms.
+  the `.js` the SDK's specifiers carry; re-check it when Next.js or Turbopack
+  changes.
 
 ## Laws, every surface
 
@@ -70,9 +70,9 @@ there. This guide is an index; the READMEs and headers it names are the truth.
 
 ## Skills
 
-- `.agents/skills/sdk-console-architecture/SKILL.md`: the SDK-first decisions
-  the web and desktop shells live under, client-app parity in full, and the
-  theme-token reference. Load it before wiring an SDK component into a client.
+- `.agents/skills/sdk-console-architecture/SKILL.md`: the SDK-first decisions,
+  client-app parity in full, the theme-token reference. Load it before wiring an
+  SDK component into a client.
 
 ## Verify
 
