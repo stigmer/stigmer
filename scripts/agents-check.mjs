@@ -4,7 +4,7 @@
  * Gate for the repo-owned agent guidance: root `AGENTS.md`, the nested
  * `<package>/AGENTS.md` guides, and `.agents/**` (README, principles, skills).
  *
- * Six invariants, all static and dependency-free so the gate is cheap,
+ * Seven invariants, all static and dependency-free so the gate is cheap,
  * offline and deterministic in CI and in a fresh worktree:
  *
  *   1. Every nested guide has a Cursor shim, and the shim is current. Cursor
@@ -69,6 +69,17 @@
  *      and none of its flags honoured, so `paths:` no longer defers it and
  *      `disable-model-invocation` no longer hides it.
  *
+ *   7. No `.mdc` file outside `.cursor/rules/`. Cursor reads rule files from
+ *      that one folder, so a `.mdc` filed anywhere else is authored doctrine
+ *      that no tool loads and no reader is told about: it stays plausible,
+ *      goes stale, and invariant 5 never sees it because it never looks
+ *      outside the rules folder. The check is on the format, not on a
+ *      folder name, so a rule filed beside the code it describes or under a
+ *      `_rules/` folder of its own is found either way. `--private-repo`
+ *      allows `.mdc` files under `_projects/`, `_changelog/` and
+ *      `_meetings/`, where a repository that hosts the planning framework
+ *      keeps the framework's own rules by design.
+ *
  * Usage:
  *   node scripts/agents-check.mjs            check (exit 1 on any finding)
  *   node scripts/agents-check.mjs --sync     write shims, remove orphans, then check
@@ -90,6 +101,14 @@ const GENERATED_MARKER = `Generated from`;
 
 /** Directories never descended into: build output, vendored trees, and every dot-directory (which keeps a vendored skill bundle's own AGENTS.md from becoming a guide). */
 const SKIPPED_DIR_NAMES = new Set(["node_modules", "dist", "out", "target", "build", "__pycache__", "coverage"]);
+
+/**
+ * Top-level trees where a private repository keeps the planning framework's
+ * own Cursor rules (`_projects/_rules/`, `_changelog/_rules/`,
+ * `_meetings/_rules/`). Only `--private-repo` honours this list; in a public
+ * repository every `.mdc` outside `.cursor/rules/` is a finding.
+ */
+const FRAMEWORK_RULE_TREES = ["_projects", "_changelog", "_meetings"];
 
 /**
  * Prefixes that mark an inline span as a URL, a mention, a package name, a
@@ -357,6 +376,20 @@ export function checkRulesDir(root) {
     .map((rel) => `${rel}: authored rule in ${SHIM_DIR}/; binding laws belong in the package's AGENTS.md, procedures and long-form doctrine in a skill under ${SKILLS_DIR}/`);
 }
 
+/**
+ * Every `.mdc` file outside `.cursor/rules/`. The walk skips dot-directories,
+ * so the rules folder itself is never visited here (invariant 5 owns it); what
+ * remains is a Cursor rule filed where Cursor does not look. In private mode
+ * the framework's own trees are exempt.
+ */
+export function checkStrayRules(root, { privateRepo }) {
+  const exempt = (rel) => privateRepo && FRAMEWORK_RULE_TREES.some((tree) => rel.startsWith(`${tree}/`));
+  return walk(root, (name) => name.endsWith(".mdc"))
+    .filter((rel) => !exempt(rel))
+    .sort()
+    .map((rel) => `${rel}: Cursor rule outside ${SHIM_DIR}/, which no tool loads; binding laws belong in the package's AGENTS.md, procedures and long-form doctrine in a skill under ${SKILLS_DIR}/`);
+}
+
 /** Skill folders: every direct child of `.agents/skills/` that holds a `SKILL.md`, as repo-relative paths to that file. */
 export function discoverSkills(root) {
   const dir = join(root, SKILLS_DIR);
@@ -537,6 +570,7 @@ export function runGate(root, { sync = false, privateRepo = false } = {}) {
     ...checkLeakage(root, files, { privateRepo }),
     ...budgets.findings,
     ...checkRulesDir(root),
+    ...checkStrayRules(root, { privateRepo }),
     ...skills.findings,
   ];
   return { findings, written: shims.written, removed: shims.removed, files, measured: budgets.measured, skills: skills.skills };

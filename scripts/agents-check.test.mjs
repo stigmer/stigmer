@@ -2,12 +2,12 @@
 // Run via `node --test scripts/agents-check.test.mjs` (wired into root `npm test`).
 //
 // Every case builds a throwaway repository under a temp directory, so the
-// suite never depends on this repository's own guidance state. The six
+// suite never depends on this repository's own guidance state. The seven
 // invariants each get a happy path and the failure the gate exists to catch:
 // a shim that drifted or was orphaned, a citation that points at nothing, a
 // private-record id in public prose, a guide that outgrew its budget, an
-// authored rule filed under .cursor/rules, and a skill whose frontmatter
-// would keep it from ever surfacing.
+// authored rule filed under .cursor/rules, a skill whose frontmatter would
+// keep it from ever surfacing, and a .mdc rule filed where no tool reads it.
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
@@ -24,6 +24,7 @@ import {
   checkLeakage,
   checkRulesDir,
   checkSkill,
+  checkStrayRules,
   collectGuidanceFiles,
   countWords,
   discoverNestedGuides,
@@ -269,6 +270,39 @@ test("anything under .cursor/rules that is not an owned shim is a finding, where
   }
 });
 
+test("a .mdc outside .cursor/rules is a finding wherever it is filed; --private-repo exempts the framework trees only", () => {
+  const root = repo({
+    "AGENTS.md": "# root\n",
+    ".cursor/rules/agents-x.mdc": "a rule in the one folder Cursor reads; invariant 5's business, not this check's\n",
+    "apis/_rules/model-proto.mdc": "---\ndescription: authored doctrine in a _rules folder\n---\n",
+    "docs/how-to.mdc": "---\ndescription: authored doctrine filed beside the docs\n---\n",
+    "_projects/_rules/wrap-up.mdc": "---\ndescription: a framework rule\n---\n",
+    "_changelog/_rules/create.mdc": "---\ndescription: a framework rule\n---\n",
+    "_meetings/_rules/prepare.mdc": "---\ndescription: a framework rule\n---\n",
+    "_projects/_rules/README.md": "prose beside the framework rules, not a rule\n",
+    "node_modules/pkg/rule.mdc": "vendored; never walked\n",
+  });
+  try {
+    const publicFindings = checkStrayRules(root, { privateRepo: false });
+    assert.deepEqual(
+      publicFindings.map((f) => f.split(":")[0]),
+      ["_changelog/_rules/create.mdc", "_meetings/_rules/prepare.mdc", "_projects/_rules/wrap-up.mdc", "apis/_rules/model-proto.mdc", "docs/how-to.mdc"],
+      "in a public repository every stray .mdc is reported, sorted; the rules folder and vendored trees are not walked",
+    );
+    assert.match(publicFindings[0], /Cursor rule outside \.cursor\/rules\/, which no tool loads/);
+    assert.deepEqual(
+      checkStrayRules(root, { privateRepo: true }).map((f) => f.split(":")[0]),
+      ["apis/_rules/model-proto.mdc", "docs/how-to.mdc"],
+      "private mode exempts _projects, _changelog and _meetings and nothing else",
+    );
+    rmSync(join(root, "apis"), { recursive: true });
+    rmSync(join(root, "docs"), { recursive: true });
+    assert.deepEqual(checkStrayRules(root, { privateRepo: true }), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("frontmatter reader: scalars, folded scalars, block and inline lists, quotes, comments", () => {
   assert.equal(splitFrontmatter("no fence\n"), null);
   const parts = splitFrontmatter("---\nname: x\n---\n# Body\n\ntext\n");
@@ -378,16 +412,23 @@ test("runGate composes the checks and reports green only when all pass", () => {
       "---\nname: runner-dev-guidelines\ndescription: Runner doctrine. Use when editing the runner.\npaths:\n  - backend/services/runner/**\n---\n# Runner\n\nRead `backend/services/runner/src/main.ts` first.\n",
     ".agents/skills/broken/SKILL.md": "# no frontmatter\n",
     ".cursor/rules/legacy-doctrine.mdc": "---\ndescription: a hand-written rule\n---\n",
+    "backend/services/_rules/add-config.mdc": "---\ndescription: a hand-written rule filed beside the code\n---\n",
   });
   try {
     const before = runGate(root, { sync: false });
     assert.deepEqual(
       before.findings.map((f) => f.split(":")[0]),
-      [".cursor/rules/agents-backend-services-runner.mdc", ".cursor/rules/legacy-doctrine.mdc", ".agents/skills/broken/SKILL.md"],
-      "the missing shim, the authored rule and the malformed skill are the three findings",
+      [
+        ".cursor/rules/agents-backend-services-runner.mdc",
+        ".cursor/rules/legacy-doctrine.mdc",
+        "backend/services/_rules/add-config.mdc",
+        ".agents/skills/broken/SKILL.md",
+      ],
+      "the missing shim, the authored rule, the stray rule and the malformed skill are the four findings",
     );
     rmSync(join(root, ".agents/skills/broken"), { recursive: true });
     rmSync(join(root, ".cursor/rules/legacy-doctrine.mdc"));
+    rmSync(join(root, "backend/services/_rules"), { recursive: true });
     const synced = runGate(root, { sync: true });
     assert.deepEqual(synced.findings, []);
     assert.deepEqual(synced.written, [".cursor/rules/agents-backend-services-runner.mdc"]);
