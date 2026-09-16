@@ -46,6 +46,7 @@ stigmer/
 │   └── services/
 │       ├── stigmer-server/        # Main gRPC server (TypeScript)
 │       └── runner/                # Unified TypeScript runner (agent sessions + workflow tasks)
+│           └── src/harness/README.md  # Adding a harness: start here
 ├── client-apps/
 │   ├── cli/                       # TypeScript CLI (stigmer command)
 │   └── web/                       # Next.js web console
