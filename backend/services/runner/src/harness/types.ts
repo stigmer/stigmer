@@ -21,9 +21,8 @@
  * (`execute-cursor/turn-stream.ts` `CursorTurnStreamDeps`) or a fact the
  * runtime cannot read anywhere else. Nothing here is speculative: where the
  * program's original sketch and the code disagreed, the code won, and the
- * disagreement was ruled at the entry's gate
- * (stigmer-cloud `_projects/2026-09/20260911.02.sp.harness-contract-and-kit/`
- * for S1; `20260911.03.sp.turn-runtime-extraction/` M3 for the growth below).
+ * disagreement was ruled before the code landed (#1064; the growth below in
+ * #1070).
  *
  * What is deliberately NOT on this contract, and why:
  *
@@ -57,7 +56,7 @@
  *    unconditional at settle; WHEN a streaming turn asks for a write is the
  *    adapter's (`shared/persist-decision.ts` over the builder's `dirty`
  *    flag, since WHEN to ask is engine cadence). Revisited with
- *    both loops in view at S3 M4 and kept (Q-S3-13): the cadence RULE is
+ *    both loops in view in #1096 and kept: the cadence RULE is
  *    shared, the timing is the engine's.
  *  - No capture. The file-review capture is the runtime's whole
  *    (`harness/capture.ts`): the baseline before `runTurn`, the candidate
@@ -328,7 +327,7 @@ export interface TurnInput extends NormalizedActivityInput {
  * one status it folds into. One sink per turn, owned by the runtime; the
  * adapter never constructs one.
  *
- * Field ownership on `status` (S4 M5, the canonical transcript landed):
+ * Field ownership on `status` (since #1097, the canonical transcript):
  *
  *  - Transcript rows — messages, tool-call rows, sub-agent rows, todos — are
  *    CREATED through `transcript` and nowhere else: the adapter translates
@@ -355,7 +354,7 @@ export interface TurnInput extends NormalizedActivityInput {
  *  - The runtime alone writes the phase, `startedAt`, `completedAt`,
  *    `error`, the terminal system rows, `streamingUsage`,
  *    `fileChangeProgress`, the file-review ledger events and the change-set
- *    stamp (S3 M4, `harness/capture.ts`), and closes every streaming flag
+ *    stamp (`harness/capture.ts`, since #1096), and closes every streaming flag
  *    once `runTurn` returns. An adapter never writes a phase or a terminal
  *    copy: those are Temporal semantics the runtime owns once.
  */
@@ -445,7 +444,7 @@ export interface TurnSink {
    * step only the adapter knows ("Initializing Cursor agent"). The runtime
    * reports its own resolution labels itself; the adapter reports the labels
    * of its setup steps exactly as the orchestrator did, so the UI's spinner
-   * copy is unchanged by the extraction (Q-S2-5). Resolves once the label is
+   * copy is unchanged by the extraction. Resolves once the label is
    * written; the write carries no phase, so it never advances the execution.
    */
   reportProgress(label: string): Promise<void>;
@@ -458,7 +457,7 @@ export interface TurnSink {
    * cleared, the agnostic quirk of `BuildUpdateStateStep`); the adapter may
    * set its own harness-specific `SessionSpec` fields on that record before
    * binding, one writer per field (`harnessStateId` the runtime's,
-   * `cursorMode` the adapter's; Q-S2-11). Called only by adapters whose
+   * `cursorMode` the adapter's). Called only by adapters whose
    * `capabilities.stateIdSource` is `"engine-minted"`, and before their first
    * `requestPersist`; a `deterministic` harness never calls it. Rejects when
    * the session write fails; the adapter then ends the turn `failed` with
@@ -491,7 +490,7 @@ export interface TurnSink {
  * Token counts for one engine turn, priced. The four counts are what the
  * Cursor loop reads from the SDK's `turn-ended` delta; `estimatedCostUsd` is
  * the adapter's price for them at its vendor's rates (the runtime cannot
- * price without the vendor's table and must not import it; Q-S2-12), and
+ * price without the vendor's table and must not import it), and
  * `model` / `requestedModelParams` name the basis it priced against, which
  * the runtime records into `streamingUsage` (`model` is the catalog-validated
  * id, `requestedModelParams` the JSON of the params sent — a string on the

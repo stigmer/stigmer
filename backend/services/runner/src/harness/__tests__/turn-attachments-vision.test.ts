@@ -2,7 +2,7 @@
  * Pins which model the attachment phase asks the registry about when it
  * sizes the vision budget (`turn-context.ts` `resolveTurnAttachments`): the
  * model the execution named, or the registry's default when it named none —
- * the model the native harness will build in that case. Before S3 M1 the
+ * the model the native harness will build in that case. Before #1096 the
  * phase asked about the raw executionConfig name, so an execution with no
  * model named asked about `""` (always "unknown", read as sighted) while the
  * native orchestrator asked about the resolved default (its `setup.ts`,

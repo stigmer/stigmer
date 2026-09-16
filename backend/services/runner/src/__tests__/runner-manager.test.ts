@@ -33,7 +33,7 @@ describe("mapManagerOptionsToConfig", () => {
     expect(config.checkpointerType).toBe("http");
   });
 
-  it("binds the proxy credential to the runner-token ref, never the control-plane ref (Q-S2-7)", () => {
+  it("binds the proxy credential to the runner-token ref, never the control-plane ref", () => {
     const tokenRef = { current: "control-plane-token" };
     const runnerTokenRef = { current: "control-plane-token" };
     const config = mapManagerOptionsToConfig(

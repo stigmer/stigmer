@@ -27,9 +27,8 @@
  * registry row, not a branch.
  *
  * Extracted from `activities/execute-cursor/index.ts` `executeCursorInner`
- * (S2 M3; the milestone log in stigmer-cloud
- * `_projects/2026-09/20260911.03.sp.turn-runtime-extraction/` has every
- * ruling). Its twelve resolution phases came out at M2; what came out here is
+ * in #1070, whose body carries the reasoning behind each phase. Its twelve
+ * resolution phases came out first; what came out here is
  * everything between them and after the engine: the seventeen hermetic
  * goldens under `execute-cursor/__tests__/hermetic/` pin the result byte
  * for byte, and `__tests__/run-turn.test.ts` proves the table against the
@@ -267,7 +266,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         );
         // The execution completes here, so its answer rides the slim as it
         // does from `completeTurn`: the seed carried the transcript and any
-        // structured output the paused turn resolved (Q-M4-8).
+        // structured output the paused turn resolved.
         return { kind: "return", value: completionSlim(lastAssistantText()) };
       }
       default: {
@@ -287,7 +286,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     // The stall watchdog: the periodic heartbeat proves the process is alive,
     // not that the engine is progressing; if the engine wedges, nothing
     // arrives and the turn would hang forever. Armed for the adapter's whole
-    // stretch (Q-M3-13) and reset by every `recordActivity`; on stall the
+    // stretch and reset by every `recordActivity`; on stall the
     // signal aborts, the adapter cancels its run, and the table reports the
     // stall with the last detail the adapter named.
     watchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
@@ -405,7 +404,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         // approval or file-review signal and reinvokes.
         return settleWith(awaitingApprovalArm());
       case "tool_call_limit": {
-        // A review wins over the terminal (Q-M4-2): the limit's copy rides
+        // A review wins over the terminal: the limit's copy rides
         // the transcript and the reinvocation's reconcile completes the turn.
         const settledLimit = await settleWith(reviewPending ? awaitingReviewArm(toolCallLimitArm()) : toolCallLimitArm());
         console.log(`${activityName} terminated (tool-call limit): execution=${executionId}${reviewPending ? ", review pending" : ""}`);
@@ -483,7 +482,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   /**
    * The engine finished AND left a reviewable change: the structured output
    * is resolved now, before the WAITING persist, so the resume that
-   * reconciles the review completes with it (Q-M4-8 closes Q-M2a-5); then
+   * reconciles the review completes with it; then
    * the review pause. Nothing else of the completion epilogue runs here —
    * the plan artifact and the write-back belong to the settlement that
    * actually completes the execution.
@@ -554,7 +553,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * unless the adapter already did (the deep-agent's `structuredResponse`):
    * extracted from the final text through the tiers below. Runs where the
    * engine has FINISHED speaking — a completed turn, and a completed turn
-   * the runtime pauses for file review (Q-M4-8: the pure-reconcile
+   * the runtime pauses for file review (the pure-reconcile
    * COMPLETED then carries it, on every harness).
    */
   async function resolveStructuredOutput(turn: TurnInput, finalText: string | undefined): Promise<void> {

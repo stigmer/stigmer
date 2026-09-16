@@ -151,8 +151,8 @@ export interface Config {
    * provides the proxy credential and mints no other, so
    * `proxyTokenRef === stigmerTokenRef`), the manager binds the minted runner
    * token (`proxyTokenRef === stigmerRunnerTokenRef`). Reading either sibling
-   * directly would send the wrong credential from one of the two roots
-   * (Q-S2-7). Required whenever `proxyEndpoint` is set; the Cursor adapter's
+   * directly would send the wrong credential from one of the two roots.
+   * Required whenever `proxyEndpoint` is set; the Cursor adapter's
    * boot refuses a proxy without it.
    */
   readonly proxyTokenRef?: { current: string | null };

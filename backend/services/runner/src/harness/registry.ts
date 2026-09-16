@@ -10,7 +10,7 @@
  * dials the control plane, and `shutdownHarnesses` runs them in reverse so
  * what was set up last is torn down first.
  *
- * Error posture, ruled at the entry's gate (Q-S1-10):
+ * Error posture (fixed in #1064):
  *  - Boot validates the whole table BEFORE booting anything (a duplicate name
  *    is a configuration defect, and a half-booted worker is the worst state to
  *    discover it in), then fails fast at the first adapter that rejects. A
@@ -23,7 +23,7 @@
  * turn runtime (`run-turn.ts`). The table of real rows is NOT here: it lives
  * at the source root (`src/harness-adapters.ts`), because a row imports its
  * adapter from `activities/` and nothing under `src/harness/` may
- * (`__tests__/import-direction.test.ts`; Q-M3-1). The registry knows rows,
+ * (`__tests__/import-direction.test.ts`). The registry knows rows,
  * never which adapters exist.
  *
  * `HarnessName` lives here and not in `types.ts` on purpose: the wire

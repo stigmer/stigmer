@@ -21,7 +21,7 @@
  * that the runtime cannot read is what its engine observed touching
  * CAS-owned paths (`TurnSink.bindCasObservations`).
  *
- * Until S3 M4 both adapters carried this whole act (Cursor in its
+ * Until #1096 both adapters carried this whole act (Cursor in its
  * `turn-boundary.ts` between the stream and `run.wait()`, the deep-agent in
  * its `turn-settle.ts`), each with its own evidence source and its own
  * scoping rules for the provenance and the stamp. The two rules here are the
@@ -33,7 +33,7 @@
  *    position, because on BOTH engines an approved command executes on the
  *    row the runtime seeded for it (the deep-agent's builder and Cursor's
  *    translator both reconcile the re-attempt onto the seeded WAITING row),
- *    at its prior position; a positional scope misses it (F-M4-P3: Cursor's
+ *    at its prior position; a positional scope misses it (Cursor's
  *    did, so its auto-keep never qualified a gated-then-approved command).
  *    "Executed" is a COMPLETED row. "Consented" is the row's own
  *    server-authored `approval_action` — the seeded row keeps its id and its
@@ -50,10 +50,10 @@
  * The substrate and the ledger authoring (`shared/filereview/capture.ts`,
  * `cas-touched.ts`, `progress.ts`); the resume-time reconcile
  * (`turn-context.ts` `reconcileReinvocation`, already the runtime's since
- * S2); the outcome matrix that turns "a review is pending" into a phase
+ * #1070); the outcome matrix that turns "a review is pending" into a phase
  * (`run-turn.ts`, through `terminal-table.ts` `awaitingReviewArm`).
  *
- * TWO GAPS THIS MODULE DOES NOT CLOSE (recorded for S5, S3 M4 F-M4-P-gaps)
+ * TWO GAPS THIS MODULE DOES NOT CLOSE (recorded as #1115)
  * ----------------------------------------------------------------------
  * A turn that ends `interrupted` is not captured (a stop fired; the tree may
  * be mid-edit). So a platform STOP returns COMPLETED with unreviewed edits

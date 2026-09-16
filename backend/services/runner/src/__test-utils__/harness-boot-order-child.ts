@@ -15,7 +15,7 @@
  *    a bound token ref. Success means the pre-boot graph was connect-free,
  *    both interceptors installed, `assertHttp2ConnectPatched` passed, the
  *    Cursor SDK slice loaded from inside its `boot`, and the native
- *    deep-agent adapter (the table's second row since S3 M2b) registered its
+ *    deep-agent adapter (the table's second row since #1096) registered its
  *    profiles and loaded LangChain after the patch. That neither engine is
  *    on the table's STATIC graph is each adapter's own fence
  *    (`adapter-graph-is-sdk-free.test.ts`); this child proves the boot

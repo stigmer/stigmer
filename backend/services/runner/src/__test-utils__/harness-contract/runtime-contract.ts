@@ -393,11 +393,11 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   expect(rows.get(keepId)?.fileChangeSetId, `${subject.name}: a flowed row is badged with the change set`).toBe(changeSetId);
   expect(rows.get(dropId)?.fileChangeSetId).toBe(changeSetId);
   expect(rows.get(keepId)?.status, `${subject.name}: a flowed row is COMPLETED, never gated`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-  // The strip is the runtime's, attached on its writes (Q-M4-7). Its COUNT is
+  // The strip is the runtime's, attached on its writes. Its COUNT is
   // the capture floor's: a real engine's first persist precedes its first
   // write and both writes land within one floor interval, so the pause can
-  // honestly read "0 files" beside a two-file candidate (F-M4-3, recorded
-  // for S5: whether the terminal write should bypass the floor). The arm
+  // honestly read "0 files" beside a two-file candidate (#1114: whether the
+  // terminal write should bypass the floor). The arm
   // asserts the ownership, not the floor.
   expect(afterCapture.fileChangeProgress?.changeSetId, `${subject.name}: the runtime carries this turn's strip`).toBe(changeSetId);
   expect(afterCapture.completedAt, `${subject.name}: a review pause is not complete`).toBe("");
@@ -410,7 +410,7 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   const second = await driver.turn([]);
   expect(slimOf(subject, second).phase, `${subject.name}: a pure file-review resume completes without the engine`).toBe("EXECUTION_COMPLETED");
   // The kept file is the engine-not-re-run witness: a subject that counts
-  // executions by reading its ledger off disk (the native one, Q-M3-4) reads
+  // executions by reading its ledger off disk (the native one) reads
   // the DISCARDED file's count as 0 now, because the reconcile just restored
   // that file to its baseline — which is the reconcile working, not the
   // engine forgetting.
@@ -434,7 +434,7 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
  * settles the row SKIPPED (a REJECT row carries `error: "Rejected by user"`),
  * so no WAITING row survives on a finished execution. This is the proto
  * contract as of stigmer#197 and the runtime's own write
- * (`harness/approval-decisions.ts`); before S3 M1 the runtime FAILED a
+ * (`harness/approval-decisions.ts`); before #1096 the runtime FAILED a
  * REJECTed reinvocation before any engine ran.
  */
 export async function assertNonExecutingDecisionSettlesSkipped(
@@ -476,14 +476,14 @@ export async function assertNonExecutingDecisionSettlesSkipped(
  * the next message), `error` starting with the cross-repo prefix Stigmer
  * Cloud's channel delivery matches on, the user copy as the one system row,
  * `completedAt` stamped, RETURNED (a retry would spend the same budget), and
- * the step after the limit never processed. Before S3 M1 the native harness
- * RETURNED this terminal without persisting it (M0 finding F-M0-4); the
+ * the step after the limit never processed. Before #1096 the native harness
+ * RETURNED this terminal without persisting it; the
  * runtime's arm is the one persisted terminal.
  *
  * The execution SETS the budget it exhausts: the record carries the smallest
  * valid `max_tool_rounds` (an unbounded execution has no limit to reach — on
  * native `resolveRecursionLimit(0)` is unlimited, and the first run of this
- * arm against it spun until the test timed out; S3 M3 F-M3-3). The fake
+ * arm against it spun until the test timed out). The fake
  * exhausts whatever budget it is given; a real engine spins its cheapest
  * ungated tool until the graph stops it.
  */
@@ -661,12 +661,12 @@ const STALL_CLOCK_INTERVAL_MS = 25;
  * park is reported while the chunks the engine produced before parking are
  * still in its event pipeline ahead of the adapter's loop, so activity marks
  * land AFTER a single tick and a frozen clock reads idle 0 from then on
- * (S3 M3 F-M3-5, measured on the native adapter: 35 marks at the park, 37
+ * (measured on the native adapter: 35 marks at the park, 37
  * within 10 ms). A pull-based double's park implies everything before it
  * was seen; a real stall is wall time passing while the engine is silent,
  * whichever shape the engine has. The interval advances a SCRIPTED clock —
  * the kit's rule against timers is about stopping a turn on a guess, which
- * this never does (Q-M3-7).
+ * this never does.
  */
 export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, label = "rt-stall"): Promise<RuntimeArmResult> {
   const { subject, clock } = harness;
@@ -728,7 +728,7 @@ export async function assertCostCapTerminates(harness: RuntimeContractHarness, l
 /**
  * A platform STOP answered to a mid-turn persist: the turn completes early
  * with the platform-stop row and no error, and the step after the STOP never
- * runs — the awaited `requestPersist` at work (Q-M3-2). The persist the
+ * runs — the awaited `requestPersist` at work. The persist the
  * control plane answers is the one carrying a completed `read`: the discrete
  * event every harness flushes on (the Cursor golden's lever), where a bare
  * assistant message may ride an engine's cadence to the settle persist, too
@@ -822,7 +822,7 @@ export async function assertFailedSurfaceWritesItsCopy(harness: RuntimeContractH
 
 /**
  * A rejected `bindHarnessState` (the session write refused) ends the turn
- * FAILED on the internal surface with nothing executed (Q-S2-11, R3).
+ * FAILED on the internal surface with nothing executed.
  * Engine-minted harnesses only: a deterministic one never binds.
  */
 export async function assertRejectedBindFails(harness: RuntimeContractHarness, label = "rt-bind-rejects"): Promise<RuntimeArmResult> {
@@ -920,7 +920,7 @@ export interface RuntimeContractOptions {
    * to wait for (`scenario.cancelled()`, an SDK-side cancel); the arm is
    * registered SKIPPED otherwise. On by default; the native subject turns it
    * off (no LangGraph path ends a turn `cancelled` — a stop is the runtime's
-   * and settles `interrupted`; S3 M3 F-M3-2).
+   * and settles `interrupted`).
    */
   readonly engineCancel?: boolean;
 }
@@ -1004,7 +1004,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
         await assertFailedSurfaceWritesItsCopy(harness, surface, FAILURE_MESSAGES[surface]);
       });
     }
-    it.skipIf(subject.adapter.capabilities.stateIdSource !== "engine-minted")("a rejected bindHarnessState ends the turn failed with nothing executed (Q-S2-11)", async () => {
+    it.skipIf(subject.adapter.capabilities.stateIdSource !== "engine-minted")("a rejected bindHarnessState ends the turn failed with nothing executed", async () => {
       clock.reset();
       await assertRejectedBindFails(harness);
     });

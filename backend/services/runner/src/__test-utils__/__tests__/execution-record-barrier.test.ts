@@ -1,6 +1,6 @@
 /**
  * `ExecutionRecord.whenToolCallsSettled` — the barrier the hermetic scripted
- * model waits on before it ticks (S4 M4R): resolves once every named row is
+ * model waits on before it ticks (since #1097): resolves once every named row is
  * persisted settled, across the root and the sub-agent transcripts; resolves
  * at once when there is nothing to wait for; fails naming the open ids rather
  * than hanging when no persist ever carries them.

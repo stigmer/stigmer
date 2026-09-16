@@ -5,14 +5,14 @@
  * resolution phases and the outcome table.
  *
  * What is asserted here and nowhere else are the two rules the lift made
- * one for every harness (S3 M4, Q-M4-5, Q-M4-6):
+ * one for every harness (#1096):
  *
  *  - the stamp reads the ROW's status: a COMPLETED write row created this
  *    turn is badged, a FAILED or WAITING one is not, a seeded prior-turn row
  *    keeps its own change set;
  *  - the provenance scopes by id-novelty and consents by the row's own
  *    approval: the approved command that executed ON ITS SEEDED ROW (message
- *    0, the shape both engines produce — F-M4-P3) qualifies the turn, where
+ *    0, the shape both engines produce) qualifies the turn, where
  *    a positional scope missed it.
  *
  * The ledger shape itself is `shared/filereview/capture.ts`'s and is pinned
@@ -210,7 +210,7 @@ describe("harness/capture over a git work tree", () => {
   });
 });
 
-describe("deriveCommandProvenance — one rule for both engines (F-M4-P3)", () => {
+describe("deriveCommandProvenance — one rule for both engines", () => {
   const seededShell = (status: ToolCallStatus, approvalAction: ApprovalAction) =>
     row("tc-shell", "shell", status, { approvalAction, args: { command: "make generate" } });
 

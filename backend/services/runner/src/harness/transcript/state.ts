@@ -14,17 +14,17 @@
  * `seedFromPersistedStatus` hands them here — so they are indexed by the
  * same routine that indexes a status handed to the constructor.
  *
- * One shape for every scope (S4 M2 C4, Q-S4-4; plan finding F-M2-15): until
- * C4 the root's indexes lived here keyed by LangGraph namespace and the
+ * One shape for every scope (since #1097): until then the root's indexes
+ * lived here keyed by LangGraph namespace and the
  * sub-agents' in a second module with its own copies of the same maps and
- * handlers (`subagent-tracker.ts`, deleted at C4). Scope is `subAgentId?`
+ * handlers (`subagent-tracker.ts`, deleted in #1097). Scope is `subAgentId?`
  * now and the namespace key collapsed — the tracker already resolved every
  * local namespace to `""` — so a transcript's "current AI message" and
  * "last run" are single values.
  *
  * The name says what it holds — the transcript's bookkeeping, not the
  * execution's state, which is the turn runtime's (`harness/turn-context.ts`);
- * it was `ExecutionState` in the native adapter (renamed at S4 M1, Q-M1-3).
+ * it was `ExecutionState` in the native adapter (renamed in #1097).
  */
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -50,8 +50,8 @@ export class Transcript {
 
   /**
    * The AI message a tool row attaches to — the latest message with text in
-   * this scope (Q-S4-5). Over a seeded transcript it starts as the seed's
-   * last AI message (Q-M2-2): the message that proposed a call is still the
+   * this scope. Over a seeded transcript it starts as the seed's
+   * last AI message: the message that proposed a call is still the
    * one that proposed it across a turn boundary, which is also Cursor's
    * shape (`findOrCreateLastAiMessage`).
    */
@@ -71,7 +71,7 @@ export class Transcript {
    * Take a message that is already on (or is being appended to) this
    * transcript into the indexes: every row by id, and the message as the
    * current AI message when it is one — the seed's last AI message is the
-   * one a resumed turn's first row joins (Q-M2-2). The one routine behind
+   * one a resumed turn's first row joins. The one routine behind
    * both ways rows arrive before the stream — the status as handed to the
    * constructor, and the runtime's seed of a reinvocation's prior rows
    * ({@link TranscriptState.seed}) — so neither can index differently.

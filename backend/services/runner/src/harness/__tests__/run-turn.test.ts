@@ -102,7 +102,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     });
 
-    it("the approval round trip: the WAITING write is the fake's first full persist (M3a finding 3)", async () => {
+    it("the approval round trip: the WAITING write is the fake's first full persist", async () => {
       clock.reset();
       const { driver } = await assertApprovalRoundTrip(harness, "fake-approval");
       expect(driver.record.persistedPhases).toEqual([
@@ -139,11 +139,11 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(aiMessages(final)).toEqual([]);
     });
 
-    it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197; S3 M1, Q-S3-2)", async () => {
-      // Until S3 M1 this arm pinned the opposite: the runtime FAILED a
+    it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197)", async () => {
+      // Until #1096 this arm pinned the opposite: the runtime FAILED a
       // reinvocation carrying any REJECT (`rejectedByUserArm`, Cursor's
       // legacy), against the proto's `APPROVAL_ACTION_REJECT` doc, the
-      // conformance suite and the native harness (S2 M4 finding F1, Q-M4-1).
+      // conformance suite and the native harness.
       // The kit's runtime half now carries the contract for every subject;
       // what is the fake's own here is the persist cadence around it.
       clock.reset();
@@ -157,7 +157,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(systemMessages(final), "no terminal copy: the run ended normally").toEqual([]);
     });
 
-    it("structured output on a file-review-pending turn is resolved before the pause and rides the reconcile's completion (Q-M4-8)", async () => {
+    it("structured output on a file-review-pending turn is resolved before the pause and rides the reconcile's completion", async () => {
       clock.reset();
       const driver = new RuntimeExecutionDriver(harness, "fake-review-structured", {
         structuredOutputSchema: { type: "object", properties: { answer: { type: "number" } }, required: ["answer"] },
@@ -181,7 +181,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
   });
 
   describe("the runtime's own transcript rules", () => {
-    it("finalizes the transcript once runTurn returns: an adapter that leaves its last message streaming still persists a settled one (Q-M5-6)", async () => {
+    it("finalizes the transcript once runTurn returns: an adapter that leaves its last message streaming still persists a settled one", async () => {
       // A harness that streams text and returns without closing the run —
       // the shape of a turn that fails or is cut off before its own settle
       // (native's thrown recursion limit; either harness's internal failure
