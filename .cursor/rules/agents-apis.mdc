@@ -1,0 +1,9 @@
+---
+description: Package guide for apis, attached when files there are touched. Generated from apis/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: apis/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `apis/`:
+
+@apis/AGENTS.md
