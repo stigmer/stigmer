@@ -25,14 +25,14 @@
  * knows are reported through the sink exactly as the orchestrator reported
  * them (the resolution labels are the runtime's).
  *
- * One root for everything (Q-S3-8): the deepagents backend, the CAS
+ * One root for everything: the deepagents backend, the CAS
  * observer, the gate's path normalization and the publisher are all rooted
  * at `workspace.primaryDir` — the same tree the runtime locks, links and
  * captures. For zero or one workspace entry this is byte-identical to the
  * orchestrator's `workspaceBackend.rootDir`.
  *
  * Moved from `setup.ts` `performSetup` (the LangGraph half; the resolution
- * half is the runtime's twelve phases) at S3 M2a; the step bodies are the
+ * half is the runtime's twelve phases) in #1096; the step bodies are the
  * orchestrator's, verbatim where nothing changed.
  */
 
@@ -81,7 +81,7 @@ import { modelHasNativeThinking, transformAndCompileSubagents } from "./subagent
  * (`execute-cursor/turn-setup.ts` `CursorAdapterConfig` is the idiom): a
  * whole `Config` satisfies it, a test constructs these fields and nothing
  * else. Smaller than the orchestrator's reach — the synthesized attachments'
- * endpoints it read are the runtime's now (S3 M2a, F-M2a-10).
+ * endpoints it read are the runtime's now (since #1096).
  */
 export type DeepAgentAdapterConfig = Pick<
   Config,
@@ -147,8 +147,8 @@ export type DeepAgentGraphInput =
  * spec named none — the one reader of `spec.executionConfig.modelName`, which
  * the Cursor adapter reads too), or the registry's default for `"default"`.
  * The same reading the runtime's attachment phase made for the vision budget,
- * so the model that sees the images is the model that runs. (Until S3 M5 this
- * read the spec field beside the runtime's resolved copy; F-M3-P7.)
+ * so the model that sees the images is the model that runs. (Until #1096 this
+ * read the spec field beside the runtime's resolved copy.)
  */
 export async function resolveModelName(input: TurnInput): Promise<string> {
   return input.model.requested === "default" ? await getDefaultModel() : input.model.requested;
@@ -173,7 +173,7 @@ export async function openCheckpointer(input: TurnInput, sink: TurnSink, config:
 
 /**
  * The workspace as the engine sees it, rooted at the runtime's primary tree
- * (Q-S3-8). The platform dir the shared provision ensured rides along so
+ * (the one root). The platform dir the shared provision ensured rides along so
  * the backend routes `.stigmer/…` reads to it.
  *
  * CAS capture (design docs 08/11/12): the single per-turn observer owns the
@@ -209,7 +209,7 @@ export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
  * refuses an empty config, which is what the orchestrator's MCP gate
  * (`mcp-gate.ts`) guarded against beside its channel-only reason; the
  * runtime resolves unconditionally, so the one remaining question is
- * "anything to connect?" (S3 M2a, F-M2a-17).
+ * "anything to connect?" (since #1096).
  */
 export async function connectTools(input: TurnInput, sink: TurnSink): Promise<DeepAgentTools> {
   if (input.mcp.servers.length === 0) {
@@ -315,7 +315,7 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
  * stop on the invoke config and the budget middleware's ~80% advisory, so
  * the warning and the enforcement can never disagree.
  *
- * Nothing in the middleware stack stops the run (Q-S3-3, landed at S3 M2b):
+ * Nothing in the middleware stack stops the run (since #1096):
  * the runtime's abort is the platform's one stop, and its TERMINATED arm the
  * one enforcement of `max_cost_usd`; the cost advisory warns the model at
  * ~80% of the cap the way the budget middleware warns at ~80% of the

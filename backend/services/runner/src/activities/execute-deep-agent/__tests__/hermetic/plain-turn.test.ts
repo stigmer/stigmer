@@ -10,7 +10,7 @@
  * status the native harness produces: one AI message with the scripted text
  * and the scripted usage, `startedAt` / `completedAt` on the scripted clock.
  *
- * This file is also the PROBE the M0 plan named: no earlier test drove the
+ * This file is also the PROBE the native net opened with (#1096): no earlier test drove the
  * real graph through `streamEvents(..., { version: "v3" })`. The scripted
  * model streams, so the events under this golden are the ones a provider
  * produces (`scripted-model.ts` header).
@@ -22,10 +22,10 @@
  * `thread_id` (carried from `index.test.ts`: "handles empty threadId
  * gracefully").
  *
- * Since S3 M2a the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the native adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
- * thinking mode (Q-M2a-2: one writer of the summary, the runtime). Nothing
+ * thinking mode (one writer of the summary, the runtime). Nothing
  * else in this golden moved with the flip.
  *
  * Regenerate ONLY after a deliberate behavior change:

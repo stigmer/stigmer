@@ -9,8 +9,7 @@
  * (`shared/extract-structured-output.ts`). None of them takes a model as an
  * argument, so the one seam a hermetic run has is this module — the native analog of the Cursor
  * driver's `vi.mock("@cursor/sdk")`: the vendor engine doubled where the
- * runner imports it, and nothing else (S3 M0 ruling Q-M0-1, amending
- * Q-S3-11).
+ * runner imports it, and nothing else.
  *
  * `vi.mock` is hoisted and must live in the test file; the factory can
  * `await import()` this module:
@@ -33,7 +32,7 @@
  * header), so a test that runs several executions at once — the harness
  * contract kit's concurrency invariant — routes each build to that
  * execution's own engine through the id production already sends, and
- * through nothing added for the test (S3 M3).
+ * through nothing added for the test.
  */
 
 import type { BuildChatModelOptions, BuiltChatModel } from "../../../shared/model-client.js";

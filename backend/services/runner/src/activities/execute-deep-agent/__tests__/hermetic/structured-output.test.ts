@@ -13,13 +13,13 @@
  *  2. The text fallback (the runtime's tier 1): the model answers in prose
  *     with a fenced JSON block and `shared/extract-json.ts` recovers the
  *     object from the final text (`run-turn.ts` `extractStructuredOutputFromText`).
- *  3. The LLM fallback (the runtime's tier 2, Q-S3-7): the final text carries
+ *  3. The LLM fallback (the runtime's tier 2): the final text carries
  *     no JSON at all, so the runtime asks a second model — the registry's
  *     economy tier for the primary's provider — to extract it through
  *     `withStructuredOutput` (`shared/extract-structured-output.ts`). Native
- *     gained this arm at S3 M2a, when the turn runtime took the epilogue
- *     over; it is pinned here since M2b (F-M2b-14), where every other ruled
- *     alignment is. Two facts the golden records: the extraction call is a
+ *     gained this arm in #1096, when the turn runtime took the epilogue
+ *     over; it is pinned here, where every other alignment of that move
+ *     is. Two facts the golden records: the extraction call is a
  *     SECOND model build (`maxTokens: 4096`, on the primary — the fixture
  *     registry declares no economy row, `getEconomyModel`'s last resort),
  *     and its tool call never reaches the transcript (it is not a graph
@@ -38,10 +38,10 @@
  * `extract` (`withStructuredOutput` with no name), bound on the extraction
  * model alone, which is how the script tells the two calls apart.
  *
- * Since S3 M2a the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the native adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
- * thinking mode (Q-M2a-2: one writer of the summary, the runtime). Nothing
+ * thinking mode (one writer of the summary, the runtime). Nothing
  * else in this golden moved with the flip.
  *
  * Regenerate ONLY after a deliberate behavior change:
@@ -176,7 +176,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.text-fallback.status.json");
   });
 
-  it("LLM fallback (tier 2): prose with no JSON is extracted by a second model call the transcript never sees (Q-S3-7)", async () => {
+  it("LLM fallback (tier 2): prose with no JSON is extracted by a second model call the transcript never sees", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     clock.reset();
     // The OSS direct-credential posture, for this arm only: with no proxy the

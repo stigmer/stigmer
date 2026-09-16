@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   StreamingUpdateScheduler,
-  UpdateReason,
   loadStreamingConfig,
   type StreamingConfig,
 } from "../streaming-scheduler.js";
@@ -17,7 +16,7 @@ describe("StreamingUpdateScheduler", () => {
     it("always sends on first event", () => {
       const s = new StreamingUpdateScheduler(BASE_CONFIG, 0);
       expect(s.shouldSendUpdate(1, 0)).toBe(true);
-      expect(s.updateReason).toBe(UpdateReason.FIRST_UPDATE);
+      expect(s.updateReason).toBe("first_update");
     });
 
     it("does not send if zero events processed", () => {
@@ -32,7 +31,7 @@ describe("StreamingUpdateScheduler", () => {
       s.markUpdateSent(0, 0);
 
       expect(s.shouldSendUpdate(1, 500)).toBe(true);
-      expect(s.updateReason).toBe(UpdateReason.TIME_THRESHOLD);
+      expect(s.updateReason).toBe("time_threshold");
     });
 
     it("does not send before minInterval", () => {
@@ -40,7 +39,7 @@ describe("StreamingUpdateScheduler", () => {
       s.markUpdateSent(0, 0);
 
       expect(s.shouldSendUpdate(1, 499)).toBe(false);
-      expect(s.updateReason).toBe(UpdateReason.NONE);
+      expect(s.updateReason).toBe("none");
     });
 
     it("does not send after minInterval with zero new events", () => {
@@ -57,7 +56,7 @@ describe("StreamingUpdateScheduler", () => {
       s.markUpdateSent(0, 0);
 
       expect(s.shouldSendUpdate(50, 100)).toBe(true);
-      expect(s.updateReason).toBe(UpdateReason.BURST_PROTECTION);
+      expect(s.updateReason).toBe("burst_protection");
     });
 
     it("does not send at threshold - 1", () => {
@@ -74,7 +73,7 @@ describe("StreamingUpdateScheduler", () => {
       s.markUpdateSent(10, 0);
 
       expect(s.shouldSendUpdate(10, 5000)).toBe(true);
-      expect(s.updateReason).toBe(UpdateReason.KEEPALIVE);
+      expect(s.updateReason).toBe("keepalive");
     });
 
     it("does not send keepalive before maxInterval", () => {
@@ -91,7 +90,7 @@ describe("StreamingUpdateScheduler", () => {
       s.markUpdateSent(10, 1000);
 
       expect(s.shouldSendUpdate(11, 1500)).toBe(true);
-      expect(s.updateReason).toBe(UpdateReason.TIME_THRESHOLD);
+      expect(s.updateReason).toBe("time_threshold");
 
       s.markUpdateSent(11, 1500);
 
@@ -125,7 +124,7 @@ describe("StreamingUpdateScheduler", () => {
       const s = new StreamingUpdateScheduler(BASE_CONFIG, 0);
       // First check with event and enough time — should be FIRST_UPDATE, not TIME_THRESHOLD
       expect(s.shouldSendUpdate(1, 600)).toBe(true);
-      expect(s.updateReason).toBe(UpdateReason.FIRST_UPDATE);
+      expect(s.updateReason).toBe("first_update");
     });
 
     it("time_threshold takes priority over burst_protection", () => {
@@ -134,7 +133,7 @@ describe("StreamingUpdateScheduler", () => {
 
       // Both time and burst conditions met — time wins
       expect(s.shouldSendUpdate(50, 500)).toBe(true);
-      expect(s.updateReason).toBe(UpdateReason.TIME_THRESHOLD);
+      expect(s.updateReason).toBe("time_threshold");
     });
   });
 });

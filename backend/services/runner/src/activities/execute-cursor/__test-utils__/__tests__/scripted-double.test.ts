@@ -1,6 +1,6 @@
 /**
  * The scripted `@cursor/sdk` double's own arms — the surface the harness
- * contract kit's Cursor subject drives, added at S2 M4 beside the golden
+ * contract kit's Cursor subject drives, added in #1070 beside the golden
  * scenarios' declared-up-front surface (which the seventeen goldens prove).
  *
  *  - `arrangeNextTurn` writes the slot the NEXT `send()` consumes, replaces a

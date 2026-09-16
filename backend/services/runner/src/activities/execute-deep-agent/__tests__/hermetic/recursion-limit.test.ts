@@ -14,8 +14,8 @@
  * (matched with `startsWith` by stigmer-cloud's `reply-extractor.ts`) and
  * its row, PERSISTS it, and returns the slim.
  *
- * Ruled at Q-S3-6 and landed at S3 M2a. Until then the orchestrator RETURNED
- * the TERMINATED status but never PERSISTED it (S3 M0 finding F-M0-4, a
+ * The rule landed in #1096. Until then the orchestrator RETURNED
+ * the TERMINATED status but never PERSISTED it (a
  * production defect): the last status the control plane held was the
  * stream's mid-run IN_PROGRESS with no error, and only the activity's return
  * value carried the truth. The golden
@@ -23,20 +23,20 @@
  * TERMINATED status the control plane holds, which is what that fix changed
  * on purpose.
  *
- * Also visible here, Q-S4-5 at scale (S4 M2 C4): every tool row sits on the
- * "Reading file N." message whose text proposed it. Until C4 all of them sat
- * on ONE empty AI message (F-M0-1 at scale): the namespace miss created the
+ * Also visible here, the message boundary at scale (since #1097): every tool
+ * row sits on the "Reading file N." message whose text proposed it. Until
+ * then all of them sat on ONE empty AI message: the namespace miss created the
  * empty message once and its `currentAiMessage[""]` then caught every later
  * row.
  *
  * How many rounds fit is the middleware stack's shape, not the knob's
- * (S3 M2b, owner ruling 2026-09-13 on F-M2b-26): LangChain makes every
+ * (ruled 2026-09-13, #1096): LangChain makes every
  * middleware hook its own graph node, and `max_tool_rounds` becomes a
  * super-step budget at the ×6 floor estimate, so a node fewer per round
  * means more rounds within the same 60 steps. When `graceful-stop.ts` (an
- * `afterModel` node) was deleted with Q-S3-3, this golden went from 11 tool
+ * `afterModel` node) was deleted in #1096, this golden went from 11 tool
  * calls to 13 before TERMINATED — the only hunk, the copy unchanged. That the
- * knob counts super-steps and not rounds is recorded as an S5 design item
+ * knob counts super-steps and not rounds is recorded as #1113
  * (a round counter in the budget middleware would make it mean what it
  * says); this file pins what the stack delivers today.
  *
@@ -90,7 +90,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     env.dispose();
   });
 
-  it("returns TERMINATED with the cross-repo prefix, and persists nothing past IN_PROGRESS (F-M0-4)", async () => {
+  it("returns TERMINATED with the cross-repo prefix, and persists that terminal", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     const record = deepAgentExecutionRecord({ message: "Keep reading files.", maxToolRounds: MIN_TOOL_ROUNDS });
     const scenario = beginDeepAgentScenario({
@@ -115,21 +115,21 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     expect(slim.phase).toBe("EXECUTION_TERMINATED");
     expect(String(slim.error).startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), "the cross-repo prefix").toBe(true);
 
-    // ── Assert: what the control plane holds (F-M0-4 closed) ─────────────────
+    // ── Assert: what the control plane holds ─────────────────────────────────
     expect(record.persistedPhases, "the TERMINATED terminal is persisted").toEqual([
       ExecutionPhase.EXECUTION_IN_PROGRESS,
       ExecutionPhase.EXECUTION_TERMINATED,
     ]);
     const persisted = record.lastFullStatus!;
     expect(String(persisted.error).startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), "the persisted error carries the prefix").toBe(true);
-    expect(persisted.error, "the event count left the copy (Q-S3-6)").not.toMatch(/\d+ events?/);
+    expect(persisted.error, "the event count left the copy").not.toMatch(/\d+ events?/);
     expect(persisted.completedAt).not.toBe("");
     const rows = record.toolCalls();
     expect(rows.length, "fewer rounds ran than were scripted: the budget stopped the graph").toBeLessThan(SCRIPTED_ROUNDS);
     expect(rows.length).toBeGreaterThanOrEqual(MIN_TOOL_ROUNDS);
-    // Q-S4-5 (S4 M2 C4): every row sits on the message whose text proposed it
-    // — one "Reading file N." message per row, no empty host (until C4 all
-    // thirteen rows sat on ONE empty message, F-M0-1 at scale).
+    // The message boundary: every row sits on the message whose text proposed it
+    // — one "Reading file N." message per row, no empty host (before #1097 all
+    // thirteen rows sat on ONE empty message).
     const rowHosts = persisted.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.toolCalls.length > 0);
     expect(rowHosts).toHaveLength(rows.length);
     for (const host of rowHosts) {

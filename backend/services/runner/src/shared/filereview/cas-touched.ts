@@ -14,9 +14,9 @@
  * capture ({@link buildCasTurnCaptures}), which composes it into the
  * {@link CasPathCapture}s the CAS substrate stores.
  *
- * Until S3 M4 each harness carried its own copy of `buildCasTurnCaptures`
+ * Until #1096 each harness carried its own copy of `buildCasTurnCaptures`
  * beside its observation source; the copies were byte-near-identical
- * (F-M4-P6) and now live here once. The AFTER bytes are always re-read from
+ * and now live here once. The AFTER bytes are always re-read from
  * disk at composition time (the authoritative net result of the turn), so
  * many edits to one path collapse to one before/after.
  */

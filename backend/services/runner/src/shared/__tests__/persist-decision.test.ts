@@ -6,7 +6,7 @@
  * immediately, while high-frequency token deltas ride the shared
  * StreamingUpdateScheduler's time cadence (rather than the old, time-blind
  * `eventCount % 20` gate that starved short turns). The signal is the one
- * transcript builder's `dirty` flag (S4 M5, Q-S4-12); until then three
+ * transcript builder's `dirty` flag (since #1097); until then three
  * Cursor-named flags, two of them constant `false` on both loops.
  */
 

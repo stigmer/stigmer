@@ -64,7 +64,7 @@ interface Http2InterceptorConfig {
    * installed this interceptor owns the ref and rotates it in place, so a
    * rotation reaches the next `request()` on an already-open session without
    * a call into this module (see fetch-interceptor.ts for the two roots'
-   * bindings, Q-S2-7).
+   * bindings).
    */
   proxyTokenRef: { readonly current: string | null };
 }

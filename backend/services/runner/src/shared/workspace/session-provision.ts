@@ -3,7 +3,7 @@
  *
  * Harness-agnostic: the turn runtime's workspace phase, serving both
  * adapters (the native orchestrator's twin, `provisionWorkspace`, retired
- * with it at S3 M2b; Q-S3-8 carried its one difference). Agents run LOCAL
+ * with it in #1096, which also carried its one difference). Agents run LOCAL
  * (cloud is disabled — see execute-cursor/cursor-mode.ts), so the runner
  * must clone git-repo workspace entries itself and mount local-path entries
  * before the agent runs. Cloud agents previously cloned git repos

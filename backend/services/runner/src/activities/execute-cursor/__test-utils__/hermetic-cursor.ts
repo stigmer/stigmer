@@ -46,7 +46,7 @@
  * Two postures, two entries, one turn runner. `beginCursorScenario` is the
  * hermetic posture: the SDK doubled by the scenario file's `vi.mock`, the
  * clock scripted, goldens byte-stable. `beginLiveCursorScenario` is the live
- * posture (S4's live-run gate, Q-L-3): the scenario file mocks ONLY the
+ * posture (#1097's live-run gate): the scenario file mocks ONLY the
  * client, the real `@cursor/sdk` runs under the real activity on the real
  * clock with a real member key, and what the activity persists is read back
  * from the same record. A live scenario therefore has no `sdk` and no `clock`

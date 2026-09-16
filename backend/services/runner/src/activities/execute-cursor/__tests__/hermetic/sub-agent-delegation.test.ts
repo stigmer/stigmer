@@ -3,7 +3,7 @@
  * hands work to a sub-agent through the SDK's `task` tool, and the sub-agent's
  * own conversation arrives, whole, in the `task` call's result.
  *
- * Invariant pinned (S4 M0 net): the translator opens a sub-agent for every
+ * Invariant pinned: the translator opens a sub-agent for every
  * `tool_call` named `task` (`sub_agent_started` before the row's own start) as
  * well as writing the row to the root transcript. The `running` event opens a `SubAgentExecution` keyed by the
  * task call id (`name` from `subagentType`, `subject` from `description`,
@@ -18,23 +18,22 @@
  * an empty AI message of its own, the root transcript's rule. The root
  * transcript carries the `task` row itself (COMPLETED, `result` = the same
  * stringified object) on the message that proposed it. This is Cursor's
- * timing — the sub-agent's rows exist only at completion — and stays Cursor's
- * (Q-S4-4).
+ * timing — the sub-agent's rows exist only at completion — and stays Cursor's.
  *
- * Moved 2026-09-14 (S4 M4 A5, Q-S4-5), the ONE hunk this golden was
+ * Moved 2026-09-14 (#1097), the ONE hunk this golden was
  * predicted to take: the sub-agent's `read` row sits on the AI message of the
  * assistant step that precedes it (`messages[0]`, "Looking at README.md."),
- * and the `content: ""` message that carried it until A5 (`messages[1]`) is
+ * and the `content: ""` message that carried it until then (`messages[1]`) is
  * gone — the canonical builder attaches a tool row to its scope's current AI
- * message, the shape native's sub-agent transcripts took at M2 (F-M0-1), and
- * A5 aligned the accumulator's steps extractor before the swap so the swap moves
- * nothing.
+ * message, the shape native's sub-agent transcripts took in #1096, and the
+ * accumulator's steps extractor was aligned before the swap to the shared
+ * builder so the swap moved nothing.
  *
- * On the record as found (S5's, not S4's): the `task` row's `result` and the
+ * On the record as found (#1134): the `task` row's `result` and the
  * sub-agent's `output` are two copies of one stringified object.
  *
- * Why this net exists: none of the seventeen Cursor goldens before M0 carried
- * a sub-agent row; the transcript-rebuild is deleted whole at M4.
+ * Why this net exists: none of the seventeen earlier Cursor goldens carried
+ * a sub-agent row, and #1097 deleted the transcript-rebuild whole.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -176,7 +175,7 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
     expect(sub.output, "the stringified task result").toBe(JSON.stringify(TASK_RESULT));
 
     // The rebuilt transcript: the tool step joins the assistant step that
-    // proposed it (Q-S4-5), the root transcript's own boundary rule.
+    // proposed it, the root transcript's own boundary rule.
     expect(sub.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
       [MessageType.MESSAGE_AI, HELPER_OPENING, [SUB_READ_CALL_ID]],
       [MessageType.MESSAGE_AI, HELPER_ANSWER, []],

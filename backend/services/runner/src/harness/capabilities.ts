@@ -15,8 +15,8 @@
  * the Cursor builder renders the session's first user message), and the
  * shared prompt glue (`shared/prompt-sections.ts`) is written so that
  * placement stays each adapter's. The runtime would branch on it only if it
- * ever composed prompts itself — the S4/S5 unification question, not a phase
- * that exists (S3 M5, Q-M5-6).
+ * ever composed prompts itself — an open unification question (#1135), not a
+ * phase that exists.
  *
  * The matrix the contract was designed against (2026-09; Claude and Codex are
  * the surveyed SDKs, not built harnesses):
@@ -78,9 +78,9 @@ export type StateIdSource = "deterministic" | "engine-minted";
  * workspace-relative paths the harness writes into the repo that a turn's
  * diff must never show (Cursor's transient `.cursor/hooks.json`). Declared
  * once per adapter, read by `harness/capture.ts` (the pin, the progress
- * slice, the candidate) and `turn-context.ts` (the reconcile). Ruled Q-M2-6
- * as an argument, homed here at S2 M3; the capture joined the reconcile as a
- * reader at S3 M4.
+ * slice, the candidate) and `turn-context.ts` (the reconcile). First passed
+ * as an argument, then homed here as a capability (#1070); the capture joined
+ * the reconcile as a reader in #1096.
  */
 export interface FileReviewIdentity {
   readonly harnessId: string;

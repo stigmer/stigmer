@@ -9,7 +9,7 @@
  * runtime's stall watchdog measures the engine; `reportUsage()` per parent
  * `message_finish`, priced here at the registry's rates for the model the
  * turn runs on (`shared/model-pricing.ts`), so the runtime accounts and
- * enforces the cost cap and writes `streamingUsage` (Q-M2a-2); `requestPersist()`
+ * enforces the cost cap and writes `streamingUsage`; `requestPersist()`
  * where a discrete change or the streaming cadence says so
  * (`shared/persist-decision.ts` over the builder's one dirty flag), AWAITED,
  * so a platform STOP the runtime reads from that write aborts the signal
@@ -19,7 +19,7 @@
  * this loop never does). An error the aborted run throws is the abort itself
  * and settles `interrupted`, never `failed`.
  *
- * WHEN the run is aborted (S3 M2a, F-M2a-18): on the arrival of the next
+ * WHEN the run is aborted: on the arrival of the next
  * event — the graph's own step boundary — or after {@link STOP_GRACE_MS} if
  * no event arrives. A LangGraph run aborted while a step is in flight leaves
  * `@langchain/core` with an orphaned rejection (`AsyncGeneratorWithSetup`
@@ -34,7 +34,7 @@
  * here) is forced, and that one orphan is the price of unblocking it — the
  * contract's bound on settling `interrupted` is what wins.
  *
- * Until S3 M2a this loop (`streaming-v3.ts`) armed its own 120 s stall
+ * Until #1096 this loop (`streaming-v3.ts`) armed its own 120 s stall
  * check, pulsed the Temporal heartbeat every 2 s, read STOP from its own
  * persist and activated a graceful-stop middleware on it, told a pause from
  * the activity's cancellation signal, and wrote PAUSED, COMPLETED and
@@ -127,12 +127,12 @@ export function createDeepAgentTranscript(
 /**
  * Price one `message-finish`'s usage at the engine's rates and report it to
  * the sink, which accounts, enforces the cost cap and writes `streamingUsage`
- * (Q-M2a-2). LangChain's `input_tokens` already INCLUDES the cache buckets
+ * (one writer of the summary). LangChain's `input_tokens` already INCLUDES the cache buckets
  * (the Anthropic adapter folds them in; the cost advisory reads them the same
  * way), so the counts are reported as delivered and the price is computed
  * over the disjoint buckets. A sub-agent on its own model is priced at the
  * parent's rate, as the in-graph cost cap always did (per-sub-agent pricing
- * is an S5 item).
+ * is #1121).
  */
 function reportUsage(sink: TurnSink, engine: DeepAgentEngine, usage: V3UsagePayload): void {
   const inputTokens = usage.input_tokens ?? 0;

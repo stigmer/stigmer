@@ -14,8 +14,7 @@
  *    errors from the PLATFORM's provider account told customers to top up
  *    consoles they don't own. The cloud proxy rewrites those to a 503
  *    carrying PLATFORM_CAPACITY_SENTINEL (the contract lives in
- *    stigmer-cloud's PlatformProviderErrorClassifier and the DD at
- *    _projects/2026-08/20260801.02.provider-error-attribution/); this module
+ *    stigmer-cloud's PlatformProviderErrorClassifier); this module
  *    is the runner-side half that recognizes the sentinel and, in direct
  *    (BYO-key) mode, attributes billing errors to the user's own account
  *    with actionable wording.

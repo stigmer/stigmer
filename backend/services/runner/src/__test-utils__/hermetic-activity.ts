@@ -14,7 +14,7 @@
  * and driven by the framework's own activity environment. Both harnesses now
  * run on it (`execute-cursor/__test-utils__/hermetic-cursor.ts`,
  * `execute-deep-agent/__test-utils__/hermetic-deep-agent.ts`), and the earlier
- * native tests were re-homed onto the native driver (S3 M0), their assertions
+ * native tests were re-homed onto the native driver (#1096), their assertions
  * carried into `execute-deep-agent/__tests__/hermetic/`.
  *
  * What is generic here and what is not: everything an activity touches that is
@@ -60,7 +60,7 @@
  * a ticking clock runs the same path and lands on the same instants every run.
  * Timers stay real so the periodic heartbeat and the stall watchdog behave.
  *
- * The live posture (S4's live-run gate, Q-L-3): a `CURSOR_API_KEY`-gated live
+ * The live posture (#1097's live-run gate): a `CURSOR_API_KEY`-gated live
  * instrument keeps all three substitutions above — the real `Context`, the
  * record behind the client, the temp environment — and drops only the
  * harness's SDK double, so the REAL activity runs against the REAL vendor SDK
@@ -519,10 +519,11 @@ export function createHermeticEnvironment(options: HermeticEnvironmentOptions = 
  * (`performance.now()`) — sees the same instants run after run and runs the
  * same branches production runs.
  *
- * Why both (S3 M5, Q-M5-7; F-M2a-20): until M5 only `Date` was faked, so the
+ * Why both (since #1096): until then only `Date` was faked, so the
  * scheduler paced persists on REAL elapsed time and `fileChangeProgress`,
  * which rides persists, could gain or lose a capture under load — a golden
- * flake seen twice across S3. One clock, two faces: `tick` advances through
+ * flake seen twice while the native adapter moved onto the runtime. One clock,
+ * two faces: `tick` advances through
  * the fake clock's own `tick` (`vi.advanceTimersByTime`), which moves both
  * `Date` and `performance.now()`; `vi.setSystemTime` would move `Date` alone
  * (fake-timers keeps `performance` monotonic across a system-time jump), so

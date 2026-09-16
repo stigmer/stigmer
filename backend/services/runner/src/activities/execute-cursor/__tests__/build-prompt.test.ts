@@ -544,7 +544,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
         ],
       }),
     );
-    // The size precedes the disclosure (the shared line, S3 M5 Q-M5-3).
+    // The size precedes the disclosure (the shared line, since #1096).
     expect(prompt).toContain(
       "- `.stigmer/inputs/report-2.pdf` (1024 bytes) (renamed from duplicate 'report.pdf')",
     );
@@ -778,8 +778,8 @@ describe("buildReinvocationPrompt", () => {
     expect(prompt).toContain("Continue the rest of the task");
   });
 
-  it("names a REJECTED action as a refusal, apart from the skipped ones, and still continues the task (stigmer#197; S3 M1)", () => {
-    // A REJECT denies the tool and the run continues; before S3 M1 the
+  it("names a REJECTED action as a refusal, apart from the skipped ones, and still continues the task (stigmer#197)", () => {
+    // A REJECT denies the tool and the run continues; before #1096 the
     // runtime failed the reinvocation before this prompt was ever built, so
     // the prompt had no REJECT arm.
     const decisions = new Map<string, ApprovalAction>([

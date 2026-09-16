@@ -7,7 +7,7 @@
  * (`sender-identity.ts`, `declared-preferences.ts`, `recalled-memories.ts`,
  * `session-context.ts`, `context-bridge.ts`, `attachment-vision.ts`,
  * `attachment-download-urls.ts`). What the two prompt builders duplicated
- * until S3 M5 (Q-S3-10, Q-M2b-8) was the glue around those bodies: the order
+ * until #1096 was the glue around those bodies: the order
  * the five standing sections read in, with the same doctrine comments written
  * twice; the input-files bullet and disclosure lines; which skills a prompt
  * highlights when there are many. This module is that glue, written once.
@@ -169,10 +169,10 @@ export interface InputFileLines {
 /**
  * The input-files lines over the runtime's own `ResolvedAttachment` — one
  * type, one truth (a structural twin once lived in each builder; native's
- * silently dropped the size, Cursor's was deleted at S3 M5, Q-M5-5).
+ * silently dropped the size, Cursor's was deleted in #1096).
  *
  * Each bullet discloses the size (so the agent can weigh a read — the field's
- * own stated purpose; Cursor's line gained it at S3 M5, Q-M5-3), the original
+ * own stated purpose; Cursor's line gained it in #1096), the original
  * name of a duplicate-renamed file (`attachment-naming.ts`; so the agent can
  * connect "the two report.pdfs" in the user's message to distinct files on
  * disk), and the download URL when one was minted
@@ -224,7 +224,7 @@ export interface SkillSelection {
  * named, so the agent can still activate one on its own judgement (the Agent
  * Skills spec's progressive disclosure: metadata up front, instructions on
  * demand). The native harness calls this on every turn; the Cursor harness
- * lists every skill today and its adoption is S4's (Q-M5-4).
+ * lists every skill today; adopting the selection there is an open item.
  */
 export function selectSkillsForPrompt(userMessage: string, skills: readonly SkillMetadata[]): SkillSelection {
   const filter = filterSkills(

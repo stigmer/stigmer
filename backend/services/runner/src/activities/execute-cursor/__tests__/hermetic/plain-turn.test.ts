@@ -9,7 +9,8 @@
  * scenario is a delta from, and the first proof that the activity is byte-
  * stable under the hermetic driver.
  *
- * Parent phase rows exercised (20260908.02 `T01_0_plan.md` §3a): normalize
+ * Phase rows of the pre-runtime orchestrator this net was recorded against
+ * (#1048): normalize
  * input / heartbeat; artifact storage + the `persist` chokepoint; fetch
  * execution, session, agent, blueprint; resolve environment (NOT_FOUND ->
  * empty); provision workspace (per-session dir); workspace turn lock; MCP

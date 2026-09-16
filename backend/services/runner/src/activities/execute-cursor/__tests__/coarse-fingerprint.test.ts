@@ -1,5 +1,6 @@
 /**
- * @regression file-hitl-phase0 — pins file-edit HITL fix #6 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ * @regression file-hitl-phase0 — pins content-exact approval identity: approving
+ * one edit never lets a DIFFERENT edit to the same path ride the grant.
  *
  * Slice D — the Cursor grant token / fingerprint as the substrate-coarsened
  * projection of the shared canonical action.

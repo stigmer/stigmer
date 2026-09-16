@@ -25,8 +25,8 @@
  * gated by what it does, not by whether someone remembered to list it.
  *
  * The decision itself — `resolveToolApproval` — lives in
- * `shared/approval-policy.ts` beside its provenance twin since S4 M2 C3
- * (Q-M2-9): the native translator reports the same answer on every
+ * `shared/approval-policy.ts` beside its provenance twin since #1097:
+ * the native translator reports the same answer on every
  * `tool_started`, so the transcript row and this gate can never disagree
  * about whether a call waits. This module is where the decision is ACTED on.
  *

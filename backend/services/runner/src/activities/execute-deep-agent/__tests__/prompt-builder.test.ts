@@ -2,13 +2,12 @@ import { describe, it, expect } from "vitest";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { buildEnhancedSystemPrompt, composeUserMessage } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
-import { SourceType } from "../../../shared/workspace/types.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
 
 function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): ProvisionResult {
   return {
     rootDir: "/workspace/project",
-    sourceType: SourceType.LOCAL_PATH,
+    sourceType: "local_path",
     consumedKeys: [],
     workspaceDescription: "User project directory at /workspace/project",
     entryName: "project",
@@ -266,7 +265,7 @@ describe("buildEnhancedSystemPrompt", () => {
       instructions: "Test",
       provisionResults: [
         makeProvisionResult({
-          sourceType: SourceType.GIT_REPO,
+          sourceType: "git_repo",
           entryName: "my-repo",
           rootDir: "/workspace/my-repo",
           gitMetadata: {
@@ -277,7 +276,7 @@ describe("buildEnhancedSystemPrompt", () => {
           },
         }),
         makeProvisionResult({
-          sourceType: SourceType.EMPTY,
+          sourceType: "empty",
           entryName: "scratch",
           rootDir: "/workspace/scratch",
         }),

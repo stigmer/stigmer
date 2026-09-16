@@ -5,7 +5,8 @@
  * Phase 13 of the activity maps what the SDK's `run.wait()` resolves into a
  * terminal phase, and the `error` case is where the error classifier decides
  * whether the runner tries again on its own. The three scenarios here pin the
- * three outcomes of that decision table that the S0 net did not cover (the
+ * three outcomes of that decision table that the first hermetic net (#1048)
+ * did not cover (the
  * poisoned-handle recovery on a RESUMED agent is `recovery-fresh-agent.test.ts`):
  *
  *  1. A NON-RETRYABLE error (auth class): the classifier files it as

@@ -12,9 +12,9 @@
  * the control plane, which only the runtime holds, and writes under the
  * platform dir the runtime owns; the harness renders the returned metadata
  * into its prompt in its own placement. Moved from
- * `activities/execute-cursor/` at S2 M3b; the native harness's twin
- * (`skill-writer.ts` `fetchSkillsByRefs` + `mountSkills`) retired at S3 M2b,
- * and the module itself at S3 M5 — the one renderer it kept is
+ * `activities/execute-cursor/` in #1070; the native harness's twin
+ * (`skill-writer.ts` `fetchSkillsByRefs` + `mountSkills`) retired in #1096,
+ * and the module itself with it — the one renderer it kept is
  * `shared/prompt-sections.ts` `alsoAvailableSkillsNote`. This is the one
  * skills path for every harness.
  *

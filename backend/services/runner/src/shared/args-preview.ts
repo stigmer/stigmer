@@ -8,19 +8,19 @@
  * JSON: the per-tool offload does not touch it, and the aggregate size backstop
  * would replace an oversized preview with an unparseable marker.
  *
- * ONE preview rule for every row (S4 M2 C7, Q-S4-16): the transcript builder
+ * ONE preview rule for every row (since #1097): the transcript builder
  * stamps every tool row's preview through {@link buildElidedArgsPreview} over
  * {@link SALIENT_ARG_FIELDS}, as `message.proto` promises — sanitized,
- * redacted, at creation, for inline visibility. Until C7 there were two
+ * redacted, at creation, for inline visibility. Until then there were two
  * rules: native stamped a whole-string-truncating `sanitizeArgsPreview` on
  * gated rows only (a preview that could truncate to invalid JSON, acceptable
  * only because native's resume never re-parsed it), and Cursor's stream path
- * stamped `JSON.stringify(args)` unredacted (S4 review finding 5). Both are
+ * stamped `JSON.stringify(args)` unredacted. Both are
  * gone; this module holds the one builder and the one salient list.
  *
  * THE PREVIEW NEVER CARRIES A VALUE IT CANNOT CARRY WHOLE. A non-salient
  * string over the per-value cap is left out of the preview — not replaced by
- * an in-band marker. The marker this module wrote until S4 M4R (`"[381
+ * an in-band marker. The marker this module wrote until #1097 (`"[381
  * chars]"`) was a string no reader could tell from content: the approval gate
  * rendered it as the file the user was asked to approve (stigmer#1107). An
  * absent key is the out-of-band signal every reader already handles — a
@@ -52,7 +52,7 @@ export const SENSITIVE_ARG_KEYS: ReadonlySet<string> = new Set([
  * resource VALUE on both sides (the absolute path / the command string) is
  * what lets the Cursor hook-recorded denial token equal the stream-computed
  * token. Authored here once (moved from `execute-cursor/approval-policy.ts`
- * at S4 M2 C7, Q-M2-5) and injected into the generated preToolUse hook script
+ * in #1097) and injected into the generated preToolUse hook script
  * so the runner and the hook never disagree on which field to match.
  */
 export const SALIENT_ARG_FIELDS = ["file_path", "path", "target_notebook", "command"] as const;

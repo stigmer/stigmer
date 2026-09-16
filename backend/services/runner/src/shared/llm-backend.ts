@@ -8,10 +8,6 @@
  * factories run `preflightLlmBackends` at startup, and `model-client.ts`
  * resolves the backend and translates model ids at construction time; see
  * `__tests__/vertex-seam.test.ts` for the pinned seam behavior.
- *
- * Design decision record: stigmer-cloud
- * `_projects/2026-08/20260809.01.multi-cloud-llm-provider-endpoints/`
- * `design-decisions/001-provider-backends.md`.
  */
 
 import type { LlmProvider } from "./llm-proxy.js";

@@ -7,7 +7,7 @@
  * Pure functions: no side effects, no I/O. `turn-setup.ts` gathers the
  * inputs from the runtime's resolved record and this module renders them.
  *
- * What is this harness's and what is shared (S3 M5, Q-S3-10 / Q-M5-2):
+ * What is this harness's and what is shared (since #1096):
  *  - Shared through `shared/prompt-sections.ts`: WHICH standing sections
  *    render and in WHAT order (`standingContextSections`), the input-files
  *    bullet and disclosure lines (`inputFileLines`), which skills a prompt
@@ -29,7 +29,6 @@
 import { relative } from "node:path";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
-import { SourceType } from "../../shared/workspace/types.js";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import type { SenderIdentity } from "../../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
@@ -116,7 +115,7 @@ directly over delegating. Only delegate when context isolation \
 or parallelism genuinely helps the user.
 `;
 
-/** The agent's instructions when the blueprint carries none; the prompt is never empty (S3 M2a, F-M2a-16: was `setup.ts`'s alone). */
+/** The agent's instructions when the blueprint carries none; the prompt is never empty (since #1096: was `setup.ts`'s alone). */
 export const DEFAULT_INSTRUCTIONS = "You are a helpful AI assistant.";
 
 export interface PromptBuilderInput {
@@ -333,7 +332,7 @@ export function composeUserMessage(
  * disclosure model: only name, description and location are injected; the
  * agent reads SKILL.md on demand through its filesystem tools. Byte for byte
  * the text the orchestrator-era `generatePromptSection` rendered from the
- * `Skill` proto (deleted with `setup.ts` at S3 M2b); the one difference is
+ * `Skill` proto (deleted with `setup.ts` in #1096); the one difference is
  * the input — a mounted file's metadata, not a fetched resource — so this
  * renderer needs no client and serves the root and every sub-agent alike.
  * Empty for no skills.
@@ -446,7 +445,7 @@ function workspaceRelativePath(rootDir: string, containerRoot: string): string {
 function formatEntryDescription(result: ProvisionResult): string {
   const name = result.entryName || "this entry";
 
-  if (result.sourceType === SourceType.LOCAL_PATH) {
+  if (result.sourceType === "local_path") {
     return (
       `Workspace entry **${name}** is the user's project directory ` +
       `at \`${result.rootDir}\`.\n` +
@@ -455,7 +454,7 @@ function formatEntryDescription(result: ProvisionResult): string {
     );
   }
 
-  if (result.sourceType === SourceType.GIT_REPO && result.gitMetadata) {
+  if (result.sourceType === "git_repo" && result.gitMetadata) {
     const meta: GitMetadata = result.gitMetadata;
     const shortSha = meta.baseCommit.length >= 7
       ? meta.baseCommit.slice(0, 7)
@@ -467,7 +466,7 @@ function formatEntryDescription(result: ProvisionResult): string {
     );
   }
 
-  if (result.sourceType === SourceType.EMPTY) {
+  if (result.sourceType === "empty") {
     return (
       `Workspace entry **${name}** is an empty workspace.\n` +
       "Create files and directories as needed for your task."

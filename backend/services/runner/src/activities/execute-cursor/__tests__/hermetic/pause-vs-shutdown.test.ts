@@ -26,8 +26,8 @@
  * ONCE. The orchestrator this net was recorded on appended it twice — once in
  * `resolvePreBoundaryTerminal` before the throw, once again in the outer
  * `catch (CancelledFailure)`, which re-stamped and re-persisted — and the
- * goldens pinned that double on purpose so S2 could reproduce the wire byte
- * for byte (stigmer#1054, Q-S2-4). The runtime's `settleWith` is now the one
+ * goldens pinned that double on purpose so #1070 could reproduce the wire byte
+ * for byte (removed in stigmer#1054). The runtime's `settleWith` is now the one
  * writer of a terminal arm, so a second row has no code path to come from.
  *
  * Runtime phases exercised: the adapter's stop-signal cancel; the runtime's
@@ -35,11 +35,11 @@
  * arms through `settleWith`; the `finally` teardown under a thrown exit.
  *
  * Regeneration history:
- *  - S2 M3b (entry 20260911.03): timestamp-only diff — every terminal stamp
+ *  - #1070: timestamp-only diff — every terminal stamp
  *    one scripted second earlier: the adapter cancels the SDK run the instant
- *    the runtime's stop signal aborts (Q-M3-4), before the SDK double pulls,
+ *    the runtime's stop signal aborts, before the SDK double pulls,
  *    and the clock ticks on, one more step. Transcript unchanged.
- *  - 2026-09-12 (stigmer#1054, the PR after S2): one removed system row per
+ *  - 2026-09-12 (stigmer#1054, the PR after #1070): one removed system row per
  *    golden, nothing else. The transcript now carries each terminal row once.
  *
  * Regenerate ONLY after a deliberate behavior change:

@@ -8,7 +8,7 @@
  *    (the pause copy, the failure copy), which are not transcript facts of
  *    any engine and never were.
  *
- * Why it matters (the canonical-transcript entry, Q-S4-1): the promise that a
+ * Why it matters (#1097's founding promise): the promise that a
  * third harness is "a translator and nothing else" holds only while there
  * is exactly one place a row comes from. A module that builds a row itself
  * — an adapter pushing an AI message with a WAITING call, a settle

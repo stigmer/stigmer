@@ -19,7 +19,7 @@
  *
  * Two goldens, one per invocation: `goldens/deny-and-retry.turn1.status.json`
  * (the paused transcript) and `goldens/deny-and-retry.turn2.status.json` (the
- * resumed, completed transcript). S2 must reproduce both byte for byte.
+ * resumed, completed transcript). The runtime must reproduce both byte for byte.
  *
  * Parent phase rows exercised beyond `tool-call`: reinvocation detection and
  * transcript seeding (Phase 3); reading approval decisions from the persisted

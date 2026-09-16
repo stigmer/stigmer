@@ -18,7 +18,7 @@
  *  - `delta(update)`         — fired through `onDelta`: any `InteractionUpdate`
  *                              (the `turn-ended` usage the loop prices; the
  *                              tool-call timings, shell output and completion
- *                              status the transcript folds — S4 M4 C1 widened
+ *                              status the transcript folds — #1097 widened
  *                              the step from `turn-ended` alone so the delta
  *                              channel has an end-to-end net)
  *  - `effect(fn)`            — the side effect the SDK would have performed

@@ -65,7 +65,7 @@ interface ProxyConfig {
    * manager's token coordinator), so a rotation reaches the next request
    * without a call into this module. Which credential it is differs per
    * root — the static root's control-plane token, the manager's minted
-   * runner token (Q-S2-7) — and this module never knows which.
+   * runner token — and this module never knows which.
    */
   proxyTokenRef: { readonly current: string | null };
   executionId?: string;

@@ -38,8 +38,8 @@
  * is on the row (the server's field) and the transition follows from it with
  * no engine knowledge, so it belongs to the runtime — one writer per field,
  * as `approvalDecisionsOf` is the runtime's one reader and
- * `terminalizeNonExecutingDecisions` its one writer (S2 M4, Q-M4-1; landed at
- * S3 M1, `harness/approval-decisions.ts`). An adapter's whole duty for a
+ * `terminalizeNonExecutingDecisions` its one writer (landed in #1096,
+ * `harness/approval-decisions.ts`). An adapter's whole duty for a
  * non-executing decision is to not execute.
  *
  * Scenarios are arranged PER SESSION (the engine is per session in every real
@@ -364,8 +364,8 @@ export interface ScriptedSubject extends HarnessContractSubject {
 }
 
 /**
- * The fake declares the `deep-agent` row: in S2 the runtime served that row
- * through this fake alone; since S3 M3 the real native adapter takes it over
+ * The fake declares the `deep-agent` row: in #1070 the runtime served that row
+ * through this fake alone; since #1096 the real native adapter takes it over
  * in the runtime half
  * (`execute-deep-agent/__test-utils__/contract-subject.ts`), and the fake
  * keeps declaring it so the kit's self-check runs a full subject under both

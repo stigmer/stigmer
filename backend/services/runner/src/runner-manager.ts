@@ -701,7 +701,7 @@ export function mapManagerOptionsToConfig(
     // The manager's proxy credential is the minted runner token once adopted
     // (the control-plane token in lockstep before that), so it is this ref and
     // not `tokenRef`: binding `tokenRef` would keep sending the desktop's own
-    // Auth0 token as x-stigmer-auth after the mint (Q-S2-7).
+    // Auth0 token as x-stigmer-auth after the mint.
     proxyTokenRef: runnerTokenRef,
     cursorApiKey: proxyActive
       ? (options.cursorApiKey ?? "proxy-managed")

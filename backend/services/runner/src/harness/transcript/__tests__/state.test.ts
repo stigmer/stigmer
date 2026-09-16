@@ -2,14 +2,14 @@
  * `TranscriptState` and `Transcript` (`harness/transcript/state.ts`): the
  * per-scope bookkeeping the builder folds through — indexes over the live
  * proto, never copies; seeded rows indexed at construction; the seed's last
- * AI message as a scope's starting point (Q-M2-2).
+ * AI message as a scope's starting point.
  *
- * Restated at S4 M2 C4 over the per-scope shape (plan finding F-M2-15) from
+ * Restated in #1097 over the per-scope shape from
  * the two files that pinned the namespace-keyed maps and the explicit
  * `rebuildToolCallIndex` (`state.test.ts`, `state-extended.test.ts` — the
  * latter ported from the Python HITL/checkpoint contract tests). Every arm
  * kept in meaning; the four `resetEphemeralState` arms went with the method,
- * which had no production caller (F-M2-14).
+ * which had no production caller.
  */
 
 import { describe, it, expect } from "vitest";
@@ -64,7 +64,7 @@ describe("Transcript", () => {
     expect([...t.toolCalls.keys()]).toEqual(["tc-ok"]);
   });
 
-  it("starts on the seed's LAST AI message (Q-M2-2), skipping a trailing non-AI row", () => {
+  it("starts on the seed's LAST AI message, skipping a trailing non-AI row", () => {
     const status = seededStatus();
     status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content: "paused" }));
     const t = new Transcript(status.messages);

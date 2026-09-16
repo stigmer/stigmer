@@ -3,26 +3,26 @@
  * the AgentExecutionStatus proto it is handed: messages, tool-call rows and
  * their approval status, sub-agent rows, todos, artifacts, write-backs.
  *
- * The one transcript builder, for every harness (S4). It
- * was the native harness's `V3StatusBuilder` (the one builder there since S3
- * M2b retired the v2 `StatusBuilder`, Q-S3-1), promoted here at M1
- * (2026-09-14) unchanged and cut engine-neutral at M2 one ruling per commit:
- * it reads no engine envelope (C2a), decides nothing about approval (C3),
- * and knows no engine's tool names or namespace grammar (C4) — every engine
+ * The one transcript builder, for every harness (#1097). It
+ * was the native harness's `V3StatusBuilder` (the one builder there since
+ * #1096 retired the v2 `StatusBuilder`), promoted here on 2026-09-14
+ * unchanged and then cut engine-neutral one rule per commit:
+ * it reads no engine envelope, decides nothing about approval,
+ * and knows no engine's tool names or namespace grammar — every engine
  * fact reaches it as a translator's output, on one union. The Cursor
- * harness feeds it through a translator (M4); the runtime constructs it once
- * per turn and hands it to every adapter as `TurnSink.transcript` (M5), so
+ * harness feeds it through a translator; the runtime constructs it once
+ * per turn and hands it to every adapter as `TurnSink.transcript`, so
  * a transcript row has exactly one way into the status — a source-walking
  * fence, `harness/__tests__/transcript-writers.test.ts`, refuses a second.
  *
- * ONE set of handlers over ONE scope shape (C4, Q-S4-4): every handler takes
+ * ONE set of handlers over ONE scope shape: every handler takes
  * the scope's {@link Transcript} — the root's over `status.messages`, or a
  * sub-agent's over its row's — from `TranscriptState`, so a sub-agent's
- * transcript is folded by exactly the rules the root's is. Until C4 the
+ * transcript is folded by exactly the rules the root's is. Until #1097 the
  * sub-agents' half was a second module (`SubAgentTracker`) with its own copy
  * of every handler, differing only in which array it pushed into — the
  * memo's third copy of the folding rule, and the one whose namespace filter
- * differed from the root's by one segment (S3 M0 finding F-M0-1: the root
+ * differed from the root's by one segment (found in #1096: the root
  * filed text under `model_request:<uuid>` and looked the tool's parent up
  * under `""`, so every native tool row sat on an empty message after its
  * text). With scope a single value per transcript, that class of miss
@@ -40,47 +40,47 @@
  *     INTERRUPTED row on a recovery replay, the enum's supersede rule) and
  *     takes the args and preview it lacked — never duplicated. Every row
  *     with args carries `argsPreview`, elided and redacted, salient fields
- *     verbatim (Q-S4-16). A finish or an error is an upsert: status
+ *     verbatim. A finish or an error is an upsert: status
  *     monotonic, `completedAt` once, a non-empty result or message
- *     overwrites, an empty one never clears (Q-S4-3(c)); a re-emit that
- *     changes nothing forces no persist (Q-M4-8); a fact the harness
+ *     overwrites, an empty one never clears; a re-emit that
+ *     changes nothing forces no persist; a fact the harness
  *     observed earlier and delivers later stamps its own instant
- *     (`observedAt`, Q-M4-14); an output chunk for a settled row is stale
- *     and dropped — the completion's result is the whole output (Q-M4-15).
- *   - The AI-message boundary (Q-S4-5; native's own rule, made correct by
+ *     (`observedAt`); an output chunk for a settled row is stale
+ *     and dropped — the completion's result is the whole output.
+ *   - The AI-message boundary (native's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
- *     (Q-M2-2) — and to a new empty one only when the scope has none.
- *   - A THINKING row per `runId` (Q-S4-6), a text message per `runId`; a
+ *     — and to a new empty one only when the scope has none.
+ *   - A THINKING row per `runId`, a text message per `runId`; a
  *     new run closes the previous message's streaming flag, and a run's
- *     finish closes both its text and its thinking (Q-M4-6).
+ *     finish closes both its text and its thinking.
  *   - A sub-agent row per `subAgentId`, opened by `sub_agent_started`,
  *     closed COMPLETED/FAILED by `sub_agent_finished/failed` with its
  *     transcript's streaming flags cleared; a known id is never re-opened.
  *     CANCELLED is not this builder's: `shared/subagent-rows.ts`
  *     `cancelInProgressSubAgentProtos` is the one home of that transition.
- *   - `approval_proposed` is the one place a row is ever WAITING (Q-S4-20,
- *     Q-S4-3(e)): a known row REOPENS — WAITING, the outcome fields cleared,
+ *   - `approval_proposed` is the one place a row is ever WAITING: a known
+ *     row REOPENS — WAITING, the outcome fields cleared,
  *     `approvalRequestedAt` stamped once, the proposal's args and preview
- *     taken when carried (Cursor's `markWaitingApproval` + `applyGateInput`;
- *     Q-M4-7); an unknown call gets a WAITING row on the scope's current AI message,
- *     the text that proposed it (native's post-stream seed, until C6 a new
+ *     taken when carried (Cursor's `markWaitingApproval` + `applyGateInput`);
+ *     an unknown call gets a WAITING row on the scope's current AI message,
+ *     the text that proposed it (native's post-stream seed, before #1097 a new
  *     empty message of its own). Either way {@link awaitingApproval} is set.
  *   - `system_note` is a SYSTEM message in the scope, in the harness's
- *     voice; it hosts no rows and moves no boundary (Q-S4-18).
+ *     voice; it hosts no rows and moves no boundary.
  *   - A completed `ToolKind.TODO` call in the ROOT scope is projected into
  *     `status.todos` through the shared `applyTodoUpdate`, a full replace
- *     unless the call's args say `merge: true` (Q-S4-7; the row stays — the
+ *     unless the call's args say `merge: true` (the row stays — the
  *     clients filter it); a sub-agent's is not.
  *   - `finalize()` clears every streaming flag in every scope.
  *   - Artifacts upsert by `sandboxPath`/`contentHash`, write-backs by
- *     `workspaceEntryName` (Q-S4-8): the inline publisher and the write-back
+ *     `workspaceEntryName`: the inline publisher and the write-back
  *     coordinator register theirs here, each through the one-method view it
  *     declares for itself (`ArtifactSink`, `WriteBackSink`), which this class
  *     satisfies by shape.
  *   - {@link dirty} is set by every discrete change above and by nothing a
  *     token delta does; the adapter's loop reads it and clears it with
- *     {@link markPersisted} as it requests the persist (Q-S4-12).
+ *     {@link markPersisted} as it requests the persist.
  *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
@@ -89,9 +89,9 @@
  * is the plan's knowledge, not the transcript's). A row left
  * WAITING_APPROVAL is reported as the {@link awaitingApproval} fact and the
  * caller decides what that means for the turn — a fact only
- * `approval_proposed` produces once C6 lands, because a call that has
- * STARTED is never parked at creation (C3, option A). Usage never passes
- * through here (C1): the native loop reads it off the wire (`usageOf`) and
+ * `approval_proposed` produces, because a call that has
+ * STARTED is never parked at creation. Usage never passes
+ * through here: the native loop reads it off the wire (`usageOf`) and
  * prices it into the sink, the Cursor loop reads its own from the SDK.
  */
 
@@ -145,7 +145,7 @@ export class TranscriptBuilder {
    * The builder hands nothing back. A reader holds the status it built the
    * builder over — `TurnSink.status` in production, the test's own in a
    * test — so the transcript has one read handle and one write handle, and
-   * no second spelling of either (Q-M5-4).
+   * no second spelling of either.
    */
   constructor(executionId: string, status: AgentExecutionStatus) {
     this.executionId = executionId;
@@ -171,7 +171,7 @@ export class TranscriptBuilder {
    * interrupted (or the harness's boundary parked the call) and the turn
    * should end awaiting a decision. A fact about the transcript, not a phase
    * — the caller owns the phase. No `tool_started` sets it (a started call
-   * is running; C3, option A); `approval_proposed` does (M2 C6).
+   * is running); `approval_proposed` does.
    */
   get awaitingApproval(): boolean {
     return this._awaitingApproval;
@@ -355,8 +355,8 @@ export class TranscriptBuilder {
   }
 
   private handleMessageFinish(scope: Transcript, runId: string): void {
-    // A finished run's text AND its thinking are finished (S4 M4 B1, Q-M4-6;
-    // Cursor closes both when a tool call ends the segment). Until B1 only the
+    // A finished run's text AND its thinking are finished (Cursor closes
+    // both when a tool call ends the segment). Before #1097 only the
     // text closed here and the THINKING row spun until `finalize()` — a live
     // spinner on a block the model had left, on both harnesses.
     const msg = scope.messagesByRun.get(runId);
@@ -376,7 +376,7 @@ export class TranscriptBuilder {
   }
 
   private appendThinkingContent(scope: Transcript, runId: string, text: string): void {
-    // One THINKING row per run (Q-S4-6), keyed apart from the run's text so
+    // One THINKING row per run, keyed apart from the run's text so
     // the two never share a message.
     const thinkingKey = thinkingKeyOf(runId);
     const existingMsg = scope.messagesByRun.get(thinkingKey);
@@ -408,7 +408,7 @@ export class TranscriptBuilder {
     // recovery replaying a call the server had marked INTERRUPTED when the
     // execution terminalized with it in flight (the enum's supersede rule; the
     // Cursor accumulator's merge). Either way an UNSETTLED row becomes RUNNING
-    // (S4 M4 B1, Q-M4-8 — until B1 only WAITING flipped); a settled one keeps
+    // (before #1097 only WAITING flipped); a settled one keeps
     // its outcome. Args it lacked are filled and previewed, once.
     const existing = scope.toolCalls.get(callId);
     if (existing) {
@@ -423,7 +423,7 @@ export class TranscriptBuilder {
       return;
     }
 
-    // The message boundary (Q-S4-5): the row joins the message whose text
+    // The message boundary: the row joins the message whose text
     // proposed it — the scope's current AI message — and gets an empty one
     // only when the scope has no message yet.
     const parentMsg = scope.currentAiMessage ?? this.ensureAiMessageForToolCall(scope);
@@ -433,7 +433,7 @@ export class TranscriptBuilder {
     // (Cursor), and on native a held call never starts at all — the engine
     // interrupts before the tool runs and the post-stream seed proposes it.
     // The builder writes the gate's word it is told and decides nothing
-    // about approval (S4 M2 C3, option A).
+    // about approval.
     const tc = create(ToolCallSchema, {
       id: callId,
       name,
@@ -483,7 +483,7 @@ export class TranscriptBuilder {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
-    // An UPSERT, not an overwrite (Q-S4-3(c); Cursor's `mergeToolCallEvent`):
+    // An UPSERT, not an overwrite (Cursor's `mergeToolCallEvent`):
     // the status advances monotonically — a settled row never regresses;
     // `completedAt` is stamped once; only a non-empty result overwrites, so a
     // completion that carries none never wipes the output an earlier one
@@ -497,7 +497,7 @@ export class TranscriptBuilder {
     // before offload can lift it into a renderable ToolCallOutputRef.
     //
     // A completion that changes nothing — a settled row re-completed with no
-    // new result — forces no persist (S4 M4 B1, Q-M4-8; Cursor's "a redundant
+    // new result — forces no persist (Cursor's "a redundant
     // terminal re-emit is noise, not a state change"). On Cursor every call
     // completes twice (the delta, then the stream), and the second carries the
     // result, so the flush the UI needs still happens exactly once.
@@ -505,7 +505,7 @@ export class TranscriptBuilder {
     const resultChanged = !!result && result !== tc.result;
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
     // The instant the harness OBSERVED the completion when it delivers it
-    // later (Cursor's queued delta, Q-M4-14); otherwise now.
+    // later (Cursor's queued delta); otherwise now.
     if (!tc.completedAt) tc.completedAt = observedAt ?? utcTimestamp();
     if (resultChanged) tc.result = result;
     stopStreaming(tc);
@@ -518,8 +518,8 @@ export class TranscriptBuilder {
     // projects nothing. Keyed on the harness-agnostic ToolKind.TODO (stamped at
     // tool-start) and fed by the same shared mapper every harness uses; the
     // call's own `merge` flag decides replace-or-merge (Cursor's `updateTodos`
-    // sets it; deepagents never does, so native stays a full replace —
-    // Q-S4-7); a sub-agent's list is its own, never the execution's. The tool
+    // sets it; deepagents never does, so native stays a full replace);
+    // a sub-agent's list is its own, never the execution's. The tool
     // call itself stays in messages (the client filters ToolKind.TODO from the
     // thread).
     if (scope === this.state.root && tc.toolKind === ToolKind.TODO) {
@@ -533,7 +533,7 @@ export class TranscriptBuilder {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
-    // The same upsert as a finish (Q-S4-3(c)). A gated row that fails is the
+    // The same upsert as a finish. A gated row that fails is the
     // Cursor boundary's shape — the hook denied the call and the stream
     // reports `error`; the boundary parks it after the stream — so the
     // moment approval became due is stamped here if nothing stamped it yet.
@@ -547,7 +547,7 @@ export class TranscriptBuilder {
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
 
-    // The same no-change rule as a finish (Q-M4-8).
+    // The same no-change rule as a finish.
     if (wasSettled && !messageChanged) return;
     this._dirty = true;
   }
@@ -570,11 +570,11 @@ export class TranscriptBuilder {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
     // A chunk for a row that has already settled is stale: the completion's
-    // result IS the whole output, and appending would double it (S4 M4 B4,
-    // Q-M4-15 — Cursor's delta channel and stream can deliver the output's
+    // result IS the whole output, and appending would double it (Cursor's
+    // delta channel and stream can deliver the output's
     // chunks and the completion in one loop window, completion first).
     if (isSettled(tc.status)) return;
-    // Output arriving live: the row streams its OUTPUT (Q-S4-3(d); Cursor's
+    // Output arriving live: the row streams its OUTPUT (Cursor's
     // enricher), so the client can show the partial result as it grows;
     // the finish, or `finalize()`, closes it.
     tc.result = (tc.result ?? "") + delta;
@@ -601,7 +601,7 @@ export class TranscriptBuilder {
       // The proposal's args are the authoritative proposed change when the
       // harness carries them (Cursor's `applyGateInput`: the hook's captured
       // input outranks what the stream carried before the first-denial cancel),
-      // and they re-derive the preview (S4 M4 B1, Q-M4-7). Absent, the row
+      // and they re-derive the preview. Absent, the row
       // keeps what it had.
       if (event.args && Object.keys(event.args).length > 0) {
         existing.args = event.args as JsonObject;
@@ -616,7 +616,7 @@ export class TranscriptBuilder {
 
     // A call the stream never showed (native: the engine interrupted before
     // the tool started). Its row lands on the text that proposed it, like
-    // any other row (Q-S4-20 — until C6 the seed pushed a new empty message).
+    // any other row (before #1097 the seed pushed a new empty message).
     const parentMsg = scope.currentAiMessage ?? this.ensureAiMessageForToolCall(scope);
     const tc = create(ToolCallSchema, {
       id: event.callId,
@@ -718,10 +718,10 @@ function finalizeStreaming(transcript: Transcript): void {
 }
 
 /**
- * The row's `args_preview`, on EVERY row with args (Q-S4-16; S4 M2 C7):
+ * The row's `args_preview`, on EVERY row with args (since #1097):
  * `message.proto` promises it sanitized, redacted, at creation, for inline
  * visibility, and the one builder that keeps it small and always valid JSON
- * is `buildElidedArgsPreview` over the platform's salient fields. Until C7
+ * is `buildElidedArgsPreview` over the platform's salient fields. Until then
  * native stamped a whole-string-truncating preview on gated rows only and
  * Cursor stamped `JSON.stringify(args)` unredacted. An empty preview (a
  * cycle in the args) leaves the field unset rather than failing the row.

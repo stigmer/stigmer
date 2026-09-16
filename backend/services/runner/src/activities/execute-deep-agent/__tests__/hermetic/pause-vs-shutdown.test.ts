@@ -1,10 +1,10 @@
 /**
  * Hermetic goldens: the two ways a turn is INTERRUPTED from outside, and how
  * the activity tells them apart — the throw-vs-return table the control
- * plane's workflow keys on. Since S3 M2a the activity is the turn runtime
+ * plane's workflow keys on. Since #1096 the activity is the turn runtime
  * over the native adapter, and the shapes below are the runtime's terminal
- * table (`harness/terminal-table.ts`), ruled at Q-S3-7 (P-1: the pause copy
- * is Cursor's) and stigmer#1071 ("persist a thrown terminal once").
+ * table (`harness/terminal-table.ts`; the pause copy is Cursor's) and
+ * stigmer#1071 ("persist a thrown terminal once").
  *
  *  1. USER PAUSE: the activity's `cancellationSignal` aborts. Whether the
  *     abort lands inside a model call (staged from the scripted model's
@@ -13,11 +13,11 @@
  *     stop controller aborts the adapter's signal, the adapter cancels the
  *     graph run and settles `interrupted`, and the runtime persists PAUSED
  *     ONCE — WITH the transcript and the row "Execution paused by user. Use
- *     resume to continue." (P-1: the runtime's pause copy is Cursor's; the
+ *     resume to continue." (the runtime's pause copy is Cursor's; the
  *     orchestrator's said "… from this checkpoint.") — then throws
- *     `CancelledFailure("Activity paused by orchestrator")`. Until M2a the
+ *     `CancelledFailure("Activity paused by orchestrator")`. Until #1096 the
  *     orchestrator persisted PAUSED TWICE, the second write bare and erasing
- *     the transcript (S3 M0 finding F-M0-6, stigmer#1054's double persist);
+ *     the transcript (stigmer#1054's double persist);
  *     `pause.bare.status.json` recorded that write and is gone with it. The
  *     one write differs by where the cancel landed — after the tool finished
  *     (`pause.loop.after-tool`) or while it was still RUNNING
@@ -28,7 +28,7 @@
  *     copy and one row, thrown as
  *     `CancelledFailure("Activity cancelled (worker shutdown, not user pause)")`
  *     (#776) — the workflow re-invokes instead of waiting for a resume. The
- *     copy is unchanged; what changed at M2a (Q-S3-7, the runtime's arm
+ *     copy is unchanged; what changed in #1096 (the runtime's arm
  *     wins) is that the runtime's arm KEEPS the transcript the turn produced
  *     and appends the row, where the orchestrator's `buildWorkerShutdownStatus`
  *     replaced the whole status with the row alone.
@@ -145,7 +145,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
       expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_PAUSED]);
 
       const pausedWrites = record.persisted.filter((s) => s.phase === ExecutionPhase.EXECUTION_PAUSED);
-      expect(pausedWrites, "PAUSED is persisted exactly once (stigmer#1071; F-M0-6 closed at M2a)").toHaveLength(1);
+      expect(pausedWrites, "PAUSED is persisted exactly once (stigmer#1071)").toHaveLength(1);
       const [paused] = pausedWrites;
       expect(paused.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
         "Execution paused by user. Use resume to continue.",
@@ -188,9 +188,8 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     const final = record.lastFullStatus!;
     expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
     // The transcript the turn produced is kept and the row appended (the
-    // runtime's arm, Q-S3-7); the tool row sits on the message whose text
-    // proposed it (Q-S4-5, S4 M2 C4 — until then on its own empty message,
-    // F-M0-1).
+    // runtime's arm); the tool row sits on the message whose text
+    // proposed it (since #1097 — until then on its own empty message).
     expect(final.messages.map((m) => [m.type, m.content])).toEqual([
       [MessageType.MESSAGE_AI, "Let me look."],
       [

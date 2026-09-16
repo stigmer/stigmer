@@ -30,7 +30,7 @@
  * (the thread id is the runtime's, `deterministic`), or import
  * `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  *
- * Extracted from `index.ts` `createDeepAgentActivities` at S3 M2a on the
+ * Extracted from `index.ts` `createDeepAgentActivities` in #1096 on the
  * Cursor adapter's layout (`execute-cursor/adapter.ts`).
  */
 

@@ -14,7 +14,7 @@
  * (`execute-cursor/__tests__/adapter-is-temporal-free.test.ts`) is the
  * precedent; this is its native twin.
  *
- * Until S3 M2b (2026-09-13) one module was tolerated here: `index.ts`, the
+ * Until #1096 (2026-09-13) one module was tolerated here: `index.ts`, the
  * orchestrator the adapter replaced, which imported `@temporalio/activity`
  * while it still served production. It is deleted; the list is empty and
  * stays empty.

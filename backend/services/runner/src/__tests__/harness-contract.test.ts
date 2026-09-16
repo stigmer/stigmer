@@ -13,7 +13,7 @@
  * halves in its own hermetic file, where the mocks its double needs can be
  * hoisted: the Cursor adapter does so in
  * `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`
- * (S2 M4), and the fake's runtime-side half runs in
+ * (since #1070), and the fake's runtime-side half runs in
  * `harness/__tests__/run-turn.test.ts`.
  */
 

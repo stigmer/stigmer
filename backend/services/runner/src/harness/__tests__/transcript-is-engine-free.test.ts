@@ -4,7 +4,7 @@
  * short allow-list — the proto runtime and the generated protos, Node's
  * builtins, and `vitest` inside `__tests__/`.
  *
- * Why it matters (S4's one disposition rule): the builder folds
+ * Why it matters (the canonical transcript's one disposition rule): the builder folds
  * facts into the status proto; every fact about an engine — a LangGraph
  * namespace, a Cursor `SDKMessage`, a LangChain `ToolMessage` envelope —
  * reaches it as a translator's output, never as an import. A Claude or Codex
@@ -20,9 +20,9 @@
  * swept too, on the direction fence's precedent (`import-direction.test.ts`):
  * a test that imported `@langchain/core` to build a fixture would be exactly
  * the coupling that keeps the builder's own tests in the native adapter's
- * folder until S4 M2 re-keys them to the canonical union (Q-M1-2).
+ * folder until #1097 re-keyed them to the canonical union.
  *
- * Ruled at the S4 M1 gate (Q-M1-5), landed the day the folder was created.
+ * Landed in #1097, the day the folder was created.
  */
 
 import { describe, it, expect } from "vitest";

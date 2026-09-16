@@ -4,13 +4,13 @@
  * through `onDelta` between the stream's own `tool_call` events — through the
  * whole `ExecuteCursor` activity.
  *
- * Why this net exists (S4 M4 C1, Q-M4-4): the scripted double emitted only the
- * `turn-ended` usage delta until this milestone, so the rule M4 changes most —
+ * Why this net exists (#1097): the scripted double emitted only the
+ * `turn-ended` usage delta until then, so the rule that PR changed most —
  * a completion learned from the timing delta and merged with the stream's
- * later completion (Q-S4-3(c)) — had no end-to-end net; `delta-enricher.ts`'s
- * twelve unit arms were the whole of it. The three arms below pin TODAY's
- * shape, as the enricher folds it, and each header states what the rulings
- * predict will move at the swap (B4) and after it (B5).
+ * later completion — had no end-to-end net; `delta-enricher.ts`'s
+ * twelve unit arms were the whole of it. The three arms below were pinned
+ * on the enricher's fold before the swap to the shared builder, and each
+ * header states what was predicted to move at the swap and after it.
  *
  * Arm 1 — the ordinary order. The stream's `running` creates the row; the
  * deltas arrive; the stream's `completed` settles it. Pinned: `startedAt` is
@@ -18,30 +18,30 @@
  * (`streamingSource: OUTPUT` while it streams, cleared at finalize); the
  * stream's `completed` stamps `completedAt` and its result wins; the shell
  * row is a gated built-in (`requiresApproval`, "Run command: …") that the
- * hook never saw, so no `approvalRequestedAt`. Predicted: NO move at B4 or
- * B5 (the translator drains the queued deltas AFTER the stream event of the
+ * hook never saw, so no `approvalRequestedAt`. Predicted: NO move (the
+ * translator drains the queued deltas AFTER the stream event of the
  * same window, as the enricher applied them, so the stream's instant wins
- * exactly as today).
+ * exactly as before).
  *
  * Arm 2 — output BEFORE the row exists. A `shell-output-delta` fires before
  * the stream's `running` for its call. Pinned: nothing is lost — the enricher
  * buffers the chunk and applies it once the row exists, so the final `result`
- * carries both chunks in order. Predicted: NO move at B4 (the translator holds
+ * carries both chunks in order. Predicted: NO move (the translator holds
  * a delta for a call the stream has not announced and replays it after the
- * `tool_started` that announces it — M4 finding F-M4-7).
+ * `tool_started` that announces it).
  *
  * Arm 3 — the completion delta reports an ERROR, and a model event sits
  * between it and the stream's own `error`. Pinned: the translator honours the
- * delta's `result.status: "error"` (Q-M4-5) — the row is FAILED from the
+ * delta's `result.status: "error"` — the row is FAILED from the
  * instant the failure was observed (`completedAt` and, for a gated shell,
  * `approvalRequestedAt` at the delta's own tick), and the stream's `error`
- * event that follows supplies the text. Until B5 (as C1 first pinned it,
- * M4 finding F-M4-5) the enricher promoted every completion delta to
+ * event that follows supplies the text. Until #1097 (as this net first
+ * pinned it) the enricher promoted every completion delta to
  * COMPLETED, the monotonic merge then refused the stream's FAILED, and the
- * row ended COMPLETED carrying an `error` — a row that lied. Moved at A4
- * (Q-M4-3) by one line this header had not named when C1 wrote it
- * (F-M4-32): the failure text is `error` alone; moved at B5 (Q-M4-5) in the
- * status and in `approvalRequestedAt`, both predicted.
+ * row ended COMPLETED carrying an `error` — a row that lied. Moved in #1097
+ * by one line this header had not named when the net was written:
+ * the failure text is `error` alone; and, as predicted, in the
+ * status and in `approvalRequestedAt`.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -88,8 +88,8 @@ const FULL_OUTPUT = CHUNK_1 + CHUNK_2;
 /**
  * The delta channel's shapes, typed against the SDK so a drift fails `tsc`
  * (the stigmer#1053 dividend — writing these is how the runner learned the
- * timing deltas carry `modelCallId`, the LLM call that issued the tool; M4
- * finding F-M4-31, recorded for S5, unread here).
+ * timing deltas carry `modelCallId`, the LLM call that issued the tool;
+ * nothing in the runner reads it yet).
  */
 const MODEL_CALL_ID = "model-call-hermetic-shelldelta";
 const deltas = {
@@ -264,7 +264,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     const rows = record.toolCalls();
     expect(rows).toHaveLength(1);
     const row = rows[0];
-    // The delta said the tool failed; the row says so from that instant (Q-M4-5).
+    // The delta said the tool failed; the row says so from that instant.
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(row.error, "the stream's error event supplied the text").toBe(SHELL_ERROR);
     expect(row.result).toBe("");

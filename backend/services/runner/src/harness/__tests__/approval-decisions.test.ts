@@ -1,8 +1,8 @@
 /**
  * `harness/approval-decisions.ts` — the runtime's one settler of a decision
  * that never runs the tool. These arms came with the function from the
- * native harness's `hitl.ts` (`reconcileNonExecutingDecisions`, S3 M1 /
- * M2a): SKIP and REJECT settle to SKIPPED (REJECT with the pinned reason),
+ * native harness's `hitl.ts` (`reconcileNonExecutingDecisions`, in #1096):
+ * SKIP and REJECT settle to SKIPPED (REJECT with the pinned reason),
  * APPROVE and APPROVE_ALL are left to the engine's own events, sub-agent
  * transcripts are settled alike, and an undecided row is untouched. The
  * reader half (`approvalDecisionsOf`) is pinned against the Cursor adapter's

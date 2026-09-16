@@ -1,7 +1,7 @@
 /**
  * The Cursor harness as a `HarnessContractSubject` — the REAL `createCursorAdapter()`
  * driven through the harness contract kit, with the kit's engine-neutral
- * scenario vocabulary translated onto S0's scripted `@cursor/sdk` double.
+ * scenario vocabulary translated onto the scripted `@cursor/sdk` double (#1048).
  *
  * The sibling of `gateway-substrate.ts` (the Cursor side of the approval
  * contract kit): the kit owns the invariants and the runtime stand-in, this
@@ -59,7 +59,7 @@
  * Every script that does not end in `fail`, `cancelled` or `hang` closes with
  * `finished({ result: <last say> })` so `run.wait()` has an answer.
  *
- * ── Two modelling decisions (S2 M4, Q-M4-4) ─────────────────────────────────
+ * ── Two modelling decisions (#1070) ─────────────────────────────────────────
  * A `propose` for an id this subject has already seen the hook ALLOW emits
  * nothing: the real SDK does not re-run a completed tool on resume — the parked
  * agent's conversation already holds the tool's result. A `propose` whose id

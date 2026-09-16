@@ -511,7 +511,7 @@ describe("resolveApprovalProvenance", () => {
 // cases assert the mapping is total and that undefined collapses to UNSPECIFIED.
 // ---------------------------------------------------------------------------
 
-describe("resolveToolApproval — THE gate decision, shared by the gate and the translators (S4 M2 C3, Q-M2-9)", () => {
+describe("resolveToolApproval — THE gate decision, shared by the gate and the translators", () => {
   const NO_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
   const gated: ReadonlyMap<string, MergedToolPolicy> = new Map([
     ["github/create_issue", { toolName: "create_issue", mcpServerSlug: "github", requiresApproval: true, approvalMessage: "Create issue '{{args.title}}'?", source: "agent_override" }],

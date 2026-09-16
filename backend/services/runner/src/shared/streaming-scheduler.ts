@@ -19,13 +19,8 @@
  * the live stream cadence is identical across harnesses.
  */
 
-export enum UpdateReason {
-  TIME_THRESHOLD = "time_threshold",
-  BURST_PROTECTION = "burst_protection",
-  KEEPALIVE = "keepalive",
-  FIRST_UPDATE = "first_update",
-  NONE = "none",
-}
+/** Why the scheduler last said "send": the cadence rule that fired, or `none`. */
+export type UpdateReason = "time_threshold" | "burst_protection" | "keepalive" | "first_update" | "none";
 
 export interface StreamingConfig {
   /** Minimum time between updates (ms). Rate limit: max ~2 updates/second. */
@@ -95,7 +90,7 @@ export class StreamingUpdateScheduler {
 
   private lastUpdateTime: number;
   private lastUpdateEvents = 0;
-  private lastReason: UpdateReason = UpdateReason.NONE;
+  private lastReason: UpdateReason = "none";
   private firstCheck = true;
 
   /**
@@ -119,26 +114,26 @@ export class StreamingUpdateScheduler {
     const eventsSinceLast = eventsProcessed - this.lastUpdateEvents;
 
     if (this.firstCheck && eventsSinceLast >= 1) {
-      this.lastReason = UpdateReason.FIRST_UPDATE;
+      this.lastReason = "first_update";
       return true;
     }
 
     if (timeSinceLastMs >= this.config.minIntervalMs && eventsSinceLast >= 1) {
-      this.lastReason = UpdateReason.TIME_THRESHOLD;
+      this.lastReason = "time_threshold";
       return true;
     }
 
     if (eventsSinceLast >= this.config.burstThreshold) {
-      this.lastReason = UpdateReason.BURST_PROTECTION;
+      this.lastReason = "burst_protection";
       return true;
     }
 
     if (timeSinceLastMs >= this.config.maxIntervalMs) {
-      this.lastReason = UpdateReason.KEEPALIVE;
+      this.lastReason = "keepalive";
       return true;
     }
 
-    this.lastReason = UpdateReason.NONE;
+    this.lastReason = "none";
     return false;
   }
 

@@ -15,7 +15,7 @@
  */
 
 import type { ProvisionResult, WorkspaceBackend } from "./types.js";
-import { SourceType, WorkspaceProvisionError } from "./types.js";
+import { WorkspaceProvisionError } from "./types.js";
 import { provisionEmpty } from "./sources/empty.js";
 import { provisionLocalPath } from "./sources/local-path.js";
 import { provisionGit } from "./sources/git.js";

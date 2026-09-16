@@ -3,36 +3,36 @@
  * proposes deepagents' built-in `write_todos`, the tools node runs it for
  * real, and the builder projects the list into `status.todos`.
  *
- * Invariant pinned (S4 M0 net): `TranscriptBuilder.handleToolStarted` classifies
+ * Invariant pinned: `TranscriptBuilder.handleToolStarted` classifies
  * the row `ToolKind.TODO` by name; `handleToolFinished` projects `tc.args.todos`
  * into `status.todos` through the shared `applyTodoUpdate` as a FULL REPLACE
  * (deepagents' schema has no `merge`), keyed `todo-<i>`, and KEEPS the row in
  * the transcript — the clients filter `ToolKind.TODO` from the thread. As an
- * ungated built-in it carries `argsPreview` like every row since S4 M2 C7
- * (Q-S4-16; until then native stamped a preview on gated rows only).
+ * ungated built-in it carries `argsPreview` like every row since #1097
+ * (until then native stamped a preview on gated rows only).
  *
  * What the golden shows:
  *  - The row sits on the AI message whose text proposed it, "Planning the two
- *    steps." (Q-S4-5, S4 M2 C4; until C4 on an empty message between the two
- *    texts — F-M0-1, see `tool-call.test.ts`'s header).
+ *    steps." (since #1097; until then on an empty message between the two
+ *    texts — see `tool-call.test.ts`'s header).
  *  - The row's `result` is the tool's confirmation text, "Updated todo list
- *    to [...]" (S4 M2 C2b, Q-S4-21). deepagents' `write_todos` returns a
+ *    to [...]" (since #1097). deepagents' `write_todos` returns a
  *    LangGraph `Command` (`{ lg_name: "Command", update: { todos, messages:
- *    [ToolMessage] } }`); until C2b the native extractor unwrapped a
+ *    [ToolMessage] } }`); until then the native extractor unwrapped a
  *    LangChain `ToolMessage` envelope but not a `Command`, so the row carried
  *    the whole serialized Command — the todos array a second time and the
- *    text nested inside it (S4 M0 finding F-M0-2; pinned as found in the M0
- *    golden, regenerated at C2b with that one hunk).
+ *    text nested inside it (pinned as found when this net opened,
+ *    regenerated in #1097 with that one hunk).
  *
- * The S4 rulings, as landed (2026-09-14): under Q-S4-5 the
+ * The #1097 moves, as landed (2026-09-14): the
  * row joined `messages[0]` ("Planning the two steps.") and the empty message
- * went (C4); under Q-S4-16 the row gained `argsPreview`, the elided preview of
- * its `args` (C7). `todos` is byte-identical (Q-S4-7 keeps native's
+ * went; the row gained `argsPreview`, the elided preview of
+ * its `args`. `todos` is byte-identical (the builder keeps native's
  * full-replace: `write_todos` never sends `merge`). Any other hunk is a pause.
  *
- * Why this net exists: none of the twenty-three native goldens before M0
- * carried a todo; the projection moves from the native builder into the
- * canonical one at M1 and is re-keyed at M2.
+ * Why this net exists: none of the twenty-three earlier native goldens
+ * carried a todo, and #1097 moved the projection from the native builder
+ * into the canonical one.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
@@ -131,13 +131,13 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
     expect(row.toolKind).toBe(ToolKind.TODO);
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(row.args).toEqual({ todos: TODOS });
-    expect(JSON.parse(row.argsPreview), "every row carries its elided preview (Q-S4-16, S4 M2 C7)").toEqual({ todos: TODOS });
+    expect(JSON.parse(row.argsPreview), "every row carries its elided preview").toEqual({ todos: TODOS });
     expect(row.requiresApproval).toBe(false);
-    // Q-S4-21 (S4 M2 C2b): the ToolMessage's content, never the serialized Command (F-M0-2 closed).
+    // Since #1097: the ToolMessage's content, never the serialized Command.
     expect(row.result.startsWith("Updated todo list to"), "the tool's own confirmation text is what the row carries").toBe(true);
     expect(row.result).not.toContain("lg_name");
 
-    // ── Assert: the transcript — the row beside the text that proposed it (Q-S4-5, S4 M2 C4) ──
+    // ── Assert: the transcript — the row beside the text that proposed it ──
     const final = record.lastFullStatus!;
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
@@ -145,7 +145,7 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
       [TEXT_CLOSING, []],
     ]);
 
-    // ── Assert: the projection, by key (Q-S4-7 keeps this byte-identical) ────
+    // ── Assert: the projection, by key (byte-identical across the swap) ─────
     expect(Object.keys(final.todos).sort()).toEqual(["todo-0", "todo-1"]);
     expect([final.todos["todo-0"].content, final.todos["todo-0"].status]).toEqual(["Read the fixture", TodoStatus.TODO_PENDING]);
     expect([final.todos["todo-1"].content, final.todos["todo-1"].status]).toEqual(["Summarise it", TodoStatus.TODO_IN_PROGRESS]);

@@ -18,13 +18,13 @@
  *     silently stamped by the server's terminal settle after the fact.
  *
  * `waiting` means "a denial pauses": a gated tool call the user must decide.
- * The turn's FILE CHANGES are not this boundary's since S3 M4 — the runtime
+ * The turn's FILE CHANGES are not this boundary's since #1096 — the runtime
  * captures them once, over whatever the whole turn left on the tree, after
  * `runTurn` returns (`harness/capture.ts`), and decides the review pause
  * itself. Two consequences the boundary used to suppress when it could see
  * the capture: steps 4 and 5 now run on a turn whose only pause would have
  * been a file review, so a hung row is disclosed and a foreign-hook block is
- * failed BEFORE the review rather than after it (F-M4-P9, F-M4-P10, Q-M4-11).
+ * failed BEFORE the review rather than after it.
  *
  * Extracted from the activity entry point (index.ts Phase 12) so it is directly
  * unit-testable AND re-enterable: the poisoned-handle / transport-timeout
@@ -72,7 +72,7 @@ export interface TurnBoundaryOptions {
    * The turn's transcript builder over `status`: every row the boundary
    * CREATES — the gate it proposes for a denial no streamed call matched, the
    * #965 disclosure line — goes through it (`approval_proposed`,
-   * `system_note`), never onto `status.messages` directly (S4 M4, Q-S4-1's
+   * `system_note`), never onto `status.messages` directly (#1097's
    * rule: rows are created through the builder; a harness amends rows its
    * boundary owns and says which).
    */

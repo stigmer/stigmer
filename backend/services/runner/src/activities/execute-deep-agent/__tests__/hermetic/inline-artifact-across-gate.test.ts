@@ -1,6 +1,7 @@
 /**
  * Hermetic goldens: an INLINE-PUBLISHED ARTIFACT survives a HITL gate — the
- * arbiter for Q-S3-16 (the seed's breadth), two invocations on the durable
+ * arbiter for the seed's breadth (what a reinvocation carries forward), two
+ * invocations on the durable
  * (sqlite) checkpointer.
  *
  * Turn 1: the model writes a report (`write_file`; under capture mode in a
@@ -18,19 +19,19 @@
  * list is non-empty (`update-status.ts`), so a runtime that seeded messages
  * only and then published nothing new would carry an empty list — and the
  * server would keep the old one, but a runtime that published one NEW
- * artifact from an empty list would ERASE the prior one. Q-S3-16's
+ * artifact from an empty list would ERASE the prior one.
  * `seedFromPersistedStatus` carries `artifacts` for exactly this reason;
  * this pair of goldens (`inline-artifact.turn1`, `inline-artifact.turn2`) is
  * what proves it did.
  *
- * Also recorded, F-M0-8 (a shape fact for the owner): the write's tool row
+ * Also recorded (a shape fact, as found): the write's tool row
  * shows `requiresApproval: true` with `approvalPolicySource` BUILTIN_CATEGORY
  * — the category policy's verdict — while the row is COMPLETED because
  * capture mode let it flow; the artifact carries no URL (the local store's
  * serve URL never enters the record).
  *
- * What every reinvocation golden here shows since S3 M2a (the runtime over
- * the native adapter; Q-S3-16 and Q-M2a-2): `startedAt` is THIS turn's own,
+ * What every reinvocation golden here shows since #1096 (the runtime over
+ * the native adapter): `startedAt` is THIS turn's own,
  * not turn 1's carried by the orchestrator's whole-status clone; the
  * `fileReviewEventStream` carries only the events THIS turn authored (the
  * runtime seeds messages, sub-agents, artifacts, write-backs, todos, usage,
@@ -41,7 +42,7 @@
  * runtime accountant's fields (`model`, `estimatedCostUsd`, the requested
  * tier and thinking mode).
  *
- * Golden hunk since S3 M4 (Q-M4-7, ruled Q-M4-12 A): turn 1's
+ * Golden hunk since #1096: turn 1's
  * `fileChangeProgress` is the TRUE snapshot at the WAITING write
  * (`filesChanged: 1`, `report.md` ADD +3, `capturedAt` t=2) where it was a
  * stale t=0 snapshot taken by the stream loop before the engine wrote the

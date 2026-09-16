@@ -5,11 +5,8 @@
  * harness-agnostic and used by both ExecuteCursor and ExecuteDeepAgent.
  */
 
-export enum SourceType {
-  GIT_REPO = "git_repo",
-  LOCAL_PATH = "local_path",
-  EMPTY = "empty",
-}
+/** Where a provisioned workspace came from; the same strings the error prefix and the prompt builder read. */
+export type SourceType = "git_repo" | "local_path" | "empty";
 
 export interface GitMetadata {
   readonly repoUrl: string;

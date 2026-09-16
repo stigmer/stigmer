@@ -1,5 +1,8 @@
 /**
- * @regression file-hitl-phase0 — pins file-edit HITL fixes #7, #8 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ * @regression file-hitl-phase0 — pins git capture mode: a no-commit tree-ref
+ * snapshot and restore with one card per changed file; edits stay applied
+ * through the WAITING-to-resume boundary and the resume reconciles to the
+ * pinned refs.
  *
  * Unit tests for the git snapshot/restore capture substrate (the PRIMITIVES:
  * snapshot / capture / restore / apply / recompute / drop).

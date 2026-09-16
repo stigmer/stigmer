@@ -11,17 +11,17 @@
  * shape `execution-budget.ts` already has beside LangGraph's `recursionLimit`:
  * the middleware warns inside the graph, the engine's own limit enforces.
  *
- * Until S3 M2b (Q-S3-3) this module was `cost-cap.ts` and did both: it also
+ * Until #1096 this module was `cost-cap.ts` and did both: it also
  * blocked every tool call once the running cost passed the cap and gave the
  * model one tool-free round to summarize. That second enforcement lived
  * inside the graph, where the runtime could not see it, and a platform STOP
  * had a sibling (`graceful-stop.ts`, deleted with it) that let the run spend
  * a summary round after the platform said stop. Both went when the runtime
- * became the one place a turn is stopped (harness runtime program, S3).
+ * became the one place a turn is stopped.
  *
  * afterModel — reads `usage_metadata` off the latest AIMessage, prices the
  *   call at the parent's rates (a sub-agent on its own model is priced the
- *   same way the enforcement prices it; per-sub-agent pricing is an S5 item),
+ *   same way the enforcement prices it; per-sub-agent pricing is #1121),
  *   accumulates the running total, and injects the warning SystemMessage once
  *   at `warningPct` of the cap.
  *

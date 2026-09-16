@@ -17,7 +17,7 @@
  *   working-tree mutation, and re-pointing it while another session's turn is
  *   running on a shared tree would redirect that turn's reads mid-flight.
  *   the turn runtime creates it in its skill and attachment phases (which
- *   run after lock acquisition), for both harnesses; until S3 M2a the native
+ *   run after lock acquisition), for both harnesses; until #1096 the native
  *   orchestrator created it unconditionally right after the lock.
  * - Removed at turn end ({@link removeStigmerSymlink} in the activity's
  *   cleanup), so a real repo is left untouched once the turn ends; a

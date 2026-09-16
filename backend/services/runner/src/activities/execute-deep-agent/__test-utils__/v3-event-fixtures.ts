@@ -4,12 +4,12 @@
  * Shapes are derived from real recordings in /tmp/stigmer-v3-provider/
  * captured during Phase 1 validation with Claude claude-sonnet-4-6.
  *
- * Namespaces default to LangGraph 1.3.2's REAL shape (S4 M2 C4, plan finding
- * F-M2-16): a model event arrives under `["model_request:<uuid>"]` and a tool
+ * Namespaces default to LangGraph 1.3.2's REAL shape (since #1097): a model
+ * event arrives under `["model_request:<uuid>"]` and a tool
  * event under `["tools:<uuid>"]` — one segment each, a fresh uuid per LLM
- * call / tool run. Until C4 the model factories defaulted to `[]`, so the
- * arms never saw the namespace miss the hermetic goldens showed (S3 M0
- * finding F-M0-1: the root builder filed text under the raw namespace and
+ * call / tool run. Until then the model factories defaulted to `[]`, so the
+ * arms never saw the namespace miss the hermetic goldens showed (found in
+ * #1096: the root builder filed text under the raw namespace and
  * looked a tool's parent up under `""`). A sub-agent's events pass their own
  * `namespace` (`["tools:<taskUuid>", "model_request:<inner>"]`).
  */

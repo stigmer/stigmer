@@ -3,8 +3,8 @@
  *
  * Harness-agnostic, and called from one place: the turn runtime's epilogue
  * (`harness/run-turn.ts` `extractStructuredOutputFromText`), so both
- * harnesses have it — Cursor since S2 M3, native since S3 M2a (pinned by the
- * native hermetic `structured-output` tier-2 arm since M2b, Q-S3-7).
+ * harnesses have it — Cursor since #1070, native since #1096 (pinned by the
+ * native hermetic `structured-output` tier-2 arm).
  *
  * When tier-1 text extraction (shared/extract-json.ts) cannot find JSON in
  * the agent's free-text response, this tier asks an economy-tier LLM to

@@ -12,7 +12,6 @@ import { existsSync, statSync, symlinkSync, readlinkSync, unlinkSync, mkdirSync 
 import { join, isAbsolute } from "node:path";
 import { realpathSync } from "node:fs";
 import {
-  SourceType,
   WorkspaceProvisionError,
   type ProvisionResult,
 } from "../types.js";
@@ -29,7 +28,7 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
 
   if (!isLocalMode) {
     throw new WorkspaceProvisionError(
-      SourceType.LOCAL_PATH,
+      "local_path",
       "LocalPathSource is only supported in local mode. " +
       "Use git_repo for cloud deployments.",
     );
@@ -37,21 +36,21 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
 
   if (!isAbsolute(path)) {
     throw new WorkspaceProvisionError(
-      SourceType.LOCAL_PATH,
+      "local_path",
       `Path must be absolute, got relative path: '${path}'`,
     );
   }
 
   if (!existsSync(path)) {
     throw new WorkspaceProvisionError(
-      SourceType.LOCAL_PATH,
+      "local_path",
       `Path does not exist: '${path}'`,
     );
   }
 
   if (!statSync(path).isDirectory()) {
     throw new WorkspaceProvisionError(
-      SourceType.LOCAL_PATH,
+      "local_path",
       `Path is not a directory: '${path}'`,
     );
   }
@@ -62,7 +61,7 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
 
   return {
     rootDir: path,
-    sourceType: SourceType.LOCAL_PATH,
+    sourceType: "local_path",
     consumedKeys: [],
     workspaceDescription:
       `Your workspace is the user's project directory: ${path}\n` +

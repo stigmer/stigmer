@@ -12,9 +12,9 @@
  * mid-stream persist the tool-call boundary forces (`persist-decision.ts`
  * over the builder's `dirty` flag) is what the platform-stop arm relies on.
  *
- * The transcript shape (Q-S4-5, landed at S4 M2 C4): the row sits on the AI
+ * The transcript shape (since #1097): the row sits on the AI
  * message whose text proposed it — TWO AI messages, the text carrying the
- * row and the closing text. Until C4 it did not (S3 M0 finding F-M0-1):
+ * row and the closing text. Until then it did not (found in #1096):
  * LangGraph 1.3.2 stamps the model's events with namespace
  * `["model_request:<uuid>"]` and the tools node's with `["tools:<uuid>"]`, the
  * builder filed the text under the raw namespace and looked the tool's
@@ -23,14 +23,14 @@
  * the lookup: scope became `subAgentId?` (the root, or one sub-agent) and the
  * translator resolves it from the namespace, so the builder has one
  * "current AI message" per scope and that class of miss cannot exist. The
- * hand-authored fixtures now default to the real namespaces too (F-M2-16).
+ * hand-authored fixtures now default to the real namespaces too.
  * The golden (`goldens/tool-call.status.json`) is the shape any later change
  * must move on purpose.
  *
- * Since S3 M2a the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the native adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
- * thinking mode (Q-M2a-2: one writer of the summary, the runtime). Nothing
+ * thinking mode (one writer of the summary, the runtime). Nothing
  * else in this golden moved with the flip.
  *
  * Regenerate ONLY after a deliberate behavior change:
@@ -134,7 +134,7 @@ describe("ExecuteDeepAgent hermetic — ungated tool call", () => {
     expect(row.result, "the built-in's numbered listing of the seeded file").toContain("A fixture readme.");
     expect(row.requiresApproval, "a read-only built-in is not gated").toBe(false);
 
-    // ── Assert: the transcript — the row beside the text that proposed it (Q-S4-5) ──
+    // ── Assert: the transcript — the row beside the text that proposed it ──
     const final = record.lastFullStatus!;
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.map((m) => m.content), "the proposing text, then the closing text").toEqual([

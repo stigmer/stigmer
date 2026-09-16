@@ -24,7 +24,7 @@
  * written into the user's own tree would be committed to the session's
  * write-back branch on completion (`git add -A`), and every real producer —
  * the CLI's directory attachments, the approved plan the console mounts —
- * already stays inside `inputs/` (S3 M1, Q-M1-2; the proto's `/workspace/…`
+ * already stays inside `inputs/` (since #1096; the proto's `/workspace/…`
  * example is a doc issue). The prompt's `<input_files>` section and every
  * path-derived directive are built from the RESOLVED paths, so prompt and
  * filesystem can never disagree.
@@ -52,9 +52,9 @@
  * {@link AttachmentResolutionError}; an archive that fails its guards
  * aborts with the guard's own `AttachmentValidationError`.
  *
- * Until S3 M1 this resolver ignored `mountPath` and could not extract; the
- * native harness's `attachment-injector.ts` did both and was retired at S3
- * M2b for this one pipeline (Q-S3-14).
+ * Until #1096 this resolver ignored `mountPath` and could not extract; the
+ * native harness's `attachment-injector.ts` did both and was retired in that
+ * PR for this one pipeline.
  */
 
 import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
