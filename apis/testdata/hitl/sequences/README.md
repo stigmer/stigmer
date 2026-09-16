@@ -122,9 +122,8 @@ deterministic (and `approval_request_id == tool_call_id` by design), a second
 REQUESTED for a retracted id is swallowed by append-if-absent, so the event
 projection would keep it resolved while the scan re-reports it pending — a
 deliberate divergence, not an equality case this corpus can express. This is the
-recorded **mint-trigger** hazard; see
-`_projects/2026-06/20260624.01.hitl-approval-architecture/design-decisions/approval-request-id-equals-tool-call-id.md`
-and the `TestApprovalRequestIDEqualsToolCallID_DeliberateInvariant` /
+recorded **mint-trigger** hazard, pinned by the
+`TestApprovalRequestIDEqualsToolCallID_DeliberateInvariant` /
 `approvalRequestIdEqualsToolCallIdDeliberateInvariant` guards. It is not reachable
 in production today (tool-call ids are run-unique and status advances forward).
 

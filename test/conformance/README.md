@@ -164,8 +164,8 @@ pass. Files run serially (they share one multi-tenant service). Tenancy is real 
 through the production RPC (the primary user becomes owner; a zero-balance
 billing account is provisioned automatically), unlike the local targets where
 an org is just a unique slug. There is no CI lane for the cloud targets in this
-repository: the readout is filed by stigmer-cloud (`_projects/…/x1-cutover/
-conformance-readouts/`).
+repository: the cloud composition's own repository runs them and keeps the
+readouts.
 
 **The direct-login arms** (`direct-login.conformance.test.ts`, stigmer-cloud#604)
 drive the lane a console, desktop, CLI or MCP client actually rides: the raw
