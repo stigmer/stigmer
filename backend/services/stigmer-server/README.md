@@ -15,7 +15,7 @@ citations are the port's provenance record.
 
 ## Contract promise
 
-The wire contract is shared: the cloud Java service, the runner, every
+The wire contract is shared: the cloud composition, the runner, every
 published SDK, and databases written before the cutover all speak it.
 Byte-pinned identifiers, error copy, and streaming behavior are contract —
 every deliberate exception is recorded in the program's parity-deltas
@@ -89,5 +89,5 @@ npm run build:slim && npm run verify:slim
 
 Or from the repo root: `make build-server`, `make test-server`.
 
-Coding standards for this service live in
-`.cursor/rules/backend/ts-server-guidelines.mdc`.
+The binding laws and read-order for this service are in [`AGENTS.md`](AGENTS.md)
+beside this file; repo-wide laws are in the root `AGENTS.md`.
