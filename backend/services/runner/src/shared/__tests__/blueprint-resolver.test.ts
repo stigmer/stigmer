@@ -4,7 +4,7 @@
  * (`resolveAgentBlueprint`). Union, deduplicated by slug, the session's ref
  * winning a collision (it may pin a different version).
  *
- * Carried from `skill-writer.test.ts` at S3 M2b, when the native
+ * Carried from `skill-writer.test.ts` in #1096, when the native
  * orchestrator's byte-twin of this function was deleted with its module;
  * until then the runtime's copy was tested only through the twin.
  */

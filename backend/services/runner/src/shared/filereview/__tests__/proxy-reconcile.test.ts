@@ -1,8 +1,8 @@
 /**
  * @regression file-hitl-proxy-reconcile — the file-review reconcile crash in
- * cloud/desktop (proxy) artifact mode (see _cursor/error.md: an ExecuteCursor
- * turn died on `Artifact download failed (HTTP 404) ... NoSuchKey` for a CAS
- * manifest a git-only turn never wrote).
+ * cloud/desktop (proxy) artifact mode: an ExecuteCursor turn died on
+ * `Artifact download failed (HTTP 404) ... NoSuchKey` for a CAS manifest a
+ * git-only turn never wrote.
  *
  * This exercises the REAL {@link ProxyArtifactStorage} end to end against a mock
  * proxy + object store, so the whole stack — presign, the ranged-GET existence

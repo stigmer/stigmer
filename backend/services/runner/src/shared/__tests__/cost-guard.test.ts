@@ -1,6 +1,6 @@
 /**
  * Unit tests for the max_cost_usd hard-stop guard (cost-guard.ts), which the
- * Cursor activity calls today and the turn runtime takes over in S2 M3.
+ * Cursor activity called until the turn runtime took it over in #1070.
  *
  * The guard is the cursor-side analog of the native cost-cap middleware
  * (middleware/cost-cap.ts): same proto semantics (0/unset = no cap), same

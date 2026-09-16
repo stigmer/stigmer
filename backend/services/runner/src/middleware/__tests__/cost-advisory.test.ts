@@ -3,9 +3,9 @@
  * running total the sub-agent views share, and warns the model ONCE at the
  * configured share of `max_cost_usd`. Nothing here caps: the enforcement is
  * the turn runtime's (`shared/__tests__/cost-guard.test.ts`,
- * `harness/__tests__/run-turn.test.ts`'s cost-cap arm). Until S3 M2b this
+ * `harness/__tests__/run-turn.test.ts`'s cost-cap arm). Until #1096 this
  * file was `cost-cap.test.ts` and also pinned the in-graph tool block and
- * the "exceeded" message — retired with that half (Q-S3-3, Q-M2b-9).
+ * the "exceeded" message — retired with that half.
  */
 
 import { describe, it, expect } from "vitest";

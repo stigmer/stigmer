@@ -1,6 +1,6 @@
 /**
  * Unit tests for the shared args-preview builder — the ONE preview rule every
- * tool row carries since S4 M2 C7 (Q-S4-16).
+ * tool row carries since #1097.
  *
  * The Cursor gate path depends on {@link buildElidedArgsPreview} producing a
  * SMALL, ALWAYS-VALID, salient-preserving preview: the resumed turn re-parses it
@@ -8,7 +8,7 @@
  * would replace an oversized preview with an unparseable marker. These pin those
  * invariants so a large write can never silently break the resume round-trip.
  * (The native harness's whole-string-truncating `sanitizeArgsPreview` and its
- * two arms went at C7: a preview that could truncate to invalid JSON has no
+ * two arms went with it: a preview that could truncate to invalid JSON has no
  * caller left.)
  */
 

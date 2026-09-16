@@ -1,15 +1,15 @@
 /**
  * Tests for the attachment resolver — the turn runtime's attachment phase,
- * the one pipeline for both harnesses since S3 M2b (the native twin,
+ * the one pipeline for both harnesses since #1096 (the native twin,
  * `attachment-injector.ts`, retired then; its ZIP guards moved to
- * `attachment-zip.ts` at S3 M1).
+ * `attachment-zip.ts` in the same PR).
  *
  * The load-bearing behaviors: storage-key attachments materialize under the
  * platform inputs dir (the universal path — every server-created attachment
  * carries a storage key), the workspace `.stigmer` symlink exists even when
  * the agent has no skills, and any attachment that cannot be materialized
  * fails the resolution loudly (the silent-skip regression behind "plan file
- * wasn't found"). Since S3 M1 (Q-S3-14, Q-M1-2) the resolver is the one
+ * wasn't found"). Since #1096 the resolver is the one
  * attachment pipeline for every harness, so it also pins the two behaviors
  * lifted from the native injector: `extract` archives land under their mount
  * directory through the shared #567 guards, and an explicit `mountPath` is
@@ -279,7 +279,7 @@ describe("resolveAttachments", () => {
 
   // ── Explicit mountPath: honoured inside the inputs namespace, refused outside ──
 
-  describe("mountPath (S3 M1, Q-M1-2)", () => {
+  describe("mountPath", () => {
     it("places a file at its explicit `inputs/…` path, in every spelling the producers use", async () => {
       const { storage } = makeInMemoryArtifactStorage();
       await storage.upload("k/a", Buffer.from("A"), "text/plain");
@@ -364,7 +364,7 @@ describe("resolveAttachments", () => {
 
   // ── Archives: `extract` lands the entries under the mount directory ──────
 
-  describe("extract (S3 M1, Q-S3-14)", () => {
+  describe("extract", () => {
     const archive = () =>
       Buffer.from(
         buildZip([

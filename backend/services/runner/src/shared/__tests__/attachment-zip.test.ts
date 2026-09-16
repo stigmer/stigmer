@@ -3,7 +3,7 @@
  * (`shared/attachment-zip.ts`): the manifest checks (paths, traversal, null
  * bytes, duplicates, methods, emptiness, count and declared-size caps) and
  * the central-directory parsing that issue #567 made authoritative. Moved
- * from the native injector's test file at S3 M1 with the code; every
+ * from the native injector's test file in #1096 with the code; every
  * archive comes from the shared real-shape builder
  * (@stigmer/zip-structure/testing). The write of an admitted entry is each
  * caller's and is pinned in that caller's tests (`attachment-resolver.test.ts`).

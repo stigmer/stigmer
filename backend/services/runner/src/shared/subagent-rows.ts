@@ -9,7 +9,7 @@
  * platform's row, not an engine's), read by the turn runtime's terminal
  * table and the Cursor settle alike.
  *
- * Moved from `activities/execute-cursor/message-translator.ts` at S2 M3 so
+ * Moved from `activities/execute-cursor/message-translator.ts` in #1070 so
  * the runtime's catch can reach it; the body is unchanged.
  */
 

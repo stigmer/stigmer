@@ -129,7 +129,7 @@ describe("cross-harness naming parity", () => {
       makeAttachment("Makefile", "attachments/01D/Makefile"),
     ];
 
-    // One attachment pipeline serves both harnesses since S3 M2b (Q-S3-14);
+    // One attachment pipeline serves both harnesses since #1096;
     // the names it lands are the ones the React SDK's table above predicts.
     const resolved = await resolveAttachments(attachments, {
       sessionId,

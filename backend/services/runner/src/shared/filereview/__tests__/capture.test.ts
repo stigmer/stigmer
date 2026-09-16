@@ -1,8 +1,12 @@
 /**
- * @regression file-hitl-phase0 — pins file-edit HITL fixes #7, #8, #9 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ * @regression file-hitl-phase0 — pins three rules of git capture mode: a
+ * no-commit tree-ref snapshot and restore with one card per changed file;
+ * edits stay applied through the WAITING-to-resume boundary and the resume
+ * reconciles to the pinned refs; a reject is a DISCARD that COMPLETES, snaps
+ * the tree back byte for byte, and partial decisions land only approved files.
  *
  * Tests the harness-agnostic capture orchestration directly, under one
- * harness id (since S3 M4 the runtime is the ONE caller for every harness,
+ * harness id (since #1096 the runtime is the ONE caller for every harness,
  * `harness/capture.ts`; until then each adapter called this seam and the
  * Cursor side had its own test, `execute-cursor/capture-flow.test.ts`, whose
  * three reconcile arms no other file carried moved here). Confirms that the
@@ -235,8 +239,8 @@ describe("capture orchestration — deep-agent harness", () => {
     // artifact mode. `ProxyArtifactStorage.exists()` reports true for ANY key
     // (the presign endpoint mints a URL regardless of object existence), so the
     // old reconcile "found" a CAS manifest that a git-only turn never wrote,
-    // downloaded it, and died on the R2 `NoSuchKey` 404 (see the ExecuteCursor
-    // crash in _cursor/error.md). The reconcile must decide "is this a CAS turn?"
+    // downloaded it, and died on the R2 `NoSuchKey` 404 (the ExecuteCursor
+    // crash `proxy-reconcile.test.ts` reproduces). The reconcile must decide "is this a CAS turn?"
     // from the change set's CANDIDATE snapshot — a git-only turn carries no cas
     // ref — so a lying `exists()` can no longer turn a git reconcile into a
     // doomed download.
@@ -335,7 +339,7 @@ function candidateCompleteness(status: AgentExecutionStatus): DiffCompleteness |
     : undefined;
 }
 
-describe("capture reconcile — the decision rules the resume enforces (moved from execute-cursor/capture-flow.test at S3 M4)", () => {
+describe("capture reconcile — the decision rules the resume enforces (moved from execute-cursor/capture-flow.test in #1096)", () => {
   async function captureTwoFileTurn(status: AgentExecutionStatus): Promise<void> {
     const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS });
     await write("notes.md", "planton notes\n");

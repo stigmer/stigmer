@@ -80,7 +80,7 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
  *    (the Cursor deny-gate's ledger tokens; a status rule). Omit to stamp
  *    every write/delete row, the deep-agent posture where every such row flowed.
  *
- * One pass for every harness (S3 M4; until then each adapter carried a copy
+ * One pass for every harness (since #1096; until then each adapter carried a copy
  * differing only in the `flowed` predicate).
  */
 export function stampFlowedFileEditRows(
@@ -307,8 +307,8 @@ export function collectSettledToolCallIds(
  * a denial to the FIRST same-identity row in the whole transcript, flipped a
  * completed, approved row back to WAITING_APPROVAL with its APPROVE still on
  * it, and the next invocation read that as the decision for the new, undecided
- * proposal — an approval bleeding to a later identical act (S2 M4 finding F9,
- * found by the harness contract kit's invariant 3 against this adapter).
+ * proposal — an approval bleeding to a later identical act (found by the
+ * harness contract kit's invariant 3 against this adapter, #1070).
  */
 export function isAdjudicatedRow(tc: ToolCall): boolean {
   return tc.approvalAction !== ApprovalAction.UNSPECIFIED;

@@ -107,7 +107,7 @@ export type TurnInterruption = "worker-shutdown" | "pause" | "infrastructure" | 
  * already aborted and nothing actually interrupted. Shutdown requires a
  * delivered cancellation alongside the signal.
  *
- * Until S2 M3 the evidence also carried two flags from the periodic
+ * Until #1070 the evidence also carried two flags from the periodic
  * heartbeat ("it threw `CancelledFailure`"), and a delivered cancellation
  * without them read as "none". `Context.heartbeat()` never throws in the
  * Temporal TypeScript SDK (it enqueues to the worker's heartbeat subject;

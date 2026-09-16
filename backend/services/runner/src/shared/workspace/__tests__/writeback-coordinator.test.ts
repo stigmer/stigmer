@@ -187,7 +187,7 @@ describe("WriteBackCoordinator", () => {
   // ── Full cycle ──────────────────────────────────────────────────────
 
   // Every cycle below runs through `finalize()`, the coordinator's one entry
-  // point since S3 M2b (Q-M1-1; the per-file `onFileModified` went with the
+  // point since #1096 (the per-file `onFileModified` went with the
   // native stream loop that called it). The mechanics it pins are the same.
   it("performs full cycle on the SESSION branch: branch -> commit -> push -> PR", async () => {
     const backend = mockWorkspaceBackend();

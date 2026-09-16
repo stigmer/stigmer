@@ -6,7 +6,7 @@
  * `write_todos` — and each writes the SAME `AgentExecutionStatus.todos` proto
  * map that the clients (React `TodoCard`, CLI) render. This module is the single
  * place that maps a raw tool payload into that map, so the one transcript builder
- * (`harness/transcript/builder.ts`, both harnesses since S4 M4) has one mapping.
+ * (`harness/transcript/builder.ts`, both harnesses since #1097) has one mapping.
  *
  * The mapping is a superset of what any one harness emits: the Cursor SDK sends
  * per-item `id`/`created_at` and can send a `merge` flag and camelCase statuses;

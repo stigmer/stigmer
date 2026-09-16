@@ -471,7 +471,7 @@ export function resolveApprovalMessage(
 
 /**
  * THE approval-message template per mutating built-in category — the one
- * table both harnesses word their approval cards from (S4 M4 B6, Q-M4-11).
+ * table both harnesses word their approval cards from (since #1097).
  * Keyed by category (not raw tool name) so every alias of a mutation renders
  * one message; placeholders resolve against the stream arg shape
  * (`path`/`command`; `resolveApprovalMessage`). The native gate decides with
@@ -479,10 +479,10 @@ export function resolveApprovalMessage(
  * (`execute-cursor/approval-policy.ts` `getBuiltInApprovalMessage`), and the
  * Cursor boundary resolves a denied call's message through the same path.
  *
- * Until B6 the Cursor harness carried a table of its own and the two differed
- * by a word — `shell` read "Run command" there and "Execute command" here
- * (F-M2-18). Unified on the plainer word: a user reads "Run command" and knows
- * what is being asked. Known and deliberately left (F-M2-26, outside S4):
+ * Until then the Cursor harness carried a table of its own and the two differed
+ * by a word — `shell` read "Run command" there and "Execute command" here.
+ * Unified on the plainer word: a user reads "Run command" and knows
+ * what is being asked. Known and deliberately left (#1112):
  * `write` resolves `{{args.path}}`, while deepagents' file tools send
  * `file_path`, so a gated native write reads "Write file: <unknown>".
  */
@@ -504,7 +504,7 @@ export interface ApprovalRequirement {
  * THE approval decision for one tool call — the same function the native gate
  * (`middleware/approval-gate.ts`) interrupts on and the native translator
  * reports as `tool_started.gate`, so the row can never disagree with the gate
- * about whether a call waits (S4 M2 C3, Q-M2-9; until then the transcript
+ * about whether a call waits (since #1097; until then the transcript
  * builder carried its own weaker copy that gated MCP tools only). Its
  * read-side twin is {@link resolveApprovalProvenance}, which answers "which
  * layer governs this call" for EVERY call, gated or not.

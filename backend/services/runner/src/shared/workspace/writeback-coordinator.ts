@@ -18,7 +18,7 @@
  * (`harness/run-turn.ts`) — in capture mode on the APPROVED tree after the
  * review decisions reconcile, so speculative mid-turn edits never reach
  * GitHub; on a non-capture git turn on whatever the turn left in the tree.
- * Until S3 M2b (Q-M1-1) an incremental path also existed — `onFileModified`,
+ * Until #1096 an incremental path also existed — `onFileModified`,
  * a commit-and-push per file-modifying tool call on non-capture turns — and
  * was reachable in no supported posture (every git workspace with artifact
  * storage is a capture workspace, `shared/filereview/capture.ts`
