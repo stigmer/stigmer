@@ -58,7 +58,12 @@
  *      never surface again and nobody would notice), and a body under the
  *      length Cursor recommends. The frontmatter is read by a small parser
  *      for the subset of YAML these files use — scalar values, folded plain
- *      scalars, and lists — so the gate stays dependency-free.
+ *      scalars, and lists — so the gate stays dependency-free; because that
+ *      reader is lenient, a second pass reports what real YAML rejects in an
+ *      unquoted value (`: ` and ` #`). Measured on Cursor 3.20.17: a skill
+ *      whose frontmatter does not parse is listed by path with no description
+ *      and none of its flags honoured, so `paths:` no longer defers it and
+ *      `disable-model-invocation` no longer hides it.
  *
  * Usage:
  *   node scripts/agents-check.mjs            check (exit 1 on any finding)
@@ -406,6 +411,41 @@ function unquote(s) {
   return /^(["']).*\1$/.test(t) ? t.slice(1, -1) : t;
 }
 
+/**
+ * Text that YAML does not allow inside an unquoted (plain) scalar: a colon
+ * followed by a space reads as a nested mapping, and a space followed by `#`
+ * starts a comment. A real YAML parser rejects or truncates the value; the
+ * lenient reader above does not, so this scan reports what the reader would
+ * otherwise silently accept. Measured on Cursor 3.20.17: a skill whose
+ * frontmatter fails to parse is listed by path with no description and none
+ * of its flags honoured, which is worse than not being listed at all.
+ * Quoted scalars and block scalars (`>-`, `|`) are exempt, as in YAML.
+ */
+export function plainScalarHazards(yaml) {
+  const findings = [];
+  let key = null;
+  let plain = false;
+  for (const [i, line] of yaml.split(/\r?\n/).entries()) {
+    const top = line.match(/^([A-Za-z][\w-]*):\s*(.*)$/);
+    let value;
+    if (top) {
+      key = top[1];
+      const raw = top[2].trim();
+      // An empty value continues as a plain scalar on the next lines; a quote, a bracket or a block marker starts something else.
+      plain = raw === "" || !/^["'[>|]/.test(raw);
+      value = raw;
+    } else if (key !== null && /^\s+\S/.test(line) && !/^\s+-\s/.test(line)) {
+      value = line.trim();
+    } else {
+      continue;
+    }
+    if (!plain || !value) continue;
+    if (/: |:$/.test(value)) findings.push(`line ${i + 1}: \`${key}\` contains ": " (or ends with ":") in an unquoted value; YAML reads it as a nested mapping. Rephrase without the colon or quote the whole value`);
+    if (/\s#/.test(value)) findings.push(`line ${i + 1}: \`${key}\` contains " #" in an unquoted value; YAML reads the rest of the line as a comment. Rephrase or quote the whole value`);
+  }
+  return findings;
+}
+
 /** The part of a glob before its first wildcard, as a directory or file the repository must contain. `backend/services/runner/**` -> `backend/services/runner`. */
 export function globPrefix(glob) {
   const cut = glob.search(/[*?{[]/);
@@ -427,6 +467,7 @@ export function checkSkill(root, rel) {
     return findings;
   }
   const fm = parseFrontmatter(parts.frontmatter);
+  for (const hazard of plainScalarHazards(parts.frontmatter)) say(`frontmatter ${hazard}`);
 
   if (typeof fm.name !== "string" || fm.name === "") say("frontmatter has no `name`");
   else if (fm.name !== folder) say(`\`name: ${fm.name}\` does not match its folder \`${folder}\`; Cursor addresses the skill by name and the tree by folder, and the two must agree`);

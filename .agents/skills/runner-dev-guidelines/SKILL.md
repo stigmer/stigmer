@@ -1,11 +1,11 @@
 ---
 name: runner-dev-guidelines
 description:
-  The design procedure for the agent runner (backend/services/runner): map the
-  data flow, find the framework's own primitive before building one, carry
-  identity not copies, and test LLM-dependent behaviour deterministically. Use
-  when changing how the runner executes turns, handles approvals and
-  interrupts, talks to MCP servers or Temporal, or adds a harness.
+  The design procedure for the agent runner under backend/services/runner, which
+  maps the data flow, finds the framework's own primitive before building one,
+  carries identity rather than copies, and tests LLM-dependent behaviour
+  deterministically. Use when changing how the runner executes turns, handles
+  approvals and interrupts, talks to MCP servers or Temporal, or adds a harness.
 paths:
   - backend/services/runner/**
 ---

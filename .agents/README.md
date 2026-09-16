@@ -38,9 +38,19 @@ them.
   `.cursor/rules/*.mdc` whose `globs:` match does attach, and an `@<path>` line
   in its body makes Cursor attach the referenced file beside it. That is why
   each nested guide has a generated shim.
-- Skills under `.agents/skills/` are listed by name and description at launch;
+- Skills under `.agents/skills/` are listed by path and description at launch;
   `paths:` frontmatter and package-local skill folders both defer a skill until
-  a matching file is touched.
+  a matching file is touched, and `disable-model-invocation: true` keeps a skill
+  out of the model's list entirely (it stays in the `/` menu).
+- A skill whose frontmatter is not valid YAML is listed by path with no
+  description and none of its flags honoured: `paths:` no longer defers it and
+  `disable-model-invocation` no longer hides it. The usual cause is a plain
+  (unquoted) description containing `: ` or ending a wrapped line with `:`,
+  which YAML reads as a nested mapping. `make agents-check` reports it; the fix
+  is to rephrase without the colon.
+- A skill file is indexed when Cursor first sees it. Later edits are not re-read
+  until the window reloads, so a skill you have just written or changed is
+  listed as it first was (or not at all) until then.
 - Nothing inside a git worktree is discovered unless the worktree is a workspace
   folder, and the primary checkout's glob rules do not fire for worktree paths.
   Add the worktree to the window when you create it (`cursor --add <worktree>`)
@@ -101,8 +111,10 @@ is adopted, add a one-line `CLAUDE.md` containing `@AGENTS.md` beside each
    target: a guide that needs more room is restating something it should point
    at. Write it from the tree as it is, not from memory.
 3. A skill's `description` is its trigger: say what it does and when to use it,
-   in the third person, within sixty words (it is listed in every conversation).
-   Package doctrine skills carry `paths:`; skills that act carry
+   in the third person, within sixty words (it is listed in every conversation),
+   and without `: ` or a trailing `:` in the unquoted text (YAML would read a
+   mapping and Cursor would list the skill with no description at all). Package
+   doctrine skills carry `paths:`; skills that act carry
    `disable-model-invocation: true`. Keep `SKILL.md` under 500 lines and move
    detail into a `references` folder beside it. Write it from the tree as it is,
    never from the rule or document it replaces.

@@ -31,6 +31,7 @@ import {
   extractCitedPaths,
   globPrefix,
   parseFrontmatter,
+  plainScalarHazards,
   renderShim,
   runGate,
   shimPathFor,
@@ -286,6 +287,18 @@ test("frontmatter reader: scalars, folded scalars, block and inline lists, quote
 
   const folded = parseFrontmatter("description: >-\n  Folded with a\n  marker line.\n");
   assert.equal(folded.description, "Folded with a marker line.");
+
+  // What YAML forbids in a plain scalar and the lenient reader would accept: the second pass reports it.
+  assert.deepEqual(plainScalarHazards("name: x\ndescription: Quoted is fine.\n"), []);
+  assert.deepEqual(plainScalarHazards('name: x\ndescription: "Rules: quoted, so fine."\n'), []);
+  assert.deepEqual(plainScalarHazards("name: x\ndescription: >-\n  Block scalar: fine too.\n"), []);
+  const hazards = plainScalarHazards(
+    "name: x\ndescription:\n  House rules for the server: wire-pinned identifiers.\n  Invoke by name (wrap up issue #N).\n  A line that ends with a colon:\n  and continues.\npaths:\n  - a/**\n",
+  );
+  assert.equal(hazards.length, 3);
+  assert.match(hazards[0], /^line 3: `description` contains ": "/);
+  assert.match(hazards[1], /^line 4: `description` contains " #"/);
+  assert.match(hazards[2], /^line 5: `description` contains ": "/);
 
   assert.equal(globPrefix("backend/services/runner/**"), "backend/services/runner");
   assert.equal(globPrefix("docs/**/*.mdx"), "docs");

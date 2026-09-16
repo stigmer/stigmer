@@ -1,10 +1,10 @@
 ---
 name: wrap-up-github-issue
 description:
-  Wraps up a GitHub issue whose fix is in a pull request that has not merged:
-  wires the auto-close keyword, posts a comment that says what was done and
-  credits the reporter, and labels the issue in progress without closing it.
-  Invoke by name at session wrap-up ("wrap up issue #N").
+  Wraps up a GitHub issue whose fix is in a pull request that has not merged,
+  wiring the auto-close keyword, posting a comment that says what was done and
+  credits the reporter, and labelling the issue in progress without closing it.
+  Invoke by name at session wrap-up, as in "wrap up issue 248".
 disable-model-invocation: true
 ---
 

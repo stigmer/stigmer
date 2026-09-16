@@ -1,12 +1,12 @@
 ---
 name: ts-server-dev-guidelines
 description:
-  House rules for the TypeScript control plane (backend/services/stigmer-server)
-  and the shared backend libraries under backend/libs/ts: wire-pinned
-  identifiers, pipeline and extension-point conventions, the error contract,
-  test discipline, and how a core change reaches the cloud edition. Use when
-  adding or changing server code, pipeline steps, extension points, store
-  drivers or Temporal workflows.
+  House rules for the TypeScript control plane under
+  backend/services/stigmer-server and the shared backend libraries under
+  backend/libs/ts, covering wire-pinned identifiers, pipeline and
+  extension-point conventions, the error contract, test discipline, and how a
+  core change reaches the cloud edition. Use when adding or changing server
+  code, pipeline steps, extension points, store drivers or Temporal workflows.
 paths:
   - backend/services/stigmer-server/**
   - backend/libs/ts/**

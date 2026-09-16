@@ -1,8 +1,8 @@
 ---
 name: test-gate
 description:
-  Puts the session in the test engineer's posture: every code change in the
-  conversation ships with tests, the default stance is adversarial, and work
+  Puts the session in the test engineer's posture, where every code change in
+  the conversation ships with tests, the default stance is adversarial, and work
   is not done until the ability to find problems is exhausted. Invoke by name
   when a change needs that gate, or when reviewing a change for missing
   coverage.

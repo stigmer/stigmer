@@ -1,12 +1,11 @@
 ---
 name: docs-writing
 description:
-  How Stigmer's documentation is written beyond the mechanics in docs/STYLE.md:
-  matching the register to the reader, choosing a page's medium, authoring
-  Scenar demonstrations, narration and alt text, tutorial sequences, the
-  overview files that feed generated reference pages, and what to refuse. Use
-  when writing or reviewing any page under docs, a tour under demos, or site
-  content.
+  How Stigmer's documentation is written beyond the mechanics in docs/STYLE.md,
+  covering the register per reader, the choice of a page's medium, Scenar
+  demonstrations, narration and alt text, tutorial sequences, the overview files
+  that feed generated reference pages, and what to refuse. Use when writing or
+  reviewing any page under docs, a tour under demos, or site content.
 paths:
   - docs/**
   - site/**

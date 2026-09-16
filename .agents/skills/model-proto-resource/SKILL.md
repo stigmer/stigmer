@@ -1,11 +1,11 @@
 ---
 name: model-proto-resource
 description:
-  The procedure for adding or reshaping an API resource in the protobuf
-  contract under apis: file layout, the resource envelope, kind registration
+  The procedure for adding or reshaping an API resource in the protobuf contract
+  under apis, covering the file layout, the resource envelope, kind registration
   with its metadata, the authorization annotation on every RPC, validation,
-  comments, the overview file, and the codegen that follows. Use when creating
-  a resource, adding an RPC, or changing a generated message.
+  comments, the overview file, and the codegen that follows. Use when creating a
+  resource, adding an RPC, or changing a generated message.
 paths:
   - apis/**
 ---

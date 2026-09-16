@@ -1,9 +1,9 @@
 ---
 name: release-stigmer-oss
 description:
-  Cuts a Stigmer OSS release: checks the release hold and the pins, decides
-  the semver bump by impact, writes release notes with a Highlights section,
-  and creates and pushes the annotated tags that trigger every release
+  Cuts a Stigmer OSS release by checking the release hold and the pins, deciding
+  the semver bump by impact, writing release notes with a Highlights section,
+  and creating and pushing the annotated tags that trigger every release
   workflow. Invoke by name when asked to release, cut, or tag a release.
 disable-model-invocation: true
 ---

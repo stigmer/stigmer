@@ -1,8 +1,8 @@
 ---
 name: conformance-test-authoring
 description:
-  How to add or extend a test in the cross-edition conformance suite
-  (test/conformance): which class a behaviour belongs to, the three test
+  How to add or extend a test in the cross-edition conformance suite under
+  test/conformance, covering which class a behaviour belongs to, the three test
   shapes with their support helpers, the harness components to reuse, the
   determinism rules, and the adversarial posture a reviewer brings. Use when
   writing, extending or reviewing a conformance test or a harness component.
