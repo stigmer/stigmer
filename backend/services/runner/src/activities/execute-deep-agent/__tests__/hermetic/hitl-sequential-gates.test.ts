@@ -19,11 +19,11 @@
  * memory checkpointer's replay through a mocked graph. On the real graph the
  * memory posture (a test-only opt-in; `config.ts` resolves `sqlite` locally
  * and `http` in cloud) re-interrupts the same call on replay and duplicates
- * the row (S3 M0 finding F-M0-3), so the invariant is recorded on the durable
+ * the row (found in #1096), so the invariant is recorded on the durable
  * posture, where the reinvocation resumes instead of replaying.
  *
- * What every reinvocation golden here shows since S3 M2a (the runtime over
- * the native adapter; Q-S3-16 and Q-M2a-2): `startedAt` is THIS turn's own,
+ * What every reinvocation golden here shows since #1096 (the runtime over
+ * the native adapter): `startedAt` is THIS turn's own,
  * not turn 1's carried by the orchestrator's whole-status clone; the
  * `fileReviewEventStream` carries only the events THIS turn authored (the
  * runtime seeds messages, sub-agents, artifacts, write-backs, todos, usage,

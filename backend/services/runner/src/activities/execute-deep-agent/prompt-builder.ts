@@ -7,7 +7,7 @@
  * Pure functions: no side effects, no I/O. `turn-setup.ts` gathers the
  * inputs from the runtime's resolved record and this module renders them.
  *
- * What is this harness's and what is shared (S3 M5, Q-S3-10 / Q-M5-2):
+ * What is this harness's and what is shared (since #1096):
  *  - Shared through `shared/prompt-sections.ts`: WHICH standing sections
  *    render and in WHAT order (`standingContextSections`), the input-files
  *    bullet and disclosure lines (`inputFileLines`), which skills a prompt
@@ -116,7 +116,7 @@ directly over delegating. Only delegate when context isolation \
 or parallelism genuinely helps the user.
 `;
 
-/** The agent's instructions when the blueprint carries none; the prompt is never empty (S3 M2a, F-M2a-16: was `setup.ts`'s alone). */
+/** The agent's instructions when the blueprint carries none; the prompt is never empty (since #1096: was `setup.ts`'s alone). */
 export const DEFAULT_INSTRUCTIONS = "You are a helpful AI assistant.";
 
 export interface PromptBuilderInput {
@@ -333,7 +333,7 @@ export function composeUserMessage(
  * disclosure model: only name, description and location are injected; the
  * agent reads SKILL.md on demand through its filesystem tools. Byte for byte
  * the text the orchestrator-era `generatePromptSection` rendered from the
- * `Skill` proto (deleted with `setup.ts` at S3 M2b); the one difference is
+ * `Skill` proto (deleted with `setup.ts` in #1096); the one difference is
  * the input — a mounted file's metadata, not a fetched resource — so this
  * renderer needs no client and serves the root and every sub-agent alike.
  * Empty for no skills.

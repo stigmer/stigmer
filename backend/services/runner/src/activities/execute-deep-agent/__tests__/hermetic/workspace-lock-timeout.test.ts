@@ -11,7 +11,7 @@
  * and one system row, persists ONCE, and returns — a Temporal retry would only
  * queue behind the same holder.
  *
- * The order, ruled at Q-S3-8 and landed at S3 M2a: the runtime takes the
+ * The order, since #1096: the runtime takes the
  * lock right after provisioning the workspace, BEFORE the tool surface, the
  * skills, the attachments and the graph — so a turn that cannot have the
  * tree builds no model and compiles no sub-agent. Until then the
@@ -21,8 +21,8 @@
  * appear, because the turn ends before the adapter runs.
  *
  * Why this is the one terminal arm WITHOUT a file golden (owner ruling,
- * 2026-09-11, entry 20260911.03 M0; carried for native): the wire copy embeds
- * the absolute workspace path, a per-run temp directory. The S0 rule is to
+ * 2026-09-11, #1070; carried for native): the wire copy embeds
+ * the absolute workspace path, a per-run temp directory. The hermetic rule (#1048) is to
  * control a volatile source at its origin or escalate — never redact — so
  * this scenario pins every byte the path does not touch with explicit
  * assertions and builds the expected message with the SAME error class over
@@ -136,11 +136,11 @@ describe("ExecuteDeepAgent hermetic — workspace lock timeout", () => {
         "Provisioning workspace",
         "Waiting for workspace — in use by another session",
       ]);
-      expect(recordedModelBuilds(), "no model is built for a turn that cannot have the tree (Q-S3-8)").toHaveLength(0);
+      expect(recordedModelBuilds(), "no model is built for a turn that cannot have the tree").toHaveLength(0);
 
       // ── Assert: hermeticity ────────────────────────────────────────────────
       expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-      // The runtime's heartbeat posture (Q-S3-8, parent Q8): every resolution
+      // The runtime's heartbeat posture: every resolution
       // phase pulses on entry and the terminal write pulses once, so a turn
       // that ends at the lock has heartbeated before any stream existed.
       expect(invocation.heartbeats.length, "the runtime heartbeats through resolution").toBeGreaterThan(0);

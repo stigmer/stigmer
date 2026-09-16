@@ -10,7 +10,7 @@
  * module owns the ENGINE — what the model will do on its next call — and
  * reports what really happened. The adapter under test is the production
  * one, untouched; the model client is the one module doubled
- * (`scripted-model-module.ts`, S3 M0 ruling Q-M0-1), and the tools the model
+ * (`scripted-model-module.ts`), and the tools the model
  * calls are deepagents' real built-ins over the real gate.
  *
  * ── The engine is per execution, and its memory is the conversation ────────
@@ -28,7 +28,7 @@
  * checkpoint IS the engine's memory, which is why the same plan is right on
  * a `Command(resume)` (the tool result is in the transcript before the model
  * is asked) and on a later turn of the same thread (an approved-and-run call
- * is not proposed again — Cursor's "obedient model" of Q-M4-4, derived
+ * is not proposed again — Cursor's subject's "obedient model", derived
  * instead of stored).
  *
  * ── The translation, one rule per word ──────────────────────────────────────

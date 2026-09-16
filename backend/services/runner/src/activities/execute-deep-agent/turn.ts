@@ -24,7 +24,7 @@
  * other exception — a provider error unwrapped from LangChain's middleware
  * wrapper, an MCP connect failure, an empty stream — is `failed` on the
  * `internal` surface with `describeExecutionError`'s sentence as
- * `status.error` whole (Q-M2a-9). Never branches on why `stopSignal`
+ * `status.error` whole. Never branches on why `stopSignal`
  * aborted, never writes a phase or a terminal copy, never imports
  * `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  *
@@ -33,9 +33,9 @@
  * are connected and closed per turn. Both are closed on EVERY exit path in
  * the `finally`, before the runtime removes the link and releases the lock.
  *
- * Extracted from `index.ts` `createDeepAgentActivities` at S3 M2a; the
+ * Extracted from `index.ts` `createDeepAgentActivities` in #1096; the
  * hermetic goldens under `__tests__/hermetic/` pin the result byte for
- * byte, with the ruled alignments quoted in their headers.
+ * byte, with that move's deliberate alignments quoted in their headers.
  */
 
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";

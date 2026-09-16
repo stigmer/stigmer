@@ -13,9 +13,9 @@
  * one settlement that stays here because its evidence — the gate's registry
  * of auto-skipped call ids — exists only inside this harness.
  *
- * Until S3 M2a this module also read the decisions from the execution itself
+ * Until #1096 this module also read the decisions from the execution itself
  * and carried the SKIP/REJECT settlement; both are the runtime's now, one
- * copy for every harness (S3 M1, Q-S3-2).
+ * copy for every harness.
  */
 
 import { Command } from "@langchain/langgraph";

@@ -25,7 +25,7 @@
  *     deepagents graph aborted mid-hang through the run's own signal, the
  *     parked model unparks, the stream rejects with the abort, and the
  *     process sees no orphaned rejection — the posture the contract kit's
- *     hang arms and the runtime's stall watchdog rely on (S3 M2a F-M2a-18
+ *     hang arms and the runtime's stall watchdog rely on (#1096
  *     measured one orphan for a forced mid-step abort of a WEDGED engine;
  *     an engine that honours its signal leaves none, and this arm is where
  *     that fact is pinned).

@@ -9,7 +9,7 @@
  * connect- and SDK-free (the Cursor adapter's boot patches `node:http2`
  * before anything dials the control plane; `harness-adapters.ts` states the
  * rule). An adapter that imported its SDK at the top of its module would
- * defeat it: this adapter's row is the table's second (S3 M2b, 2026-09-13).
+ * defeat it: this adapter's row is the table's second (#1096, 2026-09-13).
  * This fence is THE proof that the engine is not on the static graph — it
  * walks every relative module transitively and records every package the
  * graph names; the boot ORDER (native's `boot` runs after the Cursor patch)

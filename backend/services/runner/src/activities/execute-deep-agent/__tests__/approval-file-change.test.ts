@@ -53,7 +53,7 @@ describe("findAiMessageToolCallArgs", () => {
 
 describe("captureApprovalArtifacts", () => {
   // The row's `args_preview` is the builder's to render from these args since
-  // S4 M2 C6 (`harness/transcript/__tests__/builder.test.ts`); this module
+  // #1097 (`harness/transcript/__tests__/builder.test.ts`); this module
   // contributes the redacted args and nothing else.
   it("returns nothing when the interrupt cannot be correlated", () => {
     const result = captureApprovalArtifacts({

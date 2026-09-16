@@ -28,7 +28,7 @@
  * indexing left to the caller — for a consumer whose plan is not "turn k on
  * round k" but "the first step the conversation does not yet show" (the
  * harness contract kit's native subject, whose one execution spans many
- * kit turns on one sqlite thread, S3 M3).
+ * kit turns on one sqlite thread).
  *
  * A turn may END the model call instead of finishing the message
  * ({@link TurnEnding}): `fail` throws after its chunks (a provider error

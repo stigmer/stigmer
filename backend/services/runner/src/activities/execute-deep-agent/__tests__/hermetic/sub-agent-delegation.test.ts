@@ -14,44 +14,44 @@
  * scope, and `sub_agent_finished` closes it COMPLETED when the `task` tool
  * finishes; the root's transcript carries the `task` row and its closing
  * text. The golden (`goldens/sub-agent-delegation.status.json`) pins the
- * nested transcript shape; its three S4 moves are quoted below with their
- * rulings, and every other line is byte-identical through S4.
+ * nested transcript shape; its three moves in #1097 are quoted below with
+ * their reasons, and every other line is byte-identical through that PR.
  *
  * Role selection: `createDeepAgent` gives the sub-agent the same tool set as
  * its parent (`task` included), so the script tells the roles apart by the
  * system prompt (`ScriptRoleContext.systemPrompt`), which carries the
  * sub-agent's own instructions — the one thing that differs.
  *
- * Since S3 M2a the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the native adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
- * thinking mode (Q-M2a-2: one writer of the summary, the runtime). Nothing
+ * thinking mode (one writer of the summary, the runtime). Nothing
  * else in this golden moved with the flip.
  *
- * Since S3 M2b (Q-M2b-1, owner ruling 2026-09-13) the sub-agent's spend is
+ * Since #1096 (ruled 2026-09-13) the sub-agent's spend is
  * the execution's spend: the helper's one turn (600 in, 12 out) is reported
  * through the same hook as the root's, so `streamingUsage` reads 3,900 in /
  * 102 out / 3 turns where it read 3,300 / 90 / 2, and `estimatedCostUsd`
  * 0.00441 where it read 0.00375 — the helper's 660 micro-dollars at the
- * PARENT's rate (per-sub-agent pricing is an S5 item; the in-graph cost cap
+ * PARENT's rate (per-sub-agent pricing is #1121; the in-graph cost cap
  * this replaces priced sub-agents the same way). The five lines of
  * `streamingUsage` are the whole diff; the transcript and the sub-agent row
  * are byte-identical. `max_cost_usd` is now enforced over this total by the
  * runtime, the one enforcement since the cost middleware became advisory
- * (Q-S3-3).
+ * (#1096).
  *
- * Since S4 M2 C2b (Q-S4-21; M2 finding F-M2-1): deepagents' `task` tool
+ * Since #1097: deepagents' `task` tool
  * returns a LangGraph `Command` like `write_todos` does, so the `task` row's
  * `result` and the sub-agent row's `output` are the nested ToolMessage's
  * content — `[{"type":"text","text":"The fixture value is forty-two."}]`,
  * the blocks array the image offload reads — where they were the whole
- * serialized Command. Those two lines are the whole C2b diff.
+ * serialized Command. Those two lines are the whole of that hunk.
  *
- * Since S4 M2 C4 (Q-S4-5): the `task` row sits on the AI message whose text
+ * Also since #1097: the `task` row sits on the AI message whose text
  * delegated ("Delegating to the helper."), not on an empty AI message of its
  * own after it — two root AI messages (the delegating text with the row, the
  * closing text) where there were three; the same scoping fix
- * `tool-call.test.ts` records. Since S4 M2 C7 (Q-S4-16): the row carries
+ * `tool-call.test.ts` records. And the row carries
  * `argsPreview`, the one preview rule for every row on every harness.
  *
  * Regenerate ONLY after a deliberate behavior change:
@@ -155,7 +155,7 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
       "Delegating to the helper.",
       ROOT_CLOSING,
     ]);
-    expect(final.messages[0].toolCalls.map((tc) => tc.id), "the task row sits on the text that delegated (Q-S4-5, S4 M2 C4)").toEqual([TASK_CALL_ID]);
+    expect(final.messages[0].toolCalls.map((tc) => tc.id), "the task row sits on the text that delegated").toEqual([TASK_CALL_ID]);
 
     // ── Assert: the sub-agent execution ──────────────────────────────────────
     expect(final.subAgentExecutions).toHaveLength(1);

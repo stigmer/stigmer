@@ -46,7 +46,7 @@ describe("buildSubAgentMiddleware", () => {
 
     const subView = stack[4];
     expect(subView.afterModel).toBeDefined();
-    expect(subView.wrapToolCall, "the advisory never blocks a tool; the runtime enforces the cap (Q-S3-3)").toBeUndefined();
+    expect(subView.wrapToolCall, "the advisory never blocks a tool; the runtime enforces the cap").toBeUndefined();
     expect(subView.beforeAgent).toBeUndefined();
   });
 

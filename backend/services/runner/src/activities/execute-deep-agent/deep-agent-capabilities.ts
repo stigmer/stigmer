@@ -21,8 +21,8 @@
  *  - File review under the `deep-agent` harness id with nothing excluded:
  *    this harness writes no transient file into the repo (the `.stigmer`
  *    link is the runtime's, created before its baseline pin and git-excluded
- *    at provision). The capture is the runtime's (`harness/capture.ts`, S3
- *    M4); this harness binds its `CasCaptureObserver`'s snapshot as the
+ *    at provision). The capture is the runtime's (`harness/capture.ts`,
+ *    since #1096); this harness binds its `CasCaptureObserver`'s snapshot as the
  *    runtime's CAS observations (`turn.ts`).
  */
 

@@ -12,19 +12,19 @@
  *    a persist requested on the shared cadence rule, a tool start forcing it);
  *  - how the loop ends: `completed` with the run's output, `interrupted` when
  *    the runtime stops it — taken at the NEXT event, the engine's own step
- *    boundary (S3 M2a F-M2a-18), and before the first if the stop came
+ *    boundary, and before the first if the stop came
  *    earlier. (`awaiting_approval` from the stream itself has no producer
- *    on native since S4 M2 C3, option A: a held call never emits a
+ *    on native since #1097: a held call never emits a
  *    `tool_started`, so the builder never leaves a row WAITING during the
  *    stream; the gate's hold reaches the transcript at the settle. The arm
- *    that pinned that path went with it — M2 finding F-M2-27.)
+ *    that pinned that path went with it.)
  *  - what it refuses and what it tolerates: an empty stream throws; the
  *    engine's own error propagates; a `run.output` that rejects is logged
  *    and the turn completes without a final state;
  *  - the recorder exists only under `V3_EVENT_RECORD_DIR`.
  *
  * Carried from the legacy v3 loop's suite (`streaming-v3.test.ts`, retired
- * with the loop at S3 M2b, Q-M2b-5): the arms whose rule the adapter's loop
+ * with the loop in #1096): the arms whose rule the adapter's loop
  * still has, re-stated against the sink. The loop-specific arms it dropped
  * (the in-band heartbeat timer, the 120 s stall, STOP read from the persist,
  * pause as a terminal status) are the turn runtime's now and pinned in

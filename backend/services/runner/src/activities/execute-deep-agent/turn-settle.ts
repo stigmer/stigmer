@@ -14,7 +14,7 @@
  * What this module never does: write a phase, a terminal copy or
  * `completedAt` — those are the runtime's (`harness/run-turn.ts`,
  * `terminal-table.ts`); close the transcript's streaming flags — the
- * runtime's, once `runTurn` returns, on every path (S4 M5; until then this
+ * runtime's, once `runTurn` returns, on every path (since #1097; until then this
  * settle finalized the builder itself, and a turn that threw before
  * reaching it left its last message streaming); settle SKIP and REJECT rows — the runtime's
  * (`harness/approval-decisions.ts`, after every outcome); withhold secret
@@ -22,18 +22,18 @@
  * write-back — the runtime's epilogue; capture the turn's file changes or
  * decide whether a review is pending — the runtime's (`harness/capture.ts`,
  * once, over whatever the whole turn left on the tree, after this settle
- * returns; S3 M4). Transcript rows it CREATES go through the builder
- * (`approval_proposed`, S4 M2 C6); the one row it AMENDS by identity is the
+ * returns; since #1096). Transcript rows it CREATES go through the builder
+ * (`approval_proposed`, since #1097); the one row it AMENDS by identity is the
  * gate's unattended skip (`reconcileUnattendedSkips`), whose evidence exists
  * only inside this harness.
  *
  * The structured response is folded BEFORE the outcome is decided, so a turn
  * the runtime then pauses for file review persists it and the pure
  * file-review resume completes with it (the runtime's text fallback runs on
- * the review-pending path too, Q-M4-8).
+ * the review-pending path too).
  *
- * Moved from `index.ts` (post-stream through the terminal arms) at S3 M2a;
- * the capture boundary left for the runtime at M4.
+ * Moved from `index.ts` (post-stream through the terminal arms) in #1096,
+ * where the capture boundary also left for the runtime.
  */
 
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -120,14 +120,14 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
 /**
  * Propose, through the builder, one approval per interrupt the graph left
  * pending — the gate's hold reaching the transcript as `approval_proposed`
- * (S4 M2 C6; Q-S4-20). LangGraph's `interrupt()` ran before the tool
+ * (since #1097). LangGraph's `interrupt()` ran before the tool
  * handler, so the stream showed no row for the call; the builder creates
  * the WAITING row on the message whose text proposed it, with the redacted
  * args read from the AI message in graph state (the single source of truth
  * for the proposed call; issue #754: a placeholder without args rendered a
- * pathless header). Until C6 this settle built the message and the rows
+ * pathless header). Until #1097 this settle built the message and the rows
  * itself, on a new empty AI message of its own, with no by-id check against
- * rows the stream had created (M2 finding F-M2-13; the upsert closes it).
+ * rows the stream had created (the upsert closes it).
  * Returns whether any was proposed.
  */
 async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean> {

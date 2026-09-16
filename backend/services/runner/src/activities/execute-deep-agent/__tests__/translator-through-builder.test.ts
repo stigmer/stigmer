@@ -3,17 +3,17 @@
  * through `DeepAgentTranslator` and then `TranscriptBuilder`, end to end —
  * the exact path `turn-stream.ts`'s loop takes — asserting the transcript
  * that comes out. Every sequence here is the wire's real shape (the fixtures
- * default to LangGraph's namespaces, F-M2-16), so these arms prove that the
+ * default to LangGraph's namespaces), so these arms prove that the
  * translator's reading of the engine and the builder's rules compose into
  * the goldens' shapes.
  *
- * What is NOT here (Q-M2-6): the builder's own rules, driven with
+ * What is NOT here: the builder's own rules, driven with
  * `TranscriptEvent`s directly, live in
  * `harness/transcript/__tests__/builder.test.ts`; the translator's own
  * reading of the wire in `translator.test.ts`. This file began as the
  * builder's unit suite when the builder was the native adapter's
- * (`v3-status-builder.test.ts`, S3 M2b) and became what it always was in
- * truth at S4 M2 C9.
+ * (`v3-status-builder.test.ts`, #1096) and became what it always was in
+ * truth in #1097.
  *
  * In the adapter's folder because the fixtures and the translator are
  * `activities/` modules the direction fence keeps out of `harness/`.
@@ -45,7 +45,7 @@ import {
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 
 /**
- * A builder over an empty status. Usage never reaches the builder (S4 M2 C1):
+ * A builder over an empty status. Usage never reaches the builder:
  * the loop reads it off the wire through `usageOf` and prices it into the
  * sink — `turn-stream.test.ts` pins that; `translator.test.ts` pins what
  * `usageOf` reads. The `usage:` fields the sequences below still
@@ -77,7 +77,7 @@ describe("the native translator through the builder", () => {
   // ── Initialization ───────────────────────────────────────────────
 
   describe("initialization", () => {
-    it("writes neither phase nor startedAt (the turn runtime owns both; S3 M2a, Q-M2a-7)", () => {
+    it("writes neither phase nor startedAt (the turn runtime owns both)", () => {
       const { sb, status } = makeBuilder();
       expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
       expect(status.startedAt).toBe("");
@@ -161,8 +161,8 @@ describe("the native translator through the builder", () => {
 
         expect(status.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
         expect(status.messages[0].content).toBe("Let me analyze this problem carefully.");
-        // The run's finish closes its thinking with its text (S4 M4 B1,
-        // Q-M4-6); until then the THINKING row spun until finalize.
+        // The run's finish closes its thinking with its text (since #1097);
+        // until then the THINKING row spun until finalize.
         expect(status.messages[0].isStreaming).toBe(false);
 
         expect(status.messages[1].type).toBe(MessageType.MESSAGE_AI);
@@ -279,13 +279,13 @@ describe("the native translator through the builder", () => {
       });
     });
 
-    describe("a gated MCP tool that STARTED (S4 M2 C3, option A)", () => {
+    describe("a gated MCP tool that STARTED", () => {
       // On native a held call never starts: LangGraph's interrupt() runs
       // before the tool handler, so no tool_started arrives and the gate's
       // hold reaches the transcript as approval_proposed from the post-stream
-      // seed (C6). A tool_started that does arrive is the engine's word that
+      // seed. A tool_started that does arrive is the engine's word that
       // the call was authorized, so the row is RUNNING and attributed — never
-      // WAITING at creation, whatever the policy says (F-M2-27).
+      // WAITING at creation, whatever the policy says.
       it("is RUNNING and attributed to its server; nothing waits", () => {
         const { sb, status } = makeBuilder();
         const gate = gateWith({
@@ -577,7 +577,7 @@ describe("the native translator through the builder", () => {
   });
   // ═══════════════════════════════════════════════════════════════════
   // Carried from the v2 StatusBuilder's suite when that builder retired
-  // with the v2 stream (S3 M2b, Q-S3-1 / Q-M2b-5): every rule below is the
+  // with the v2 stream (#1096): every rule below is the
   // builder's own — how a policy decides a row's status, what the row
   // carries, how a seeded row is resolved, how artifacts and write-backs
   // are upserted — and had no v3 twin. The sanitizer's own rules
@@ -616,7 +616,7 @@ describe("the native translator through the builder", () => {
     return { sb, tc: status.messages[0].toolCalls[0] };
   }
 
-  describe("attribution and provenance on tool_started (S4 M2 C3, option A)", () => {
+  describe("attribution and provenance on tool_started", () => {
     // The translator answers WHICH server a tool belongs to and WHICH policy
     // layer governs it; it never answers whether the gate holds the call —
     // on native a held call never starts (the interrupt precedes the
@@ -785,7 +785,7 @@ describe("the native translator through the builder", () => {
     });
   });
 
-  describe("artifacts and write-backs (Q-S4-8)", () => {
+  describe("artifacts and write-backs", () => {
     const artifact = (sandboxPath: string, contentHash: string) =>
       create(ExecutionArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
 

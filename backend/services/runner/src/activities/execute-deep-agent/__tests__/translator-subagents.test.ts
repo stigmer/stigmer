@@ -2,7 +2,7 @@
  * Sub-agent transcripts, end to end through the native translator and the
  * builder: raw LangGraph v3 events with nested namespaces, the translator
  * scoping them and speaking each sub-agent's lifecycle, the builder folding
- * them into the row's own transcript (S4 M2 C4, Q-S4-4). These are the
+ * them into the row's own transcript (since #1097). These are the
  * native translator's integration arms for delegation — the sub-agent
  * tracker they once tested (`subagent-tracker.ts`, the second copy of the
  * folding handlers) is gone; the builder's own scoped-handler arms live in
@@ -10,7 +10,7 @@
  * arms in `translator.test.ts`.
  *
  * In the adapter's folder because the fixtures and the translator are
- * `activities/` modules the direction fence keeps out of `harness/` (Q-M1-2).
+ * `activities/` modules the direction fence keeps out of `harness/`.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -191,7 +191,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
     });
   });
 
-  describe("the status's array is built into by reference (S3 M1 deferred debt)", () => {
+  describe("the status's array is built into by reference", () => {
     it("new rows are pushed onto the array the builder was handed, never a replacement", () => {
       const status = create(AgentExecutionStatusSchema, {});
       const rows = status.subAgentExecutions;
