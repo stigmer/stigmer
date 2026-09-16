@@ -28,6 +28,7 @@
  * this file.
  */
 
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
@@ -38,8 +39,9 @@ vi.mock("../../client/stigmer-client.js", async () =>
 import { ScriptedClock, createHermeticEnvironment } from "../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
 import { scriptedSubject } from "../../__test-utils__/harness-contract/scripted-adapter.js";
-import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
+import { initGitWorkspace, localPathEntry } from "../../__test-utils__/git-workspace-fixture.js";
 import { scenario } from "../../__test-utils__/harness-contract/types.js";
+import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import {
   COST_CAP_FAKE_PRICE_USD,
   FAILURE_MESSAGES,
@@ -214,6 +216,91 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
       const row = final.messages[0]!.toolCalls[0]!;
       expect([row.id, row.isStreaming, row.result], "the row the adapter left streaming output is closed, its output kept").toEqual(["t1", false, "building"]);
+    });
+  });
+
+  describe("the runtime's write-back rule", () => {
+    // `run-turn.ts` calls `frame.writeback.finalize()` in exactly two places:
+    // once when a completed turn reaches its epilogue, and once when a resumed
+    // file review reconciles cleanly — never when the reconcile failed, since
+    // diverged bytes must not reach a remote. These arms pin the CALL and its
+    // guards, not the coordinator's own behaviour (`writeback-coordinator.test.ts`
+    // does that): the session mounts a local path so a coordinator exists
+    // (`provisionWorkspace` builds one whenever the session has an entry; with
+    // no git remote it has nothing eligible and `finalize` is a no-op loop), and
+    // the spy sits on the prototype because the coordinator is constructed
+    // inside `provisionWorkspace` with no injection seam — adding one for a
+    // test would be a production change the arm does not need.
+    const finalize = vi.spyOn(WriteBackCoordinator.prototype, "finalize");
+
+    afterAll(() => {
+      finalize.mockRestore();
+    });
+
+    function driverWithLocalWorkspace(label: string): { driver: RuntimeExecutionDriver; repo: string } {
+      const repo = join(env.workspaceRootDir, "repos", label);
+      initGitWorkspace(repo, { "README.md": "# write-back\n" });
+      const driver = new RuntimeExecutionDriver(harness, label, { workspaceEntries: [localPathEntry("notes", repo)] });
+      return { driver, repo };
+    }
+
+    it("a completed turn finalizes the write-back exactly once", async () => {
+      clock.reset();
+      finalize.mockClear();
+      const { driver } = driverWithLocalWorkspace("fake-writeback-completed");
+
+      const invocation = await driver.turn([scenario.say("Nothing to change.")]);
+
+      expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+      expect(finalize, "the completion epilogue's one call").toHaveBeenCalledTimes(1);
+    });
+
+    it("a resumed file review that reconciles cleanly finalizes exactly once, on the resume", async () => {
+      clock.reset();
+      finalize.mockClear();
+      const { driver } = driverWithLocalWorkspace("fake-writeback-review");
+
+      const first = await driver.turn([scenario.flowingWrite("fake-writeback-review-w", "answer.md"), scenario.say("Written.")]);
+      expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+      expect(finalize, "a turn paused for review has pushed nothing").toHaveBeenCalledTimes(0);
+
+      clock.tick();
+      driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
+      const second = await driver.turn([]);
+
+      expect(slimOf(subject, second).phase).toBe("EXECUTION_COMPLETED");
+      expect(finalize, "the resolved review's one call; the completion path does not run again").toHaveBeenCalledTimes(1);
+    });
+
+    it("a resumed file review whose reconcile fails never finalizes", async () => {
+      clock.reset();
+      finalize.mockClear();
+      const { driver } = driverWithLocalWorkspace("fake-writeback-diverged");
+
+      const first = await driver.turn([scenario.flowingWrite("fake-writeback-diverged-w", "answer.md"), scenario.say("Written.")]);
+      expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+
+      // What the reviewer approved must be what applies. On the git substrate
+      // the reconcile re-asserts the approved bytes from the pinned capture
+      // ref (a working-tree edit after the pause is simply overwritten), so
+      // the failure path is the ledger's digest disagreeing with the captured
+      // bytes — the same divergence `capture.test.ts` drives at unit level.
+      // The reconcile then refuses to apply anything, the review completes
+      // with the refusal on the transcript, the tree is left for diagnosis —
+      // and nothing may be pushed from it.
+      clock.tick();
+      driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
+      const decided = driver.record.status!.fileChangeSets.at(-1)!.changes.find((c) => c.pathAfter === "answer.md")!;
+      decided.afterSha256 = "deadbeef".repeat(8);
+      const second = await driver.turn([]);
+
+      expect(slimOf(subject, second).phase).toBe("EXECUTION_COMPLETED");
+      const final = driver.record.lastFullStatus!;
+      expect(
+        final.messages.some((m) => m.content.startsWith(TERMINAL_COPY.fileReview.applyFailedPrefix)),
+        "the reconcile reported its refusal",
+      ).toBe(true);
+      expect(finalize, "diverged bytes never reach a remote").toHaveBeenCalledTimes(0);
     });
   });
 });
