@@ -1,0 +1,9 @@
+---
+description: Package guide for client-apps, attached when files there are touched. Generated from client-apps/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: client-apps/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `client-apps/`:
+
+@client-apps/AGENTS.md

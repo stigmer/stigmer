@@ -22,9 +22,10 @@
  * where `node:http2` is patched and `@cursor/sdk` first loaded; an adapter
  * factory that imported its SDK statically would defeat both. Every adapter
  * named here loads its vendor SDK inside `boot` (`execute-cursor/adapter.ts`
- * and `execute-deep-agent/adapter.ts` show the shape; each has a fence that
- * walks its static graph). `__tests__/harness-boot-order.test.ts` boots a
- * fresh process through this module — both rows — and fails if the graph
+ * and `execute-deep-agent/adapter.ts` show the shape; the native adapter's
+ * `__tests__/adapter-graph-is-sdk-free.test.ts` walks its static graph off
+ * the syntax tree). `__tests__/harness-boot-order.test.ts` boots a fresh
+ * process through this module — both rows — and fails if either graph
  * regresses.
  */
 

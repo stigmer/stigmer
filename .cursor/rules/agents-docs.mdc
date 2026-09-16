@@ -1,0 +1,9 @@
+---
+description: Package guide for docs, attached when files there are touched. Generated from docs/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: docs/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `docs/`:
+
+@docs/AGENTS.md

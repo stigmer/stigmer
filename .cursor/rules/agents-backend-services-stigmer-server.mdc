@@ -1,0 +1,9 @@
+---
+description: Package guide for backend/services/stigmer-server, attached when files there are touched. Generated from backend/services/stigmer-server/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: backend/services/stigmer-server/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `backend/services/stigmer-server/`:
+
+@backend/services/stigmer-server/AGENTS.md

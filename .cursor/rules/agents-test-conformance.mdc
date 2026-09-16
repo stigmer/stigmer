@@ -1,0 +1,9 @@
+---
+description: Package guide for test/conformance, attached when files there are touched. Generated from test/conformance/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: test/conformance/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `test/conformance/`:
+
+@test/conformance/AGENTS.md

@@ -837,6 +837,8 @@ check-prep: ## Sequential prep for check: tidy, fix, build shared libs/stubs, re
 	$(MAKE) gen-sdk-docs-check
 	$(MAKE) gen-ipc-fixtures
 	$(MAKE) gen-ipc-fixtures-check
+	$(MAKE) agents-sync
+	$(MAKE) agents-check
 
 # Stage 2 — parallel buckets. Each bucket is internally sequential; libs + proto
 # stubs are already built by check-prep, so no bucket rebuilds shared artifacts.
@@ -928,7 +930,16 @@ check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
 # ─── Docs Linting ─────────────────────────────
 
-DOCS_SOURCES = $(shell find docs -path docs/_archive -prune -o \( -name '*.md' -o -name '*.mdx' \) -print)
+# Every docs page, and nothing else: docs/AGENTS.md is a package guide owned by
+# GUIDANCE_SOURCES below, and Vale's Stigmer vocabulary (Agent, Skill) would
+# fight prose that is about coding agents and repo skills.
+DOCS_SOURCES = $(shell find docs -path docs/_archive -prune -o \( -name '*.md' -o -name '*.mdx' \) -not -name AGENTS.md -print)
+
+# Agent guidance (root AGENTS.md, nested package guides, .agents/**). The
+# script is the one definition of which files count, so formatting and the
+# gate never disagree about the set. Vale stays on docs/: guidance is
+# maintainer prose, not user documentation.
+GUIDANCE_SOURCES = $(shell node scripts/agents-check.mjs --list)
 
 lint-docs: ## Lint documentation with Vale (strict, fails on warnings+)
 	@command -v vale >/dev/null 2>&1 || { \
@@ -948,13 +959,28 @@ lint-docs-audit: ## Audit docs with Vale (non-blocking report)
 	-@vale sync 2>/dev/null
 	-@vale $(DOCS_SOURCES)
 
-format-docs: ## Format documentation with Prettier
+format-docs: ## Format documentation and agent guidance with Prettier
 	@$(PRETTIER_GUARD)
-	@$(PRETTIER) --write --prose-wrap always $(DOCS_SOURCES)
+	@$(PRETTIER) --write --prose-wrap always $(DOCS_SOURCES) $(GUIDANCE_SOURCES)
 
-format-docs-check: ## Check documentation formatting (CI, no writes)
+format-docs-check: ## Check documentation and agent guidance formatting (CI, no writes)
 	@$(PRETTIER_GUARD)
-	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
+	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES) $(GUIDANCE_SOURCES)
+
+# ─── Agent Guidance ─────────────────────────────
+# Root AGENTS.md, nested <package>/AGENTS.md guides and .agents/** are the
+# repo-owned source of truth for coding agents (.agents/README.md). Cursor
+# attaches a nested guide only through a glob rule that names it, so every
+# guide has a generated shim in .cursor/rules/agents-*.mdc. The shims are
+# committed generated artifacts, like the stubs: regenerate, never edit.
+
+.PHONY: agents-sync agents-check
+
+agents-sync: ## Regenerate the Cursor shims (.cursor/rules/agents-*.mdc) from every nested AGENTS.md
+	@node scripts/agents-check.mjs --sync
+
+agents-check: ## Verify agent guidance: shims in sync, every cited path resolves, no private-record ids (CI)
+	@node scripts/agents-check.mjs
 
 check-docs-yaml: ## Validate every docs YAML block + raw examples/seedpack manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }

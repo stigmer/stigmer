@@ -1,0 +1,9 @@
+---
+description: Package guide for backend/services/runner, attached when files there are touched. Generated from backend/services/runner/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: backend/services/runner/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `backend/services/runner/`:
+
+@backend/services/runner/AGENTS.md

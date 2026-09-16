@@ -41,6 +41,13 @@ on:
       - ".prettierrc"
       - ".lychee.toml"
       - "vale/**"
+      # Agent guidance: the root and nested AGENTS.md guides, .agents/**, the
+      # generated Cursor shims and the gate itself (make agents-check).
+      - "AGENTS.md"
+      - "**/AGENTS.md"
+      - ".agents/**"
+      - ".cursor/rules/agents-*.mdc"
+      - "scripts/agents-check.mjs"
   workflow_dispatch:
 
 concurrency:
@@ -103,6 +110,11 @@ jobs:
               - ".prettierrc"
               - ".lychee.toml"
               - "vale/**"
+              - "AGENTS.md"
+              - "**/AGENTS.md"
+              - ".agents/**"
+              - ".cursor/rules/agents-*.mdc"
+              - "scripts/agents-check.mjs"
               - ".github/workflows/ci.docs.yaml"
 
       - name: Verdict
@@ -146,6 +158,12 @@ jobs:
 
       - name: Check formatting
         run: make format-docs-check
+
+      # Agent guidance gate: every nested AGENTS.md has a current Cursor shim,
+      # every path a guide cites resolves, and no private-record identifier
+      # reached public guidance. See .agents/README.md.
+      - name: Verify agent guidance
+        run: make agents-check
 
       # Vitest unit/component tests (e.g. the Ask AI panel invariants).
       # check-site runs these locally, but this workflow invokes individual

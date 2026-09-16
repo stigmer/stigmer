@@ -33,6 +33,9 @@
   "lint-staged": {
     "docs/**/*.{md,mdx}": [
       "prettier --write --prose-wrap always"
+    ],
+    "{AGENTS.md,**/AGENTS.md,.agents/**/*.md}": [
+      "prettier --write --prose-wrap always"
     ]
   },
   "devDependencies": {

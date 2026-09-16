@@ -46,6 +46,7 @@ stigmer/
 │   └── services/
 │       ├── stigmer-server/        # Main gRPC server (TypeScript)
 │       └── runner/                # Unified TypeScript runner (agent sessions + workflow tasks)
+│           └── src/harness/README.md  # Adding a harness: start here
 ├── client-apps/
 │   ├── cli/                       # TypeScript CLI (stigmer command)
 │   └── web/                       # Next.js web console
@@ -151,6 +152,10 @@ Feature requests are welcome! Please include:
 2. **Maintainer review** (usually within 2-3 business days)
 3. **Address feedback** if requested
 4. **Merge** once approved and checks pass
+
+### Working with coding agents
+
+The repository carries its own guidance for coding agents (Cursor, Codex and similar): `AGENTS.md` at the root is the always-on guide, each package with binding conventions has its own `AGENTS.md`, and repeatable procedures live as skills under `.agents/skills/`. `.agents/README.md` explains how the pieces load and how to add to them. If you change a package's entry points or commands, update its guide in the same PR; `make agents-check` verifies that every path the guidance cites still exists.
 
 ## Code Style
 
