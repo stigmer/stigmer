@@ -1,0 +1,22 @@
+Vendored test fixtures from the Cursor plugins repository.
+
+Source:  https://github.com/cursor/plugins
+Commit:  c1c0a32
+License: each plugin directory carries its own LICENSE file (MIT License,
+         Copyright Cursor), vendored beside it unchanged.
+
+Directories and their paths in the source repository:
+
+  thermos/     <- thermos/
+  advisor/     <- advisor/
+  github/      <- third_party/github/
+  xero/        <- third_party/xero/
+  playwright/  <- third_party/playwright/
+  salesforce/  <- third_party/salesforce/
+
+Every text file is a byte-for-byte copy of the source at that commit. The
+image files (assets/*.png, assets/*.svg) are zero-byte placeholders of the
+same name: the reader never opens them (a logo is an ignored component), and
+the tests pin only that they are listed and never read. Nothing under this
+directory is formatted, linted or edited; a change here is a re-vendoring at
+a new commit and updates this notice.
