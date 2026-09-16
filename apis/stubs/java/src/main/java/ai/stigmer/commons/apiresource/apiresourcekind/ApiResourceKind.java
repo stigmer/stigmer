@@ -249,6 +249,17 @@ public enum ApiResourceKind
   memory(57),
   /**
    * <pre>
+   * An installed Agent Plugins package: the archive Stigmer materialised into
+   * skills, MCP servers, an agent and workflows, and the handle that upgrades
+   * and removes them together. A plugin is what you install; an agent is what
+   * runs. Members are the resources labelled with the plugin's id.
+   * </pre>
+   *
+   * <code>plugin = 58 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  plugin(58),
+  /**
+   * <pre>
    * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
@@ -501,6 +512,17 @@ public enum ApiResourceKind
   public static final int memory_VALUE = 57;
   /**
    * <pre>
+   * An installed Agent Plugins package: the archive Stigmer materialised into
+   * skills, MCP servers, an agent and workflows, and the handle that upgrades
+   * and removes them together. A plugin is what you install; an agent is what
+   * runs. Members are the resources labelled with the plugin's id.
+   * </pre>
+   *
+   * <code>plugin = 58 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int plugin_VALUE = 58;
+  /**
+   * <pre>
    * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
@@ -561,6 +583,7 @@ public enum ApiResourceKind
       case 54: return execution_context;
       case 56: return schedule;
       case 57: return memory;
+      case 58: return plugin;
       case 60: return project;
       default: return null;
     }

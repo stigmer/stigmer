@@ -1,0 +1,38 @@
+{
+  "name": "PluginAuthor",
+  "description": "PluginAuthor identifies who published the plugin.",
+  "protoType": "ai.stigmer.agentic.plugin.v1.PluginAuthor",
+  "protoFile": "apis/ai/stigmer/agentic/plugin/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Author name.",
+      "required": false
+    },
+    {
+      "name": "Email",
+      "jsonName": "email",
+      "protoField": "email",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Author email.",
+      "required": false
+    },
+    {
+      "name": "Url",
+      "jsonName": "url",
+      "protoField": "url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Author URL.",
+      "required": false
+    }
+  ]
+}

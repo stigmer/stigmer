@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugin.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// PluginStatus is the system-managed state of an installed plugin: the
+// archive identity and the receipt of the last push.
+//
+// @internal
+// The counts and warnings describe what the LAST push produced; they are
+// not a membership claim. Membership is derived on read from the
+// stigmer.ai/plugin label on the children (listMembers), so nothing here
+// can drift from the store.
+message PluginStatus {
+  // Standard audit information tracking creation and modification.
+  //
+  // @internal
+  // Field 99 follows Stigmer convention for audit placement.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // SHA-256 of the plugin archive, the immutable version identifier.
+  //
+  // @internal
+  // Calculated by the server from the pushed ZIP bytes; equals
+  // metadata.version.id. Every child carries it as the
+  // stigmer.ai/plugin-version label, the per-child convergence marker a
+  // re-push compares against before deciding it has nothing to do.
+  string digest = 1 [(buf.validate.field).string.pattern = "^$|^[a-f0-9]{64}$"];
+
+  // Storage key of the plugin archive.
+  string artifact_storage_key = 2;
+
+  // Current lifecycle state of the install.
+  PluginState state = 3;
+
+  // One sentence naming what failed when state is FAILED; empty otherwise.
+  //
+  // @internal
+  // The child's own refusal wrapped as "failed to materialize <kind>
+  // '<slug>' from plugin '<slug>': <cause>". A retry of the same archive
+  // re-materialises; apply and push are idempotent.
+  string error = 4;
+
+  // What the last push materialised, by kind.
+  PluginMaterialization materialized = 5;
+
+  // Warnings the last push recorded: components Stigmer does not carry,
+  // model hints it did not apply, names that shadow built-ins.
+  repeated PluginWarning warnings = 6;
+}
+
+// PluginState is the lifecycle state of a plugin install.
+enum PluginState {
+  // Unspecified state (default/invalid).
+  PLUGIN_STATE_UNSPECIFIED = 0;
+
+  // The archive is stored and its members are being materialised.
+  //
+  // @internal
+  // Persisted before the first child write so a crash mid-install leaves
+  // a head that says so; the next push of the same archive converges.
+  PLUGIN_STATE_INSTALLING = 1;
+
+  // Every member of the last push is materialised.
+  PLUGIN_STATE_READY = 2;
+
+  // A member failed to materialise; `error` names it.
+  PLUGIN_STATE_FAILED = 3;
+}
+
+// PluginMaterialization counts what a push produced, by kind.
+message PluginMaterialization {
+  // Skills materialised.
+  int32 skills = 1;
+
+  // MCP servers materialised.
+  int32 mcp_servers = 2;
+
+  // Agents materialised: one when the plugin carries a skill, a sub-agent or
+  // an agent overlay; zero for an MCP-only plugin.
+  int32 agents = 3;
+
+  // Workflows materialised from the plugin's Stigmer overlay.
+  int32 workflows = 4;
+}
+
+// PluginWarning is one thing a push noticed but did not refuse.
+message PluginWarning {
+  // Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
+  // "sub-agent-name-builtin", "version-not-taggable".
+  //
+  // @internal
+  // The library's PluginWarningKind values plus the server's own; a string
+  // rather than an enum because the library owns most of the vocabulary and
+  // the CLI already renders these kinds offline.
+  string kind = 1;
+
+  // The warning as one user-facing sentence.
+  string message = 2;
+
+  // The plugin-relative path the warning points at, when it has one.
+  string path = 3;
+}

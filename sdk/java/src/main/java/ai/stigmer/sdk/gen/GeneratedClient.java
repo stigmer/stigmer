@@ -25,6 +25,7 @@ public class GeneratedClient {
     public final OAuthAppClient oauthapp;
     public final OrganizationClient organization;
     public final PlatformClientClient platformclient;
+    public final PluginClient plugin;
     public final ProjectClient project;
     public final ScheduleClient schedule;
     public final SessionClient session;
@@ -53,6 +54,7 @@ public class GeneratedClient {
         this.oauthapp = new OAuthAppClient(channel);
         this.organization = new OrganizationClient(channel);
         this.platformclient = new PlatformClientClient(channel);
+        this.plugin = new PluginClient(channel);
         this.project = new ProjectClient(channel);
         this.schedule = new ScheduleClient(channel);
         this.session = new SessionClient(channel);

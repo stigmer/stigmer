@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugin.v1;
+
+// PluginSpec is the manifest metadata of an installed plugin.
+//
+// @internal
+// Every field is extracted by the backend from the package manifest
+// (plugin.json in any dialect) at push time and is never written by a
+// client; the shape follows SkillSpec.skill_md. Field names mirror the
+// @stigmer/plugin-package PluginPackage type one to one, so the mapping is
+// one function and a rename on either side is a visible edit.
+message PluginSpec {
+  // Plugin name as written in the manifest; the source of the resource's slug.
+  string name = 1;
+
+  // Version string as written in the manifest, typically Semantic Versioning.
+  //
+  // @internal
+  // Also the plugin's single-holder audit tag when it matches the tag
+  // pattern; the archive digest, not this string, is the version identity.
+  string version = 2;
+
+  // Human-readable description from the manifest.
+  string description = 3;
+
+  // Author information from the manifest.
+  PluginAuthor author = 4;
+
+  // Homepage URL from the manifest.
+  string homepage = 5;
+
+  // Source repository URL from the manifest.
+  string repository = 6;
+
+  // License identifier from the manifest.
+  string license = 7;
+
+  // Keywords from the manifest, for search and marketplace display.
+  repeated string keywords = 8;
+
+  // The manifest dialect the package was written in.
+  PluginDialect dialect = 9;
+}
+
+// PluginAuthor identifies who published the plugin.
+message PluginAuthor {
+  // Author name.
+  string name = 1;
+
+  // Author email.
+  string email = 2;
+
+  // Author URL.
+  string url = 3;
+}
+
+// PluginDialect names the manifest format a package was read from.
+//
+// Stigmer reads the open Agent Plugins format and the Cursor, Claude Code
+// and Codex dialects unchanged; the dialect is recorded for display and
+// support, never to branch behaviour after install.
+enum PluginDialect {
+  // Unspecified dialect (default/invalid).
+  PLUGIN_DIALECT_UNSPECIFIED = 0;
+
+  // The open Agent Plugins format: a root plugin.json.
+  PLUGIN_DIALECT_AGENT_PLUGINS = 1;
+
+  // Claude Code: .claude-plugin/plugin.json.
+  PLUGIN_DIALECT_CLAUDE = 2;
+
+  // Cursor: .cursor-plugin/plugin.json.
+  PLUGIN_DIALECT_CURSOR = 3;
+
+  // Codex: .codex-plugin/plugin.json.
+  PLUGIN_DIALECT_CODEX = 4;
+}

@@ -130,6 +130,7 @@
               "execution_context",
               "schedule",
               "memory",
+              "plugin",
               "project"
             ]
           },
@@ -351,6 +352,11 @@
           "name": "memory",
           "number": 57,
           "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers, an agent and workflows, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
         },
         {
           "name": "project",

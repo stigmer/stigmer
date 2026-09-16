@@ -19,20 +19,29 @@ class SkillId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class PushSkillRequest(_message.Message):
-    __slots__ = ("org", "artifact", "tag", "git_provenance", "message", "artifact_upload_ref")
+    __slots__ = ("org", "artifact", "tag", "git_provenance", "message", "artifact_upload_ref", "labels")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     ORG_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
     GIT_PROVENANCE_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_UPLOAD_REF_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
     org: str
     artifact: bytes
     tag: str
     git_provenance: _status_pb2.GitProvenance
     message: str
     artifact_upload_ref: str
-    def __init__(self, org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ..., message: _Optional[str] = ..., artifact_upload_ref: _Optional[str] = ...) -> None: ...
+    labels: _containers.ScalarMap[str, str]
+    def __init__(self, org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ..., message: _Optional[str] = ..., artifact_upload_ref: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class CreateSkillArtifactUploadUrlRequest(_message.Message):
     __slots__ = ("org", "size_bytes")

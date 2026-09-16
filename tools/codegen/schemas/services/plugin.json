@@ -1,0 +1,1023 @@
+{
+  "resource": "plugin",
+  "package": "ai.stigmer.agentic.plugin.v1",
+  "goImportPath": "pluginv1",
+  "services": [
+    {
+      "name": "PluginCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/plugin/v1/command.proto",
+      "methods": [
+        {
+          "name": "Push",
+          "inputType": "PushPluginRequest",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.PushPluginRequest",
+          "outputType": "Plugin",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
+          "description": "Push a plugin archive to install or upgrade it.\n Creates the plugin if it does not exist, or installs a new version of an\n existing plugin; pushing the archive already installed changes nothing.\n The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code\n or Codex layout; the response's status names what was materialised and\n what was skipped."
+        },
+        {
+          "name": "CreateArtifactUploadUrl",
+          "inputType": "CreatePluginArtifactUploadUrlRequest",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest",
+          "outputType": "PluginArtifactUploadUrl",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl",
+          "description": "Mint a short-lived, single-use upload URL for staging a plugin archive\n that exceeds the gRPC message-size cap (10MB). Flow:\n\n 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }\n 2. HTTP PUT the ZIP bytes to url\n 3. push(PushPluginRequest{ artifact_upload_ref })"
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Plugin",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
+          "description": "Update the visibility of a plugin and of every resource it materialised.\n Only modifies metadata.visibility on the plugin and its members.\n\n In the cloud edition, PUBLIC is operator-gated: public listing crosses\n every org boundary, so it is granted by the platform team on request."
+        },
+        {
+          "name": "Delete",
+          "inputType": "PluginId",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
+          "outputType": "Plugin",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
+          "description": "Delete a plugin and every resource it materialised.\n Refused when a resource outside the plugin still references a member;\n the error names the referencing resources."
+        }
+      ]
+    },
+    {
+      "name": "PluginQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/plugin/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "PluginId",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
+          "outputType": "Plugin",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
+          "description": "Get a single plugin by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Plugin",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
+          "description": "Get a plugin by API resource reference with version support.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the installed version\n - Tag name (the manifest version, e.g. \"1.2.0\") → Resolves to the version holding this tag\n - SHA-256 digest (64 hex chars) → Returns the exact immutable version"
+        },
+        {
+          "name": "ListMembers",
+          "inputType": "PluginId",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
+          "outputType": "ListPluginMembersResponse",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse",
+          "description": "List the resources an installed plugin materialised.\n\n Returns every skill, MCP server, agent and workflow the plugin owns, in\n materialisation order."
+        },
+        {
+          "name": "ListVersions",
+          "inputType": "ListPluginVersionsInput",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput",
+          "outputType": "ListPluginVersionsResponse",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse",
+          "description": "List version history for a plugin.\n\n Returns every installed version ordered by push time (newest first), with\n its digest, tag, actor and archive storage key."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "PushPluginRequest",
+      "description": "PushPluginRequest installs or upgrades a plugin from its archive.\n Creates the plugin if it does not exist, or installs a new version of an\n existing plugin; pushing the archive already installed changes nothing.\n\n The archive travels one of two ways (exactly one must be set):\n - artifact: inline ZIP bytes, bounded by the gRPC message-size cap (10MB).\n - artifact_upload_ref: a reference to bytes staged via\n   createArtifactUploadUrl() + HTTP PUT, for archives above the cap.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PushPluginRequest",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the plugin is installed into.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Artifact",
+          "jsonName": "artifact",
+          "protoField": "artifact",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The plugin package as a ZIP archive: the plugin folder with its manifest,\n skills/, mcp.json, agents/ and ai.stigmer/ at the archive root.\n\n Mutually exclusive with artifact_upload_ref (see the message comment).",
+          "required": false
+        },
+        {
+          "name": "ArtifactUploadRef",
+          "jsonName": "artifactUploadRef",
+          "protoField": "artifact_upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Reference to an archive staged via createArtifactUploadUrl().\n\n Mutually exclusive with artifact (see the message comment).",
+          "required": false
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_platform"
+            ]
+          },
+          "description": "Visibility for the plugin and every resource it materialises.\n Unspecified means the kind's default (organization).",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional human-readable message describing this version, kept in\n metadata.version.message for the version history.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CreatePluginArtifactUploadUrlRequest",
+      "description": "CreatePluginArtifactUploadUrlRequest asks the server to mint a staging\n slot for a plugin archive too large to travel inline.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that will own the plugin (the authorization scope; the\n caller needs the same can_create_plugin permission push requires).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Declared size of the archive in bytes; an over-limit declaration is\n refused before any bytes move.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginArtifactUploadUrl",
+      "description": "PluginArtifactUploadUrl is a short-lived, single-use capability for\n staging a plugin archive over HTTP.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to PUT the archive bytes to. Content-Type: application/zip.",
+          "required": false
+        },
+        {
+          "name": "ArtifactUploadRef",
+          "jsonName": "artifactUploadRef",
+          "protoField": "artifact_upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque reference to pass as PushPluginRequest.artifact_upload_ref after\n the PUT succeeds. Single-use; invalid after the push consumes it or the\n TTL lapses.",
+          "required": false
+        },
+        {
+          "name": "TtlSeconds",
+          "jsonName": "ttlSeconds",
+          "protoField": "ttl_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Time-to-live for the upload URL in seconds.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#member\n - PUBLIC:   resource#viewer@identity_account:* (gated by allow_public)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, workflow, skill, mcp_server):\n     PRIVATE, ORG, PUBLIC, or PLATFORM\n - Instances (agent_instance, workflow_instance):\n     PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)\n\n System-managed DEFAULT instances reject visibility updates entirely:\n their access structurally tracks the parent blueprint via the\n default_of FGA relation.",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_platform"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "agent_share",
+              "agent_channel",
+              "channel_app",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "schedule",
+              "memory",
+              "plugin",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListPluginMembersResponse",
+      "description": "ListPluginMembersResponse lists the resources an installed plugin owns.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Members",
+          "jsonName": "members",
+          "protoField": "members",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginMember"
+            }
+          },
+          "description": "Members in materialisation order: skills, MCP servers, agents, workflows.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListPluginVersionsInput",
+      "description": "ListPluginVersionsInput requests the version history for a plugin.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the plugin.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Plugin slug (unique within the organization).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque token for cursor-based pagination. Empty for the first page.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of versions to return per page. Default is 50.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListPluginVersionsResponse",
+      "description": "ListPluginVersionsResponse is a page of plugin version history.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Versions",
+          "jsonName": "versions",
+          "protoField": "versions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginVersionEntry"
+            }
+          },
+          "description": "Versions, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for the next page. Empty when no more pages exist.",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of versions across all pages.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (Before cloud#257 the tuple targeted organization#member, which\n excluded viewer-role users; legacy tuples keep resolving until the\n cloud's boot-time backfill converges them.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers, an agent and workflows, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "PluginState",
+      "description": "PluginState is the lifecycle state of a plugin install.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginState",
+      "values": [
+        {
+          "name": "PLUGIN_STATE_INSTALLING",
+          "number": 1,
+          "description": "The archive is stored and its members are being materialised."
+        },
+        {
+          "name": "PLUGIN_STATE_READY",
+          "number": 2,
+          "description": "Every member of the last push is materialised."
+        },
+        {
+          "name": "PLUGIN_STATE_FAILED",
+          "number": 3,
+          "description": "A member failed to materialise; `error` names it."
+        }
+      ]
+    },
+    {
+      "name": "PluginDialect",
+      "description": "PluginDialect names the manifest format a package was read from.\n\n Stigmer reads the open Agent Plugins format and the Cursor, Claude Code\n and Codex dialects unchanged; the dialect is recorded for display and\n support, never to branch behaviour after install.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginDialect",
+      "values": [
+        {
+          "name": "PLUGIN_DIALECT_AGENT_PLUGINS",
+          "number": 1,
+          "description": "The open Agent Plugins format: a root plugin.json."
+        },
+        {
+          "name": "PLUGIN_DIALECT_CLAUDE",
+          "number": 2,
+          "description": "Claude Code: .claude-plugin/plugin.json."
+        },
+        {
+          "name": "PLUGIN_DIALECT_CURSOR",
+          "number": 3,
+          "description": "Cursor: .cursor-plugin/plugin.json."
+        },
+        {
+          "name": "PLUGIN_DIALECT_CODEX",
+          "number": 4,
+          "description": "Codex: .codex-plugin/plugin.json."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Plugin is an installed Agent Plugins package: the unit of install, upgrade\n and removal for a set of skills, MCP servers, an agent and workflows.\n\n A plugin is what you install; an agent is what runs. Installing a plugin\n materialises ordinary Stigmer resources in the organization, each labelled\n with the plugin's id; the plugin owns their grouping, version and removal\n while execution, authorization and sharing stay on the resources.",
+  "statusType": {
+    "name": "PluginStatus",
+    "description": "PluginStatus is the system-managed state of an installed plugin: the\n archive identity and the receipt of the last push.",
+    "protoType": "ai.stigmer.agentic.plugin.v1.PluginStatus",
+    "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information tracking creation and modification.",
+        "required": false
+      },
+      {
+        "name": "Digest",
+        "jsonName": "digest",
+        "protoField": "digest",
+        "type": {
+          "kind": "string"
+        },
+        "description": "SHA-256 of the plugin archive, the immutable version identifier.",
+        "required": false,
+        "validation": {
+          "pattern": "^$|^[a-f0-9]{64}$"
+        }
+      },
+      {
+        "name": "ArtifactStorageKey",
+        "jsonName": "artifactStorageKey",
+        "protoField": "artifact_storage_key",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Storage key of the plugin archive.",
+        "required": false
+      },
+      {
+        "name": "State",
+        "jsonName": "state",
+        "protoField": "state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.plugin.v1.PluginState",
+          "enumValues": [
+            "PLUGIN_STATE_INSTALLING",
+            "PLUGIN_STATE_READY",
+            "PLUGIN_STATE_FAILED"
+          ]
+        },
+        "description": "Current lifecycle state of the install.",
+        "required": false
+      },
+      {
+        "name": "Error",
+        "jsonName": "error",
+        "protoField": "error",
+        "type": {
+          "kind": "string"
+        },
+        "description": "One sentence naming what failed when state is FAILED; empty otherwise.",
+        "required": false
+      },
+      {
+        "name": "Materialized",
+        "jsonName": "materialized",
+        "protoField": "materialized",
+        "type": {
+          "kind": "message",
+          "messageType": "PluginMaterialization"
+        },
+        "description": "What the last push materialised, by kind.",
+        "required": false
+      },
+      {
+        "name": "Warnings",
+        "jsonName": "warnings",
+        "protoField": "warnings",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "PluginWarning"
+          }
+        },
+        "description": "Warnings the last push recorded: components Stigmer does not carry,\n model hints it did not apply, names that shadow built-ins.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginMaterialization",
+      "description": "PluginMaterialization counts what a push produced, by kind.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginMaterialization",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "Skills",
+          "jsonName": "skills",
+          "protoField": "skills",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Skills materialised.",
+          "required": false
+        },
+        {
+          "name": "McpServers",
+          "jsonName": "mcpServers",
+          "protoField": "mcp_servers",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "MCP servers materialised.",
+          "required": false
+        },
+        {
+          "name": "Agents",
+          "jsonName": "agents",
+          "protoField": "agents",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Agents materialised: one when the plugin carries a skill, a sub-agent or\n an agent overlay; zero for an MCP-only plugin.",
+          "required": false
+        },
+        {
+          "name": "Workflows",
+          "jsonName": "workflows",
+          "protoField": "workflows",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Workflows materialised from the plugin's Stigmer overlay.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginWarning",
+      "description": "PluginWarning is one thing a push noticed but did not refuse.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginWarning",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable warning kind, e.g. \"component-ignored\", \"model-hint-unresolved\",\n \"sub-agent-name-builtin\", \"version-not-taggable\".",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The warning as one user-facing sentence.",
+          "required": false
+        },
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The plugin-relative path the warning points at, when it has one.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

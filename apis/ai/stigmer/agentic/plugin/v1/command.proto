@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugin.v1;
+
+import "ai/stigmer/agentic/plugin/v1/api.proto";
+import "ai/stigmer/agentic/plugin/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// PluginCommandController handles write operations for plugins.
+service PluginCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = plugin;
+
+  // Push a plugin archive to install or upgrade it.
+  // Creates the plugin if it does not exist, or installs a new version of an
+  // existing plugin; pushing the archive already installed changes nothing.
+  // The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
+  // or Codex layout; the response's status names what was materialised and
+  // what was skipped.
+  //
+  // @internal
+  // Authorization: can_create_plugin in the organization; each materialised
+  // child runs its own create chain in-process AS THE CALLER, so the child
+  // kinds' create permissions are evaluated too.
+  //
+  // The backend reads the package, refuses reserved labels in the overlay,
+  // plans every child slug against the organization, stores the archive
+  // (deduplicated by digest), archives the previous version, persists the
+  // head as INSTALLING, materialises skills, MCP servers, the agent and
+  // workflows, removes members the new archive dropped, and persists the
+  // head as READY. A re-push whose digest, state and members already
+  // converge returns the head with no child writes.
+  rpc push(PushPluginRequest) returns (Plugin) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_plugin;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to install plugin in this organization";
+  }
+
+  // Mint a short-lived, single-use upload URL for staging a plugin archive
+  // that exceeds the gRPC message-size cap (10MB). Flow:
+  //
+  // 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+  // 2. HTTP PUT the ZIP bytes to url
+  // 3. push(PushPluginRequest{ artifact_upload_ref })
+  //
+  // @internal
+  // Authorization matches push(): the URL is a capability to stage bytes,
+  // so minting one requires the same permission as consuming it. The slots
+  // are the skill transfer lane's, one upload surface for every archive.
+  rpc createArtifactUploadUrl(CreatePluginArtifactUploadUrlRequest) returns (PluginArtifactUploadUrl) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_plugin;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to install plugin in this organization";
+  }
+
+  // Update the visibility of a plugin and of every resource it materialised.
+  // Only modifies metadata.visibility on the plugin and its members.
+  //
+  // In the cloud edition, PUBLIC is operator-gated: public listing crosses
+  // every org boundary, so it is granted by the platform team on request.
+  //
+  // @internal
+  // Authorization: can_edit on the plugin for private/org/platform
+  // transitions; escalation to PUBLIC requires can_set_public_visibility on
+  // platform:stigmer. The fan-out to members rides each kind's own
+  // updateVisibility chain in-process as the caller.
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Plugin) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update plugin visibility";
+  }
+
+  // Delete a plugin and every resource it materialised.
+  // Refused when a resource outside the plugin still references a member;
+  // the error names the referencing resources.
+  //
+  // @internal
+  // Members are deleted through their own delete chains in-process (agent,
+  // workflows, MCP servers, skills, in that order), then the head; a
+  // failure part-way leaves a plugin whose remaining members are still
+  // listed, and a retry converges. Audit history is preserved.
+  rpc delete(PluginId) returns (Plugin) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete plugin";
+  }
+}
