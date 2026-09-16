@@ -26,9 +26,15 @@
  * read RPC redacts secrets unless the caller presents an execution-scoped
  * runner token, and the discovery activity has no execution of its own to
  * exchange for one — the capability travels with the work item. It is a
- * decrypt-lane discriminator, not a secret value: short-TTL, bound to
- * this connect flow's ephemeral EC (deleted when the handler returns),
- * and useless once either expires.
+ * short-TTL token bound to this connect flow's ephemeral EC (deleted when
+ * the connect settles, on the blocking lane and the async one alike) and
+ * useless once either expires. What it unlocks depends on the posture:
+ * under trusted-local it is a decrypt-lane discriminator and nothing more;
+ * under the built-in authorization posture the same token also admits its
+ * bearer AS THE PERSON who asked for the connect, on every RPC, for as
+ * long as the EC row exists (runnerauth/runnerauth.ts, the two lanes by
+ * posture; runnerauth/bound-execution.ts, the `mcp-connect` binding). It
+ * sits in Temporal history in the clear like every server-written input.
  */
 export interface ConnectWorkflowInput {
   readonly mcp_server_id: string;

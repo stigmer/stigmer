@@ -114,7 +114,10 @@ From the next boot, every request needs a credential:
   stops with a message saying so; start it again while signed in. A run's
   credential is written into the run's Temporal history and stays valid for ten
   minutes after the run ends, so protect Temporal the way you protect the
-  database.
+  database. To end a run's credential, end the run: cancel it and the credential
+  is dead ten minutes later. To end every run's credential at once, rotate
+  `STIGMER_RUNNER_TOKEN_KEY`; every run in flight stops and must be started
+  again.
 - Requests without a credential are rejected with
   `authentication token missing`. Requests with a bad credential get a specific
   reason (`token has expired`, `token signature verification failed`, and so

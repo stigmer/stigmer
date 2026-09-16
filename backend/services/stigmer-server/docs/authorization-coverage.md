@@ -228,7 +228,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| MemoryCommandController.create | is_skip_authorization | chain-with-Authorize |
+| MemoryCommandController.create | is_skip_authorization | chain-with-Authorize (the GuardMemoryCapture mid-chain step decides the row's subject through the composed `RunnerCredentialProvider.authorizeMemoryCapture`: under the built-in posture an agent-bound runner's capture is admitted as the run's person with the run's session as the proved provenance, a workflow- or connect-bound runner is refused, and a person's own create carries no capture credential and so no subject — `src/pipeline/steps/guard-memory-capture.ts`, `src/runnerauth/built-in-runner-credential-provider.ts`) |
 | MemoryCommandController.update | config: can_edit on memory (field metadata.id), error_msg yes | chain-with-Authorize |
 | MemoryCommandController.delete | config: can_delete on memory (field value), error_msg yes | chain-with-Authorize |
 | MemoryCommandController.confirm | config: can_edit on memory (field value), error_msg yes | chain-with-Authorize (shared runTransition helper, own descriptor) |
@@ -240,7 +240,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; P1 sp.run-gate, stigmer-cloud#709) |
+| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; P1 sp.run-gate, stigmer-cloud#709; under the built-in posture these five run-gate checks are answered `allow` for a WORKFLOW-bound runner before the Authorizer is asked, so a shared workflow's `agent_call` creates its child as the person who ran the workflow — `src/authorization/lane-admission.ts`, composed in `boot/compose.ts`; an agent-bound runner and every person are checked as themselves) |
 | AgentExecutionCommandController.update | config: can_edit on agent_execution (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentExecutionCommandController.updateStatus | config: can_edit on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
 | AgentExecutionCommandController.submitApproval | config: can_edit on agent_execution (field agent_execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
