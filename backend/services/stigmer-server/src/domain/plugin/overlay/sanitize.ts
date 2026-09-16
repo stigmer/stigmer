@@ -13,7 +13,9 @@
  *     `platform:stigmer`, the same check GuardReservedLabels runs and the
  *     same lazy consultation of the one composed Authorizer (the
  *     open-source permissive default allows; an enforcing authorizer
- *     denies with PERMISSION_DENIED naming the keys);
+ *     denies with INVALID_ARGUMENT naming the keys, the code the
+ *     reserved-label guard answers a client mutation with, so one refusal
+ *     class carries one code wherever it is met);
  *   - `metadata.id` is the server's to mint, never an author's;
  *   - the agent overlay's name is the plugin's, a server overlay's name is
  *     its `mcpServers` key, a workflow overlay's name is its file stem: an
@@ -130,7 +132,7 @@ export async function sanitizeOverlays(
       throw new ConnectError(
         `Labels in the reserved '${RESERVED_LABEL_PREFIX}' namespace are platform-managed and ` +
           `cannot be set by a plugin (${listed}). Remove them from the plugin's ai.stigmer/ documents.`,
-        Code.PermissionDenied,
+        Code.InvalidArgument,
       );
     }
     case "unavailable":

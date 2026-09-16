@@ -1,7 +1,7 @@
 /**
  * Pins the sanitiser, the one place plugin-provided metadata is judged
  * before it rides the in-process lane: a `stigmer.ai/*` label in an
- * overlay is refused PERMISSION_DENIED naming the document and the keys
+ * overlay is refused INVALID_ARGUMENT naming the document and the keys
  * under a denying authorizer and passes under an allowing one (the
  * open-source posture), the operator check is consulted lazily and only
  * for the platform capability, a preset id and a name that describes
@@ -86,7 +86,7 @@ describe("sanitizeOverlays", () => {
         USER,
       ),
     );
-    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toContain(
       "ai.stigmer/agent.yaml: stigmer.ai/default-agent",
     );

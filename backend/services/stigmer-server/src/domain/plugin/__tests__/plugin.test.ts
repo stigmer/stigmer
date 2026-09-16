@@ -10,7 +10,9 @@
  * upgrade drops what the archive dropped; uninstall removes every member
  * and is refused while a user's own agent still references one; a slug an
  * unmanaged resource holds refuses the install; a bad overlay refuses
- * before any write.
+ * before any write. A second composition, under an authorizer that denies
+ * `can_write_reserved_labels`, pins the reserved-label refusal the
+ * open-source posture allows by design.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import net from "node:net";
@@ -46,11 +48,13 @@ import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { writeArchive } from "../../../archive/write.js";
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
+import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
 import { createLogger } from "../../../boot/logger.js";
 import {
   PLUGIN_LABEL,
@@ -677,5 +681,116 @@ describe("Plugin push — refusals before any write", () => {
       "The author's own instructions for this agent.",
     );
     expect(agent.metadata?.labels[PLUGIN_LABEL]).toBe(installed.metadata?.id);
+  });
+});
+
+/**
+ * The reserved-label refusal where an authorizer enforces. The open-source
+ * built-in authorizer allows `can_write_reserved_labels` by design, so the
+ * default composition above cannot show the refusal; this composition
+ * registers an authorizer that denies exactly that permission and allows
+ * everything else, the posture a hosted edition takes. An archive whose
+ * overlay carries a `stigmer.ai/*` label is refused before a byte is
+ * written, and a plain overlay under the same authorizer still installs —
+ * so the sanitiser asks the platform capability and nothing broader.
+ */
+describe("Plugin push under an authorizer that enforces reserved labels", () => {
+  let enforcingDir: string;
+  let enforcing: ComposedServer;
+  let enforcingPlugins: Client<typeof PluginCommandController>;
+  let enforcingQuery: Client<typeof PluginQueryController>;
+  const observed: AuthzCheck[] = [];
+
+  beforeAll(async () => {
+    enforcingDir = mkdtempSync(path.join(tmpdir(), "plugin-domain-enforcing-"));
+    const grpcPort = await reserveFreePort();
+    const authorizer: Authorizer = {
+      authorize(_caller, check) {
+        if (check.permission === IamPermission.can_write_reserved_labels) {
+          observed.push(check);
+          return Promise.resolve({
+            kind: "deny",
+            reason: "reserved labels are the platform's",
+          });
+        }
+        return Promise.resolve({ kind: "allow" });
+      },
+    };
+    enforcing = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        TEMPORAL_HOST_PORT: "127.0.0.1:1",
+        GRPC_PORT: String(grpcPort),
+        DB_PATH: path.join(enforcingDir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(enforcingDir, "artifacts"),
+        STORAGE_PATH: path.join(enforcingDir, "storage"),
+      }),
+      logger: silentLogger,
+      host: "127.0.0.1",
+      extensions: [{ name: "reserved-labels-enforced", authorizer }],
+    });
+    const port = await enforcing.start();
+    const transport: Transport = createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+    });
+    enforcingPlugins = createClient(PluginCommandController, transport);
+    enforcingQuery = createClient(PluginQueryController, transport);
+  });
+
+  afterAll(async () => {
+    await enforcing.shutdown();
+    rmSync(enforcingDir, { recursive: true, force: true });
+  });
+
+  it("refuses an archive whose overlay carries a reserved label, naming the document and the key, and writes nothing", async () => {
+    const name = uniqueName("plg-forged");
+    const forged = withFile(
+      thermosLike(name),
+      "ai.stigmer/agent.yaml",
+      [
+        "apiVersion: agentic.stigmer.ai/v1",
+        "kind: Agent",
+        "metadata:",
+        `  name: ${name}`,
+        "  labels:",
+        "    stigmer.ai/plugin: plg_somebody_else",
+        "spec:",
+        "  instructions: Long enough instructions for the forged agent.",
+        "",
+      ].join("\n"),
+    );
+    const error = await expectCode(
+      enforcingPlugins.push({ org: ORG, artifact: archiveOf(forged) }),
+      Code.InvalidArgument,
+    );
+    expect(error.rawMessage).toContain(
+      "cannot be set by a plugin (ai.stigmer/agent.yaml: stigmer.ai/plugin)",
+    );
+    expect(observed.map((c) => c.permission)).toEqual([
+      IamPermission.can_write_reserved_labels,
+    ]);
+    await expectCode(
+      enforcingQuery.getByReference(
+        createMessage(ApiResourceReferenceSchema, {
+          org: ORG,
+          kind: ApiResourceKind.plugin,
+          slug: name,
+        }),
+      ),
+      Code.NotFound,
+    );
+  });
+
+  it("installs a plain overlay under the same authorizer: the platform stamps its own labels through the in-process origin", async () => {
+    const name = uniqueName("plg-honest");
+    const installed = await enforcingPlugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name)),
+    });
+    expect(installed.status?.state).toBe(PluginState.READY);
+    const { members } = await enforcingQuery.listMembers({
+      value: installed.metadata!.id,
+    });
+    expect(members).toHaveLength(3);
   });
 });
