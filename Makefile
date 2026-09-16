@@ -930,7 +930,10 @@ check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
 # ─── Docs Linting ─────────────────────────────
 
-DOCS_SOURCES = $(shell find docs -path docs/_archive -prune -o \( -name '*.md' -o -name '*.mdx' \) -print)
+# Every docs page, and nothing else: docs/AGENTS.md is a package guide owned by
+# GUIDANCE_SOURCES below, and Vale's Stigmer vocabulary (Agent, Skill) would
+# fight prose that is about coding agents and repo skills.
+DOCS_SOURCES = $(shell find docs -path docs/_archive -prune -o \( -name '*.md' -o -name '*.mdx' \) -not -name AGENTS.md -print)
 
 # Agent guidance (root AGENTS.md, nested package guides, .agents/**). The
 # script is the one definition of which files count, so formatting and the

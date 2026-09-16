@@ -2,10 +2,10 @@
 // Run via `node --test scripts/agents-check.test.mjs` (wired into root `npm test`).
 //
 // Every case builds a throwaway repository under a temp directory, so the
-// suite never depends on this repository's own guidance state. The three
+// suite never depends on this repository's own guidance state. The four
 // invariants each get a happy path and the failure the gate exists to catch:
-// a shim that drifted or was orphaned, a citation that points at nothing, and
-// a private-record id in public prose.
+// a shim that drifted or was orphaned, a citation that points at nothing, a
+// private-record id in public prose, and a guide that outgrew its budget.
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
@@ -14,10 +14,13 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 import {
+  WORD_BUDGETS,
   asPathCitation,
+  checkBudgets,
   checkCitations,
   checkLeakage,
   collectGuidanceFiles,
+  countWords,
   discoverNestedGuides,
   extractCitedPaths,
   renderShim,
@@ -168,9 +171,9 @@ test("private-record identifiers fail public guidance; --private-repo relaxes on
   const root = repo({
     "AGENTS.md": [
       "Decided in _projects/2026-09/some-record/tasks/T01_0_plan.md.",
-      "Ruled at Q-S5-2; see F-M2-23.",
-      "DD-006 is defined in this repository and is fine.",
-      "T0 alone, or 2026-09-16, or PR #1136, are fine too.",
+      "Ruled at Q-AB-1; see F-CD-2.",
+      "Record 20260101.07 chose DD-012.",
+      "T0 alone, 2026-09-16, a 2026.09 release, DD-MM dates, or PR #1136, are fine.",
     ].join("\n"),
   });
   try {
@@ -180,19 +183,47 @@ test("private-record identifiers fail public guidance; --private-repo relaxes on
       [
         "planning-record path in public guidance: _projects/",
         "task file id in public guidance: T01_0",
-        "ruling id in public guidance: Q-S5-2",
-        "finding id in public guidance: F-M2-23",
+        "ruling id in public guidance: Q-AB-1",
+        "finding id in public guidance: F-CD-2",
+        "planning-record id in public guidance: 20260101.07",
+        "decision id in public guidance: DD-012",
       ],
     );
     const privateFindings = checkLeakage(root, ["AGENTS.md"], { privateRepo: true });
-    assert.equal(privateFindings.length, 3);
+    assert.equal(privateFindings.length, 5);
     assert.ok(privateFindings.every((f) => !f.includes("planning-record path")));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("runGate composes the three checks and reports green only when all pass", () => {
+test("a guide over its word budget is a finding; the root and nested budgets differ; .agents docs carry none", () => {
+  const words = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ") + "\n";
+  const root = repo({
+    "AGENTS.md": words(WORD_BUDGETS.root),
+    "backend/services/runner/AGENTS.md": words(WORD_BUDGETS.nested + 1),
+    "sdk/AGENTS.md": words(WORD_BUDGETS.nested),
+    ".agents/README.md": words(WORD_BUDGETS.root * 2),
+  });
+  try {
+    assert.equal(countWords("one  two\n`three/four`\n\n```\nfive\n```\n"), 6, "every token counts: spans, fence markers and their contents are all loaded");
+    const { findings, measured } = checkBudgets(root);
+    assert.deepEqual(
+      measured.map((m) => [m.rel, m.kind, m.words]),
+      [
+        ["AGENTS.md", "root", WORD_BUDGETS.root],
+        ["backend/services/runner/AGENTS.md", "nested", WORD_BUDGETS.nested + 1],
+        ["sdk/AGENTS.md", "nested", WORD_BUDGETS.nested],
+      ],
+    );
+    assert.equal(findings.length, 1, "exactly at the budget passes; one word over fails");
+    assert.match(findings[0], /^backend\/services\/runner\/AGENTS\.md: 601 words exceeds the 600-word budget for a nested guide/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("runGate composes the four checks and reports green only when all pass", () => {
   const root = repo({
     "AGENTS.md": "Root guide. See `backend/services/runner/AGENTS.md`.\n",
     "backend/services/runner/AGENTS.md": GUIDE,
@@ -207,6 +238,11 @@ test("runGate composes the three checks and reports green only when all pass", (
     assert.deepEqual(synced.findings, []);
     assert.deepEqual(synced.written, [".cursor/rules/agents-backend-services-runner.mdc"]);
     assert.deepEqual(synced.files, ["AGENTS.md", "backend/services/runner/AGENTS.md", ".agents/README.md"]);
+    assert.deepEqual(
+      synced.measured.map((m) => m.rel),
+      ["AGENTS.md", "backend/services/runner/AGENTS.md"],
+      "budgets are measured for the guides only, never the .agents docs",
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

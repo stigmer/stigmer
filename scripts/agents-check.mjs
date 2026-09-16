@@ -4,7 +4,7 @@
  * Gate for the repo-owned agent guidance: root `AGENTS.md`, the nested
  * `<package>/AGENTS.md` guides, and `.agents/**` (README, principles, skills).
  *
- * Three invariants, all static and dependency-free so the gate is cheap,
+ * Four invariants, all static and dependency-free so the gate is cheap,
  * offline and deterministic in CI and in a fresh worktree:
  *
  *   1. Every nested guide has a Cursor shim, and the shim is current. Cursor
@@ -29,10 +29,18 @@
  *
  *   3. No private-record identifiers. This repository is public; its guidance
  *      must read as if the current design always existed and must cite nothing
- *      a reader of the public repo cannot open. Planning-record paths, task
- *      file names, and ruling or finding identifiers fail the gate.
- *      `--private-repo` relaxes only the record-path pattern for a repository
- *      that legitimately holds its own planning records.
+ *      a reader of the public repo cannot open. Planning-record paths and ids,
+ *      task file names, and decision, ruling or finding identifiers fail the
+ *      gate. `--private-repo` relaxes only the record-path pattern for a
+ *      repository that legitimately holds its own planning records.
+ *
+ *   4. Guides stay within a word budget. The root guide is injected into every
+ *      conversation in the window and a nested guide into every conversation
+ *      that touches its package, so every word is paid for repeatedly. A guide
+ *      is an index over headers and READMEs, and the budget is what keeps it
+ *      one: a guide that needs more room is restating something it should be
+ *      pointing at. Words are counted because they are the unit closest to the
+ *      cost; line counts change with Prettier's wrapping and say nothing.
  *
  * Usage:
  *   node scripts/agents-check.mjs            check (exit 1 on any finding)
@@ -65,16 +73,28 @@ const SKIPPED_DIR_NAMES = new Set(["node_modules", "dist", "out", "target", "bui
 const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$", "-", "<", "/"];
 
 /**
- * Private-record identifier patterns. The first is the planning-record tree; the
- * rest are the record-internal ids (task files `T01_`, rulings `Q-S5-2`,
- * findings `F-M2-23`) that only a holder of the records can resolve.
+ * Private-record identifier patterns. The first two locate the planning-record
+ * tree (its path, and a record's `YYYYMMDD.NN` folder id); the rest are the
+ * record-internal ids (task files `T01_`, decisions `DD-012`, rulings `Q-AB-1`,
+ * findings `F-CD-2`) that only a holder of the records can resolve. The shapes
+ * are illustrative; none of these examples names a real record.
  */
 const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },
+  { name: "planning-record id", re: /\b20[0-9]{6}\.[0-9]{2}\b/, privateOk: false },
   { name: "task file id", re: /\bT0[0-9]_[0-9]/, privateOk: false },
+  { name: "decision id", re: /\bDD-[0-9]{3}\b/, privateOk: false },
   { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*-[0-9]+\b/, privateOk: false },
   { name: "finding id", re: /\bF-[A-Z][A-Z0-9]*-[0-9]+\b/, privateOk: false },
 ];
+
+/**
+ * Word budgets per guide kind. The root is paid in every conversation; a nested
+ * guide in every conversation that touches its package. Half the root for a
+ * package guide is the ceiling, not the target: the shortest index that still
+ * names every header and law wins.
+ */
+export const WORD_BUDGETS = { root: 1200, nested: 600 };
 
 /** Walk `root` and return repo-relative POSIX paths of every file `keep` accepts, skipping build output and dot-directories. */
 function walk(root, keep, dir = root, acc = []) {
@@ -250,12 +270,59 @@ export function checkLeakage(root, files, { privateRepo }) {
   return findings;
 }
 
+/** Whitespace-separated tokens, code spans and fences included: everything in the file is loaded, so everything counts. */
+export function countWords(text) {
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Measure the root guide and every nested guide against `WORD_BUDGETS`.
+ * Returns the findings plus a per-file measurement so the summary line can
+ * show how much headroom remains. `.agents/**` docs are not guides and carry
+ * no budget: they load only when a reader opens them.
+ */
+export function checkBudgets(root) {
+  const guides = [
+    ...(existsSync(join(root, "AGENTS.md")) ? [{ rel: "AGENTS.md", kind: "root" }] : []),
+    ...discoverNestedGuides(root).map((rel) => ({ rel, kind: "nested" })),
+  ];
+  const measured = guides.map(({ rel, kind }) => ({
+    rel,
+    kind,
+    words: countWords(readFileSync(join(root, rel), "utf8")),
+    budget: WORD_BUDGETS[kind],
+  }));
+  const findings = measured
+    .filter((m) => m.words > m.budget)
+    .map((m) => `${m.rel}: ${m.words} words exceeds the ${m.budget}-word budget for a ${m.kind} guide; point at a header or README instead of restating it`);
+  return { findings, measured };
+}
+
+/** One clause per guide kind for the summary line: `root 1114/1200, nested max 540/600 (docs/AGENTS.md)`. */
+function describeBudgets(measured) {
+  const parts = [];
+  const rootGuide = measured.find((m) => m.kind === "root");
+  if (rootGuide) parts.push(`root ${rootGuide.words}/${rootGuide.budget}`);
+  const nested = measured.filter((m) => m.kind === "nested");
+  if (nested.length > 0) {
+    const largest = nested.reduce((a, b) => (b.words > a.words ? b : a));
+    parts.push(`nested max ${largest.words}/${largest.budget} (${largest.rel})`);
+  }
+  return parts.join(", ");
+}
+
 /** Run everything against `root`; returns findings (empty means green) and, for `--sync`, what changed. */
 export function runGate(root, { sync = false, privateRepo = false } = {}) {
   const shims = syncShims(root, { write: sync });
   const files = collectGuidanceFiles(root);
-  const findings = [...shims.findings, ...checkCitations(root, files), ...checkLeakage(root, files, { privateRepo })];
-  return { findings, written: shims.written, removed: shims.removed, files };
+  const budgets = checkBudgets(root);
+  const findings = [
+    ...shims.findings,
+    ...checkCitations(root, files),
+    ...checkLeakage(root, files, { privateRepo }),
+    ...budgets.findings,
+  ];
+  return { findings, written: shims.written, removed: shims.removed, files, measured: budgets.measured };
 }
 
 function main(argv) {
@@ -269,7 +336,7 @@ function main(argv) {
   }
 
   const sync = args.has("--sync");
-  const { findings, written, removed, files } = runGate(root, { sync, privateRepo });
+  const { findings, written, removed, files, measured } = runGate(root, { sync, privateRepo });
   for (const w of written) console.log(`wrote   ${w}`);
   for (const r of removed) console.log(`removed ${r}`);
   if (findings.length > 0) {
@@ -277,7 +344,12 @@ function main(argv) {
     console.error(`agents-check: ${findings.length} finding(s) across ${files.length} guidance file(s)`);
     return 1;
   }
-  console.log(`agents-check: ${files.length} guidance file(s), ${discoverNestedGuides(root).length} shim(s) in sync, no findings`);
+  const budgets = describeBudgets(measured);
+  console.log(
+    `agents-check: ${files.length} guidance file(s), ${discoverNestedGuides(root).length} shim(s) in sync` +
+      (budgets ? `, words ${budgets}` : "") +
+      `, no findings`,
+  );
   return 0;
 }
 
