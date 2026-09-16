@@ -58,6 +58,7 @@ definitions, API names, and examples follow below.
 | ----------------- | --------------------- | -------------------------------- | ------------------- | -------------------------------------- | -------------- |
 | **Agent**         | Agent                 | Agent                            | Agent               | Agent, `kind: Agent`                   | Agent          |
 | **Skill**         | domain knowledge      | Skill ("domain knowledge")       | Skill               | Skill, `skill_refs`                    | Skill          |
+| **Plugin**        | plugin                | plugin ("what you install")      | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
 | **MCP Server**    | tools                 | MCP server ("tool connection")   | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
 | **Session**       | conversation          | Session ("conversation")         | Session             | Session, `kind: Session`               | Session        |
 | **Runner**        | compute               | runner ("where your Agent runs") | Runner              | Runner                                 | runner         |
@@ -168,6 +169,51 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 | Sales site | "Create a Skill with YAML frontmatter."      | The audience doesn't know what frontmatter is and doesn't need to.  |
 | Sales site | "Upload your knowledge artifacts."           | "Knowledge artifacts" is internal language. Say "domain knowledge." |
 | Quickstart | "Configure the RAG pipeline for your Skill." | Stigmer Skills are not RAG. This is a positioning violation.        |
+
+---
+
+#### Plugin
+
+A package you install to add capabilities to your Organization: skills, MCP
+servers, and the agent that uses them, as one unit. A plugin is what you
+install; an agent is what runs.
+
+- **User-facing alternative**: none needed. "Plugin" is the word the Cursor,
+  Claude Code and Codex communities already use for the same package, and
+  Stigmer reads their plugins unchanged.
+- **Capitalize**: Yes, when referring to the Stigmer resource ("the Plugin
+  kind"); lowercase for the package in the wild ("install a plugin").
+- **API surface**: `kind: Plugin`, prefix `plg`. proto: `plugin/v1/spec.proto`,
+  `plugin/v1/command.proto`. CLI: `stigmer push plugin <dir>` (install or
+  upgrade), `stigmer get|list|delete plugin`, `stigmer validate -f <dir>`
+  (offline check). A plugin is never authored as YAML: its spec is read from the
+  package manifest.
+- **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
+  `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
+  `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/`, and Stigmer's
+  own `ai.stigmer/` overlay. Installing it materializes ordinary Skills, MCP
+  Servers, an Agent and Workflows, each labelled with the plugin's id; those
+  resources are the plugin's to redefine, so you change the plugin and push it
+  again rather than editing them, or compose your own Agent over them.
+- **What it is not**: a plugin does not run. The Agent it installs runs, in a
+  Session, on a Runner, exactly like an Agent you wrote by hand.
+
+**Good examples**:
+
+| Context    | Copy                                                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Bring your Cursor, Claude or Codex plugin. Install it on Stigmer and run it remotely."                                             |
+| Quickstart | "Install a plugin---a folder of skills and tools---and you get an agent you can talk to."                                           |
+| Concepts   | "A plugin is a toolbox. An agent is the worker who picks it up. Installing the toolbox gives you a worker who knows how to use it." |
+| Reference  | "`Plugin`---the unit of install. `PluginCommandController.push` materializes its members; `listMembers` lists them."                |
+
+**Bad examples**:
+
+| Context    | Copy                                      | Problem                                                              |
+| ---------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| Quickstart | "Run the plugin."                         | Plugins do not run; the agent it installed does.                     |
+| Concepts   | "Edit the plugin's skill in the console." | Members are the plugin's to redefine; the console shows the refusal. |
+| Reference  | "Apply the plugin YAML."                  | A plugin has no YAML; it is pushed as its folder.                    |
 
 ---
 
@@ -926,6 +972,9 @@ configurations.
 - **Capitalize**: Yes.
 - **Context rule**: Mentioned in STYLE.md's capitalization list. Use when the
   feature is documented. Currently low-priority for customer-facing copy.
+- **Retiring**: the Plugin (Tier 1) is the unit of install that replaces it; the
+  seedpack's catalog is being migrated to plugins, and once `stigmer up`
+  installs a default set of plugins this term leaves the vocabulary.
 
 ---
 

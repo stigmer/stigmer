@@ -1,0 +1,135 @@
+---
+title: Install a plugin
+description:
+  Install a Cursor, Claude Code, Codex or Agent Plugins folder on Stigmer and
+  get an Agent that uses its skills and tools.
+---
+
+A plugin is a folder of skills, MCP servers and sub-agents in the layout the
+Cursor, Claude Code and Codex communities already publish. Installing it on
+Stigmer creates ordinary Skills and MCP Servers in your Organization and an
+Agent that uses them, as one unit. You talk to that Agent the way you talk to
+any other; the plugin is what you install, the Agent is what runs.
+
+Before you start, [sign in](/docs/guides/authentication) with
+`stigmer auth login`. Every command below takes `--org <slug>` if you work in
+more than one Organization.
+
+## Check the folder
+
+Point `stigmer validate` at the plugin's directory. It reads the folder offline,
+tells you what would install, and refuses anything Stigmer cannot run:
+
+```bash
+stigmer validate -f ./thermos
+```
+
+```text
+✓ Plugin 'thermos' is valid with 1 warning
+
+Plugin
+  Name       thermos
+  Version    1.2.0
+  Format     Cursor plugin
+  Manifests  .cursor-plugin/plugin.json, mcp.json
+  Files      14 read, 3 excluded by ignore rules
+
+Installs
+  Skills       2: code-review, triage
+  MCP servers  1: github (http)
+  Sub-agents   1: reviewer
+  Variables    1: GITHUB_TOKEN
+
+Warnings
+  - sub-agent 'reviewer' names model 'sonnet'; it runs on the session's model
+```
+
+A refusal lists every problem at once, so one pass fixes them all. The same
+sentences come back from the server, so a folder that validates installs.
+
+## Install it
+
+```bash
+stigmer push plugin ./thermos
+```
+
+```text
+✓ Installed plugin 'thermos' (2 skills, 1 MCP server, 1 agent) with 1 warning
+
+Plugin
+  ID       plg_01j9...
+  Slug     thermos
+  Version  1.2.0
+  Digest   3f9a2c1e
+  Format   Cursor plugin
+
+Installed
+  Skills       code-review, triage
+  MCP servers  github
+  Agents       thermos
+```
+
+`stigmer apply` pointed at a plugin directory does the same thing, so a
+repository that is a plugin installs with the command you already run.
+
+The Agent it created is `thermos`, named after the plugin. It carries the
+plugin's skills, uses its MCP server, and has the plugin's sub-agents as its
+own. Open it in the console or start a session:
+
+```bash
+stigmer run thermos
+```
+
+## Give it its secrets
+
+The MCP server declared a variable, `GITHUB_TOKEN`. The server was created with
+that variable marked secret, and the Agent's session asks for it the first time
+the tool is used, exactly as it would for an MCP server you added by hand. Set
+it once on the [Environment](/docs/concepts/environments) and every session has
+it.
+
+## Upgrade
+
+Edit the folder and push it again. Stigmer compares the new archive with the
+installed one: an unchanged folder changes nothing, a changed one becomes the
+new version. Skills the new version dropped are removed, and the Agent is
+rewritten to match. Every installed version stays in the plugin's history under
+its content digest, and the manifest's `version` is recorded as that version's
+tag, so `1.2.0` names the archive that carried it.
+
+```bash
+stigmer get plugin thermos
+```
+
+## What you cannot edit
+
+The Skills, MCP Servers and Agent a plugin installs are the plugin's to define.
+Editing one directly is refused with the plugin's name, because the next upgrade
+would overwrite your change. Two ways forward:
+
+- **Change the plugin.** Edit the folder and push it again; that is what an
+  upgrade is.
+- **Compose over it.** Create your own Agent and give it the plugin's Skills and
+  MCP Servers. Your Agent is yours to edit and survives every upgrade.
+
+Operational actions still work on the plugin's members: running the Agent,
+sharing it, checking a Skill's versions.
+
+## Remove it
+
+```bash
+stigmer delete plugin thermos
+```
+
+This removes the plugin and everything it installed. It is refused while an
+Agent or Workflow of your own still uses one of the plugin's Skills or MCP
+Servers; detach them first.
+
+## Stigmer's own overlay
+
+A plugin can carry a folder named `ai.stigmer/` with Stigmer resources the other
+tools ignore: an `agent.yaml` to author the Agent yourself instead of taking the
+composed one, `workflows/` for Workflows that use the plugin's tools, and
+`mcp-servers/` overlays that set OAuth or transport details on a declared
+server. Each document names the plugin's own resources and nothing else; a
+document that names something outside the plugin is refused.
