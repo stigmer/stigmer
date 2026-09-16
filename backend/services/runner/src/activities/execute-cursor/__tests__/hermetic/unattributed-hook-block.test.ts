@@ -21,15 +21,15 @@
  * Engine disposition on this arm, today: the handle is `close()`d, not parked
  * (index.ts `enterUnattributedHookBlockFailure`).
  *
- * Moved 2026-09-14 (S4 M4 A3, Q-S4-17), one line: the FAILED row — built from
+ * Moved 2026-09-14 (#1097), one line: the FAILED row — built from
  * a single `status: "error"` event with no `running` before it — carries
  * `startedAt`, equal to its `completedAt`: the instant the runner first
- * learned of the call. Until A3 a completed-only event left the field unset,
+ * learned of the call. Until then a completed-only event left the field unset,
  * the one field the canonical builder stamps at every row's creation. This
- * is the only Cursor golden that scripts a completed-only event (M4 finding
- * F-M4-1; Q-S4-17's predicted three were this one).
+ * is the only Cursor golden that scripts a completed-only event (the three
+ * moves predicted for that rule were all this one).
  *
- * Moved again the same day (S4 M4 A4, Q-M4-3), one line: the FAILED row's
+ * Moved again the same day (#1097), one line: the FAILED row's
  * `result` no longer duplicates its `error` — the hook-block text lives in
  * `error` alone, which is the field the #205 detector reads.
  *

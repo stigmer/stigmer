@@ -1,6 +1,8 @@
 /**
- * @regression file-hitl-phase0 — pins the no-storage deny-gate exact-apply seam
- * (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ * @regression file-hitl-phase0 — pins the no-storage deny-gate exact-apply
+ * composition: the exact approved bytes are applied AND excluded from the
+ * resource grants, so a further write to that path is re-gated while a
+ * co-approved shell still flows.
  *
  * Deterministic integration proof of the Cursor deny-gate "what you approve is
  * what gets applied" guarantee, driven through the REAL composition and the REAL

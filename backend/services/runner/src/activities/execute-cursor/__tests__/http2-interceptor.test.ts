@@ -312,7 +312,7 @@ describe("http2-interceptor", () => {
     });
   });
 
-  describe("the token ref is read per request (the root rotates it in place; Q-S2-7)", () => {
+  describe("the token ref is read per request (the root rotates it in place)", () => {
     let mock: ReturnType<typeof createMockConnect>;
     let proxyTokenRef: { current: string | null };
 

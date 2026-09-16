@@ -25,17 +25,17 @@
  * on why `stopSignal` aborted, never writes a phase or a terminal copy, never
  * imports `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  *
- * Engine disposition, one rule per outcome (Q-S2-6): the agent is PARKED
+ * Engine disposition, one rule per outcome: the agent is PARKED
  * for the session's next turn on every exit but a failure — `completed`,
  * `cancelled`, `awaiting_approval` and `interrupted` alike (a wedged handle
  * after a stall is caught by the poisoned-handle recovery on the next turn;
- * before S2 a pause, a shutdown and a stall dropped the handle, leaking the
+ * before #1070 a pause, a shutdown and a stall dropped the handle, leaking the
  * executor lease). A `failed` turn keeps the orchestrator's three
  * dispositions: an engine-reported failure parks (a bad key is not a bad
  * handle), a user-actionable failure closes, an internal failure drops.
  *
- * Extracted from `index.ts` `executeCursorInner` at S2 M3b and moved out of
- * `adapter.ts` at S2 M5; the seventeen hermetic goldens under `__tests__/hermetic/`
+ * Extracted from `index.ts` `executeCursorInner` and moved out of
+ * `adapter.ts` in #1070; the seventeen hermetic goldens under `__tests__/hermetic/`
  * pin the result byte for byte.
  */
 
@@ -67,7 +67,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
   closeProxySessions();
   // The module-level fallback the interceptors read when no execution
   // context is entered (the runtime enters one around the whole activity;
-  // the SDK warm-up in main.ts has none). Deprecated; an S5 footprint item.
+  // the SDK warm-up in main.ts has none). Deprecated; its removal is #1132.
   setInterceptorExecutionId(executionId);
 
   if (sink.stopSignal.aborted) return { kind: "interrupted" };

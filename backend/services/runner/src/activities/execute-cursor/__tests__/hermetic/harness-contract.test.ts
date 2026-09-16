@@ -10,7 +10,7 @@
  * `MockActivityEnvironment`; `harness/__tests__/run-turn.test.ts` runs it
  * against the fake. This file runs BOTH against `createCursorAdapter()`
  * through the Cursor subject (`__test-utils__/contract-subject.ts`), which
- * translates the kit's scenarios onto S0's scripted `@cursor/sdk` double and
+ * translates the kit's scenarios onto the scripted `@cursor/sdk` double and
  * runs the REAL bash preToolUse hook the adapter installs for every gated
  * proposal. Nothing of the adapter is mocked; the SDK and the control-plane
  * client are the two doubles every hermetic golden already substitutes.
@@ -24,21 +24,21 @@
  *
  * Beside the kit, the Cursor-only observations the kit's vocabulary cannot
  * express: the agent the SDK minted is CLOSED when the session write behind
- * `bindHarnessState` rejects (S2 M4 finding F5, an M3b regression the kit's
- * rejected-bind leg exposed — before the fix the handle leaked its executor
- * lease and MCP subprocesses; Q-M4-8); the SDK is asked to create one agent
+ * `bindHarnessState` rejects (a regression the kit's rejected-bind leg
+ * exposed in #1070 — before the fix the handle leaked its executor lease and
+ * MCP subprocesses); the SDK is asked to create one agent
  * per session and never to resume (the parked handle serves every later
  * turn, #215); a DISOBEDIENT re-issue after a SKIP is denied by the hook and
  * never executes (what makes the subject's "obedient model" modelling safe);
  * a later proposal of an identity the user already approved and the agent
  * already ran gets its OWN gate and inherits nothing — the approval bleed the
- * kit's invariant 3 found in this adapter (S2 M4 finding F9;
+ * kit's invariant 3 found in this adapter (#1070;
  * `same-identity-reproposal.test.ts` pins the translator's rule); an
  * APPROVED action the resumed agent has not yet re-reached when the turn is
  * stopped never executes (deny-and-retry: the approval is a decision on the
  * row, and the SDK reaches the call only when its model does — the order an
- * interrupt engine inverts, so the kit's invariant 4 stopped asserting it at
- * S3 M3 Q-M3-2 and each harness's file observes its own); and the hook
+ * interrupt engine inverts, so the kit's invariant 4 stopped asserting it in
+ * #1096 and each harness's file observes its own); and the hook
  * agreed with the subject's model of it at every proposal.
  *
  * Needs `bash` (the hook) — skipped where it is unavailable, reported as

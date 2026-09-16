@@ -10,13 +10,13 @@
  * retry froze the UI and mis-handled a mid-retry pause. One loop removes that
  * drift by construction.
  *
- * The transcript (S4 M4): every stream event goes through the harness's
+ * The transcript (since #1097): every stream event goes through the harness's
  * translator (`translator.ts`) into the shared `TranscriptBuilder`
  * (`harness/transcript/builder.ts`), and the delta channel's facts, which the
  * translator QUEUES as they arrive in `onDelta`, are drained into the builder
  * after each stream event — never during an awaited persist, where a row
- * write would land on a row the offload is replacing (M4 finding F-M4-23).
- * Until M4 this loop fed three writers of its own (the message accumulator,
+ * write would land on a row the offload is replacing.
+ * Until #1097 this loop fed three writers of its own (the message accumulator,
  * the delta enricher, the todo tracker), the Cursor copy of the folding rule.
  *
  * What the loop asks of the runtime, through the sink (`harness/types.ts`):
@@ -32,7 +32,7 @@
  * run — the one way a wedged stream is unblocked, and the same act for every
  * cause of stopping (the runtime knows why; this loop never does).
  *
- * Until S2 M3 this loop armed its own stall watchdog, enforced the cost cap,
+ * Until #1070 this loop armed its own stall watchdog, enforced the cost cap,
  * read STOP from its own persist, and told a pause from the activity's
  * cancellation signal; every one of those is the runtime's now, and the loop
  * reports only `completed`, `first-denial` or `interrupted`.
@@ -287,7 +287,7 @@ export async function consumeCursorTurnStream(
       }
 
       // The builder's one flag is the discrete signal, as on native
-      // (`shared/persist-decision.ts`, Q-S4-12).
+      // (`shared/persist-decision.ts`).
       const shouldPersist = shouldPersistStreamingStatus(transcript.dirty, scheduler, state.eventCount);
       if (shouldPersist) {
         // Cleared as the write is requested, not after it lands (the same

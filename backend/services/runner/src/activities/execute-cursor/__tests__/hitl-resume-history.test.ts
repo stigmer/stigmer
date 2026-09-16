@@ -19,7 +19,7 @@
  *      watchdog failed the run ("approval propagation is broken").
  *
  * The fix (seed the transcript on resume + reconcile re-runs by canonical
- * identity in the Cursor translator, Q-S4-9) makes the resume status a strict superset:
+ * identity in the Cursor translator) makes the resume status a strict superset:
  * the committed ids survive, the re-runs reconcile in place, and the genuinely
  * new gated tool is appended. The guard then accepts it.
  *

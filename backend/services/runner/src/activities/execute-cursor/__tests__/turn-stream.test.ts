@@ -5,7 +5,7 @@
  * sub-agent tracking, the first-denial early stop — and the loop's side of the adapter contract: progress reported per event
  * and per delta, usage reported priced, the persist awaited, and the runtime's
  * stop signal honoured at every event boundary and inside a blocked pull by
- * cancelling the SDK run. Since S2 M3 the loop no longer decides WHY it
+ * cancelling the SDK run. Since #1070 the loop no longer decides WHY it
  * stopped (stall, cost cap, pause, platform stop are the runtime's evidence;
  * `harness/__tests__/run-turn.test.ts` proves that table); it reports
  * `completed`, `first-denial` or `interrupted`.
@@ -14,7 +14,7 @@
  * and the kit's `RecordingTurnSink`, so it runs without the live Cursor SDK or
  * Temporal — mirroring the deep-agent `streaming.test.ts` pattern. The
  * transcript side is the REAL pair the loop runs in production — the Cursor
- * translator into the shared `TranscriptBuilder` over `sink.status` (S4 M4;
+ * translator into the shared `TranscriptBuilder` over `sink.status` (#1097;
  * until then a stubbed accumulator counted calls) — so what these arms read
  * back are rows, not mock invocations.
  */
@@ -80,7 +80,7 @@ interface BuiltDeps {
 function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
   const state = overrides.state ?? newTurnStreamState();
   const sink = (overrides.sink as RecordingTurnSink | undefined) ?? new RecordingTurnSink();
-  // The builder is the sink's, as the runtime hands it (S4 M5).
+  // The builder is the sink's, as the runtime hands it (#1097).
   const transcript = sink.transcript;
 
   const deps = {

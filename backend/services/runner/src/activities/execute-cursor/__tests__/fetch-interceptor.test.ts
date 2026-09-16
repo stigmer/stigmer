@@ -173,7 +173,7 @@ describe("fetch-interceptor", () => {
     });
   });
 
-  describe("the token ref is read per request (the root rotates it in place; Q-S2-7)", () => {
+  describe("the token ref is read per request (the root rotates it in place)", () => {
     let proxyTokenRef: { current: string | null };
 
     beforeEach(() => {

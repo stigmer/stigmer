@@ -28,7 +28,7 @@
  * The interceptors read the proxy credential from `Config.proxyTokenRef` per
  * request; which credential that is (the static root's control-plane token,
  * the manager's minted runner token) is the root's decision, not this
- * module's (Q-S2-7).
+ * module's.
  *
  * What this adapter never does: throw out of `runTurn` (an SDK failure is
  * `failed` with the classifier's sentence; an unexpected exception is
@@ -40,14 +40,14 @@
  *
  * The turn boundary (`turn-boundary.ts`) runs inside `turn.ts` and reads
  * this harness's deny-and-retry evidence — the denial ledger — into WAITING
- * rows and settled rows. The file-review capture is NOT here since S3 M4:
+ * rows and settled rows. The file-review capture is NOT here since #1096:
  * the runtime pins the baseline before this adapter runs and captures the
  * whole turn's tree after it returns (`harness/capture.ts`); what this
  * adapter contributes is the hook sidecar it binds as the runtime's CAS
  * observations (`turn-setup.ts` `installGate`).
  *
- * Extracted from `index.ts` `createCursorActivities` at S2 M3b; split from
- * the turn body at S2 M5. The seventeen hermetic goldens under
+ * Extracted from `index.ts` `createCursorActivities` in #1070, which also
+ * split it from the turn body. The seventeen hermetic goldens under
  * `__tests__/hermetic/` pin the result byte for byte.
  */
 

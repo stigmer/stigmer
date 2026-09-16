@@ -32,17 +32,17 @@
  *    is the one point a scenario can rely on: the STOP is keyed on the
  *    persisted status's CONTENT (the COMPLETED row), not on which persist
  *    happens to carry it, because a tool-call transition force-flushes
- *    (the builder's `dirty` flag) whatever the cadence says. (Until S3 M5 the scheduler
+ *    (the builder's `dirty` flag) whatever the cadence says. (Until #1096 the scheduler
  *    paced text-only persists on REAL `performance.now()` time; the scripted
- *    clock fakes it since Q-M5-7, so every persist is deterministic now.)
+ *    clock fakes it since then, so every persist is deterministic now.)
  *
- * Engine disposition and cancellation since S2 M3 (entry 20260911.03): the
- * adapter cancels the SDK run on EVERY stop (Q-M3-4; before, a platform stop
+ * Engine disposition and cancellation since #1070: the
+ * adapter cancels the SDK run on EVERY stop (before, a platform stop
  * broke the loop and left the run executing) and parks the handle on every
- * non-failed exit (Q-S2-6; before, a stall dropped it — the adapter cannot
+ * non-failed exit (before, a stall dropped it — the adapter cannot
  * tell a stall from a cost cap, and a wedged parked handle is caught by the
  * poisoned-handle recovery on the next turn). The two assertions that moved
- * say so on their line. The cost-cap golden was regenerated at M3b with a
+ * say so on their line. The cost-cap golden was regenerated in #1070 with a
  * timestamp-only diff (every terminal stamp one scripted second earlier):
  * the run is now cancelled the instant the signal aborts, before the SDK
  * double pulls — and the clock ticks on — one more step.
@@ -188,7 +188,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: engine disposition ───────────────────────────────────────────
     expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
     expect(agent.closeCalls, "the handle is not closed").toBe(0);
-    // Q-S2-6 (S2 M3): parked on every non-failed exit; before M3 a stall dropped it.
+    // Since #1070: parked on every non-failed exit; before, a stall dropped it.
     expect(_parkedAgentCountForTests(), "parked for the session's next turn").toBe(1);
     expect(record.sessionUpdates).toHaveLength(1);
 
@@ -318,7 +318,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(final.messages.some((m) => m.content === NEVER_SEEN), "the event after the STOP is never processed").toBe(false);
 
     // ── Assert: engine disposition ───────────────────────────────────────────
-    // Q-M3-4 (S2 M3): the SDK run is cancelled on every stop; before M3 a
+    // Since #1070: the SDK run is cancelled on every stop; before, a
     // platform stop broke the loop and left the run executing behind the
     // parked handle.
     expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);

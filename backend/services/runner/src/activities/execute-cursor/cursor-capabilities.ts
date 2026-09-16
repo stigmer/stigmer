@@ -18,7 +18,7 @@
  *  - File review under the `cursor` harness id, with the two files the gate
  *    writes into the repo excluded from the mid-run progress diff
  *    ({@link CURSOR_RUNNER_OWNED_PATHS}). The capture itself is the runtime's
- *    (`harness/capture.ts`, S3 M4); this adapter contributes only the hook
+ *    (`harness/capture.ts`, since #1096); this adapter contributes only the hook
  *    sidecar it binds as the runtime's CAS observations (`turn-setup.ts`).
  */
 

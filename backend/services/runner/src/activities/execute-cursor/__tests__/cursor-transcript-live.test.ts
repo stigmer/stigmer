@@ -21,7 +21,7 @@
  *     completed `tool_call` carries the final output; `shell-output-delta`
  *     chunks, when the SDK sends them, stream into the row while the command
  *     runs. Lost output or doubled output (a chunk applied to a row the
- *     completion already settled) is the S4 M4 hunk Q-M4-15 ruled. The prompt
+ *     completion already settled) is the rule #1097 fixed. The prompt
  *     prints one line a known number of times over several seconds, so any
  *     duplicated or dropped chunk breaks the count.
  *  3. `tool-call-completed` on the delta channel may arrive before or after

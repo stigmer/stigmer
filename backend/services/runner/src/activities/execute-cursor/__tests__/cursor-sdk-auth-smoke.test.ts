@@ -1,13 +1,15 @@
 /**
- * Minimal smoke test to verify Cursor SDK authentication works with a real API key.
+ * Live smoke: the Cursor SDK authenticates and completes a round trip on a
+ * real member key. Three arms, each isolating one fact:
+ *  1. `Agent.create()` with a model named succeeds — the key is valid;
+ *  2. `agent.send()` runs to a completed result — the agent executes and the
+ *     transport completes the round trip;
+ *  3. `Agent.create()` with no model named succeeds — the catalog default
+ *     resolves.
  *
- * Tests three things in isolation:
- * 1. Agent.create() succeeds (proves the API key is valid)
- * 2. agent.send() produces a response (proves the agent can execute)
- * 3. The connect-node transport works end-to-end
- *
- * Run with: CURSOR_API_KEY=<key> npx tsx --test this-file.ts
- * Or via the test script: npm run test:cursor-auth
+ * Skipped without `CURSOR_API_KEY`; the suite never runs it. Run it by hand:
+ *   CURSOR_API_KEY=<key> npx vitest run src/activities/execute-cursor/__tests__/cursor-sdk-auth-smoke.test.ts
+ * Last run green 3/3 on 2026-09-16 at SDK 1.0.31 (#1097's live run).
  */
 
 import { describe, it, expect } from "vitest";

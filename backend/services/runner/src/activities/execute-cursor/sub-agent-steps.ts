@@ -18,10 +18,8 @@
  * but is flushed only at completion — verified with 200ms sampling across a
  * full sub-agent run. Live nested visibility is therefore still an upstream
  * SDK limitation — do not try to fake it here; the UI shows an elapsed-time
- * affordance instead (SubAgentSection). Probe scripts and recordings:
- * stigmer-cloud _projects/2026-08/20260823.03.cursor-subagent-live-progress.
- * This is Cursor's timing — the sub-agent's rows exist only at completion —
- * and it stays Cursor's (Q-S4-4).
+ * affordance instead (SubAgentSection). This is Cursor's timing — the
+ * sub-agent's rows exist only at completion — and it stays Cursor's.
  *
  * THE SHAPE. The result is `{ status: "success", value: { conversationSteps } }`
  * (or a bare `{ conversationSteps }`), where each ConversationStep is a
@@ -42,19 +40,19 @@
  * envelope that never appears in the real blob, so every sub-agent tool call
  * was silently discarded and the UI showed a sub-agent that "did nothing".
  *
- * WHAT THIS MODULE EMITS, AND WHY EVENTS. Until S4 M4 this parser built
+ * WHAT THIS MODULE EMITS, AND WHY EVENTS. Until #1097 this parser built
  * `AgentMessage` protos itself (the conversation-steps extractor in the accumulator)
  * — a third copy of the folding rule, whose message boundary drifted from the
- * root's until A5. Now each step becomes the events any harness's translator
+ * root's until then. Now each step becomes the events any harness's translator
  * would emit for the same thing, and the shared `TranscriptBuilder` folds them
  * with the root's own rules: an `assistantMessage` step is its own message
  * (`runId` `<subAgentId>:step:<i>`, so two consecutive steps never merge); a
  * `thinkingMessage` step a THINKING row under the same key; a `toolCall` step
  * a `tool_started` then a `tool_finished`/`tool_error`, which the builder
  * attaches to the transcript's current AI message (the assistant step that
- * proposed it) or an empty one when there is none (Q-S4-5). Unknown step
+ * proposed it) or an empty one when there is none. Unknown step
  * kinds and empty texts are skipped for forward compatibility. The rows carry
- * no attribution or provenance (S4 review finding 11; S5's).
+ * no attribution or provenance (#1133).
  *
  * The `task` row's own `tool_finished` and the sub-agent's `sub_agent_finished`
  * are the translator's (`translator.ts`); this module answers only "what
@@ -161,7 +159,7 @@ function subAgentToolCallEvents(toolCall: unknown, stepIndex: number, subAgentId
  * A sub-agent tool call's `result` oneof as an outcome: `success` → completed
  * with the serialized payload (a screenshot is canonicalized the same way as a
  * top-level result); any failure branch → failed with the serialized detail
- * (`error` alone — never a duplicate in `result`, Q-M4-3). An absent result is
+ * (`error` alone — never a duplicate in `result`). An absent result is
  * a completed call with no output — the SDK omits `result` for a call that
  * reports nothing; an unknown oneof branch is surfaced as a completed result
  * rather than dropped.

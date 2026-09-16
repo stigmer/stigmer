@@ -4,11 +4,11 @@
  * basis on the priced delta the runtime accumulates.
  *
  * The runtime cannot price without the vendor's table and variant semantics,
- * and it must not import them (Q-S2-12), so the adapter hands
+ * and it must not import them, so the adapter hands
  * `TurnSink.reportUsage` a delta that already carries `estimatedCostUsd`
  * and the basis (`model`, the catalog-validated id; `requestedModelParams`,
  * the JSON of the params sent with every create/resume) the runtime writes
- * into `streaming_usage`. Split out of the accumulator at S2 M3
+ * into `streaming_usage`. Split out of the accumulator in #1070
  * (`harness/usage-accumulator.ts` keeps the sums); the arithmetic and the
  * rounding are unchanged, so the estimate is byte-for-byte the old one.
  *

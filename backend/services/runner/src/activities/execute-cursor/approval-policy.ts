@@ -75,7 +75,7 @@ export const approvalCategory = toolApprovalCategory;
 /**
  * The salient argument fields — the resource a built-in acts on — are the
  * platform's one list, `shared/args-preview.ts` `SALIENT_ARG_FIELDS` (moved
- * there at S4 M2 C7: the transcript builder previews every row over it for
+ * there in #1097: the transcript builder previews every row over it for
  * both harnesses). Re-exported here for this harness's identity code and the
  * generated hook script, which inject it so the runner and the hook never
  * disagree on which field to match.
@@ -140,7 +140,7 @@ export function getBuiltInGatedCategories(): Array<[string, ApprovalCategory]> {
  * so stream-side names (`edit`/`shell`/`delete`) and hook-side names
  * (`Write`/`Shell`/`Delete`) both map to the same template — the platform's
  * ONE table, `shared/approval-policy.ts` `CATEGORY_APPROVAL_MESSAGE`, shared
- * with the native gate since S4 M4 B6 (Q-M4-11). Callers resolve the
+ * with the native gate since #1097. Callers resolve the
  * placeholders against the tool args via resolveApprovalMessage.
  */
 export function getBuiltInApprovalMessage(toolName: string): string | undefined {

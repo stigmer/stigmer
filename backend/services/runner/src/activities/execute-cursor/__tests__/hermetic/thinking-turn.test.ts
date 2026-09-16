@@ -2,24 +2,24 @@
  * Hermetic golden: a turn with MODEL THINKING on both sides of a tool call,
  * through the whole `ExecuteCursor` activity.
  *
- * Invariant pinned (S4 M0 net; the rule the canonical builder must reproduce
- * at M4): the Cursor SDK has ONE `run_id` per `send()`, so the transcript's
+ * Invariant pinned (the rule the canonical builder had to reproduce when it
+ * took over in #1097): the Cursor SDK has ONE `run_id` per `send()`, so the transcript's
  * segmentation is not by run but by tool call — a `tool_call` event closes the
  * run's streaming AI and THINKING rows (the translator's `message_finish` for
- * the open segment; until S4 M4 the accumulator's own finalize on a tool call),
+ * the open segment; until #1097 the accumulator's own finalize on a tool call),
  * and the thinking or text that follows opens NEW rows. Hence the shape:
  * THINKING(T1), AI(A1 + the read row), THINKING(T2), AI(A2). The read row lands
  * on A1 (the last AI message by backward scan; a THINKING row is skipped), and
  * no row is left `isStreaming` when the turn ends.
  *
- * Predicted under the S4 rulings (2026-09-14): NO move.
- * Q-S4-6 keeps one THINKING row per segment on Cursor (the translator mints a
- * segment id per text-or-thinking run between tool calls); Q-S4-5 keeps the
- * tool on the message that proposed it. A diff in this golden at M4 is a
+ * Predicted for the swap to the shared builder (2026-09-14): NO move.
+ * The builder keeps one THINKING row per segment on Cursor (the translator
+ * mints a segment id per text-or-thinking run between tool calls) and keeps
+ * the tool on the message that proposed it. A diff in this golden is a
  * pause, not a regeneration.
  *
- * Why this net exists: none of the seventeen Cursor goldens before M0 carried
- * a THINKING row, and the thinking rule is one M4 rewrites.
+ * Why this net exists: none of the seventeen earlier Cursor goldens carried
+ * a THINKING row, and the thinking rule is one #1097 rewrote.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u

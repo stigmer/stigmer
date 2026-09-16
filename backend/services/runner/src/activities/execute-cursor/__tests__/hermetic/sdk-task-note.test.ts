@@ -3,16 +3,16 @@
  * the agent's own voice — between two assistant messages, through the whole
  * `ExecuteCursor` activity.
  *
- * Invariant pinned (S4 M4 C1, Q-M4-4; S4 review finding 9 — this event had
- * no test on either tier): a `task` event with text becomes ONE SYSTEM
+ * Invariant pinned (#1097; until then this event had no test on either
+ * tier): a `task` event with text becomes ONE SYSTEM
  * message at its position in the transcript (`translateTask`); it hosts no
  * tool rows and does not move the AI-message boundary — the tool call that
  * follows it lands on the assistant message BEFORE the note, and the text
  * after the tool call is a new message. A `task` event with no text produces
  * nothing.
  *
- * Predicted under the S4 rulings: NO move at the swap (B4). The translator
- * maps `task.text` to the union's `system_note` (Q-S4-18), which the builder
+ * Predicted for the swap to the shared builder: NO move. The translator
+ * maps `task.text` to the union's `system_note`, which the builder
  * appends as a SYSTEM message in the scope with the same placement rule.
  *
  * Regenerate ONLY after a deliberate behavior change:
