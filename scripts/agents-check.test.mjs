@@ -2,10 +2,12 @@
 // Run via `node --test scripts/agents-check.test.mjs` (wired into root `npm test`).
 //
 // Every case builds a throwaway repository under a temp directory, so the
-// suite never depends on this repository's own guidance state. The four
+// suite never depends on this repository's own guidance state. The six
 // invariants each get a happy path and the failure the gate exists to catch:
 // a shim that drifted or was orphaned, a citation that points at nothing, a
-// private-record id in public prose, and a guide that outgrew its budget.
+// private-record id in public prose, a guide that outgrew its budget, an
+// authored rule filed under .cursor/rules, and a skill whose frontmatter
+// would keep it from ever surfacing.
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
@@ -14,18 +16,25 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 import {
+  SKILL_LIMITS,
   WORD_BUDGETS,
   asPathCitation,
   checkBudgets,
   checkCitations,
   checkLeakage,
+  checkRulesDir,
+  checkSkill,
   collectGuidanceFiles,
   countWords,
   discoverNestedGuides,
+  discoverSkills,
   extractCitedPaths,
+  globPrefix,
+  parseFrontmatter,
   renderShim,
   runGate,
   shimPathFor,
+  splitFrontmatter,
   stripFences,
   syncShims,
 } from "./agents-check.mjs";
@@ -223,21 +232,145 @@ test("a guide over its word budget is a finding; the root and nested budgets dif
   }
 });
 
-test("runGate composes the four checks and reports green only when all pass", () => {
+test("anything under .cursor/rules that is not an owned shim is a finding, wherever it is filed", () => {
+  const root = repo({
+    "backend/services/runner/AGENTS.md": GUIDE,
+    "backend/services/runner/src/main.ts": "",
+    ".cursor/rules/backend/ts-guidelines.mdc": "---\ndescription: authored doctrine\nglobs: backend/**\n---\n",
+    ".cursor/rules/notes.md": "a stray file\n",
+  });
+  try {
+    syncShims(root, { write: true });
+    const findings = checkRulesDir(root);
+    assert.deepEqual(
+      findings.map((f) => f.split(":")[0]),
+      [".cursor/rules/backend/ts-guidelines.mdc", ".cursor/rules/notes.md"],
+      "the generated shim passes; the nested rule and the stray file are reported, sorted",
+    );
+    assert.match(findings[0], /binding laws belong in the package's AGENTS.md, procedures and long-form doctrine in a skill/);
+    rmSync(join(root, ".cursor/rules/backend"), { recursive: true });
+    rmSync(join(root, ".cursor/rules/notes.md"));
+    assert.deepEqual(checkRulesDir(root), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("frontmatter reader: scalars, folded scalars, block and inline lists, quotes, comments", () => {
+  assert.equal(splitFrontmatter("no fence\n"), null);
+  const parts = splitFrontmatter("---\nname: x\n---\n# Body\n\ntext\n");
+  assert.equal(parts.frontmatter, "name: x");
+  assert.equal(parts.body, "# Body\n\ntext\n");
+
+  const fm = parseFrontmatter(
+    [
+      "name: runner-dev-guidelines",
+      "# a comment",
+      "description:",
+      "  Runner doctrine and the data-flow procedure. Use when editing",
+      "  backend/services/runner.",
+      "paths:",
+      "  - backend/services/runner/**",
+      '  - "backend/libs/ts/**"',
+      "disable-model-invocation: true",
+      "tags: [a, 'b', c]",
+      'quoted: "with spaces"',
+    ].join("\n"),
+  );
+  assert.equal(fm.name, "runner-dev-guidelines");
+  assert.equal(fm.description, "Runner doctrine and the data-flow procedure. Use when editing backend/services/runner.");
+  assert.deepEqual(fm.paths, ["backend/services/runner/**", "backend/libs/ts/**"]);
+  assert.equal(fm["disable-model-invocation"], "true");
+  assert.deepEqual(fm.tags, ["a", "b", "c"]);
+  assert.equal(fm.quoted, "with spaces");
+
+  const folded = parseFrontmatter("description: >-\n  Folded with a\n  marker line.\n");
+  assert.equal(folded.description, "Folded with a marker line.");
+
+  assert.equal(globPrefix("backend/services/runner/**"), "backend/services/runner");
+  assert.equal(globPrefix("docs/**/*.mdx"), "docs");
+  assert.equal(globPrefix("sdk/react/src/{a,b}/**"), "sdk/react/src");
+  assert.equal(globPrefix("**/*.ts"), "");
+});
+
+test("a skill passes when its frontmatter is complete and its paths resolve; each defect is one finding in the skill's own terms", () => {
+  const skill = (fm, body = "# Skill\n\nDo the thing.\n") => `---\n${fm}\n---\n${body}`;
+  const longDescription = Array.from({ length: SKILL_LIMITS.descriptionWords + 1 }, (_, i) => `w${i}`).join(" ");
+  const longBody = Array.from({ length: SKILL_LIMITS.bodyLines + 1 }, () => "line").join("\n");
+  const root = repo({
+    "backend/services/runner/src/main.ts": "",
+    ".agents/skills/runner-dev-guidelines/SKILL.md": skill(
+      "name: runner-dev-guidelines\ndescription: Runner doctrine. Use when editing the runner.\npaths:\n  - backend/services/runner/**",
+    ),
+    ".agents/skills/test-gate/SKILL.md": skill("name: test-gate\ndescription: Adversarial test posture, invoked by name.\ndisable-model-invocation: true"),
+    ".agents/skills/wrong-name/SKILL.md": skill("name: other-name\ndescription: A description."),
+    ".agents/skills/no-description/SKILL.md": skill("name: no-description"),
+    ".agents/skills/bare/SKILL.md": "# No frontmatter at all\n",
+    ".agents/skills/moved-scope/SKILL.md": skill("name: moved-scope\ndescription: Scoped to a directory that is gone.\npaths:\n  - backend/services/agent-runner/**\n  - '**/*.py'"),
+    ".agents/skills/too-long/SKILL.md": skill(`name: too-long\ndescription: ${longDescription}\ndisable-model-invocation: maybe`, longBody),
+    ".agents/skills/not-a-skill/README.md": "a folder without SKILL.md is not a skill\n",
+  });
+  try {
+    assert.deepEqual(discoverSkills(root), [
+      ".agents/skills/bare/SKILL.md",
+      ".agents/skills/moved-scope/SKILL.md",
+      ".agents/skills/no-description/SKILL.md",
+      ".agents/skills/runner-dev-guidelines/SKILL.md",
+      ".agents/skills/test-gate/SKILL.md",
+      ".agents/skills/too-long/SKILL.md",
+      ".agents/skills/wrong-name/SKILL.md",
+    ]);
+    assert.deepEqual(checkSkill(root, ".agents/skills/runner-dev-guidelines/SKILL.md"), []);
+    assert.deepEqual(checkSkill(root, ".agents/skills/test-gate/SKILL.md"), []);
+
+    const strip = (rel) => checkSkill(root, rel).map((f) => f.slice(rel.length + 2));
+    assert.match(strip(".agents/skills/wrong-name/SKILL.md")[0], /`name: other-name` does not match its folder `wrong-name`/);
+    assert.match(strip(".agents/skills/no-description/SKILL.md")[0], /no `description`/);
+    assert.match(strip(".agents/skills/bare/SKILL.md")[0], /no frontmatter/);
+
+    const moved = strip(".agents/skills/moved-scope/SKILL.md");
+    assert.equal(moved.length, 2);
+    assert.match(moved[0], /`backend\/services\/agent-runner\/\*\*` points at `backend\/services\/agent-runner`, which does not exist/);
+    assert.match(moved[1], /`\*\*\/\*\.py` has no fixed prefix/);
+
+    const tooLong = strip(".agents/skills/too-long/SKILL.md");
+    assert.equal(tooLong.length, 3);
+    assert.match(tooLong[0], new RegExp(`description is ${SKILL_LIMITS.descriptionWords + 1} words, over the ${SKILL_LIMITS.descriptionWords}-word budget`));
+    assert.match(tooLong[1], /`disable-model-invocation` must be true or false, not `maybe`/);
+    assert.match(tooLong[2], new RegExp(`body is ${SKILL_LIMITS.bodyLines + 1} lines, over the ${SKILL_LIMITS.bodyLines}-line ceiling`));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("runGate composes the checks and reports green only when all pass", () => {
   const root = repo({
     "AGENTS.md": "Root guide. See `backend/services/runner/AGENTS.md`.\n",
     "backend/services/runner/AGENTS.md": GUIDE,
     "backend/services/runner/src/main.ts": "",
     ".agents/README.md": "How guidance works. Skills live under `.agents/skills/`.\n",
-    ".agents/skills/.gitkeep": "",
+    ".agents/skills/runner-dev-guidelines/SKILL.md":
+      "---\nname: runner-dev-guidelines\ndescription: Runner doctrine. Use when editing the runner.\npaths:\n  - backend/services/runner/**\n---\n# Runner\n\nRead `backend/services/runner/src/main.ts` first.\n",
+    ".agents/skills/broken/SKILL.md": "# no frontmatter\n",
   });
   try {
     const before = runGate(root, { sync: false });
-    assert.equal(before.findings.length, 1, "the missing shim is the one finding");
+    assert.deepEqual(
+      before.findings.map((f) => f.split(":")[0]),
+      [".cursor/rules/agents-backend-services-runner.mdc", ".agents/skills/broken/SKILL.md"],
+      "the missing shim and the malformed skill are the two findings",
+    );
+    rmSync(join(root, ".agents/skills/broken"), { recursive: true });
     const synced = runGate(root, { sync: true });
     assert.deepEqual(synced.findings, []);
     assert.deepEqual(synced.written, [".cursor/rules/agents-backend-services-runner.mdc"]);
-    assert.deepEqual(synced.files, ["AGENTS.md", "backend/services/runner/AGENTS.md", ".agents/README.md"]);
+    assert.deepEqual(synced.files, [
+      "AGENTS.md",
+      "backend/services/runner/AGENTS.md",
+      ".agents/README.md",
+      ".agents/skills/runner-dev-guidelines/SKILL.md",
+    ]);
+    assert.deepEqual(synced.skills, [".agents/skills/runner-dev-guidelines/SKILL.md"]);
     assert.deepEqual(
       synced.measured.map((m) => m.rel),
       ["AGENTS.md", "backend/services/runner/AGENTS.md"],
