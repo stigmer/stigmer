@@ -36,7 +36,6 @@ Output is unified on `-o/--output {table,json,yaml,ndjson}`; `--json`/`--quiet`
 are back-compat aliases that resolve per command class. Structured command output
 goes to stdout; human status, hints, and errors go to stderr.
 
-Code follows the Stigmer CLI engineering standards
-(`.cursor/rules/client-apps/cli/coding-guidelines.mdc`) and the agent commenting
-standard: single-responsibility files, thin command handlers, and comments that
-explain *why*.
+The binding laws for this package are in [`../AGENTS.md`](../AGENTS.md) (the
+client-apps guide) and the root `AGENTS.md`: single-responsibility files, thin
+command handlers, and comments that explain *why*.

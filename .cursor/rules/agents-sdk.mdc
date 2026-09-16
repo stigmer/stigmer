@@ -1,0 +1,9 @@
+---
+description: Package guide for sdk, attached when files there are touched. Generated from sdk/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: sdk/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `sdk/`:
+
+@sdk/AGENTS.md
