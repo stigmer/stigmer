@@ -92,6 +92,7 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
+import { newGuardPluginManagedStep } from "../../pipeline/steps/guard-plugin-managed.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityUpdateStep } from "../../pipeline/steps/validate-visibility.js";
@@ -225,6 +226,15 @@ async function push(
     .addStep(newExtractAndHashArtifactStep())
     .addStep(newResolveSlugForPushStep())
     .addStep(newFindExistingBySlugStep(deps.store))
+    // A skill has no update RPC: a second push under the same name IS the
+    // client's mutation path, so a plugin-managed skill refuses it here,
+    // naming the plugin. The controller's own re-materialisation passes by
+    // origin.
+    .addStep(
+      newGuardPluginManagedStep<typeof PushSkillRequestSchema>(deps.store, {
+        existingKey: EXISTING_SKILL_KEY,
+      }),
+    )
     .addStep(newGenerateIdIfNeededStep())
     .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
     .addStep(newPopulateSkillFieldsStep())
@@ -432,6 +442,11 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSkillForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newGuardPluginManagedStep(deps.store, {
+        existingKey: UPDATE_VISIBILITY_SKILL_KEY,
+      }),
+    )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(
@@ -579,6 +594,7 @@ async function deleteSkill(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, SkillSchema))
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newDeleteSkillArchivesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(

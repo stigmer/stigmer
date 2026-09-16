@@ -56,11 +56,7 @@ import {
   defaultVisibilityFor,
   getIdPrefix,
 } from "../../pipeline/apiresource-meta.js";
-import {
-  failedPreconditionError,
-  internalError,
-  invalidArgumentError,
-} from "../../pipeline/errors.js";
+import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
@@ -74,6 +70,10 @@ import {
 } from "../../pipeline/steps/defaults.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { generateSlug } from "../../pipeline/steps/slug.js";
+import {
+  ARTIFACT_BYTES_KEY,
+  newResolveArtifactSourceStep as newSharedResolveArtifactSourceStep,
+} from "../../pipeline/steps/resolve-artifact-source.js";
 import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
 import type { Store } from "../../store/interface.js";
 import { TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
@@ -87,49 +87,27 @@ type PushDesc = typeof PushSkillRequestSchema;
 
 // Context keys for the push operation (Go push.go, verbatim).
 export const SKILL_KEY = "skill";
-export const ARTIFACT_BYTES_KEY = "pushArtifactBytes";
+export { ARTIFACT_BYTES_KEY };
 export const EXTRACT_RESULT_KEY = "extractResult";
 export const ARTIFACT_STORAGE_KEY_KEY = "artifactStorageKey";
 export const EXISTING_SKILL_KEY = "existingSkill";
 export const SHOULD_CREATE_SKILL_KEY = "shouldCreateSkill";
 
 /**
- * ResolveArtifactSource — materializes the artifact ZIP bytes from
- * whichever source the request carries (proto validation has already
- * guaranteed exactly one): inline bytes pass through; an upload ref is
- * consumed HERE, which retires the single-use reference regardless of how
- * the rest of the pipeline fares. Downstream steps read ARTIFACT_BYTES_KEY
- * and never touch the request's artifact field, so the two sources are
- * indistinguishable past this point.
+ * ResolveArtifactSource — the shared step bound to PushSkillRequest's two
+ * sources and the skill lane's FailedPrecondition copy (see
+ * pipeline/steps/resolve-artifact-source.ts for the semantics).
  */
 export function newResolveArtifactSourceStep(
   slots: UploadSlots | undefined,
 ): PipelineStep<PushDesc> {
-  return {
-    name: "ResolveArtifactSource",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const req = ctx.input;
-      if (req.artifactUploadRef === "") {
-        ctx.set(ARTIFACT_BYTES_KEY, req.artifact);
-        return;
-      }
-      if (slots === undefined) {
-        throw failedPreconditionError(TRANSFER_LANE_NOT_CONFIGURED);
-      }
-      let data: Uint8Array;
-      try {
-        data = await slots.consume(req.artifactUploadRef);
-      } catch (error) {
-        // The reference is client-supplied state, not server fault:
-        // unknown, expired, already consumed, or minted-but-never-uploaded
-        // all mean the client must re-mint and re-upload.
-        throw invalidArgumentError(
-          `artifact_upload_ref not usable: ${error instanceof Error ? error.message : String(error)} — request a new upload URL via createArtifactUploadUrl`,
-        );
-      }
-      ctx.set(ARTIFACT_BYTES_KEY, data);
-    },
-  };
+  return newSharedResolveArtifactSourceStep<PushDesc>(slots, {
+    source: (req) => ({
+      artifact: req.artifact,
+      artifactUploadRef: req.artifactUploadRef,
+    }),
+    laneNotConfigured: TRANSFER_LANE_NOT_CONFIGURED,
+  });
 }
 
 /**

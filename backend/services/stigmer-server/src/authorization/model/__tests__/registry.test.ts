@@ -53,6 +53,7 @@ const DECLARED_KINDS = [
   ApiResourceKind.workflow,
   ApiResourceKind.workflow_instance,
   ApiResourceKind.workflow_execution,
+  ApiResourceKind.plugin,
 ] as const;
 
 /**
@@ -104,6 +105,7 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
     "can_create_session",
     "can_create_environment",
     "can_create_skill",
+    "can_create_plugin",
     "can_create_idp",
     "can_create_identity_account",
     "can_create_oauth_app",
@@ -209,6 +211,13 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
     "can_edit",
     "can_delete",
     "can_execute",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  plugin: [
+    "can_view",
+    "can_edit",
+    "can_delete",
     "can_grant_access",
     "can_view_access",
   ],

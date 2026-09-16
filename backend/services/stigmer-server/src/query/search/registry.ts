@@ -27,6 +27,7 @@ import { environmentSearchExtractor } from "../../domain/environment/search-extr
 import { executionContextSearchExtractor } from "../../domain/executioncontext/search-extractor.js";
 import { mcpServerSearchExtractor } from "../../domain/mcpserver/search-extractor.js";
 import { organizationSearchExtractor } from "../../domain/organization/search-extractor.js";
+import { pluginSearchExtractor } from "../../domain/plugin/search-extractor.js";
 import { projectSearchExtractor } from "../../domain/project/search-extractor.js";
 import { sessionSearchExtractor } from "../../domain/session/search-extractor.js";
 import { skillSearchExtractor } from "../../domain/skill/search-extractor.js";
@@ -39,7 +40,10 @@ import type { SearchableExtractor } from "./extractor.js";
 
 /** Go SearchableResourceRegistry — kind → extractor, read-only after build. */
 export class SearchableResourceRegistry {
-  private readonly extractors: ReadonlyMap<ApiResourceKind, SearchableExtractor>;
+  private readonly extractors: ReadonlyMap<
+    ApiResourceKind,
+    SearchableExtractor
+  >;
 
   constructor(extractors: readonly SearchableExtractor[]) {
     const map = new Map<ApiResourceKind, SearchableExtractor>();
@@ -111,6 +115,7 @@ export function newSearchableResourceRegistry(): SearchableResourceRegistry {
     executionContextSearchExtractor,
     mcpServerSearchExtractor,
     organizationSearchExtractor,
+    pluginSearchExtractor,
     projectSearchExtractor,
     sessionSearchExtractor,
     skillSearchExtractor,

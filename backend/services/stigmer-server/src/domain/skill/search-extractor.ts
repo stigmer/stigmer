@@ -55,7 +55,9 @@ export const skillSearchExtractor: SearchableExtractor = {
       org: metadata.org,
       // The enum NAME string, exactly Go's visibility.String().
       visibility: ApiResourceVisibility[metadata.visibility] ?? "",
-      createdAt: Number(skill.status?.audit?.specAudit?.createdAt?.seconds ?? 0n),
+      createdAt: Number(
+        skill.status?.audit?.specAudit?.createdAt?.seconds ?? 0n,
+      ),
     };
   },
 };

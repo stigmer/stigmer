@@ -179,9 +179,7 @@ describe("GuardMemoryCapture with the capability composed", () => {
 
 describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => {
   it("admits trusted-local and OIDC callers", () => {
-    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
-      providerWith(),
-    );
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
     step.execute(memoryCtx(LOCAL_USER));
     step.execute(
       memoryCtx({
@@ -194,9 +192,7 @@ describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => 
   });
 
   it("refuses machine callers and platform_client_id carriers", () => {
-    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
-      providerWith(),
-    );
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
     expect(() =>
       step.execute(memoryCtx({ ...LOCAL_USER, callerClass: "machine" })),
     ).toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
@@ -214,9 +210,7 @@ describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => 
     // With no capability composed the gate cannot classify runner
     // credentials — the single-user OSS posture admits them (the #564
     // narrowing is CLOUD policy, shipped in the cloud capability).
-    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
-      providerWith(),
-    );
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
     step.execute(memoryCtx(SANDBOX_CALLER));
   });
 });

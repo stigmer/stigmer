@@ -133,9 +133,8 @@ describe("GuardReservedLabels", () => {
   });
 
   it("the Environment personal-label client contract passes", async () => {
-    const step = newGuardReservedLabelsStep<typeof EnvironmentSchema>(
-      denying(),
-    );
+    const step =
+      newGuardReservedLabelsStep<typeof EnvironmentSchema>(denying());
     const ctx = new RequestContext(
       EnvironmentSchema,
       create(EnvironmentSchema, {
@@ -151,7 +150,12 @@ describe("GuardReservedLabels", () => {
     const step = newGuardReservedLabelsStep<typeof AgentSchema>(denying());
     const ctx = agentCtx(
       { "stigmer.ai/default-instance": "true" },
-      { identityId: "internal", callerClass: "internal", issuer: "", rawToken: "" },
+      {
+        identityId: "internal",
+        callerClass: "internal",
+        issuer: "",
+        rawToken: "",
+      },
     );
     await expect(Promise.resolve(step.execute(ctx))).resolves.toBeUndefined();
   });
@@ -166,7 +170,9 @@ describe("GuardReservedLabels", () => {
       vouched,
       "stigmer.ai/workflow-execution-id",
     );
-    await expect(Promise.resolve(step.execute(vouched))).resolves.toBeUndefined();
+    await expect(
+      Promise.resolve(step.execute(vouched)),
+    ).resolves.toBeUndefined();
 
     const smuggled = agentCtx({
       "stigmer.ai/workflow-execution-id": "wfe_1",
@@ -176,9 +182,7 @@ describe("GuardReservedLabels", () => {
       smuggled,
       "stigmer.ai/workflow-execution-id",
     );
-    const error = await step
-      .execute(smuggled)
-      ?.catch((e: unknown) => e);
+    const error = await step.execute(smuggled)?.catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).rawMessage).toContain(
       "stigmer.ai/default-agent",

@@ -157,9 +157,7 @@ describe("R5: caller propagation through the in-process transport", () => {
         },
       },
     );
-    expect(seen).toEqual([
-      { ...caller, origin: "in-process" },
-    ]);
+    expect(seen).toEqual([{ ...caller, origin: "in-process" }]);
   });
 
   it("mints the internal class when nothing was propagated (the daemon default)", async () => {

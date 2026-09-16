@@ -12,7 +12,7 @@
  * chain past the depth bound) and for the cloud's drift test, which
  * builds a model from the live `.fga` files and compares.
  *
- * Registered: every kind of the open-source tier — the twenty-three
+ * Registered: every kind of the open-source tier — the twenty-four
  * `kind_meta.tier: open_source` members — and nothing else. The four
  * files `fga.mod` lists that have no declaration here (`platform`,
  * `identity_provider`, `platform_client`, `invitation`) are kinds this
@@ -38,6 +38,7 @@ import { mcpServerDeclaration } from "./mcp_server.js";
 import { memoryDeclaration } from "./memory.js";
 import { oauthAppDeclaration } from "./oauth_app.js";
 import { organizationDeclaration } from "./organization.js";
+import { pluginDeclaration } from "./plugin.js";
 import { projectDeclaration } from "./project.js";
 import type { KindDeclaration } from "./rewrite.js";
 import { scheduleDeclaration } from "./schedule.js";
@@ -96,6 +97,7 @@ export const builtInModel: Model = newModel([
   workflowDeclaration,
   workflowInstanceDeclaration,
   workflowExecutionDeclaration,
+  pluginDeclaration,
 ]);
 
 /** The built-in model's declaration for a kind, or undefined for a kind it does not evaluate. */

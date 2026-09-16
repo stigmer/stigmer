@@ -102,6 +102,7 @@ import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
 } from "../../pipeline/steps/load-existing.js";
+import { newGuardPluginManagedStep } from "../../pipeline/steps/guard-plugin-managed.js";
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
@@ -296,6 +297,10 @@ async function update(
     .addStep(newValidateWorkflowSpecStep(deps.validator, deps.logger))
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
+    // A resource a plugin materialised is the plugin's to redefine; a client
+    // write is refused naming the plugin (GuardPluginManaged, keyed on the
+    // STORED labels and the plugin row's existence).
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
@@ -381,6 +386,7 @@ async function deleteWorkflow(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowSchema))
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newCascadeDeleteWorkflowInstancesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
@@ -436,6 +442,11 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadWorkflowForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newGuardPluginManagedStep(deps.store, {
+        existingKey: UPDATE_VISIBILITY_WORKFLOW_KEY,
+      }),
+    )
     .addStep(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_WORKFLOW_KEY),
     )
@@ -664,6 +675,14 @@ async function tagVersion(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newLoadWorkflowForTagVersionStep(deps.store))
+    // Moving a tag redefines which version a plugin-managed workflow
+    // advertises; the plugin owns that, so a client is refused naming it.
+    .addStep(
+      newGuardPluginManagedStep(deps.store, {
+        existingKey: TAG_VERSION_WORKFLOW_KEY,
+      }),
+    )
     .addStep(newTagWorkflowVersionStep(deps.store))
     .build()
     .execute(reqCtx);
@@ -671,13 +690,17 @@ async function tagVersion(
   return reqCtx.get(TAG_VERSION_RESULT_KEY) as Workflow;
 }
 
-function newTagWorkflowVersionStep(store: Store): PipelineStep<TagVersionDesc> {
+/** The live workflow the tag move targets, loaded once for the guard and the move. */
+const TAG_VERSION_WORKFLOW_KEY = "tagVersionWorkflow";
+
+/** Loads the live workflow to confirm it exists; the tag step learns its head hash from it. */
+function newLoadWorkflowForTagVersionStep(
+  store: Store,
+): PipelineStep<TagVersionDesc> {
   return {
-    name: "TagWorkflowVersion",
+    name: "LoadWorkflowForTagVersion",
     async execute(ctx: RequestContext<TagVersionDesc>): Promise<void> {
       const req = ctx.input;
-
-      // Load the live workflow to confirm it exists and learn its head hash.
       let workflow: Workflow;
       try {
         workflow = await store.getResource(
@@ -691,6 +714,17 @@ function newTagWorkflowVersionStep(store: Store): PipelineStep<TagVersionDesc> {
         }
         throw internalError(error, "failed to load workflow");
       }
+      ctx.set(TAG_VERSION_WORKFLOW_KEY, workflow);
+    },
+  };
+}
+
+function newTagWorkflowVersionStep(store: Store): PipelineStep<TagVersionDesc> {
+  return {
+    name: "TagWorkflowVersion",
+    async execute(ctx: RequestContext<TagVersionDesc>): Promise<void> {
+      const req = ctx.input;
+      const workflow = ctx.get(TAG_VERSION_WORKFLOW_KEY) as Workflow;
 
       // Move the tag in the audit store. A version_hash with no audit
       // record yields AuditNotFoundError (the hash-exists check) and leaves

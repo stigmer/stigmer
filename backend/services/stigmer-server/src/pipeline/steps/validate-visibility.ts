@@ -34,7 +34,9 @@ import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { metadataOf } from "./shapes.js";
 
-export function newValidateVisibilityStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newValidateVisibilityStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "ValidateVisibility",
     execute(ctx: RequestContext<Desc>): void {
@@ -72,7 +74,12 @@ export function rejectDefaultInstanceVisibilityUpdate(): never {
 }
 
 /** Go rejectUnsupportedVisibility (the shared level check + copy). */
-function rejectUnsupportedVisibility(
+/**
+ * The one sentence for a level a kind does not support. Exported for the
+ * push-shaped chains whose requested level rides the request rather than
+ * a resource's metadata (plugin push), so the copy stays in one place.
+ */
+export function rejectUnsupportedVisibility(
   kind: ApiResourceKind,
   visibility: ApiResourceVisibility,
 ): void {

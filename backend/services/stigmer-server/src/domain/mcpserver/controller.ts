@@ -77,6 +77,7 @@ import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
 } from "../../pipeline/steps/load-existing.js";
+import { newGuardPluginManagedStep } from "../../pipeline/steps/guard-plugin-managed.js";
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
@@ -269,6 +270,10 @@ async function update(
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
+    // A resource a plugin materialised is the plugin's to redefine; a client
+    // write is refused naming the plugin (GuardPluginManaged, keyed on the
+    // STORED labels and the plugin row's existence).
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateDefaultEnabledToolsStep())
@@ -374,6 +379,7 @@ async function deleteMcpServer(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, McpServerSchema))
+    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
@@ -426,6 +432,11 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadMcpServerForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newGuardPluginManagedStep(deps.store, {
+        existingKey: UPDATE_VISIBILITY_MCP_SERVER_KEY,
+      }),
+    )
     .addStep(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_MCP_SERVER_KEY),
     )

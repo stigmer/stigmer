@@ -70,6 +70,9 @@ import type {
 import type { AgentExecutionApprovalForwarder } from "../domain/workflowexecution/submit-approval.js";
 import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowexecution/submit-file-decision.js";
 import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
+import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
+import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OrphanDeleter } from "../domain/project/reconcile.js";
 import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
@@ -153,6 +156,17 @@ export interface InProcessClients {
    * minted — exactly like the schedule clock and the reconciler above.
    */
   readonly executionStatusWriter: ExecutionStatusWriter;
+  /**
+   * The plugin controller's materialisation edge: every member a plugin
+   * installs, upgrades, re-levels or removes goes through the owning
+   * domain's FULL chain (skill push, the three applies, updateVisibility,
+   * delete) AS THE INSTALLING CALLER (ruling R5's asCaller lane), so a
+   * materialised skill is attributed to the user who installed it and
+   * carries the plugin's reserved labels by the in-process origin the
+   * guards pass structurally. The delete routing is the reconciler's
+   * switch, shared.
+   */
+  readonly pluginMaterializer: PluginMaterializer;
 }
 
 /**
@@ -378,38 +392,102 @@ export function createInProcessClients(
     // delete is attempted, in both editions. Log-only surface: reconcile
     // failures never reach the wire.
     projectOrphanDeleter: {
-      async delete(kind, resourceId) {
-        switch (kind) {
-          case ApiResourceKind.agent:
-            await agentCommand.delete(
-              create(AgentIdSchema, { value: resourceId }),
-            );
-            return;
-          case ApiResourceKind.workflow:
-            await workflowCommand.delete(
-              create(WorkflowIdSchema, { value: resourceId }),
-            );
-            return;
-          case ApiResourceKind.mcp_server:
-            // McpServer's delete input is the commons ApiResourceDeleteInput
-            // (not an id wrapper) — Go's client builds the same message.
-            await mcpServerCommand.delete(
-              create(ApiResourceDeleteInputSchema, { resourceId }),
-            );
-            return;
-          case ApiResourceKind.skill:
-            await skillCommand.delete(
-              create(SkillIdSchema, { value: resourceId }),
-            );
-            return;
-          default:
-            throw new Error(
-              `unsupported resource kind for delete: ${ApiResourceKind[kind] ?? String(kind)}`,
-            );
-        }
-      },
+      delete: (kind, resourceId) => deleteByKind(kind, resourceId),
+    },
+    pluginMaterializer: {
+      pushSkill: (request, caller) =>
+        skillCommand.push(request, asCaller(caller)),
+      applyMcpServer: (server, caller) =>
+        mcpServerCommand.apply(server, asCaller(caller)),
+      applyAgent: (agent, caller) =>
+        agentCommand.apply(agent, asCaller(caller)),
+      applyWorkflow: (workflow, caller) =>
+        workflowCommand.apply(workflow, asCaller(caller)),
+      updateVisibility: (kind, resourceId, visibility, caller) =>
+        updateVisibilityByKind(kind, resourceId, visibility, asCaller(caller)),
+      deleteByKind: (kind, resourceId, caller) =>
+        deleteByKind(kind, resourceId, asCaller(caller)),
     },
   };
+
+  /**
+   * Delete routing for the four reconciled kinds — Go's
+   * ResourceDeleterAdapter.Delete switch (execution_engine.go:75-92),
+   * shared by the project reconciler (internal class, no caller) and the
+   * plugin controller (as the installing caller). Every orphan or member
+   * delete runs the owning domain's FULL pipeline. The unsupported-kind
+   * default is defense-in-depth: both callers refuse unsupported kinds
+   * before any delete is attempted.
+   */
+  async function deleteByKind(
+    kind: ApiResourceKind,
+    resourceId: string,
+    options?: CallOptions,
+  ): Promise<void> {
+    switch (kind) {
+      case ApiResourceKind.agent:
+        await agentCommand.delete(
+          create(AgentIdSchema, { value: resourceId }),
+          options,
+        );
+        return;
+      case ApiResourceKind.workflow:
+        await workflowCommand.delete(
+          create(WorkflowIdSchema, { value: resourceId }),
+          options,
+        );
+        return;
+      case ApiResourceKind.mcp_server:
+        // McpServer's delete input is the commons ApiResourceDeleteInput
+        // (not an id wrapper) — Go's client builds the same message.
+        await mcpServerCommand.delete(
+          create(ApiResourceDeleteInputSchema, { resourceId }),
+          options,
+        );
+        return;
+      case ApiResourceKind.skill:
+        await skillCommand.delete(
+          create(SkillIdSchema, { value: resourceId }),
+          options,
+        );
+        return;
+      default:
+        throw new Error(
+          `unsupported resource kind for delete: ${ApiResourceKind[kind] ?? String(kind)}`,
+        );
+    }
+  }
+
+  /** The one door for a level change on each member kind (metadata.proto). */
+  async function updateVisibilityByKind(
+    kind: ApiResourceKind,
+    resourceId: string,
+    visibility: ApiResourceVisibility,
+    options: CallOptions,
+  ): Promise<void> {
+    const input = create(UpdateVisibilityInputSchema, {
+      resourceId,
+      visibility,
+    });
+    switch (kind) {
+      case ApiResourceKind.agent:
+        await agentCommand.updateVisibility(input, options);
+        return;
+      case ApiResourceKind.workflow:
+        await workflowCommand.updateVisibility(input, options);
+        return;
+      case ApiResourceKind.mcp_server:
+        await mcpServerCommand.updateVisibility(input, options);
+        return;
+      case ApiResourceKind.skill:
+        await skillCommand.updateVisibility(input, options);
+        return;
+      default:
+        throw new Error(
+          `unsupported resource kind for updateVisibility: ${ApiResourceKind[kind] ?? String(kind)}`,
+        );
+    }
+  }
 
   return { clients, transport };
 }

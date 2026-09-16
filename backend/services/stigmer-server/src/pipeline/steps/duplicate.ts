@@ -24,10 +24,16 @@ export function newCheckDuplicateStep<Desc extends DescMessage>(
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
         // Established by earlier steps — a server-side programming error.
-        throw internalError(new Error("resource metadata is nil"), "duplicate check");
+        throw internalError(
+          new Error("resource metadata is nil"),
+          "duplicate check",
+        );
       }
       if (metadata.slug === "") {
-        throw internalError(new Error("resource slug is empty"), "duplicate check");
+        throw internalError(
+          new Error("resource slug is empty"),
+          "duplicate check",
+        );
       }
 
       let existing;

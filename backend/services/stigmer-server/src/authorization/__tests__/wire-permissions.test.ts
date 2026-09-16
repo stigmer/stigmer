@@ -140,6 +140,7 @@ describe("every static (kind, permission) the served RPCs ask about is a declare
         "memory",
         "oauth_app",
         "organization",
+        "plugin",
         "project",
         "schedule",
         "session",

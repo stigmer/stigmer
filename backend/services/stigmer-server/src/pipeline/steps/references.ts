@@ -31,13 +31,18 @@ import { messageFieldByName, metadataOf } from "./shapes.js";
 const API_RESOURCE_REFERENCE_TYPE =
   "ai.stigmer.commons.apiresource.ApiResourceReference";
 
-export function newNormalizeReferencesStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newNormalizeReferencesStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "NormalizeReferences",
     execute(ctx: RequestContext<Desc>): void {
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
-        throw internalError(new Error("resource metadata is nil"), "normalize references");
+        throw internalError(
+          new Error("resource metadata is nil"),
+          "normalize references",
+        );
       }
       // No org to resolve from — skip silently; required-org validation is
       // the validation step's responsibility, not this one's.
@@ -98,6 +103,35 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
       }
     },
   };
+}
+
+/** One reference a spec carries, as the walker reads it. */
+export interface SpecReference {
+  readonly kind: ApiResourceKind;
+  readonly slug: string;
+  readonly org: string;
+}
+
+/**
+ * Every ApiResourceReference in a resource's spec — the same walk
+ * ValidateReferences runs, exported for the readers that ask the reverse
+ * question ("who references this?"): the plugin delete guard scans an
+ * organization's agents and workflows for references to a member it is
+ * about to remove.
+ */
+export function collectSpecReferences(
+  schema: DescMessage,
+  msg: Parameters<typeof reflect>[1],
+): SpecReference[] {
+  const refs: SpecReference[] = [];
+  forEachSpecReference(schema, msg, (ref) => {
+    refs.push({
+      kind: numberField(ref, "kind") as ApiResourceKind,
+      slug: stringField(ref, "slug"),
+      org: stringField(ref, "org"),
+    });
+  });
+  return refs;
 }
 
 /**
