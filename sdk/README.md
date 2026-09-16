@@ -188,9 +188,7 @@ stigmer/
 │       ├── examples/      # Example programs
 │       └── tests/         # Test suite
 │
-├── docs/sdk/              # SDK documentation
-├── _changelog/sdk/        # SDK changelogs
-└── .cursor/rules/sdk/     # SDK development rules
+└── docs/sdk/              # SDK documentation (generated reference + guides)
 ```
 
 ## Contributing
