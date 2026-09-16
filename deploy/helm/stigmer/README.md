@@ -117,8 +117,13 @@ at your identity provider, is the
 [authentication guide](https://stigmer.ai/docs/guides/self-hosting/authentication).
 
 With authentication on, the runner needs an API key to call the server, and an
-API key can only be minted by a signed-in operator. So an authenticated install
-is two steps, and the chart refuses the half state in between:
+API key can only be minted by a signed-in operator. The key is the runner's own
+credential (it fetches its configuration and the model registry with it); it
+does not decide whose runs the runner may serve or who is recorded as running
+them. For each run the server hands the runner a credential for that run alone,
+so every member's run executes and is attributed to the member who started it,
+whoever's key the runner process holds. An authenticated install is two steps,
+and the chart refuses the half state in between:
 
 1. Install with `server.oidc` unset. Sign in through the port-forward as the
    operator and mint the runner's key: `stigmer apikey create --name runner`.

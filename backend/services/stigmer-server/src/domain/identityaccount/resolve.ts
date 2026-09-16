@@ -41,6 +41,19 @@
  * cannot answer the same question two ways. A credential naming no
  * subject is `undefined` with no second read: the store is never asked
  * about "".
+ *
+ * The third reading is a ROW's creator stamp, `accountForStamp`: the
+ * account a `created_by.id` names, read the two ways a stamp has been
+ * written — as an account id (rows stamped since 3.15.0) and as the raw
+ * issuer subject (rows the 3.14.x verifiers stamped) — in
+ * `accountForCaller`'s order. Two lanes make the server act as the
+ * person a row names: the built-in schedule fire caller (a fire acts as
+ * the schedule's creator) and the runner-subject verifier (a run
+ * credential admits its bearer as the execution's creator). Stated here
+ * so they cannot resolve one stamp two ways; each decides for itself
+ * what "nobody" means (the fire caller's deterministic refusal, the
+ * verifier's liveness sentence), so this function answers `undefined`
+ * and never throws for it. The empty stamp is `undefined` with no read.
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
@@ -92,4 +105,22 @@ export async function accountForCaller(
     return undefined;
   }
   return accounts.findDirectByIdpId(subject);
+}
+
+/**
+ * The account a row's creator stamp names, or `undefined` when it names
+ * nobody (the laptop's `"system"`, a trusted-local email, a deleted
+ * account, the empty stamp). Faults propagate as they are.
+ */
+export async function accountForStamp(
+  accounts: AccountsByCaller,
+  stamp: string,
+): Promise<IdentityAccount | undefined> {
+  if (stamp === "") {
+    return undefined;
+  }
+  return (
+    (await accounts.findById(stamp)) ??
+    (await accounts.findDirectByIdpId(stamp))
+  );
 }

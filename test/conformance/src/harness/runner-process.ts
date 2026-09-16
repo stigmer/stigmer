@@ -104,8 +104,15 @@ export interface RunnerProxyOptions {
   // Base URL of the mock LLM proxy (becomes STIGMER_PROXY_ENDPOINT). The runner
   // appends the provider path; the proxy serves canned Anthropic SSE.
   endpoint: string;
-  // Bearer token sent to the proxy. The mock ignores it and the OSS server is
-  // no-auth, but the runner requires STIGMER_TOKEN whenever a proxy is set.
+  // Bearer token sent to the proxy — and, because the runner has ONE token
+  // variable (STIGMER_TOKEN) for the proxy bearer and its control-plane
+  // credential alike, the credential the runner presents to the server as
+  // its process. The mock ignores it. Against the trusted-local primary the
+  // server verifies nothing, so any placeholder serves; against the
+  // enforcing lane's sibling (enforcing-execution-lane.ts) this is the
+  // operator's `stk_` API key, the Helm chart's install shape — the
+  // runner's PROCESS credential, while each run it serves acts through the
+  // run's own credential the server dispatched with it.
   token: string;
 }
 

@@ -28,6 +28,7 @@ import {
   type ChannelMessagingInfo,
 } from "../channel-attachment.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
+import { STDIO_CREDENTIAL_ENV } from "../synthesized-attachment.js";
 
 function channel(slug: string): MessagingChannel {
   return { channel: slug, provider: "whatsapp" } as MessagingChannel;
@@ -158,9 +159,20 @@ describe("synthesizeChannelAttachment", () => {
     });
   });
 
+  it("the stdio child receives the run's credential as its startup bearer — the memory attachment's twin, one carrier", () => {
+    const attachment = synthesizeChannelAttachment([info("isc-whatsapp", [])], {
+      bridgeEndpoint: null,
+      credential: "run-credential",
+      backendEndpoint: "http://localhost:7234",
+    });
+    expect(attachment?.env).toMatchObject({ [STDIO_CREDENTIAL_ENV]: "run-credential" });
+  });
+
   it("pins the cross-repo strings the mcp-server side guards too", () => {
     expect(CHANNEL_ATTACHMENT_SLUG).toBe("stigmer-channels");
     expect(CHANNELS_ROUTE).toBe("/channels");
+    // The mcp-server's startup-credential variable (mcp-server/src/config.ts).
+    expect(STDIO_CREDENTIAL_ENV).toBe("STIGMER_API_KEY");
   });
 
   it("is approval-free by construction: zero entries in the merged approval map", () => {

@@ -15,6 +15,9 @@
  * then the control planes; once both are everywhere, drop the positional branch
  * (and the `string` arms below).
  */
+
+import type { RUN_CREDENTIAL_INPUT_KEY } from "./run-credential.js";
+
 export interface ExecuteActivityInput {
   readonly execution_id: string;
   readonly thread_id: string;
@@ -27,7 +30,25 @@ export interface ExecuteActivityInput {
    * from it. Absent on the legacy positional wire shape (defaults to 0).
    */
   readonly turn_seq?: number;
+  /**
+   * The run credential the server minted for this execution at dispatch,
+   * handed on from the workflow input; absent when the dispatch carried none
+   * (an older server; the cloud). Not normalized here and never read by an
+   * activity: the activity boundary enters it into the run-credential store
+   * before the activity runs (`interceptors/run-credential-activity.ts`), and
+   * the control-plane client presents it per request (`run-credential.ts`).
+   */
+  readonly execution_context_token?: string;
 }
+
+/**
+ * Compile-time fence: the key the boundary reads
+ * (`RUN_CREDENTIAL_INPUT_KEY`) is a key of this input. The type keeps the
+ * literal so the wire shape stays readable; this line fails to type-check the
+ * day the two disagree.
+ */
+type _RunCredentialKeyIsOnTheWire =
+  ExecuteActivityInput[typeof RUN_CREDENTIAL_INPUT_KEY];
 
 export interface NormalizedActivityInput {
   readonly executionId: string;

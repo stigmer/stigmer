@@ -22,10 +22,12 @@
  * client-suppliable schedule-id label is what the cloud explicitly
  * refused.
  *
- * The creator's account is resolved from the row's stamp two ways — as an
- * account id (rows stamped since 3.15.0) and as the raw issuer subject
- * (rows the 3.14.x verifiers stamped) — through the account port, the
- * same two shapes `Person` aliases. A stamp that resolves to no account
+ * The creator's account is resolved from the row's stamp through the
+ * identity-account domain's `accountForStamp` — as an account id (rows
+ * stamped since 3.15.0) and as the raw issuer subject (rows the 3.14.x
+ * verifiers stamped), the same two shapes `Person` aliases and the same
+ * read the runner-subject verifier makes of an execution's stamp. A
+ * stamp that resolves to no account
  * is the seam's DETERMINISTIC refusal (`ScheduleFireCallerRefusedError`):
  * the empty stamp, the laptop's `"system"`, an email from the
  * trusted-local era, a deleted account — no retry will make that schedule
@@ -43,7 +45,8 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { accountAsCaller } from "../domain/identityaccount/actor.js";
-import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
+import { accountForStamp } from "../domain/identityaccount/resolve.js";
+import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
 import { ScheduleFireCallerRefusedError } from "../extensions/schedule-fire-caller.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
@@ -52,10 +55,7 @@ import type { Store } from "../store/interface.js";
 export interface BuiltInScheduleFireCallerDeps {
   readonly store: Store;
   /** The account port: the stamp is resolved as an account id, then as a direct subject. */
-  readonly accounts: Pick<
-    IdentityAccountStore,
-    "findById" | "findDirectByIdpId"
-  >;
+  readonly accounts: AccountsByCaller;
 }
 
 /** The refusal's copy — written for the person who scheduled the run (the schedule's status carries it). */
@@ -75,11 +75,7 @@ export function newBuiltInScheduleFireCaller(
       );
       const stamp =
         auditOf(ScheduleSchema, schedule)?.specAudit?.createdBy?.id ?? "";
-      const account =
-        stamp === ""
-          ? undefined
-          : ((await deps.accounts.findById(stamp)) ??
-            (await deps.accounts.findDirectByIdpId(stamp)));
+      const account = await accountForStamp(deps.accounts, stamp);
       if (account === undefined) {
         throw new ScheduleFireCallerRefusedError(
           scheduleHasNoPersonMessage(scheduleId),

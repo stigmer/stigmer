@@ -11,6 +11,8 @@
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import type { SiblingEnforcingLane } from "../harness/enforcing-lane";
+import { newSiblingEnforcingExecutionLane } from "../harness/enforcing-execution-lane";
 import { McpToolFixture } from "../harness/mcp-server";
 import { MockLlmProxy } from "../harness/mock-llm";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
@@ -28,7 +30,10 @@ import { uniqueOrg } from "../support/naming";
 import type {
   CapabilityFlags,
   EngineCoordinates,
+  EnforcingLane,
   PrivilegedScope,
+  SiblingExecutionServer,
+  SpawnSiblingOptions,
   TargetProfile,
   TenancyContext,
 } from "./target";
@@ -43,8 +48,9 @@ export class LocalExecutionTarget implements TargetProfile {
   // ratified parity-plus delta, #23) where the Go server never sent it.
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
-    // Trusted-local primary, as `local` (whose enforcingLane this class
-    // inherits).
+    // Trusted-local primary, as `local`; the enforcing lane is an OIDC
+    // sibling this target boots WITH an engine and a runner
+    // (enforcingLane below).
     enforcingAuthorizer: false,
     externalOrgLookup: false,
     organizationEnumeration: true,
@@ -59,6 +65,11 @@ export class LocalExecutionTarget implements TargetProfile {
     // True since D4 #22 ported the schedule clock (tick workflow +
     // reconciler on the schedule_stigmer queue).
     scheduleFiring: true,
+    // The open-source runner presents each run's own credential and the
+    // built-in verifier admits its bearer as the run's human; proven on
+    // this target's enforcing lane, whose runner is keyed with the
+    // founder's API key (stigmer#1138).
+    runnerActsAsRunCreator: true,
     // Single-tenant OSS: the reserved-label write guard is cloud-only
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,
@@ -102,6 +113,11 @@ export class LocalExecutionTarget implements TargetProfile {
   private mockLlm: MockLlmProxy | undefined;
   private mcpTools: McpToolFixture | undefined;
   private conformanceClients: ConformanceClients | undefined;
+  // The one enforcing lane of this target instance — an OIDC sibling with
+  // its own engine and a runner — created on the first enforcingLane() call
+  // and torn down with the primary. Held as the pending promise so two
+  // concurrent first calls spawn one lane, not two (the LocalTarget shape).
+  private siblingLane: Promise<SiblingEnforcingLane> | undefined;
 
   async setup(): Promise<void> {
     const entry = await ensureTsServerEntry();
@@ -162,6 +178,85 @@ export class LocalExecutionTarget implements TargetProfile {
   // (DD-011: the driver must be wire-invisible).
   protected async provisionStorage(): Promise<ProvisionedStorage> {
     return ephemeralSqliteStorage();
+  }
+
+  // A second server of this edition in the suite's posture, WITH ITS OWN
+  // ENGINE: the primary's Temporal cannot be shared (same namespace, same
+  // task queue — the trusted-local runner would take the sibling's work),
+  // and on an execution target a server without an engine is one that
+  // cannot run anything, so this sibling always brings one. Storage comes
+  // from the same seam as the primary's, so local-postgres-execution proves
+  // the same arms on the Postgres driver by inheritance. Boot order is the
+  // primary's (Temporal, then the server); readiness is the harness's one
+  // gate, presented with the bearer the suite supplied; teardown reverses.
+  async spawnSibling(
+    options: SpawnSiblingOptions,
+  ): Promise<SiblingExecutionServer> {
+    const entry = await ensureTsServerEntry();
+    const temporal = await spawnTemporal();
+    let storage: ProvisionedStorage;
+    try {
+      storage = await this.provisionStorage();
+    } catch (error) {
+      await temporal.stop();
+      throw error;
+    }
+    let server: RunningServer;
+    try {
+      server = await spawnServer(process.execPath, {
+        args: [entry],
+        temporalHostPort: temporal.hostPort,
+        env: { ...storage.serverEnv, ...options.env },
+      });
+    } catch (error) {
+      await storage.release();
+      await temporal.stop();
+      throw error;
+    }
+    const clientsPresenting = (bearerToken: string): ConformanceClients =>
+      makeClients(createTransport(server.baseUrl, { bearerToken }));
+    const teardown = async (): Promise<void> => {
+      await server.stop();
+      await storage.release();
+      await temporal.stop();
+    };
+    try {
+      await awaitGrpcReady(clientsPresenting(options.readinessBearer), () =>
+        server.logTail(),
+      );
+    } catch (error) {
+      await teardown();
+      throw error;
+    }
+    return {
+      clientsPresenting,
+      teardown,
+      engine: {
+        temporalHostPort: temporal.hostPort,
+        serverBaseUrl: server.baseUrl,
+      },
+      artifactStore: {
+        dir: server.artifactBaseDir,
+        serveUrl: server.artifactServeUrl,
+      },
+    };
+  }
+
+  // Open source enforces the model in the OIDC posture, so this target's
+  // enforcing lane is a sibling booted there against the harness's local
+  // issuer — with an engine and a runner keyed with the founder's API key,
+  // so the arms can dispatch a run under enforcement and read what the
+  // runner did as whom (harness/enforcing-execution-lane.ts owns the shape).
+  async enforcingLane(): Promise<EnforcingLane> {
+    if (this.server === undefined) {
+      throw new Error(
+        "LocalExecutionTarget.setup() must be called before enforcingLane()",
+      );
+    }
+    this.siblingLane ??= newSiblingEnforcingExecutionLane({
+      spawnSibling: (options) => this.spawnSibling(options),
+    });
+    return (await this.siblingLane).lane;
   }
 
   llmProxy(): MockLlmProxy {
@@ -251,6 +346,14 @@ export class LocalExecutionTarget implements TargetProfile {
   }
 
   async teardown(): Promise<void> {
+    // The sibling lane first (its own runner, mock, server, Temporal and
+    // issuer): a lane whose spawn failed rejected the promise the arms
+    // already saw, and has nothing left to close.
+    if (this.siblingLane !== undefined) {
+      const pending = this.siblingLane;
+      this.siblingLane = undefined;
+      await pending.then((sibling) => sibling.close()).catch(() => undefined);
+    }
     // Reverse boot order: runner, then the LLM/MCP fixtures, then server, then Temporal.
     await this.runner?.stop();
     await this.mockLlm?.close();

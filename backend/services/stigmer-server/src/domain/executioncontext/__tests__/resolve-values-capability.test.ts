@@ -19,6 +19,7 @@ import {
   EncryptionScope,
   SecretService,
 } from "../../../encryption/encryption.js";
+import type { BoundExecutionStore } from "../../../runnerauth/bound-execution.js";
 import { InvalidTokenError } from "../../../runnerauth/runnerauth.js";
 import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { resolveValuesForCaller } from "../resolve-values-for-caller.js";
@@ -30,6 +31,14 @@ const silentLogger = createLogger({
 });
 
 const secretService = SecretService.create(Buffer.alloc(32, 7));
+
+/** The capability arm never reads the store — a store that proves it. */
+const store: BoundExecutionStore = {
+  getResource: () =>
+    Promise.reject(new Error("the capability arm must not read the store")),
+  findByField: () =>
+    Promise.reject(new Error("the capability arm must not read the store")),
+};
 
 /** A minimal HandlerContext: the resolve path reads only the auth header. */
 function ctxWithBearer(token: string): HandlerContext {
@@ -84,7 +93,12 @@ describe("resolveValuesForCaller (capability delegation — C4)", () => {
     const provider = providerWith(async () => true);
     const ec = await executionContext();
     await resolveValuesForCaller(
-      { logger: silentLogger, secretService, runnerAuthService: provider },
+      {
+        logger: silentLogger,
+        secretService,
+        runnerAuthService: provider,
+        store,
+      },
       ctxWithBearer("sandbox-token"),
       ec,
     );
@@ -96,7 +110,12 @@ describe("resolveValuesForCaller (capability delegation — C4)", () => {
     const provider = providerWith(async () => false);
     const ec = await executionContext();
     await resolveValuesForCaller(
-      { logger: silentLogger, secretService, runnerAuthService: provider },
+      {
+        logger: silentLogger,
+        secretService,
+        runnerAuthService: provider,
+        store,
+      },
       ctxWithBearer("someone-elses-token"),
       ec,
     );
@@ -107,7 +126,12 @@ describe("resolveValuesForCaller (capability delegation — C4)", () => {
     const provider = providerWith(async () => true);
     const ec = await executionContext();
     await resolveValuesForCaller(
-      { logger: silentLogger, secretService, runnerAuthService: provider },
+      {
+        logger: silentLogger,
+        secretService,
+        runnerAuthService: provider,
+        store,
+      },
       ctxWithBearer(""),
       ec,
     );
@@ -121,7 +145,12 @@ describe("resolveValuesForCaller (capability delegation — C4)", () => {
     });
     const ec = await executionContext();
     await resolveValuesForCaller(
-      { logger: silentLogger, secretService, runnerAuthService: provider },
+      {
+        logger: silentLogger,
+        secretService,
+        runnerAuthService: provider,
+        store,
+      },
       ctxWithBearer("sandbox-token"),
       ec,
     );

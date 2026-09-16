@@ -44,6 +44,21 @@ export type WorkflowSource =
 export const OTEL_WORKFLOW_INTERCEPTOR_MODULE =
   "@temporalio/interceptors-opentelemetry/lib/workflow-interceptors";
 
+/**
+ * Path of the runner's own workflow interceptor — the one that carries a
+ * run's credential from the workflow input to every activity it schedules
+ * (`workflows/interceptors/run-credential.ts`). Always registered, unlike
+ * the OTel module: it is inert without a credential and load-bearing with
+ * one. Resolved beside this module so the tsc dist and the slim artifact
+ * both find their own compiled copy; the build script names the source
+ * file itself.
+ */
+export function runCredentialWorkflowInterceptorModule(): string {
+  return fileURLToPath(
+    new URL("./workflows/interceptors/run-credential.js", import.meta.url),
+  );
+}
+
 export function resolveWorkflowSource(): WorkflowSource {
   const explicit = process.env.STIGMER_WORKFLOW_BUNDLE;
   if (explicit) {

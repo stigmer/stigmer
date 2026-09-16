@@ -56,7 +56,13 @@
 // Embeddings requests are captured on their own surface (embeddingsRequests),
 // not in the chat queue's accounting.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { anthropicText, writeAnthropicSse, writeJson, type AnthropicMessageBody } from "./llm-wire";
+import {
+  anthropicText,
+  anthropicToolUse,
+  writeAnthropicSse,
+  writeJson,
+  type AnthropicMessageBody,
+} from "./llm-wire";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AddressInfo } from "node:net";
 
@@ -72,6 +78,23 @@ export {
   type AnthropicMessageBody,
   type ToolUseBlock,
 } from "./llm-wire";
+
+// One classifier verdict for a FIRST connect of an MCP server exposing
+// `toolName`: the connect workflow's tool classifier calls the LLM through the
+// runner's proxy using LangChain's structured output — on the wire a forced
+// Anthropic tool call named "extract" whose input is the classifier's
+// { approvals: [...] } schema. Every suite that triggers a first connect
+// enqueues exactly one of these; a re-connect consumes none (the
+// content-addressed carry-forward). One home for the classifier's wire shape,
+// so the connect suite and the enforcing-lane suite cannot drift apart.
+export function connectClassifierVerdict(
+  toolName: string,
+  requiresApproval: boolean,
+): AnthropicMessageBody {
+  return anthropicToolUse("toolu_classifier_verdict", "extract", {
+    approvals: [{ tool_name: toolName, requires_approval: requiresApproval, message: `Execute ${toolName}` }],
+  });
+}
 
 // One queued turn: either a success body to stream, or an HTTP error to fail
 // the call with, plus an optional hold before responding. `error` and `body`

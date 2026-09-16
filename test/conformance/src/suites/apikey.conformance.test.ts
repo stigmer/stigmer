@@ -34,11 +34,12 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import {
+  API_KEY_API_VERSION as API_VERSION,
+  API_KEY_KIND as KIND,
+} from "../support/apikeys";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
-
-const API_VERSION = "iam.stigmer.ai/v1";
-const KIND = "ApiKey";
 
 let target: TargetProfile;
 let clients: ConformanceClients;

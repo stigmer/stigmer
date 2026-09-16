@@ -47,6 +47,16 @@ const hydrateProxy = proxyActivities<HydrateActivities>({
 // Workflow Input Type (Temporal wire contract with Java/Go orchestrators)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The Temporal workflow type this function is exported as in `index.ts` — the
+ * server's `CHILD_WORKFLOW_TYPE`, byte-pinned on both sides. Named here so
+ * the run-credential interceptor can gate on it without a second literal; a
+ * test pins it to the barrel's export alias (an ES2022 export alias must be a
+ * literal, so the barrel cannot import this).
+ */
+export const EXECUTE_FROM_EXECUTION_WORKFLOW_TYPE =
+  "stigmer/workflow/execute-from-execution";
+
 export interface ExecuteFromExecutionInput {
   execution_id: string;
   workflow_instance_id: string;
@@ -55,6 +65,13 @@ export interface ExecuteFromExecutionInput {
   callback_token?: Uint8Array | null;
   invoker_identity_account_id?: string;
   recovery_mode?: boolean;
+  /**
+   * The run credential the server minted for this execution at dispatch —
+   * absent from an older server's dispatch. This workflow never reads it: the
+   * interceptor in `interceptors/run-credential.ts` lifts it onto every
+   * activity this workflow schedules, as a header (`shared/run-credential.ts`).
+   */
+  execution_context_token?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -18,7 +18,12 @@ import { createRequire } from "node:module";
 import { NativeConnection, Worker, type ActivityInterceptorsFactory, type InjectedSinks } from "@temporalio/worker";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
-import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
+import {
+  resolveWorkflowSource,
+  runCredentialWorkflowInterceptorModule,
+  OTEL_WORKFLOW_INTERCEPTOR_MODULE,
+} from "./workflow-source.js";
+import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
 
 export interface WorkerActivities {
   [key: string]: (...args: any[]) => Promise<unknown>;
@@ -42,9 +47,16 @@ export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
 
   const workflowSource = resolveWorkflowSource();
 
-  const activityInterceptors: ActivityInterceptorsFactory[] = [];
+  // The run credential's two ends (shared/run-credential.ts): the workflow
+  // side lifts a run's credential onto every activity it schedules, the
+  // activity side enters it for the client to present. Always on; inert
+  // without a credential. Workflow-side modules must live INSIDE the
+  // workflow bundle — a pre-built bundle has it baked in
+  // (scripts/bundle-slim.mjs); only the runtime path registers it here.
+  const activityInterceptors: ActivityInterceptorsFactory[] = [runCredentialActivityInterceptor];
   let sinks: InjectedSinks<any> = { ...createWorkflowMetricsSinks() };
-  const workflowInterceptorModules: string[] = [];
+  const workflowInterceptorModules: string[] =
+    workflowSource.kind === "runtime" ? [runCredentialWorkflowInterceptorModule()] : [];
 
   if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
     const {

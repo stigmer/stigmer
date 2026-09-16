@@ -23,12 +23,24 @@
  * here degrades to a heuristic title (the first words of the user message):
  * a title is worth having even when no model is reachable.
  *
- * Activity contract (the Go stub dispatches exactly ONE argument — the cloud
- * Java signature carries a second, invokerIdentityAccountId, that never
- * crosses this wire):
+ * Activity contract — exactly ONE argument, in one of two shapes:
  *   Name:   "GenerateSessionSubject"
  *   Input:  (executionId: string)
+ *           | ({ execution_id, execution_context_token? }: GenerateSessionSubjectInput)
  *   Output: void
+ *
+ * The object is what a server sends when the dispatch carries the run's
+ * credential (shared/run-credential.ts), so that this activity reads the
+ * run and titles the session AS THE RUN'S HUMAN — with sign-in on, the
+ * operator's key the process holds cannot read a member's run. The string
+ * is what every server sent before, and what a server whose dispatch carries
+ * no credential still sends (the cloud's, whose desktop runners in the field
+ * must keep titling sessions). Both shapes are accepted — the dual-shape
+ * posture the turn activities take (shared/activity-input.ts); the
+ * credential itself is entered by the activity boundary
+ * (interceptors/run-credential-activity.ts), never read here. The cloud's
+ * Java signature carries a second argument, invokerIdentityAccountId, that
+ * never crosses this wire.
  */
 
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
@@ -344,6 +356,16 @@ function log(msg: string): void {
 // Temporal Activity Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The typed wire shape of the activity's argument (snake_case keys, the
+ * polyglot workflow-input convention). `execution_context_token` is the run
+ * credential, present exactly when the dispatch carried one.
+ */
+export interface GenerateSessionSubjectInput {
+  readonly execution_id: string;
+  readonly execution_context_token?: string;
+}
+
 export function createGenerateSessionSubjectActivities(config: Config) {
   const client = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
@@ -353,7 +375,10 @@ export function createGenerateSessionSubjectActivities(config: Config) {
   });
 
   return {
-    GenerateSessionSubject: async (executionId: string): Promise<void> => {
+    GenerateSessionSubject: async (
+      input: GenerateSessionSubjectInput | string,
+    ): Promise<void> => {
+      const executionId = typeof input === "string" ? input : input.execution_id;
       activityStarted();
       try {
         log(`started: execution=${executionId}`);

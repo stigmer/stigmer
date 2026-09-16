@@ -38,6 +38,7 @@ import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { CloudTarget } from "./cloud";
 import type {
   CapabilityFlags,
+  EnforcingLane,
   StripeWebhookLane,
   TargetProfile,
   TenancyContext,
@@ -127,6 +128,17 @@ export class CloudExecutionTarget implements TargetProfile {
 
   clients(): ConformanceClients {
     return this.cloud.clients();
+  }
+
+  // The inner target's primary IS this target's enforcing lane, exactly as
+  // its capabilities say (enforcingAuthorizer: true is delegated above); a
+  // target that declares the flag and lends no lane is a harness gap that
+  // enforcingLaneOf throws on. The lane carries no llmProxy: this target's
+  // runner is an embedded runner acting as the primary user, so the
+  // runner-as-subject arms skip on runnerActsAsRunCreator rather than run
+  // against a runner shape the flag's rationale rules out.
+  enforcingLane(): Promise<EnforcingLane> {
+    return this.cloud.enforcingLane();
   }
 
   anonymousClients(): ConformanceClients {

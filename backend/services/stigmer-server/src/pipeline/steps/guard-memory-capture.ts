@@ -59,7 +59,7 @@ export function newGuardMemoryCaptureStep<Desc extends DescMessage>(
 ): PipelineStep<Desc> {
   return {
     name: "GuardMemoryCapture",
-    execute(ctx: RequestContext<Desc>): void {
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
       const caller = ctx.callerIdentity;
       if (caller.callerClass === "internal" || caller.origin === "in-process") {
         // Server-composed traversals are not capture requests from a
@@ -72,9 +72,11 @@ export function newGuardMemoryCaptureStep<Desc extends DescMessage>(
         // arm checks it against the token's own claim (and throws its
         // byte-pinned refusal itself). Empty when the request carries
         // none; Java requires metadata.org before its org-match arm, so
-        // an empty value can only ever narrow.
+        // an empty value can only ever narrow. Awaited because the
+        // built-in provider reads the bound execution's row for the
+        // session and org the cloud's token carries as claims.
         const org = metadataOf(ctx.newState)?.org ?? "";
-        const decision = decide.call(provider, caller, org);
+        const decision = await decide.call(provider, caller, org);
         switch (decision.verdict) {
           case "admit":
             ctx.set(MEMORY_CAPTURE_CREDENTIAL_KEY, {

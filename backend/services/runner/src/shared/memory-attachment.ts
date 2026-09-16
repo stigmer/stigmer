@@ -12,22 +12,29 @@
  * ZERO facts is a meaningful state: memory is on, nothing stored yet —
  * the tool is offered so the first fact can be proposed.
  *
- * Two connection shapes, one roster (the channels pattern):
+ * Two connection shapes, one roster (the channels pattern), one
+ * credential — the run's own — presented on both:
  *   - Bridge endpoint configured (cloud): Streamable HTTP against the
- *     bridge's /memory route with the execution's own session-scoped
- *     credential as the Bearer token, plus the capture context as
- *     per-request headers.
+ *     bridge's /memory route with the run's credential as the Bearer
+ *     token, plus the capture context as per-request headers.
  *   - No bridge endpoint (OSS/local): a spawned `stigmer mcp-server`
- *     stdio child with STIGMER_MCP_ROSTER=memory, plus the capture
- *     context as STIGMER_MEMORY_* env.
+ *     stdio child with STIGMER_MCP_ROSTER=memory, the run's credential
+ *     as its startup credential (synthesized-attachment.ts
+ *     `stdioCredentialEnv`), plus the capture context as
+ *     STIGMER_MEMORY_* env. Without the credential a server that signs
+ *     people in refuses every `remember` as nobody's (stigmer#1147);
+ *     with it the memory is the run's person's, which the server derives
+ *     from the credential and nothing the child says.
  *
  * The capture context (org + agent/session/execution ids) is
  * attribution, never authorization (the Stage 3 provenance decision,
  * owner-ratified 2026-08-22): the cloud create handler accepts it only
  * from a session-sandbox credential and overrides session/org with the
- * token's own claims; the OSS server stores it under the local
- * single-user trust model. The subject is never threaded — the server
- * derives it from the credential (DD-005 D2).
+ * token's own claims; the OSS server under sign-in admits it from the
+ * run's credential and proves the session off the run's row, and stores
+ * it as given under the local single-user trust model. The subject is
+ * never threaded — the server derives it from the credential (DD-005
+ * D2).
  *
  * Approval-free by construction (the synthesized-attachment contract):
  * the tool only ever creates a PROPOSAL the user must confirm through
@@ -44,7 +51,11 @@
 
 import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
-import { grpcTarget, type SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
+import {
+  grpcTarget,
+  stdioCredentialEnv,
+  type SynthesizedAttachmentOptions,
+} from "./synthesized-attachment.js";
 
 /**
  * The synthesized attachment's slug. Reserved: a user McpServer with
@@ -149,6 +160,7 @@ export function synthesizeMemoryAttachment(
     env: {
       STIGMER_MCP_ROSTER: "memory",
       STIGMER_SERVER_ADDRESS: grpcTarget(options.backendEndpoint),
+      ...stdioCredentialEnv(options.credential),
       ...nonEmptyEntries([
         [MEMORY_ORG_ENV, context.org],
         [MEMORY_AGENT_ID_ENV, context.agentId],

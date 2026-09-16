@@ -26,6 +26,18 @@
  * signal/cancel/terminate operations take a workflowId verbatim. That
  * asymmetry is the seam's documented contract.
  *
+ * The run credential rides the input (2026-09-16): every dispatch — a
+ * fresh start, a recovery, and both signalWithStart lanes (sendSignal,
+ * submitWorkflowTaskApproval), which may be the start when they race the
+ * create — asks the composed credential provider for the run's credential
+ * (runnerauth/dispatch-credential.ts) and carries it as
+ * `execution_context_token`, the connect lane's shape. signalWithStart
+ * mints even when the workflow already exists and Temporal discards the
+ * input: the mint is a local HMAC with no read, and one input builder
+ * serving every lane is worth more than the spared signature. A provider
+ * without the capability (an edition credentialed another way) leaves the
+ * key off.
+ *
  * Proven by the workflowexecution suites on local-execution.
  */
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -42,6 +54,8 @@ import {
   type WorkflowExecutionEngineStateProvider,
 } from "../../domain/workflowexecution/engine.js";
 import type { WorkflowExecutionTemporalConfig } from "../../domain/workflowexecution/temporal/config.js";
+import { runCredentialForDispatch } from "../../runnerauth/dispatch-credential.js";
+import type { RunCredentialMint } from "../../runnerauth/dispatch-credential.js";
 import type { TemporalManager } from "../manager.js";
 import { resolveWorkflowTaskQueue } from "./dispatch.js";
 import {
@@ -54,6 +68,8 @@ import type { InvokeWorkflowExecutionWorkflowInput } from "./workflow-input.js";
 export interface TemporalWorkflowExecutionEngineDeps {
   readonly client: Client;
   readonly config: WorkflowExecutionTemporalConfig;
+  /** The composed credential provider — the dispatch reads its run-credential capability (module header). */
+  readonly runnerCredentials: RunCredentialMint;
   readonly logger: Logger;
 }
 
@@ -82,7 +98,7 @@ export class TemporalWorkflowExecutionEngine
       workflowId,
       taskQueue: config.stigmerQueue,
       memo: { [MEMO_RUNNER_TASK_QUEUE]: dispatch.taskQueue },
-      args: [buildWorkflowInput(input)],
+      args: [this.buildWorkflowInput(input)],
     });
 
     logger.info("Started InvokeWorkflowExecutionWorkflow", {
@@ -117,7 +133,7 @@ export class TemporalWorkflowExecutionEngine
         workflowId,
         taskQueue: config.stigmerQueue,
         memo: { [MEMO_RUNNER_TASK_QUEUE]: dispatch.taskQueue },
-        args: [buildWorkflowInput(input)],
+        args: [this.buildWorkflowInput(input)],
         signal: signalName,
         signalArgs: [payload],
       },
@@ -164,26 +180,35 @@ export class TemporalWorkflowExecutionEngine
       throw mapNotFound(error, workflowId);
     }
   }
-}
 
-/**
- * The slim input with Go's omitempty shape (workflow-input.ts): zero
- * values are omitted so TS-authored histories carry the same keys a
- * Go-authored one would. The cloud-only fields are unmodeled (the seam's
- * ratified boundary).
- */
-function buildWorkflowInput(
-  input: StartWorkflowExecutionInput,
-): InvokeWorkflowExecutionWorkflowInput {
-  return {
-    execution_id: input.executionId,
-    ...(input.workflowInstanceId !== ""
-      ? { workflow_instance_id: input.workflowInstanceId }
-      : {}),
-    ...(input.workflowId !== "" ? { workflow_id: input.workflowId } : {}),
-    ...(input.orgId !== "" ? { org_id: input.orgId } : {}),
-    ...(input.recoveryMode ? { recovery_mode: true } : {}),
-  };
+  /**
+   * The slim input with Go's omitempty shape (workflow-input.ts): zero
+   * values are omitted so TS-authored histories carry the same keys a
+   * Go-authored one would. The cloud-only fields are unmodeled (the
+   * seam's ratified boundary). The run credential is the one key minted
+   * here rather than copied from the caller (module header).
+   */
+  private buildWorkflowInput(
+    input: StartWorkflowExecutionInput,
+  ): InvokeWorkflowExecutionWorkflowInput {
+    const runCredential = runCredentialForDispatch(
+      this.deps.runnerCredentials,
+      input.executionId,
+      this.deps.logger,
+    );
+    return {
+      execution_id: input.executionId,
+      ...(input.workflowInstanceId !== ""
+        ? { workflow_instance_id: input.workflowInstanceId }
+        : {}),
+      ...(input.workflowId !== "" ? { workflow_id: input.workflowId } : {}),
+      ...(input.orgId !== "" ? { org_id: input.orgId } : {}),
+      ...(input.recoveryMode ? { recovery_mode: true } : {}),
+      ...(runCredential !== ""
+        ? { execution_context_token: runCredential }
+        : {}),
+    };
+  }
 }
 
 /**
@@ -200,6 +225,7 @@ function mapNotFound(error: unknown, workflowId: string): unknown {
 export interface WorkflowExecutionEngineStateProviderDeps {
   readonly manager: TemporalManager;
   readonly config: WorkflowExecutionTemporalConfig;
+  readonly runnerCredentials: RunCredentialMint;
   readonly logger: Logger;
 }
 
@@ -232,6 +258,7 @@ export function newWorkflowExecutionEngineStateProvider(
           engine: new TemporalWorkflowExecutionEngine({
             client,
             config: deps.config,
+            runnerCredentials: deps.runnerCredentials,
             logger: deps.logger,
           }),
         },

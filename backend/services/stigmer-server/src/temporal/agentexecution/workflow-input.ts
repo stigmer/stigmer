@@ -26,6 +26,19 @@ export interface InvokeAgentExecutionWorkflowInput {
   readonly parent_workflow_id?: string;
   readonly invoker_identity_account_id?: string;
   /**
+   * The run credential (runnerauth: a clockless execution-scoped token
+   * bound to this execution), minted by the engine client at dispatch
+   * when the composed credential provider defines `mintRunCredential`
+   * and omitted otherwise. The connect lane's key for the same token
+   * type (domain/mcpserver/engine.ts). The workflow hands it to the
+   * runner's activities, which present it on the run's own RPCs: under
+   * the built-in authorization posture it admits the runner as the
+   * human whose run this is, for as long as the run lives. Like the
+   * connect lane's, it sits in Temporal history in the clear — history
+   * is operator-only, and the operator holds the signing key already.
+   */
+  readonly execution_context_token?: string;
+  /**
    * Session harness as the proto enum numeric value (0=UNSPECIFIED treated
    * as NATIVE, 1=NATIVE, 2=CURSOR) — selects ExecuteDeepAgent vs
    * ExecuteCursor.

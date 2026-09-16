@@ -43,10 +43,11 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { economyRowFor, wireModelIdOf } from "../harness/model-registry";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
-import { anthropicToolUse, type MockLlmProxy } from "../harness/mock-llm";
+import { connectClassifierVerdict, type MockLlmProxy } from "../harness/mock-llm";
 import { MockOAuthAuthorizationServer } from "../harness/oauth-authorization-server";
 import { CONFORMANCE_OAUTH_REDIRECT_URI } from "../harness/server-process";
 import { requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
+import { makePersonalEnvironment } from "../support/environments";
 import {
   makeHttpMcpServer,
   makeOAuthMcpServer,
@@ -133,16 +134,10 @@ async function completeDcrHandshake(org: string, name: string, opts: { url?: str
 }
 
 // Enqueues one classifier verdict for the next first connect (see the
-// header's classification scripting note). "extract" is LangChain's default
-// structured-output tool name on the Anthropic path.
+// header's classification scripting note; the wire shape is the mock's
+// `connectClassifierVerdict`, shared with the enforcing-lane suite).
 function scriptClassifierVerdict(requiresApproval: boolean) {
-  mockLlm.enqueue(
-    anthropicToolUse("toolu_classifier_verdict", "extract", {
-      approvals: [
-        { tool_name: ECHO_TOOL_NAME, requires_approval: requiresApproval, message: "Execute echo" },
-      ],
-    }),
-  );
+  mockLlm.enqueue(connectClassifierVerdict(ECHO_TOOL_NAME, requiresApproval));
 }
 
 // Polls the resource until its connect_status reaches the wanted phase —
@@ -637,6 +632,45 @@ describe("McpServer connect conformance — blocking connect", () => {
     expect(err.rawMessage).toBe(
       `personal environment not found for org '${org}'; save required credentials first: [CONF_REQUIRED_KEY]`,
     );
+  });
+
+  it("discovers a server that declares a credential once the personal environment holds it — the ephemeral ExecutionContext is created and decrypted for the runner", async () => {
+    // The credentialed connect is the connect lane's whole reason to mint a
+    // token: the declared key is saved as a secret, the server resolves it
+    // into an ephemeral ExecutionContext for this connect, and the runner
+    // reads it back DECRYPTED with the payload's token. A redacted read fails
+    // discovery loudly (the runner's CredentialResolutionError), so SUCCEEDED
+    // with tools proves the decrypt lane end to end. The row's deletion at
+    // settle is the server's own unit arm (no list RPC exposes it here).
+    const { org } = await target.provisionTenancy();
+    const personal = await clients.environmentCommand.create(
+      makePersonalEnvironment({
+        org,
+        name: uniqueName("personal"),
+        data: { CONF_REQUIRED_KEY: { value: "conformance-credential", isSecret: true } },
+      }),
+    );
+    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: personal.metadata!.id }));
+    const server = await clients.mcpServerCommand.create(
+      makeHttpMcpServer({
+        org,
+        name: uniqueName("credentialed"),
+        url: mcpTools.url(),
+        env: { CONF_REQUIRED_KEY: { description: "a required credential", isSecret: true } },
+      }),
+    );
+    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    scriptClassifierVerdict(false);
+
+    const connected = await clients.mcpServerCommand.connect({
+      mcpServerId: server.metadata!.id,
+      org,
+    });
+
+    expect(connected.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
+    expect((connected.status?.discoveredCapabilities?.tools ?? []).map((t) => t.name)).toEqual([
+      ECHO_TOOL_NAME,
+    ]);
   });
 });
 

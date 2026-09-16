@@ -33,6 +33,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import { newBuiltInAuthorizer } from "../authorization/authorizer.js";
+import { newLaneAdmittedAuthorizer } from "../authorization/lane-admission.js";
 import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
 import { authorizationPostureOf } from "../authorization/posture.js";
@@ -150,7 +151,12 @@ import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
 import { createRequestMetricsInterceptor } from "../pipeline/interceptors/request-metrics.js";
 import { newPermissiveSingleTeamAuthorizer } from "../pipeline/steps/authorize.js";
+import {
+  isWorkflowBoundRunner,
+  newBuiltInRunnerCredentialProvider,
+} from "../runnerauth/built-in-runner-credential-provider.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
+import { newRunnerSubjectIdentityVerifier } from "../runnerauth/runner-subject-verifier.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { PostgresStore } from "../store/postgres/store.js";
 import { SqliteStore } from "../store/sqlite/store.js";
@@ -431,12 +437,44 @@ export async function composeServer(
         operatorEmail: operatorIdentity.email,
       })
     : undefined;
+  // Stage: runner credentials (§6c, O5). The concrete service is
+  // constructed and exposed UNCONDITIONALLY — its boot-fatal key posture
+  // is the ratified cross-domain invariant, and the boot/EC-decrypt tests
+  // mint against the server's own key through it. The provider over it is
+  // the edition's whole credential story in one object: a composed
+  // driver; otherwise, under the built-in authorization posture, open
+  // source's built-in provider (runnerauth/built-in-runner-credential-
+  // provider.ts — the execution-scoped default plus the lineage-vouching,
+  // memory-capture and exchange-gating capabilities an enforcing
+  // self-host needs, and the one reading of a runner's binding the
+  // Authorizer below admits a workflow-bound runner on); otherwise the
+  // execution-scoped default, byte-identical to the wiring this seam
+  // replaced. Both open-source providers also mint the RUN credential the
+  // two execution engines put on every dispatch (the engines below take
+  // this object; runnerauth/dispatch-credential.ts) — a composed driver
+  // that leaves that capability undefined dispatches without one, its
+  // runners being credentialed another way. Bound HERE, before the
+  // Authorizer, because the lane admission reads the binding.
+  const runnerAuthService = RunnerAuthService.fromEnv();
+  const runnerCredentials =
+    extensions.drivers.runnerCredentialProvider ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInRunnerCredentialProvider({
+          service: runnerAuthService,
+          store,
+          accounts: identityAccounts,
+        })
+      : newExecutionScopedRunnerCredentialProvider(runnerAuthService));
   // The ONE composed Authorizer (DD-007 §3), bound here — after the store,
   // the account port and the IamPolicy port it reads — and handed to every
   // controller as an explicit dependency; the Authorize step at position 1
   // of every chain calls it (O2). By posture: an extension's registration;
   // open source's built-in Authorizer (authorization/authorizer.ts — the
-  // cloud's model evaluated over the tuples the row would have had); or
+  // cloud's model evaluated over the tuples the row would have had),
+  // decorated with the lane admission (authorization/lane-admission.ts) so
+  // a runner acting for a WORKFLOW execution passes the run gate on the
+  // child executions its `agent_call` creates — the parent workflow
+  // already passed its own, the cloud's `workflow_sandbox` posture; or
   // the permissive single-team default. The organization directory and the
   // schedule fire caller are bound beside it under the same posture, so
   // `findMyOrganizations` lists what a person may view and a scheduled run
@@ -445,13 +483,16 @@ export async function composeServer(
   const authorizer: Authorizer =
     extensions.authorizer ??
     (authorizationPosture === "built-in"
-      ? newBuiltInAuthorizer({
-          store,
-          policies: iamPolicies,
-          accounts: identityAccounts,
-          edition: extensions.edition,
-          logger,
-        })
+      ? newLaneAdmittedAuthorizer(
+          newBuiltInAuthorizer({
+            store,
+            policies: iamPolicies,
+            accounts: identityAccounts,
+            edition: extensions.edition,
+            logger,
+          }),
+          (caller) => isWorkflowBoundRunner(runnerAuthService, caller),
+        )
       : newPermissiveSingleTeamAuthorizer());
   const organizationDirectory: OrganizationDirectory | undefined =
     extensions.drivers.organizationDirectory ??
@@ -626,16 +667,6 @@ export async function composeServer(
       writeVersionValue === "" ? DEFAULT_WRITE_VERSION : writeVersionValue,
     registeredCodecs: [...secretCodecs.keys()].sort(),
   });
-  const runnerAuthService = RunnerAuthService.fromEnv();
-  // The runner-credential seam (§6c, O5): the composed provider, or the
-  // OSS execution-scoped default over the service above. The concrete
-  // service is constructed and exposed UNCONDITIONALLY either way — its
-  // boot-fatal key posture is the ratified cross-domain invariant, and the
-  // boot/EC-decrypt tests mint against the server's own key through it.
-  const runnerCredentials =
-    extensions.drivers.runnerCredentialProvider ??
-    newExecutionScopedRunnerCredentialProvider(runnerAuthService);
-
   // Stage: temporal (#18). Construction is sync and connection-free —
   // initialConnect/startWorkers/startHealthMonitor run in start(), all
   // NON-fatal (Go server.go: the server boots and serves with the engine
@@ -837,6 +868,7 @@ export async function composeServer(
     manager: temporalManager,
     config: temporalConfig,
     store,
+    runnerCredentials,
     logger,
   });
   // The workflow-execution twin: the same provider-is-the-injection
@@ -844,6 +876,7 @@ export async function composeServer(
   const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider({
     manager: temporalManager,
     config: workflowExecutionTemporalConfig,
+    runnerCredentials,
     logger,
   });
   // The artifact blob store (Go server.go 349: shared by agentexecution
@@ -1355,8 +1388,8 @@ export async function composeServer(
             requireInProcess().executionEnvironmentReader.getSecretValue(input),
         },
         executionContext: {
-          create: (ec) =>
-            requireInProcess().connectExecutionContextClient.create(ec),
+          create: (ec, caller) =>
+            requireInProcess().connectExecutionContextClient.create(ec, caller),
           delete: (input) =>
             requireInProcess().connectExecutionContextClient.delete(input),
         },
@@ -1474,11 +1507,35 @@ export async function composeServer(
   //     port the domain writes through (`identityAccounts`, the
   //     identity-accounts stage — a composed driver included), so a row
   //     provisioning creates resolves on the very next request.
-  // The runner's credential in either posture is an operator-minted API
-  // token via STIGMER_TOKEN (O3 ruling Q3) — no runner-specific verifier.
+  //   - the runner-subject verifier rides the AUTHORIZATION posture
+  //     (`built-in`, beside the Authorizer and the fire caller above): it
+  //     admits the bearer of the server's own execution-scoped runner
+  //     token as the human whose run it is, which only means something
+  //     when the server enforces who may report on a run. Its place in
+  //     the chain is the contract: BETWEEN `apikey` and `oidc`, because
+  //     the OIDC verifier claims any JWT-shaped token and throws on one
+  //     it cannot verify — composed after it, ours would never see its
+  //     own token, and every runner call would fail as the OIDC verifier's
+  //     fault (stigmer#1137). Until 2026-09-16 this comment read "the
+  //     runner's credential in either posture is an operator-minted API
+  //     token via STIGMER_TOKEN — no runner-specific verifier"; that
+  //     described a server whose Authorizer was permissive. The operator's
+  //     key is still the runner's PROCESS credential (bootstrap, registry);
+  //     the run credential is how it acts for each run. A unit with its
+  //     own Authorizer composes none of this — its credential story is its
+  //     own (the cloud's sandbox lanes).
   const identityVerifiers = [
     ...(requireAuthentication
       ? [newApiKeyIdentityVerifier({ store, accounts: identityAccounts })]
+      : []),
+    ...(authorizationPosture === "built-in"
+      ? [
+          newRunnerSubjectIdentityVerifier({
+            store,
+            accounts: identityAccounts,
+            credentials: runnerCredentials,
+          }),
+        ]
       : []),
     ...(authEnabled
       ? [

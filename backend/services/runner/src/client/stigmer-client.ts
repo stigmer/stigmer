@@ -55,6 +55,7 @@ import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { TOKEN_TYPE_EMBEDDED_RUNNER, tokenTypeOf } from "./token-claims.js";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
+import { currentRunCredential } from "../shared/run-credential-store.js";
 
 /**
  * Server-managed Temporal payload-encryption keys for this runner.
@@ -223,11 +224,25 @@ export class StigmerClient {
         // 1. An explicit per-call credential (an authorization header set via
         //    CallOptions) always wins. The scoped-token flow (issue #156)
         //    authenticates each ExecutionContext read with a token minted for
-        //    that specific execution; concurrent sessions in one runner process
-        //    make a shared mutable ref unusable for this — session A's read
-        //    must never go out with session B's token.
+        //    that specific execution; the renewal and pool-claim exchanges
+        //    present the token being exchanged; the connect lane hands its
+        //    decrypt-lane token per call.
         //
-        // 2. The runner credential (runnerTokenRef) authenticates the services
+        // 2. The run credential of the activity this request belongs to
+        //    (shared/run-credential-store.ts), on every RPC that is about a
+        //    run — which is every RPC but the process-bound bootstrap read.
+        //    The server minted it for exactly this execution at dispatch and,
+        //    with sign-in on, admits its bearer as the run's own human: the
+        //    status write, the child create, the artifact, the session title
+        //    are the member's, whoever's API key this process holds. It is
+        //    read from the async context, never from a ref: one process serves
+        //    many runs at once and a shared ref would be the wrong run's the
+        //    moment two overlap — the same reason rule 1 exists. Absent
+        //    outside an activity and when the dispatch carried none (an older
+        //    server; the cloud, whose runner credential is provisioned), so
+        //    the rules below are exactly what they were.
+        //
+        // 3. The runner credential (runnerTokenRef) authenticates the services
         //    that require a runner-class token_type claim: ExecutionContext
         //    reads carry decrypted secrets on cloud, and the server gates that
         //    decrypt on runner class + scope (stigmer-cloud#152/#155); the
@@ -239,13 +254,16 @@ export class StigmerClient {
         //    reserved-label guard and environment composer accept only from
         //    runner-class callers — a user-token create is rejected outright.
         //
-        // 3. Everything else uses the control-plane token. Falls through
-        //    unchanged when no runner token exists (OSS/local, where the
-        //    server enforces no auth).
+        // 4. Everything else uses the control-plane token: the process
+        //    credential, an operator's API key on a self-host. Falls through
+        //    unchanged when no runner token exists.
         (next) => async (req) => {
           if (req.header.has("authorization")) {
             return next(req);
           }
+          const isProcessBound =
+            req.service.typeName === PlatformQueryController.typeName &&
+            req.method.name === PlatformQueryController.method.getRunnerBootstrapConfig.name;
           const usesRunnerCredential =
             req.service.typeName === ExecutionContextQueryController.typeName ||
             (req.service.typeName === PlatformQueryController.typeName &&
@@ -253,7 +271,8 @@ export class StigmerClient {
             (req.service.typeName === AgentExecutionCommandController.typeName &&
               req.method.name === AgentExecutionCommandController.method.create.name);
           const token =
-            (usesRunnerCredential ? this.runnerTokenRef?.current : null)
+            (isProcessBound ? undefined : currentRunCredential())
+            ?? (usesRunnerCredential ? this.runnerTokenRef?.current : null)
             ?? this.tokenRef?.current
             ?? this.currentToken;
           if (token) {
@@ -363,11 +382,16 @@ export class StigmerClient {
    * The call authenticates with the runner credential (see the interceptor).
    * Cloud verifies it is an embedded_runner token and that its identity can
    * view the named execution, then mints the same session/execution-scoped
-   * sandbox token a cloud sandbox runner receives at provisioning. OSS mints
-   * an execution-scoped token for any caller (oss#535 — a lane discriminator
-   * on a single-user server, not a trust boundary). Returns undefined when
-   * the server does not mint (pre-oss#535 OSS, or an unserved scope arm) —
-   * presence-based, like the bootstrap token fields.
+   * sandbox token a cloud sandbox runner receives at provisioning. An
+   * open-source server with sign-in off mints an execution-scoped token for
+   * any caller (oss#535 — there it only unlocks the ExecutionContext decrypt
+   * lane); with sign-in on the same token admits its bearer as the run's
+   * human, so the exchange mints only for the run's own person (a missing
+   * run NOT_FOUND, anyone else PERMISSION_DENIED). Runs normally receive
+   * their credential from the dispatch itself (shared/run-credential.ts);
+   * this exchange is the fallback. Returns undefined when the server does
+   * not mint (pre-oss#535 OSS, or an unserved scope arm) — presence-based,
+   * like the bootstrap token fields.
    *
    * `callerToken` authenticates the exchange per-call instead of the
    * process-wide runner credential. The warm-pool attach uses it: a pool
@@ -400,7 +424,13 @@ export class StigmerClient {
    * Acquire a scoped runner token for an ExecutionContext read, if this
    * runner's credential situation calls for one.
    *
-   * The gate is the credential itself, three ways:
+   * When the activity this call belongs to carries a run credential (the
+   * server minted it for this very execution at dispatch —
+   * shared/run-credential.ts), that IS the scoped token: it is answered
+   * without an RPC, and the exchange below serves only a dispatch that
+   * carried none — an older server, or the cloud's provisioned runner.
+   *
+   * Otherwise the gate is the credential itself, three ways:
    *
    * 1. An unscoped embedded_runner bootstrap token MUST be exchanged, and a
    *    failed exchange is a hard error, not a fallback: since the #156
@@ -431,6 +461,10 @@ export class StigmerClient {
   async acquireScopedRunnerToken(
     scope: RunnerScopedTokenScope,
   ): Promise<string | undefined> {
+    const runCredential = currentRunCredential();
+    if (runCredential !== undefined) {
+      return runCredential;
+    }
     // Inspect the same credential chain the EC read's interceptor would use.
     const ambientTokenType = tokenTypeOf(
       this.runnerTokenRef?.current ?? this.tokenRef?.current ?? this.currentToken,
