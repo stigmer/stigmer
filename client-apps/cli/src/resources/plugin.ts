@@ -409,8 +409,16 @@ export async function pushPlugin(
   );
 }
 
+export interface RenderPushOptions {
+  /** Where the archive came from when it was not a folder: the marketplace's name and source. */
+  readonly installedFrom?: string;
+}
+
 /** The install as the user reads it: what landed, what was skipped, what to know. */
-export function renderPushOutcome(outcome: PushPluginOutcome): CommandResult {
+export function renderPushOutcome(
+  outcome: PushPluginOutcome,
+  options: RenderPushOptions = {},
+): CommandResult {
   const { plugin, members } = outcome;
   const warnings = plugin.status?.warnings ?? [];
   const counts = plugin.status?.materialized;
@@ -440,6 +448,8 @@ export function renderPushOutcome(outcome: PushPluginOutcome): CommandResult {
     plugin.spec === undefined ? "" : dialectLabel(plugin.spec.dialect),
   );
   about.field("Size", formatBytes(outcome.archiveBytes));
+  if (options.installedFrom !== undefined)
+    about.field("Marketplace", options.installedFrom);
 
   const installed = result.addSection("Installed");
   for (const kind of [
