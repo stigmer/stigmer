@@ -17,7 +17,6 @@
 // package in the lean install (where the package is not a dependency, only an
 // on-demand artifact). `seedpack/src/index.ts` is the one definition both follow.
 
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   cpSync,
@@ -36,7 +35,12 @@ import { ExitCode } from "../../errors/exit-codes.js";
 import { log } from "../../logger.js";
 import { VERSION } from "../../version.js";
 import { runtimesDir } from "../paths.js";
-import { isAcquirableRelease } from "../runtime/runtimes-install.js";
+import {
+  ensureRuntimesRoot,
+  isAcquirableRelease,
+  npmInstallIntoRuntimes,
+  type NpmInstall,
+} from "../runtime/runtimes-install.js";
 
 const SEEDPACK_PACKAGE = "@stigmer/seedpack";
 
@@ -71,7 +75,7 @@ export interface ResolveSeedpackOptions {
   /** Release version of @stigmer/seedpack to acquire (defaults to the CLI version). */
   version?: string;
   /** npm install implementation (injectable for tests). */
-  install?: (installDir: string, spec: string) => void;
+  install?: NpmInstall;
 }
 
 /**
@@ -117,17 +121,10 @@ export function acquireSeedpack(opts: ResolveSeedpackOptions = {}): string {
       );
     }
     log.info(`acquiring ${SEEDPACK_PACKAGE}`, { version, dir: installDir });
-    mkdirSync(installDir, { recursive: true });
-    // A stable package.json root keeps the install deterministic. npm install is
-    // additive and non-pruning, so this prefix is safely shared with the runner.
-    const rootPkg = join(installDir, "package.json");
-    if (!existsSync(rootPkg)) {
-      writeFileSync(
-        rootPkg,
-        `${JSON.stringify({ name: "stigmer-runtime", private: true, version: "0.0.0" }, null, 2)}\n`,
-      );
-    }
-    const install = opts.install ?? installSeedpack;
+    // The same per-version root the server and runner packages install into;
+    // npm install is additive and non-pruning, so the prefix is safely shared.
+    ensureRuntimesRoot(installDir);
+    const install = opts.install ?? npmInstallIntoRuntimes;
     install(installDir, `${SEEDPACK_PACKAGE}@${version}`);
   }
 
@@ -139,34 +136,6 @@ export function acquireSeedpack(opts: ResolveSeedpackOptions = {}): string {
     );
   }
   return pkgDir;
-}
-
-// Install the seedpack package into an isolated prefix. Output is inherited so
-// the user sees the one-time download progress.
-function installSeedpack(installDir: string, spec: string): void {
-  try {
-    execFileSync(
-      "npm",
-      [
-        "install",
-        spec,
-        "--prefix",
-        installDir,
-        "--omit=dev",
-        "--no-audit",
-        "--no-fund",
-      ],
-      {
-        stdio: "inherit",
-      },
-    );
-  } catch (err) {
-    throw new CliExitError(`failed to install ${spec}`, ExitCode.General, [
-      `Command: npm install ${spec} --prefix ${installDir}`,
-      "Ensure npm is on PATH and the network is reachable.",
-      String(err),
-    ]);
-  }
 }
 
 /**

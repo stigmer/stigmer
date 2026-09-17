@@ -13,13 +13,17 @@
 // package with overlay documents reduced to their paths (the bytes are the
 // user's own files, and a byte array serialises badly).
 //
-// The push half: the same walked file list, zipped the way the skill
-// packager zips (deterministic bytes, so the server's digest is a function
-// of content), pushed through the SDK's routed plugin client, and the
-// members read back for the install summary. `validate -f`, `push plugin
-// --dry-run` and `push plugin` share one description renderer so the
-// author reads one vocabulary at every step.
+// The push half is two steps with a value between them: `preparePluginPush`
+// (the same walked file list, zipped the way the skill packager zips, so the
+// bytes and their SHA-256 are a function of content alone) and
+// `pushPrepared` (the SDK's routed plugin client, then the members read back
+// for the install summary). The value in between is what `push plugin
+// --dry-run` prints, what `stigmer install` pushes from a marketplace entry,
+// and what `stigmer up` compares with the server's digest before deciding
+// to push. `validate -f`, `push plugin --dry-run` and `push plugin` share one
+// description renderer so the author reads one vocabulary at every step.
 
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { create, toJson } from "@bufbuild/protobuf";
@@ -304,10 +308,64 @@ export function zipPluginFiles(files: PluginFiles): Uint8Array {
   return zipSync(tree, { level: 6, mtime: DETERMINISTIC_ZIP_MTIME });
 }
 
-export interface PushPluginOptions {
+/**
+ * A plugin directory read, validated and zipped, but not yet pushed. The
+ * step between "a folder" and "a push" is its own value because two callers
+ * need to look at it first: `push plugin --dry-run` prints it, and `stigmer
+ * up` compares `digest` with what the server already holds before deciding
+ * whether a push is needed at all.
+ */
+export interface PreparedPluginPush {
+  /** The directory that was read, for sentences. */
+  readonly dir: string;
+  readonly files: PluginFiles;
+  readonly stats: ZipStats;
+  readonly plugin: PluginPackage;
+  readonly warnings: readonly PluginFinding[];
+  /** The exact bytes a push sends. */
+  readonly archive: Uint8Array;
+  /**
+   * SHA-256 of `archive`, lowercase hex: the identity the server records as
+   * `status.digest` (its digest is over the bytes it receives, and these are
+   * those bytes), so a client can know "already installed" without pushing.
+   */
+  readonly digest: string;
+}
+
+/**
+ * Read and validate offline (the same refusal `validate` prints, before a
+ * byte moves), then zip. The server re-validates with the same library; the
+ * offline pass exists so an author never waits on the network to hear a
+ * sentence the CLI could say.
+ */
+export function preparePluginPush(
+  dir: string,
+  ignoreOptions: IgnoreOptions = DEFAULT_IGNORE_OPTIONS,
+): PreparedPluginPush {
+  const directory = readPluginDirectory(dir, ignoreOptions);
+  const outcome = readPluginPackage(directory.files);
+  if (!outcome.ok) {
+    throw pluginRefusal(dir, outcome.errors, outcome.warnings);
+  }
+  const archive = zipPluginFiles(directory.files);
+  return {
+    dir,
+    files: directory.files,
+    stats: directory.stats,
+    plugin: outcome.plugin,
+    warnings: outcome.warnings,
+    archive,
+    digest: createHash("sha256").update(archive).digest("hex"),
+  };
+}
+
+export interface PushPreparedOptions {
   readonly org: string;
   readonly visibility: ApiResourceVisibility | undefined;
   readonly message: string;
+}
+
+export interface PushPluginOptions extends PushPreparedOptions {
   readonly ignoreOptions: IgnoreOptions;
 }
 
@@ -317,27 +375,16 @@ export interface PushPluginOutcome {
   readonly archiveBytes: number;
 }
 
-/**
- * Read, validate offline (the same refusal `validate` prints, before a byte
- * moves), zip, push, then read the members back. The server re-validates
- * with the same library; the offline pass exists so an author never waits
- * on the network to hear a sentence the CLI could say.
- */
-export async function pushPlugin(
+/** Push a prepared archive, then read the members back for the install summary. */
+export async function pushPrepared(
   client: Stigmer,
-  dir: string,
-  options: PushPluginOptions,
+  prepared: PreparedPluginPush,
+  options: PushPreparedOptions,
 ): Promise<PushPluginOutcome> {
-  const directory = readPluginDirectory(dir, options.ignoreOptions);
-  const outcome = readPluginPackage(directory.files);
-  if (!outcome.ok) {
-    throw pluginRefusal(dir, outcome.errors, outcome.warnings);
-  }
-  const archive = zipPluginFiles(directory.files);
   const plugin = await client.plugin.push(
     create(PushPluginRequestSchema, {
       org: options.org,
-      artifact: archive,
+      artifact: prepared.archive,
       message: options.message,
       ...(options.visibility !== undefined && {
         visibility: options.visibility,
@@ -346,7 +393,20 @@ export async function pushPlugin(
   );
   const members = (await client.plugin.listMembers(plugin.metadata?.id ?? ""))
     .members;
-  return { plugin, members, archiveBytes: archive.length };
+  return { plugin, members, archiveBytes: prepared.archive.length };
+}
+
+/** `push plugin <dir>` in one call: prepare, then push. */
+export async function pushPlugin(
+  client: Stigmer,
+  dir: string,
+  options: PushPluginOptions,
+): Promise<PushPluginOutcome> {
+  return pushPrepared(
+    client,
+    preparePluginPush(dir, options.ignoreOptions),
+    options,
+  );
 }
 
 /** The install as the user reads it: what landed, what was skipped, what to know. */
