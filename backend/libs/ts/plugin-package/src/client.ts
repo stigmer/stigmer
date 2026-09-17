@@ -15,13 +15,20 @@
  *   order the CLI's original walk produced them;
  * - the archive and its digest (`archive.ts`): the deterministic zip and
  *   the SHA-256 the server records;
+ * - the preparation (`prepare.ts`): select, read, refuse, archive, digest,
+ *   once, for a tree on disk, on a host, or in a browser's memory;
  * - the grammars (`refs.ts`): an install ref and a GitHub marketplace
  *   source, with their refusal sentences;
+ * - the built-in sources (`builtin.ts`): the official catalogue and the
+ *   three vendors', listed by every client without configuration;
+ * - the release predicate (`release.ts`): which server versions the
+ *   catalogue is published for;
+ * - the re-rooting rule (`reroot.ts`): a zipped folder reads as the folder;
  * - the vocabulary (`vocabulary.ts`): the labels both surfaces print.
  *
  * Nothing here touches the filesystem, the network or any `node:*` module.
- * A client's edge (a directory walk, a fetch) produces the candidates and
- * the bytes; this entry decides what becomes of them.
+ * A client's edge (a directory walk, a fetch, a file pick) produces the
+ * candidates and the bytes; this entry decides what becomes of them.
  */
 
 export { DEFAULT_PATTERNS } from "./client/ignore/defaults.js";
@@ -49,6 +56,18 @@ export {
   selectPluginFiles,
 } from "./client/select.js";
 export { DETERMINISTIC_ZIP_MTIME, archivePlugin, digestArchive } from "./client/archive.js";
+export {
+  type LazyCandidate,
+  type PrepareArchiveOutcome,
+  type PrepareFromTreeOptions,
+  type PreparePluginOutcome,
+  type PreparedPlugin,
+  preparePluginArchive,
+  preparePluginFromTree,
+} from "./client/prepare.js";
+export { type BuiltInMarketplace, BUILT_IN_MARKETPLACES, isBuiltInMarketplaceName } from "./client/builtin.js";
+export { isReleaseVersion } from "./client/release.js";
+export { rerootSingleDirectory, stripDirectoryPrefix } from "./client/reroot.js";
 export {
   type GitHubMarketplaceSource,
   type GitHubSourceOutcome,

@@ -10,10 +10,10 @@
  * - `openMarketplace` fetches the ONE marketplace file the tree carries
  *   (`readMarketplace` decides everything else from paths alone) and reads
  *   the catalogue.
- * - `prepareEntry` fetches the entry's whole subtree (budgeted from the
- *   declared sizes before a byte moves), then runs the shared selection,
- *   the library's read, the shared archive and digest, so the console
- *   arrives at the CLI's digest for the same tree.
+ * - `prepareEntry` hands the entry's subtree to the shared preparation as a
+ *   lazily-read tree (budgeted from the declared sizes before a byte moves,
+ *   then the selected bytes only), so the console arrives at the CLI's
+ *   digest for the same tree through the same function the CLI runs.
  *
  * Refusals keep the library's sentences: a plugin the library refuses is
  * reported with every problem, the way `stigmer validate -f` prints it.
@@ -28,14 +28,8 @@ import {
   MARKETPLACE_LOCATIONS,
   inMemoryPluginFiles,
   readMarketplace,
-  readPluginPackage,
 } from "@stigmer/plugin-package";
-import {
-  type SelectionStats,
-  archivePlugin,
-  digestArchive,
-  selectPluginFiles,
-} from "@stigmer/plugin-package/client";
+import { type LazyCandidate, type SelectionStats, preparePluginFromTree } from "@stigmer/plugin-package/client";
 
 import { MARKETPLACE_TREE_LIMITS, MarketplaceSourceError, type MarketplaceTree } from "./types.js";
 
@@ -100,50 +94,53 @@ export function findEntry(marketplace: Marketplace, name: string): MarketplaceEn
 }
 
 /**
- * Fetch, select, read and archive the entry. The budget is checked from the
- * listing's declared sizes before a byte moves; each fetched file is
- * length-checked against its declaration by the tree itself.
+ * Prepare the entry through the one preparation every client runs. The
+ * declared sizes are checked before a byte moves (a fast refusal for a
+ * subtree no selection could bring under the cap); the shared preparation
+ * then reads the ignore files, selects, checks the selected size, and
+ * fetches only the files the archive carries, each length-checked against
+ * its declaration by the tree itself.
  */
 export async function prepareEntry(opened: OpenedMarketplace, entry: MarketplaceEntry): Promise<PreparedInstall> {
   const prefix = entry.dir === "" ? "" : `${entry.dir}/`;
-  const candidates = opened.tree.files
+  const candidates: LazyCandidate[] = opened.tree.files
     .filter((file) => file.path.startsWith(prefix))
-    .map((file) => ({ path: file.path.slice(prefix.length), size: file.size }));
+    .map((file) => ({
+      path: file.path.slice(prefix.length),
+      size: file.size,
+      read: () => opened.tree.fetchFile(file.path),
+    }));
 
   const declared = candidates.reduce((sum, file) => sum + file.size, 0);
   if (declared > MARKETPLACE_TREE_LIMITS.pluginBytes) {
-    throw new MarketplaceSourceError(
-      `'${entry.name}' is ${mib(declared)} of files, over the ${mib(MARKETPLACE_TREE_LIMITS.pluginBytes)} a plugin archive may carry`,
-      "too-large",
-    );
+    throw tooLarge(entry.name, declared);
   }
 
-  const contents = new Map<string, Uint8Array>();
-  await Promise.all(
-    candidates.map(async (file) => {
-      contents.set(file.path, await opened.tree.fetchFile(`${prefix}${file.path}`));
-    }),
-  );
-  const read = (path: string): Uint8Array => {
-    const bytes = contents.get(path);
-    if (bytes === undefined) throw new Error(`plugin file '${path}' was not fetched`);
-    return bytes;
-  };
-
-  const selection = selectPluginFiles(candidates, read, { respectGitignore: true });
-  const outcome = readPluginPackage(selection.files);
+  const outcome = await preparePluginFromTree(candidates, {
+    respectGitignore: true,
+    maxBytes: MARKETPLACE_TREE_LIMITS.pluginBytes,
+  });
   if (!outcome.ok) {
-    throw new PluginReadRefusal(`'${entry.name}' cannot be installed`, outcome.errors, outcome.warnings);
+    switch (outcome.kind) {
+      case "refused":
+        throw new PluginReadRefusal(`'${entry.name}' cannot be installed`, outcome.errors, outcome.warnings);
+      case "too-large":
+        throw tooLarge(entry.name, outcome.selectedBytes);
+      default: {
+        const exhaustive: never = outcome;
+        return exhaustive;
+      }
+    }
   }
-  const archive = archivePlugin(selection.files);
-  return {
-    entry,
-    plugin: outcome.plugin,
-    warnings: outcome.warnings,
-    stats: selection.stats,
-    archive,
-    digest: await digestArchive(archive),
-  };
+  const { plugin, warnings, stats, archive, digest } = outcome.prepared;
+  return { entry, plugin, warnings, stats, archive, digest };
+}
+
+function tooLarge(name: string, bytes: number): MarketplaceSourceError {
+  return new MarketplaceSourceError(
+    `'${name}' is ${mib(bytes)} of files, over the ${mib(MARKETPLACE_TREE_LIMITS.pluginBytes)} a plugin archive may carry`,
+    "too-large",
+  );
 }
 
 /** The in-memory reader over a fixture, for tests and previews that hold the files already. */
