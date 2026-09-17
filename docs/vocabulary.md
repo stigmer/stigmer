@@ -54,21 +54,22 @@ more precise language. Never use a right-column term in a left-column context.
 Scan this table to find the right word for your context. Detailed entries with
 definitions, API names, and examples follow below.
 
-| Term              | Sales site            | Quickstart / tutorial            | Concepts / how-to   | Reference / SDK                        | README         |
-| ----------------- | --------------------- | -------------------------------- | ------------------- | -------------------------------------- | -------------- |
-| **Agent**         | Agent                 | Agent                            | Agent               | Agent, `kind: Agent`                   | Agent          |
-| **Skill**         | domain knowledge      | Skill ("domain knowledge")       | Skill               | Skill, `skill_refs`                    | Skill          |
-| **Plugin**        | plugin                | plugin ("what you install")      | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
-| **MCP Server**    | tools                 | MCP server ("tool connection")   | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
-| **Session**       | conversation          | Session ("conversation")         | Session             | Session, `kind: Session`               | Session        |
-| **Runner**        | compute               | runner ("where your Agent runs") | Runner              | Runner                                 | runner         |
-| **Workflow**      | multi-step automation | Workflow                         | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
-| **Harness**       | execution engine      | harness ("execution engine")     | Harness             | Harness, `SessionSpec.harness`         | harness        |
-| **Approval flow** | approval flow         | approval flow                    | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
-| **Organization**  | Organization          | Organization                     | Organization        | Organization, `kind: organization`     | Organization   |
-| **Project**       | Project               | Project                          | Project             | Project, `kind: project`               | Project        |
-| **Environment**   | Environment           | Environment                      | Environment         | Environment, `kind: Environment`       | Environment    |
-| **Preference**    | preferences           | preference ("standing context")  | Preference          | `spec.preferences.standing_context`    | Preference     |
+| Term              | Sales site            | Quickstart / tutorial                  | Concepts / how-to   | Reference / SDK                        | README         |
+| ----------------- | --------------------- | -------------------------------------- | ------------------- | -------------------------------------- | -------------- |
+| **Agent**         | Agent                 | Agent                                  | Agent               | Agent, `kind: Agent`                   | Agent          |
+| **Skill**         | domain knowledge      | Skill ("domain knowledge")             | Skill               | Skill, `skill_refs`                    | Skill          |
+| **Plugin**        | plugin                | plugin ("what you install")            | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
+| **Marketplace**   | marketplace           | marketplace ("where you install from") | Marketplace         | marketplace, `stigmer marketplace`     | marketplace    |
+| **MCP Server**    | tools                 | MCP server ("tool connection")         | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
+| **Session**       | conversation          | Session ("conversation")               | Session             | Session, `kind: Session`               | Session        |
+| **Runner**        | compute               | runner ("where your Agent runs")       | Runner              | Runner                                 | runner         |
+| **Workflow**      | multi-step automation | Workflow                               | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
+| **Harness**       | execution engine      | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
+| **Approval flow** | approval flow         | approval flow                          | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
+| **Organization**  | Organization          | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
+| **Project**       | Project               | Project                                | Project             | Project, `kind: project`               | Project        |
+| **Environment**   | Environment           | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
+| **Preference**    | preferences           | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
 
 <!-- vale Stigmer.terms = NO -->
 
@@ -214,6 +215,53 @@ install; an agent is what runs.
 | Quickstart | "Run the plugin."                         | Plugins do not run; the agent it installed does.                     |
 | Concepts   | "Edit the plugin's skill in the console." | Members are the plugin's to redefine; the console shows the refusal. |
 | Reference  | "Apply the plugin YAML."                  | A plugin has no YAML; it is pushed as its folder.                    |
+
+---
+
+#### Marketplace
+
+A catalogue of plugins you install by name: a directory tree with a marketplace
+file at its root that lists the plugins it offers, each as a name and a folder
+inside the tree. The official marketplace is built into the CLI; you add others,
+such as Cursor's public catalogue, by pointing at the repository.
+
+- **User-facing alternative**: none needed. "Marketplace" is the word Cursor,
+  Claude Code and Codex use for the same catalogue, and Stigmer reads theirs
+  unchanged.
+- **Capitalize**: No, except at the start of a sentence: a marketplace is not a
+  Stigmer resource. Name the official one "the official marketplace"; name an
+  added one by the name it is installed from (`cursor-plugins`).
+- **API surface**: none on the server; a marketplace is client-side
+  configuration (`marketplaces` in `~/.stigmer/config.yaml`), and the server
+  only ever receives the plugin archive a client pushes from it. CLI:
+  `stigmer marketplace add|list|show|remove`,
+  `stigmer install [marketplace/]name[@version]`. `stigmer up` installs the
+  official marketplace's default set into the system Organization.
+- **File structure**: a marketplace file in one of four locations, read in this
+  precedence: `marketplace.json` (Stigmer's own),
+  `.claude-plugin/marketplace.json`, `.cursor-plugin/marketplace.json`,
+  `.agents/plugins/marketplace.json`. Each entry is a `name` and a `source`
+  naming a folder in the tree; Stigmer's file also carries `defaults`, the names
+  a fresh install bootstraps with, in order.
+- **What it is not**: a marketplace does not know what you installed. Nothing on
+  the server records which marketplace a plugin came from, so installing
+  `thermos` from a second marketplace upgrades the `thermos` from the first: a
+  plugin is identified by its name in your Organization.
+
+**Good examples**:
+
+| Context    | Copy                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Quickstart | "Add Cursor's marketplace and install any of its plugins by name."                                                     |
+| How-to     | "`stigmer marketplace add cursor/plugins`, then `stigmer install cursor-plugins/thermos`."                             |
+| Reference  | "A marketplace is a directory tree with a marketplace file at its root; `stigmer marketplace show` lists its entries." |
+
+**Bad examples**:
+
+| Context    | Copy                                      | Problem                                                                                |
+| ---------- | ----------------------------------------- | -------------------------------------------------------------------------------------- |
+| Quickstart | "Publish your plugin to the Marketplace." | There is no one Marketplace and no publish step; a marketplace is a tree you point at. |
+| Reference  | "`kind: Marketplace`"                     | A marketplace is not a resource; the server never sees one.                            |
 
 ---
 

@@ -215,6 +215,23 @@ pages:
       its members are the plugin's to redefine.
     medium: none
 
+  guides/plugins/install-from-a-marketplace:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Add a vendor's or your own plugin marketplace, see what it offers, install
+      a plugin from it by name, and understand what the server does and does
+      not record about where a plugin came from.
+    medium: none
+
+  guides/plugins/marketplace-file:
+    fate: keep
+    diataxis: reference
+    teaches:
+      The four marketplace file locations Stigmer reads, the one shape they
+      reduce to, what makes an entry installable, and the two error postures.
+    medium: none
+
   guides/sharing/share-an-agent:
     fate: keep
     diataxis: how-to
