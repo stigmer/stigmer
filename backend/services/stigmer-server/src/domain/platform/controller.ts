@@ -63,7 +63,6 @@ import type {
   RunnerScopedTokenRequest,
 } from "../../runnerauth/runner-credential-provider.js";
 import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
-import { SERVER_VERSION } from "./version.js";
 
 export interface PlatformControllerDeps {
   /**
@@ -88,6 +87,13 @@ export interface PlatformControllerDeps {
    * cloud composition answers `cloud` without forking this controller.
    */
   readonly edition: ServerEdition;
+  /**
+   * The release reported beside the edition. The composition root resolves
+   * it (ComposeOptions.version, else SERVER_VERSION), so this controller
+   * never reads the build stamp itself: a library consumer with no bundle
+   * states its installed release and answers exactly as a bundle would.
+   */
+  readonly version: string;
   readonly logger: Logger;
 }
 
@@ -105,11 +111,11 @@ export function registerPlatformServices(
   });
 }
 
-/** Go GetServerInfo: the server edition and build version. */
+/** Go GetServerInfo: the server edition and release version. */
 function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
     edition: deps.edition,
-    version: SERVER_VERSION,
+    version: deps.version,
   });
 }
 
