@@ -2,7 +2,7 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { type ResourceRef } from "./types.js";
+import { type ListParams, type ListResult, type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -14,15 +14,20 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 /** Provides operations on plugin resources. */
 export class PluginClient {
   private readonly command: Client<typeof PluginCommandController>;
   private readonly query: Client<typeof PluginQueryController>;
+  private readonly search: Client<typeof SearchService>;
 
   constructor(transport: Transport) {
     this.command = createClient(PluginCommandController, transport);
     this.query = createClient(PluginQueryController, transport);
+    this.search = createClient(SearchService, transport);
   }
 
   async push(input: PushPluginRequest): Promise<Plugin> {
@@ -70,6 +75,24 @@ export class PluginClient {
   async listVersions(input: ListPluginVersionsInput): Promise<ListPluginVersionsResponse> {
     try {
       return await this.query.listVersions(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async list(params: ListParams): Promise<ListResult> {
+    try {
+      const resp = await this.search.search(create(SearchRequestSchema, {
+        kinds: [ApiResourceKind.plugin],
+        query: params.query,
+        org: params.org,
+        excludePublic: params.excludePublic ?? false,
+        crossOrgPublic: params.crossOrgPublic ?? false,
+        page: params.page ? create(PageInfoSchema, params.page) : undefined,
+      }));
+      return {
+        entries: resp.entries,
+        totalCount: resp.totalCount,
+        totalPages: resp.totalPages,
+      };
     } catch (e) { throw wrapError(e); }
   }
 }

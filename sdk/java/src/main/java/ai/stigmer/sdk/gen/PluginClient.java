@@ -14,6 +14,10 @@ import ai.stigmer.agentic.plugin.v1.PluginQueryControllerGrpc;
 import ai.stigmer.agentic.plugin.v1.PushPluginRequest;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.commons.rpc.PageInfo;
+import ai.stigmer.search.v1.SearchRequest;
+import ai.stigmer.search.v1.SearchResponse;
+import ai.stigmer.search.v1.SearchServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -21,10 +25,12 @@ import io.grpc.StatusRuntimeException;
 public final class PluginClient {
     private final PluginCommandControllerGrpc.PluginCommandControllerBlockingStub command;
     private final PluginQueryControllerGrpc.PluginQueryControllerBlockingStub query;
+    private final SearchServiceGrpc.SearchServiceBlockingStub search;
 
     PluginClient(Channel channel) {
         this.command = PluginCommandControllerGrpc.newBlockingStub(channel);
         this.query = PluginQueryControllerGrpc.newBlockingStub(channel);
+        this.search = SearchServiceGrpc.newBlockingStub(channel);
     }
 
     public Plugin push(PushPluginRequest input) {
@@ -72,6 +78,29 @@ public final class PluginClient {
     public ListPluginVersionsResponse listVersions(ListPluginVersionsInput input) {
         try {
             return query.listVersions(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ListResult list(ListParams params) {
+        try {
+            SearchRequest.Builder req = SearchRequest.newBuilder()
+                .addKinds(ApiResourceKind.plugin);
+            if (params.getOrg() != null) {
+                req.setOrg(params.getOrg());
+            }
+            if (params.getQuery() != null) {
+                req.setQuery(params.getQuery());
+            }
+            req.setExcludePublic(params.isExcludePublic());
+            req.setCrossOrgPublic(params.isCrossOrgPublic());
+            if (params.getPage() != null) {
+                req.setPage(PageInfo.newBuilder()
+                    .setNum(params.getPage().getNum())
+                    .setSize(params.getPage().getSize())
+                    .build());
+            }
+            SearchResponse resp = search.search(req.build());
+            return new ListResult(resp.getEntriesList(), resp.getTotalCount(), resp.getTotalPages());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }
