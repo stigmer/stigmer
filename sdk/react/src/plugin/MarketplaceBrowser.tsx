@@ -114,7 +114,7 @@ export function MarketplaceBrowser({ org, onInstalled, fetchImpl, className }: M
         <PluginInstallDialog
           opened={read.opened}
           entryName={selectedEntry}
-          marketplaceName={active.name}
+          sourceName={active.name}
           org={org}
           open={selectedEntry !== null}
           onClose={() => setSelectedEntry(null)}

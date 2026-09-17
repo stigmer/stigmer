@@ -41,10 +41,12 @@ export type { UnreadableMarketplace, UseMarketplacesReturn } from "./useMarketpl
 export { useMarketplace } from "./useMarketplace.js";
 export type { UseMarketplaceOptions, UseMarketplaceReturn } from "./useMarketplace.js";
 export { usePreparePluginInstall } from "./usePreparePluginInstall.js";
-export type { InstallRelation, UsePreparePluginInstallReturn } from "./usePreparePluginInstall.js";
+export type { UsePreparePluginInstallReturn } from "./usePreparePluginInstall.js";
+export { useInstallRelation } from "./useInstallRelation.js";
+export type { InstallRelation, UseInstallRelationReturn } from "./useInstallRelation.js";
 export { useInstallPlugin } from "./useInstallPlugin.js";
 export type { InstallPluginOptions, InstallPluginOutcome, UseInstallPluginReturn } from "./useInstallPlugin.js";
-export { MARKETPLACE_TREE_LIMITS, MarketplaceSourceError } from "./sources/types.js";
+export { MARKETPLACE_TREE_LIMITS, MarketplaceSourceError, formatMib } from "./sources/types.js";
 export type {
   FetchImpl,
   GitHubMarketplaceSource,
@@ -53,7 +55,9 @@ export type {
   MarketplaceTree,
 } from "./sources/types.js";
 export { PluginReadRefusal, findEntry, openMarketplace, prepareEntry } from "./sources/read.js";
-export type { OpenedMarketplace, PreparedInstall } from "./sources/read.js";
+export type { InstallOrigin, OpenedMarketplace, PreparedInstall } from "./sources/read.js";
+export { LocalPluginError, folderPick, folderPickFromInput, prepareLocalPlugin, zipPick } from "./sources/local.js";
+export type { LocalFile, LocalPick } from "./sources/local.js";
 export { openMarketplaceSource } from "./sources/open.js";
 export type { OpenSourceOptions } from "./sources/open.js";
 export { openGitHubTree, rawUrl, treesUrl } from "./sources/github.js";
@@ -64,8 +68,10 @@ export { PluginDetailView, kindLabel as pluginMemberKindLabel } from "./PluginDe
 export type { PluginDetailViewProps, PluginMemberRef } from "./PluginDetailView.js";
 export { MarketplaceBrowser } from "./MarketplaceBrowser.js";
 export type { MarketplaceBrowserProps } from "./MarketplaceBrowser.js";
-export { PluginInstallDialog } from "./PluginInstallDialog.js";
+export { PluginInstallDialog, summariseInstall } from "./PluginInstallDialog.js";
 export type { PluginInstallDialogProps } from "./PluginInstallDialog.js";
+export { InstallPreview, PrepareRefusal, describeOrigin } from "./InstallPreview.js";
+export type { InstallPreviewProps } from "./InstallPreview.js";
 export { ManagedByPluginNotice } from "./ManagedByPluginNotice.js";
 export type { ManagedByPluginNoticeProps } from "./ManagedByPluginNotice.js";
 export { PluginIcon } from "./PluginIcon.js";

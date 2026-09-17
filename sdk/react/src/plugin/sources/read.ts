@@ -31,7 +31,7 @@ import {
 } from "@stigmer/plugin-package";
 import { type LazyCandidate, type SelectionStats, preparePluginFromTree } from "@stigmer/plugin-package/client";
 
-import { MARKETPLACE_TREE_LIMITS, MarketplaceSourceError, type MarketplaceTree } from "./types.js";
+import { MARKETPLACE_TREE_LIMITS, MarketplaceSourceError, type MarketplaceTree, formatMib } from "./types.js";
 
 /** A marketplace read from a hosted tree, with the tree kept for the install that follows. */
 export interface OpenedMarketplace {
@@ -76,9 +76,30 @@ export async function openMarketplace(tree: MarketplaceTree): Promise<OpenedMark
   return { tree, marketplace: outcome.marketplace, warnings: outcome.warnings };
 }
 
-/** An entry read, selected and archived, but not yet pushed: what the install preview shows. */
+/**
+ * Where a prepared install came from: a source's entry, or something the
+ * user handed the browser. The preview says it in one line; the push's
+ * version message records the source's name or "uploaded from the console".
+ */
+export type InstallOrigin =
+  | {
+      readonly kind: "source";
+      readonly entry: MarketplaceEntry;
+      /** The tree the entry was read from, as `MarketplaceTree.describe` names it. */
+      readonly tree: string;
+    }
+  | {
+      readonly kind: "upload";
+      readonly pick: "folder" | "zip";
+      /** The folder's or the archive's name. */
+      readonly name: string;
+      /** The one directory a zip wrapped its contents in, when it was stripped. */
+      readonly rerooted?: string;
+    };
+
+/** A plugin read, selected and archived, but not yet pushed: what the install preview shows. */
 export interface PreparedInstall {
-  readonly entry: MarketplaceEntry;
+  readonly origin: InstallOrigin;
   readonly plugin: PluginPackage;
   readonly warnings: readonly PluginFinding[];
   readonly stats: SelectionStats;
@@ -133,12 +154,12 @@ export async function prepareEntry(opened: OpenedMarketplace, entry: Marketplace
     }
   }
   const { plugin, warnings, stats, archive, digest } = outcome.prepared;
-  return { entry, plugin, warnings, stats, archive, digest };
+  return { origin: { kind: "source", entry, tree: opened.tree.describe }, plugin, warnings, stats, archive, digest };
 }
 
 function tooLarge(name: string, bytes: number): MarketplaceSourceError {
   return new MarketplaceSourceError(
-    `'${name}' is ${mib(bytes)} of files, over the ${mib(MARKETPLACE_TREE_LIMITS.pluginBytes)} a plugin archive may carry`,
+    `'${name}' is ${formatMib(bytes)} of files, over the ${formatMib(MARKETPLACE_TREE_LIMITS.pluginBytes)} a plugin archive may carry`,
     "too-large",
   );
 }
@@ -146,6 +167,3 @@ function tooLarge(name: string, bytes: number): MarketplaceSourceError {
 /** The in-memory reader over a fixture, for tests and previews that hold the files already. */
 export { inMemoryPluginFiles };
 
-function mib(bytes: number): string {
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
-}
