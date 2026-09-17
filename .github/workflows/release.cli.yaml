@@ -122,7 +122,9 @@ jobs:
           OBJ_TYPE=$(git cat-file -t "$VERSION" 2>/dev/null || echo "unknown")
           echo "Tag $VERSION object type: $OBJ_TYPE"
           if [ "$OBJ_TYPE" = "tag" ]; then
-            TAG_BODY=$(git tag -l --format='%(contents:body)' "$VERSION" | sed '/^$/d' | head -c 10000)
+            # Blank lines are Markdown paragraph breaks and must reach the
+            # release page as written (#1156); nothing is trimmed here.
+            TAG_BODY=$(git tag -l --format='%(contents:body)' "$VERSION" | head -c 10000)
             echo "Extracted TAG_BODY length: ${#TAG_BODY}"
           fi
 
