@@ -88,15 +88,16 @@ export interface ContextConfig {
  * commands are the only writer; the shape is kept loose here and narrowed by
  * `src/marketplace/config.ts`, so a hand-edited entry this CLI cannot read is
  * reported by `stigmer marketplace list` instead of being dropped on the next
- * save. The official marketplace is built in and never stored.
+ * save. The official marketplace is built in and never stored. `type` is the
+ * discriminator, the word this file already uses for backends.
  */
 export interface MarketplaceEntryConfig {
-  kind?: string;
-  /** GitHub `owner/repo` for `kind: github`. */
+  type?: string;
+  /** GitHub `owner/repo` for `type: github`. */
   repo?: string;
-  /** Branch, tag or commit for `kind: github`; the default branch when absent. */
+  /** Branch, tag or commit for `type: github`; the default branch when absent. */
   ref?: string;
-  /** Absolute directory for `kind: local`. */
+  /** Absolute directory for `type: local`. */
   path?: string;
 }
 
