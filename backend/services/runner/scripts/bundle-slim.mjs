@@ -113,7 +113,7 @@ const CORE_BRIDGE_TRIPLES = {
 
 // Must stay in sync with src/workflow-source.ts. Imported from the compiled
 // dist (not src) so the script has no TypeScript loader dependency.
-const { OTEL_WORKFLOW_INTERCEPTOR_MODULE } = await import(
+const { OTEL_WORKFLOW_INTERCEPTOR_MODULE, runCredentialWorkflowInterceptorModule } = await import(
   new URL("../dist/workflow-source.js", import.meta.url).href
 );
 
@@ -153,10 +153,16 @@ async function buildWorkflowBundle() {
   console.log("[1/5] Pre-building Temporal workflow bundle...");
   const { code } = await bundleWorkflowCode({
     workflowsPath: join(distDir, "workflows", "index.js"),
-    // Baked in unconditionally; the interceptor is inert unless the host
-    // configures the OTel sink. This also closes the gap where manager-mode
-    // runtime bundling historically omitted it (see runner-manager.ts).
-    workflowInterceptorModules: [require.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE)],
+    // Both baked in unconditionally. The run-credential interceptor carries
+    // a run's credential to every activity the workflow schedules and is
+    // load-bearing whenever a dispatch carries one (src/shared/run-credential.ts);
+    // the OTel interceptor is inert unless the host configures the OTel sink.
+    // Baking also closes the gap where manager-mode runtime bundling
+    // historically omitted the OTel module (see runner-manager.ts).
+    workflowInterceptorModules: [
+      runCredentialWorkflowInterceptorModule(),
+      require.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
+    ],
   });
   writeFileSync(join(outDir, "workflow-bundle.js"), code);
 }

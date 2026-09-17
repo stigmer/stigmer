@@ -5,6 +5,11 @@
  * fails CLOSED (InvalidTokenError — callers fall back to redaction), mint
  * fails LOUD (a plain Error naming the lane — a composition bug, not a
  * runtime condition), isEnabled answers the honest false.
+ *
+ * Also pins the one capability the default DEFINES: `mintRunCredential`,
+ * the clockless run credential a dispatch carries — minted on the
+ * execution_scoped lane with no `exp`, and "" (never a throw) when the
+ * service is keyless, so a dispatch degrades instead of failing.
  */
 import { randomBytes } from "node:crypto";
 
@@ -14,6 +19,7 @@ import { newExecutionScopedRunnerCredentialProvider } from "../runner-credential
 import {
   DEFAULT_TTL_SECONDS,
   InvalidTokenError,
+  isClockedToken,
   MintingDisabledError,
   RunnerAuthService,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -61,6 +67,23 @@ describe("execution-scoped provider over a keyed service", () => {
       provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, "not-a-token"),
     ).toThrow(InvalidTokenError);
   });
+
+  it("mintRunCredential mints the clockless run credential, bound to the execution, on the provided lane", () => {
+    const token = provider.mintRunCredential!("aex_dispatch");
+    expect(token).not.toBe("");
+    expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, token)).toBe(
+      "aex_dispatch",
+    );
+    // No `exp`: the credential's validity is the row's liveness, never a
+    // clock (the run credential's defining property).
+    expect(isClockedToken(token)).toBe(false);
+  });
+
+  it("mintRunCredential refuses an empty execution id loudly — a programming error, not a degrade", () => {
+    expect(() => provider.mintRunCredential!("")).toThrowError(
+      /execution id is required/,
+    );
+  });
 });
 
 describe("execution-scoped provider over a keyless service", () => {
@@ -82,5 +105,9 @@ describe("execution-scoped provider over a keyless service", () => {
     expect(() =>
       provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, "any-token"),
     ).toThrow(InvalidTokenError);
+  });
+
+  it('mintRunCredential answers "" — the dispatch goes without, never fails', () => {
+    expect(provider.mintRunCredential!("aex_keyless")).toBe("");
   });
 });

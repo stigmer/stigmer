@@ -9,7 +9,10 @@
  *
  * 1. Direct mode (local / OSS):
  *    - CURSOR_API_KEY provided directly by the user (for Cursor harness).
- *    - STIGMER_TOKEN is optional (local stigmer-server has no auth).
+ *    - STIGMER_TOKEN is optional against a trusted-local server (it verifies
+ *      no credential) and is the runner's own API key against a self-hosted
+ *      server with sign-in on; each run's credential arrives with its
+ *      dispatch (shared/run-credential.ts).
  *    - STIGMER_PROXY_ENDPOINT is NOT set.
  *
  * 2. Proxy mode (cloud / managed runners):

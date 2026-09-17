@@ -28,9 +28,14 @@ export interface SynthesizedAttachmentOptions {
    */
   bridgeEndpoint: string | null;
   /**
-   * The execution's session-scoped credential (the sandbox token a
-   * cloud runner holds, or the desktop runner's exchanged scoped
-   * token). Null attaches no Authorization header (OSS/local).
+   * The credential of the RUN this attachment serves — the run's own
+   * credential the server minted at dispatch (the OSS shape), or the
+   * session-scoped sandbox token a cloud runner holds. Both connection
+   * shapes present it: as the Bearer on the bridge's per-request path,
+   * and as the stdio child's startup credential (`stdioCredentialEnv`),
+   * so what the child writes on the person's behalf is stamped as that
+   * person and not refused as nobody's on a server that signs people in.
+   * Null presents nothing (a run whose dispatch carried no credential).
    */
   credential: string | null;
   /**
@@ -38,6 +43,36 @@ export interface SynthesizedAttachmentOptions {
    * (config.stigmerBackendEndpoint). Only used for the OSS shape.
    */
   backendEndpoint: string;
+}
+
+/**
+ * The mcp-server's startup-credential variable — the ONE name the stdio
+ * child reads its bearer from (mcp-server/src/config.ts `STIGMER_API_KEY`;
+ * the value is any bearer the server honours, an `stk_` key for an IDE
+ * client, the run's credential here). Cross-repo string, pinned on both
+ * sides (the TOOL_CALL_LIMIT precedent).
+ */
+export const STDIO_CREDENTIAL_ENV = "STIGMER_API_KEY";
+
+/**
+ * The stdio child's startup-credential entry: `{ STIGMER_API_KEY }` when the
+ * attachment holds a credential, nothing when it holds none — so a
+ * credential-less run's child environment is byte-for-byte today's, and
+ * the two stdio shapes cannot disagree on the carrier.
+ *
+ * The exposure, stated once: the credential sits in a first-party child's
+ * process environment on the runner host, readable by the same OS user.
+ * That is the runner's own trust boundary (the runner process holds the
+ * same credential), and the child is `stigmer mcp-server`, never a
+ * third-party server — those receive only their declared env (oss#256,
+ * mcp-manager.ts). The alternative was the operator's API key.
+ */
+export function stdioCredentialEnv(
+  credential: string | null,
+): Record<string, string> {
+  return credential !== null && credential !== ""
+    ? { [STDIO_CREDENTIAL_ENV]: credential }
+    : {};
 }
 
 /**

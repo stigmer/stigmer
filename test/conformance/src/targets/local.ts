@@ -50,6 +50,9 @@ export class LocalTarget implements TargetProfile {
     workflowChildApprovalForwarding: false,
     // No Temporal behind this target at all — schedules cannot fire.
     scheduleFiring: false,
+    // No runner behind this target either; the open-source runner's shape
+    // is proven on local-execution, whose enforcing lane boots one.
+    runnerActsAsRunCreator: false,
     // Single-tenant OSS: the reserved-label write guard is cloud-only
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,

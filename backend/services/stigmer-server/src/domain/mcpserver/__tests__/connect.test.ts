@@ -28,6 +28,7 @@ import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/execu
 
 import { createLogger } from "../../../boot/logger.js";
 import { SecretService } from "../../../encryption/encryption.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../../../runnerauth/runnerauth.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -41,6 +42,7 @@ import {
   startBestEffortConnect,
 } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
+import { isConnectExecutionId } from "../connect-execution-id.js";
 import { ManagedEnvironmentService } from "../oauth/managed-env.js";
 import {
   RUNNER_QUEUE_WARNING,
@@ -115,6 +117,8 @@ interface Harness {
   deps: McpServerConnectDeps;
   engine: FakeEngine;
   ecCreates: number;
+  /** The caller each EC create was handed — the connect's person, never the server (the mcp-connect binding's stamp). */
+  ecCreators: CallerIdentity[];
   ecDeletes: string[];
 }
 
@@ -150,6 +154,7 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
   const harness: Harness = {
     engine,
     ecCreates: 0,
+    ecCreators: [],
     ecDeletes: [],
     deps: {
       store,
@@ -165,8 +170,9 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
         },
       },
       executionContext: {
-        create: async () => {
+        create: async (_ec, caller) => {
           harness.ecCreates += 1;
+          harness.ecCreators.push(caller);
           return create(ExecutionContextSchema, {
             metadata: { id: `ectx_${harness.ecCreates}` },
           });
@@ -356,7 +362,7 @@ describe("connect (blocking lane)", () => {
     expect(second.status?.toolApprovals[0]?.toolName).toBe("search");
   });
 
-  it("creates the ephemeral EC from runtime_env, mints the decrypt token, and deletes the EC after settle", async () => {
+  it("creates the ephemeral EC from runtime_env AS THE CALLER, mints the decrypt token, and deletes the EC after settle", async () => {
     const harness = makeHarness();
     const server = await seedServer();
     await connect(
@@ -366,9 +372,16 @@ describe("connect (blocking lane)", () => {
       }),
     );
     expect(harness.ecCreates).toBe(1);
+    // The row's creator stamp is the connect token's person under the
+    // built-in posture (runnerauth/bound-execution.ts), so the connect
+    // hands the client the caller, never the server's own identity.
+    expect(harness.ecCreators).toEqual([testCaller]);
     expect(harness.ecDeletes).toEqual(["ectx_1"]);
     const input = harness.engine.startedInputs[0];
     expect(input?.execution_context_id).toMatch(/^connect-mcps_test_/);
+    // The id is the one shape the runner-credential lane recognizes as a
+    // connect binding — builder and predicate share one module.
+    expect(isConnectExecutionId(input?.execution_context_id ?? "")).toBe(true);
     // oss#535: the decrypt-lane token rides the payload.
     expect(input?.execution_context_token).toBeTruthy();
   });
@@ -584,6 +597,8 @@ describe("startConnect (async lane)", () => {
     );
     expect(result.metadata?.id).toBe(server.metadata!.id);
     expect(harness.ecCreates).toBe(1);
+    // The async lane creates the EC as the caller too — one prepareConnect.
+    expect(harness.ecCreators).toEqual([testCaller]);
     await vi.waitFor(() => expect(harness.ecDeletes).toEqual(["ectx_1"]));
   });
 });

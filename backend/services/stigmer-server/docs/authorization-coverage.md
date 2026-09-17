@@ -92,11 +92,11 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | ExecutionContextCommandController.apply | none | chain-with-Authorize |
-| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeExecutionContextCreate mid-chain check: can_create_execution_in on the organization, before the duplicate check — the Java AuthorizeCreate order, stigmer-cloud#297) |
+| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeExecutionContextCreate mid-chain check: can_create_execution_in on the organization, before the duplicate check — the Java AuthorizeCreate order, stigmer-cloud#297); the MCP connect lane creates its ephemeral EC through this chain AS THE CONNECTING PERSON (`boot/inprocess.ts`, the in-process `asCaller` lane), so the row's creator stamp is the connect token's person under the built-in posture) |
 | ExecutionContextCommandController.delete | is_skip_authorization | chain-with-Authorize |
 | ExecutionContextQueryController.get | is_skip_authorization | chain-with-Authorize (response redacted) |
 | ExecutionContextQueryController.getByReference | is_skip_authorization | chain-with-Authorize (response redacted) |
-| ExecutionContextQueryController.getByExecutionId | is_skip_authorization | chain-with-Authorize (runner-token verified in domain; redaction-as-success) |
+| ExecutionContextQueryController.getByExecutionId | is_skip_authorization | chain-with-Authorize (runner-token verified in domain; redaction-as-success; under the built-in posture the runner-subject verifier admits the bearer of a RUN credential as the run's person and the bearer of a CONNECT token as the person the connect's EC was created by — `src/runnerauth/bound-execution.ts`, the three bindings; a clockless token bound to a connect falls closed to redaction through the same `bindsARun` predicate the verifier refuses it with) |
 
 ## 6. Agent (`src/domain/agent/controller.ts`)
 
@@ -228,7 +228,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| MemoryCommandController.create | is_skip_authorization | chain-with-Authorize |
+| MemoryCommandController.create | is_skip_authorization | chain-with-Authorize (the GuardMemoryCapture mid-chain step decides the row's subject through the composed `RunnerCredentialProvider.authorizeMemoryCapture`: under the built-in posture an agent-bound runner's capture is admitted as the run's person with the run's session as the proved provenance, a workflow- or connect-bound runner is refused, and a person's own create carries no capture credential and so no subject — `src/pipeline/steps/guard-memory-capture.ts`, `src/runnerauth/built-in-runner-credential-provider.ts`) |
 | MemoryCommandController.update | config: can_edit on memory (field metadata.id), error_msg yes | chain-with-Authorize |
 | MemoryCommandController.delete | config: can_delete on memory (field value), error_msg yes | chain-with-Authorize |
 | MemoryCommandController.confirm | config: can_edit on memory (field value), error_msg yes | chain-with-Authorize (shared runTransition helper, own descriptor) |
@@ -240,7 +240,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; P1 sp.run-gate, stigmer-cloud#709) |
+| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; P1 sp.run-gate, stigmer-cloud#709; under the built-in posture these five run-gate checks are answered `allow` for a WORKFLOW-bound runner before the Authorizer is asked, so a shared workflow's `agent_call` creates its child as the person who ran the workflow — `src/authorization/lane-admission.ts`, composed in `boot/compose.ts`; an agent-bound runner and every person are checked as themselves) |
 | AgentExecutionCommandController.update | config: can_edit on agent_execution (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentExecutionCommandController.updateStatus | config: can_edit on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
 | AgentExecutionCommandController.submitApproval | config: can_edit on agent_execution (field agent_execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
@@ -329,7 +329,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | McpServerCommandController.update | config: can_edit on mcp_server (field metadata.id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.updateVisibility | config: can_edit on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.delete | config: can_delete on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
-| McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start); authorizeDirect AFTER the load (#224) |
+| McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start); authorizeDirect AFTER the load (#224). The ephemeral EC is created as the caller and the connect token, under the built-in posture, admits the runner as that caller for the EC read (`src/domain/mcpserver/connect-execution-id.ts`; `src/runnerauth/bound-execution.ts` `mcp-connect`); the discovery's McpServer read rides the runner's own credential, an organization admin's key under the chart's install, whom the model makes an owner of every McpServer in the organization |
 | McpServerCommandController.startConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: async connect lane over the engine seam; authorizeDirect AFTER the load (#224) |
 | McpServerCommandController.initiateOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth authorize-URL mint (refuses FAILED_PRECONDITION without a configured redirect URI); authorizeDirect AFTER the load (#224) |
 | McpServerCommandController.completeOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth code exchange + grant persistence; authorizeDirect against the PENDING RECORD's server id (target override — the Java confused-deputy discipline; the single-use state is burned before a denial lands) |
@@ -415,8 +415,8 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | Method | Annotation | Handler |
 |---|---|---|
 | PlatformQueryController.getServerInfo | is_public | direct: static edition + version read |
-| PlatformQueryController.getRunnerBootstrapConfig | is_skip_authorization | direct: publishes the Temporal coordinates for embedded runners (token fields deliberately empty on OSS) |
-| PlatformQueryController.getRunnerScopedToken | is_skip_authorization | direct: mints the execution-scoped runner token for the ExecutionContext decrypt lane; fail-soft (empty id, keyless service, or mint error answer the not-minted shape). On OSS there is no caller credential to verify — the token is the lane discriminator, not a trust boundary (DD-004). |
+| PlatformQueryController.getRunnerBootstrapConfig | is_skip_authorization | direct: publishes the Temporal coordinates for embedded runners (token fields empty on OSS: the runner's process credential is the operator's API key it already holds; its per-run credential arrives in the workflow input, not here) |
+| PlatformQueryController.getRunnerScopedToken | is_skip_authorization | direct: mints the execution-scoped runner token; fail-soft (empty id, keyless service, or mint error answer the not-minted shape). Under trusted-local the token is the ExecutionContext decrypt-lane discriminator and nothing more, minted for any caller naming an execution. Under the built-in authorization posture the same token is also an identity: the runner-subject verifier (`src/runnerauth/runner-subject-verifier.ts`, composed between `apikey` and `oidc`) admits its bearer as the human whose run it is, for as long as the run lives — so there the exchange is a MINT GATE: the built-in provider's `exchangeScopedToken` (`src/runnerauth/built-in-runner-credential-provider.ts`, the C4 delegation) mints the run credential for the run's own person only; a missing run is NOT_FOUND with the load-first copy, anyone else is PERMISSION_DENIED. Runs receive their credential from the dispatch itself (both engine clients put `execution_context_token` on the workflow input, 2026-09-16); the exchange is the runner's fallback. |
 
 ## Config-annotated methods served by direct handlers
 

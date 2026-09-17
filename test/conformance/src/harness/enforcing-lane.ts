@@ -195,6 +195,7 @@ export function newPrimaryEnforcingLane(
       return member;
     },
     accountIdOf: whoAmIId,
+    clientsPresenting: (bearerToken) => deps.clientsPresenting(bearerToken),
   };
   const tenant = deps.directLoginTenant;
   if (tenant !== undefined) {
@@ -339,6 +340,7 @@ export async function newSiblingEnforcingLane(
       return person.clients;
     },
     accountIdOf: whoAmIId,
+    clientsPresenting: (bearerToken) => sibling.clientsPresenting(bearerToken),
     async unprovisionedCaller() {
       return sibling.clientsPresenting(
         await issuer.mint({

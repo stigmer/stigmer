@@ -111,7 +111,7 @@ These are orthogonal. The **desktop runner** is the canonical case where they di
 
 The transport setting drives two credential modes:
 
-- **Direct mode** (local / OSS): you provide `CURSOR_API_KEY` directly (for the Cursor harness); `STIGMER_TOKEN` is optional because a local Stigmer server has no auth. `STIGMER_PROXY_ENDPOINT` is unset.
+- **Direct mode** (local / OSS): you provide `CURSOR_API_KEY` directly (for the Cursor harness); `STIGMER_TOKEN` is optional against a trusted-local server, which verifies no credential, and is the runner's own API key against a self-hosted server with sign-in on (the run's per-run credential arrives with each dispatch; see `src/shared/run-credential.ts`). `STIGMER_PROXY_ENDPOINT` is unset.
 - **Proxy mode** (cloud / managed runners): `STIGMER_PROXY_ENDPOINT` and `STIGMER_TOKEN` are required. You do not supply `CURSOR_API_KEY` — the proxy validates your token and injects the real Cursor key upstream. The runner sets `CURSOR_BACKEND_URL` / `CURSOR_API_BASE_URL` to the proxy endpoint automatically; these are runner-managed, not configuration you set.
 
 ## Required infrastructure

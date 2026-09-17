@@ -110,7 +110,7 @@ All configuration is read from the environment.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `STIGMER_SERVER_ADDRESS` | `localhost:7234` | gRPC `host:port` of `stigmer-server`. |
-| `STIGMER_API_KEY` | `""` | API key used in `stdio`/`both` mode. |
+| `STIGMER_API_KEY` | `""` | The startup bearer used in `stdio`/`both` mode — an API key for a desktop client; the run's own credential when the runner spawns this server for a run. |
 | `STIGMER_MCP_TRANSPORT` | `stdio` | `stdio`, `http`, or `both`. |
 | `STIGMER_MCP_HTTP_PORT` | `8080` | Listen port for `http`/`both`. |
 | `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Require an `Authorization: Bearer` header (presence only). |

@@ -2,12 +2,13 @@
 // Run via `node --test scripts/agents-check.test.mjs` (wired into root `npm test`).
 //
 // Every case builds a throwaway repository under a temp directory, so the
-// suite never depends on this repository's own guidance state. The seven
+// suite never depends on this repository's own guidance state. The eight
 // invariants each get a happy path and the failure the gate exists to catch:
 // a shim that drifted or was orphaned, a citation that points at nothing, a
 // private-record id in public prose, a guide that outgrew its budget, an
 // authored rule filed under .cursor/rules, a skill whose frontmatter would
-// keep it from ever surfacing, and a .mdc rule filed where no tool reads it.
+// keep it from ever surfacing, a .mdc rule filed where no tool reads it, and
+// a hook configuration that was hand-edited or never generated.
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
@@ -16,6 +17,8 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 import {
+  HOOKS_FILE,
+  HOOK_TOOL_MATCHER,
   SKILL_LIMITS,
   WORD_BUDGETS,
   asPathCitation,
@@ -33,11 +36,13 @@ import {
   globPrefix,
   parseFrontmatter,
   plainScalarHazards,
+  renderHooksConfig,
   renderShim,
   runGate,
   shimPathFor,
   splitFrontmatter,
   stripFences,
+  syncHooksConfig,
   syncShims,
 } from "./agents-check.mjs";
 
@@ -117,6 +122,33 @@ test("sync writes missing shims, is idempotent, and check reports drift and orph
     assert.deepEqual(cleanup.removed, [".cursor/rules/agents-backend-services-runner.mdc"]);
     assert.equal(existsSync(shimAbs), false);
     assert.equal(existsSync(join(root, ".cursor/rules/hand-written-agents-thing.mdc")), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("the hook config is rendered byte-stable in Prettier's shape; sync writes it and check reports a hand edit", () => {
+  const rendered = renderHooksConfig();
+  assert.equal(rendered, `${JSON.stringify(JSON.parse(rendered), null, 2)}\n`, "two-space JSON with one trailing newline");
+  const config = JSON.parse(rendered);
+  assert.equal(config.version, 1);
+  assert.deepEqual(Object.keys(config.hooks), ["postToolUse"]);
+  const [hook] = config.hooks.postToolUse;
+  assert.equal(hook.command, "node scripts/agents-context-hook.mjs", "relative: Cursor starts a project hook in its own project root");
+  assert.equal(hook.matcher, HOOK_TOOL_MATCHER);
+  for (const tool of ["Read", "Write", "Delete"]) assert.match(tool, new RegExp(hook.matcher));
+  for (const tool of ["Grep", "Shell", "Task", "MCP:Read"]) assert.doesNotMatch(tool, new RegExp(hook.matcher));
+  assert.equal(typeof hook.timeout, "number");
+
+  const root = repo({ "AGENTS.md": "# root\n" });
+  try {
+    assert.match(syncHooksConfig(root, { write: false }).findings[0], /^\.cursor\/hooks\.json: missing/);
+    assert.deepEqual(syncHooksConfig(root, { write: true }).written, [HOOKS_FILE]);
+    assert.deepEqual(syncHooksConfig(root, { write: true }), { findings: [], written: [] }, "idempotent");
+    writeFileSync(join(root, HOOKS_FILE), rendered.replace('"timeout": ', '"timeout": 6'));
+    assert.match(syncHooksConfig(root, { write: false }).findings[0], /^\.cursor\/hooks\.json: out of date/);
+    syncHooksConfig(root, { write: true });
+    assert.equal(readFileSync(join(root, HOOKS_FILE), "utf8"), rendered);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -365,7 +397,9 @@ test("a skill passes when its frontmatter is complete and its paths resolve; eac
     ".agents/skills/wrong-name/SKILL.md": skill("name: other-name\ndescription: A description."),
     ".agents/skills/no-description/SKILL.md": skill("name: no-description"),
     ".agents/skills/bare/SKILL.md": "# No frontmatter at all\n",
-    ".agents/skills/moved-scope/SKILL.md": skill("name: moved-scope\ndescription: Scoped to a directory that is gone.\npaths:\n  - backend/services/agent-runner/**\n  - '**/*.py'"),
+    ".agents/skills/moved-scope/SKILL.md": skill(
+      "name: moved-scope\ndescription: Scoped to a directory that is gone.\npaths:\n  - backend/services/agent-runner/**\n  - '**/*.py'\n  - backend/services/{runner,agent}/**",
+    ),
     ".agents/skills/too-long/SKILL.md": skill(`name: too-long\ndescription: ${longDescription}\ndisable-model-invocation: maybe`, longBody),
     ".agents/skills/not-a-skill/README.md": "a folder without SKILL.md is not a skill\n",
   });
@@ -388,9 +422,11 @@ test("a skill passes when its frontmatter is complete and its paths resolve; eac
     assert.match(strip(".agents/skills/bare/SKILL.md")[0], /no frontmatter/);
 
     const moved = strip(".agents/skills/moved-scope/SKILL.md");
-    assert.equal(moved.length, 2);
+    assert.equal(moved.length, 3);
     assert.match(moved[0], /`backend\/services\/agent-runner\/\*\*` points at `backend\/services\/agent-runner`, which does not exist/);
     assert.match(moved[1], /`\*\*\/\*\.py` has no fixed prefix/);
+    // The brace glob's prefix resolves, so its one finding is the syntax the worktree hook cannot match.
+    assert.match(moved[2], /`backend\/services\/\{runner,agent\}\/\*\*` uses glob syntax beyond `\*\*`, `\*` and `\?`/);
 
     const tooLong = strip(".agents/skills/too-long/SKILL.md");
     assert.equal(tooLong.length, 3);
@@ -420,18 +456,19 @@ test("runGate composes the checks and reports green only when all pass", () => {
       before.findings.map((f) => f.split(":")[0]),
       [
         ".cursor/rules/agents-backend-services-runner.mdc",
+        ".cursor/hooks.json",
         ".cursor/rules/legacy-doctrine.mdc",
         "backend/services/_rules/add-config.mdc",
         ".agents/skills/broken/SKILL.md",
       ],
-      "the missing shim, the authored rule, the stray rule and the malformed skill are the four findings",
+      "the missing shim, the missing hook config, the authored rule, the stray rule and the malformed skill are the five findings",
     );
     rmSync(join(root, ".agents/skills/broken"), { recursive: true });
     rmSync(join(root, ".cursor/rules/legacy-doctrine.mdc"));
     rmSync(join(root, "backend/services/_rules"), { recursive: true });
     const synced = runGate(root, { sync: true });
     assert.deepEqual(synced.findings, []);
-    assert.deepEqual(synced.written, [".cursor/rules/agents-backend-services-runner.mdc"]);
+    assert.deepEqual(synced.written, [".cursor/rules/agents-backend-services-runner.mdc", ".cursor/hooks.json"]);
     assert.deepEqual(synced.files, [
       "AGENTS.md",
       "backend/services/runner/AGENTS.md",

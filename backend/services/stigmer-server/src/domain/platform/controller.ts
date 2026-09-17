@@ -10,21 +10,34 @@
  * composed-server pattern).
  *
  * getRunnerScopedToken is the mint side of the runner-token lane
- * (oss#535) — the seam src/runnerauth/ reserved for this sub-project. OSS
- * has no caller identity, so unlike the cloud exchange there is no
- * credential to verify: any caller naming an execution receives a token
- * for it. On a single-user server the token is the LANE DISCRIMINATOR that
- * lets the EC read RPCs redact by default without breaking the runner, not
- * a trust boundary (DD-004).
+ * (oss#535) — the seam src/runnerauth/. What the token IS depends on the
+ * server's posture, and so does who may obtain one:
+ *
+ *   - Under trusted-local (the laptop: one caller, nothing to separate)
+ *     the arms below mint a clocked token for any caller naming an
+ *     execution. The token is the LANE DISCRIMINATOR that lets the
+ *     ExecutionContext read RPCs redact by default without breaking the
+ *     runner, not a trust boundary — there is no identity for it to
+ *     change.
+ *   - Under the built-in authorization posture the same token is an
+ *     IDENTITY: the runner-subject verifier admits its bearer as the
+ *     human whose run it is (runnerauth/runner-subject-verifier.ts). A
+ *     mint for anyone would be impersonation, so the built-in provider
+ *     defines exchangeScopedToken and this controller delegates to it:
+ *     the run credential is minted for the run's own person and nobody
+ *     else (runnerauth/built-in-runner-credential-provider.ts). Runs get
+ *     their credential from the dispatch itself (the engine clients put
+ *     it on the workflow input); this exchange is the runner's fallback.
  *
  * The C4 capability delegation (20260827.09, gate ruling Q1): when the
  * composed provider defines exchangeScopedToken / bootstrapCredentials,
  * this controller delegates the exchange arms and the bootstrap
- * credential fields to it wholesale — the cloud's per-arm caller-class
- * gating, row authorization, and multi-lane minting are POLICY, not
- * contract, and live behind the seam. With neither defined (the OSS
- * default), every arm below behaves exactly as before; the conformance
- * suites pin that byte-identity.
+ * credential fields to it wholesale — per-arm caller gating, row
+ * authorization, and multi-lane minting are POLICY, not contract, and
+ * live behind the seam (the cloud's four-arm exchange; open source's
+ * built-in gate). With neither defined (the trusted-local default), every
+ * arm below behaves exactly as before; the conformance suites pin that
+ * byte-identity.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";

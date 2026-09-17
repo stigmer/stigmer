@@ -24,6 +24,19 @@
  * plus a `changed` flag, so the hybrid can merge both slices even when only one
  * moved (a `ProgressDelta | undefined` would drop the unchanged slice).
  *
+ * WHAT A CAPTURE MAY SEE
+ * ----------------------
+ * A capture rides a persist, and the persist that a tool's start dirtied runs
+ * while that tool may still be writing: the engine does not wait for the
+ * runtime's write to land before it runs the tool. So one snapshot can precede
+ * a tool's write (a turn behind), straddle it (the path present, the counts of
+ * a half-written file), or follow it (the next tool's file already there).
+ * That is accepted, not fixed: the strip is a latest-wins display field and the
+ * next capture converges it, while capturing only between tools would take the
+ * strip's liveness away during exactly the long-running tools it exists for.
+ * A consumer — a console, a test — reads the strip for what it converges to
+ * while the set is CAPTURING, never for what one capture happened to show.
+ *
  * SECRET SAFETY
  * -------------
  * No file bodies are ever carried. A secret-like path ({@link isSecretLikePath})

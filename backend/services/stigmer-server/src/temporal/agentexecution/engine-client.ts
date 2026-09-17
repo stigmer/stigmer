@@ -19,6 +19,15 @@
  * engine per client instance — a new engine object per RPC would be
  * garbage for no behavior.
  *
+ * The run credential rides the input (2026-09-16): every dispatch — a
+ * fresh start and a recovery alike, both through startInvokeWorkflow —
+ * asks the composed credential provider for the run's credential
+ * (runnerauth/dispatch-credential.ts) and carries it as
+ * `execution_context_token`, the connect lane's shape. Minting here, in
+ * the one place that builds the input, is what keeps the create step and
+ * the recover path ignorant of credentials; a provider without the
+ * capability (an edition credentialed another way) leaves the key off.
+ *
  * Proven by the agentexecution suites on local-execution.
  */
 import type { Client } from "@temporalio/client";
@@ -35,6 +44,8 @@ import {
   type StartInvokeWorkflowInput,
 } from "../../domain/agentexecution/engine.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/temporal/config.js";
+import { runCredentialForDispatch } from "../../runnerauth/dispatch-credential.js";
+import type { RunCredentialMint } from "../../runnerauth/dispatch-credential.js";
 import type { Store } from "../../store/interface.js";
 import type { TemporalManager } from "../manager.js";
 import { resolveActivityTaskQueue } from "./dispatch.js";
@@ -52,6 +63,8 @@ export interface TemporalExecutionEngineDeps {
   readonly client: Client;
   readonly config: AgentExecutionTemporalConfig;
   readonly store: Store;
+  /** The composed credential provider — the dispatch reads its run-credential capability (module header). */
+  readonly runnerCredentials: RunCredentialMint;
   readonly logger: Logger;
 }
 
@@ -59,7 +72,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
   constructor(private readonly deps: TemporalExecutionEngineDeps) {}
 
   async startInvokeWorkflow(input: StartInvokeWorkflowInput): Promise<void> {
-    const { client, config, store, logger } = this.deps;
+    const { client, config, store, runnerCredentials, logger } = this.deps;
 
     let dispatch;
     try {
@@ -79,6 +92,11 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
     }
 
     const workflowId = invokeWorkflowIdFor(input.executionId);
+    const runCredential = runCredentialForDispatch(
+      runnerCredentials,
+      input.executionId,
+      logger,
+    );
 
     // Slim input with Go's omitempty shape (workflow-input.ts): zero-value
     // fields are omitted so TS- and Go-authored histories carry the same
@@ -88,7 +106,9 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       session_id: input.sessionId,
       agent_id: input.agentId,
       ...(input.callbackToken.length > 0
-        ? { callback_token: Buffer.from(input.callbackToken).toString("base64") }
+        ? {
+            callback_token: Buffer.from(input.callbackToken).toString("base64"),
+          }
         : {}),
       ...(input.autoApproveAll ? { auto_approve_all: true } : {}),
       ...(input.parentWorkflowId !== ""
@@ -97,6 +117,9 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       ...(dispatch.harness !== 0 ? { harness: dispatch.harness } : {}),
       ...(dispatch.executionTarget !== 0
         ? { execution_target: dispatch.executionTarget }
+        : {}),
+      ...(runCredential !== ""
+        ? { execution_context_token: runCredential }
         : {}),
     };
 
@@ -190,6 +213,7 @@ export interface EngineStateProviderDeps {
   readonly manager: TemporalManager;
   readonly config: AgentExecutionTemporalConfig;
   readonly store: Store;
+  readonly runnerCredentials: RunCredentialMint;
   readonly logger: Logger;
 }
 
@@ -220,6 +244,7 @@ export function newExecutionEngineStateProvider(
             client,
             config: deps.config,
             store: deps.store,
+            runnerCredentials: deps.runnerCredentials,
             logger: deps.logger,
           }),
         },

@@ -41,12 +41,26 @@
  * the token baked into a provisioned sandbox, and the ExecutionContext
  * decrypt trust decision. Each is an OPTIONAL method here; each OSS call
  * site falls back to today's exact behavior when the method is absent,
- * and the OSS default provider defines none — empty-composition behavior
- * is byte-identical by construction (the local conformance rosters pin
- * it). One provider object carries the edition's whole credential story;
- * the rejected alternative (a second single-instance driver for the
- * exchange) split that story across two objects whose only consumer is
- * the same composition.
+ * and the OSS default provider defines none of these POLICY capabilities
+ * — empty-composition behavior is byte-identical by construction (the
+ * local conformance rosters pin it). One provider object carries the
+ * edition's whole credential story; the rejected alternative (a second
+ * single-instance driver for the exchange) split that story across two
+ * objects whose only consumer is the same composition.
+ *
+ * One capability is open source's OWN and the default provider does
+ * define it: `mintRunCredential`, the run credential the dispatch path
+ * puts on every invoke workflow input (2026-09-16). It is optional on the
+ * seam for the same reason the others are — an edition whose runner
+ * credential rides another channel (the cloud's, minted at sandbox
+ * provision) leaves it undefined and its payloads carry nothing — but
+ * here the OSS default is the one that defines it, because the run
+ * credential is how an open-source runner acts for each run under the
+ * built-in authorization posture (runner-subject-verifier.ts). A unit
+ * that registers its own Authorizer but no provider of its own inherits
+ * this mint and composes no verifier for it; such a unit owns its
+ * credential story and must bring a provider, the rule the composition
+ * root already states for the verifier.
  *
  * Capability implementations REFUSE by throwing (a ConnectError with the
  * implementation's own byte-pinned copy — the gate-step refusal shape)
@@ -217,6 +231,23 @@ export interface RunnerCredentialProvider {
   mintSandboxCredential?(request: SandboxCredentialRequest): string;
 
   /**
+   * The RUN credential the dispatch path hands the runner in the invoke
+   * workflow input (`execution_context_token` on both invoke inputs —
+   * the connect lane's key for the same token type). Bound to one
+   * execution and carrying NO `exp`: its validity is the bound row's
+   * liveness (runnerauth.ts `mintRunCredential`; bound-execution.ts),
+   * read by both lanes that accept it. When present, both engine clients
+   * call it for every dispatch (start, recover, signalWithStart); absent,
+   * the payload carries no credential — the edition's runner is
+   * credentialed another way (the cloud bakes a sandbox credential at
+   * provision). Returns "" to dispatch without a credential (the lane
+   * cannot mint — keyless); a thrown error is a real fault, which the
+   * dispatch reader (dispatch-credential.ts) logs and degrades to the
+   * same "" rather than failing the run's start.
+   */
+  mintRunCredential?(executionId: string): string;
+
+  /**
    * The ExecutionContext decrypt trust decision for getByExecutionId
    * (`executionId` is the EC's spec.execution_id). When present, it IS
    * the entire decision — the implementation owns its lane set and scope
@@ -287,21 +318,29 @@ export interface RunnerCredentialProvider {
    * `captureOrg` is the request's metadata.org, checked against the
    * token's own org claim).
    *
+   * May answer synchronously or with a promise: the cloud's credential
+   * carries the subject and the session in its own claims, so its answer
+   * is a decode; open source's run credential names only the execution,
+   * so the built-in provider reads the execution row for its session and
+   * org (built-in-runner-credential-provider.ts). The gate awaits either.
+   *
    * Absent method → the gate's existing logic exactly (today's OSS
    * behavior: the trusted-local single-user posture admits, honestly).
    */
   authorizeMemoryCapture?(
     caller: CallerIdentity,
     captureOrg: string,
-  ): MemoryCaptureDecision;
+  ): MemoryCaptureDecision | Promise<MemoryCaptureDecision>;
 }
 
 /**
  * The OSS default: RunnerAuthService behind the provider contract,
- * providing only the execution_scoped lane. A separate adapter rather
- * than the service implementing the interface: the service's concrete
- * lane-free signatures are a stable test surface (and the O2 sub-project
- * edits runnerauth.ts in parallel — this file keeps O5 out of it).
+ * providing only the execution_scoped lane, plus the one capability that
+ * is open source's own — the run credential a dispatch carries (module
+ * header). A separate adapter rather than the service implementing the
+ * interface: the service's concrete lane-free signatures are a stable
+ * test surface (and the O2 sub-project edits runnerauth.ts in parallel —
+ * this file keeps O5 out of it).
  */
 export function newExecutionScopedRunnerCredentialProvider(
   service: RunnerAuthService,
@@ -323,6 +362,16 @@ export function newExecutionScopedRunnerCredentialProvider(
         throw new InvalidTokenError();
       }
       return service.verify(token);
+    },
+    mintRunCredential(executionId: string): string {
+      // Keyless is the modeled disabled state (the exchange's fail-soft
+      // arm, the sandbox lane's tokenless launch): answer "" and let the
+      // dispatch go without. Anything else the service refuses is a
+      // programming error and propagates as itself.
+      if (!service.isEnabled()) {
+        return "";
+      }
+      return service.mintRunCredential(executionId);
     },
   };
 }

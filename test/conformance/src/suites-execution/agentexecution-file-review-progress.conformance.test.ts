@@ -10,27 +10,36 @@
 // leaves CAPTURING (filereview.proto FileChangeProgress). The turn-boundary
 // CANDIDATE_CAPTURED stays the one reviewable diff.
 //
-// How the live strip actually moves under the runner's production posture
-// (DD-001 of entry 20260910.02; the Go offline suite's
-// file_review_progress_offline_test.go ran with the throttle turned OFF, a
-// test-only posture DD-002 does not adopt, so its script does not transfer):
-// the runner captures progress at most once per PROGRESS_CAPTURE_MIN_INTERVAL_MS
-// (2 s by default, shared/filereview/progress.ts), on its persist cadence, and
-// a tool's completion persist lands within the throttle of the capture its
-// START persist took — so a snapshot publishes an edit one tool-turn LATE:
-// the persist that opens turn N+1 is what shows edit N. Observed at D4 with
-// the poll instrumented; a console developer should expect the same lag. The
-// script therefore has THREE edits: the third is the publisher turn whose
-// start persist (held past the interval on the mock) shows the first two, and
-// the final text turn is held so the run stays mid-turn while the arm reads
-// that snapshot. A tracked file is modified with edit_file (write_file
-// creates; it does not overwrite a file the agent has not read).
+// THE CONTRACT THIS FILE PINS, and the one it deliberately does not. While the
+// set is CAPTURING, the strip CONVERGES to the edits made so far, each with its
+// kind and line counts; once the set leaves CAPTURING, the strip is gone and
+// every edit is in the reviewable set. What any ONE snapshot shows is not a
+// contract: the runner captures on its persist cadence, at most once per
+// PROGRESS_CAPTURE_MIN_INTERVAL_MS (2 s by default), and a capture runs while
+// the tool whose start triggered the persist may still be writing — so a
+// snapshot can be a turn behind, half-written, or already carry the next tool's
+// file (the runner's shared/filereview/progress.ts header, "What a capture may
+// see"). An arm therefore states the entries it expects and waits until a
+// CAPTURING snapshot carries all of them with their counts
+// (`awaitProgressEntries`); it never waits for "the first snapshot with two
+// files", which is the shape that flaked on a slow runner for a week.
+//
+// WHY THE SCRIPT HAS THREE EDITS AND A HELD FINAL TURN. Captures ride persists
+// and persists ride the engine's events, so nothing is captured while the mock
+// holds a response: the snapshot freezes at the last capture. The two edits an
+// arm asserts are followed by a third, publishing edit whose start persist is
+// guaranteed a fresh capture (its request is held past the capture interval,
+// so the floor has elapsed since the second edit's capture, and the second
+// edit's write is complete by then), and the final text turn is held so the run
+// stays mid-turn while the arm reads. The publisher's own file may or may not
+// appear in the snapshot the arm lands on; it is asserted only at the boundary.
+// A tracked file is modified with edit_file (write_file creates; it does not
+// overwrite a file the agent has not read).
 import {
   ExecutionPhase,
   FileChangeKind,
   FileDecisionAction,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { FileChangeProgress, FileChangeProgressEntry } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -41,8 +50,9 @@ import { anthropicText, anthropicToolUse } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
 import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import {
-  awaitFileChangeProgress,
   awaitFileReview,
+  awaitProgressEntries,
+  type ExpectedProgressEntry,
   requireChangeByPath,
   requireReviewSet,
   submitChangeSetDecision,
@@ -74,8 +84,11 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// Past the runner's default capture interval, so the persist after the second
-// edit is allowed to capture again (header).
+// Each edit turn after the first is held this long before the mock answers,
+// past the runner's default capture interval, so the persist that opens the
+// next turn is allowed to capture again (header). Below the interval the
+// publisher's capture could be throttled away and the arm would wait on a
+// frozen snapshot.
 const PAST_CAPTURE_INTERVAL_MS = 3_000;
 // Keeps the run mid-turn while the arm observes; released as soon as it has.
 const OBSERVATION_HOLD_MS = 30_000;
@@ -101,14 +114,6 @@ function editTurn(toolCallId: string, edit: Edit): AnthropicMessageBody {
       throw new Error(`unknown edit: ${JSON.stringify(exhaustive)}`);
     }
   }
-}
-
-function entryFor(progress: FileChangeProgress, path: string): FileChangeProgressEntry {
-  const entry = progress.entries.find((e) => e.pathAfter === path || e.pathBefore === path);
-  if (entry === undefined) {
-    throw new Error(`progress has no entry for ${path} (paths: ${JSON.stringify(progress.entries.map((e) => e.pathAfter))})`);
-  }
-  return entry;
 }
 
 // The third, publishing edit every arm appends (header); its own change is
@@ -161,15 +166,14 @@ async function startEditTurn(workspace: GitWorkspace, edits: [Edit, Edit]): Prom
   return executionId;
 }
 
-// Observes the mid-run snapshot the publisher turn produced: the first two
-// edits, the publisher's own not yet (it lands one turn late, like the others).
-async function observeFirstTwoEdits(executionId: string): Promise<FileChangeProgress> {
-  const midRun = await awaitFileChangeProgress(clients, executionId, (p) => p.filesChanged === 2);
+// Waits for the mid-run snapshot to carry the first two edits with their
+// counts (the converged shape, header) and checks it previews the CAPTURING
+// set by id — the one fact the wait's predicate does not already assert.
+async function observeFirstTwoEdits(executionId: string, expected: [ExpectedProgressEntry, ExpectedProgressEntry]): Promise<void> {
+  const midRun = await awaitProgressEntries(clients, executionId, expected);
   const progress = midRun.status!.fileChangeProgress!;
   const capturing = midRun.status!.fileChangeSets.find((s) => s.id === progress.changeSetId);
   expect(capturing, "the snapshot previews the CAPTURING set by id").toBeDefined();
-  expect(progress.entries, "both edits are listed").toHaveLength(2);
-  return progress;
 }
 
 // Releases the held final turn, awaits the review boundary, asserts the
@@ -186,7 +190,7 @@ async function expectClearedAtBoundary(executionId: string, paths: string[]): Pr
 }
 
 describe("AgentExecution file review — mid-run progress", () => {
-  it("mid-run file_change_progress reports the touched files with line counts during a held turn and clears at the review boundary", async () => {
+  it("mid-run file_change_progress converges to the touched files with line counts during a held turn and clears at the review boundary", async () => {
     const workspace = await GitWorkspace.create();
     fixtures.defer(() => workspace.cleanup());
     await workspace.seedFile("existing.txt", "alpha\nbeta\n");
@@ -196,15 +200,11 @@ describe("AgentExecution file review — mid-run progress", () => {
       { tool: "edit_file", path: "existing.txt", oldString: "beta", newString: "BETA" },
     ]);
 
-    const progress = await observeFirstTwoEdits(executionId);
-    const created = entryFor(progress, "created.txt");
-    expect(created.kind).toBe(FileChangeKind.ADD);
-    expect(created.linesAdded).toBe(3);
-    expect(created.linesRemoved).toBe(0);
-    const modified = entryFor(progress, "existing.txt");
-    expect(modified.kind).toBe(FileChangeKind.MODIFY);
-    expect(modified.linesAdded, "one line replaced: one added").toBe(1);
-    expect(modified.linesRemoved, "one line replaced: one removed").toBe(1);
+    await observeFirstTwoEdits(executionId, [
+      { path: "created.txt", kind: FileChangeKind.ADD, linesAdded: 3, linesRemoved: 0 },
+      // One line replaced: one added, one removed.
+      { path: "existing.txt", kind: FileChangeKind.MODIFY, linesAdded: 1, linesRemoved: 1 },
+    ]);
 
     await expectClearedAtBoundary(executionId, ["created.txt", "existing.txt", PUBLISHER_EDIT.path]);
   });
@@ -219,15 +219,11 @@ describe("AgentExecution file review — mid-run progress", () => {
       { tool: "write_file", path: "cache/data.txt", content: "two\nlines\n" },
     ]);
 
-    const progress = await observeFirstTwoEdits(executionId);
-    const tracked = entryFor(progress, "tracked.txt");
-    expect(tracked.kind).toBe(FileChangeKind.ADD);
-    expect(tracked.linesAdded).toBe(1);
-    const ignored = entryFor(progress, "cache/data.txt");
-    expect(ignored.kind, "the ignored path rides the same snapshot through the content-addressed side").toBe(
-      FileChangeKind.ADD,
-    );
-    expect(ignored.linesAdded).toBe(2);
+    await observeFirstTwoEdits(executionId, [
+      { path: "tracked.txt", kind: FileChangeKind.ADD, linesAdded: 1, linesRemoved: 0 },
+      // The ignored path rides the same snapshot through the content-addressed side.
+      { path: "cache/data.txt", kind: FileChangeKind.ADD, linesAdded: 2, linesRemoved: 0 },
+    ]);
 
     await expectClearedAtBoundary(executionId, ["tracked.txt", "cache/data.txt", PUBLISHER_EDIT.path]);
   });

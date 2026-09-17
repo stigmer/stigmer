@@ -14,8 +14,14 @@
  *     map the SDK's workflow-not-found onto EngineWorkflowNotFoundError
  *     (Go serviceerror.NotFound → ErrWorkflowNotFound);
  *   - the engine-state provider: DISCONNECTED until the first connect,
- *     memoized per client instance, re-built on client swap (reconnect).
+ *     memoized per client instance, re-built on client swap (reconnect);
+ *   - the run credential on the input (2026-09-16): minted through the
+ *     composed provider's capability and bound to the execution with no
+ *     clock; the key is ABSENT when the provider lacks the capability
+ *     (an edition credentialed another way), when it is keyless, and
+ *     when the mint throws — a dispatch never fails on a mint.
  */
+import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -41,6 +47,12 @@ import {
   DEFAULT_EXECUTION_TARGET_LOCAL,
   ROUTING_GLOBAL,
 } from "../../../domain/agentexecution/temporal/config.js";
+import type { RunCredentialMint } from "../../../runnerauth/dispatch-credential.js";
+import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
+import {
+  isClockedToken,
+  RunnerAuthService,
+} from "../../../runnerauth/runnerauth.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import type { TemporalManager } from "../../manager.js";
@@ -48,6 +60,7 @@ import {
   newExecutionEngineStateProvider,
   TemporalExecutionEngine,
 } from "../engine-client.js";
+import type { TemporalExecutionEngineDeps } from "../engine-client.js";
 import { DEFAULT_ACTIVITY_TASK_QUEUE } from "../names.js";
 
 const silentLogger = createLogger({
@@ -55,6 +68,28 @@ const silentLogger = createLogger({
   pretty: false,
   write: () => {},
 });
+
+/** The keyed OSS default — what a real open-source boot composes. */
+const runnerAuth = RunnerAuthService.create(randomBytes(32));
+const keyedCredentials = newExecutionScopedRunnerCredentialProvider(runnerAuth);
+
+/**
+ * One construction site for every arm: the realistic deps by default,
+ * any of them overridable, so the next dependency costs one line here.
+ */
+function newEngine(
+  client: Client,
+  overrides: Partial<Omit<TemporalExecutionEngineDeps, "client">> = {},
+): TemporalExecutionEngine {
+  return new TemporalExecutionEngine({
+    client,
+    config: config(),
+    store: overrides.store ?? newStore(),
+    runnerCredentials: keyedCredentials,
+    logger: silentLogger,
+    ...overrides,
+  });
+}
 
 const cleanups: Array<() => Promise<void> | void> = [];
 afterEach(async () => {
@@ -123,6 +158,12 @@ function stubClient(behavior?: { handleError?: Error }) {
   return { client, startCalls, handleCalls };
 }
 
+/** The one workflow input the stub recorded. */
+function dispatchedInput(startCalls: StartCall[]): Record<string, unknown> {
+  expect(startCalls).toHaveLength(1);
+  return (startCalls[0]!.options["args"] as unknown[])[0] as Record<string, unknown>;
+}
+
 function startInput(overrides: Partial<Parameters<TemporalExecutionEngine["startInvokeWorkflow"]>[0]> = {}) {
   return {
     executionId: "aex_1",
@@ -139,12 +180,7 @@ function startInput(overrides: Partial<Parameters<TemporalExecutionEngine["start
 describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
   it("starts the byte-pinned workflow type with the memo, queue, and slim input", async () => {
     const { client, startCalls } = stubClient();
-    const engine = new TemporalExecutionEngine({
-      client,
-      config: config(),
-      store: newStore(),
-      logger: silentLogger,
-    });
+    const engine = newEngine(client);
 
     await engine.startInvokeWorkflow(
       startInput({ callbackToken: Buffer.from("tok"), parentWorkflowId: "parent-wf" }),
@@ -171,8 +207,65 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         // keeps it, so the wire carries it) and target resolved LOCAL.
         harness: Harness.NATIVE,
         execution_target: ExecutionTarget.LOCAL,
+        // The run credential, minted per dispatch (its own arms below).
+        execution_context_token: expect.any(String),
       },
     ]);
+  });
+
+  it("carries the run credential minted through the provider: bound to the execution, no clock", async () => {
+    const { client, startCalls } = stubClient();
+    const engine = newEngine(client);
+
+    await engine.startInvokeWorkflow(startInput({ executionId: "aex_cred" }));
+
+    const token = dispatchedInput(startCalls)["execution_context_token"];
+    expect(typeof token).toBe("string");
+    expect(runnerAuth.verify(token as string)).toBe("aex_cred");
+    expect(isClockedToken(token as string)).toBe(false);
+  });
+
+  it("omits the credential when the provider lacks the capability — an edition credentialed another way", async () => {
+    const { client, startCalls } = stubClient();
+    const withoutCapability: RunCredentialMint = {};
+    const engine = newEngine(client, { runnerCredentials: withoutCapability });
+
+    await engine.startInvokeWorkflow(startInput());
+
+    expect("execution_context_token" in dispatchedInput(startCalls)).toBe(
+      false,
+    );
+  });
+
+  it("omits the credential when the provider is keyless", async () => {
+    const { client, startCalls } = stubClient();
+    const keyless = newExecutionScopedRunnerCredentialProvider(
+      RunnerAuthService.create(undefined),
+    );
+    const engine = newEngine(client, { runnerCredentials: keyless });
+
+    await engine.startInvokeWorkflow(startInput());
+
+    expect("execution_context_token" in dispatchedInput(startCalls)).toBe(
+      false,
+    );
+  });
+
+  it("a mint that throws degrades to a dispatch without the credential — the start still happens", async () => {
+    const { client, startCalls } = stubClient();
+    const throwing: RunCredentialMint = {
+      mintRunCredential(): string {
+        throw new Error("signing failed");
+      },
+    };
+    const engine = newEngine(client, { runnerCredentials: throwing });
+
+    await engine.startInvokeWorkflow(startInput());
+
+    expect(startCalls).toHaveLength(1);
+    expect("execution_context_token" in dispatchedInput(startCalls)).toBe(
+      false,
+    );
   });
 
   it("resolves session routing through dispatch (harness + target in the input)", async () => {
@@ -193,16 +286,11 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         },
       }),
     );
-    const engine = new TemporalExecutionEngine({
-      client,
-      config: config(),
-      store,
-      logger: silentLogger,
-    });
+    const engine = newEngine(client, { store });
 
     await engine.startInvokeWorkflow(startInput({ sessionId: "ses_1" }));
 
-    const input = (startCalls[0]!.options["args"] as unknown[])[0] as Record<string, unknown>;
+    const input = dispatchedInput(startCalls);
     expect(input["harness"]).toBe(Harness.CURSOR);
     expect(input["execution_target"]).toBe(ExecutionTarget.CLOUD);
     // Omitempty shape: empty callback token and parent id carry NO keys.
@@ -214,12 +302,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     const { client } = stubClient();
     const store = newStore();
     await store.close(); // Forces a non-NotFound store failure in dispatch.
-    const engine = new TemporalExecutionEngine({
-      client,
-      config: config(),
-      store,
-      logger: silentLogger,
-    });
+    const engine = newEngine(client, { store });
 
     await expect(
       engine.startInvokeWorkflow(startInput({ sessionId: "ses_any" })),
@@ -234,12 +317,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
 describe("TemporalExecutionEngine lifecycle operations", () => {
   it("targets the pinned workflow ID for signal/cancel/terminate", async () => {
     const { client, handleCalls } = stubClient();
-    const engine = new TemporalExecutionEngine({
-      client,
-      config: config(),
-      store: newStore(),
-      logger: silentLogger,
-    });
+    const engine = newEngine(client);
 
     await engine.signalApprovalGateResolved("aex_2");
     await engine.signalPause("aex_2", "Paused by user");
@@ -260,12 +338,7 @@ describe("TemporalExecutionEngine lifecycle operations", () => {
     const { client } = stubClient({
       handleError: new WorkflowNotFoundError("nope", "wf", undefined),
     });
-    const engine = new TemporalExecutionEngine({
-      client,
-      config: config(),
-      store: newStore(),
-      logger: silentLogger,
-    });
+    const engine = newEngine(client);
 
     for (const op of [
       () => engine.signalApprovalGateResolved("aex_3"),
@@ -280,12 +353,7 @@ describe("TemporalExecutionEngine lifecycle operations", () => {
 
   it("passes through other errors unmapped", async () => {
     const { client } = stubClient({ handleError: new Error("connection reset") });
-    const engine = new TemporalExecutionEngine({
-      client,
-      config: config(),
-      store: newStore(),
-      logger: silentLogger,
-    });
+    const engine = newEngine(client);
     await expect(engine.signalResume("aex_4")).rejects.toThrow("connection reset");
   });
 });
@@ -298,6 +366,7 @@ describe("newExecutionEngineStateProvider", () => {
       manager,
       config: config(),
       store: newStore(),
+      runnerCredentials: keyedCredentials,
       logger: silentLogger,
     });
 

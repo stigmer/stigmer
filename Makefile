@@ -976,10 +976,10 @@ format-docs-check: ## Check documentation and agent guidance formatting (CI, no 
 
 .PHONY: agents-sync agents-check
 
-agents-sync: ## Regenerate the Cursor shims (.cursor/rules/agents-*.mdc) from every nested AGENTS.md
+agents-sync: ## Regenerate the Cursor shims (.cursor/rules/agents-*.mdc) from every nested AGENTS.md and the hook config (.cursor/hooks.json)
 	@node scripts/agents-check.mjs --sync
 
-agents-check: ## Verify agent guidance: shims in sync, every cited path resolves, no private-record ids (CI)
+agents-check: ## Verify agent guidance: shims and hooks.json in sync, every cited path resolves, no private-record ids (CI)
 	@node scripts/agents-check.mjs
 
 check-docs-yaml: ## Validate every docs YAML block + raw examples/seedpack manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)

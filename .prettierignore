@@ -15,3 +15,7 @@ backend/services/stigmer-server/src/authorization/__tests__/fixtures/fga/
 # fixtures); the NOTICE names the source and commit and the files must stay
 # byte-identical to it, so formatting must not touch them.
 backend/libs/ts/plugin-package/src/__tests__/fixtures/cursor-plugins/
+
+# The Cursor hook configuration is rendered by `make agents-sync` and compared
+# byte for byte by `make agents-check`, so formatting must not touch it.
+.cursor/hooks.json

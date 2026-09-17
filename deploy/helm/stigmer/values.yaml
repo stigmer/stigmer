@@ -125,11 +125,13 @@ runner:
     existingSecret: ""
   stigmerToken:
     # REQUIRED when server.oidc.issuer is set: the API key the runner calls
-    # the server with (STIGMER_TOKEN). An API key needs a signed-in
-    # operator, who needs a running server — so an authenticated install
-    # is two steps: install with OIDC off, mint the key
-    # (`stigmer apikey create --name runner`), then upgrade with OIDC on
-    # and this Secret named. The chart refuses the half state.
+    # the server with (STIGMER_TOKEN). It is the runner's own credential;
+    # each run it serves is attributed to the member who started it, not to
+    # the key's holder. An API key needs a signed-in operator, who needs a
+    # running server — so an authenticated install is two steps: install
+    # with OIDC off, mint the key (`stigmer apikey create --name runner`),
+    # then upgrade with OIDC on and this Secret named. The chart refuses
+    # the half state.
     existingSecret: ""
     key: STIGMER_TOKEN
   # The runner calls the LLM, runs tools and installs packages at runtime;

@@ -20,7 +20,11 @@
  *     stigmer#282 — and the EC deleted);
  *   - callback-token completion on success AND failure (the DD-001 lane,
  *     oss#861: the TS error completion WORKS);
- *   - the cursor flow's harness_state_id re-read discipline.
+ *   - the cursor flow's harness_state_id re-read discipline;
+ *   - the run credential handed on (2026-09-16): the workflow input's
+ *     `execution_context_token` reaches EVERY Execute* invocation, first
+ *     turn and re-invocation, both harnesses, and the key is absent when
+ *     the dispatch carried none.
  *
  * Recorder discipline (oss#892): Temporal activities are at-least-once —
  * a workflow task whose completion fails to commit re-executes its local
@@ -102,6 +106,18 @@ interface ActivityScript {
     }) => Promise<Record<string, unknown>>
   >;
   executeCalls: Array<{ thread_id: string; turn_seq: number }>;
+  /**
+   * The `execution_context_token` each Execute* invocation carried, in
+   * order — `undefined` when the key was absent. Recorded beside
+   * executeCalls so the arms that pin thread/turn shape stay exact.
+   */
+  executeCredentials: Array<string | undefined>;
+  /**
+   * The argument each GenerateSessionSubject invocation received, verbatim:
+   * the positional execution id when the dispatch carried no credential,
+   * the typed object when it did (the runner accepts both).
+   */
+  subjectArguments: unknown[];
   /** Consumed per LoadAgentExecution call, in order; last one sticks. */
   loadResults: JsonValue[];
   /** Consumed per ReadHarnessStateId call, in order; last one sticks. */
@@ -137,6 +153,8 @@ function resetScript(): void {
   script = {
     executeBehaviors: [],
     executeCalls: [],
+    executeCredentials: [],
+    subjectArguments: [],
     loadResults: [],
     harnessStateIds: [],
     persistedStatuses: [],
@@ -210,11 +228,17 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     execution_id: string;
     thread_id: string;
     turn_seq: number;
+    execution_context_token?: string;
   }) => {
     script.executeCalls.push({
       thread_id: input.thread_id,
       turn_seq: input.turn_seq,
     });
+    script.executeCredentials.push(
+      "execution_context_token" in input
+        ? input.execution_context_token
+        : undefined,
+    );
     const behavior = script.executeBehaviors.shift();
     if (behavior === undefined) {
       throw new Error("test script exhausted: unexpected agent invocation");
@@ -224,7 +248,9 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
 
   return {
     EnsureThread: async (): Promise<string> => script.ensureThreadResult,
-    GenerateSessionSubject: async (): Promise<void> => {},
+    GenerateSessionSubject: async (argument: unknown): Promise<void> => {
+      script.subjectArguments.push(argument);
+    },
     ExecuteDeepAgent: takeExecuteBehavior as never,
     ExecuteCursor: takeExecuteBehavior as never,
     UpdateExecutionStatus: async (
@@ -719,6 +745,83 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       { thread_id: "", turn_seq: 0 },
       { thread_id: "cursor-agent-1", turn_seq: 1 },
     ]);
+  }, 30_000);
+
+  it("hands the run credential to every deep-agent invocation — the first turn and the re-invocation alike", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+    script.loadResults = [executionJson(statusWithPendingApproval())];
+
+    const handle = await startWorkflow(
+      workflowInput({ execution_context_token: "run-credential-1" }),
+    );
+    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+    await handle.result();
+
+    expect(script.executeCredentials).toEqual([
+      "run-credential-1",
+      "run-credential-1",
+    ]);
+  }, 30_000);
+
+  it("hands the run credential to the cursor invocation too", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+    script.harnessStateIds = [""];
+
+    const handle = await startWorkflow(
+      workflowInput({
+        harness: Harness.CURSOR,
+        execution_context_token: "run-credential-2",
+      }),
+    );
+    await handle.result();
+
+    expect(script.executeCredentials).toEqual(["run-credential-2"]);
+  }, 30_000);
+
+  it("omits the credential key when the dispatch carried none — the omitempty shape an in-flight history has", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+
+    const handle = await startWorkflow(workflowInput());
+    await handle.result();
+
+    expect(script.executeCredentials).toEqual([undefined]);
+  }, 30_000);
+
+  it("calls GenerateSessionSubject with the typed object carrying the run credential when the dispatch has one", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+
+    const handle = await startWorkflow(
+      workflowInput({ execution_context_token: "run-credential-3" }),
+    );
+    await handle.result();
+
+    expect(script.subjectArguments).toEqual([
+      {
+        execution_id: currentExecutionId,
+        execution_context_token: "run-credential-3",
+      },
+    ]);
+  }, 30_000);
+
+  it("calls GenerateSessionSubject with the positional execution id when the dispatch carried no credential — the shape every earlier runner accepts", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+
+    const handle = await startWorkflow(workflowInput());
+    await handle.result();
+
+    expect(script.subjectArguments).toEqual([currentExecutionId]);
   }, 30_000);
 
   it("survives a missing parent workflow for child_execution_started (non-fatal)", async (testCtx) => {    if (!envReady) return testCtx.skip();
