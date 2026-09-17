@@ -237,10 +237,12 @@ describe("orphan deletion (Go service_test.go)", () => {
     ]);
   });
 
-  it("orphan lookup is slug-only, matching across orgs (pinned Go behavior)", async () => {
-    // Seeded under org "local"; the orphan reference carries a DIFFERENT
-    // org — resolution still matches, because Go's resolveResourceID
-    // filters by slug alone (reconcile/service.go:126).
+  it("orphan lookup is scoped to the reference's org: another org's same-slug resource is never touched", async () => {
+    // Slugs are org-scoped identifiers. Seeded under org "local"; the orphan
+    // reference names a DIFFERENT org, so it must not resolve to this row.
+    // (The Go port matched by slug alone; on a backend with a system org
+    // beside the user's, a prune could then delete the wrong org's
+    // resource — stigmer/stigmer#1151.)
     await seedAgent("agent-id-x", "cross-org-agent");
     const deleter = new RecordingDeleter();
     const previous = [
@@ -251,9 +253,53 @@ describe("orphan deletion (Go service_test.go)", () => {
       }),
     ];
     const result = await service(deleter).reconcile(previous, [], DEFAULT_RECONCILIATION_OPTIONS);
+    expect(result.removed).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]?.resourceKey).toBe("agent:cross-org-agent");
+    expect(result.errors[0]?.message).toBe("failed to resolve resource for deletion");
+    expect(deleter.calls).toHaveLength(0);
+  });
+
+  it("orphan lookup picks the reference's org when two orgs hold the slug", async () => {
+    await seedAgent("agent-id-local", "shared-slug");
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agent-id-other",
+      AgentSchema,
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { id: "agent-id-other", name: "shared-slug", slug: "shared-slug", org: "another-org" },
+      }),
+    );
+    const deleter = new RecordingDeleter();
+    const previous = [
+      create(ApiResourceReferenceSchema, {
+        org: "another-org",
+        kind: ApiResourceKind.agent,
+        slug: "shared-slug",
+      }),
+    ];
+    const result = await service(deleter).reconcile(previous, [], DEFAULT_RECONCILIATION_OPTIONS);
     expect(result.removed).toHaveLength(1);
     expect(deleter.calls).toEqual([
-      { kind: ApiResourceKind.agent, resourceId: "agent-id-x" },
+      { kind: ApiResourceKind.agent, resourceId: "agent-id-other" },
+    ]);
+  });
+
+  it("a reference without an org keeps the unscoped lookup (a pre-scoping client's project)", async () => {
+    await seedAgent("agent-id-y", "legacy-agent");
+    const deleter = new RecordingDeleter();
+    const previous = [
+      create(ApiResourceReferenceSchema, {
+        kind: ApiResourceKind.agent,
+        slug: "legacy-agent",
+      }),
+    ];
+    const result = await service(deleter).reconcile(previous, [], DEFAULT_RECONCILIATION_OPTIONS);
+    expect(result.removed).toHaveLength(1);
+    expect(deleter.calls).toEqual([
+      { kind: ApiResourceKind.agent, resourceId: "agent-id-y" },
     ]);
   });
 
