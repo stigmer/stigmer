@@ -4,7 +4,7 @@
  * Gate for the repo-owned agent guidance: root `AGENTS.md`, the nested
  * `<package>/AGENTS.md` guides, and `.agents/**` (README, principles, skills).
  *
- * Seven invariants, all static and dependency-free so the gate is cheap,
+ * Eight invariants, all static and dependency-free so the gate is cheap,
  * offline and deterministic in CI and in a fresh worktree:
  *
  *   1. Every nested guide has a Cursor shim, and the shim is current. Cursor
@@ -80,9 +80,22 @@
  *      `_meetings/`, where a repository that hosts the planning framework
  *      keeps the framework's own rules by design.
  *
+ *   8. `.cursor/hooks.json` is the generated hook configuration, current.
+ *      Shims fire only for files inside their own workspace folder, and a git
+ *      worktree is never a workspace folder (changing the window's folder set
+ *      disconnects every other chat's tools until a reload; measured on
+ *      Cursor 3.20.21, 2026-09-17). So a worktree gets its package guides and
+ *      path-scoped skills from `scripts/agents-context-hook.mjs`, a Cursor
+ *      `postToolUse` hook that this file's `--sync` registers by rendering
+ *      `.cursor/hooks.json` byte for byte, the way it renders a shim. The
+ *      matcher and timeout are measured facts and live here, beside their
+ *      reason; a hand edit or a missing file is a finding. The skill `paths:`
+ *      globs are held to the wildcard subset `matchesGlob` implements (`**`,
+ *      `*`, `?`), so a skill the gate accepts is one the hook can match.
+ *
  * Usage:
  *   node scripts/agents-check.mjs            check (exit 1 on any finding)
- *   node scripts/agents-check.mjs --sync     write shims, remove orphans, then check
+ *   node scripts/agents-check.mjs --sync     write shims and hooks.json, remove orphans, then check
  *   node scripts/agents-check.mjs --list     print the guidance files, one per line
  *   node scripts/agents-check.mjs --private-repo [...]
  *
@@ -99,8 +112,26 @@ const SHIM_DIR = ".cursor/rules";
 const SHIM_PREFIX = "agents-";
 const GENERATED_MARKER = `Generated from`;
 
+/**
+ * The hook configuration this script renders (invariant 8). The matcher names
+ * the tools whose `tool_input.file_path` is a file a guide binds (measured on
+ * Cursor 3.20.21: an edit arrives as `Read` then `Write`; `Grep` carries a
+ * directory, `Shell` a command). The timeout is generous because the hook is
+ * spawned on every matching tool call and a hook killed on a loaded machine
+ * silently delivers nothing; the hook itself finishes in tens of milliseconds.
+ */
+export const HOOKS_FILE = ".cursor/hooks.json";
+const HOOK_SCRIPT_REL = "scripts/agents-context-hook.mjs";
+export const HOOK_TOOL_MATCHER = "^(Read|Write|Delete)$";
+const HOOK_TIMEOUT_SECONDS = 10;
+
 /** Directories never descended into: build output, vendored trees, and every dot-directory (which keeps a vendored skill bundle's own AGENTS.md from becoming a guide). */
 const SKIPPED_DIR_NAMES = new Set(["node_modules", "dist", "out", "target", "build", "__pycache__", "coverage"]);
+
+/** The one definition of "a directory that never holds a guide", shared with the hook so it cannot attach what this gate would never shim. */
+export function isSkippedDirName(name) {
+  return name.startsWith(".") || SKIPPED_DIR_NAMES.has(name);
+}
 
 /**
  * Top-level trees where a private repository keeps the planning framework's
@@ -163,7 +194,7 @@ function walk(root, keep, dir = root, acc = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name.startsWith(".") || SKIPPED_DIR_NAMES.has(entry.name)) continue;
+      if (isSkippedDirName(entry.name)) continue;
       walk(root, keep, abs, acc);
     } else if (entry.isFile() && keep(entry.name, abs)) {
       acc.push(toPosix(relative(root, abs)));
@@ -266,6 +297,38 @@ export function syncShims(root, { write }) {
   }
 
   return { findings, written, removed };
+}
+
+/**
+ * The exact bytes of `.cursor/hooks.json`. Two-space JSON with a trailing
+ * newline, which is also Prettier's shape, so a formatter run cannot create
+ * drift; the file is listed in `.prettierignore` all the same, because the
+ * gate compares it literally. The command is relative: Cursor starts a project
+ * hook in its own project root, also as the second folder of a multi-root
+ * window (measured 3.20.21), and a committed file cannot carry a machine path.
+ */
+export function renderHooksConfig() {
+  const config = {
+    version: 1,
+    hooks: {
+      postToolUse: [{ command: `node ${HOOK_SCRIPT_REL}`, matcher: HOOK_TOOL_MATCHER, timeout: HOOK_TIMEOUT_SECONDS }],
+    },
+  };
+  return `${JSON.stringify(config, null, 2)}\n`;
+}
+
+/** Compare (and with `write`, reconcile) `.cursor/hooks.json` against its render; same contract as `syncShims`. */
+export function syncHooksConfig(root, { write }) {
+  const abs = join(root, HOOKS_FILE);
+  const content = renderHooksConfig();
+  const current = existsSync(abs) ? readFileSync(abs, "utf8") : null;
+  if (current === content) return { findings: [], written: [] };
+  if (write) {
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, content);
+    return { findings: [], written: [HOOKS_FILE] };
+  }
+  return { findings: [`${HOOKS_FILE}: ${current === null ? "missing" : "out of date"}; run \`make agents-sync\``], written: [] };
 }
 
 /** Remove fenced code blocks so their contents are neither cited nor scanned as prose. Line numbers are preserved by keeping the newlines. */
@@ -493,6 +556,37 @@ export function globPrefix(glob) {
   return prefix.replace(/\/+$/, "");
 }
 
+/** Glob syntax outside the subset `matchesGlob` implements: brace alternation, character classes, negation. A skill using one would pass the gate and never match in the hook. */
+const UNSUPPORTED_GLOB_RE = /[{}[\]!]/;
+
+/**
+ * Match a repo-relative POSIX path against a skill `paths:` glob, with the
+ * wildcards these files use: `**` spans any number of segments (including
+ * none), `*` any run of characters within one segment, `?` one character.
+ * Written here, next to `globPrefix`, rather than taken from `path.matchesGlob`:
+ * the hook that calls this runs under whatever Node Cursor's environment
+ * resolves, not the repository's pinned version, so it uses nothing newer
+ * than Node 18. `checkSkill` rejects the syntax this function does not read.
+ */
+export function matchesGlob(glob, relPath) {
+  if (UNSUPPORTED_GLOB_RE.test(glob)) return false;
+  const segments = glob.replace(/\/+$/, "").split("/");
+  let source = "";
+  let joiner = "";
+  segments.forEach((seg, i) => {
+    if (seg === "**" && i < segments.length - 1) {
+      // A `**` before more segments spans zero or more whole segments, slash included, so the next segment brings no joiner of its own.
+      source += `${joiner}(?:.*/)?`;
+      joiner = "";
+      return;
+    }
+    const part = seg === "**" ? ".*" : seg.replace(/[.+^$()|\\]/g, "\\$&").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]");
+    source += `${joiner}${part}`;
+    joiner = "/";
+  });
+  return new RegExp(`^${source}$`).test(relPath);
+}
+
 /**
  * Validate one skill's frontmatter and body against `SKILL_LIMITS`. Returns
  * findings, each prefixed with the skill file so a reader can open it.
@@ -526,6 +620,7 @@ export function checkSkill(root, rel) {
       const prefix = globPrefix(g);
       if (prefix === "") say(`\`paths\` entry \`${g}\` has no fixed prefix; scope a skill to a directory, not to every file`);
       else if (!existsSync(join(root, prefix))) say(`\`paths\` entry \`${g}\` points at \`${prefix}\`, which does not exist; the skill would never surface`);
+      if (UNSUPPORTED_GLOB_RE.test(g)) say(`\`paths\` entry \`${g}\` uses glob syntax beyond \`**\`, \`*\` and \`?\`; ${HOOK_SCRIPT_REL} would never match it in a worktree. List each path instead`);
     }
   }
 
@@ -561,11 +656,13 @@ function describeBudgets(measured) {
 /** Run everything against `root`; returns findings (empty means green) and, for `--sync`, what changed. */
 export function runGate(root, { sync = false, privateRepo = false } = {}) {
   const shims = syncShims(root, { write: sync });
+  const hooks = syncHooksConfig(root, { write: sync });
   const files = collectGuidanceFiles(root);
   const budgets = checkBudgets(root);
   const skills = checkSkills(root);
   const findings = [
     ...shims.findings,
+    ...hooks.findings,
     ...checkCitations(root, files),
     ...checkLeakage(root, files, { privateRepo }),
     ...budgets.findings,
@@ -573,7 +670,8 @@ export function runGate(root, { sync = false, privateRepo = false } = {}) {
     ...checkStrayRules(root, { privateRepo }),
     ...skills.findings,
   ];
-  return { findings, written: shims.written, removed: shims.removed, files, measured: budgets.measured, skills: skills.skills };
+  const written = [...shims.written, ...hooks.written];
+  return { findings, written, removed: shims.removed, files, measured: budgets.measured, skills: skills.skills };
 }
 
 function main(argv) {
@@ -597,7 +695,7 @@ function main(argv) {
   }
   const budgets = describeBudgets(measured);
   console.log(
-    `agents-check: ${files.length} guidance file(s), ${discoverNestedGuides(root).length} shim(s) in sync, ${skills.length} skill(s)` +
+    `agents-check: ${files.length} guidance file(s), ${discoverNestedGuides(root).length} shim(s) and ${HOOKS_FILE} in sync, ${skills.length} skill(s)` +
       (budgets ? `, words ${budgets}` : "") +
       `, no findings`,
   );

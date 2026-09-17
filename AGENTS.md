@@ -123,10 +123,10 @@ summary line in the final message. Never report unverified work as done.
 
 ## Hard laws
 
-- Work in a git worktree, never in the primary checkout, and make the worktree a
-  workspace folder when you create it (`cursor --add <worktree>`, then reload
-  the window): guidance and path-scoped rules are only discovered inside
-  workspace folders, and a folder added mid-session is not scanned until reload.
+- Work in a git worktree, never in the primary checkout, and never add the
+  worktree to the window: changing the window's folder set disconnects every
+  other chat's tools until a reload. Package guides and path-scoped skills reach
+  a worktree through `scripts/agents-context-hook.mjs` (`.agents/README.md`).
   Branch `fix/<component>-<issue>-<slug>` for an issue, `<type>/<project-slug>`
   for a program; one PR per branch; merging is a separate, explicitly requested
   act.
@@ -136,7 +136,7 @@ summary line in the final message. Never report unverified work as done.
   issue, a SHA, a file.
 - Generated files are never hand-edited: `apis/stubs/**`, every `gen` directory,
   generated docs under `docs/sdk/`, the task registry data, the Cursor shims in
-  `.cursor/rules/agents-*.mdc`. Re-run the generator.
+  `.cursor/rules/agents-*.mdc` and `.cursor/hooks.json`. Re-run the generator.
 - Wire identifiers are pinned bytes: Temporal workflow, activity and queue
   names, proto field names, event kinds. A rename is a protocol break, not a
   cleanup.
