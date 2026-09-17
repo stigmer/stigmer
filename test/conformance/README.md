@@ -141,6 +141,20 @@ the [Temporal CLI docs](https://docs.temporal.io/cli)). The execution
 an install hint if the CLI is missing. The default target is
 `local-execution`.
 
+**Reproducing a timing-shaped flake.** An execution arm that passes on a fast
+laptop and fails on a shared CI runner is usually racing the runner's own
+process spawns (the file-review capture shells out to `git`; a slow `git` lands
+a capture after the tool's write instead of before it). Make the race lose on
+demand rather than waiting for a loaded machine: put a `git` shim first on
+`PATH` that sleeps a random 0–400 ms and then `exec`s the real binary by
+absolute path, and run the one file. The harness spreads `process.env` into the
+runner process (`src/harness/runner-process.ts`), so the shim reaches the
+capture and nothing else. A constant delay shifts every capture the same way
+and can hide the flake; jitter is what reproduces it. The progress waits in
+`src/support/file-review.ts` put the sequence of snapshots they observed into
+their failure message, so a reproduced failure says what the runner published
+(for example `files=0 -> files=1 -> files=3`), not just that it timed out.
+
 ### Cloud targets (Class A and the execution class vs the cloud composition)
 
 The `cloud` and `cloud-execution` runs drive the same suites against the cloud

@@ -16,13 +16,24 @@
 // (filereview.proto's identity rule). So a decision "by path" here looks the
 // change up by path_after/path_before and then submits ITS id and ITS digest.
 //
-// Ported from the Go harness's file_review.go (entry 20260910.02); the wait
-// semantics are its: a set AWAITING_REVIEW resolves the wait, a terminal phase
-// before one appears fails it with the phase, and the mid-run progress wait
-// keys on a settled predicate because the runner's first streaming persist can
-// legitimately carry files_changed = 0.
+// Ported from the retired Go harness's file_review.go; the wait semantics are
+// its: a set AWAITING_REVIEW resolves the wait, and a terminal phase before one
+// appears fails it with the phase.
+//
+// The mid-run progress wait is different in kind: file_change_progress is a
+// display snapshot the runner captures on its own persist cadence, and a
+// capture runs while the tool that triggered the persist may still be writing
+// (the runner's shared/filereview/progress.ts header, "What a capture may
+// see"). So one snapshot can be a turn behind, half-written, or a turn ahead,
+// and only the CONVERGED shape is a contract: an arm states the entries it
+// expects and waits until a CAPTURING snapshot carries all of them with their
+// counts (`awaitProgressEntries`), never for "the first snapshot with N
+// files". Every progress wait records the distinct snapshots it saw and puts
+// them in its failure message, because the sequence (say 0 -> 1 -> 3) is the
+// diagnosis a bare timeout hides.
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
+  FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
@@ -31,6 +42,7 @@ import {
 import type {
   CapturedFileChange,
   FileChangeProgress,
+  FileChangeProgressEntry,
   FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import type { ConformanceClients } from "../harness/clients";
@@ -62,33 +74,118 @@ export function awaitFileReview(
   );
 }
 
+// One row an arm expects a mid-run progress snapshot to converge to: the path
+// (path_after for ADD/MODIFY, path_before for DELETE), the kind and the exact
+// line counts. Counts are part of the expectation on purpose: a snapshot
+// captured while the tool was still writing carries the right path with the
+// wrong counts, and waiting for the counts is what makes the wait land on a
+// converged capture rather than a half-written one.
+export interface ExpectedProgressEntry {
+  readonly path: string;
+  readonly kind: FileChangeKind;
+  readonly linesAdded: number;
+  readonly linesRemoved: number;
+}
+
+// The snapshot's row for a workspace-relative path, if present.
+export function progressEntryFor(progress: FileChangeProgress, path: string): FileChangeProgressEntry | undefined {
+  return progress.entries.find((e) => e.pathAfter === path || e.pathBefore === path);
+}
+
+// Whether `progress` carries EVERY expected row with exactly its kind and
+// counts. Extra rows are allowed: a capture that lands after a later tool's
+// write carries that tool's file too, and when a capture runs relative to the
+// tool it rides with is not part of the contract (header).
+export function progressCarries(progress: FileChangeProgress, expected: readonly ExpectedProgressEntry[]): boolean {
+  return expected.every((want) => {
+    const got = progressEntryFor(progress, want.path);
+    return (
+      got !== undefined &&
+      got.kind === want.kind &&
+      got.linesAdded === want.linesAdded &&
+      got.linesRemoved === want.linesRemoved
+    );
+  });
+}
+
 // Polls until a MID-RUN file_change_progress snapshot satisfies `settled` while
-// a CAPTURING set exists — the transient pre-boundary window. The predicate is
-// load-bearing (header): pass a target that is stable for the whole capturing
-// span, e.g. `(p) => p.filesChanged === 2`.
-export function awaitFileChangeProgress(
+// a CAPTURING set exists — the transient pre-boundary window. `settled` must
+// hold for the converged snapshot and stay true once it does (header); an arm
+// with a concrete expectation uses `awaitProgressEntries`. On failure — a
+// timeout, or the boundary arriving first — the error carries the distinct
+// snapshots observed, in order, with the time each was first seen.
+export async function awaitFileChangeProgress(
   clients: ConformanceClients,
   executionId: string,
   settled: (progress: FileChangeProgress) => boolean,
   opts: PollOptions = {},
 ): Promise<AgentExecution> {
-  return pollExecution(
-    clients,
-    executionId,
-    (exec) => {
-      const progress = exec.status?.fileChangeProgress;
-      const capturing = findChangeSet(exec, FileChangeSetStatus.CAPTURING);
-      if (capturing !== undefined && progress !== undefined && settled(progress)) return true;
-      if (isTerminalPhase(exec.status?.phase)) {
-        throw new Error(
-          `execution ${executionId} reached terminal phase before a mid-run file_change_progress snapshot ` +
-            `satisfied the predicate (last progress: ${JSON.stringify(progress ?? null)})`,
-        );
-      }
-      return false;
-    },
-    { label: "a settled mid-run file_change_progress snapshot", ...opts },
+  const trace = new ProgressTrace();
+  try {
+    return await pollExecution(
+      clients,
+      executionId,
+      (exec) => {
+        const progress = exec.status?.fileChangeProgress;
+        const capturing = findChangeSet(exec, FileChangeSetStatus.CAPTURING);
+        trace.observe(progress);
+        if (capturing !== undefined && progress !== undefined && settled(progress)) return true;
+        if (isTerminalPhase(exec.status?.phase)) {
+          throw new Error(
+            `execution ${executionId} reached terminal phase before a mid-run file_change_progress snapshot ` +
+              `satisfied the predicate`,
+          );
+        }
+        return false;
+      },
+      { label: "a settled mid-run file_change_progress snapshot", ...opts },
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`${message}; ${trace.render()}`, { cause: err });
+  }
+}
+
+// Polls until a CAPTURING snapshot carries every expected row (`progressCarries`).
+// The shape every progress arm should take: state what the strip converges to,
+// not how many files one capture happened to see.
+export function awaitProgressEntries(
+  clients: ConformanceClients,
+  executionId: string,
+  expected: readonly ExpectedProgressEntry[],
+  opts: PollOptions = {},
+): Promise<AgentExecution> {
+  const label = `a mid-run file_change_progress snapshot carrying ${expected.map((e) => e.path).join(", ")}`;
+  return awaitFileChangeProgress(clients, executionId, (p) => progressCarries(p, expected), { label, ...opts });
+}
+
+// The distinct progress snapshots a wait observed, rendered for a failure
+// message: `observed progress: +1.0s files=1 [created.txt ADD +3/-0] -> +6.9s
+// files=3 [...]`. Consecutive identical snapshots collapse to one entry, so the
+// rendering is the sequence of captures, not of polls.
+class ProgressTrace {
+  private readonly startedAt = Date.now();
+  private readonly seen: string[] = [];
+  private last: string | undefined;
+
+  observe(progress: FileChangeProgress | undefined): void {
+    const rendered = progress === undefined ? "none" : renderProgress(progress);
+    if (rendered === this.last) return;
+    this.last = rendered;
+    const elapsed = ((Date.now() - this.startedAt) / 1000).toFixed(1);
+    this.seen.push(`+${elapsed}s ${rendered}`);
+  }
+
+  render(): string {
+    return `observed progress: ${this.seen.length === 0 ? "(nothing)" : this.seen.join(" -> ")}`;
+  }
+}
+
+function renderProgress(progress: FileChangeProgress): string {
+  const rows = progress.entries.map(
+    (e) => `${e.pathAfter || e.pathBefore} ${FileChangeKind[e.kind]} +${e.linesAdded}/-${e.linesRemoved}`,
   );
+  return `files=${progress.filesChanged} [${rows.join(", ")}]`;
 }
 
 // The first projected change set in `status`, if any — the file-review analogue
