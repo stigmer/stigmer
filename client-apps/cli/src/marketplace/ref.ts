@@ -1,110 +1,46 @@
-// The two grammars a user types at the marketplace surface.
+// The two grammars a user types at the marketplace surface, as the CLI's
+// errors.
 //
-// `stigmer install [marketplace/]name[@version]`: the plugin's name in its
-// marketplace, optionally qualified by the marketplace's name and pinned to
-// the version the entry's manifest must carry. Both names obey the plugin
-// name rule (`isValidPluginName`: lowercase letters, digits, `.` and `-`,
-// never `/` or `@`), which is what makes the grammar unambiguous: the first
-// `/` splits the marketplace off, the first `@` splits the version off, and
-// anything else is not a ref. A path (`./thermos`, `/tmp/x`, `..`) is the
-// one likely mistake, and it is refused toward `stigmer push plugin <dir>`,
-// the command that installs a folder.
-//
-// `stigmer marketplace add <source>`: an existing directory, GitHub's
-// `owner/repo[@ref]`, or the URL a browser shows for that repository
-// (`https://github.com/owner/repo[/tree/<ref>]`), normalised to the same
-// record. Every vendor keeps its marketplace file at the repository root, so
-// a subdirectory grammar is not offered.
+// The grammars themselves (`[marketplace/]name[@version]` and the GitHub
+// `owner/repo[@ref]` or URL forms) live in `@stigmer/plugin-package/client`,
+// where the console parses the same text and gets the same sentence. This
+// module adds what only the CLI has: a `UsageError` carrying the sentence
+// plus the paragraph naming the CLI command to run instead, and the reading
+// of `marketplace add <source>` as a directory on this machine, which wins
+// over every other reading (`add plugins` in a checkout means the folder,
+// not a GitHub owner).
 
 import { statSync } from "node:fs";
-import { isAbsolute, resolve } from "node:path";
-import { isValidPluginName } from "@stigmer/plugin-package";
+import { resolve } from "node:path";
+import {
+  GITHUB_SOURCE_SHAPE,
+  INSTALL_REF_SHAPE,
+  type InstallRef,
+  formatInstallRef,
+  looksLikePath,
+  parseGitHubSource,
+  parseInstallRef as parseInstallRefText,
+} from "@stigmer/plugin-package/client";
 import { UsageError } from "../errors/index.js";
-import { type MarketplaceSource, isOwnerRepo } from "./config.js";
+import { type MarketplaceSource } from "./config.js";
 
-export interface InstallRef {
-  /** The marketplace named before the `/`, or `undefined` when the name stands alone. */
-  readonly marketplace?: string;
-  readonly name: string;
-  /** The version named after the `@`, asserted against the entry's manifest. */
-  readonly version?: string;
-}
-
-/** The characters a `@version` may carry: the plugin's tag pattern, so what a ref pins is a tag the server can hold. */
-const VERSION_PATTERN = /^[a-zA-Z0-9._-]+$/;
-
-const REF_SHAPE =
-  "[marketplace/]name[@version], for example 'thermos', 'cursor-plugins/thermos' or 'thermos@1.0.0'";
+export { type InstallRef, formatInstallRef };
 
 export function parseInstallRef(text: string): InstallRef {
-  if (looksLikePath(text)) {
+  const outcome = parseInstallRefText(text);
+  if (outcome.ok) return outcome.ref;
+  if (outcome.kind === "path") {
     throw new UsageError(
-      `'${text}' is a path, and 'install' takes a plugin's name in a marketplace\n\n` +
-        `To install a plugin from a folder, run: stigmer push plugin ${text}`,
+      `${outcome.message}\n\nTo install a plugin from a folder, run: stigmer push plugin ${text}`,
     );
   }
-  let rest = text;
-  let marketplace: string | undefined;
-  const slash = rest.indexOf("/");
-  if (slash !== -1) {
-    marketplace = rest.slice(0, slash);
-    rest = rest.slice(slash + 1);
-    if (!isValidPluginName(marketplace)) {
-      throw new UsageError(
-        `'${marketplace}' is not a marketplace name\n\nA ref is ${REF_SHAPE}.`,
-      );
-    }
-  }
-  let version: string | undefined;
-  const at = rest.indexOf("@");
-  if (at !== -1) {
-    version = rest.slice(at + 1);
-    rest = rest.slice(0, at);
-    if (version === "" || !VERSION_PATTERN.test(version)) {
-      throw new UsageError(
-        `'${version}' is not a version\n\nA ref is ${REF_SHAPE}.`,
-      );
-    }
-  }
-  if (!isValidPluginName(rest)) {
-    throw new UsageError(
-      `'${rest}' is not a plugin name\n\nA ref is ${REF_SHAPE}.`,
-    );
-  }
-  return {
-    ...(marketplace !== undefined && { marketplace }),
-    name: rest,
-    ...(version !== undefined && { version }),
-  };
+  throw new UsageError(`${outcome.message}\n\nA ref is ${INSTALL_REF_SHAPE}.`);
 }
-
-/** The grammar's own text for a ref, the inverse of `parseInstallRef`. */
-export function formatInstallRef(ref: InstallRef): string {
-  const prefix = ref.marketplace === undefined ? "" : `${ref.marketplace}/`;
-  const suffix = ref.version === undefined ? "" : `@${ref.version}`;
-  return `${prefix}${ref.name}${suffix}`;
-}
-
-function looksLikePath(text: string): boolean {
-  return (
-    text === "." ||
-    text === ".." ||
-    text.startsWith("./") ||
-    text.startsWith("../") ||
-    text.startsWith("~") ||
-    text.includes("\\") ||
-    isAbsolute(text)
-  );
-}
-
-const GITHUB_URL =
-  /^https?:\/\/(?:www\.)?github\.com\/([^/\s]+)\/([^/\s#?]+?)(?:\.git)?(?:\/tree\/([^\s#?]+))?\/?$/;
 
 /**
  * What `marketplace add <source>` was given, as a source. An existing
- * directory wins over every other reading, so `add plugins` in a checkout
- * means the folder, not a GitHub owner; the `owner/repo` reading needs both
- * segments; a GitHub URL is unwrapped to the same record.
+ * directory wins over every other reading; otherwise the shared GitHub
+ * grammar decides, and what it refuses is refused here with the shape.
  */
 export function parseAddSource(
   text: string,
@@ -116,27 +52,8 @@ export function parseAddSource(
   const asDirectory = resolve(cwd, text);
   if (isDirectory(asDirectory)) return { type: "local", path: asDirectory };
 
-  const url = GITHUB_URL.exec(text);
-  if (url !== null) {
-    const repo = `${url[1]}/${url[2]}`;
-    if (!isOwnerRepo(repo))
-      throw new UsageError(
-        `'${text}' does not name a GitHub repository\n\n${ADD_SHAPE}`,
-      );
-    const ref = url[3];
-    return {
-      type: "github",
-      repo,
-      ...(ref !== undefined && ref !== "" && { ref }),
-    };
-  }
-
-  const at = text.indexOf("@");
-  const repo = at === -1 ? text : text.slice(0, at);
-  const ref = at === -1 ? undefined : text.slice(at + 1);
-  if (isOwnerRepo(repo) && (ref === undefined || ref !== "")) {
-    return { type: "github", repo, ...(ref !== undefined && { ref }) };
-  }
+  const github = parseGitHubSource(text);
+  if (github.ok) return github.source;
 
   if (looksLikePath(text) || text.includes("/")) {
     throw new UsageError(
@@ -146,9 +63,7 @@ export function parseAddSource(
   throw new UsageError(`'${text}' is not a marketplace source\n\n${ADD_SHAPE}`);
 }
 
-const ADD_SHAPE =
-  "A source is a directory holding a marketplace file, a GitHub repository as 'owner/repo' or 'owner/repo@ref', " +
-  "or that repository's URL (https://github.com/owner/repo).";
+const ADD_SHAPE = `A source is a directory holding a marketplace file, or ${GITHUB_SOURCE_SHAPE}.`;
 
 function isDirectory(path: string): boolean {
   try {

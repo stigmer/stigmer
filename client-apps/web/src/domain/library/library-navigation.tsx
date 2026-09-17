@@ -31,6 +31,7 @@ export const LIBRARY_RESOURCE_TYPES = [
   "mcp-servers",
   "workflows",
   "schedules",
+  "plugins",
 ] as const;
 
 type LibraryResourceType = (typeof LIBRARY_RESOURCE_TYPES)[number];

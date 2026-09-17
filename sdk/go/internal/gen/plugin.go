@@ -8,6 +8,8 @@ import (
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
 
@@ -15,12 +17,14 @@ import (
 type PluginClient struct {
 	command pluginv1.PluginCommandControllerClient
 	query   pluginv1.PluginQueryControllerClient
+	search  searchv1.SearchServiceClient
 }
 
 func NewPluginClient(conn grpc.ClientConnInterface) *PluginClient {
 	return &PluginClient{
 		command: pluginv1.NewPluginCommandControllerClient(conn),
 		query:   pluginv1.NewPluginQueryControllerClient(conn),
+		search:  searchv1.NewSearchServiceClient(conn),
 	}
 }
 
@@ -63,6 +67,28 @@ func (p *PluginClient) ListMembers(ctx context.Context, id string) (*pluginv1.Li
 func (p *PluginClient) ListVersions(ctx context.Context, input *pluginv1.ListPluginVersionsInput) (*pluginv1.ListPluginVersionsResponse, error) {
 	resp, err := p.query.ListVersions(ctx, input)
 	return resp, wrapErr(err)
+}
+
+func (p *PluginClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
+	req := &searchv1.SearchRequest{
+		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_plugin},
+		Query:          params.Query,
+		Org:            params.Org,
+		ExcludePublic:  params.ExcludePublic,
+		CrossOrgPublic: params.CrossOrgPublic,
+	}
+	if params.Page != nil {
+		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
+	}
+	resp, err := p.search.Search(ctx, req)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &ListResult{
+		Entries:    resp.GetEntries(),
+		TotalCount: resp.GetTotalCount(),
+		TotalPages: resp.GetTotalPages(),
+	}, nil
 }
 
 // PluginInput holds the fields for creating/updating a Plugin.

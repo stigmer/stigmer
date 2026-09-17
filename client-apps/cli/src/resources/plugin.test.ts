@@ -134,13 +134,13 @@ describe("readPluginDirectory", () => {
   });
 });
 
-describe("zipPluginFiles", () => {
-  it("writes the walked list deterministically and round-trips through the library's own reader", async () => {
-    const { zipPluginFiles } = await import("./plugin.js");
+describe("the archive of a walked directory", () => {
+  it("is deterministic and round-trips through the library's own reader", async () => {
+    const { archivePlugin } = await import("@stigmer/plugin-package/client");
     const { unzipSync } = await import("fflate");
     const directory = readPluginDirectory(root);
-    const first = zipPluginFiles(directory.files);
-    const second = zipPluginFiles(directory.files);
+    const first = archivePlugin(directory.files);
+    const second = archivePlugin(directory.files);
     expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true);
     const entries = Object.keys(unzipSync(first)).sort();
     expect(entries).toEqual(directory.files.entries.map((e) => e.path));
@@ -152,12 +152,13 @@ describe("zipPluginFiles", () => {
 describe("preparePluginPush", () => {
   it("carries the walked archive and its SHA-256, the identity the server records", async () => {
     const { createHash } = await import("node:crypto");
-    const { preparePluginPush, zipPluginFiles } = await import("./plugin.js");
-    const prepared = preparePluginPush(root);
+    const { preparePluginPush } = await import("./plugin.js");
+    const { archivePlugin } = await import("@stigmer/plugin-package/client");
+    const prepared = await preparePluginPush(root);
     expect(prepared.plugin.name).toBe("walker");
     expect(prepared.dir).toBe(root);
     expect(prepared.stats.filesIgnored).toBe(3);
-    const bytes = zipPluginFiles(readPluginDirectory(root).files);
+    const bytes = archivePlugin(readPluginDirectory(root).files);
     expect(Buffer.from(prepared.archive).equals(Buffer.from(bytes))).toBe(true);
     expect(prepared.digest).toBe(createHash("sha256").update(bytes).digest("hex"));
     expect(prepared.digest).toMatch(/^[a-f0-9]{64}$/);
@@ -168,7 +169,7 @@ describe("preparePluginPush", () => {
     const broken = mkdtempSync(join(tmpdir(), "stigmer-plugin-broken-"));
     try {
       writeFileSync(join(broken, "plugin.json"), JSON.stringify({ name: "Not Valid!" }));
-      expect(() => preparePluginPush(broken)).toThrow(/plugin cannot be installed/);
+      await expect(preparePluginPush(broken)).rejects.toThrow(/plugin cannot be installed/);
     } finally {
       rmSync(broken, { recursive: true, force: true });
     }

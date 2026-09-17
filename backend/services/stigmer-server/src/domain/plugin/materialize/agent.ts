@@ -14,6 +14,18 @@
  * `mcp_server_usage`, every `agents/*.md` as a `sub_agent` with access to
  * all the plugin's servers and the skills it asked for.
  *
+ * The composed agent declares in `env` the union of its servers' variables,
+ * OAuth-managed target variables excluded. An execution filters its
+ * environment to the AGENT's declared keys, and every client's session
+ * start asks the user for the AGENT's declared keys, so an agent declaring
+ * nothing over a server declaring `${API_TOKEN}` is never asked for the
+ * token and fails at its first tool call. The declaration on the agent is
+ * what routes the user's values to the execution; the declaration on the
+ * server stays too (the connect flow and the runner's per-server filter
+ * read it there). An OAuth target is excluded because its value is injected
+ * from a managed environment, never asked of the user. An author's
+ * `agent.yaml` is taken as written: they chose what to declare.
+ *
  * Model hints are recorded, never applied: a dialect's `model` becomes a
  * status warning and the sub-agent runs on the session's model. The
  * catalog seam exposes neither family nor cost tier, the runner drops a
@@ -25,6 +37,7 @@
 import { create } from "@bufbuild/protobuf";
 
 import type { PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {
@@ -47,6 +60,7 @@ import { renderDefaultAgentInstructions } from "./default-agent-instructions.js"
 import { memberMetadata } from "./identity.js";
 import type { PluginIdentity } from "./identity.js";
 import { mcpServerSlugOf } from "./mcp-servers.js";
+import type { PlannedMcpServer } from "./mcp-servers.js";
 import { skillSlugOf } from "./skills.js";
 
 export interface PlannedAgent {
@@ -67,6 +81,7 @@ export function carriesAgent(plugin: PluginPackage): boolean {
 export function planAgent(
   plugin: PluginPackage,
   overlayAgent: Agent | undefined,
+  mcpServers: readonly PlannedMcpServer[],
   identity: PluginIdentity,
   warnings: PluginWarning[],
 ): PlannedAgent | undefined {
@@ -95,6 +110,7 @@ export function planAgent(
   const spec = create(AgentSpecSchema, {
     description: plugin.description ?? "",
     instructions: renderDefaultAgentInstructions(plugin),
+    env: toolVariables(mcpServers),
     skillRefs: [...skillSlugByName.values()].map((slug) =>
       create(ApiResourceReferenceSchema, {
         org: identity.org,
@@ -125,6 +141,28 @@ export function planAgent(
       spec,
     }),
   };
+}
+
+/**
+ * The variables the agent's tools need from the user: every server's
+ * declarations, minus each server's OAuth target. Two servers declaring
+ * one name share one declaration; the first server's wins, and the
+ * library already refuses a plugin whose variables disagree about a name.
+ */
+export function toolVariables(
+  mcpServers: readonly PlannedMcpServer[],
+): Record<string, EnvVarDeclaration> {
+  const declarations: Record<string, EnvVarDeclaration> = {};
+  for (const server of mcpServers) {
+    const spec = server.resource.spec;
+    if (spec === undefined) continue;
+    const oauthTarget = spec.auth?.targetEnvVar ?? "";
+    for (const [name, declaration] of Object.entries(spec.env)) {
+      if (name === oauthTarget || name in declarations) continue;
+      declarations[name] = declaration;
+    }
+  }
+  return declarations;
 }
 
 function planSubAgent(

@@ -82,6 +82,7 @@
       ]
     }
   ],
+  "listVia": "SearchService",
   "methodTypes": [
     {
       "name": "PushPluginRequest",

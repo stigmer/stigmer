@@ -80,9 +80,9 @@ beforeAll(async () => {
       defaults: ["thermos", "github"],
     }),
   );
-  thermosDigest = preparePluginPush(join(official, "thermos")).digest;
-  githubDigest = preparePluginPush(
-    join(official, "third_party", "github"),
+  thermosDigest = (await preparePluginPush(join(official, "thermos"))).digest;
+  githubDigest = (
+    await preparePluginPush(join(official, "third_party", "github"))
   ).digest;
 
   const routes = (router: ConnectRouter) => {

@@ -100,6 +100,7 @@ export default function SkillDetailPage() {
         slug={slug}
         editable
         onResourceLoad={handleResourceLoad}
+        onPluginClick={({ org: o, slug: s }) => navigate(`/library/plugins/${o}/${s}`)}
         actions={actions}
       />
       <ConfirmDialog

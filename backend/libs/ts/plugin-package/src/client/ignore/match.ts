@@ -91,7 +91,7 @@ function matchChunk(chunk: string, s: string): [string, boolean] {
     if (c === "[") {
       let r = "";
       if (!failed) {
-        r = s[0];
+        r = s[0] ?? "";
         s = s.slice(1);
       }
       chunk = chunk.slice(1);
@@ -151,7 +151,7 @@ function getEsc(chunk: string): [string, string] {
     chunk = chunk.slice(1);
     if (chunk.length === 0) throw new BadPatternError("bad pattern");
   }
-  const r = chunk[0];
+  const r = chunk[0] ?? "";
   const nchunk = chunk.slice(1);
   if (nchunk.length === 0) throw new BadPatternError("bad pattern");
   return [r, nchunk];

@@ -48,6 +48,7 @@
     "@scenar/preview": "0.3.0",
     "@scenar/react": "0.5.0",
     "@stigmer/embed": "file:../sdk/embed",
+    "@stigmer/plugin-package": "file:../backend/libs/ts/plugin-package",
     "@stigmer/protos": "file:../apis/stubs/ts",
     "@stigmer/react": "file:../sdk/react",
     "@stigmer/sdk": "file:../sdk/typescript",
@@ -73,6 +74,7 @@
     "tailwind-merge": "^3.0.0"
   },
   "resolutions": {
+    "@stigmer/plugin-package": "file:../backend/libs/ts/plugin-package",
     "@stigmer/theme": "file:../sdk/theme"
   },
   "devDependencies": {

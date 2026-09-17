@@ -80,7 +80,7 @@ export async function installDefaultPlugins(
   const outcomes: DefaultPluginOutcome[] = [];
   for (const name of tree.marketplace.defaults) {
     try {
-      const prepared = prepareEntry(tree, name);
+      const prepared = await prepareEntry(tree, name);
       if (await isAlreadyInstalled(deps.stigmer, options.org, prepared)) {
         outcomes.push({ name, action: "up-to-date", digest: prepared.digest });
         continue;

@@ -64,7 +64,7 @@ async function runInstall(
 
   const located = await m.locateEntry(ref, m.listMarketplaces());
   try {
-    const prepared = m.prepareEntry(located.tree, ref.name);
+    const prepared = await m.prepareEntry(located.tree, ref.name);
     m.assertVersion(prepared, ref.version, refText);
     const qualified = m.formatInstallRef({
       marketplace: located.marketplace.name,

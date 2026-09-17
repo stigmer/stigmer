@@ -96,7 +96,13 @@ export function planMaterialization(
     ),
     identity,
   );
-  const agent = planAgent(plugin, overlays.agent?.resource, identity, warnings);
+  const agent = planAgent(
+    plugin,
+    overlays.agent?.resource,
+    mcpServers,
+    identity,
+    warnings,
+  );
   const workflows = planWorkflows(overlays.workflows, identity);
 
   const members: PlannedMember[] = [

@@ -395,6 +395,13 @@ export function useAgentSetup(
       (v) => !poolKeys.has(v.key),
     );
 
+    // Dispatch only when the pool covered something. The reducer stores the
+    // array it is given, so dispatching an unchanged list would hand this
+    // effect a new dependency and run it again, without end: the pool always
+    // holds the system keys, so this effect runs for every agent that
+    // declares a variable the personal environment lacks.
+    if (stillMissing.length === agentMissingVars.length) return;
+
     dispatch({ type: "POOL_RESOLVE", missingVariables: stillMissing });
   }, [poolKeys, agentMissingVars]);
 
