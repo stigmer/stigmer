@@ -1,10 +1,12 @@
-// Pins the console-lane probe every self-host smoke shares: /config.json
+// Pins two probes every self-host smoke shares. The console lane: /config.json
 // under the trusted-local posture is ONE document (apiUrl and appUrl empty,
 // meaning "the console's own origin" — 20260913.02 Q-CL-3; sign-in disabled;
 // no OIDC coordinates), asserted whole, and / answers HTML. The document is
 // spelled out here rather than imported so a drift in the library's constant
 // is caught, not mirrored. The Host-derived arm is the #1087 incident: four
-// gates accepted `http://<host>` after the server stopped serving it. Run via
+// gates accepted `http://<host>` after the server stopped serving it. The
+// default-plugin probe: polls the plugin query until the bootstrap's second
+// step has landed, and refuses a default that is not public. Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test` and
 // ci.ts-workspace).
 
@@ -12,7 +14,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import { assertConsoleServed } from "./stigmer-smoke.mjs";
+import { assertConsoleServed, waitForDefaultPlugin } from "./stigmer-smoke.mjs";
 
 const TRUSTED_LOCAL_DOCUMENT = {
   apiUrl: "",
@@ -156,4 +158,66 @@ test("refuses a / that does not answer HTML", async () => {
   const refusal = await refusalFor({ indexType: "application/json" });
   assert.ok(refusal instanceof Error);
   assert.match(refusal.message, /console \/.*text\/html/);
+});
+
+// ─── The default-plugin probe ───────────────────────────────────────────────
+//
+// A plugin query lane on 127.0.0.1:0 that answers getByReference from a
+// script of responses, one per call, so the probe's polling (404 until the
+// bootstrap lands, then READY) and its refusals are pinned without a server.
+
+async function servePluginLane(responses) {
+  let call = 0;
+  const server = createServer((request, response) => {
+    const next = responses[Math.min(call, responses.length - 1)];
+    call += 1;
+    if (next === 404) {
+      response.writeHead(404, { "content-type": "application/json" });
+      response.end(JSON.stringify({ code: "not_found", message: "plugin not found" }));
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify(next));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    baseUrl: `http://127.0.0.1:${server.address().port}`,
+    calls: () => call,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
+
+const READY_ASSISTANT = {
+  metadata: { slug: "assistant", org: "stigmer", visibility: "visibility_public" },
+  status: { state: "PLUGIN_STATE_READY", digest: "a".repeat(64) },
+};
+
+test("waits through 404 and INSTALLING until the default plugin is READY, then yields its digest", async () => {
+  const lane = await servePluginLane([
+    404,
+    { ...READY_ASSISTANT, status: { state: "PLUGIN_STATE_INSTALLING", digest: "" } },
+    READY_ASSISTANT,
+  ]);
+  try {
+    const digest = await waitForDefaultPlugin(lane.baseUrl, 10_000, {});
+    assert.equal(digest, "a".repeat(64));
+    assert.equal(lane.calls(), 3);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("refuses a READY default plugin that is not public, naming its visibility at the deadline", async () => {
+  const lane = await servePluginLane([
+    { ...READY_ASSISTANT, metadata: { ...READY_ASSISTANT.metadata, visibility: "visibility_private" } },
+  ]);
+  try {
+    // pollUntil surfaces the last refusal when the deadline passes; a short one keeps the arm quick.
+    await assert.rejects(
+      waitForDefaultPlugin(lane.baseUrl, 2_500, {}),
+      /default plugin 'assistant' is visibility_private — want visibility_public/,
+    );
+  } finally {
+    await lane.close();
+  }
 });

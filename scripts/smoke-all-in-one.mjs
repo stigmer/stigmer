@@ -17,7 +17,9 @@
  *      the no-key warning — the words a first-time user reads;
  *   3. the real health service answers SERVING and the console lane serves
  *      its contract (/config.json, / as HTML);
- *   4. the seedpack was applied on first boot (the marker on the volume);
+ *   4. the seedpack was applied on first boot (the marker on the volume) and
+ *      the default plugin was installed from the baked official marketplace
+ *      (the `assistant` plugin READY and public in the system org);
  *   5. one end-to-end run — an LLM-free set_vars workflow — reaches
  *      EXECUTION_COMPLETED: only possible if the embedded Temporal, the
  *      server's workers AND the embedded runner all work inside the one
@@ -57,6 +59,7 @@ import {
   pollUntil,
   runSetVarsWorkflow,
   sleep,
+  waitForDefaultPlugin,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 
@@ -205,6 +208,11 @@ async function main() {
       return value.startsWith("sha256:") ? value : false;
     });
     log(`seedpack applied on first boot (${marker})`);
+    // The second bootstrap step: the official marketplace's default plugin,
+    // installed from the baked @stigmer/plugins into the system org. This is
+    // what gives a fresh install its default agent.
+    const digest = await waitForDefaultPlugin(baseUrl, HEALTHY_TIMEOUT_MS);
+    log(`default plugin 'assistant' installed on first boot (${digest.slice(0, 12)})`);
 
     // 5. The end-to-end run through Temporal, the server's workers and the runner.
     const executionId = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
