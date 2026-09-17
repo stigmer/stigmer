@@ -1,4 +1,4 @@
-// NDJSON envelope + writer for streaming commands (run/resume/draft).
+// NDJSON envelope + writer for streaming commands (run/resume).
 //
 // The wire shape mirrors the Go CLI's run --json output (run_stream_json.go):
 // every line is a `{type, ts, payload}` object, and the payload is cleaned of

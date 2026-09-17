@@ -102,20 +102,28 @@ export type PluginWarningKind =
 
 export type PluginFindingKind = PluginErrorKind | PluginWarningKind;
 
-export interface PluginFinding {
-  readonly kind: PluginFindingKind;
+/**
+ * One finding over any closed kind vocabulary. The plugin reader and the
+ * marketplace reader (`marketplace/`) each own a vocabulary and a sentence
+ * table; the shape of a finding, and the renderer that prints one, are
+ * shared through this type.
+ */
+export interface Finding<K extends string> {
+  readonly kind: K;
   /** The file, or the declared path, the finding is about. */
   readonly path?: string;
-  /** The skill, server, sub-agent, variable or field the finding names. */
+  /** The skill, server, sub-agent, variable, entry or field the finding names. */
   readonly subject?: string;
   /** A second identifier the sentence needs (a field name, a parser's own message). */
   readonly detail?: string;
-  /** The one sentence for this kind, from `messages.ts`. */
+  /** The one sentence for this kind, from the vocabulary's `messages.ts`. */
   readonly message: string;
 }
 
-/** What `read` needs to compose a finding: everything but the sentence. */
-export type FindingContext = Pick<PluginFinding, "path" | "subject" | "detail">;
+export type PluginFinding = Finding<PluginFindingKind>;
+
+/** What a reader needs to compose a finding: everything but the sentence. */
+export type FindingContext = Pick<Finding<string>, "path" | "subject" | "detail">;
 
 export type PluginReadOutcome =
   | { readonly ok: true; readonly plugin: PluginPackage; readonly warnings: readonly PluginFinding[] }

@@ -72,7 +72,6 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   validate: "resource",
   diff: "resource",
   search: "resource",
-  draft: "resource",
   connect: "resource",
   tag: "resource",
   share: "resource",

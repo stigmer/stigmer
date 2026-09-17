@@ -10,7 +10,7 @@
 import { expect } from "vitest";
 
 import { inMemoryPluginFiles } from "../files.js";
-import type { PluginFinding, PluginReadOutcome } from "../outcome.js";
+import type { Finding, PluginFinding, PluginReadOutcome } from "../outcome.js";
 import { readPluginPackage } from "../read-plugin-package.js";
 import type { PluginFixture } from "../testing.js";
 import type { PluginPackage } from "../types.js";
@@ -47,9 +47,9 @@ export function refused(outcome: PluginReadOutcome): readonly PluginFinding[] {
   return outcome.errors;
 }
 
-/** The one finding of `kind`, failing when it is absent or repeated. */
-export function findingOf(findings: readonly PluginFinding[], kind: string): PluginFinding {
+/** The one finding of `kind`, failing when it is absent or repeated; over either vocabulary. */
+export function findingOf<K extends string>(findings: readonly Finding<K>[], kind: string): Finding<K> {
   const matches = findings.filter((f) => f.kind === kind);
   expect(matches, `exactly one '${kind}' finding`).toHaveLength(1);
-  return matches[0] as PluginFinding;
+  return matches[0] as Finding<K>;
 }

@@ -6,9 +6,8 @@
  * Beat 0 is the console's API Keys page in the reveal state
  * (`_shared/ApiKeysPage` — see its docstring for what each depicted phase
  * shows and hides). Beats 1–4 alternate the reader's editor and terminal
- * inside the quickstart workspace shared with `create-agent-tour` and
- * `connect-tools-tour`, so the Getting Started pages depict one continuous
- * project.
+ * inside the quickstart workspace shared with `connect-tools-tour`, so the
+ * Getting Started pages depict one continuous project.
  */
 import type { ReactNode } from "react";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";

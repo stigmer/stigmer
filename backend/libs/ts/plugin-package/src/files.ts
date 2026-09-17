@@ -58,6 +58,12 @@ export const PLUGIN_DOCUMENT_LIMITS = {
   subAgent: 1024 * 1024,
   /** A document under `ai.stigmer/`: a resource YAML. */
   overlay: 1024 * 1024,
+  /**
+   * A marketplace file in any dialect. The largest public catalogue
+   * (`cursor/plugins`, 79 entries with descriptions) is under 32 KB; the cap
+   * leaves room for catalogues an order of magnitude larger.
+   */
+  marketplace: 1024 * 1024,
 } as const;
 
 export type PluginDocumentClass = keyof typeof PLUGIN_DOCUMENT_LIMITS;

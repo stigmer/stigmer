@@ -79,6 +79,13 @@ export const PACKAGES = [
   // content), so its position is order-free. A published @stigmer/cli acquires
   // @stigmer/seedpack at its exact version on demand, so it MUST publish too.
   "seedpack",
+  // @stigmer/plugins is the official plugin marketplace as a directory tree
+  // (a root marketplace.json and one Agent Plugins package per entry); no
+  // @stigmer/* deps, so its position is order-free. A published @stigmer/cli
+  // acquires it at its exact version for `stigmer up`, the seedpack's own
+  // lockstep, so it MUST publish too. The seedpack shrinks into it until the
+  // catalogue migration completes and the seedpack retires.
+  "plugins",
   // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
   // above it, so it publishes last with its deps already resolved.
   "client-apps/cli",

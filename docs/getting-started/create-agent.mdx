@@ -22,8 +22,6 @@ conversation results, fewer moving parts.
   doesn't require it.
 </Callout>
 
-<ScenarEmbed id="create-agent-tour" title="Create an agent walkthrough" />
-
 ## The problem
 
 Look at your Session creation code from the previous guide:
@@ -106,21 +104,20 @@ create your own.
 
 1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library →
    Agents**.
-2. Click **Create Agent**. This opens the Agent Creator — an Agent that builds
-   the definition from your description.
-3. Describe your Agent's role, the Skills it should use, and the MCP servers it
-   needs. Mention the `return-policy` Skill and `order-management-api` server
-   from the previous guides.
+2. Click **Create Agent**. Choose how to start: a blank Agent, one of the
+   templates, or an import of an Agent YAML you already have.
+3. In the wizard, name the Agent `support-agent`, write its instructions (its
+   role, the rules it follows, its tone), then pick the `return-policy` Skill
+   and the `order-management-api` MCP server from the previous guides.
+4. Review the definition and click **Create** to save it to your Organization's
+   library.
 
-The Agent Creator asks a few clarifying questions — role, behavior rules, tone —
-then produces a complete Agent definition.
-
-Here is what that conversation looks like:
-
-<ScenarEmbed id="agent-creation-tour" title="Agent creation walkthrough" />
-
-4. Review the generated definition and click **Apply** to save it to your
-   Organization's library.
+Prefer files? The same Agent is a YAML document you can keep in git and apply
+from the CLI — see [Agent](/docs/concepts/agents) for the shape and
+[`stigmer apply`](/docs/cli/commands/apply) for the command. And when your Agent
+grows Skills and tools of its own, package the whole thing as a
+[plugin](/docs/guides/plugins/install-a-plugin) and install it anywhere with one
+command.
 
 <Callout type="info">
   The Agent definition includes `instructions` — a system prompt that defines
@@ -135,8 +132,7 @@ Here is what that conversation looks like:
 
 Open the Agent detail page. Everything is in one place: the instructions that
 define the Agent's role, the Skills that provide domain knowledge, and the MCP
-servers that give it tools — the same screen the walkthrough at the top of this
-page ends on.
+servers that give it tools.
 
 You can add as many Skills as your Agent needs — product documentation, HR
 policies, technical runbooks. Each one makes the Agent more useful for a

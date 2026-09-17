@@ -1,6 +1,6 @@
-// The agent-execution flag set shared by `run` and `draft` (Go's
-// registerAgentExecFlags). Centralized so both commands stay in lockstep — a new
-// execution flag is added here once and both surfaces pick it up.
+// The agent-execution flag set `run` registers (Go's registerAgentExecFlags),
+// kept as its own module so a new execution flag has one home and any future
+// command that starts an execution picks the whole set up unchanged.
 
 import type { Command } from "commander";
 import type { AgentExecFlags, HarnessFlag, RunMode, ServiceTierFlag, ThinkingFlag } from "../resources/run/prepare.js";
@@ -30,16 +30,10 @@ export interface AgentExecOptions {
   harness?: string;
 }
 
-/**
- * Register the shared agent-exec options on `command`. `requireMessage` marks
- * `-m/--message` as required (draft requires a prompt; run does not).
- */
-export function addAgentExecFlags(command: Command, requireMessage = false): Command {
-  const messageDesc = "initial message/prompt for execution";
-  if (requireMessage) command.requiredOption("-m, --message <text>", messageDesc);
-  else command.option("-m, --message <text>", messageDesc);
-
+/** Register the agent-exec options on `command`. */
+export function addAgentExecFlags(command: Command): Command {
   return command
+    .option("-m, --message <text>", "initial message/prompt for execution")
     .option("--attach <path>", "file or directory to attach as input (repeatable)", collect, [])
     .option("--approve-default <action>", "auto-resolve approvals in headless mode (approve, skip, reject, approve-all)")
     .option("-v, --verbose", "show execution IDs and phase transitions")

@@ -589,6 +589,20 @@ test-seedpack-transport: ## Run seedpack transport reachability tests (network r
 	@npm run build -w @stigmer/protos --silent
 	npm run test:transport -w @stigmer/seedpack
 
+# ─── Plugin Catalogue Testing ────────────────
+
+.PHONY: test-plugins-static
+
+# The official plugin marketplace (plugins/) read through
+# @stigmer/plugin-package, the reader the CLI and the server use: the
+# marketplace file and the tree agree, every offered plugin reads clean under
+# its own name, the defaults are the file's. Deterministic, network-free;
+# runs on every plugins/** PR. Structural validity of the ai.stigmer/ overlays
+# against the contract is check-docs-yaml's job (authoring dir `plugins`).
+test-plugins-static: ## Run the plugin catalogue's static suite (fast, no network)
+	@npm run build -w @stigmer/plugin-package --silent
+	npm run test -w @stigmer/plugins
+
 
 # ─── Tidy ────────────────────────────────────
 
@@ -985,7 +999,7 @@ agents-check: ## Verify agent guidance: shims in sync, every cited path resolves
 check-docs-yaml: ## Validate every docs YAML block + raw examples/seedpack manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@npm run build -w @stigmer/protos --silent
-	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack --rules=enforce
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack,plugins --rules=enforce
 
 report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (incl. latent platform-blind findings; never fails)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }

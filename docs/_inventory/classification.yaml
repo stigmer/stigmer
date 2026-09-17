@@ -41,9 +41,9 @@ pages:
     medium: animated-tour
     why:
       The hero exists to show the product working; motion is the pitch. The
-      current tour depicts a stale single-entry-point flow and gets re-authored.
+      quickstart tour is the first thing a reader does, so the hero shows it.
     embeds:
-      create-agent-tour: replace
+      quickstart-tour: replace
 
   # ── Get Started ────────────────────────────────────────────────────────
   concepts/what-is-stigmer:
@@ -116,12 +116,9 @@ pages:
       replace per-Session ref lists with one agent lookup.
     medium: screenshot-journey
     why:
-      The console now offers three creation entry points (YAML upload, template,
-      form); a still sequence can cover all three where the stale tours depict
-      only the conversational one (DD-011's trigger).
-    embeds:
-      create-agent-tour: replace
-      agent-creation-tour: replace
+      The console offers three creation entry points (YAML upload, template,
+      form); a still sequence covers all three. The conversational tours that
+      depicted an in-product creator agent were retired with that agent.
 
   getting-started/first-workflow:
     fate: keep

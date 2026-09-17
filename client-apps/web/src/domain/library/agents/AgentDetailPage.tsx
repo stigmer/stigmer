@@ -26,7 +26,7 @@ import {
   useRouteDetailYieldsToOverlay,
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { getAgentSessionUrl } from "@/domain/session/draft-session";
+import { getAgentSessionUrl } from "@/domain/session/session-url";
 import { getAppBaseUrl } from "@/config/env";
 
 /**

@@ -17,7 +17,6 @@ import { registerDelete } from "./commands/delete.js";
 import { registerDiff } from "./commands/diff.js";
 import { registerDown } from "./commands/down.js";
 import { registerDownload } from "./commands/download.js";
-import { registerDraft } from "./commands/draft.js";
 import { registerExecution } from "./commands/execution/index.js";
 import { registerGet } from "./commands/get.js";
 import { registerInternalDaemon } from "./commands/internal-daemon.js";
@@ -87,7 +86,6 @@ export function buildProgram(): Command {
   registerApply(program);
   registerRun(program);
   registerResume(program);
-  registerDraft(program);
   registerExecution(program);
   registerConnect(program);
   registerMcpServer(program);

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Bot, CalendarClock, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
-import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import {
   ApplyManifestDialog,
   useAgentCount,
@@ -65,7 +64,7 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   {
     label: "Agent",
     icon: <Bot className="size-4" aria-hidden="true" />,
-    href: getDraftSessionUrl("agent"),
+    href: "/library/agents/new",
   },
   {
     label: "Workflow",
@@ -75,12 +74,12 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   {
     label: "Skill",
     icon: <Sparkles className="size-4" aria-hidden="true" />,
-    href: getDraftSessionUrl("skill"),
+    href: "/library/skills/new",
   },
   {
     label: "MCP Server",
     icon: <Server className="size-4" aria-hidden="true" />,
-    href: getDraftSessionUrl("mcp-server"),
+    href: "/library/mcp-servers/new",
   },
   {
     label: "Schedule",
@@ -183,7 +182,7 @@ export function LibraryLanding() {
 
 // ---------------------------------------------------------------------------
 // AddResourceMenu — single "+ Add" button with a dropdown of
-// resource types, each linking to the corresponding draft session.
+// resource types, each linking to that kind's create page.
 // ---------------------------------------------------------------------------
 
 function AddResourceMenu() {

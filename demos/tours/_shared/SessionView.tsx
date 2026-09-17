@@ -37,18 +37,6 @@ const HOME_HEADING = "What would you like to work on?";
 const HOME_PLACEHOLDER = "Describe what you need help with\u2026";
 
 /**
- * The console's agent-draft launcher placeholder (the `/?draft=agent`
- * surface), transcribed from `DRAFT_PLACEHOLDERS.agent` in
- * client-apps/web/src/domain/session/SessionLauncher.tsx. Hoisted here
- * because two tours depict that surface (agent-creation-tour,
- * create-agent-tour) — demos/README.md's hoisting rule.
- */
-export const AGENT_DRAFT_PLACEHOLDER =
-  "Describe the agent you\u2019d like to build \u2014 its purpose, the skills " +
-  "and MCP servers it should use, and any system instructions to " +
-  "guide its behavior.";
-
-/**
  * The session panel facets a tour can open. Mirrors the ids
  * `useSessionRailViews` composes; a facet the depicted execution does not
  * offer (e.g. `"artifacts"` with no artifacts) degrades to the first
@@ -86,16 +74,15 @@ interface SessionViewProps {
   readonly agentRef?: ResourceRef | null;
   /**
    * Placeholder for the `SessionComposer` textarea. Defaults to the
-   * console home's own placeholder; a beat depicting a draft surface
-   * passes that surface's real placeholder (e.g.
-   * {@link AGENT_DRAFT_PLACEHOLDER} for `/?draft=agent`).
+   * console home's own placeholder; a beat depicting another launcher
+   * surface passes that surface's real placeholder.
    */
   readonly placeholder?: string;
   /**
    * Heading rendered above the composer in the empty/typing state, as the
    * real `NewSessionViewer` does. Defaults to the console home's
-   * "What would you like to work on?"; a draft beat passes its own (e.g.
-   * "Add an Agent").
+   * "What would you like to work on?"; a beat depicting another launcher
+   * surface passes its own.
    */
   readonly heading?: string;
   /**

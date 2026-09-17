@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "assistant",
+  "version": "1.0.0",
+  "description": "General-purpose AI assistant: the agent a fresh Stigmer answers with until you pick another.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://stigmer.ai/docs/guides/plugins",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "assistant",
+    "default-agent",
+    "stigmer"
+  ]
+}

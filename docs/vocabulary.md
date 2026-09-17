@@ -148,7 +148,7 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: Skill`, prefix `skl`. proto: `skill/v1/spec.proto`,
   `skill/v1/command.proto`. CLI: `stigmer push` (push Skill from current
-  directory), `stigmer draft skill --name <name>`.
+  directory).
 - **YAML/file structure**: A Skill is a directory containing a `SKILL.md` file
   with YAML frontmatter. proto fields: `skill_md`, `name`, `description`, `tag`.
   Referenced on Agents and Sessions via `skill_refs`.

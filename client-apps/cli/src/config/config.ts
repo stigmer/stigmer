@@ -83,11 +83,30 @@ export interface ContextConfig {
   organization?: string;
 }
 
+/**
+ * One added plugin marketplace as the file spells it. The `marketplace`
+ * commands are the only writer; the shape is kept loose here and narrowed by
+ * `src/marketplace/config.ts`, so a hand-edited entry this CLI cannot read is
+ * reported by `stigmer marketplace list` instead of being dropped on the next
+ * save. The official marketplace is built in and never stored.
+ */
+export interface MarketplaceEntryConfig {
+  kind?: string;
+  /** GitHub `owner/repo` for `kind: github`. */
+  repo?: string;
+  /** Branch, tag or commit for `kind: github`; the default branch when absent. */
+  ref?: string;
+  /** Absolute directory for `kind: local`. */
+  path?: string;
+}
+
 export interface Config {
   backend: BackendConfig;
   backends?: Record<string, NamedBackendConfig>;
   current_backend?: string;
   context?: ContextConfig;
+  /** Added plugin marketplaces, keyed by the name a user installs from. */
+  marketplaces?: Record<string, MarketplaceEntryConfig>;
 }
 
 const SAVE_HEADER = `# Stigmer CLI Configuration
@@ -207,7 +226,23 @@ function normalize(parsed: Partial<Config> | null): Config {
     backends,
     current_backend: current,
     context: parsed.context,
+    marketplaces: normalizeMarketplaces(parsed.marketplaces),
   };
+}
+
+/** Object-valued entries verbatim; anything else is not a marketplace and is dropped. */
+function normalizeMarketplaces(
+  parsed: Record<string, MarketplaceEntryConfig> | undefined,
+): Record<string, MarketplaceEntryConfig> | undefined {
+  if (parsed === undefined || parsed === null || typeof parsed !== "object") {
+    return undefined;
+  }
+  const marketplaces: Record<string, MarketplaceEntryConfig> = {};
+  for (const [name, entry] of Object.entries(parsed)) {
+    if (entry === null || typeof entry !== "object") continue;
+    marketplaces[name] = { ...entry };
+  }
+  return Object.keys(marketplaces).length === 0 ? undefined : marketplaces;
 }
 
 function normalizeBackends(
@@ -243,6 +278,7 @@ function serializable(config: Config): Config {
     },
     ...(pristineLocal ? {} : { backends, current_backend: current }),
     context: config.context,
+    marketplaces: config.marketplaces,
   };
 }
 

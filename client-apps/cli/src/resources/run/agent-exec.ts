@@ -2,7 +2,7 @@
 // run_agent_exec.go): create the agent execution (one call — a workspace rides
 // the embedded session_spec and the backend bootstraps the session), then
 // either detach (print header + re-attach hint) or stream and optionally
-// download artifacts. Shared by `run` and `draft`.
+// download artifacts, for `run`.
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { BackendClient } from "../../client/index.js";

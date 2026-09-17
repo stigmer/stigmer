@@ -194,9 +194,6 @@ async function runResolvedAgent(
       accountPreferencesAvailable: await client.isResourceAvailable(
         ApiResourceKind.identity_account,
       ),
-      // run opts into the account default_harness fill; draft deliberately
-      // does not (see the option's doc comment for the D5 rationale).
-      applyAccountHarnessDefault: true,
     },
   );
   await executeResolvedAgent({

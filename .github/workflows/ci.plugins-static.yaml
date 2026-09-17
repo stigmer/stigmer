@@ -1,0 +1,37 @@
+# Plugin catalogue static validation: the official marketplace under plugins/
+# read through @stigmer/plugin-package, the reader the CLI and the server use
+# (plugins/__tests__, vitest.config.ts). Deterministic and network-free. The
+# suite proves the marketplace file and the tree agree and every offered
+# plugin reads clean under its own name, so what merges is what `stigmer up`
+# and `stigmer install` will accept. Structural validity of the ai.stigmer/
+# overlays against the contract is check-docs-yaml's job (ci.docs, authoring
+# dir `plugins`); this lane owns what the contract cannot say.
+
+name: CI / Plugins Static Validation
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - 'backend/libs/ts/plugin-package/**'
+      - '.github/workflows/ci.plugins-static.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/**'
+      - 'backend/libs/ts/plugin-package/**'
+      - '.github/workflows/ci.plugins-static.yaml'
+
+jobs:
+  plugins-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+      - name: Run the plugin catalogue's static suite
+        run: make test-plugins-static

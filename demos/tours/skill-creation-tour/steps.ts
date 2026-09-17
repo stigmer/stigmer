@@ -4,10 +4,9 @@
  * (Cursor, Claude Code, anything), zip it, upload it in the console with the
  * real `SkillUploader`, and land on the Skill's detail page in the Library.
  *
- * Deliberately NOT an AI-conversation flow — there is no Skill Creator agent
- * in the product yet, and a Getting Started tour must depict what a viewer
- * can actually do. If/when an AI-assisted flow ships, `agent-creation-tour`
- * is the conversation-tour pattern to follow.
+ * Deliberately NOT an AI-conversation flow: a skill is a file a person
+ * authors in their editor and pushes, and a Getting Started tour must depict
+ * what a viewer can actually do.
  *
  * `index.tsx` renders these steps; `.scenar/providers.tsx` supplies the Skill
  * fixture the real `SkillDetailView` fetches. The cursor is driven by each
@@ -145,7 +144,7 @@ export const skillCreationTourSteps: ScenarioStep<SkillCreationTourStep>[] = [
     // No cursor here: the embed arms step-0 interactions at mount (under the
     // poster), so they fire before Play — a @scenar/react quirk every ported
     // tour works around by keeping its first step cursor-less. (Narration on
-    // step 0 is fine; create-agent-tour ships it.)
+    // step 0 is fine; api-key-setup ships it.)
   },
   {
     delayMs: 3000,

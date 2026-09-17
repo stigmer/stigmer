@@ -1,11 +1,13 @@
 /**
  * `@stigmer/plugin-package`: the public surface.
  *
- * `readPluginPackage` is the entry; everything else here is what a consumer
- * needs to supply its input (`PluginFiles`, the caps), route a directory
- * (`MANIFEST_LOCATIONS`, `hasPluginManifest`), or render the outcome (the
- * finding kinds and `isErrorKind`). The dialect readers and normalisers are
- * internal: a consumer never composes a partial read.
+ * `readPluginPackage` reads one plugin; `readMarketplace` reads a catalogue
+ * of them. Everything else here is what a consumer needs to supply its
+ * input (`PluginFiles`, the caps), route a directory (`MANIFEST_LOCATIONS`,
+ * `hasPluginManifest`, `MARKETPLACE_LOCATIONS`, `hasMarketplaceFile`), or
+ * render an outcome (the finding kinds and `isErrorKind`). The dialect
+ * readers and normalisers are internal: a consumer never composes a partial
+ * read.
  */
 
 export { hasPluginManifest, isValidPluginName } from "./detect.js";
@@ -32,6 +34,7 @@ export {
 export { SUB_AGENT_INSTRUCTIONS_MIN, classifyModel } from "./normalise/sub-agents.js";
 export { PLACEHOLDER_PATTERN, VARIABLE_NAME_PATTERN } from "./placeholders.js";
 export type {
+  Finding,
   FindingContext,
   PluginErrorKind,
   PluginFinding,
@@ -39,6 +42,19 @@ export type {
   PluginReadOutcome,
   PluginWarningKind,
 } from "./outcome.js";
+export { MARKETPLACE_LOCATIONS } from "./marketplace/messages.js";
+export type {
+  Marketplace,
+  MarketplaceDialect,
+  MarketplaceEntry,
+  MarketplaceErrorKind,
+  MarketplaceFinding,
+  MarketplaceFindingKind,
+  MarketplaceOwner,
+  MarketplaceReadOutcome,
+  MarketplaceWarningKind,
+} from "./marketplace/outcome.js";
+export { hasMarketplaceFile, readMarketplace } from "./marketplace/read-marketplace.js";
 export { readPluginPackage } from "./read-plugin-package.js";
 export type {
   IgnoredComponent,
