@@ -1,6 +1,6 @@
 # Capability Discovery
 
-How McpServers report their tools and resource templates, the three sources of discovered capabilities, and why discovery matters for authoring agents and approval policies.
+How McpServers report their tools and resource templates, how the connect flow discovers them, and why discovery matters for authoring agents and approval policies.
 
 ## What Are Discovered Capabilities?
 
@@ -11,17 +11,17 @@ Discovered capabilities are a **point-in-time snapshot** of the tools and resour
 
 Discovered capabilities are **not live** — they do not update automatically when the MCP server changes. Discovery is an explicit action.
 
-## Three Discovery Sources
+## How Capabilities Are Discovered
 
-Defined by `DiscoverySource` in `ai/stigmer/agentic/mcpserver/v1/status.proto`.
+Discovery is the connect flow, and every server is discovered the same way; nothing is pre-populated. The flow starts from one of three places:
 
-| Source | Value | How Populated |
-|---|---|---|
-| `seedpack` | Built-in servers with known, stable tool sets | Populated automatically during platform bootstrap for first-party servers (e.g., `stigmer-mcp-server`). No action required. |
-| `cli` | Developer-initiated discovery | Run `stigmer discover mcp-server <slug>` locally. The CLI connects to the server, queries its tools, and pushes the results to the platform. |
-| `agent_runner` | Runtime cache refresh (future) | Reserved for future runner-initiated discovery during execution (the enum value name predates the unified runner). Not yet implemented. |
+| Entry point | When |
+|---|---|
+| Web console | Connect on the McpServer's page. |
+| CLI | `stigmer connect mcp-server <slug>`. |
+| Runner backfill | An Agent's first use of a server that has never been connected. |
 
-For most McpServers, discovery is done via the CLI.
+In each case the backend delegates to the runner through a Temporal workflow; the runner connects to the server, enumerates its tools and resource templates, and writes the snapshot to `status.discovered_capabilities`.
 
 ## DiscoveredCapabilities Structure
 
@@ -36,7 +36,6 @@ Defined in `ai/stigmer/agentic/mcpserver/v1/status.proto`.
 status:
   discovered_capabilities:
     last_discovered_at: "2024-01-15T10:30:00Z"
-    discovered_by: cli
     tools:
       - name: search_code
         description: "Search across GitHub repositories"
@@ -187,16 +186,6 @@ input_schema:
 
 # Valid placeholders for this tool's approval message:
 message: "Create PR '{{args.title}}' in {{args.repo}} from {{args.head}}"
-```
-
-## Seedpack-Bootstrapped Servers
-
-First-party servers (like `stigmer-mcp-server`) have their capabilities pre-populated during platform bootstrap from the seedpack. You do not need to run discovery for these servers — their tool sets are known and stable.
-
-```bash
-# Check capabilities for the built-in stigmer MCP server
-stigmer get mcp-server stigmer-mcp-server --output yaml
-# status.discovered_capabilities.discovered_by: seedpack
 ```
 
 ## Related Documentation
