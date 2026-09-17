@@ -33,6 +33,8 @@ import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue.js";
 import { InlineEditResourceList } from "../inline-edit/InlineEditResourceList.js";
 import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types.js";
 import { AgentInstanceList } from "../agent-instance/AgentInstanceList.js";
+import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
+import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
@@ -114,6 +116,14 @@ export interface AgentDetailViewProps {
    * @default "overview"
    */
   readonly defaultTab?: string;
+  /**
+   * Called when the user selects the plugin named in the "installed by a
+   * plugin" notice; the host owns the route to the plugin's page. The
+   * notice shows when this resource carries a live plugin's label, and
+   * `editable` is then narrowed to `false`: the server refuses a client
+   * edit of a plugin's resource, so no edit form is offered.
+   */
+  readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
   /**
    * When `true`, fields on the detail view become click-to-edit.
    * Each field saves independently via `stigmer.agent.update()`.
@@ -223,7 +233,7 @@ export function AgentDetailView({
   activeTab,
   onTabChange,
   defaultTab,
-  editable = false,
+  editable: editableProp = false,
   onResourceUpdated,
   buildShareUrl,
   viewerOrg,
@@ -232,9 +242,13 @@ export function AgentDetailView({
   onInstanceStartSessionClick,
   onInstanceDeleteClick,
   instancesRefreshKey,
+  onPluginClick,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
+  const managing = useManagingPlugin(agent?.metadata?.labels);
+  // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
+  const editable = editableProp && managing.plugin === null;
   const { update, isUpdating } = useUpdateAgent();
 
   // Last failed inline save, attributed to the field that was edited so
@@ -458,6 +472,7 @@ export function AgentDetailView({
       <ResourceDetailShell
         header={headerMeta}
         visibilityControl={visibilityControl}
+        headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}
         actions={mergedActions}
         tabs={effectiveTabs}

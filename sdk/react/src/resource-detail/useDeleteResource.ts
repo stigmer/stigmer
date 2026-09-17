@@ -11,7 +11,8 @@ export type DeletableResourceKind =
   | "skill"
   | "mcpServer"
   | "workflow"
-  | "schedule";
+  | "schedule"
+  | "plugin";
 
 export interface UseDeleteResourceReturn {
   /**
@@ -82,6 +83,11 @@ export function useDeleteResource(
         case "schedule":
           await stigmer.schedule.delete(resourceId);
           break;
+        case "plugin":
+          // Removes the plugin and every resource it installed; the server
+          // refuses when something outside the plugin still references one.
+          await stigmer.plugin.delete(resourceId);
+          break;
       }
       toast.success(
         resourceName
@@ -116,5 +122,7 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "workflow";
     case "schedule":
       return "schedule";
+    case "plugin":
+      return "plugin";
   }
 }

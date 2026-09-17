@@ -26,6 +26,7 @@ import {
 const FGA_KIND: Record<VisibilityResourceKind, string> = {
   agent: "agent",
   workflow: "workflow",
+  plugin: "plugin",
   skill: "skill",
   mcpServer: "mcp_server",
   agentInstance: "agent_instance",

@@ -26,6 +26,8 @@ import type { StatusPhase } from "../resource-workbench/types.js";
 import { useSkillVersions } from "./useSkillVersions.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog.js";
+import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
+import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 
 const CONTENT_TAB: TabItem = { id: "content", label: "Content" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
@@ -102,6 +104,14 @@ export interface SkillDetailViewProps {
    * Skill content (SKILL.md / artifact) is NOT editable inline — use the upload flow.
    * @default false
    */
+  /**
+   * Called when the user selects the plugin named in the "installed by a
+   * plugin" notice; the host owns the route to the plugin's page. The
+   * notice shows when this resource carries a live plugin's label, and
+   * `editable` is then narrowed to `false`: the server refuses a client
+   * edit of a plugin's resource, so no edit form is offered.
+   */
+  readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
   readonly editable?: boolean;
   /**
    * Called after a successful inline field save with the updated skill.
@@ -152,11 +162,15 @@ export function SkillDetailView({
   onTabChange,
   defaultTab,
   onVersionSelect,
-  editable = false,
+  onPluginClick,
+  editable: editableProp = false,
   onResourceUpdated,
   className,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
+  const managing = useManagingPlugin(skill?.metadata?.labels);
+  // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
+  const editable = editableProp && managing.plugin === null;
   const { versions, isEmpty: noVersions, getArtifactKey } = useSkillVersions(org, slug);
   const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
 
@@ -295,6 +309,7 @@ export function SkillDetailView({
       <ResourceDetailShell
         header={headerMeta}
         visibilityControl={visibilityControl}
+        headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}
         actions={mergedActions}
         tabs={effectiveTabs}
