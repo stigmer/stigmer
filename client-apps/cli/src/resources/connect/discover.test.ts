@@ -22,7 +22,7 @@ function stdioSpec(scriptPath: string) {
 }
 
 // A spec whose args reference ${ALLOWED_DIR}, declared under spec.env — the shape
-// the seedpack filesystem server uses (issue #141).
+// a filesystem MCP server declares its root with (issue #141).
 function stdioSpecWithPlaceholderArg(scriptPath: string) {
   return create(McpServerSpecSchema, {
     serverType: { case: "stdio", value: { command: process.execPath, args: [scriptPath, "${ALLOWED_DIR}"] } },

@@ -1,71 +1,133 @@
-// Pins the bootstrap's shape: the seedpack step then the default-plugins step,
-// over one client; a seedpack failure is contained by its own step and the
-// plugins step still runs; a plugins failure is a warning that names the
-// retry command, never a throw past the bootstrap.
+// Pins the local bootstrap's shape: prepare, then retire, then run, over one
+// client; a preparation failure skips the retire and the run together (nothing
+// is deleted before its replacement is in hand); a retire failure is contained
+// by its own warning and the run still happens; a default that failed to
+// land is one warning naming `stigmer bootstrap`; nothing throws past the
+// bootstrap.
 
 import { describe, expect, it } from "vitest";
+import type { Stigmer } from "@stigmer/sdk";
 import type { BackendClient } from "../client/index.js";
 import {
+  type BootstrapResult,
+  type PreparedBootstrap,
   bootstrapLocalBackend,
-  installDefaultPluginsBestEffort,
 } from "./bootstrap.js";
 
-const client = { stigmer: {} } as unknown as BackendClient;
+const stigmer = {} as unknown as Stigmer;
+const client = { stigmer } as unknown as BackendClient;
+const prepared: PreparedBootstrap = { defaults: [] };
+
+function converged(): BootstrapResult {
+  return { org: "present", plugins: { outcomes: [], failed: [] } };
+}
 
 describe("bootstrapLocalBackend", () => {
-  it("runs the seedpack step then the plugins step, over the same client and home", async () => {
+  it("prepares, retires, then runs, over the same client and home", async () => {
     const order: string[] = [];
     await bootstrapLocalBackend("/home/x", {
       client,
       say: () => {},
-      seedpack: async (c, home) => {
-        expect(c).toBe(client);
-        expect(home).toBe("/home/x");
-        order.push("seedpack");
+      prepare: async () => {
+        order.push("prepare");
+        return prepared;
       },
-      plugins: async (c, home) => {
-        expect(c).toBe(client);
+      retire: async (s, home) => {
+        expect(s).toBe(stigmer);
         expect(home).toBe("/home/x");
-        order.push("plugins");
+        order.push("retire");
+      },
+      run: async (s, p) => {
+        expect(s).toBe(stigmer);
+        expect(p).toBe(prepared);
+        order.push("run");
+        return converged();
       },
     });
-    expect(order).toEqual(["seedpack", "plugins"]);
+    expect(order).toEqual(["prepare", "retire", "run"]);
   });
 
-  it("still runs the plugins step when the seedpack step has warned", async () => {
+  it("skips the retire and the run when preparation fails, with one warning", async () => {
     const said: string[] = [];
-    let plugins = 0;
+    let retired = 0;
+    let ran = 0;
     await bootstrapLocalBackend("/home/x", {
       client,
       say: (line) => said.push(line),
-      seedpack: async (_c, _h, say) => say("Warning: seedpack failed"),
-      plugins: async () => {
-        plugins += 1;
+      prepare: async () => {
+        throw new Error("offline");
+      },
+      retire: async () => {
+        retired += 1;
+      },
+      run: async () => {
+        ran += 1;
+        return converged();
       },
     });
-    expect(plugins).toBe(1);
-    expect(said).toEqual(["Warning: seedpack failed"]);
+    expect(retired).toBe(0);
+    expect(ran).toBe(0);
+    expect(said).toEqual([
+      "Warning: could not prepare the default plugins, so the local backend was not bootstrapped and nothing was retired. Run 'stigmer up' again to retry.",
+    ]);
   });
-});
 
-describe("installDefaultPluginsBestEffort", () => {
-  it("turns a step that cannot even start into one warning naming the retry commands", async () => {
+  it("still runs when the retire step threw, and warns once for it", async () => {
     const said: string[] = [];
-    // A client whose plugin lookups throw: the step's own failure path, not a default's.
-    const broken = {
-      stigmer: {
-        plugin: {
-          getByReference: async () => {
-            throw new Error("backend unreachable");
-          },
-        },
+    let ran = 0;
+    await bootstrapLocalBackend("/home/x", {
+      client,
+      say: (line) => said.push(line),
+      prepare: async () => prepared,
+      retire: async () => {
+        throw new Error("project read failed");
       },
-    } as unknown as BackendClient;
-    await installDefaultPluginsBestEffort(broken, "/home/x", (line) =>
-      said.push(line),
-    );
-    expect(said.filter((line) => line.startsWith("Warning:"))).toEqual([
-      "Warning: failed to install default plugin 'assistant'. Run 'stigmer install assistant' to retry.",
+      run: async () => {
+        ran += 1;
+        return converged();
+      },
+    });
+    expect(ran).toBe(1);
+    expect(said).toEqual([
+      "Warning: failed to retire the resources an older release installed. Run 'stigmer up' again to retry.",
+    ]);
+  });
+
+  it("names each default that did not land and the verb that retries it", async () => {
+    const said: string[] = [];
+    await bootstrapLocalBackend("/home/x", {
+      client,
+      say: (line) => said.push(line),
+      prepare: async () => prepared,
+      retire: async () => {},
+      run: async () => ({
+        org: "created",
+        plugins: {
+          outcomes: [
+            { name: "assistant", action: "failed", error: "refused" },
+          ],
+          failed: ["assistant"],
+        },
+      }),
+    });
+    expect(said).toEqual([
+      "Warning: failed to install default plugin 'assistant'. Run 'stigmer bootstrap' to retry.",
+    ]);
+  });
+
+  it("turns a run that cannot even start into one warning naming the verb", async () => {
+    const said: string[] = [];
+    await bootstrapLocalBackend("/home/x", {
+      client,
+      say: (line) => said.push(line),
+      prepare: async () => prepared,
+      retire: async () => {},
+      run: async () => {
+        throw new Error("backend unreachable");
+      },
+    });
+    expect(said).toEqual([
+      "Warning: failed to bootstrap the local backend. Run 'stigmer bootstrap' to retry.",
     ]);
   });
 });

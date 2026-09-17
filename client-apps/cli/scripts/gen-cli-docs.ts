@@ -59,6 +59,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   usage: "core",
   // Lifecycle
   up: "lifecycle",
+  bootstrap: "lifecycle",
   down: "lifecycle",
   status: "lifecycle",
   logs: "lifecycle",
