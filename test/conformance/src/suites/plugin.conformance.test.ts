@@ -205,6 +205,13 @@ describe("Plugin conformance — install", () => {
       isSecret: true,
       optional: false,
     });
+    // The composed agent declares its tools' variables too: an execution
+    // passes an agent only the keys it declares, and every client's session
+    // start asks the user for the agent's declared keys.
+    expect(agent.spec?.env["GITHUB_TOKEN"]).toMatchObject({
+      isSecret: true,
+      optional: false,
+    });
   });
 
   it("materialises an MCP-only package as its server and no agent", async () => {
