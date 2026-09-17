@@ -37,6 +37,7 @@ import { ReconciliationSummarySchema } from "@stigmer/protos/ai/stigmer/tenancy/
 import type { ReconciliationSummary } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
 
@@ -205,28 +206,32 @@ async function deleteOrphans(
 }
 
 /**
- * Resolves an orphan reference to its resource id — Go resolveResourceID:
- * FindByField on metadata.slug, SLUG ONLY, no org filter (the pinned
- * behavior: first match of that kind+slug across all orgs; tolerable in
- * single-tenant OSS).
+ * Resolves an orphan reference to its resource id, within the org the
+ * reference names. Slugs are org-scoped identifiers: a local backend holds
+ * the `stigmer` system org beside the user's, a self-host holds many, and
+ * the same slug may exist in several. The Go port matched by slug alone and
+ * could prune another org's resource (stigmer/stigmer#1151); the CLI has
+ * always stamped `org` on every member reference, so scoping is a change
+ * of lookup, not of contract. A reference without an org (a project written
+ * before members carried one) keeps the unscoped match, the helper's
+ * documented empty-org arm.
  */
 async function resolveResourceId(
   store: Store,
   ref: ApiResourceReference,
 ): Promise<string> {
   const schema = schemaForKind(ref.kind);
-  let resource;
-  try {
-    resource = await store.findByField(
-      ref.kind,
-      "metadata.slug",
-      ref.slug,
-      schema,
-    );
-  } catch (cause) {
+  const resource = await findResourceBySlug(
+    store,
+    ref.kind,
+    schema,
+    ref.slug,
+    ref.org,
+  );
+  if (resource === undefined) {
+    const where = ref.org === "" ? "" : ` in org '${ref.org}'`;
     throw new Error(
-      `resource ${kindName(ref.kind)}/${ref.slug} not found: ${cause instanceof Error ? cause.message : String(cause)}`,
-      { cause },
+      `resource ${kindName(ref.kind)}/${ref.slug} not found${where}`,
     );
   }
 
