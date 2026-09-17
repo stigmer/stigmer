@@ -83,7 +83,6 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   download: "artifact",
   // Server
   "mcp-server": "server",
-  seedpack: "server",
   // Configuration
   auth: "config",
   apikey: "config",
