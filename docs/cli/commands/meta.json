@@ -19,7 +19,6 @@
     "connect",
     "delete",
     "diff",
-    "draft",
     "get",
     "list",
     "schedule",
@@ -29,6 +28,7 @@
     "validate",
     "---Artifact Commands---",
     "download",
+    "install",
     "push",
     "---Server Commands---",
     "mcp-server",
@@ -38,6 +38,7 @@
     "auth",
     "completion",
     "config",
+    "marketplace",
     "version"
   ]
 }

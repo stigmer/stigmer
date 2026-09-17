@@ -25,22 +25,13 @@ describe("buildProgram", () => {
   it("registers the Wave 3c streaming commands", () => {
     const program = buildProgram();
     const names = program.commands.map((command) => command.name());
-    expect(names).toEqual(expect.arrayContaining(["run", "resume", "draft"]));
+    expect(names).toEqual(expect.arrayContaining(["run", "resume"]));
   });
 
-  it("exposes the draft subcommands", () => {
+  it("has no draft command: a plugin is authored outside Stigmer and installed, never drafted by a system agent", () => {
     const program = buildProgram();
-    const draft = program.commands.find((command) => command.name() === "draft");
-    const subs = draft?.commands.map((command) => command.name()).sort();
-    expect(subs).toEqual(["agent", "mcp-server", "skill"]);
-  });
-
-  it("marks draft subcommands' --message as required", () => {
-    const program = buildProgram();
-    const draft = program.commands.find((command) => command.name() === "draft");
-    const skill = draft?.commands.find((command) => command.name() === "skill");
-    const message = skill?.options.find((option) => option.long === "--message");
-    expect(message?.required).toBe(true);
+    const names = program.commands.map((command) => command.name());
+    expect(names).not.toContain("draft");
   });
 
   it("exposes the share subcommands", () => {

@@ -1,0 +1,12 @@
+{
+  "name": "stigmer",
+  "description": "Stigmer's official plugin catalogue: the plugins a fresh install bootstraps with, and the plugins you add by name.",
+  "owner": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "plugins": [
+    { "name": "assistant", "source": "./assistant" }
+  ],
+  "defaults": ["assistant"]
+}

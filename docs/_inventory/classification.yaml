@@ -41,9 +41,9 @@ pages:
     medium: animated-tour
     why:
       The hero exists to show the product working; motion is the pitch. The
-      current tour depicts a stale single-entry-point flow and gets re-authored.
+      quickstart tour is the first thing a reader does, so the hero shows it.
     embeds:
-      create-agent-tour: replace
+      quickstart-tour: replace
 
   # ── Get Started ────────────────────────────────────────────────────────
   concepts/what-is-stigmer:
@@ -116,12 +116,9 @@ pages:
       replace per-Session ref lists with one agent lookup.
     medium: screenshot-journey
     why:
-      The console now offers three creation entry points (YAML upload, template,
-      form); a still sequence can cover all three where the stale tours depict
-      only the conversational one (DD-011's trigger).
-    embeds:
-      create-agent-tour: replace
-      agent-creation-tour: replace
+      The console offers three creation entry points (YAML upload, template,
+      form); a still sequence covers all three. The conversational tours that
+      depicted an in-product creator agent were retired with that agent.
 
   getting-started/first-workflow:
     fate: keep
@@ -216,6 +213,23 @@ pages:
       Validate a Cursor, Claude Code, Codex or Agent Plugins folder offline,
       install it as one unit, upgrade it by pushing again, and understand why
       its members are the plugin's to redefine.
+    medium: none
+
+  guides/plugins/install-from-a-marketplace:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Add a vendor's or your own plugin marketplace, see what it offers, install
+      a plugin from it by name, and understand what the server does and does
+      not record about where a plugin came from.
+    medium: none
+
+  guides/plugins/marketplace-file:
+    fate: keep
+    diataxis: reference
+    teaches:
+      The four marketplace file locations Stigmer reads, the one shape they
+      reduce to, what makes an entry installable, and the two error postures.
     medium: none
 
   guides/sharing/share-an-agent:

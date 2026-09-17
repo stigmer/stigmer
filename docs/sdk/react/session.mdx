@@ -100,43 +100,6 @@ await create({
 ```
 
 
-### useEditSessionPrep
-
-Prepares initial attachment files for an edit-mode draft session.
-
-Given a resource type and an org/slug reference, this hook fetches the
-existing resource and serializes it into a `File` object suitable for
-the `initialAttachments` prop of `SessionComposer`:
-
-- **agent** / **mcp-server**: serialized to YAML
-- **skill**: downloaded as a ZIP package
-
-Pass `null` for `draftType` or `editRef` to skip preparation (used
-when the session is in create-mode rather than edit-mode).
-
-**Signature**
-
-```tsx
-function useEditSessionPrep(draftType: DraftResourceType | null, editRef: { org: string; slug: string } | null): UseEditSessionPrepReturn
-```
-
-<TypeTable
-  type={{
-    draftType: { type: "DraftResourceType | null", description: "", required: true },
-    editRef: { type: "{ org: string; slug: string } | null", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseEditSessionPrepReturn`
-
-<TypeTable
-  type={{
-    error: { type: "string | null", description: "Non-null when resource fetch or serialization failed." },
-    files: { type: "File[] | undefined", description: "Files ready to be passed as `initialAttachments` to SessionComposer." },
-  }}
-/>
-
-
 ### useExportTranscript
 
 Behavior hook that exports a session's whole conversation — thinking,
@@ -1490,37 +1453,6 @@ Resolved output of `UseCreateSessionReturn.create`.
 />
 
 
-### CREATOR_AGENTS
-
-System agents responsible for creating each resource type.
-
-Keys match [`DraftResourceType`](#draftresourcetype); values are `ResourceRef`
-objects pointing to Stigmer's built-in creator agents.
-
-
-### DraftParams
-
-Parsed draft session parameters.
-
-When `editRef` is present, the session is an edit session (modify an
-existing resource). When absent, it's a create session (new resource).
-
-<TypeTable
-  type={{
-    draftType: { type: "DraftResourceType", description: "The kind of resource this draft session will create or edit.", required: true, typeDescriptionLink: "#draftresourcetype" },
-    editRef: { type: "{ org: string; slug: string }", description: "When present, identifies the existing resource to edit. Absent for create-mode sessions." },
-  }}
-/>
-
-
-### DraftResourceType
-
-Resource types that can be created or edited via a draft session.
-
-Each type maps to a Stigmer system agent that guides the user
-through the creation/editing flow in a conversational session.
-
-
 ### ExecutionTargetOption
 
 String literal alias for the proto `ExecutionTarget` enum.
@@ -1624,33 +1556,6 @@ Per-model cost breakdown.
     provider: { type: "string", description: "Provider name (e.g. \"anthropic\", \"openai\").", required: true },
   }}
 />
-
-
-### parseDraftParams
-
-Parse draft session parameters from standard `URLSearchParams`.
-
-Returns `null` when no valid `draft` param is present. When `editOrg`
-and `editSlug` are both present, the returned object includes an
-`editRef` indicating this is an edit session rather than a create session.
-
-Works identically with Next.js `useSearchParams()` or react-router's
-`useSearchParams()` — both return standard `URLSearchParams`.
-
-```tsx
-function parseDraftParams(searchParams: URLSearchParams): DraftParams | null
-```
-
-
-### parseDraftType
-
-Validate a string as a recognized [`DraftResourceType`](#draftresourcetype).
-
-Returns the validated type or `null` if unrecognized.
-
-```tsx
-function parseDraftType(value: string | null): DraftResourceType | null
-```
 
 
 ### PLAN_DOCUMENT_ENTRY_ID

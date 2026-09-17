@@ -76,7 +76,7 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
       "Your key is ready. Copy it now — you won't see the full key again after this.",
     // The revealed key is the beat's payoff and renders at text-sm — the
     // camera leans in while the narration says "copy it now", then pulls
-    // back before the beat ends (the create-agent-tour legibility pattern;
+    // back before the beat ends (the legibility pattern;
     // demos/README.md "Legibility comes from the camera").
     interactions: [
       { type: "viewport_transition", target: "key-reveal", viewportZoom: 1.5, atPercent: 0.25 },

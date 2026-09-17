@@ -1,7 +1,7 @@
 /**
  * The reader's quickstart project — the workspace the Getting Started
- * sequence keeps returning to. `create-agent-tour` (on create-agent.mdx)
- * edits and runs `ask-agent.ts`; the `connect-tools-tour` overview (on
+ * sequence keeps returning to. `quickstart-tour` (on quickstart.mdx) writes
+ * and runs `ask-agent.ts`; the `connect-tools-tour` overview (on
  * connect-tools.mdx) edits the same file to add MCP servers and runs it
  * again. The reader is following one project across pages, so its identity
  * — folder name, entry file, file tree, terminal chrome — lives here once

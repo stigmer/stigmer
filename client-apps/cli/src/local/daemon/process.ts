@@ -52,7 +52,7 @@ export interface InternalDaemonDeps {
   /**
    * Invoked once the stack is up and the monitor is running, and awaited
    * before the daemon settles into waiting for shutdown. The foreground
-   * launcher does its post-readiness work here (seedpack, the success card);
+   * launcher does its post-readiness work here (the bootstrap, the success card);
    * tests use it to observe "started".
    */
   onStarted?: () => void | Promise<void>;

@@ -1,9 +1,9 @@
 ---
 title: Use Stigmer Skills in your AI editor
 description:
-  How assistants pick up Skills, where to download Stigmer's creator Skills from
-  the Seedpack and add them to Claude Code, Cursor, or Claude Desktop, and how
-  to write and push your own domain Skills.
+  How assistants pick up Skills, where to download Stigmer's creator Skill from
+  the Seedpack and add it to Claude Code, Cursor, or Claude Desktop, and how to
+  write and push your own domain Skills.
 ---
 
 A Skill is a folder of markdown — a `SKILL.md` file plus optional reference
@@ -13,9 +13,9 @@ Skills show up in two places, and both matter when you work from an editor:
 - **Domain Skills** are the knowledge your Agents use at run time — your product
   details, your metrics definitions, your playbooks.
 - **Creator Skills** teach the assistant in _your editor_ how to author Stigmer
-  resources correctly — valid Agent, Workflow, and MCP server definitions.
+  resources correctly — today, valid Workflow definitions.
 
-This guide covers how editors pick up Skills, the creator Skills Stigmer ships,
+This guide covers how editors pick up Skills, the creator Skill Stigmer ships,
 and how to maintain your own.
 
 ## How editors pick up Skills
@@ -34,11 +34,7 @@ For editors that load Skills from a folder, drop each one in `.claude/skills/`:
 your-repo/
 └── .claude/
     └── skills/
-        ├── agent-creator/
-        │   └── SKILL.md
-        ├── workflow-creator/
-        │   └── SKILL.md
-        └── mcp-server-creator/
+        └── workflow-creator/
             └── SKILL.md
 ```
 
@@ -46,23 +42,24 @@ your-repo/
   Claude Code, Cursor, and Claude Desktop's Cowork and Code modes pick up the
   Skills as soon as you open or connect the folder. In Claude Desktop's Chat
   mode there is no folder — add each Skill as a ZIP under **Customize → Skills**
-  (see [Get the creator Skills](#get-the-creator-skills) below).
+  (see [Get the creator Skill](#get-the-creator-skill) below).
 </Callout>
 
-## Stigmer's creator Skills
+## Stigmer's creator Skill
 
-When these Skills are available, you can author Stigmer resources by describing
-what you want — the assistant handles the YAML, the schema, and the validation
-rules:
+With this Skill available, you can author Workflows by describing what you want
+— the assistant handles the YAML, the schema, and the validation rules:
 
-| Skill                | What it lets you do                                      |
-| -------------------- | -------------------------------------------------------- |
-| `agent-creator`      | Create and edit Agent definitions                        |
-| `workflow-creator`   | Design, refine, and diagnose Workflows                   |
-| `mcp-server-creator` | Define MCP servers that connect Agents to external tools |
-| `skill-creator`      | Author, refine, and package new Skills                   |
+| Skill              | What it lets you do                    |
+| ------------------ | -------------------------------------- |
+| `workflow-creator` | Design, refine, and diagnose Workflows |
 
-For example, with the creator Skills available you can ask:
+Agents, Skills and MCP servers are authored as a plugin instead: a folder your
+editor already knows how to write (Cursor, Claude Code and Codex all ship
+plugin-authoring helpers) that Stigmer installs in one command. See
+[Install a plugin](/docs/guides/plugins/install-a-plugin).
+
+For example, with the creator Skill available you can ask:
 
 ```
 Create a workflow that runs the analyst agent, then the strategist agent,
@@ -73,21 +70,18 @@ The assistant writes a valid Workflow definition, validates it, and tells you
 the command to push it. You never have to learn the YAML format yourself.
 
 <Callout type="info">
-  Pair the creator Skills with the [Stigmer MCP
+  Pair the creator Skill with the [Stigmer MCP
   connector](/docs/guides/editors/connect-mcp) so the assistant can also
   validate against your live Organization and create resources directly.
 </Callout>
 
-## Get the creator Skills
+## Get the creator Skill
 
-The creator Skills are part of the open-source Stigmer **Seedpack**. Download a
-Skill's folder from GitHub (or browse all of them in the
+The creator Skill is part of the open-source Stigmer **Seedpack**. Download its
+folder from GitHub (or browse the
 [Seedpack Skills directory](https://github.com/stigmer/stigmer/tree/main/seedpack/skills)):
 
-- [`agent-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/agent-creator)
 - [`workflow-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/workflow-creator)
-- [`mcp-server-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/mcp-server-creator)
-- [`skill-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/skill-creator)
 
 How you install them depends on your assistant:
 

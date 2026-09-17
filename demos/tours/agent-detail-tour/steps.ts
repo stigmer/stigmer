@@ -43,10 +43,8 @@ export const DEMO_SLUG = "support-agent";
  * listing the embed sits under on `docs/concepts/agents.mdx`, so the reader
  * sees exactly the definition they just read.
  *
- * Note this is deliberately NOT `create-agent-tour`'s `buildDemoAgent()`:
- * that tour's story creates a one-skill agent, while this page's listing
- * declares two. The same slug carrying two spec variants is recorded on the
- * depicted-identity debt entry (scenar-cloud project notes).
+ * This page's listing declares a two-skill agent, so the fixture here is
+ * built from the listing rather than shared with any other tour.
  */
 export function buildDemoAgent() {
   const agent = samples.agent({

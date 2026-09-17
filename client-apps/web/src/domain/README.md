@@ -19,7 +19,7 @@ Ask one question: **"Would a platform builder embedding Stigmer need this?"**
 | `_shared/org/` | Organization context and org gate — multi-tenancy infrastructure used across all areas |
 | `_shared/hooks/` | Cross-cutting Console hooks (deployment mode, static route params) |
 | `_shared/ui/` | Console UI primitives (button, card, dialog, etc.) — thin wrappers over `@stigmer/theme` |
-| `session/` | Session page, session launcher, session navigation context, draft session utilities |
+| `session/` | Session page, session launcher, session navigation context, launcher URL builders |
 | `settings/` | Settings section panels (members, API keys, environments, etc.) |
 | `library/` | Library landing, resource list/detail pages, library navigation, breadcrumb |
 | `library/agents/` | Agent list and detail pages |

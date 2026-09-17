@@ -98,19 +98,17 @@ describe("extractToDir", () => {
     expect(manifest).toContain("kind: Project");
     expect(manifest).toContain("name: stigmer-seedpack");
 
-    // The resources the platform's own features reach for by name: the
-    // creator agents and their skills, the stigmer MCP server, the sample
-    // workflows. Present and non-empty in every extracted copy.
+    // The resources the platform's own features reach for by name and that
+    // still live here: the stigmer MCP server, the sample workflows, the
+    // workflow-creator skill. The default agent moved to the plugin catalogue
+    // (plugins/assistant), which `stigmer up` installs after this project;
+    // the three creator agents and their skills were retired with the
+    // `draft` flow. None of those may be here: a copy of the default agent
+    // would make the plugin install refuse its slug.
     const systemResources = [
       "organizations/stigmer.yaml",
-      "agents/skill-creator.yaml",
-      "agents/agent-creator.yaml",
-      "agents/mcp-server-creator.yaml",
       "mcp-servers/stigmer.yaml",
       "mcp-servers/github.yaml",
-      "skills/skill-creator/SKILL.md",
-      "skills/agent-creator/SKILL.md",
-      "skills/mcp-server-creator/SKILL.md",
       "skills/workflow-creator/SKILL.md",
       "workflows/content-review-pipeline.yaml",
       "workflows/support-ticket-triage.yaml",
@@ -123,6 +121,24 @@ describe("extractToDir", () => {
         `${rel} missing from the extracted project`,
       ).toBe(true);
       expect(statSync(path).size, `${rel} is empty`).toBeGreaterThan(0);
+    }
+
+    // Gone from here for good: the default agent (a plugin now) and the
+    // retired creator agents with their skills.
+    const gone = [
+      "agents/assistant.yaml",
+      "agents/agent-creator.yaml",
+      "agents/skill-creator.yaml",
+      "agents/mcp-server-creator.yaml",
+      "skills/agent-creator",
+      "skills/skill-creator",
+      "skills/mcp-server-creator",
+    ];
+    for (const rel of gone) {
+      expect(
+        existsSync(join(dir, rel)),
+        `${rel} must not be in the seedpack (the default agent is plugins/assistant; the creator agents were retired)`,
+      ).toBe(false);
     }
   }, 60_000);
 });

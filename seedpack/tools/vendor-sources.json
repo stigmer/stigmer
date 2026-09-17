@@ -1,14 +1,6 @@
 {
   "skills": [
     {
-      "name": "skill-creator",
-      "source": {
-        "type": "git",
-        "url": "https://github.com/anthropics/skills",
-        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
-      }
-    },
-    {
       "name": "brand-guidelines",
       "source": {
         "type": "git",

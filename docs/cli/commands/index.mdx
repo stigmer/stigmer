@@ -36,7 +36,6 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 | [`stigmer connect`](./connect)   | connect to external services and discover capabilities            |
 | [`stigmer delete`](./delete)     | delete a resource by type and reference (slug, org/slug, or ID)   |
 | [`stigmer diff`](./diff)         | compare local YAML with remote resource state                     |
-| [`stigmer draft`](./draft)       | create resource configurations with AI assistance                 |
 | [`stigmer get`](./get)           | get a resource by type and reference (slug, org/slug, or ID)      |
 | [`stigmer list`](./list)         | list resources of a type (or 'list types' for available types)    |
 | [`stigmer schedule`](./schedule) | operate on schedules                                              |
@@ -47,10 +46,11 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 
 ## Artifact Commands
 
-| Command                          | Description                                                       |
-| -------------------------------- | ----------------------------------------------------------------- |
-| [`stigmer download`](./download) | download artifacts from an execution                              |
-| [`stigmer push`](./push)         | push an artifact to the registry (supported types: skill, plugin) |
+| Command                          | Description                                                               |
+| -------------------------------- | ------------------------------------------------------------------------- |
+| [`stigmer download`](./download) | download artifacts from an execution                                      |
+| [`stigmer install`](./install)   | install a plugin from a marketplace by name: [marketplace/]name[@version] |
+| [`stigmer push`](./push)         | push an artifact to the registry (supported types: skill, plugin)         |
 
 ## Server Commands
 
@@ -61,13 +61,14 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 
 ## Configuration
 
-| Command                              | Description                                                      |
-| ------------------------------------ | ---------------------------------------------------------------- |
-| [`stigmer apikey`](./apikey)         | manage API keys for Stigmer Cloud authentication                 |
-| [`stigmer auth`](./auth)             | manage authentication with Stigmer Cloud                         |
-| [`stigmer completion`](./completion) | generate a shell completion script (bash, zsh, fish, powershell) |
-| [`stigmer config`](./config)         | Manage CLI configuration                                         |
-| [`stigmer version`](./version)       | print the CLI version                                            |
+| Command                                | Description                                                      |
+| -------------------------------------- | ---------------------------------------------------------------- |
+| [`stigmer apikey`](./apikey)           | manage API keys for Stigmer Cloud authentication                 |
+| [`stigmer auth`](./auth)               | manage authentication with Stigmer Cloud                         |
+| [`stigmer completion`](./completion)   | generate a shell completion script (bash, zsh, fish, powershell) |
+| [`stigmer config`](./config)           | Manage CLI configuration                                         |
+| [`stigmer marketplace`](./marketplace) | manage the plugin marketplaces you install from                  |
+| [`stigmer version`](./version)         | print the CLI version                                            |
 
 ## Global Flags
 

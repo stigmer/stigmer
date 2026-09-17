@@ -203,7 +203,7 @@ the viewport boundary owns it.
   canonical in a ~896px docs column everything renders at ~0.62×; a
   `viewport_transition` interaction (zoom toward the region the narration
   discusses, reset before the beat ends) is how small text becomes readable
-  — see `create-agent-tour/steps.ts` for the pattern.
+  — see `api-key-setup/steps.ts` for the pattern.
 - **Console beats live in a browser window.** Wrap them in `BrowserView`
   with the depicted `app.stigmer.ai` route in the address bar; editor and
   terminal beats keep their own window shells. `pack-all` passes `--stage`,

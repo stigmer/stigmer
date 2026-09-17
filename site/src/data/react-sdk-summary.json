@@ -256,7 +256,7 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 21,
+      "hooks": 20,
       "components": 7
     },
     {

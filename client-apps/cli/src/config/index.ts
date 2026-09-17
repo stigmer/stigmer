@@ -6,6 +6,7 @@ export {
   type CloudBackendConfig,
   type Config,
   type ContextConfig,
+  type MarketplaceEntryConfig,
   type NamedBackendConfig,
   type NamedBackendType,
   CLOUD_BACKEND_NAME,

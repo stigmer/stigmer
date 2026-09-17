@@ -149,8 +149,8 @@ function countingClient(preferences: StubPreferences): { client: Stigmer; calls:
   return { client, calls: () => calls };
 }
 
-/** prepareAgentExec options as `run` passes them: the kind is served here + harness opt-in. */
-const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true, applyAccountHarnessDefault: true } as const;
+/** prepareAgentExec options as `run` passes them: the kind is served here. */
+const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true } as const;
 
 describe("prepareAgentExec env injection", () => {
   it("injects STIGMER_ORG_ID when absent", async () => {
@@ -272,21 +272,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     expect(prepared.harness).toBe("native");
   });
 
-  it("ignores the preference when the caller has not opted in (draft, D5)", async () => {
-    // draft runs the seedpack's system creator agents — a utility flow that
-    // must not be silently rerouted onto the cursor engine by a preference
-    // meant for the user's own sessions (owner-ratified D5).
-    const prepared = await prepareAgentExec(
-      BASE_FLAGS,
-      clientWithPreferences({ defaultHarness: "cursor" }),
-      "acme",
-      undefined,
-      { accountPreferencesAvailable: true },
-    );
-    expect(prepared.harness).toBe("");
-  });
-
-  it("an explicit --harness still resolves for a non-opted-in caller (draft escape hatch)", async () => {
+  it("an explicit --harness resolves as given when the server serves no account preferences", async () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "cursor" },
       STUB_CLIENT,
@@ -329,7 +315,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithFailingWhoAmI(),
       "acme",
       undefined,
-      { accountPreferencesAvailable: false, applyAccountHarnessDefault: true },
+      { accountPreferencesAvailable: false },
     );
     expect(prepared.harness).toBe("");
   });

@@ -64,6 +64,7 @@
     "@stigmer/plugin-package": "*",
     "@stigmer/protos": "*",
     "@stigmer/sdk": "*",
+    "@stigmer/zip-structure": "*",
     "commander": "^12.1.0",
     "fflate": "^0.8.3",
     "ink": "^7.0.0",

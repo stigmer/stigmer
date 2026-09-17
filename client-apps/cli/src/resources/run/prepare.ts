@@ -41,7 +41,7 @@ export type ThinkingFlag = "" | "disabled" | "enabled";
  */
 export type HarnessFlag = "" | "native" | "cursor";
 
-/** Raw agent-execution flags shared by `run` and `draft` (Go's agentExecFlags). */
+/** Raw agent-execution flags as `run` parses them (Go's agentExecFlags). */
 export interface AgentExecFlags {
   readonly message: string;
   readonly attach: readonly string[];
@@ -93,28 +93,17 @@ export interface PreparedRun {
 /** Optional behavior switches for {@link prepareAgentExec}. */
 export interface PrepareAgentExecOptions {
   /**
-   * When `true` and `--model` is omitted, the model is filled from the
-   * caller's account preference (`IdentityAccountPreferences.default_*_model`
-   * for the resolved harness) via `whoAmI()`. The caller answers this from
-   * the connected server's edition and the kind's tier —
+   * When `true`, an omitted `--harness` is filled from the caller's account
+   * preference (`IdentityAccountPreferences.default_harness`) and an omitted
+   * `--model` from `default_*_model` for the resolved harness, both via one
+   * `whoAmI()`. The caller answers this from the connected server's edition
+   * and the kind's tier —
    * `client.isResourceAvailable(ApiResourceKind.identity_account)` — never
    * from the config's backend type (20260911.11 A3): a server that does not
-   * serve identity accounts is not even asked, and the omitted model keeps
-   * resolving to the platform default.
+   * serve identity accounts is not even asked, and the omitted values keep
+   * resolving to the platform defaults.
    */
   readonly accountPreferencesAvailable?: boolean;
-  /**
-   * When `true` and `--harness` is omitted, the harness is filled from the
-   * caller's account preference (`IdentityAccountPreferences.default_harness`)
-   * where the kind is served. `run` opts in; `draft` deliberately does not: draft executes the
-   * seedpack's system creator agents (a utility flow, not the user's own
-   * conversation), which are built and exercised on the native harness —
-   * silently rerouting them onto the cursor engine (different toolset,
-   * premium billing tier) would fail the least-surprise test. An explicit
-   * `--harness` on draft still wins; only the silent preference fill is
-   * scoped out. Owner-ratified (D5, 2026-08-23).
-   */
-  readonly applyAccountHarnessDefault?: boolean;
 }
 
 /**
@@ -137,13 +126,12 @@ export async function prepareAgentExec(
   // Layered seeds (oss#293, DD-003): explicit flag > account preference
   // (where the server serves identity accounts) > platform default. Harness resolves first because the model
   // fill is harness-aware: a cursor session fills from default_cursor_model,
-  // everything else from default_native_model. `run` and `draft` always
-  // create a NEW session (threading lives in `resume`, which does not pass
-  // through here), so neither fill can ever contradict an existing session's
+  // everything else from default_native_model. `run` always creates a NEW
+  // session (threading lives in `resume`, which does not pass through
+  // here), so neither fill can ever contradict an existing session's
   // immutable harness. One whoAmI round trip serves both fills, and it is
   // skipped entirely when explicit flags leave nothing to fill.
-  const wantsHarnessFill =
-    flags.harness === "" && options?.applyAccountHarnessDefault === true;
+  const wantsHarnessFill = flags.harness === "";
   const wantsModelFill = flags.model === "";
   const accountDefaults =
     options?.accountPreferencesAvailable === true &&

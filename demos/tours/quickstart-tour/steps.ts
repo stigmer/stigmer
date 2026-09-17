@@ -9,7 +9,7 @@
  *
  * The code and terminal beats live in the reader's quickstart project
  * (`_shared/quickstart-workspace.ts`) — the same workspace
- * `create-agent-tour` and `connect-tools-tour` continue on later pages.
+ * `connect-tools-tour` continues on a later page.
  *
  * DD-004 note: beat 0 depicts the API Keys page exactly as it ships in the
  * reveal state — `ApiKeysSection` hides its "+ New API key" button while

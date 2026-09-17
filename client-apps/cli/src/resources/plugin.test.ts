@@ -1,7 +1,9 @@
 // Pins the plugin directory walker: detection by any of the four manifests,
 // sorted sized entries, the ignore matcher applied (defaults, .gitignore,
 // .stigmerignore), symlinks never followed, and the JSON projection that
-// reduces overlay documents to their paths.
+// reduces overlay documents to their paths; then the prepared push (the
+// deterministic archive and its SHA-256, the server's own digest) and the
+// install summary renderer.
 
 import {
   mkdirSync,
@@ -144,6 +146,32 @@ describe("zipPluginFiles", () => {
     expect(entries).toEqual(directory.files.entries.map((e) => e.path));
     expect(entries).not.toContain("debug.log");
     expect(entries).not.toContain("mcp-link.json");
+  });
+});
+
+describe("preparePluginPush", () => {
+  it("carries the walked archive and its SHA-256, the identity the server records", async () => {
+    const { createHash } = await import("node:crypto");
+    const { preparePluginPush, zipPluginFiles } = await import("./plugin.js");
+    const prepared = preparePluginPush(root);
+    expect(prepared.plugin.name).toBe("walker");
+    expect(prepared.dir).toBe(root);
+    expect(prepared.stats.filesIgnored).toBe(3);
+    const bytes = zipPluginFiles(readPluginDirectory(root).files);
+    expect(Buffer.from(prepared.archive).equals(Buffer.from(bytes))).toBe(true);
+    expect(prepared.digest).toBe(createHash("sha256").update(bytes).digest("hex"));
+    expect(prepared.digest).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("refuses offline with the same sentences validate prints", async () => {
+    const { preparePluginPush } = await import("./plugin.js");
+    const broken = mkdtempSync(join(tmpdir(), "stigmer-plugin-broken-"));
+    try {
+      writeFileSync(join(broken, "plugin.json"), JSON.stringify({ name: "Not Valid!" }));
+      expect(() => preparePluginPush(broken)).toThrow(/plugin cannot be installed/);
+    } finally {
+      rmSync(broken, { recursive: true, force: true });
+    }
   });
 });
 

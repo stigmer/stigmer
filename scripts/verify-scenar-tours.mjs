@@ -96,7 +96,7 @@
  * Like scripts/verify-esm-node.mjs, checks are AST-based (TypeScript parser
  * via createRequire, no new dependency) rather than regex, so string
  * literals and comments can never be mistaken for code — e.g. the displayed
- * terminal text '`session-${Date.now()}`' in create-agent-tour is data, not
+ * terminal text '`session-${Date.now()}`' in a tour's code beat is data, not
  * a clock read.
  *
  * Usage:

@@ -134,6 +134,35 @@ export async function assertArtifactLane(artifactBaseUrl) {
   }
 }
 
+/**
+ * The default plugin a fresh backend is bootstrapped with, read back the way
+ * `stigmer up` decides whether to push it: the `assistant` plugin in the
+ * system org, materialised (READY) and public. The seedpack marker proves the
+ * first bootstrap step ran; this proves the second, the one that gives a
+ * fresh install its default agent. Resolves to the plugin's digest.
+ */
+export async function waitForDefaultPlugin(baseUrl, timeoutMs, { org = "stigmer", slug = "assistant" } = {}) {
+  return pollUntil(`default plugin '${slug}' READY`, timeoutMs, async () => {
+    let plugin;
+    try {
+      plugin = await connectJson(baseUrl, "ai.stigmer.agentic.plugin.v1.PluginQueryController/getByReference", {
+        org,
+        kind: "plugin",
+        slug,
+      });
+    } catch (error) {
+      // Not yet installed: the bootstrap runs a few seconds after SERVING.
+      if (String(error).includes("HTTP 404")) return false;
+      throw error;
+    }
+    if (plugin.status?.state !== "PLUGIN_STATE_READY") return false;
+    if (plugin.metadata?.visibility !== "visibility_public") {
+      throw new Error(`default plugin '${slug}' is ${plugin.metadata?.visibility ?? "unset"} — want visibility_public`);
+    }
+    return plugin.status.digest;
+  });
+}
+
 const TERMINAL_FAILURES = new Set(["EXECUTION_FAILED", "EXECUTION_CANCELLED", "EXECUTION_TERMINATED"]);
 
 /**

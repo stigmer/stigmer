@@ -237,20 +237,15 @@ async function runPushPlugin(
   const visibility = parseVisibility(options.visibility, "--visibility");
 
   if (options.dryRun === true) {
-    const { readPluginPackage } = await import("@stigmer/plugin-package");
-    const read = plugin.readPluginDirectory(directory, ignoreOptions);
-    const outcome = readPluginPackage(read.files);
-    if (!outcome.ok) {
-      throw plugin.pluginRefusal(directory, outcome.errors, outcome.warnings);
-    }
+    const prepared = plugin.preparePluginPush(directory, ignoreOptions);
     const { CommandResult } = await import("../output/index.js");
     const result = plugin.describePackageOn(
       CommandResult.success(
-        `Dry run: plugin '${outcome.plugin.name}' would install`,
+        `Dry run: plugin '${prepared.plugin.name}' would install`,
       ),
-      outcome.plugin,
-      outcome.warnings,
-      read.stats,
+      prepared.plugin,
+      prepared.warnings,
+      prepared.stats,
     );
     result.hint("Run without --dry-run to install it.");
     renderCommandResult(result, format);

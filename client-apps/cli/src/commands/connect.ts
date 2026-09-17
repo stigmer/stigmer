@@ -81,7 +81,7 @@ async function runConnect(
   // resolution. Fail with actionable guidance instead of the backend's cryptic
   // "org value length must be at least 1" validation error. Dry-run discovers
   // locally (no backend push) and needs no org for an id reference, so it is
-  // exempt — mirrors the org guard in run/draft/resume.
+  // exempt — mirrors the org guard in run/resume.
   if (options.dryRun !== true && org === "") {
     throw new UsageError(
       "organization not set\n\n" +

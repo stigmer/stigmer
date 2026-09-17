@@ -104,6 +104,11 @@ jobs:
               - "site/**"
               - "apis/**"
               - "tools/codegen/**"
+              # check-docs-yaml validates the raw manifests under these
+              # authoring surfaces too (Makefile: --authoring-dirs).
+              - "examples/**"
+              - "seedpack/**"
+              - "plugins/**"
               - "client-apps/cli/**"
               - "sdk/ink/**"
               - "sdk/react/**"

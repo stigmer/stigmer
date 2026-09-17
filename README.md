@@ -121,7 +121,6 @@ my-skill/
 
 ```bash
 stigmer push                          # push skill from current directory
-stigmer draft skill --name my-skill   # scaffold a new skill
 ```
 
 ### MCP Servers

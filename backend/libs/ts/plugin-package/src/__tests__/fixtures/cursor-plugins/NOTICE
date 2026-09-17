@@ -14,6 +14,11 @@ Directories and their paths in the source repository:
   playwright/  <- third_party/playwright/
   salesforce/  <- third_party/salesforce/
 
+  .cursor-plugin/marketplace.json <- .cursor-plugin/marketplace.json
+    (the whole 79-entry catalogue; the marketplace tests mount the six
+    directories above at their source paths and expect the other 73 entries
+    to be reported as directories the tree does not hold)
+
 Every text file is a byte-for-byte copy of the source at that commit. The
 image files (assets/*.png, assets/*.svg) are zero-byte placeholders of the
 same name: the reader never opens them (a logo is an ignored component), and

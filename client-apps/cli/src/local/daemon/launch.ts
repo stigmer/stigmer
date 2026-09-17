@@ -18,6 +18,7 @@ import { type Config, load as loadConfig } from "../../config/config.js";
 import { log } from "../../logger.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { ExitCode } from "../../errors/exit-codes.js";
+import { bootstrapLocalBackend } from "../bootstrap.js";
 import { DAEMON_PID_FILE, SERVER_PORT } from "../constants.js";
 import { tcpConnects, waitForTcp } from "../net/tcp.js";
 import { dataDir, logDir } from "../paths.js";
@@ -71,7 +72,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
 
   await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
 
-  await applySeedpackBestEffort(home);
+  await bootstrapLocalBackend(home);
 
   saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, daemonPid, options));
 }
@@ -82,7 +83,7 @@ export interface UpForegroundDeps {
   runDaemon?: (deps: InternalDaemonDeps) => Promise<number>;
   /** Resolves when the stack should shut down (default: the first SIGTERM/SIGINT). */
   waitForShutdown?: () => Promise<void>;
-  /** Post-readiness bootstrap (default: the best-effort seedpack apply). */
+  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`, the seedpack then the default plugins). */
   bootstrap?: (home: string) => Promise<void>;
   /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
   mirror?: OutputMirror;
@@ -99,7 +100,7 @@ export interface UpForegroundDeps {
  * `up`, so `stigmer status` and `stigmer down` from another shell see an
  * ordinary daemon whose PID happens to be ours. The children receive the very
  * environment a detached daemon would have inherited, and what a detached `up`
- * does once the server answers — the seedpack, the startup record — happens in
+ * does once the server answers — the bootstrap, the startup record — happens in
  * `onStarted`, at the same point in the stack's life.
  */
 export async function upForeground(
@@ -109,7 +110,7 @@ export async function upForeground(
 ): Promise<number> {
   const { data, logs, temporalAddress, env } = await prepareLaunch(options, home);
   const runDaemon = deps.runDaemon ?? runInternalDaemon;
-  const bootstrap = deps.bootstrap ?? applySeedpackBestEffort;
+  const bootstrap = deps.bootstrap ?? bootstrapLocalBackend;
 
   return runDaemon({
     config: readDaemonConfig(env),
@@ -177,42 +178,6 @@ async function prepareLaunch(options: UpOptions, home: string): Promise<Prepared
   );
 
   return { data, logs, temporalAddress: temporal.address, env };
-}
-
-/**
- * Bootstrap the system seedpack into the freshly-started local backend.
- * Idempotent via a content-hash marker, so repeated `up`s are cheap. Best-effort: the stack is
- * already serving by this point, so a seedpack failure is surfaced as a warning
- * with a retry hint rather than tearing the stack down.
- */
-async function applySeedpackBestEffort(home: string): Promise<void> {
-  try {
-    const [{ createBackendClient }, { getDefault }, { applySeedpack }] = await Promise.all([
-      import("../../client/index.js"),
-      import("../../config/config.js"),
-      import("../seedpack/apply.js"),
-    ]);
-    // Always seed the local server `up` just started — never the active backend
-    // context. A user whose CLI is pointed at cloud must still get their local
-    // stack seeded, and must never have system resources applied to their cloud
-    // org. Pin to a fresh local config (localhost:SERVER_PORT) with no auth.
-    const client = createBackendClient({ config: getDefault(), getAccessToken: () => null });
-    const result = await applySeedpack(
-      {
-        controller: client.controller,
-        stigmer: client.stigmer,
-        info: (line) => process.stderr.write(`${line}\n`),
-        warn: (line) => process.stderr.write(`${line}\n`),
-      },
-      { markerDir: dataDir(home), home },
-    );
-    log.debug("seedpack bootstrap complete", { applied: result.applied, hash: result.hash, org: result.org });
-  } catch (err) {
-    log.warn("seedpack bootstrap failed", { error: String(err) });
-    process.stderr.write(
-      "Warning: failed to apply system resources (seedpack). Run 'stigmer seedpack apply' to retry.\n",
-    );
-  }
 }
 
 /** Stop the local stack. Returns false if nothing was running. */

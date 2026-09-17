@@ -1,0 +1,41 @@
+{
+  "name": "@stigmer/plugins",
+  "version": "0.0.0-dev",
+  "description": "Stigmer's official plugin marketplace: a directory tree of Agent Plugins packages with a root marketplace.json, published at the CLI's own version so `stigmer up` bootstraps content that matches the control plane it seeds",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/stage-content.mjs",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "stigmer",
+    "agent-plugins",
+    "marketplace",
+    "plugins",
+    "skills",
+    "mcp"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "plugins"
+  },
+  "devDependencies": {
+    "@stigmer/plugin-package": "*",
+    "@types/node": "^22.0.0",
+    "vitest": "^3.2.4",
+    "yaml": "^2.8.2"
+  }
+}

@@ -1,0 +1,80 @@
+Manage the plugin marketplaces you install from.
+
+A marketplace is a directory tree with a marketplace file at its root, the
+convention Cursor, Claude Code and Codex publish and Stigmer reads unchanged.
+The official marketplace is built in. `stigmer marketplace` records the others
+you want to install from under `marketplaces` in `~/.stigmer/config.yaml`; the
+server never sees a marketplace, only the plugin archive
+[`stigmer install`](./install) pushes from one.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Add Cursor's public marketplace (a GitHub repository)
+stigmer marketplace add cursor/plugins
+
+# Add a repository at a branch or tag, or from its URL
+stigmer marketplace add anthropics/claude-code@main
+stigmer marketplace add https://github.com/openai/codex
+
+# Add a marketplace on this machine
+stigmer marketplace add ./my-plugins
+
+# Record it under a name of your own
+stigmer marketplace add cursor/plugins --name cursor
+
+# See what is configured, and what one offers
+stigmer marketplace list
+stigmer marketplace show cursor-plugins
+
+# Stop installing from one (plugins already installed stay)
+stigmer marketplace remove cursor-plugins
+```
+
+{/* AUTO_FLAGS */}
+
+### Sources
+
+`add` accepts three forms and reads the marketplace once before recording it,
+so a source that is not a readable marketplace is refused now rather than on
+the first install.
+
+- **A directory** on this machine, stored as an absolute path. An existing
+  directory wins over every other reading, so `add plugins` inside a checkout
+  means the folder.
+- **A public GitHub repository** as `owner/repo`, optionally pinned with
+  `@ref` to a branch, tag or commit; the default branch otherwise. The tree is
+  fetched as a zipball on every `show` and `install`, never cached.
+- **That repository's URL** as a browser shows it,
+  `https://github.com/owner/repo` or `.../tree/<ref>`, unwrapped to the same
+  record.
+
+A GitHub marketplace is read at the repository root, where every vendor keeps
+its marketplace file. Private repositories are not supported.
+
+### Names
+
+The recorded name is the one the marketplace file gives itself
+(`cursor/plugins` calls itself `cursor-plugins`), unless `--name` says
+otherwise. It is the prefix in `stigmer install <name>/<plugin>`. `stigmer` is
+the built-in marketplace's name and cannot be added, replaced or removed.
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer install`](./install) | Install a plugin from a marketplace |
+| [`stigmer push`](./push) | Install a plugin from a folder on disk |
+| [`stigmer config`](./config) | Manage the rest of the CLI configuration |
+
+## See also
+
+- [Install from a marketplace](/docs/guides/plugins/install-from-a-marketplace) — the guide
+- [The marketplace file](/docs/guides/plugins/marketplace-file) — the format Stigmer reads
+- [Command Reference](./) — All available commands

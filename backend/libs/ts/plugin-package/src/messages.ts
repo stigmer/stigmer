@@ -11,13 +11,7 @@
  * kind unions, so a kind without a sentence does not compile.
  */
 
-import type {
-  FindingContext,
-  PluginErrorKind,
-  PluginFinding,
-  PluginFindingKind,
-  PluginWarningKind,
-} from "./outcome.js";
+import type { Finding, FindingContext, PluginErrorKind, PluginFindingKind, PluginWarningKind } from "./outcome.js";
 
 /** The canonical `$schema` identifiers the open format pins per version. */
 export const AGENT_PLUGINS_MANIFEST_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
@@ -31,10 +25,12 @@ export const MANIFEST_LOCATIONS = {
   codex: ".codex-plugin/plugin.json",
 } as const;
 
-const q = (value: string | undefined): string => `'${value ?? ""}'`;
-const at = (path: string | undefined): string => (path === undefined ? "" : ` in ${q(path)}`);
+/** Single-quote an identifier for a sentence (the ts-server quoting rule); shared with the marketplace vocabulary. */
+export const q = (value: string | undefined): string => `'${value ?? ""}'`;
+/** ` in '<path>'`, or nothing when the finding names no file. */
+export const at = (path: string | undefined): string => (path === undefined ? "" : ` in ${q(path)}`);
 
-type Sentence = (ctx: FindingContext) => string;
+export type Sentence = (ctx: FindingContext) => string;
 
 const ERROR_MESSAGES: Record<PluginErrorKind, Sentence> = {
   "no-manifest": () =>
@@ -175,27 +171,44 @@ export function isErrorKind(kind: PluginFindingKind): kind is PluginErrorKind {
   return kind in ERROR_MESSAGES;
 }
 
-/**
- * Collects findings while a read proceeds. The reader never throws on a
- * plugin's content: every problem becomes a finding here, and the read
- * continues so the outcome carries them all.
- */
-export class Findings {
-  readonly errors: PluginFinding[] = [];
-  readonly warnings: PluginFinding[] = [];
+/** A sentence table over a closed kind vocabulary; `Record` so a kind without a sentence does not compile. */
+export type SentenceTable<K extends string> = Readonly<Record<K, Sentence>>;
 
-  error(kind: PluginErrorKind, ctx: FindingContext = {}): void {
-    this.errors.push(compose(kind, ctx, errorMessage(kind, ctx)));
+/**
+ * Collects findings while a read proceeds. A reader never throws on the
+ * content it reads: every problem becomes a finding here, and the read
+ * continues so the outcome carries them all. Generic over the two kind
+ * vocabularies so the plugin reader and the marketplace reader share one
+ * collector and one finding shape while each owns its sentences.
+ */
+export class FindingCollector<E extends string, W extends string> {
+  readonly errors: Finding<E>[] = [];
+  readonly warnings: Finding<W>[] = [];
+
+  constructor(
+    private readonly errorSentences: SentenceTable<E>,
+    private readonly warningSentences: SentenceTable<W>,
+  ) {}
+
+  error(kind: E, ctx: FindingContext = {}): void {
+    this.errors.push(compose(kind, ctx, this.errorSentences[kind](ctx)));
   }
 
-  warn(kind: PluginWarningKind, ctx: FindingContext = {}): void {
-    this.warnings.push(compose(kind, ctx, warningMessage(kind, ctx)));
+  warn(kind: W, ctx: FindingContext = {}): void {
+    this.warnings.push(compose(kind, ctx, this.warningSentences[kind](ctx)));
+  }
+}
+
+/** The plugin reader's collector, bound to the plugin vocabulary. */
+export class Findings extends FindingCollector<PluginErrorKind, PluginWarningKind> {
+  constructor() {
+    super(ERROR_MESSAGES, WARNING_MESSAGES);
   }
 }
 
 // Optional fields are omitted rather than set to `undefined` so a finding
 // serialises to JSON without `null`s and compares structurally in tests.
-function compose(kind: PluginFindingKind, ctx: FindingContext, message: string): PluginFinding {
+function compose<K extends string>(kind: K, ctx: FindingContext, message: string): Finding<K> {
   return {
     kind,
     ...(ctx.path !== undefined && { path: ctx.path }),
