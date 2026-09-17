@@ -36,8 +36,8 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Stigmer's one-line pitch and which of nine entry points matches the
-      reader's goal.
+      Stigmer's one-line pitch and which entry point matches the reader's goal,
+      from a first run to self-hosting.
     medium: animated-tour
     why:
       The hero exists to show the product working; motion is the pitch. The
@@ -698,6 +698,16 @@ pages:
       pricing and spend-reduction mechanics that belong nearer the billing
       guides; the concept survives, the operational halves move out.
 
+  guides/self-hosting/overview:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Which of the three self-hosting shapes (laptop, one server, Kubernetes)
+      fits the reader's team, where each shape's guide is, and what every shape
+      shares — sign-in off until turned on, the runner as one trust domain, one
+      Organization, the reader's own provider keys and backups.
+    medium: none
+
   guides/self-hosting/cloud-vs-self-hosted:
     fate: keep
     diataxis: explanation
@@ -706,7 +716,8 @@ pages:
       includes (the full contract, Postgres, OIDC + API keys, isolation
       drivers), what Stigmer Cloud adds (tenancy, SSO, fine-grained
       permissions, channels, metered billing, managed ops), and the honest
-      limitation of self-hosting today (Compose is the packaging).
+      limitation of self-hosting today (two production packagings, no
+      operator).
     medium: none
 
   guides/self-hosting/all-in-one:
