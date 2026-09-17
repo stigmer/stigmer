@@ -51,6 +51,8 @@ import { InlineEditImage } from "../inline-edit/InlineEditImage.js";
 import { InlineEditSelect } from "../inline-edit/InlineEditSelect.js";
 import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue.js";
 import type { KeyValueRow, SelectOption } from "../inline-edit/types.js";
+import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
+import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 
 /** Tab identifier for the MCP server capability panel. */
 export type CapabilityTab = "tools" | "policies" | "resources";
@@ -134,6 +136,14 @@ export interface McpServerDetailViewProps {
    */
   readonly actions?: readonly DetailAction[];
   /**
+   * Called when the user selects the plugin named in the "installed by a
+   * plugin" notice; the host owns the route to the plugin's page. The
+   * notice shows when this resource carries a live plugin's label, and
+   * `editable` is then narrowed to `false`: the server refuses a client
+   * edit of a plugin's resource, so no edit form is offered.
+   */
+  readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
+  /**
    * When `true`, fields on the detail view become click-to-edit.
    * Each field saves independently via `stigmer.mcpServer.update()`.
    * @default false
@@ -192,7 +202,8 @@ export function McpServerDetailView({
   activeOrg,
   primaryAction,
   actions,
-  editable = false,
+  onPluginClick,
+  editable: editableProp = false,
   onResourceUpdated,
   className,
 }: McpServerDetailViewProps) {
@@ -206,6 +217,9 @@ export function McpServerDetailView({
     mcpServerState ? null : slug,
   );
   const { mcpServer, isLoading, error, refetch } = mcpServerState ?? fetched;
+  const managing = useManagingPlugin(mcpServer?.metadata?.labels);
+  // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
+  const editable = editableProp && managing.plugin === null;
   const { update: updateMcpServer, isUpdating } = useUpdateMcpServer();
 
   const saveMcpField = useCallback(
@@ -561,11 +575,14 @@ export function McpServerDetailView({
     </>
   );
 
-  const headerBanner =
-    status?.validationState === ValidationState.invalid &&
-    status.validationMessage ? (
-      <ValidationBanner message={status.validationMessage} />
-    ) : undefined;
+  const headerBanner = (
+    <>
+      <ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />
+      {status?.validationState === ValidationState.invalid && status.validationMessage ? (
+        <ValidationBanner message={status.validationMessage} />
+      ) : null}
+    </>
+  );
 
   return (
     <>

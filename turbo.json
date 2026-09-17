@@ -107,6 +107,14 @@
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
     },
+    // The client entry's parity test pins the digest of the official
+    // catalogue's assistant plugin (the digest the live default plugin
+    // carries), so a change to that tree must invalidate the cached pass.
+    "@stigmer/plugin-package#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/plugins/assistant/**"]
+    },
     // The browser-mode suite (vitest.a11y.config.ts: a11y audits, layout
     // contracts, pixel work in a real Chromium). It renders against react's
     // OWN dist/styles.css, the shipped stylesheet, so it waits on react's build

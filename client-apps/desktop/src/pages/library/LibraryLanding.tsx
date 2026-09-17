@@ -1,6 +1,6 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, CalendarClock, FileCode2, Sparkles, Server, Workflow } from "lucide-react";
+import { Blocks, Bot, CalendarClock, FileCode2, Sparkles, Server, Workflow } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
   ApplyManifestDialog,
@@ -8,6 +8,7 @@ import {
   useScheduleCount,
   useSkillCount,
   useMcpServerCount,
+  usePluginCount,
   useWorkflowCount,
   useActiveOrgSlug,
   ResourceCountCard,
@@ -23,6 +24,7 @@ export default function LibraryLanding() {
   const skills = useSkillCount(org, { refetchToken });
   const mcpServers = useMcpServerCount(org, { refetchToken });
   const schedules = useScheduleCount(org, { refetchToken });
+  const plugins = usePluginCount(org, { refetchToken });
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   return (
@@ -63,6 +65,13 @@ export default function LibraryLanding() {
           count={schedules.count}
           isLoading={schedules.isLoading}
           onClick={() => navigate("/library/schedules")}
+        />
+        <ResourceCountCard
+          icon={<Blocks className="size-5" aria-hidden="true" />}
+          label="Plugins"
+          count={plugins.count}
+          isLoading={plugins.isLoading}
+          onClick={() => navigate("/library/plugins")}
         />
       </div>
 

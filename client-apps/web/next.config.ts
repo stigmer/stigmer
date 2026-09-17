@@ -6,6 +6,7 @@ const stigmerLibs = [
   "@stigmer/react",
   "@stigmer/theme",
   "@stigmer/embed",
+  "@stigmer/plugin-package",
 ];
 
 const isProduction = process.env.NODE_ENV === "production";

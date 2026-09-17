@@ -1,0 +1,94 @@
+---
+title: Install from the console
+description:
+  Browse a marketplace in the web console or the desktop app, install a plugin
+  from it, and start a Session on the Agent it installs.
+---
+
+The console installs a plugin the way the CLI does: it reads the plugin's folder
+from a marketplace's tree, packages it, and pushes one archive to the server.
+The archive is byte-for-byte the one `stigmer install` would push for the same
+tree, so a plugin installed from the console and one installed from the CLI are
+one plugin with one digest, and the server treats a second install of the same
+version as nothing to do.
+
+Everything here works the same in the web console and the desktop app.
+
+## Open the marketplaces
+
+In the Library, open **Plugins**, then **Install plugin**. The page shows one
+tab per marketplace this browser knows. The official marketplace is always
+first: it is the catalogue published with the server's release, so a fresh
+install sees exactly the plugins its version ships with. On a development server
+the official tab says the catalogue is not published for that build; add a
+GitHub marketplace instead.
+
+To add a marketplace, type a public GitHub repository as `owner/repo`,
+`owner/repo@ref`, or the URL a browser shows, give it a name, and choose **Add
+marketplace**. The tab appears at once and lists what the repository offers.
+Cursor's catalogue is `cursor/plugins`; Claude Code's and Codex's are read the
+same way, because every vendor keeps its marketplace file at the repository
+root.
+
+The list of marketplaces is this browser's, exactly as the CLI's is this
+machine's (`marketplaces` in `~/.stigmer/config.yaml`): nothing about a
+marketplace reaches the server. **Remove marketplace** forgets one; the official
+marketplace cannot be removed.
+
+## Read what a plugin would install
+
+Each tab lists the plugins the marketplace offers, and, folded below them, the
+entries the reader cannot install with the sentence saying why (a folder the
+tree does not hold, a folder that is not a plugin).
+
+Choose **Install** beside a plugin. Before anything is pushed, the console reads
+the plugin's files and shows the same description `stigmer validate -f` prints:
+the plugin's name, version and format; the Skills, MCP Servers and Sub-Agents it
+installs; the variables its tools need; the reader's warnings; and what is not
+installed (rules, hooks and the other components Stigmer does not read).
+
+The preview also states one fact the CLI states only after the act:
+
+- **Already installed**: your Organization holds this exact version. Install is
+  not offered; there is nothing to do.
+- **Upgrade**: your Organization holds another version. Installing replaces the
+  plugin's Skills, MCP Servers and Agent with this version's. The Agent is
+  re-created, so a Session bound to the previous one does not follow it.
+
+## Install and start a Session
+
+Choose **Install** (or **Upgrade**). The console pushes the archive and shows
+what landed, in the CLI's words: how many Skills, MCP Servers and Agents. Then
+it opens the plugin's page.
+
+The plugin's page lists what the install produced, each a link to its own page,
+together with the manifest's version, format and author, and the server's
+install warnings. When the plugin carries an Agent, **Start session** is the
+page's primary action. The Agent declares the variables its tools need, so the
+first Session asks for them and saves them to your personal Environment; from
+then on they are supplied to every Session on that Agent without asking.
+
+A Skill, MCP Server or Agent a plugin installed says so at the top of its page
+and is not editable there: the plugin's resources are the plugin's to redefine.
+To change one, change the plugin and install it again; to customise, compose
+your own Agent over the plugin's Skills and MCP Servers.
+
+## Remove
+
+From the plugin's page, **Remove** deletes the plugin and every Skill, MCP
+Server and Agent it installed, the same act as `stigmer delete plugin`. The
+server refuses when something outside the plugin still references one of them,
+and the console shows that refusal as the server phrases it, naming what still
+uses the member.
+
+## What the console does and does not do
+
+- It never reads a marketplace through the server. The GitHub tree and the
+  official catalogue are fetched by the browser, so the control plane makes no
+  outbound request on your behalf.
+- It reads a GitHub marketplace at one commit: the tree is listed once and every
+  file is read at the commit the listing resolved to, so what you preview is
+  what you install.
+- It does not record where a plugin came from. As with the CLI, installing
+  `thermos` from a second marketplace upgrades the `thermos` from the first.
+- Private repositories are not marketplaces, in the console or the CLI.

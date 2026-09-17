@@ -51,7 +51,7 @@ class GitignorePattern implements Pattern {
 
   private simpleNameMatch(path: readonly string[], isDir: boolean): boolean {
     for (let i = 0; i < path.length; i++) {
-      if (!matchName(this.parts[0], path[i])) continue;
+      if (!matchName(this.parts[0] ?? "", path[i] ?? "")) continue;
       if (this.dirOnly && !isDir && i === path.length - 1) return false;
       return true;
     }
@@ -64,7 +64,7 @@ class GitignorePattern implements Pattern {
     let remaining = path;
 
     for (let i = 0; i < this.parts.length; i++) {
-      const part = this.parts[i];
+      const part = this.parts[i] ?? "";
       if (part === "") {
         canTraverse = false;
         continue;
@@ -84,7 +84,7 @@ class GitignorePattern implements Pattern {
             matched = false;
             break;
           }
-          const e = remaining[0];
+          const e = remaining[0] ?? "";
           remaining = remaining.slice(1);
           if (matchName(part, e)) {
             matched = true;
@@ -92,7 +92,7 @@ class GitignorePattern implements Pattern {
           }
         }
       } else {
-        if (!matchName(part, remaining[0])) return false;
+        if (!matchName(part, remaining[0] ?? "")) return false;
         matched = true;
         remaining = remaining.slice(1);
       }

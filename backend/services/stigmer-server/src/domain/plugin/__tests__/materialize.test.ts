@@ -7,7 +7,9 @@
  * agent, the `mcpServers` key-to-slug rule, a skill archive rooted at its
  * SKILL.md with the plugin's labels on the request, a version the tag
  * pattern rejects becoming a warning, an overlay that redefines the
- * transport refused, and the convergence and drop rules over members.
+ * transport refused, the composed agent declaring its tools' variables
+ * (OAuth targets excluded, an authored agent left as written), and the
+ * convergence and drop rules over members.
  */
 import { describe, expect, it } from "vitest";
 
@@ -19,8 +21,11 @@ import type { PluginPackage } from "@stigmer/plugin-package";
 import { cursorPlugin, openPlugin } from "@stigmer/plugin-package/testing";
 import type { PluginFixture } from "@stigmer/plugin-package/testing";
 import { create } from "@bufbuild/protobuf";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
+  McpServerAuthSchema,
   McpServerSpecSchema,
   StdioServerConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
@@ -222,6 +227,60 @@ describe("planMaterialization", () => {
       "version-not-taggable",
     );
     expect(builtPlan.skills[0]!.request.tag).toBe("");
+  });
+
+  it("declares the servers' variables on the composed agent so a session asks for them", () => {
+    expect(plan.agent!.resource.spec?.env).toEqual({
+      GITHUB_TOKEN: expect.objectContaining({ isSecret: true, optional: false }),
+    });
+  });
+
+  it("leaves an OAuth-managed target out of the agent's declarations", () => {
+    const overlay = create(McpServerSchema, {
+      spec: create(McpServerSpecSchema, {
+        auth: create(McpServerAuthSchema, { targetEnvVar: "GITHUB_TOKEN" }),
+      }),
+    });
+    const withOAuth = planMaterialization(
+      pkg,
+      inMemoryPluginFiles(thermos),
+      {
+        workflows: [],
+        mcpServers: [
+          {
+            path: "ai.stigmer/mcp-servers/my_github.yaml",
+            server: "my_github",
+            resource: overlay,
+          },
+        ],
+      },
+      IDENTITY,
+      "",
+    );
+    // The server still declares it (the connect flow reads it there); the
+    // agent does not, because the value comes from a managed environment.
+    expect(withOAuth.mcpServers[0]!.resource.spec?.env).toHaveProperty("GITHUB_TOKEN");
+    expect(withOAuth.agent!.resource.spec?.env).toEqual({});
+  });
+
+  it("takes an authored agent as written, declarations included", () => {
+    const authored = create(AgentSchema, {
+      spec: create(AgentSpecSchema, {
+        instructions: "The author's own instructions for this agent.",
+      }),
+    });
+    const withOverlay = planMaterialization(
+      pkg,
+      inMemoryPluginFiles(thermos),
+      {
+        agent: { path: "ai.stigmer/agent.yaml", resource: authored },
+        workflows: [],
+        mcpServers: [],
+      },
+      IDENTITY,
+      "",
+    );
+    expect(withOverlay.agent!.resource.spec?.env).toEqual({});
   });
 
   it("refuses a server overlay that redefines the transport", () => {

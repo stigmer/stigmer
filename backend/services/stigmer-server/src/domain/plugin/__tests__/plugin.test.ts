@@ -296,6 +296,12 @@ describe("Plugin push — materialisation", () => {
       isSecret: true,
       optional: false,
     });
+    // The agent declares the same variable, which is what makes a session
+    // ask for it and the execution's least-privilege filter pass it.
+    expect(agent.spec?.env["GITHUB_TOKEN"]).toMatchObject({
+      isSecret: true,
+      optional: false,
+    });
   });
 
   it("installs an MCP-only plugin as its servers and no agent", async () => {

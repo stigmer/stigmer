@@ -112,10 +112,10 @@ export async function locateEntry(
 }
 
 /** Read, validate and zip the entry called `name`; refuses an entry the marketplace does not offer. */
-export function prepareEntry(
+export async function prepareEntry(
   tree: ReadMarketplaceTree,
   name: string,
-): PreparedPluginPush {
+): Promise<PreparedPluginPush> {
   const entry = findEntry(tree.marketplace, name);
   if (entry === undefined) throw entryNotOffered(tree, name);
   return preparePluginPush(entryDirectory(tree, entry));

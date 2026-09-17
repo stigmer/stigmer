@@ -187,7 +187,10 @@ install; an agent is what runs.
 - **API surface**: `kind: Plugin`, prefix `plg`. proto: `plugin/v1/spec.proto`,
   `plugin/v1/command.proto`. CLI: `stigmer push plugin <dir>` (install or
   upgrade), `stigmer get|list|delete plugin`, `stigmer validate -f <dir>`
-  (offline check). A plugin is never authored as YAML: its spec is read from the
+  (offline check). Console: Library > Plugins lists what is installed; "Install
+  plugin" opens the marketplaces; a plugin's page shows what it installed and
+  starts a session on its agent; "Remove" is the console's word for
+  `delete plugin`. A plugin is never authored as YAML: its spec is read from the
   package manifest.
 - **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
@@ -232,11 +235,14 @@ such as Cursor's public catalogue, by pointing at the repository.
   Stigmer resource. Name the official one "the official marketplace"; name an
   added one by the name it is installed from (`cursor-plugins`).
 - **API surface**: none on the server; a marketplace is client-side
-  configuration (`marketplaces` in `~/.stigmer/config.yaml`), and the server
-  only ever receives the plugin archive a client pushes from it. CLI:
+  configuration (`marketplaces` in `~/.stigmer/config.yaml` for the CLI; this
+  browser's storage for the console), and the server only ever receives the
+  plugin archive a client pushes from it. CLI:
   `stigmer marketplace add|list|show|remove`,
-  `stigmer install [marketplace/]name[@version]`. `stigmer up` installs the
-  official marketplace's default set into the system Organization.
+  `stigmer install [marketplace/]name[@version]`. Console: Library > Plugins >
+  "Install plugin", one tab per marketplace, "Add marketplace" for a GitHub
+  repository. `stigmer up` installs the official marketplace's default set into
+  the system Organization.
 - **File structure**: a marketplace file in one of four locations, read in this
   precedence: `marketplace.json` (Stigmer's own),
   `.claude-plugin/marketplace.json`, `.cursor-plugin/marketplace.json`,

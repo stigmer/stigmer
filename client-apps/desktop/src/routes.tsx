@@ -37,6 +37,9 @@ const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
 const ScheduleNewPage = lazy(() => import("./pages/library/ScheduleNewPage"));
+const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
+const PluginDetailPage = lazy(() => import("./pages/library/PluginDetailPage"));
+const PluginInstallPage = lazy(() => import("./pages/library/PluginInstallPage"));
 const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const ConversationsPage = lazy(() => import("./pages/conversations/ConversationsPage"));
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
@@ -165,6 +168,30 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <SkillDetailPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "plugins",
+            element: (
+              <LazyPage>
+                <PluginListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "plugins/install",
+            element: (
+              <LazyPage>
+                <PluginInstallPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "plugins/:org/:slug",
+            element: (
+              <LazyPage>
+                <PluginDetailPage />
               </LazyPage>
             ),
           },

@@ -18,18 +18,23 @@ import {
   load as loadConfig,
   save as saveConfig,
 } from "../config/index.js";
+import {
+  type GitHubMarketplaceSource,
+  OFFICIAL_MARKETPLACE_NAME,
+  describeGitHubSource,
+  isOwnerRepo,
+} from "@stigmer/plugin-package/client";
 import { UsageError } from "../errors/index.js";
 import { isStandalone } from "../runtime.js";
 
-/** The built-in marketplace's name: the prefix in `stigmer install stigmer/<plugin>`. */
-export const OFFICIAL_MARKETPLACE_NAME = "stigmer";
+export { OFFICIAL_MARKETPLACE_NAME, isOwnerRepo };
 
 /** Where a marketplace tree comes from. Every source yields a directory. */
 export type MarketplaceSource =
   /** The catalogue this CLI ships with: the repo tree in dev, `@stigmer/plugins` otherwise. */
   | { readonly type: "official" }
-  /** A public GitHub repository, fetched as a zipball of `ref` (the default branch when absent). */
-  | { readonly type: "github"; readonly repo: string; readonly ref?: string }
+  /** A public GitHub repository, fetched as a zipball of `ref` (the default branch when absent); the console reads the same record. */
+  | GitHubMarketplaceSource
   /** A directory on this machine, stored absolute. */
   | { readonly type: "local"; readonly path: string };
 
@@ -220,9 +225,7 @@ export function describeSource(source: MarketplaceSource): string {
     case "official":
       return "built in";
     case "github":
-      return source.ref === undefined
-        ? `github.com/${source.repo}`
-        : `github.com/${source.repo}@${source.ref}`;
+      return describeGitHubSource(source);
     case "local":
       return source.path;
     default: {
@@ -230,17 +233,4 @@ export function describeSource(source: MarketplaceSource): string {
       return exhaustive;
     }
   }
-}
-
-const OWNER_REPO_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-
-/** `owner/repo` as GitHub spells it: two segments, no `.git` suffix required or refused. */
-export function isOwnerRepo(value: string): boolean {
-  const parts = value.split("/");
-  return (
-    parts.length === 2 &&
-    parts.every(
-      (part) => OWNER_REPO_SEGMENT.test(part) && part !== "." && part !== "..",
-    )
-  );
 }

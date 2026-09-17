@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useReducer, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, CalendarClock, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
+import { Blocks, Bot, CalendarClock, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import {
@@ -12,6 +12,7 @@ import {
   useScheduleCount,
   useSkillCount,
   useMcpServerCount,
+  usePluginCount,
   useWorkflowCount,
   ResourceCountCard,
   useActiveOrgSlug,
@@ -52,6 +53,12 @@ const RESOURCE_CARDS = [
     href: "/library/schedules",
     icon: <CalendarClock className="size-5" aria-hidden="true" />,
   },
+  {
+    key: "plugins",
+    label: "Plugins",
+    href: "/library/plugins",
+    icon: <Blocks className="size-5" aria-hidden="true" />,
+  },
 ] as const;
 
 interface AddMenuItem {
@@ -86,6 +93,11 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     icon: <CalendarClock className="size-4" aria-hidden="true" />,
     href: "/library/schedules/new",
   },
+  {
+    label: "Install plugin",
+    icon: <Blocks className="size-4" aria-hidden="true" />,
+    href: "/library/plugins/install",
+  },
 ];
 
 // Cards always count in org scope (the hooks' default): the landing presents
@@ -100,6 +112,7 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const skills = useSkillCount(org, { refetchToken });
   const mcpServers = useMcpServerCount(org, { refetchToken });
   const schedules = useScheduleCount(org, { refetchToken });
+  const plugins = usePluginCount(org, { refetchToken });
 
   return {
     agents,
@@ -107,6 +120,7 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
     skills,
     "mcp-servers": mcpServers,
     schedules,
+    plugins,
   } as const;
 }
 

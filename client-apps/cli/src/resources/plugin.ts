@@ -2,41 +2,45 @@
 // something the CLI can print.
 //
 // `@stigmer/plugin-package` is pure over a `PluginFiles` list; this module is
-// the CLI's edge for it. The walk is the skill packager's discipline
-// (`createSkillZip`): sorted entries, symlinks never followed, the same
-// gitignore-compatible matcher deciding inclusion, so what `validate` reads
-// is exactly what a push of the same directory would package. Sizes come
-// from `stat` so the library can refuse an over-cap document before reading
-// it; the library re-checks the bytes it gets back.
+// the CLI's edge for it. The walk lists every file under the directory
+// (symlinks never followed, sizes from `stat` so the library can refuse an
+// over-cap document before reading it) and hands the list to the shared
+// selection rule in `@stigmer/plugin-package/client`, which decides
+// inclusion and order the same way for every client: what `validate` reads
+// here is exactly what a push of the same directory packages, and exactly
+// what the console packages from the same tree on a marketplace host.
 //
 // `describePlugin` is the JSON projection for `--json`: the normalised
 // package with overlay documents reduced to their paths (the bytes are the
 // user's own files, and a byte array serialises badly).
 //
 // The push half is two steps with a value between them: `preparePluginPush`
-// (the same walked file list, zipped the way the skill packager zips, so the
-// bytes and their SHA-256 are a function of content alone) and
-// `pushPrepared` (the SDK's routed plugin client, then the members read back
-// for the install summary). The value in between is what `push plugin
+// (the same selected file list, archived and digested by the shared module,
+// so the bytes and their SHA-256 are a function of content alone and equal
+// what the console computes for the same tree) and `pushPrepared` (the SDK's
+// routed plugin client, then the members read back for the install summary). The value in between is what `push plugin
 // --dry-run` prints, what `stigmer install` pushes from a marketplace entry,
 // and what `stigmer up` compares with the server's digest before deciding
 // to push. `validate -f`, `push plugin --dry-run` and `push plugin` share one
 // description renderer so the author reads one vocabulary at every step.
 
-import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { create, toJson } from "@bufbuild/protobuf";
-import { zipSync } from "fflate";
 import {
   MANIFEST_LOCATIONS,
   readPluginPackage,
-  type PluginDialect,
-  type PluginFileEntry,
   type PluginFiles,
   type PluginFinding,
   type PluginPackage,
 } from "@stigmer/plugin-package";
+import {
+  DIALECT_LABELS,
+  archivePlugin,
+  digestArchive,
+  selectPluginFiles,
+  type CandidateFile,
+} from "@stigmer/plugin-package/client";
 import {
   PluginSchema,
   type Plugin,
@@ -54,12 +58,13 @@ import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { createMatcher } from "./ignore/index.js";
 import {
-  DETERMINISTIC_ZIP_MTIME,
   formatBytes,
   shortHash,
   type IgnoreOptions,
   type ZipStats,
 } from "./skill.js";
+
+export { DIALECT_LABELS };
 
 /** The four manifest locations; a directory holding any of them is a plugin. */
 export const PLUGIN_MANIFEST_PATHS: readonly string[] =
@@ -94,7 +99,14 @@ export const DEFAULT_IGNORE_OPTIONS: IgnoreOptions = {
   extraInclude: [],
 };
 
-/** Walk `dir` through the ignore matcher into a `PluginFiles`. */
+/**
+ * List the files under `dir` and select through the shared rule. The walk
+ * prunes a directory the matcher ignores before descending (a
+ * `node_modules/` is never stat'ed), and the selection applies the same
+ * matcher to what remains, so the CLI and the console agree on every
+ * decision and only the CLI pays the filesystem. Symlinks are neither
+ * files nor directories to `readdirSync` and are never followed.
+ */
 export function readPluginDirectory(
   dir: string,
   options: IgnoreOptions = DEFAULT_IGNORE_OPTIONS,
@@ -106,50 +118,38 @@ export function readPluginDirectory(
     extraIgnore: options.extraIgnore,
     extraInclude: options.extraInclude,
   });
-  const stats: ZipStats = {
-    filesIncluded: 0,
-    filesIgnored: 0,
-    dirsSkipped: 0,
-    totalSize: 0,
-  };
-  const entries: PluginFileEntry[] = [];
-
+  let dirsSkipped = 0;
+  const candidates: CandidateFile[] = [];
   const walk = (currentDir: string, prefix: string): void => {
-    const dirents = readdirSync(currentDir, { withFileTypes: true }).sort(
-      (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
-    );
-    for (const dirent of dirents) {
+    for (const dirent of readdirSync(currentDir, { withFileTypes: true })) {
       const relPath = prefix === "" ? dirent.name : `${prefix}/${dirent.name}`;
-      const full = join(currentDir, dirent.name);
       if (dirent.isDirectory()) {
-        if (matcher.matchWithReason(relPath, true).ignored) {
-          stats.dirsSkipped++;
+        if (matcher.match(relPath, true)) {
+          dirsSkipped++;
           continue;
         }
-        walk(full, relPath);
+        walk(join(currentDir, dirent.name), relPath);
         continue;
       }
-      // Symlinks are neither files nor directories here and are never followed.
       if (!dirent.isFile()) continue;
-      if (matcher.matchWithReason(relPath, false).ignored) {
-        stats.filesIgnored++;
-        continue;
-      }
-      const size = statSync(full).size;
-      entries.push({ path: relPath, size });
-      stats.filesIncluded++;
-      stats.totalSize += size;
+      candidates.push({
+        path: relPath,
+        size: statSync(join(currentDir, dirent.name)).size,
+      });
     }
   };
   walk(dir, "");
 
+  const read = (path: string): Uint8Array =>
+    new Uint8Array(readFileSync(join(dir, ...path.split("/"))));
+  const selection = selectPluginFiles(candidates, read, {
+    respectGitignore: options.respectGitignore,
+    extraIgnore: options.extraIgnore,
+    extraInclude: options.extraInclude,
+  });
   return {
-    files: {
-      entries,
-      read: (path) =>
-        new Uint8Array(readFileSync(join(dir, ...path.split("/")))),
-    },
-    stats,
+    files: selection.files,
+    stats: { ...selection.stats, dirsSkipped },
   };
 }
 
@@ -199,14 +199,6 @@ export function describePlugin(
 }
 
 // ─── Rendering, shared by `validate -f <dir>` and `push plugin --dry-run` ────
-
-/** Human labels for the four dialects, in the vocabulary the docs use. */
-export const DIALECT_LABELS: Readonly<Record<PluginDialect, string>> = {
-  "agent-plugins": "Agent Plugins 1.0",
-  claude: "Claude Code plugin",
-  cursor: "Cursor plugin",
-  codex: "Codex plugin",
-};
 
 /** The library's refusal as the CLI's one UsageError: every problem, then every warning. */
 export function pluginRefusal(
@@ -294,21 +286,6 @@ function named(items: readonly string[]): string {
 // ─── Push ────────────────────────────────────────────────────────────────
 
 /**
- * The archive a push sends: the SAME file list `validate` read, zipped
- * deterministically (sorted entries, one DOS-epoch mtime, the skill
- * packager's level), so the digest the server records is a pure function
- * of the plugin's content and a second push of an unchanged directory is
- * the server's no-op.
- */
-export function zipPluginFiles(files: PluginFiles): Uint8Array {
-  const tree: Record<string, Uint8Array> = {};
-  for (const entry of files.entries) {
-    tree[entry.path] = files.read(entry.path);
-  }
-  return zipSync(tree, { level: 6, mtime: DETERMINISTIC_ZIP_MTIME });
-}
-
-/**
  * A plugin directory read, validated and zipped, but not yet pushed. The
  * step between "a folder" and "a push" is its own value because two callers
  * need to look at it first: `push plugin --dry-run` prints it, and `stigmer
@@ -338,16 +315,16 @@ export interface PreparedPluginPush {
  * offline pass exists so an author never waits on the network to hear a
  * sentence the CLI could say.
  */
-export function preparePluginPush(
+export async function preparePluginPush(
   dir: string,
   ignoreOptions: IgnoreOptions = DEFAULT_IGNORE_OPTIONS,
-): PreparedPluginPush {
+): Promise<PreparedPluginPush> {
   const directory = readPluginDirectory(dir, ignoreOptions);
   const outcome = readPluginPackage(directory.files);
   if (!outcome.ok) {
     throw pluginRefusal(dir, outcome.errors, outcome.warnings);
   }
-  const archive = zipPluginFiles(directory.files);
+  const archive = archivePlugin(directory.files);
   return {
     dir,
     files: directory.files,
@@ -355,7 +332,7 @@ export function preparePluginPush(
     plugin: outcome.plugin,
     warnings: outcome.warnings,
     archive,
-    digest: createHash("sha256").update(archive).digest("hex"),
+    digest: await digestArchive(archive),
   };
 }
 
@@ -404,7 +381,7 @@ export async function pushPlugin(
 ): Promise<PushPluginOutcome> {
   return pushPrepared(
     client,
-    preparePluginPush(dir, options.ignoreOptions),
+    await preparePluginPush(dir, options.ignoreOptions),
     options,
   );
 }

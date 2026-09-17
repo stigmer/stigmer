@@ -224,6 +224,19 @@ pages:
       not record about where a plugin came from.
     medium: none
 
+  guides/plugins/install-from-the-console:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install a plugin from a marketplace in the web console or the desktop
+      app, understand what the preview states before the act (what installs,
+      already installed, upgrade), and start a session on the agent it
+      installs, which asks for the variables its tools need.
+    medium: none
+    why:
+      A console how-to is a screenshot journey; the tour follows when the
+      Plugins area has settled, and the words here already match the CLI's.
+
   guides/plugins/marketplace-file:
     fate: keep
     diataxis: reference

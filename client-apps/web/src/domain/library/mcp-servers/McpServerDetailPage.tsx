@@ -15,7 +15,10 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
 } from "@stigmer/react";
-import { useRouteDetailYieldsToOverlay } from "@/domain/library/library-navigation";
+import {
+  useLibraryNavigation,
+  useRouteDetailYieldsToOverlay,
+} from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 interface McpServerDetailPageInnerProps {
@@ -27,6 +30,7 @@ export function McpServerDetailPageInner({
   org,
   slug,
 }: McpServerDetailPageInnerProps) {
+  const { navigateToDetail } = useLibraryNavigation();
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
   const activeOrgSlug = useActiveOrgSlug();
@@ -137,6 +141,7 @@ export function McpServerDetailPageInner({
         mcpServerState={mcpServerState}
         activeOrg={activeOrgSlug}
         onResourceLoad={handleResourceLoad}
+        onPluginClick={({ org: o, slug: s }) => navigateToDetail("plugins", o, s)}
         editable
         actions={actions}
       />
