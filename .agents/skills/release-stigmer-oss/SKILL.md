@@ -83,16 +83,27 @@ paths touch build from source and stay green before the images exist.
 ## 4. Release notes
 
 An annotated tag message in Markdown. Highlights first, in plain language for
-people who use Stigmer, not a restatement of commit subjects; then the changes
-grouped by Conventional Commit type, imperative, one line each, scope in bold,
-empty groups omitted, merge commits and maintenance noise skipped.
+people who use Stigmer, not a restatement of commit subjects: one short
+paragraph per capability worth upgrading for, in the vocabulary the docs use.
+When an operator must act, or a behaviour they rely on changes (a permission, a
+default, a version they must move in step), an Upgrading section follows
+Highlights and says so in one bullet each; omit the section when nothing changes
+for them. Then the changes grouped by Conventional Commit type, imperative, one
+line each, scope in bold, empty groups omitted, merge commits and maintenance
+noise skipped (repository tooling and agent guidance are chores, whatever their
+commit type). Blank lines are paragraph breaks and reach the release page as
+written; keep them.
 
 ```text
 Release v<X.Y.Z>
 
 ## Highlights
 
-<one to three sentences: what this release improves and why to upgrade>
+<one short paragraph per headline capability: what it lets a user do and why to upgrade>
+
+## Upgrading
+
+- <what an operator must do or will see change; omit the section when nothing changes for them>
 
 ## What's Changed
 
