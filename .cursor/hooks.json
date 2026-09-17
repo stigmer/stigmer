@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "command": "node scripts/agents-context-hook.mjs",
+        "matcher": "^(Read|Write|Delete)$",
+        "timeout": 10
+      }
+    ]
+  }
+}

@@ -42,11 +42,13 @@ on:
       - ".lychee.toml"
       - "vale/**"
       # Agent guidance: the root and nested AGENTS.md guides, .agents/**, the
-      # generated Cursor shims and the gate itself (make agents-check).
+      # generated Cursor shims and hook config, and the gate itself (make
+      # agents-check). The hook script's own tests run in ci.ts-workspace.
       - "AGENTS.md"
       - "**/AGENTS.md"
       - ".agents/**"
       - ".cursor/rules/agents-*.mdc"
+      - ".cursor/hooks.json"
       - "scripts/agents-check.mjs"
   workflow_dispatch:
 
@@ -114,6 +116,7 @@ jobs:
               - "**/AGENTS.md"
               - ".agents/**"
               - ".cursor/rules/agents-*.mdc"
+              - ".cursor/hooks.json"
               - "scripts/agents-check.mjs"
               - ".github/workflows/ci.docs.yaml"
 

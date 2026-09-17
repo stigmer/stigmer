@@ -13,6 +13,17 @@ either read natively or generated from here.
 | A package's binding laws and read-order       | `<package>/AGENTS.md`            | when files in that directory are touched, through a generated Cursor shim |
 | Engineering procedures and long-form doctrine | `.agents/skills/<name>/SKILL.md` | on demand, by task match or `/name`; `paths:` narrows when it is offered  |
 
+The shims and `paths:` fire only for files inside a workspace folder, and code
+changes happen in git worktrees, which are never workspace folders (the root
+guide says why). For a worktree path, `scripts/agents-context-hook.mjs`, a
+Cursor `postToolUse` hook registered by the generated `.cursor/hooks.json`, does
+the shims' job: on the first touch of a file under a package it attaches the
+package's guide chain and names the skills scoped to that path, once per
+conversation. It serves only worktrees of this repository (read from the
+worktree's `.git` link), never a path inside a workspace folder, and never fails
+closed. `node scripts/agents-context-hook.mjs --explain <path>` shows how a path
+resolves when a guide seems not to arrive.
+
 Precedence when two disagree, nearest to the code first: a module's intent
 header, then the folder's `README.md`, then the package `AGENTS.md`, then the
 root `AGENTS.md`, then a skill. Correct the farther one. A guide is an index
@@ -51,22 +62,33 @@ them.
 - A skill file is indexed when Cursor first sees it. Later edits are not re-read
   until the window reloads, so a skill you have just written or changed is
   listed as it first was (or not at all) until then.
-- Nothing inside a git worktree is discovered unless the worktree is a workspace
-  folder, and the primary checkout's glob rules do not fire for worktree paths.
-  Add the worktree to the window when you create it (`cursor --add <worktree>`)
-  and reload the window: instruction files are enumerated per folder at window
-  load, so a folder added mid-session is not scanned until then.
-- In a folder added mid-session, before the reload, a glob shim already fires on
-  a matching read but its `@<path>` line arrives literal and the nested guide is
-  not attached; after the reload the same read attaches the shim, the guide and
-  any other matching rule. A shim seen without its guide means the window has
-  not been reloaded since the folder was added.
 - A glob shim fires only on paths inside its own workspace folder. Measured
   2026-09-17 with four folders in one window (this repository's primary
   checkout, two of its worktrees, and a second repository whose server tree has
   the same relative path and an identically named shim): reading that second
   repository's `backend/services/stigmer-server/src/main.ts` attached only its
   own shim and guide; none of this repository's server shims fired.
+- A git worktree outside the window gets the root guides (every folder's root
+  `AGENTS.md` loads in every chat, and the worktree's copy is identical to the
+  primary's) and nothing else: neither its nested guides nor its `paths:` skills
+  (measured 2026-09-17 on 3.20.21 with a throwaway repository). The hook above
+  supplies exactly those two.
+- Changing the window's folder set (adding a folder, removing one) disconnects
+  the tool layer of every other chat in the window until a reload, and a folder
+  still listed after its directory was deleted makes Grep and Glob fail for
+  every chat with `Path does not exist`. That is why a worktree is never added
+  to the window and never removed from disk while it is still a folder.
+- Hooks, measured 2026-09-17 on 3.20.21: a `postToolUse` hook fires for every
+  file tool on any path, inside or outside the window, and for every folder's
+  `.cursor/hooks.json` at once, so per-repository scoping is the hook's own job.
+  `tool_input.file_path` names the file for `Read`, `Write` and `Delete`; an
+  edit arrives as a `Read` then a `Write` whose input is the whole new file. A
+  `hooks.json` created or edited while the window is open takes effect on the
+  next tool call, with no reload and no effect on other chats. The hook process
+  starts in its own project root, also as the second folder of a multi-root
+  window, but `CURSOR_PROJECT_DIR` names the first folder; it runs under the
+  `node` Cursor's environment resolves, not the repository's pinned version. A
+  subagent's tool calls fire no hooks.
 - A rule deleted from disk stays in Cursor's list, and can still be attached,
   until the window reloads (measured 2026-09-16 on the merged primary: a read
   attached a `.cursor/rules` file that no longer existed). A listing that names
@@ -86,9 +108,11 @@ AGENTS.md                         the always-on root guide (a real file, not a s
   ARCHITECTURE_PRINCIPLES.md      what the codebase optimises for; the reasons behind the laws
   skills/<name>/SKILL.md          repo skills, with optional references/ beside each
 .cursor/rules/agents-<slug>.mdc   generated shim per nested guide; the ONLY files allowed in .cursor/rules
-scripts/agents-check.mjs          the gate: shims in sync, cited paths resolve, no private ids, guides within
-                                  budget, skill frontmatter well-formed, nothing hand-written in .cursor/rules,
-                                  no .mdc anywhere else (a rule filed where no tool reads it)
+.cursor/hooks.json                generated; registers the worktree guidance hook
+scripts/agents-check.mjs          the gate: shims and hooks.json in sync, cited paths resolve, no private ids,
+                                  guides within budget, skill frontmatter well-formed, nothing hand-written in
+                                  .cursor/rules, no .mdc anywhere else (a rule filed where no tool reads it)
+scripts/agents-context-hook.mjs   the postToolUse hook: package guides and scoped skills for a worktree path
 ```
 
 The skills are of two kinds. Package doctrine skills carry `paths:` and surface
@@ -133,12 +157,14 @@ is adopted, add a one-line `CLAUDE.md` containing `@AGENTS.md` beside each
    skill as `.agents/skills/<name>/SKILL.md`, and a skill that hands to another
    cites it the same way, so the gate fails on a renamed or deleted skill.
    Cursor's `/name` form appears only where a person is told what to type.
-5. Run `make agents-sync` (writes or removes shims) and `make agents-check`
-   (fails on drift, a cited path that does not resolve, a private-record
-   identifier, a guide over budget, malformed skill frontmatter, any file in
+5. Run `make agents-sync` (writes or removes shims, writes `.cursor/hooks.json`)
+   and `make agents-check` (fails on drift in either, a cited path that does not
+   resolve, a private-record identifier, a guide over budget, malformed skill
+   frontmatter or a `paths:` glob beyond `**`, `*` and `?`, any file in
    `.cursor/rules/` that is not a generated shim, or a `.mdc` file anywhere else
    in the tree, since Cursor reads rules from that folder only). `check-prep`
-   and `ci.docs` run both.
+   and `ci.docs` run both; `npm run test:scripts` runs the gate's and the hook's
+   tests.
 6. Format with the repo's Prettier config; `make format-docs` covers guidance
    files.
 7. Nothing in this repository cites a private planning record, task id, ruling
