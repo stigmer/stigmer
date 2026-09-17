@@ -12,12 +12,14 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * included, in front of anyone.
  * &#64;internal
  * Served by the cloud composition only (the kind is cloud_only). Both RPCs
- * are is_skip_authorization although get carries an id: the kind has no
- * authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
- * check), and "any authenticated caller, no permission" has no other
- * spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
- * precedent). The handler performs no further check. Relaxing to public
- * later is additive; tightening later would break a caller.
+ * are is_skip_authorization although get carries an id: the kind's
+ * authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+ * to check a caller against, and "any authenticated caller, no permission"
+ * has no other spelling in the annotation vocabulary. This is the one
+ * exception the proto-modelling guide grants to its rule against skipping
+ * on an id-carrying request; the handler performs no further check.
+ * Relaxing to public later is additive; tightening later would break a
+ * caller.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -159,12 +161,14 @@ public final class PlanQueryControllerGrpc {
    * included, in front of anyone.
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
-   * are is_skip_authorization although get carries an id: the kind has no
-   * authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
-   * check), and "any authenticated caller, no permission" has no other
-   * spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
-   * precedent). The handler performs no further check. Relaxing to public
-   * later is additive; tightening later would break a caller.
+   * are is_skip_authorization although get carries an id: the kind's
+   * authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+   * to check a caller against, and "any authenticated caller, no permission"
+   * has no other spelling in the annotation vocabulary. This is the one
+   * exception the proto-modelling guide grants to its rule against skipping
+   * on an id-carrying request; the handler performs no further check.
+   * Relaxing to public later is additive; tightening later would break a
+   * caller.
    * </pre>
    */
   public interface AsyncService {
@@ -204,12 +208,14 @@ public final class PlanQueryControllerGrpc {
    * included, in front of anyone.
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
-   * are is_skip_authorization although get carries an id: the kind has no
-   * authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
-   * check), and "any authenticated caller, no permission" has no other
-   * spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
-   * precedent). The handler performs no further check. Relaxing to public
-   * later is additive; tightening later would break a caller.
+   * are is_skip_authorization although get carries an id: the kind's
+   * authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+   * to check a caller against, and "any authenticated caller, no permission"
+   * has no other spelling in the annotation vocabulary. This is the one
+   * exception the proto-modelling guide grants to its rule against skipping
+   * on an id-carrying request; the handler performs no further check.
+   * Relaxing to public later is additive; tightening later would break a
+   * caller.
    * </pre>
    */
   public static abstract class PlanQueryControllerImplBase
@@ -231,12 +237,14 @@ public final class PlanQueryControllerGrpc {
    * included, in front of anyone.
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
-   * are is_skip_authorization although get carries an id: the kind has no
-   * authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
-   * check), and "any authenticated caller, no permission" has no other
-   * spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
-   * precedent). The handler performs no further check. Relaxing to public
-   * later is additive; tightening later would break a caller.
+   * are is_skip_authorization although get carries an id: the kind's
+   * authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+   * to check a caller against, and "any authenticated caller, no permission"
+   * has no other spelling in the annotation vocabulary. This is the one
+   * exception the proto-modelling guide grants to its rule against skipping
+   * on an id-carrying request; the handler performs no further check.
+   * Relaxing to public later is additive; tightening later would break a
+   * caller.
    * </pre>
    */
   public static final class PlanQueryControllerStub
@@ -289,12 +297,14 @@ public final class PlanQueryControllerGrpc {
    * included, in front of anyone.
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
-   * are is_skip_authorization although get carries an id: the kind has no
-   * authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
-   * check), and "any authenticated caller, no permission" has no other
-   * spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
-   * precedent). The handler performs no further check. Relaxing to public
-   * later is additive; tightening later would break a caller.
+   * are is_skip_authorization although get carries an id: the kind's
+   * authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+   * to check a caller against, and "any authenticated caller, no permission"
+   * has no other spelling in the annotation vocabulary. This is the one
+   * exception the proto-modelling guide grants to its rule against skipping
+   * on an id-carrying request; the handler performs no further check.
+   * Relaxing to public later is additive; tightening later would break a
+   * caller.
    * </pre>
    */
   public static final class PlanQueryControllerBlockingV2Stub
@@ -345,12 +355,14 @@ public final class PlanQueryControllerGrpc {
    * included, in front of anyone.
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
-   * are is_skip_authorization although get carries an id: the kind has no
-   * authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
-   * check), and "any authenticated caller, no permission" has no other
-   * spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
-   * precedent). The handler performs no further check. Relaxing to public
-   * later is additive; tightening later would break a caller.
+   * are is_skip_authorization although get carries an id: the kind's
+   * authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+   * to check a caller against, and "any authenticated caller, no permission"
+   * has no other spelling in the annotation vocabulary. This is the one
+   * exception the proto-modelling guide grants to its rule against skipping
+   * on an id-carrying request; the handler performs no further check.
+   * Relaxing to public later is additive; tightening later would break a
+   * caller.
    * </pre>
    */
   public static final class PlanQueryControllerBlockingStub
@@ -401,12 +413,14 @@ public final class PlanQueryControllerGrpc {
    * included, in front of anyone.
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
-   * are is_skip_authorization although get carries an id: the kind has no
-   * authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
-   * check), and "any authenticated caller, no permission" has no other
-   * spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
-   * precedent). The handler performs no further check. Relaxing to public
-   * later is additive; tightening later would break a caller.
+   * are is_skip_authorization although get carries an id: the kind's
+   * authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+   * to check a caller against, and "any authenticated caller, no permission"
+   * has no other spelling in the annotation vocabulary. This is the one
+   * exception the proto-modelling guide grants to its rule against skipping
+   * on an id-carrying request; the handler performs no further check.
+   * Relaxing to public later is additive; tightening later would break a
+   * caller.
    * </pre>
    */
   public static final class PlanQueryControllerFutureStub

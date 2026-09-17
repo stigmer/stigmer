@@ -162,7 +162,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object contactEmail_ = "";
   /**
    * <pre>
-   * The address renewal and expiry notices go to.
+   * The address renewal and expiry notices go to. Every license has one: a
+   * term that ends must be able to warn someone before it does.
    * </pre>
    *
    * <code>string contact_email = 3 [json_name = "contactEmail", (.buf.validate.field) = { ... }</code>
@@ -183,7 +184,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The address renewal and expiry notices go to.
+   * The address renewal and expiry notices go to. Every license has one: a
+   * term that ends must be able to warn someone before it does.
    * </pre>
    *
    * <code>string contact_email = 3 [json_name = "contactEmail", (.buf.validate.field) = { ... }</code>
@@ -822,7 +824,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object contactEmail_ = "";
     /**
      * <pre>
-     * The address renewal and expiry notices go to.
+     * The address renewal and expiry notices go to. Every license has one: a
+     * term that ends must be able to warn someone before it does.
      * </pre>
      *
      * <code>string contact_email = 3 [json_name = "contactEmail", (.buf.validate.field) = { ... }</code>
@@ -842,7 +845,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address renewal and expiry notices go to.
+     * The address renewal and expiry notices go to. Every license has one: a
+     * term that ends must be able to warn someone before it does.
      * </pre>
      *
      * <code>string contact_email = 3 [json_name = "contactEmail", (.buf.validate.field) = { ... }</code>
@@ -863,7 +867,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address renewal and expiry notices go to.
+     * The address renewal and expiry notices go to. Every license has one: a
+     * term that ends must be able to warn someone before it does.
      * </pre>
      *
      * <code>string contact_email = 3 [json_name = "contactEmail", (.buf.validate.field) = { ... }</code>
@@ -880,7 +885,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address renewal and expiry notices go to.
+     * The address renewal and expiry notices go to. Every license has one: a
+     * term that ends must be able to warn someone before it does.
      * </pre>
      *
      * <code>string contact_email = 3 [json_name = "contactEmail", (.buf.validate.field) = { ... }</code>
@@ -894,7 +900,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address renewal and expiry notices go to.
+     * The address renewal and expiry notices go to. Every license has one: a
+     * term that ends must be able to warn someone before it does.
      * </pre>
      *
      * <code>string contact_email = 3 [json_name = "contactEmail", (.buf.validate.field) = { ... }</code>

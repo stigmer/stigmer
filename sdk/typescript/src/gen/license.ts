@@ -71,7 +71,7 @@ export interface LicenseInput {
 export interface LicenseCustomerInput {
   id: string;
   displayName: string;
-  contactEmail?: string;
+  contactEmail: string;
   organization?: string;
 }
 

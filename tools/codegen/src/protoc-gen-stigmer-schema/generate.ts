@@ -29,7 +29,10 @@ export interface OutputFile {
 const GROUP_ENUM_FILE = "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto";
 const GROUP_ENUM_NAME = "ApiResourceGroup";
 
-/** Namespaces in enum-number order — the order the former constant listed. */
+/**
+ * Namespaces in enum-number order, so the generated output's file order is
+ * stable across runs and a registry insertion never reorders existing files.
+ */
 function resourceNamespaces(moduleFiles: DescFile[]): string[] {
   const groupEnum = moduleFiles
     .find((fd) => fd.proto.name === GROUP_ENUM_FILE)

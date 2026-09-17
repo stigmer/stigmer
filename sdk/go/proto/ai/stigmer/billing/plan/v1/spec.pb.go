@@ -87,6 +87,12 @@ func (PlanInstrument) EnumDescriptor() ([]byte, []int) {
 // what a customer agreed to, so a change is a new Plan. Every money field is
 // a term of one specific plan row, and no row ships in the contract, so the
 // contract itself carries no price.
+//
+// The instrument decides which terms a plan may carry, and the two rules
+// below refuse the cross: a license plan is invoiced for a term, so monthly
+// terms have no meaning on it; a subscription plan bills monthly, so an
+// annual price has none. per_extra_organization_micros is bound to the
+// entitlements' managed organizations, not to the instrument, and stays free.
 type PlanSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The instrument this plan is bought through.
@@ -250,7 +256,7 @@ var File_ai_stigmer_billing_plan_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\xa0\x02\n" +
+	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\xb1\x05\n" +
 	"\bPlanSpec\x12Y\n" +
 	"\n" +
 	"instrument\x18\x01 \x01(\x0e2*.ai.stigmer.billing.plan.v1.PlanInstrumentB\r\xbaH\n" +
@@ -258,7 +264,9 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"instrument\x12P\n" +
 	"\fentitlements\x18\x02 \x01(\v2$.ai.stigmer.platform.v1.EntitlementsB\x06\xbaH\x03\xc8\x01\x01R\fentitlements\x12;\n" +
 	"\x05terms\x18\x03 \x01(\v2%.ai.stigmer.billing.plan.v1.PlanTermsR\x05terms\x12*\n" +
-	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription\"\x9a\x03\n" +
+	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\x8e\x03\xbaH\x8a\x03\x1a\xe6\x01\n" +
+	"&plan_spec.license_has_no_monthly_terms\x12La license plan carries no monthly_minimum_micros or usage_share_basis_points\x1anthis.instrument != 2 || (!has(this.terms.monthly_minimum_micros) && !has(this.terms.usage_share_basis_points))\x1a\x9e\x01\n" +
+	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\"\x9a\x03\n" +
 	"\tPlanTerms\x12B\n" +
 	"\x16monthly_minimum_micros\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12H\n" +
 	"\x18usage_share_basis_points\x18\x02 \x01(\x05B\n" +

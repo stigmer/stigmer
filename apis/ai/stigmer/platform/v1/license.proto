@@ -75,8 +75,12 @@ message LicenseCustomer {
   // The customer's name as the licensed server shows it ("licensed to Acme").
   string display_name = 2 [(buf.validate.field).required = true];
 
-  // The address renewal and expiry notices go to.
-  string contact_email = 3 [(buf.validate.field).string.email = true];
+  // The address renewal and expiry notices go to. Every license has one: a
+  // term that ends must be able to warn someone before it does.
+  string contact_email = 3 [(buf.validate.field) = {
+    required: true
+    string: {email: true}
+  }];
 
   // The cloud organization this customer also holds, as its slug (the same
   // value a resource's metadata.org carries). Empty when the customer has

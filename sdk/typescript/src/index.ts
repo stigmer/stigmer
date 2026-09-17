@@ -285,7 +285,9 @@ export {
 } from "./gen/platformclient.js";
 // The billing kinds (cloud_only): the plan catalog, an organization's
 // subscription, and issued licenses. The entitlement input types are
-// emitted per module; the plan's copy is the one exported.
+// emitted once per module that uses them, identical in shape; this barrel
+// exports the plan's copy. A subscription is created by the payment system,
+// never by a client, so no input type is exported for it.
 export {
   PlanClient,
   type PlanInput,
@@ -293,7 +295,7 @@ export {
   type EntitlementsInput,
   type EntitlementLimitsInput,
 } from "./gen/plan.js";
-export { SubscriptionClient, type SubscriptionInput } from "./gen/subscription.js";
+export { SubscriptionClient } from "./gen/subscription.js";
 export {
   LicenseClient,
   type LicenseInput,

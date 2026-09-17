@@ -21,23 +21,40 @@
  * stamps the answer's checked_at from the same one, so a report and its
  * timestamp can never disagree about when the license was evaluated. A
  * provider therefore takes `now` and never reads the wall clock itself.
+ *
+ * The report is a union keyed on the state, not a bag of optional fields,
+ * so the wire's presence contract (GetLicenseStatusOutput) is a fact the
+ * compiler holds rather than a sentence a provider has to remember: an
+ * `invalid` report cannot carry the claims that did not verify, a `valid`
+ * one cannot omit them, and `unspecified` cannot be reported at all.
  */
 import type { LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 
 /**
- * A provider's answer, evaluated at the instant it was given. Presence
- * follows the state, and the controller copies it to the wire unchanged:
- * `claims` is set exactly when the ticket's signature verified (valid,
- * expiring, grace, expired); `keyId` is set whenever a ticket was presented
- * at all (every state but absent), so an invalid answer still names the key
- * that failed.
+ * The states in which a ticket's signature verified and its claims are
+ * trusted; what separates them is only where the clock stands in the term.
  */
-export interface LicenseStatusReport {
-  readonly state: LicenseState;
-  readonly claims?: LicenseClaims;
-  readonly keyId?: string;
-}
+export type VerifiedLicenseState =
+  | LicenseState.valid
+  | LicenseState.expiring
+  | LicenseState.grace
+  | LicenseState.expired;
+
+/**
+ * A provider's answer, evaluated at the instant it was given. One arm per
+ * presence shape: no ticket configured; a ticket that named a key and did
+ * not verify; a ticket that verified, with the key it named and the claims
+ * it carried. The controller copies the arm to the wire field for field.
+ */
+export type LicenseStatusReport =
+  | { readonly state: LicenseState.absent }
+  | { readonly state: LicenseState.invalid; readonly keyId: string }
+  | {
+      readonly state: VerifiedLicenseState;
+      readonly keyId: string;
+      readonly claims: LicenseClaims;
+    };
 
 /** The provider contract (single-instance point, ExtensionDrivers.licenseStatus). */
 export interface LicenseStatusProvider {

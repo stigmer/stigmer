@@ -255,7 +255,7 @@ The customer a license is issued to, carried as a value inside the license.
   type={{
     id: { type: "string", description: "Identifier the issuer minted for this customer, stable across every license issued to them.", required: true },
     displayName: { type: "string", description: "The customer's name as the licensed server shows it (\"licensed to Acme\").", required: true },
-    contactEmail: { type: "string", description: "The address renewal and expiry notices go to." },
+    contactEmail: { type: "string", description: "The address renewal and expiry notices go to.", required: true },
     organization: { type: "string", description: "The cloud organization this customer also holds, as its slug (the same value a resource's metadata.org carries)." },
   }}
 />

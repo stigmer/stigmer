@@ -37,8 +37,11 @@
       "type": {
         "kind": "string"
       },
-      "description": "The address renewal and expiry notices go to.",
-      "required": false
+      "description": "The address renewal and expiry notices go to. Every license has one: a\n term that ends must be able to warn someone before it does.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
     },
     {
       "name": "Organization",

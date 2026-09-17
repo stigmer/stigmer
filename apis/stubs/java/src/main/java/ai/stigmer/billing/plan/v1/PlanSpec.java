@@ -13,6 +13,17 @@ package ai.stigmer.billing.plan.v1;
  * what a customer agreed to, so a change is a new Plan. Every money field is
  * a term of one specific plan row, and no row ships in the contract, so the
  * contract itself carries no price.
+ *
+ * The instrument decides which terms a plan may carry, and the two rules
+ * below refuse the cross: a license plan is invoiced for a term, so monthly
+ * terms have no meaning on it; a subscription plan bills monthly, so an
+ * annual price has none. per_extra_organization_micros is bound to the
+ * entitlements' managed organizations, not to the instrument, and stays free.
+ *
+ * &#64;internal
+ * The expressions compare against the enum's numbers (1 subscription, 2
+ * license) because CEL sees an enum as its integer; the numbers are wire
+ * bytes and never change.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}
@@ -421,6 +432,17 @@ private static final long serialVersionUID = 0L;
    * what a customer agreed to, so a change is a new Plan. Every money field is
    * a term of one specific plan row, and no row ships in the contract, so the
    * contract itself carries no price.
+   *
+   * The instrument decides which terms a plan may carry, and the two rules
+   * below refuse the cross: a license plan is invoiced for a term, so monthly
+   * terms have no meaning on it; a subscription plan bills monthly, so an
+   * annual price has none. per_extra_organization_micros is bound to the
+   * entitlements' managed organizations, not to the instrument, and stays free.
+   *
+   * &#64;internal
+   * The expressions compare against the enum's numbers (1 subscription, 2
+   * license) because CEL sees an enum as its integer; the numbers are wire
+   * bytes and never change.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}

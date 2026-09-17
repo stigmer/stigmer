@@ -50,6 +50,7 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
+import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import {
   GetLicenseStatusOutputSchema,
   GetRunnerBootstrapConfigOutputSchema,
@@ -141,8 +142,9 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
  * The state of the license this server holds, as the composed provider
  * reports it at one instant.
  *
- * The provider's presence contract is copied to the wire unchanged (claims
- * exactly when a ticket verified, key_id whenever one was presented) and
+ * The report's arm (extensions/license-status.ts) is copied to the wire
+ * field for field, so the output's presence contract holds by construction:
+ * claims exactly when a ticket verified, key_id whenever one was presented.
  * checked_at is stamped from the SAME instant the provider evaluated
  * against, so the answer can never say "valid as of now" about a moment
  * other than the one it was asked about. No caller check beyond
@@ -157,13 +159,28 @@ async function getLicenseStatus(
   const report = await deps.licenseStatus.status(now);
   const output = create(GetLicenseStatusOutputSchema, {
     state: report.state,
-    keyId: report.keyId ?? "",
     checkedAt: timestampFromDate(now),
   });
-  if (report.claims !== undefined) {
-    output.claims = report.claims;
+  switch (report.state) {
+    case LicenseState.absent:
+      return output;
+    case LicenseState.invalid:
+      output.keyId = report.keyId;
+      return output;
+    case LicenseState.valid:
+    case LicenseState.expiring:
+    case LicenseState.grace:
+    case LicenseState.expired:
+      output.keyId = report.keyId;
+      output.claims = report.claims;
+      return output;
+    default: {
+      const exhaustive: never = report;
+      throw new Error(
+        `unhandled license report: ${JSON.stringify(exhaustive)}`,
+      );
+    }
   }
-  return output;
 }
 
 /**

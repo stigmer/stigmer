@@ -76,6 +76,25 @@ const ENC_KEY = Buffer.alloc(32, 6);
 
 type PlatformClient = Client<typeof PlatformQueryController>;
 
+/**
+ * A verified ticket's claims, shared by every arm that fakes a provider in
+ * a verified state: the report type requires them there, so a fixture that
+ * omitted them would not compile.
+ */
+const verifiedClaims = create(LicenseClaimsSchema, {
+  licenseId: "lic_01platformtest",
+  customer: {
+    id: "cus_acme",
+    displayName: "Acme Corp",
+    contactEmail: "billing@acme.example",
+  },
+  term: LicenseTerm.paid,
+  entitlements: { features: [] },
+  issuedAt: timestampFromDate(new Date("2026-09-01T00:00:00Z")),
+  expiresAt: timestampFromDate(new Date("2027-09-01T00:00:00Z")),
+  graceUntil: timestampFromDate(new Date("2027-10-01T00:00:00Z")),
+});
+
 describe("platform domain (composed server)", () => {
   let server: ComposedServer;
   let client: PlatformClient;
@@ -244,15 +263,6 @@ describe("platform domain (keyless runner-token service)", () => {
  */
 describe("platform domain (license status)", () => {
   const instant = new Date("2026-09-18T00:00:00Z");
-  const claims = create(LicenseClaimsSchema, {
-    licenseId: "lic_01platformtest",
-    customer: { id: "cus_acme", displayName: "Acme Corp" },
-    term: LicenseTerm.paid,
-    entitlements: { features: [] },
-    issuedAt: timestampFromDate(new Date("2026-09-01T00:00:00Z")),
-    expiresAt: timestampFromDate(new Date("2027-09-01T00:00:00Z")),
-    graceUntil: timestampFromDate(new Date("2027-10-01T00:00:00Z")),
-  });
 
   function clientWith(provider: LicenseStatusProvider) {
     const transport = createRouterTransport((router) => {
@@ -286,7 +296,7 @@ describe("platform domain (license status)", () => {
         seen.push(now);
         return Promise.resolve({
           state: LicenseState.valid,
-          claims,
+          claims: verifiedClaims,
           keyId: "lk_2026",
         });
       },
@@ -405,6 +415,7 @@ describe("platform domain (capability-delegating provider — C4)", () => {
                 Promise.resolve({
                   state: LicenseState.expiring,
                   keyId: "lk_composed",
+                  claims: verifiedClaims,
                 }),
             },
           },
@@ -492,6 +503,9 @@ describe("platform domain (capability-delegating provider — C4)", () => {
     const status = await client.getLicenseStatus({});
     expect(status.state).toBe(LicenseState.expiring);
     expect(status.keyId).toBe("lk_composed");
+    // The verified arm's claims cross the gRPC boundary whole; the instant
+    // itself is pinned on the in-process router above, where it is injected.
+    expect(status.claims?.customer?.displayName).toBe("Acme Corp");
     expect(status.checkedAt).toBeDefined();
   });
 

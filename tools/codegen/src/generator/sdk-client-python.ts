@@ -316,9 +316,10 @@ class PyImports {
       buf.push("from ai.stigmer.commons.rpc import pagination_pb2\n");
     }
     if (this.crossProtoPackages.size > 0) {
-      const keys = [...this.crossProtoPackages.keys()].sort();
-      for (const key of keys) {
-        const { pkg, module } = this.crossProtoPackages.get(key)!;
+      const entries = [...this.crossProtoPackages.entries()].sort(([a], [b]) =>
+        a < b ? -1 : a > b ? 1 : 0,
+      );
+      for (const [, { pkg, module }] of entries) {
         buf.push(pyProtoImportLine(pkg, module) + "\n");
       }
     }

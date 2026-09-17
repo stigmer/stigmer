@@ -17,12 +17,14 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //
 // @internal
 // Served by the cloud composition only (the kind is cloud_only). Both RPCs
-// are is_skip_authorization although get carries an id: the kind has no
-// authorization scope (AUTHORIZATION_SCOPE_TYPE_NONE, no tuples exist to
-// check), and "any authenticated caller, no permission" has no other
-// spelling in the annotation vocabulary (getRunnerBootstrapConfig is the
-// precedent). The handler performs no further check. Relaxing to public
-// later is additive; tightening later would break a caller.
+// are is_skip_authorization although get carries an id: the kind's
+// authorization scope is AUTHORIZATION_SCOPE_TYPE_NONE, so no tuple exists
+// to check a caller against, and "any authenticated caller, no permission"
+// has no other spelling in the annotation vocabulary. This is the one
+// exception the proto-modelling guide grants to its rule against skipping
+// on an id-carrying request; the handler performs no further check.
+// Relaxing to public later is additive; tightening later would break a
+// caller.
 service PlanQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = plan;
 

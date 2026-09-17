@@ -48,31 +48,41 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n%ai/stigmer/billing/plan/v1/spec.proto\022" +
       "\032ai.stigmer.billing.plan.v1\032(ai/stigmer/" +
       "platform/v1/entitlement.proto\032\033buf/valid" +
-      "ate/validate.proto\"\240\002\n\010PlanSpec\022Y\n\ninstr" +
+      "ate/validate.proto\"\261\005\n\010PlanSpec\022Y\n\ninstr" +
       "ument\030\001 \001(\0162*.ai.stigmer.billing.plan.v1" +
       ".PlanInstrumentB\r\272H\n\202\001\004\020\001 \000\310\001\001R\ninstrume" +
       "nt\022P\n\014entitlements\030\002 \001(\0132$.ai.stigmer.pl" +
       "atform.v1.EntitlementsB\006\272H\003\310\001\001R\014entitlem" +
       "ents\022;\n\005terms\030\003 \001(\0132%.ai.stigmer.billing" +
       ".plan.v1.PlanTermsR\005terms\022*\n\013description" +
-      "\030\004 \001(\tB\010\272H\005r\003\030\200\010R\013description\"\232\003\n\tPlanTe" +
-      "rms\022B\n\026monthly_minimum_micros\030\001 \001(\003B\007\272H\004" +
-      "\"\002(\000H\000R\024monthlyMinimumMicros\210\001\001\022H\n\030usage" +
-      "_share_basis_points\030\002 \001(\005B\n\272H\007\032\005\030\220N(\000H\001R" +
-      "\025usageShareBasisPoints\210\001\001\022O\n\035per_extra_o" +
-      "rganization_micros\030\003 \001(\003B\007\272H\004\"\002(\000H\002R\032per" +
-      "ExtraOrganizationMicros\210\001\001\022<\n\023annual_pri" +
-      "ce_micros\030\004 \001(\003B\007\272H\004\"\002(\000H\003R\021annualPriceM" +
-      "icros\210\001\001B\031\n\027_monthly_minimum_microsB\033\n\031_" +
-      "usage_share_basis_pointsB \n\036_per_extra_o" +
-      "rganization_microsB\026\n\024_annual_price_micr" +
-      "os*P\n\016PlanInstrument\022\037\n\033plan_instrument_" +
-      "unspecified\020\000\022\020\n\014subscription\020\001\022\013\n\007licen" +
-      "se\020\002B\230\001B\tSpecProtoP\001\242\002\004ASBP\252\002\032Ai.Stigmer" +
-      ".Billing.Plan.V1\312\002\032Ai\\Stigmer\\Billing\\Pl" +
-      "an\\V1\342\002&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMe" +
-      "tadata\352\002\036Ai::Stigmer::Billing::Plan::V1b" +
-      "\006proto3"
+      "\030\004 \001(\tB\010\272H\005r\003\030\200\010R\013description:\216\003\272H\212\003\032\346\001\n" +
+      "&plan_spec.license_has_no_monthly_terms\022" +
+      "La license plan carries no monthly_minim" +
+      "um_micros or usage_share_basis_points\032nt" +
+      "his.instrument != 2 || (!has(this.terms." +
+      "monthly_minimum_micros) && !has(this.ter" +
+      "ms.usage_share_basis_points))\032\236\001\n*plan_s" +
+      "pec.subscription_has_no_annual_price\0222a " +
+      "subscription plan carries no annual_pric" +
+      "e_micros\032<this.instrument != 1 || !has(t" +
+      "his.terms.annual_price_micros)\"\232\003\n\tPlanT" +
+      "erms\022B\n\026monthly_minimum_micros\030\001 \001(\003B\007\272H" +
+      "\004\"\002(\000H\000R\024monthlyMinimumMicros\210\001\001\022H\n\030usag" +
+      "e_share_basis_points\030\002 \001(\005B\n\272H\007\032\005\030\220N(\000H\001" +
+      "R\025usageShareBasisPoints\210\001\001\022O\n\035per_extra_" +
+      "organization_micros\030\003 \001(\003B\007\272H\004\"\002(\000H\002R\032pe" +
+      "rExtraOrganizationMicros\210\001\001\022<\n\023annual_pr" +
+      "ice_micros\030\004 \001(\003B\007\272H\004\"\002(\000H\003R\021annualPrice" +
+      "Micros\210\001\001B\031\n\027_monthly_minimum_microsB\033\n\031" +
+      "_usage_share_basis_pointsB \n\036_per_extra_" +
+      "organization_microsB\026\n\024_annual_price_mic" +
+      "ros*P\n\016PlanInstrument\022\037\n\033plan_instrument" +
+      "_unspecified\020\000\022\020\n\014subscription\020\001\022\013\n\007lice" +
+      "nse\020\002B\230\001B\tSpecProtoP\001\242\002\004ASBP\252\002\032Ai.Stigme" +
+      "r.Billing.Plan.V1\312\002\032Ai\\Stigmer\\Billing\\P" +
+      "lan\\V1\342\002&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBM" +
+      "etadata\352\002\036Ai::Stigmer::Billing::Plan::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -98,6 +108,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

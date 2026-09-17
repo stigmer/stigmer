@@ -102,7 +102,7 @@ class LicenseCustomerInput:
 
     id: str
     display_name: str
-    contact_email: str = ""
+    contact_email: str
     organization: str = ""
 
     def _to_proto(self) -> platform_license_pb2.LicenseCustomer:

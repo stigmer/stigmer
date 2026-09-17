@@ -277,7 +277,8 @@ type LicenseCustomer struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The customer's name as the licensed server shows it ("licensed to Acme").
 	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// The address renewal and expiry notices go to.
+	// The address renewal and expiry notices go to. Every license has one: a
+	// term that ends must be able to warn someone before it does.
 	ContactEmail string `protobuf:"bytes,3,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
 	// The cloud organization this customer also holds, as its slug (the same
 	// value a resource's metadata.org carries). Empty when the customer has
@@ -363,11 +364,12 @@ const file_ai_stigmer_platform_v1_license_proto_rawDesc = "" +
 	"\vgrace_until\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"graceUntil:\xea\x01\xbaH\xe6\x01\x1aj\n" +
 	"\"license_claims.expires_after_issue\x12\"expires_at must be after issued_at\x1a this.expires_at > this.issued_at\x1ax\n" +
-	"&license_claims.grace_not_before_expiry\x12)grace_until must not be before expires_at\x1a#this.grace_until >= this.expires_at\"\xa6\x01\n" +
+	"&license_claims.grace_not_before_expiry\x12)grace_until must not be before expires_at\x1a#this.grace_until >= this.expires_at\"\xa9\x01\n" +
 	"\x0fLicenseCustomer\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12)\n" +
-	"\fdisplay_name\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vdisplayName\x12,\n" +
-	"\rcontact_email\x18\x03 \x01(\tB\a\xbaH\x04r\x02`\x01R\fcontactEmail\x12\"\n" +
+	"\fdisplay_name\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vdisplayName\x12/\n" +
+	"\rcontact_email\x18\x03 \x01(\tB\n" +
+	"\xbaH\a\xc8\x01\x01r\x02`\x01R\fcontactEmail\x12\"\n" +
 	"\forganization\x18\x04 \x01(\tR\forganization*@\n" +
 	"\vLicenseTerm\x12\x1c\n" +
 	"\x18license_term_unspecified\x10\x00\x12\t\n" +

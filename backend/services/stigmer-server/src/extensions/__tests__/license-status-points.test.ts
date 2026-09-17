@@ -18,9 +18,11 @@ import { describe, expect, it } from "vitest";
 import type { LicenseStatusProvider } from "../license-status.js";
 import { resolveExtensions } from "../registry.js";
 
+// An invalid report is the smallest complete one a provider can give: the
+// registry test needs an instance to carry through, not a verified ticket.
 const provider: LicenseStatusProvider = {
   status: () =>
-    Promise.resolve({ state: LicenseState.valid, keyId: "lk_test" }),
+    Promise.resolve({ state: LicenseState.invalid, keyId: "lk_test" }),
 };
 
 describe("the licenseStatus driver point", () => {

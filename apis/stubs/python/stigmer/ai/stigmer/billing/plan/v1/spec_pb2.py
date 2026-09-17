@@ -26,7 +26,7 @@ from ai.stigmer.platform.v1 import entitlement_pb2 as ai_dot_stigmer_dot_platfor
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/billing/plan/v1/spec.proto\x12\x1a\x61i.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1b\x62uf/validate/validate.proto\"\xa0\x02\n\x08PlanSpec\x12Y\n\ninstrument\x18\x01 \x01(\x0e\x32*.ai.stigmer.billing.plan.v1.PlanInstrumentB\r\xbaH\n\x82\x01\x04\x10\x01 \x00\xc8\x01\x01R\ninstrument\x12P\n\x0c\x65ntitlements\x18\x02 \x01(\x0b\x32$.ai.stigmer.platform.v1.EntitlementsB\x06\xbaH\x03\xc8\x01\x01R\x0c\x65ntitlements\x12;\n\x05terms\x18\x03 \x01(\x0b\x32%.ai.stigmer.billing.plan.v1.PlanTermsR\x05terms\x12*\n\x0b\x64\x65scription\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\x0b\x64\x65scription\"\x9a\x03\n\tPlanTerms\x12\x42\n\x16monthly_minimum_micros\x18\x01 \x01(\x03\x42\x07\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12H\n\x18usage_share_basis_points\x18\x02 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x90N(\x00H\x01R\x15usageShareBasisPoints\x88\x01\x01\x12O\n\x1dper_extra_organization_micros\x18\x03 \x01(\x03\x42\x07\xbaH\x04\"\x02(\x00H\x02R\x1aperExtraOrganizationMicros\x88\x01\x01\x12<\n\x13\x61nnual_price_micros\x18\x04 \x01(\x03\x42\x07\xbaH\x04\"\x02(\x00H\x03R\x11\x61nnualPriceMicros\x88\x01\x01\x42\x19\n\x17_monthly_minimum_microsB\x1b\n\x19_usage_share_basis_pointsB \n\x1e_per_extra_organization_microsB\x16\n\x14_annual_price_micros*P\n\x0ePlanInstrument\x12\x1f\n\x1bplan_instrument_unspecified\x10\x00\x12\x10\n\x0csubscription\x10\x01\x12\x0b\n\x07license\x10\x02\x42\xb8\x01\n\x1e\x63om.ai.stigmer.billing.plan.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02\x1a\x41i.Stigmer.Billing.Plan.V1\xca\x02\x1a\x41i\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Billing::Plan::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/billing/plan/v1/spec.proto\x12\x1a\x61i.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb1\x05\n\x08PlanSpec\x12Y\n\ninstrument\x18\x01 \x01(\x0e\x32*.ai.stigmer.billing.plan.v1.PlanInstrumentB\r\xbaH\n\x82\x01\x04\x10\x01 \x00\xc8\x01\x01R\ninstrument\x12P\n\x0c\x65ntitlements\x18\x02 \x01(\x0b\x32$.ai.stigmer.platform.v1.EntitlementsB\x06\xbaH\x03\xc8\x01\x01R\x0c\x65ntitlements\x12;\n\x05terms\x18\x03 \x01(\x0b\x32%.ai.stigmer.billing.plan.v1.PlanTermsR\x05terms\x12*\n\x0b\x64\x65scription\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\x0b\x64\x65scription:\x8e\x03\xbaH\x8a\x03\x1a\xe6\x01\n&plan_spec.license_has_no_monthly_terms\x12La license plan carries no monthly_minimum_micros or usage_share_basis_points\x1anthis.instrument != 2 || (!has(this.terms.monthly_minimum_micros) && !has(this.terms.usage_share_basis_points))\x1a\x9e\x01\n*plan_spec.subscription_has_no_annual_price\x12\x32\x61 subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\"\x9a\x03\n\tPlanTerms\x12\x42\n\x16monthly_minimum_micros\x18\x01 \x01(\x03\x42\x07\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12H\n\x18usage_share_basis_points\x18\x02 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x90N(\x00H\x01R\x15usageShareBasisPoints\x88\x01\x01\x12O\n\x1dper_extra_organization_micros\x18\x03 \x01(\x03\x42\x07\xbaH\x04\"\x02(\x00H\x02R\x1aperExtraOrganizationMicros\x88\x01\x01\x12<\n\x13\x61nnual_price_micros\x18\x04 \x01(\x03\x42\x07\xbaH\x04\"\x02(\x00H\x03R\x11\x61nnualPriceMicros\x88\x01\x01\x42\x19\n\x17_monthly_minimum_microsB\x1b\n\x19_usage_share_basis_pointsB \n\x1e_per_extra_organization_microsB\x16\n\x14_annual_price_micros*P\n\x0ePlanInstrument\x12\x1f\n\x1bplan_instrument_unspecified\x10\x00\x12\x10\n\x0csubscription\x10\x01\x12\x0b\n\x07license\x10\x02\x42\xb8\x01\n\x1e\x63om.ai.stigmer.billing.plan.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02\x1a\x41i.Stigmer.Billing.Plan.V1\xca\x02\x1a\x41i\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Billing::Plan::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,6 +40,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLANSPEC'].fields_by_name['entitlements']._serialized_options = b'\272H\003\310\001\001'
   _globals['_PLANSPEC'].fields_by_name['description']._loaded_options = None
   _globals['_PLANSPEC'].fields_by_name['description']._serialized_options = b'\272H\005r\003\030\200\010'
+  _globals['_PLANSPEC']._loaded_options = None
+  _globals['_PLANSPEC']._serialized_options = b'\272H\212\003\032\346\001\n&plan_spec.license_has_no_monthly_terms\022La license plan carries no monthly_minimum_micros or usage_share_basis_points\032nthis.instrument != 2 || (!has(this.terms.monthly_minimum_micros) && !has(this.terms.usage_share_basis_points))\032\236\001\n*plan_spec.subscription_has_no_annual_price\0222a subscription plan carries no annual_price_micros\032<this.instrument != 1 || !has(this.terms.annual_price_micros)'
   _globals['_PLANTERMS'].fields_by_name['monthly_minimum_micros']._loaded_options = None
   _globals['_PLANTERMS'].fields_by_name['monthly_minimum_micros']._serialized_options = b'\272H\004\"\002(\000'
   _globals['_PLANTERMS'].fields_by_name['usage_share_basis_points']._loaded_options = None
@@ -48,10 +50,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLANTERMS'].fields_by_name['per_extra_organization_micros']._serialized_options = b'\272H\004\"\002(\000'
   _globals['_PLANTERMS'].fields_by_name['annual_price_micros']._loaded_options = None
   _globals['_PLANTERMS'].fields_by_name['annual_price_micros']._serialized_options = b'\272H\004\"\002(\000'
-  _globals['_PLANINSTRUMENT']._serialized_start=844
-  _globals['_PLANINSTRUMENT']._serialized_end=924
+  _globals['_PLANINSTRUMENT']._serialized_start=1245
+  _globals['_PLANINSTRUMENT']._serialized_end=1325
   _globals['_PLANSPEC']._serialized_start=141
-  _globals['_PLANSPEC']._serialized_end=429
-  _globals['_PLANTERMS']._serialized_start=432
-  _globals['_PLANTERMS']._serialized_end=842
+  _globals['_PLANSPEC']._serialized_end=830
+  _globals['_PLANTERMS']._serialized_start=833
+  _globals['_PLANTERMS']._serialized_end=1243
 # @@protoc_insertion_point(module_scope)

@@ -42,9 +42,9 @@ enum ApiResourceGroup {
   // Billing - What is sold: plans, the subscriptions and licenses that
   // grant them. The entitlement vocabulary these kinds carry lives under
   // platform, because every edition reads it; the kinds live here because
-  // only the cloud sells. The pre-existing billing/v1 aggregate
-  // (BillingAccount and its ledger) predates the resource envelope and
-  // stays outside it; this group covers the envelope kinds only.
+  // only the cloud sells. The flat billing/v1 aggregate (BillingAccount and
+  // its ledger) is a plain message, not an envelope kind, and stays outside
+  // the group; this group covers the envelope kinds only.
   billing = 4 [(group_meta) = {
     domain: "billing.stigmer.ai"
     display_name: "Billing"
