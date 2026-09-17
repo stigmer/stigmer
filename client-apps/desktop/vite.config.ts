@@ -15,6 +15,7 @@ export default defineConfig({
       "@stigmer/sdk",
       "@stigmer/protos",
       "@stigmer/theme",
+      "@stigmer/plugin-package",
     ],
   },
 

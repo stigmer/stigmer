@@ -149,6 +149,7 @@ export default function McpServerDetailPage() {
         editable
         activeOrg={activeOrg}
         onResourceLoad={handleResourceLoad}
+        onPluginClick={({ org: o, slug: s }) => navigate(`/library/plugins/${o}/${s}`)}
         actions={actions}
       />
       <EditResourceYamlDialog

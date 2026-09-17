@@ -17,6 +17,7 @@ import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
 import { McpServerDetailPageInner } from "@/domain/library/mcp-servers/McpServerDetailPage";
 import { WorkflowDetailPageInner } from "@/domain/workflow/WorkflowDetailPage";
 import { ScheduleDetailPageInner } from "@/domain/library/schedules/ScheduleDetailPage";
+import { PluginDetailPageInner } from "@/domain/library/plugins/PluginDetailPage";
 
 export default function LibraryLayout({
   children,
@@ -95,5 +96,7 @@ function LibraryDetailContent({ detail }: { detail: ActiveDetail }) {
       return <WorkflowDetailPageInner org={detail.org} slug={detail.slug} />;
     case "schedules":
       return <ScheduleDetailPageInner org={detail.org} slug={detail.slug} />;
+    case "plugins":
+      return <PluginDetailPageInner org={detail.org} slug={detail.slug} />;
   }
 }

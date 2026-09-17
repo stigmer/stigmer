@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  SkillDetailView,
+  PluginDetailView,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
@@ -16,21 +16,22 @@ import {
   useRouteDetailYieldsToOverlay,
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+import { getAgentSessionUrl } from "@/domain/session/session-url";
 
-interface SkillDetailPageInnerProps {
+interface PluginDetailPageInnerProps {
   readonly org: string;
   readonly slug: string;
 }
 
-export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
+export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps) {
   const router = useRouter();
   const { navigateToDetail } = useLibraryNavigation();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
-  const [resourceName, setResourceName] = useState<string>("Skill");
+  const [resourceName, setResourceName] = useState<string>("Plugin");
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
-  const { deleteResource, isDeleting } = useDeleteResource("skill", resourceId, resourceName);
+  const { deleteResource, isDeleting } = useDeleteResource("plugin", resourceId, resourceName);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -43,17 +44,18 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
     [setLabel],
   );
 
-  const handleDelete = useCallback(async () => {
+  const handleRemove = useCallback(async () => {
     const confirmed = await confirm({
-      title: `Delete ${resourceName}?`,
-      description: "This action cannot be undone. The skill and its content will be permanently removed.",
-      confirmLabel: "Delete",
+      title: `Remove ${resourceName}?`,
+      description:
+        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses if something outside the plugin still uses one of them.",
+      confirmLabel: "Remove",
       variant: "destructive",
     });
     if (confirmed) {
       try {
         await deleteResource();
-        router.push("/library/skills");
+        router.push("/library/plugins");
       } catch {
         // error toast handled by useDeleteResource
       }
@@ -76,25 +78,28 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
         onAction: () => copyQualifiedSlug(org, slug),
       },
       {
-        id: "delete",
-        label: "Delete",
+        id: "remove",
+        label: "Remove",
         variant: "destructive" as const,
         group: "danger",
-        onAction: handleDelete,
+        onAction: handleRemove,
         disabled: isDeleting,
       },
     ],
-    [resourceId, copyId, copyQualifiedSlug, org, slug, handleDelete, isDeleting],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, handleRemove, isDeleting],
   );
 
   return (
     <>
-      <SkillDetailView
+      <PluginDetailView
         org={org}
         slug={slug}
-        editable
         onResourceLoad={handleResourceLoad}
-        onPluginClick={({ org: o, slug: s }) => navigateToDetail("plugins", o, s)}
+        onStartSession={({ org: o, slug: s }) => router.push(getAgentSessionUrl(o, s))}
+        onSkillClick={({ org: o, slug: s }) => navigateToDetail("skills", o, s)}
+        onMcpServerClick={({ org: o, slug: s }) => navigateToDetail("mcp-servers", o, s)}
+        onAgentClick={({ org: o, slug: s }) => navigateToDetail("agents", o, s)}
+        onWorkflowClick={({ org: o, slug: s }) => navigateToDetail("workflows", o, s)}
         actions={actions}
       />
       <ConfirmDialog
@@ -106,7 +111,7 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
   );
 }
 
-export function SkillDetailPage() {
+export function PluginDetailPage() {
   // The zone overlay owns detail rendering while it is active (oss#621).
   const yieldsToOverlay = useRouteDetailYieldsToOverlay();
   const org = useStaticRouteParam("org", 2);
@@ -114,5 +119,5 @@ export function SkillDetailPage() {
 
   if (yieldsToOverlay || !org || !slug) return null;
 
-  return <SkillDetailPageInner org={org} slug={slug} />;
+  return <PluginDetailPageInner org={org} slug={slug} />;
 }

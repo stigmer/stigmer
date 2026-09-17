@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  SkillDetailView,
+  PluginDetailView,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
@@ -10,20 +10,24 @@ import {
   type DetailAction,
 } from "@stigmer/react";
 
-export default function SkillDetailPage() {
+/**
+ * The home-route URL that opens the new-session screen with the agent
+ * pre-selected. Mirrors the web `getAgentSessionUrl` helper and the
+ * agent detail page's own; the hash router resolves this to `#/?...`.
+ */
+function agentSessionUrl(org: string, slug: string): string {
+  return `/?agent=${encodeURIComponent(`${org}/${slug}`)}`;
+}
+
+export default function PluginDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
   const navigate = useNavigate();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
-  const [resourceName, setResourceName] = useState<string>("Skill");
+  const [resourceName, setResourceName] = useState<string>("Plugin");
   const { copyId, copyQualifiedSlug } = useCopyResource();
-  const { confirmState, confirm, handleConfirm, handleCancel } =
-    useConfirmAction();
-  const { deleteResource, isDeleting } = useDeleteResource(
-    "skill",
-    resourceId,
-    resourceName,
-  );
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const { deleteResource, isDeleting } = useDeleteResource("plugin", resourceId, resourceName);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -36,18 +40,18 @@ export default function SkillDetailPage() {
     [setLabel],
   );
 
-  const handleDelete = useCallback(async () => {
+  const handleRemove = useCallback(async () => {
     const confirmed = await confirm({
-      title: `Delete ${resourceName}?`,
+      title: `Remove ${resourceName}?`,
       description:
-        "This action cannot be undone. The skill and its content will be permanently removed.",
-      confirmLabel: "Delete",
+        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses if something outside the plugin still uses one of them.",
+      confirmLabel: "Remove",
       variant: "destructive",
     });
     if (confirmed) {
       try {
         await deleteResource();
-        navigate("/library/skills");
+        navigate("/library/plugins");
       } catch {
         // error toast handled by useDeleteResource
       }
@@ -60,9 +64,7 @@ export default function SkillDetailPage() {
         id: "copy-id",
         label: "Copy ID",
         group: "clipboard",
-        onAction: () => {
-          if (resourceId) copyId(resourceId);
-        },
+        onAction: () => { if (resourceId) copyId(resourceId); },
         disabled: !resourceId,
       },
       {
@@ -72,35 +74,30 @@ export default function SkillDetailPage() {
         onAction: () => copyQualifiedSlug(org ?? "", slug ?? ""),
       },
       {
-        id: "delete",
-        label: "Delete",
+        id: "remove",
+        label: "Remove",
         variant: "destructive" as const,
         group: "danger",
-        onAction: handleDelete,
+        onAction: handleRemove,
         disabled: isDeleting,
       },
     ],
-    [
-      resourceId,
-      copyId,
-      copyQualifiedSlug,
-      org,
-      slug,
-      handleDelete,
-      isDeleting,
-    ],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, handleRemove, isDeleting],
   );
 
   if (!org || !slug) return null;
 
   return (
     <>
-      <SkillDetailView
+      <PluginDetailView
         org={org}
         slug={slug}
-        editable
         onResourceLoad={handleResourceLoad}
-        onPluginClick={({ org: o, slug: s }) => navigate(`/library/plugins/${o}/${s}`)}
+        onStartSession={({ org: o, slug: s }) => navigate(agentSessionUrl(o, s))}
+        onSkillClick={({ org: o, slug: s }) => navigate(`/library/skills/${o}/${s}`)}
+        onMcpServerClick={({ org: o, slug: s }) => navigate(`/library/mcp-servers/${o}/${s}`)}
+        onAgentClick={({ org: o, slug: s }) => navigate(`/library/agents/${o}/${s}`)}
+        onWorkflowClick={({ org: o, slug: s }) => navigate(`/library/workflows/${o}/${s}`)}
         actions={actions}
       />
       <ConfirmDialog
