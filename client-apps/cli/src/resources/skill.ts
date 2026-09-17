@@ -15,6 +15,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { strFromU8, unzipSync, zipSync } from "fflate";
+import { DETERMINISTIC_ZIP_MTIME } from "@stigmer/plugin-package/client";
 import { parse as parseYaml } from "yaml";
 import { UsageError } from "../errors/index.js";
 import { getGitBranchName, getGitCommit, getGitRemoteUrl, getGitRepoRoot } from "./git.js";
@@ -22,16 +23,11 @@ import { createMatcher, REASON_TEXT, type Reason } from "./ignore/index.js";
 
 export const SKILL_FILE = "SKILL.md";
 
-// A skill version's identity is the server-side SHA-256 of the uploaded zip
-// bytes, so packaging must be a pure function of content — otherwise
-// re-pushing unchanged content registers a new version and the server's
-// unchanged-content no-op never fires (stigmer/stigmer#671). fflate stamps
-// zip-creation time into every entry when no mtime is given; pinning the DOS
-// epoch (the earliest representable zip timestamp) removes the only
-// byte-level variance. Local-field Date construction is deliberate: DOS
-// timestamps store wall-clock fields, so this encodes identically in every
-// timezone.
-export const DETERMINISTIC_ZIP_MTIME = new Date(1980, 0, 1);
+// The one mtime every archive entry carries is the shared module's
+// `DETERMINISTIC_ZIP_MTIME` (stigmer/stigmer#671: fflate would otherwise
+// stamp creation time into every entry and the server's unchanged-content
+// no-op would never fire). Re-exported so the CLI's callers keep one name.
+export { DETERMINISTIC_ZIP_MTIME };
 // Kebab-case, optionally scoped with dot-separated namespaces (e.g.
 // "platform.planton-architecture"). Every segment must be alphanumeric, so no
 // leading/trailing/consecutive separators. The derived slug renders dots as hyphens.

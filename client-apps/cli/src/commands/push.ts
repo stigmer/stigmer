@@ -237,7 +237,7 @@ async function runPushPlugin(
   const visibility = parseVisibility(options.visibility, "--visibility");
 
   if (options.dryRun === true) {
-    const prepared = plugin.preparePluginPush(directory, ignoreOptions);
+    const prepared = await plugin.preparePluginPush(directory, ignoreOptions);
     const { CommandResult } = await import("../output/index.js");
     const result = plugin.describePackageOn(
       CommandResult.success(

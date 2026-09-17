@@ -1,17 +1,20 @@
-// Public surface of the gitignore-compatible ignore engine.
+// Public surface of the CLI's ignore edge. The engine is
+// `@stigmer/plugin-package/client`; re-exported here so the CLI's callers keep
+// one import path and the shared engine stays the only implementation.
 
-export { DEFAULT_PATTERNS } from "./defaults.js";
-export { matchName } from "./match.js";
 export {
-  createMatcher,
-  type MatcherOptions,
+  DEFAULT_PATTERNS,
   type MatchReason,
+  MatchResult,
   Matcher,
-  Reason,
+  type Pattern,
   REASON_TEXT,
+  Reason,
   SOURCE_CLI,
   SOURCE_DEFAULTS,
   SOURCE_GITIGNORE,
   SOURCE_STIGMERIGNORE,
-} from "./matcher.js";
-export { MatchResult, type Pattern, parsePattern } from "./pattern.js";
+  matchName,
+  parsePattern,
+} from "@stigmer/plugin-package/client";
+export { createMatcher, type MatcherOptions } from "./matcher.js";

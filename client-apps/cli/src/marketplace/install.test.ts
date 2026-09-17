@@ -28,10 +28,10 @@ afterAll(() => {
 });
 
 describe("prepareEntry", () => {
-  it("prepares an offered entry exactly as push plugin would prepare its directory", () => {
+  it("prepares an offered entry exactly as push plugin would prepare its directory", async () => {
     const tree = readMarketplaceTree(root);
-    const viaMarketplace = prepareEntry(tree, "github");
-    const viaFolder = preparePluginPush(join(root, "third_party", "github"));
+    const viaMarketplace = await prepareEntry(tree, "github");
+    const viaFolder = await preparePluginPush(join(root, "third_party", "github"));
     expect(viaMarketplace.plugin.name).toBe("github");
     expect(viaMarketplace.digest).toBe(viaFolder.digest);
     expect(
@@ -41,20 +41,20 @@ describe("prepareEntry", () => {
     ).toBe(true);
   });
 
-  it("refuses an entry the marketplace does not offer, quoting the drop sentence when there is one", () => {
+  it("refuses an entry the marketplace does not offer, quoting the drop sentence when there is one", async () => {
     const tree = readMarketplaceTree(root);
-    expect(() => prepareEntry(tree, "ghost")).toThrow(
+    await expect(prepareEntry(tree, "ghost")).rejects.toThrow(
       /does not offer a plugin named 'ghost'\n\n.*ghost.*\n\nRun 'stigmer marketplace show cursor-plugins' to see the 2 it offers/s,
     );
-    expect(() => prepareEntry(tree, "nope")).toThrow(
+    await expect(prepareEntry(tree, "nope")).rejects.toThrow(
       /does not offer a plugin named 'nope'\n\nRun 'stigmer marketplace show/,
     );
   });
 });
 
 describe("assertVersion", () => {
-  it("passes without a pin or with the offered version, refuses another naming the offered one", () => {
-    const prepared = prepareEntry(readMarketplaceTree(root), "thermos");
+  it("passes without a pin or with the offered version, refuses another naming the offered one", async () => {
+    const prepared = await prepareEntry(readMarketplaceTree(root), "thermos");
     expect(() => assertVersion(prepared, undefined, "thermos")).not.toThrow();
     expect(() =>
       assertVersion(prepared, "1.0.0", "thermos@1.0.0"),

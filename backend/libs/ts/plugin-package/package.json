@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/plugin-package",
   "version": "0.0.0-dev",
-  "description": "Reads an Agent Plugins package — the open 1.0.0 format and the Cursor, Claude Code and Codex dialects — into one normalised description of what Stigmer would install, refusing with one sentence per problem what Stigmer cannot carry; pure over an in-memory file reader, shared by the CLI's offline validation and the server's install",
+  "description": "Reads an Agent Plugins package — the open 1.0.0 format and the Cursor, Claude Code and Codex dialects — into one normalised description of what Stigmer would install, refusing with one sentence per problem what Stigmer cannot carry; pure over an in-memory file reader, shared by the CLI's offline validation and the server's install. The ./client entry is what every installing client does identically: file selection, the deterministic archive and its digest, the marketplace grammars",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
     },
     "./testing": {
       "types": "./dist/testing.d.ts",
@@ -46,6 +51,11 @@
         "import": "./dist/index.js",
         "default": "./dist/index.js"
       },
+      "./client": {
+        "types": "./dist/client.d.ts",
+        "import": "./dist/client.js",
+        "default": "./dist/client.js"
+      },
       "./testing": {
         "types": "./dist/testing.d.ts",
         "import": "./dist/testing.js",
@@ -59,6 +69,7 @@
     "directory": "backend/libs/ts/plugin-package"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "yaml": "^2.8.2"
   },
   "devDependencies": {

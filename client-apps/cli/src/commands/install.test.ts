@@ -187,7 +187,7 @@ describe("install", () => {
     const outcome = await run("cursor-plugins/thermos", "--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     expect(pushes).toHaveLength(1);
-    const expected = preparePluginPush(join(fixture, "thermos"));
+    const expected = await preparePluginPush(join(fixture, "thermos"));
     expect(pushes[0]?.org).toBe("acme");
     expect(
       Buffer.from(pushes[0]?.artifact ?? []).equals(
