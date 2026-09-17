@@ -1,17 +1,19 @@
-// Conformance suite for the Workflow Architect: the seedpack agent that designs
+// Conformance suite for the Workflow Architect: a fixture agent that designs
 // Workflow YAML through the `stigmer mcp-server` tools, run as an ordinary
 // AgentExecution against the real mcp-server over stdio.
-// Domain: agentic / agentexecution — a product agent's tool loop, observed
-// through the transcript.
+// Domain: agentic / agentexecution — an agent's tool loop over a stdio
+// MCP server, observed through the transcript. This is the one always-on
+// CI proof of the runner's stdio lane and the mcp-server roster.
 //
 // What is real here and what is scripted: the agent's instructions are the
-// seedpack's, the McpServer is the real `@stigmer/mcp-server` full roster
+// fixture's (support/workflow-architect.ts; the product ships no architect
+// agent), the McpServer is the real `@stigmer/mcp-server` full roster
 // spawned by the runner as a stdio child (it reaches THIS server through the
 // STIGMER_SERVER_ADDRESS the execution's runtime env supplies —
 // support/workflow-architect.ts), and the tool calls the architect makes
 // (get_task_kind_registry, validate_workflow_yaml) execute for real against the
 // server's registry and validator. Only the model's turns are scripted on the
-// mock. So a passing arm proves the whole chain: seedpack prompt → runner →
+// mock. So a passing arm proves the whole chain: fixture prompt → runner →
 // stdio mcp-server → this server → tool result → the architect's YAML answer.
 //
 // Pinned (DD-001 of entry 20260910.02; the Go offline suite's

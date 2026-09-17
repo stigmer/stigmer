@@ -23,7 +23,7 @@ conversation.
 
 Vocabulary hazard: a "Skill" in Stigmer's product vocabulary
 (`docs/vocabulary.md`) is a resource the platform serves to agents
-(`seedpack/skills/`). A repo skill under `.agents/skills/` follows the same
+(`plugins/*/skills/`). A repo skill under `.agents/skills/` follows the same
 `SKILL.md` standard but guides the people and agents building Stigmer. Say "repo
 skill" when it could be misread.
 
@@ -50,8 +50,8 @@ skill" when it could be misread.
   `tools/eslint-plugin-stigmer/`.
 - `test/conformance/`: the cross-edition gRPC contract suite; `test/e2e/`:
   Playwright; `test/extension-consumer/`.
-- `seedpack/`: the marketplace catalogue of agents, MCP servers, skills and
-  workflows.
+- `plugins/`: the official plugin marketplace, published as `@stigmer/plugins`;
+  what `stigmer up` and `stigmer bootstrap` install by default.
 - `docs/` and `site/`: documentation content (MDX, Vale, Prettier) and the
   Fumadocs site; `demos/`: Scenar tours; `docs-agent/`: the Ask AI agent.
 - `deploy/`: Helm chart and all-in-one image; `examples/`; `marketing/`;
@@ -85,7 +85,7 @@ with `proseWrap: always`; Vale lints `docs/` only.
 - Tests: `make test-server`, `make test-runner`,
   `npm run test -w @stigmer/react`, `make test-conformance`,
   `make test-conformance-execution` (needs the `temporal` and `stigmer` CLIs),
-  `make test-e2e`, `make test-seedpack-static`, `npm run test:scripts`.
+  `make test-e2e`, `make test-plugins-static`, `npm run test:scripts`.
 - Docs: `make lint-docs`, `make format-docs`, `make check-docs-yaml`,
   `make check-docs-inventory`, `make build-site`.
 - Guidance: `make agents-sync` regenerates the Cursor shims; `make agents-check`
@@ -113,7 +113,7 @@ summary line in the final message. Never report unverified work as done.
 - `test/conformance/**`:
   `npm run typecheck -w @stigmer/conformance && make check-conformance-inventory`;
   suites under `test/conformance/src/suites/` also `make test-conformance`.
-- `seedpack/**`: `make test-seedpack-static`. `deploy/helm/**`:
+- `plugins/**`: `make test-plugins-static`. `deploy/helm/**`:
   `make lint-helm test-helm`.
 - `docs/**`, `site/**`:
   `make lint-docs format-docs-check check-docs-yaml check-docs-inventory`,

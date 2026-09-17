@@ -105,13 +105,11 @@ never a silent return.
 - The assertion message says what went wrong in terms a reader can act on: the
   execution id, the expected and observed phase, the elapsed time.
 
-## Credentialed canaries
+## Live vendors
 
-MCP servers in the catalogue that need a real credential are exercised by a
-credentialed canary lane rather than by the offline classes. The manifest at
-`seedpack/canary/credential-manifest.yaml` records each server's status; the
-credentials themselves are held by the maintainers outside this repository. A
-test that needs a live vendor has no offline arm and says so in its header.
+A test that needs a live vendor credential has no offline arm and says so in its
+header; the credentials are held by the maintainers outside this repository and
+no CI lane here exercises them.
 
 ## The package's own gates
 

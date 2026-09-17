@@ -32,15 +32,15 @@ test("PACKAGES is exactly the workspace members that are not private", () => {
   );
 });
 
-test("PACKAGES publishes @stigmer/seedpack before the CLI that acquires it", () => {
-  // A published @stigmer/cli acquires @stigmer/seedpack at its exact version on
-  // demand, so seedpack must be in the publish set. Order is not load-bearing
-  // (seedpack has no @stigmer/* deps; turbo orders builds by the dependency
+test("PACKAGES publishes @stigmer/plugins before the CLI that acquires it", () => {
+  // A published @stigmer/cli acquires @stigmer/plugins at its exact version on
+  // demand, so plugins must be in the publish set. Order is not load-bearing
+  // (plugins has no @stigmer/* deps; turbo orders builds by the dependency
   // graph), but keeping it ahead of the CLI mirrors the acquire relationship.
-  assert.ok(PACKAGES.includes("seedpack"), "seedpack must be in PACKAGES");
+  assert.ok(PACKAGES.includes("plugins"), "plugins must be in PACKAGES");
   assert.ok(
-    PACKAGES.indexOf("seedpack") < PACKAGES.indexOf("client-apps/cli"),
-    "seedpack must publish before client-apps/cli",
+    PACKAGES.indexOf("plugins") < PACKAGES.indexOf("client-apps/cli"),
+    "plugins must publish before client-apps/cli",
   );
 });
 

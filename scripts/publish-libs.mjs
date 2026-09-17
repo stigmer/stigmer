@@ -75,16 +75,11 @@ export const PACKAGES = [
   // mcp-server depends only on @stigmer/protos + @stigmer/sdk, both above it,
   // so the publish DAG stays ordered. Mirrors the build:libs order in package.json.
   "mcp-server",
-  // @stigmer/seedpack has no @stigmer/* deps (it stages bundled resource
-  // content), so its position is order-free. A published @stigmer/cli acquires
-  // @stigmer/seedpack at its exact version on demand, so it MUST publish too.
-  "seedpack",
   // @stigmer/plugins is the official plugin marketplace as a directory tree
   // (a root marketplace.json and one Agent Plugins package per entry); no
   // @stigmer/* deps, so its position is order-free. A published @stigmer/cli
-  // acquires it at its exact version for `stigmer up`, the seedpack's own
-  // lockstep, so it MUST publish too. The seedpack shrinks into it until the
-  // catalogue migration completes and the seedpack retires.
+  // acquires it at its exact version for `stigmer up` and `stigmer bootstrap`,
+  // so it MUST publish too.
   "plugins",
   // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
   // above it, so it publishes last with its deps already resolved.
@@ -146,7 +141,7 @@ function isPrerelease(version) {
  * `stigmerPublish.tag` in its package.json. This lets a not-yet-GA package ship
  * to npm (so it is installable + CI-testable) without ever landing on `latest`;
  * the pin is removed when the package reaches parity. (No package currently
- * pins — `@stigmer/cli` and `@stigmer/seedpack` did until they went GA.) A
+ * pins — `@stigmer/cli` did until it went GA.) A
  * package never pins itself ABOVE the inferred tag (e.g. it cannot force
  * `latest` onto a prerelease run).
  */

@@ -36,7 +36,7 @@
   "tasks": {
     // Every publishable lib compiles with tsc into dist/ (some then add to it:
     // react's stylesheet, embed's IIFE loader, mcp-server's bundled bin,
-    // seedpack's staged content, theme's CSS copies). Inputs stay at the
+    // plugins' staged catalogue, theme's CSS copies). Inputs stay at the
     // default (every non-ignored file in the package) on purpose: Tailwind v4
     // scans every source file for class names, so a test file can change
     // react's dist/styles.css, and excluding __tests__/** would make that

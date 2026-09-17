@@ -5,7 +5,7 @@
  * Neon → detail view → cursor clicks Connect → tools
  * discovered → policies tab showing approval classifications.
  *
- * Fixture data drawn from real seedpack entries to give the
+ * Fixture data modeled after real public MCP servers to give the
  * demo an authentic marketplace feel. The catalog is HTTP-only
  * (stdio MCP servers are local-runner-only and not shipped in
  * the marketplace), so every fixture uses the http transport.
@@ -38,11 +38,11 @@ export const DEMO_ORG = "acme";
 export const DEMO_SLUG = "mcp-server-neon";
 
 // ---------------------------------------------------------------------------
-// Grid fixtures — drawn from real seedpack entries
+// Grid fixtures — modeled after real public MCP servers
 // ---------------------------------------------------------------------------
 
-const SEEDPACK_ICON_BASE =
-  "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers";
+// The tour's own icons, served by the docs site from its public assets.
+const ICON_BASE = "/tours/icons";
 
 export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
   samples.searchResult({
@@ -52,7 +52,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-github",
     description:
       "Repository management, code search, issue and PR workflows, branch operations, and team collaboration.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/github.svg`,
+    iconUrl: `${ICON_BASE}/github.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000002",
@@ -61,7 +61,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-slack",
     description:
       "Search channels, send messages, manage canvases, and interact with workspace data.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/slack.svg`,
+    iconUrl: `${ICON_BASE}/slack.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000003",
@@ -70,7 +70,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-neon",
     description:
       "Serverless PostgreSQL management — branch creation, database provisioning, schema inspection, and SQL execution.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/neon.svg`,
+    iconUrl: `${ICON_BASE}/neon.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000004",
@@ -79,7 +79,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-linear",
     description:
       "Issue tracking, project management, sprint planning, and team workflow automation.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/linear.svg`,
+    iconUrl: `${ICON_BASE}/linear.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000005",
@@ -88,7 +88,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-tavily",
     description:
       "Web search and content extraction optimized for AI agents and research workflows.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/tavily.svg`,
+    iconUrl: `${ICON_BASE}/tavily.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000006",
@@ -97,7 +97,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-sentry",
     description:
       "Access error reports, performance data, project configuration, and AI-powered issue analysis.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/sentry.svg`,
+    iconUrl: `${ICON_BASE}/sentry.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000007",
@@ -106,7 +106,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-stripe",
     description:
       "Payment processing, customer management, subscription operations, and financial data access.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/stripe.svg`,
+    iconUrl: `${ICON_BASE}/stripe.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000008",
@@ -115,7 +115,7 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-figma",
     description:
       "Access design files, inspect components, extract design tokens, and navigate project structures.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/figma.svg`,
+    iconUrl: `${ICON_BASE}/figma.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000009",
@@ -124,12 +124,12 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
     slug: "mcp-server-notion",
     description:
       "Search pages, read content, manage databases, and organize workspace information.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/notion.svg`,
+    iconUrl: `${ICON_BASE}/notion.svg`,
   }),
 ];
 
 // ---------------------------------------------------------------------------
-// McpServer detail fixture — Neon (from seedpack)
+// McpServer detail fixture — Neon
 // ---------------------------------------------------------------------------
 
 function buildNeonBase(): McpServer {
@@ -142,7 +142,7 @@ function buildNeonBase(): McpServer {
 
   server.spec = create(McpServerSpecSchema, {
     description: server.spec!.description,
-    iconUrl: `${SEEDPACK_ICON_BASE}/neon.svg`,
+    iconUrl: `${ICON_BASE}/neon.svg`,
     serverType: {
       case: "http",
       value: create(HttpServerConfigSchema, {

@@ -12,7 +12,6 @@
     "sdk/embed",
     "sdk/ink",
     "mcp-server",
-    "seedpack",
     "plugins",
     "demos",
     "client-apps/cli",
