@@ -1,4 +1,9 @@
 {
   "title": "Plugins",
-  "pages": ["install-a-plugin", "install-from-a-marketplace", "marketplace-file"]
+  "pages": [
+    "install-a-plugin",
+    "install-from-a-marketplace",
+    "install-from-the-console",
+    "marketplace-file"
+  ]
 }
