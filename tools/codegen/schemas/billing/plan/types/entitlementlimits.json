@@ -1,0 +1,41 @@
+{
+  "name": "EntitlementLimits",
+  "description": "The numeric limits an entitlement carries.\n\n Every field has explicit presence: absent means \"no limit\", and zero is\n refused because a limit of nothing is never what an operator meant. The\n comment on each limit names the instrument that reads it.",
+  "protoType": "ai.stigmer.platform.v1.EntitlementLimits",
+  "protoFile": "apis/ai/stigmer/platform/v1/entitlement.proto",
+  "fields": [
+    {
+      "name": "MaxOrganizations",
+      "jsonName": "maxOrganizations",
+      "protoField": "max_organizations",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "The most organizations the tenant may hold at once. Read by a license\n (an Enterprise deployment counts its organizations against it) and by\n a subscription (a Business plan counts the managed organizations it\n includes).",
+      "required": false,
+      "oneofGroup": "_max_organizations"
+    },
+    {
+      "name": "MaxUsers",
+      "jsonName": "maxUsers",
+      "protoField": "max_users",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "The most identity accounts the tenant may hold at once. Read by both\n instruments.",
+      "required": false,
+      "oneofGroup": "_max_users"
+    },
+    {
+      "name": "IncludedManagedOrganizations",
+      "jsonName": "includedManagedOrganizations",
+      "protoField": "included_managed_organizations",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "The platform-managed organizations a subscription includes before the\n per-organization fee applies. Read by a subscription only: an\n integrator's plan includes this many managed organizations, and the\n organizations resolve their own entitlements through the integrator's.\n A license ignores it.",
+      "required": false,
+      "oneofGroup": "_included_managed_organizations"
+    }
+  ]
+}

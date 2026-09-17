@@ -200,7 +200,7 @@ class PyImports {
 
   typesNames = new Set<string>();
   crossResourceTypes = new Map<string, string[]>();
-  crossProtoPackages = new Set<string>();
+  crossProtoPackages = new Map<string, { pkg: string; module: string }>();
   extraPb2Modules = new Set<string>();
   subPkgPb2Imports = new Map<string, string>();
 
@@ -223,8 +223,13 @@ class PyImports {
     else list.push(typeName);
   }
 
-  addCrossProtoPackage(protoPkg: string): void {
-    this.crossProtoPackages.add(protoPkg);
+  /**
+   * A cross-package message's module, keyed by package and module together:
+   * one package can spread its messages over several proto files, so the
+   * import is per file, not per package.
+   */
+  addCrossProtoPackage(protoPkg: string, module: string): void {
+    this.crossProtoPackages.set(`${protoPkg} ${module}`, { pkg: protoPkg, module });
   }
 
   emit(buf: string[]): void {
@@ -311,9 +316,10 @@ class PyImports {
       buf.push("from ai.stigmer.commons.rpc import pagination_pb2\n");
     }
     if (this.crossProtoPackages.size > 0) {
-      const pkgs = [...this.crossProtoPackages].sort();
-      for (const pkg of pkgs) {
-        buf.push(pyProtoImportLine(pkg) + "\n");
+      const keys = [...this.crossProtoPackages.keys()].sort();
+      for (const key of keys) {
+        const { pkg, module } = this.crossProtoPackages.get(key)!;
+        buf.push(pyProtoImportLine(pkg, module) + "\n");
       }
     }
     buf.push("\n");
@@ -907,8 +913,13 @@ function emitPyNestedClassWithProto(
     if (parts.length > 1) {
       const typePkg = parts.slice(0, -1).join(".");
       if (typePkg !== imports.resourcePkg) {
-        protoModule = pyProtoModuleAlias(typePkg);
-        imports.addCrossProtoPackage(typePkg);
+        // The module is the type's own proto file (entitlement_pb2 for a
+        // message declared in platform/v1/entitlement.proto), not the
+        // package's spec_pb2: a package may keep its shared messages in
+        // topic files, and the schema records where each was declared.
+        const module = ts.protoFile !== "" ? pyProtoFileToModule(ts.protoFile) : "spec_pb2";
+        protoModule = pyProtoModuleAlias(typePkg, module);
+        imports.addCrossProtoPackage(typePkg, module);
       }
     }
   }

@@ -33,6 +33,13 @@ const (
 	ApiResourceGroup_iam ApiResourceGroup = 2
 	// Tenancy - Resource hierarchy: platform, organizations, and projects
 	ApiResourceGroup_tenancy ApiResourceGroup = 3
+	// Billing - What is sold: plans, the subscriptions and licenses that
+	// grant them. The entitlement vocabulary these kinds carry lives under
+	// platform, because every edition reads it; the kinds live here because
+	// only the cloud sells. The pre-existing billing/v1 aggregate
+	// (BillingAccount and its ledger) predates the resource envelope and
+	// stays outside it; this group covers the envelope kinds only.
+	ApiResourceGroup_billing ApiResourceGroup = 4
 )
 
 // Enum value maps for ApiResourceGroup.
@@ -42,12 +49,14 @@ var (
 		1: "agentic",
 		2: "iam",
 		3: "tenancy",
+		4: "billing",
 	}
 	ApiResourceGroup_value = map[string]int32{
 		"api_resource_group_unspecified": 0,
 		"agentic":                        1,
 		"iam":                            2,
 		"tenancy":                        3,
+		"billing":                        4,
 	}
 )
 
@@ -157,7 +166,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group_pro
 	"Gai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a google/protobuf/descriptor.proto\"Q\n" +
 	"\x14ApiResourceGroupMeta\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName*\xba\x01\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName*\xea\x01\n" +
 	"\x10ApiResourceGroup\x12\"\n" +
 	"\x1eapi_resource_group_unspecified\x10\x00\x12.\n" +
 	"\aagentic\x10\x01\x1a!\xea\xbd,\x1d\n" +
@@ -165,7 +174,9 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group_pro
 	"\x03iam\x10\x02\x1a\x19\xea\xbd,\x15\n" +
 	"\x0eiam.stigmer.ai\x12\x03IAM\x12.\n" +
 	"\atenancy\x10\x03\x1a!\xea\xbd,\x1d\n" +
-	"\x12tenancy.stigmer.ai\x12\aTenancy:\x88\x01\n" +
+	"\x12tenancy.stigmer.ai\x12\aTenancy\x12.\n" +
+	"\abilling\x10\x04\x1a!\xea\xbd,\x1d\n" +
+	"\x12billing.stigmer.ai\x12\aBilling:\x88\x01\n" +
 	"\n" +
 	"group_meta\x12!.google.protobuf.EnumValueOptions\x18\xdd\xc7\x05 \x01(\v2D.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroupMetaR\tgroupMetaB\x84\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x15ApiResourceGroupProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"

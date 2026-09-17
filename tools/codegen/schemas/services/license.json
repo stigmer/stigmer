@@ -1,0 +1,355 @@
+{
+  "resource": "license",
+  "package": "ai.stigmer.billing.license.v1",
+  "goImportPath": "licensev1",
+  "services": [
+    {
+      "name": "LicenseCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/billing/license/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "License",
+          "inputFullType": "ai.stigmer.billing.license.v1.License",
+          "outputType": "License",
+          "outputFullType": "ai.stigmer.billing.license.v1.License",
+          "description": "Issue a license.\n\n Builds the signed claims from the spec, signs them, and returns the\n license with its ticket in the status. The spec is final: nothing about\n an issued license changes afterwards."
+        }
+      ]
+    },
+    {
+      "name": "LicenseQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/billing/license/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "LicenseId",
+          "inputFullType": "ai.stigmer.billing.license.v1.LicenseId",
+          "outputType": "License",
+          "outputFullType": "ai.stigmer.billing.license.v1.License",
+          "description": "Get a license by its unique identifier."
+        },
+        {
+          "name": "List",
+          "inputType": "ListLicensesInput",
+          "inputFullType": "ai.stigmer.billing.license.v1.ListLicensesInput",
+          "outputType": "Licenses",
+          "outputFullType": "ai.stigmer.billing.license.v1.Licenses",
+          "description": "List issued licenses, optionally for one customer."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ListLicensesInput",
+      "description": "ListLicensesInput selects which licenses to list.",
+      "protoType": "ai.stigmer.billing.license.v1.ListLicensesInput",
+      "protoFile": "apis/ai/stigmer/billing/license/v1/io.proto",
+      "fields": [
+        {
+          "name": "CustomerId",
+          "jsonName": "customerId",
+          "protoField": "customer_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "When set, only licenses issued to this customer (LicenseCustomer.id)\n are returned; every license otherwise.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Licenses",
+      "description": "Licenses contains a list of license resources.",
+      "protoType": "ai.stigmer.billing.license.v1.Licenses",
+      "protoFile": "apis/ai/stigmer/billing/license/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "License"
+            }
+          },
+          "description": "License entries.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (Before cloud#257 the tuple targeted organization#member, which\n excluded viewer-role users; legacy tuples keep resolving until the\n cloud's boot-time backfill converges them.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "LicenseTerm",
+      "description": "The commercial nature of a license's term.",
+      "protoType": "ai.stigmer.platform.v1.LicenseTerm",
+      "values": [
+        {
+          "name": "trial",
+          "number": 1,
+          "description": "A time-limited evaluation with fixed modest limits."
+        },
+        {
+          "name": "paid",
+          "number": 2,
+          "description": "A paid license for its full term."
+        }
+      ]
+    },
+    {
+      "name": "Feature",
+      "description": "A capability an entitlement can unlock.\n\n The vocabulary is closed and grows one value at a time, each landing with\n the gate that reads it: an enum value is a wire identifier that can never\n be removed, so a feature is named here only once something in the\n platform can be gated on it. Values are added, never renamed or reused.",
+      "protoType": "ai.stigmer.platform.v1.Feature",
+      "values": [
+        {
+          "name": "sso_enforcement",
+          "number": 1,
+          "description": "Enforcing sign-in through a registered identity provider, so members\n cannot use another login. The identity-provider kind is Enterprise and\n Cloud; this feature is what a plan or license turns on for it."
+        },
+        {
+          "name": "platform_client",
+          "number": 2,
+          "description": "Creating PlatformClient credentials so the tenant's own product can\n mint Stigmer tokens for its users."
+        },
+        {
+          "name": "byo_provider_keys",
+          "number": 3,
+          "description": "Bringing the tenant's own LLM provider keys instead of the platform's\n metered proxy credentials."
+        },
+        {
+          "name": "channels",
+          "number": 4,
+          "description": "Delivering agents over messaging channels (Slack, WhatsApp) through a\n channel runtime. The channel kinds themselves are open source; this\n feature tiers the hosted runtime inside Cloud plans and licenses. It\n is not an edition gate: the open-source server stores channels freely."
+        },
+        {
+          "name": "sharing",
+          "number": 5,
+          "description": "Sharing an agent with individuals and guests through hosted share\n links. The agent-share kind itself is open source; this feature tiers\n the hosted sharing lane inside Cloud plans and licenses. It is not an\n edition gate: the open-source server stores shares freely."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "License is a signed grant of entitlements to a self-hosting customer for a\n term.\n\n A license is issued where it is sold, here, and verified where it is used:\n an Enterprise deployment checks the signed ticket offline against a key\n compiled into it, with no call home. The customer is a value inside the\n license, because a self-hosting customer need not hold a cloud\n organization. The claims are immutable once signed; a renewal is a new\n License. Licenses belong to the platform, not to any organization, so\n metadata.org is empty.",
+  "statusType": {
+    "name": "LicenseStatus",
+    "description": "LicenseStatus is the system-managed state of an issued license: its audit\n trail and the signed ticket the customer installs.\n\n This is the issuance record, kept by the cloud. What a licensed server\n reports about the ticket it holds is a different question, answered by\n PlatformQueryController.getLicenseStatus on that server.",
+    "protoType": "ai.stigmer.billing.license.v1.LicenseStatus",
+    "protoFile": "apis/ai/stigmer/billing/license/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information tracking creation and modification.",
+        "required": false
+      },
+      {
+        "name": "KeyId",
+        "jsonName": "keyId",
+        "protoField": "key_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "The `kid` of the key that signed the ticket, so the issuer can tell\n which licenses a rotated key still covers.",
+        "required": false
+      },
+      {
+        "name": "IssuedAt",
+        "jsonName": "issuedAt",
+        "protoField": "issued_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the ticket was signed; the issued_at the claims carry.",
+        "required": false
+      },
+      {
+        "name": "Ticket",
+        "jsonName": "ticket",
+        "protoField": "ticket",
+        "type": {
+          "kind": "string"
+        },
+        "description": "The signed ticket: a compact JWS whose payload is the proto JSON of the\n LicenseClaims built from the spec. The customer configures the licensed\n server with this value. Visible to platform operators only.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "LicenseCustomer",
+  "description": "The customer a license is issued to, carried as a value inside the license.\n\n A self-hosting customer need not hold a cloud organization, so the license\n names its customer directly and links to an organization only when one\n exists. The customer is never a resource the license depends on: deleting\n an organization does not touch a license issued to its company.",
+  "protoType": "ai.stigmer.platform.v1.LicenseCustomer",
+  "protoFile": "apis/ai/stigmer/platform/v1/license.proto",
+  "fields": [
+    {
+      "name": "Id",
+      "jsonName": "id",
+      "protoField": "id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Identifier the issuer minted for this customer, stable across every\n license issued to them.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "DisplayName",
+      "jsonName": "displayName",
+      "protoField": "display_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The customer's name as the licensed server shows it (\"licensed to Acme\").",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "ContactEmail",
+      "jsonName": "contactEmail",
+      "protoField": "contact_email",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The address renewal and expiry notices go to.",
+      "required": false
+    },
+    {
+      "name": "Organization",
+      "jsonName": "organization",
+      "protoField": "organization",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The cloud organization this customer also holds, as its slug (the same\n value a resource's metadata.org carries). Empty when the customer has\n none.",
+      "required": false
+    }
+  ]
+}

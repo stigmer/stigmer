@@ -22,6 +22,9 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowinstance/v1"
+	licensev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1"
+	planv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1"
+	subscriptionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1"
 	apikeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1"
 	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
 	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
@@ -103,6 +106,11 @@ func InvitationInputFromProto(p *invitationv1.Invitation) *InvitationInput {
 	return gen.InvitationInputFromProto(p)
 }
 
+// LicenseInputFromProto creates a LicenseInput from a proto License resource.
+func LicenseInputFromProto(p *licensev1.License) *LicenseInput {
+	return gen.LicenseInputFromProto(p)
+}
+
 // McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.
 func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
 	return gen.McpServerInputFromProto(p)
@@ -121,6 +129,11 @@ func OAuthAppInputFromProto(p *oauthappv1.OAuthApp) *OAuthAppInput {
 // OrganizationInputFromProto creates a OrganizationInput from a proto Organization resource.
 func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInput {
 	return gen.OrganizationInputFromProto(p)
+}
+
+// PlanInputFromProto creates a PlanInput from a proto Plan resource.
+func PlanInputFromProto(p *planv1.Plan) *PlanInput {
+	return gen.PlanInputFromProto(p)
 }
 
 // PlatformClientInputFromProto creates a PlatformClientInput from a proto PlatformClient resource.
@@ -151,6 +164,11 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 // SkillInputFromProto creates a SkillInput from a proto Skill resource.
 func SkillInputFromProto(p *skillv1.Skill) *SkillInput {
 	return gen.SkillInputFromProto(p)
+}
+
+// SubscriptionInputFromProto creates a SubscriptionInput from a proto Subscription resource.
+func SubscriptionInputFromProto(p *subscriptionv1.Subscription) *SubscriptionInput {
+	return gen.SubscriptionInputFromProto(p)
 }
 
 // WorkflowInputFromProto creates a WorkflowInput from a proto Workflow resource.

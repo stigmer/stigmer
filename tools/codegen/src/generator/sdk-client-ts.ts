@@ -24,7 +24,7 @@ import {
   tsProtoFieldName,
   tsProtoFileToSuffix,
   tsResolveCommonsImport,
-  tsResolveEnumImport,
+  tsResolveEnumImportSmart,
   tsServiceImportSuffix,
 } from "./gen-common.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -649,7 +649,11 @@ function tsTypeForTypeSpec(ts: TypeSpec, imports: TsImportSet): string {
   switch (ts.kind) {
     case "string":
       if (ts.enumType !== undefined && ts.enumType !== "") {
-        const [importFrom, enumName] = tsResolveEnumImport(ts.enumType);
+        // Resolved against the generated stubs, as the MCP emitter does:
+        // an enum a spec references may live in a file the package
+        // heuristic cannot name (a topic file such as platform/v1's
+        // entitlement.proto), and the stubs know where it was declared.
+        const [importFrom, enumName] = tsResolveEnumImportSmart(ts.enumType);
         imports.addValue(importFrom, enumName);
         return enumName;
       }

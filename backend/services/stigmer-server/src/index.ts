@@ -111,6 +111,14 @@ export type {
 } from "./extensions/resource-authorization.js";
 export type { OrganizationDirectory } from "./extensions/organization-directory.js";
 export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
+// The license-status seam (drivers.licenseStatus): the provider an
+// Enterprise composition registers so getLicenseStatus answers from its
+// configured ticket. The built-in `absent` default is the composition
+// root's and is not exported.
+export type {
+  LicenseStatusProvider,
+  LicenseStatusReport,
+} from "./extensions/license-status.js";
 // The 20260911.11 identity-account seams (Q-IA-9): the store PORT a
 // composition drives the domain through (drivers.identityAccountStore;
 // a driver throws DuplicateAccountError for a held id), the federation

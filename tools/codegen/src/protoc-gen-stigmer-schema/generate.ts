@@ -20,7 +20,28 @@ export interface OutputFile {
   content: string;
 }
 
-const NAMESPACES = ["agentic", "iam", "tenancy"] as const;
+// The resource namespaces the plugin sweeps are the ApiResourceGroup enum's
+// values, not a list kept here: a group's value name is the directory under
+// ai/stigmer/ that holds its kinds, so registering a group is the one act
+// that makes its kinds exist to every generator downstream of this plugin
+// (SDK clients, reference docs, MCP tools). A flat <group>/v1/ with no
+// per-kind directory contributes nothing, by the subdomain rule below.
+const GROUP_ENUM_FILE = "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto";
+const GROUP_ENUM_NAME = "ApiResourceGroup";
+
+/** Namespaces in enum-number order — the order the former constant listed. */
+function resourceNamespaces(moduleFiles: DescFile[]): string[] {
+  const groupEnum = moduleFiles
+    .find((fd) => fd.proto.name === GROUP_ENUM_FILE)
+    ?.enums.find((e) => e.name === GROUP_ENUM_NAME);
+  if (groupEnum === undefined) {
+    throw new Error(`${GROUP_ENUM_NAME} not found in ${GROUP_ENUM_FILE} — the resource namespaces are read from it`);
+  }
+  return groupEnum.values
+    .filter((v) => v.number !== 0)
+    .sort((a, b) => a.number - b.number)
+    .map((v) => v.name);
+}
 
 // Resources that use SearchService for listing — a server-side indexing
 // concern mirrored from the Go tool.
@@ -40,9 +61,10 @@ const SDK_FACING_COMMONS_ENUMS = new Set(["ApiResourceVisibility", "ApiResourceK
 /** Runs the full comprehensive generation over the module's files. */
 export function generateSchemas(moduleFiles: DescFile[], ctx: ExtractContext): OutputFile[] {
   const out: OutputFile[] = [];
+  const namespaces = resourceNamespaces(moduleFiles);
 
   // Namespace Spec schemas: ai/stigmer/<ns>/<subdomain>/v1/** → <ns>/<subdomain>/.
-  for (const ns of NAMESPACES) {
+  for (const ns of namespaces) {
     for (const sub of subdomains(moduleFiles, ns)) {
       const group = groupFiles(moduleFiles, `ai/stigmer/${ns}/${sub}/v1/`);
       out.push(...generateNamespaceSchemas(group, `${ns}/${sub}`, "Spec", ctx));
@@ -54,7 +76,7 @@ export function generateSchemas(moduleFiles: DescFile[], ctx: ExtractContext): O
   out.push(...generateNamespaceSchemas(taskGroup, "tasks", "TaskConfig", ctx));
 
   // Service schemas: one file per resource with gRPC services.
-  for (const ns of NAMESPACES) {
+  for (const ns of namespaces) {
     for (const sub of subdomains(moduleFiles, ns)) {
       const group = groupFiles(moduleFiles, `ai/stigmer/${ns}/${sub}/v1/`);
       const schema = extractServiceSchemas(group, ctx);

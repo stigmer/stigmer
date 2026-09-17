@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.plan.v1;
+
+import "ai/stigmer/platform/v1/entitlement.proto";
+import "buf/validate/validate.proto";
+
+// PlanSpec defines what a plan grants and what buys it.
+//
+// The spec is written once, at create, and never updated: a plan's terms are
+// what a customer agreed to, so a change is a new Plan. Every money field is
+// a term of one specific plan row, and no row ships in the contract, so the
+// contract itself carries no price.
+message PlanSpec {
+  // The instrument this plan is bought through.
+  PlanInstrument instrument = 1 [(buf.validate.field) = {
+    required: true
+    enum: {
+      defined_only: true
+      not_in: [0]
+    }
+  }];
+
+  // What the plan permits: its limits and features.
+  ai.stigmer.platform.v1.Entitlements entitlements = 2 [(buf.validate.field).required = true];
+
+  // The commercial terms. Which fields are set depends on the instrument:
+  // a subscription plan carries the greater-of terms, a license plan its
+  // annual price.
+  PlanTerms terms = 3;
+
+  // One or two sentences describing the plan as the pricing page shows it.
+  string description = 4 [(buf.validate.field).string.max_len = 1024];
+}
+
+// The instrument a plan is bought through.
+//
+// An entitlement is what the platform permits; a subscription and a license
+// are the two instruments that grant it. A plan names which one buys it, so
+// the catalog for Stigmer Cloud and the catalog for self-hosted licenses are
+// two views of one kind.
+enum PlanInstrument {
+  plan_instrument_unspecified = 0;
+
+  // Bought as a Subscription by an organization on Stigmer Cloud, billed
+  // monthly against usage.
+  subscription = 1;
+
+  // Bought as a License by a self-hosting customer, invoiced for a term.
+  license = 2;
+}
+
+// The commercial terms of a plan.
+//
+// Amounts are micro-USD (one millionth of a dollar), the unit the billing
+// ledger already uses; shares are basis points (one hundredth of a percent).
+// Every field has explicit presence: absent means the term does not apply to
+// this plan, which is how a subscription plan and a license plan share one
+// message. A monthly plan costs the greater of monthly_minimum_micros and
+// usage_share_basis_points of the month's usage.
+message PlanTerms {
+  // The least a subscription plan bills per month, in micro-USD. Absent on a
+  // license plan.
+  optional int64 monthly_minimum_micros = 1 [(buf.validate.field).int64.gte = 0];
+
+  // The share of monthly usage a subscription plan bills when it exceeds the
+  // minimum, in basis points. Absent on a license plan.
+  optional int32 usage_share_basis_points = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 10000
+  }];
+
+  // What a subscription plan bills per month for each platform-managed
+  // organization beyond the ones its entitlements include, in micro-USD.
+  // Absent when the plan includes no managed organizations.
+  optional int64 per_extra_organization_micros = 3 [(buf.validate.field).int64.gte = 0];
+
+  // What a license plan invoices for a one-year term, in micro-USD. Absent on
+  // a subscription plan.
+  optional int64 annual_price_micros = 4 [(buf.validate.field).int64.gte = 0];
+}
