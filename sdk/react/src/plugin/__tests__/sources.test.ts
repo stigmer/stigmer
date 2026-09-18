@@ -9,14 +9,15 @@
  * CLI runs (the parity the whole design rests on); a truncated listing, a private repository, a short
  * read and an over-budget entry are refused with their sentences; the
  * official catalogue refuses a development server and reads a published
- * version.
+ * version; a tree names a file by the URL a browser loads it from, and a
+ * source's mark is its publisher's GitHub avatar under one rule.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
 import { archivePlugin, digestArchive, selectPluginFiles } from "@stigmer/plugin-package/client";
 
-import { openGitHubTree, resetGitHubListingCache } from "../sources/github.js";
-import { openOfficialTree } from "../sources/official.js";
+import { githubAvatarUrl, githubOwner, openGitHubTree, resetGitHubListingCache } from "../sources/github.js";
+import { OFFICIAL_PUBLISHER, openOfficialTree } from "../sources/official.js";
 import { PluginReadRefusal, findEntry, openMarketplace, prepareEntry } from "../sources/read.js";
 import { MARKETPLACE_TREE_LIMITS, MarketplaceSourceError } from "../sources/types.js";
 import { HOSTED_COMMIT, HOSTED_REPO, hostedFetch, hostedMarketplaceFiles } from "./fixtures/hosted-marketplace.js";
@@ -164,5 +165,21 @@ describe("openOfficialTree", () => {
     expect(tree.describe).toBe("@stigmer/plugins@3.17.0");
     const opened = await openMarketplace(tree);
     expect(opened.marketplace.plugins.map((p) => p.name)).toEqual(["thermos", "github"]);
+  });
+});
+
+describe("a tree names its files by URL, and a source by its publisher's avatar", () => {
+  it("a GitHub tree's URL is the raw file at the resolved commit; the official one the CDN file at the version", async () => {
+    const github = await openGitHubTree(SOURCE, hostedFetch().fetchImpl);
+    expect(github.fileUrl("thermos/assets/logo.png")).toBe(
+      `https://raw.githubusercontent.com/${HOSTED_REPO}/${HOSTED_COMMIT}/thermos/assets/logo.png`,
+    );
+    const official = await openOfficialTree("3.17.0", hostedFetch(undefined, { publishedVersion: "3.17.0" }).fetchImpl);
+    expect(official.fileUrl("assistant/icon.svg")).toBe("https://cdn.jsdelivr.net/npm/@stigmer/plugins@3.17.0/assistant/icon.svg");
+  });
+
+  it("every source's mark is its publishing account's GitHub avatar, the official catalogue's included", () => {
+    expect(githubAvatarUrl(githubOwner("cursor/plugins"))).toBe("https://github.com/cursor.png?size=64");
+    expect(githubAvatarUrl(OFFICIAL_PUBLISHER, 32)).toBe("https://github.com/stigmer.png?size=32");
   });
 });

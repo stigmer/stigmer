@@ -115,6 +115,23 @@ export function findEntry(marketplace: Marketplace, name: string): MarketplaceEn
 }
 
 /**
+ * The entry's subtree as a lazily-read tree: plugin-relative paths with
+ * their declared sizes, each fetched from the host on demand. One shape for
+ * the install (`prepareEntry`) and for the card's face (the presentation
+ * read), so both see the same files at the same commit.
+ */
+export function entryCandidates(opened: OpenedMarketplace, entry: MarketplaceEntry): readonly LazyCandidate[] {
+  const prefix = entry.dir === "" ? "" : `${entry.dir}/`;
+  return opened.tree.files
+    .filter((file) => file.path.startsWith(prefix))
+    .map((file) => ({
+      path: file.path.slice(prefix.length),
+      size: file.size,
+      read: () => opened.tree.fetchFile(file.path),
+    }));
+}
+
+/**
  * Prepare the entry through the one preparation every client runs. The
  * declared sizes are checked before a byte moves (a fast refusal for a
  * subtree no selection could bring under the cap); the shared preparation
@@ -123,14 +140,7 @@ export function findEntry(marketplace: Marketplace, name: string): MarketplaceEn
  * its declaration by the tree itself.
  */
 export async function prepareEntry(opened: OpenedMarketplace, entry: MarketplaceEntry): Promise<PreparedInstall> {
-  const prefix = entry.dir === "" ? "" : `${entry.dir}/`;
-  const candidates: LazyCandidate[] = opened.tree.files
-    .filter((file) => file.path.startsWith(prefix))
-    .map((file) => ({
-      path: file.path.slice(prefix.length),
-      size: file.size,
-      read: () => opened.tree.fetchFile(file.path),
-    }));
+  const candidates = entryCandidates(opened, entry);
 
   const declared = candidates.reduce((sum, file) => sum + file.size, 0);
   if (declared > MARKETPLACE_TREE_LIMITS.pluginBytes) {
