@@ -151,10 +151,13 @@ marketplace offers; `stigmer install stigmer/<name>` installs one of them into
 your own Organization.
 
 <Callout type="info">
-  Upgrading a local stack that predates plugins moves `assistant` from the
-  seedpack to the official marketplace: the seedpack's copy is removed and the
-  plugin installs its own, under a new id. Sessions and channels that were bound
-  to the old `assistant` lose their Agent; start a new Session on the new one.
+  Upgrading a local stack that predates plugins retires the system content an
+  older release installed: its Agents, Skills, MCP Servers and Workflows are
+  removed, except any that one of your own Agents still references, and `stigmer
+  up` reports what went and what it kept and why. `assistant` is then installed
+  from the official marketplace under a new ID. Sessions and channels that were
+  bound to the old `assistant` lose their Agent; start a new Session on the new
+  one.
 </Callout>
 
 ## Limits, stated
