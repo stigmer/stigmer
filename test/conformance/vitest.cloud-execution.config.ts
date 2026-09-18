@@ -15,6 +15,13 @@
 // - open-computer-use is EXCLUDED: a local-only developer gate (macOS
 //   accessibility + STIGMER_DESKTOP_TESTS opt-in) that can never run in the
 //   headless CI this config exists for.
+// - agentexecution-request-shape is EXCLUDED: its goldens photograph the
+//   bytes the OSS composition's runner sends the model for a bare agent. The
+//   cloud composition's bare agent is a different photograph (consent-gated
+//   memory recall, tenancy-snapshotted preferences, its own model pins), not
+//   a missing capability, so it is neither a CapabilityFlag nor a second set
+//   of goldens here; a cloud record that wants the cloud photograph takes it
+//   with its composition in front of it.
 // - mcpserver-connect runs here like every other Class B suite: the
 //   provisioner boots the composition with STIGMER_OAUTH_REDIRECT_URI set to
 //   the suite's pinned constant.
@@ -26,6 +33,7 @@ export default defineConfig({
     exclude: [
       "src/suites-execution/schedule-firing.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
+      "src/suites-execution/agentexecution-request-shape.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-cloud-execution.ts"],
     env: {
