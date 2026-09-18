@@ -6,8 +6,10 @@
 // default (fenced) posture the memory-retrieval suite relies on and, when
 // enabled, answers by computation with the ordering property the
 // memory-selection arms assert on; an injected error carries the scripted
-// status, headers and body as JSON even for a streaming request; and
-// requestModels() reads the id the provider saw off every captured request.
+// status, headers and body as JSON even for a streaming request;
+// requestModels() reads the id the provider saw off every captured request;
+// and every captured request carries the disposition the answering branch
+// decided, so scriptedRequests() is exactly the agent loop's calls.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   DEFAULT_ERROR_BODY,
@@ -148,5 +150,42 @@ describe("MockLlmProxy requestModels", () => {
     await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", messages: [] });
 
     expect(mock.requestModels()).toEqual(["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]);
+  });
+});
+
+describe("MockLlmProxy request disposition", () => {
+  // The titling signature the mock recognizes (the stable slice of the runner's
+  // session-title system prompt); a body carrying it is answered out of band.
+  const TITLING_BODY = { model: "claude-sonnet-4-6", system: "You are a session title generator.", messages: [] };
+
+  it("records how each request was answered, and scriptedRequests() is exactly the queue's claimants", async () => {
+    mock.enqueue(anthropicText("the agent's turn"));
+
+    await post(EMBEDDINGS_PATH, { model: "text-embedding-3-small", input: ["q"] });
+    await post(ANTHROPIC_PATH, TITLING_BODY);
+    await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", system: "You are the agent.", messages: [] });
+    const starved = await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", system: "You are the agent.", messages: [] });
+
+    expect(starved.status, "the queue is empty by the fourth call").toBe(500);
+    expect(
+      mock.requests().map((r) => r.disposition),
+      "one request per disposition, in arrival order",
+    ).toEqual(["fenced", "out-of-band", "scripted", "unscripted"]);
+    expect(mock.scriptedRequests(), "only the claimant of the queued turn").toHaveLength(1);
+    expect((mock.scriptedRequests()[0]!.body as { system: string }).system).toBe("You are the agent.");
+    expect(mock.consumed(), "the disposition agrees with the queue accounting").toBe(1);
+    expect(mock.titleRequests(), "and with the out-of-band count").toBe(1);
+  });
+
+  it("a request answered by a persistent fault after the queue drained is unscripted, not scripted", async () => {
+    mock.enqueueError(503, { persistent: true });
+
+    await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", messages: [] });
+    await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", messages: [] });
+
+    expect(mock.requests().map((r) => r.disposition), "the scripted fault, then the retry that hit it").toEqual([
+      "scripted",
+      "unscripted",
+    ]);
   });
 });
