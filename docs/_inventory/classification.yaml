@@ -762,11 +762,13 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install the complete stack on a Kubernetes cluster with the Helm chart —
-      create the Secret, install, reach the console, give the runner a key, add
-      an Ingress, turn authentication on in two steps, bring your own Postgres
-      and Temporal, back up and upgrade — with the no-auth trust model stated
-      up front.
+      Install the complete stack on a Kubernetes cluster with the Helm chart on
+      one rule, every setting is a line in your values file — create the
+      Secrets, write the values file and install, reach the console through a
+      port-forward, connect the CLI as a named backend, create the first
+      Organization and run a first Agent, add the two-host Ingress, turn
+      authentication on, bring your own Postgres and Temporal, back up and
+      upgrade — with the no-auth trust model stated up front.
     medium: none
 
   guides/self-hosting/authentication:

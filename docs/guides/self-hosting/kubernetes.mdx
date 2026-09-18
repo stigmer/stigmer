@@ -1,15 +1,17 @@
 ---
 title: Self-host on Kubernetes with Helm
 description:
-  Install the complete Stigmer stack — server, console, runner, Postgres and
-  Temporal — on a Kubernetes cluster with one Helm chart.
+  Install the complete Stigmer stack on a Kubernetes cluster with one Helm
+  chart, reach the console, run a first Agent, then put an Ingress in front and
+  turn authentication on. Every setting is a line in your values file.
 ---
 
-The Helm chart is the [Docker Compose stack](./docker-compose) for Kubernetes:
-the same four parts (the server with the console, the runner, Postgres, and a
-real Temporal), the same settings, the same keys you supply, the same things in
-a backup. Postgres and Temporal come bundled for one team, or you point the
-chart at your own.
+The Helm chart is the Kubernetes shape from [Self-hosting](./overview): the same
+four parts as the [Docker Compose stack](./docker-compose), the server with the
+web console and one runner in a single pod, with Postgres and a real Temporal
+server bundled for one team or pointed at the ones you already run. One rule
+holds for the whole page: every setting you change is a line in your values
+file. You never edit the chart, and it refuses a value it does not know.
 
 <Callout type="warn">
   **No sign-in until you turn it on.** A fresh install trusts every caller that
@@ -19,21 +21,49 @@ chart at your own.
   filesystem and network, not your nodes'.
 </Callout>
 
+## What the chart installs
+
+One Deployment whose pod has two containers: the server, which serves the API,
+the web console and the artifact file server, and the runner, which executes
+Agents and Workflows and holds your LLM key. They share the pod's network and
+one artifact disk, the way the compose stack's two containers share one volume,
+which is why the chart needs no shared-filesystem storage class. Postgres runs
+as a StatefulSet with its own disk and Temporal as a Deployment, both bundled
+unless you point the chart at your own.
+
+For a release named `stigmer`, the chart creates four PersistentVolumeClaims.
+Three hold durable state: `data-stigmer-postgres-0` (every resource and
+execution record, and Temporal's own tables), `stigmer-artifacts` (files
+produced by executions) and `stigmer-server-data` (the Skill content store). The
+fourth, `stigmer-runner-data`, holds in-flight Session checkpoints so a paused
+run survives a pod restart; losing it abandons runs in flight but loses no
+durable data. Those three claims, the Secret you create below, and your values
+file are a complete backup. [Back up and upgrade your stack](./operations) has
+the procedures.
+
 ## What you need
 
 - A Kubernetes cluster, 1.27 or newer, with a default storage class. Any storage
   class works: the server and the runner share one pod, so the chart needs no
   shared-filesystem storage.
-- `helm` 3 and `kubectl`.
-- Two random keys and a database password, which you create as a Secret first.
-  The chart refuses to install without them, the way `docker compose up` refuses
-  without `.env`.
+- `helm` 3 and `kubectl`, pointed at the cluster.
+- The Stigmer CLI on your laptop. The
+  [local quickstart](/docs/getting-started/local) has the install commands.
+- Laptop ports 7234 and 7235 free for the port-forward. If the laptop stack
+  runs, stop it first with `stigmer down`; it uses the same ports.
+- An LLM provider key if you want Agents to answer. Workflows without Agent
+  tasks run without one.
 
 ## Install
 
 <Steps>
 
-### Create the Secret
+### Create the Secrets
+
+The chart refuses to install until you name a Secret with two random keys and
+the database password. That's deliberate, the way `docker compose up` refuses
+without `.env`: the keys you must back up are never generated somewhere you
+can't see.
 
 ```bash
 kubectl create namespace stigmer
@@ -48,18 +78,56 @@ kubectl -n stigmer create secret generic stigmer-secrets \
 this Secret with your backups: without the encryption key, every encrypted value
 in the database is unreadable.
 
-### Install the chart
+If you have an LLM provider key, put it in a second Secret now, so Agents can
+answer from the first run:
+
+```bash
+kubectl -n stigmer create secret generic stigmer-llm-keys \
+  --from-literal=ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Without it the stack still serves the console, the API and LLM-free Workflow
+executions; Agent runs fail at the LLM call. You can add the key later: create
+this Secret, add its line to your values file, and run the `helm upgrade` shown
+further down this page.
+
+### Write your values file and install
+
+Create a file called `values.yaml`. It names the Secrets you just created and
+never holds a key itself, so it is safe to keep in version control:
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+secrets:
+  existingSecret: stigmer-secrets
+runner:
+  llm:
+    existingSecret: stigmer-llm-keys
+server:
+  operator:
+    email: you@example.com
+```
+
+Leave the `runner.llm` lines out if you created no LLM Secret. The operator
+email is optional too, and worth setting now: it's stamped on what you create,
+and when you later turn authentication on, the person who signs in with this
+email becomes an administrator of every Organization. Then install:
 
 ```bash
 helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
   --namespace stigmer \
-  --set secrets.existingSecret=stigmer-secrets \
+  -f values.yaml \
   --wait
 ```
 
-The first start pulls two images, starts Postgres, lets Temporal create its
+The first install pulls two images, starts Postgres, lets Temporal create its
 schema, and waits for the server to answer. The chart's notes print what to do
 next.
+
+<Callout type="info">
+  Back up `values.yaml` beside the Secret. Every change on this page is a line
+  added to it; with the Secret and the three durable claims, it is everything a
+  reinstall needs.
+</Callout>
 
 ### Open the console
 
@@ -67,25 +135,92 @@ next.
 kubectl -n stigmer port-forward svc/stigmer 7234:7234 7235:7235
 ```
 
-Open [http://localhost:7234](http://localhost:7234).
+Open [http://localhost:7234](http://localhost:7234). The console asks you to
+create an Organization: a fresh install has none yet. Leave it there for a
+moment; the next two steps create one from the CLI so you see both paths.
+Download links the platform mints point at port 7235, which the same
+port-forward carries.
 
-### Give the runner an LLM key
+Leave the port-forward running in its terminal. It stops whenever the pod is
+recreated, which every `helm upgrade` that changes a setting does; start it
+again with the same command.
 
-Agents need a provider key; Workflows without Agent tasks run without one.
+### Connect the CLI
+
+Through the port-forward, the cluster's server answers on your laptop's
+port 7234. Tell the CLI where it is, as a named backend, then switch to it:
 
 ```bash
-kubectl -n stigmer create secret generic stigmer-llm-keys \
-  --from-literal=ANTHROPIC_API_KEY=sk-ant-...
-helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer \
-  --reuse-values --set runner.llm.existingSecret=stigmer-llm-keys
+stigmer config backend add mycluster --endpoint localhost:7234
+stigmer config backend use mycluster
 ```
+
+A named backend keeps its own address and, later, its own API key, so switching
+between this cluster, your laptop and Stigmer Cloud is one command. The
+[`stigmer config`](/docs/cli/commands/config) reference lists every backend
+command.
+
+### Create your first Organization
+
+Everything you build lives in an Organization. Create a file called
+`organization.yaml`:
+
+```yaml
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Your Team
+  slug: stigmer
+spec:
+  description: Our self-hosted Stigmer
+  management_mode: self_managed
+```
+
+Keep the slug `stigmer`. It's the Organization the CLI uses when you don't name
+one, so every `apply`, `run` and `get` on this page lands where the console
+looks. The name is yours to choose. Apply it:
+
+```bash
+stigmer apply -f organization.yaml
+```
+
+Reload the console: it opens on the workbench. The form you saw a moment ago
+does the same thing from the browser; either path is fine for a first
+Organization.
+
+### Run your first Agent
+
+Create a file called `agent.yaml`:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: my-first-agent
+spec:
+  instructions: |
+    You are a helpful assistant. Answer questions clearly
+    and concisely. When you don't know something, say so.
+```
+
+Apply it and run it:
+
+```bash
+stigmer apply -f agent.yaml
+stigmer run my-first-agent -m "What can you help me with?"
+```
+
+The Agent responds in your terminal. The run traveled from the CLI through the
+port-forward to the server, through Temporal, and executed inside the runner
+container on your cluster: the whole stack, end to end.
 
 </Steps>
 
 ## Reach it from outside the cluster
 
-Turn on the Ingress with two hostnames: one for the API and console, one for
-artifact downloads (they are separate listeners and cannot share a host).
+To serve your team, turn on the Ingress with two hostnames: one for the API and
+console, one for artifact downloads. They are separate listeners and cannot
+share a host. Add to `values.yaml`:
 
 ```yaml no-validate="Helm values, not a Stigmer resource"
 ingress:
@@ -101,27 +236,61 @@ ingress:
     tlsSecretName: stigmer-artifacts-tls
 ```
 
+```bash
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
+  --namespace stigmer \
+  -f values.yaml \
+  --wait
+```
+
 The CLI and SDKs speak gRPC, which needs HTTP/2 all the way to the server. On
 ingress-nginx that is the preceding `backend-protocol: "GRPC"` annotation;
-without it the console works and the CLI does not. Point the CLI at the API host
-on port 443:
+without it the console works and the CLI does not. Set `tlsSecretName` on both
+hosts: the URLs the server mints for downloads and Skill transfers follow each
+host's scheme, and a host without a TLS Secret gets plain-HTTP links.
+
+Point your CLI at the API host on port 443, which is the one port the CLI dials
+with TLS:
 
 ```bash
-export STIGMER_SERVER_ADDRESS=stigmer.example.com:443
+stigmer config backend add prod --endpoint stigmer.example.com:443
+stigmer config backend use prod
 ```
+
+The console needs nothing: it reads its own origin. If you front the Service
+some other way than the chart's Ingress, `server.publicUrl` and
+`server.artifactPublicUrl` are the same two settings the compose page sets in
+`.env`.
 
 ## Turn authentication on
 
-Set `server.oidc.issuer`, `server.oidc.audience` and
-`server.oidc.consoleClientId` as the [authentication guide](./authentication)
-describes. One thing is different from Compose: with authentication on, the
-runner needs an API key, and an API key can only be minted by a signed-in
-operator. So it is two steps. Install with authentication off, mint the key
-(`stigmer apikey create --name runner`), put it in a Secret, then upgrade with
-OIDC on and `runner.stigmerToken.existingSecret` set to that Secret. The chart
-refuses the half state in between and tells you these two steps.
+Authentication is on when the issuer, the audience and the console's client ID
+are in your values file:
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+server:
+  oidc:
+    issuer: https://auth.example.com/realms/main
+    audience: https://stigmer.example.com
+    consoleClientId: stigmer-console
+runner:
+  stigmerToken:
+    existingSecret: stigmer-runner-token
+```
+
+The chart asks for one more value beside them,
+`runner.stigmerToken.existingSecret`: a Secret holding an API key for the
+runner. It refuses the issuer without it, so turning authentication on is an
+upgrade you prepare, not a value you flip. The
+[authentication guide](./authentication) says where that key comes from, what to
+register with your OIDC provider, and the order of the steps; follow it from
+here. Once authentication is on, the person whose provider email matches
+`server.operator.email` becomes an administrator of every Organization.
 
 ## Bring your own Postgres and Temporal
+
+The chart bundles both, on purpose: one cluster, one backup story. If your team
+already runs them, point the chart at yours instead:
 
 ```yaml no-validate="Helm values, not a Stigmer resource"
 postgres:
@@ -139,42 +308,47 @@ externalTemporal:
   namespace: default
 ```
 
-The database password never appears in a rendered manifest; the server assembles
-its connection string inside the container. If Temporal stays bundled while
-Postgres is yours, Temporal creates its two databases on your instance at first
-start and needs a user with `CREATE DATABASE`.
+Decide this before your first install: moving data from the bundled Postgres to
+yours later is a database restore, not a value change. The database password
+never appears in a rendered manifest; the server assembles its connection string
+inside the container. If Temporal stays bundled while Postgres is yours,
+Temporal creates its two databases on your instance at first start and needs a
+user with `CREATE DATABASE`.
 
 ## Back up, upgrade, uninstall
 
-A complete backup is the database, the `stigmer-artifacts` and
-`stigmer-server-data` disks, and the Secret you created. `helm upgrade` to a new
-chart version moves the whole stack to that Stigmer version; the pod is
-recreated, so there is a short interruption, and in-flight Agent turns resume
-from their Temporal checkpoints. `helm uninstall` removes the workload and
-**leaves every disk in place**; installing again with the same release name
-picks them up.
+A complete backup is the three durable claims, the Secret, and your values file.
+`helm upgrade` to a new chart version with the same values file moves the whole
+stack to that Stigmer version: the chart version is the Stigmer version, and the
+images move with it. The pod is recreated, so there is a short interruption, and
+in-flight Agent turns resume from their Temporal checkpoints. `helm uninstall`
+removes the workload and **leaves every claim in place**; installing again with
+the same release name and values file picks them up.
+[Back up and upgrade your stack](./operations) has each procedure in full.
 
 ## Every setting
 
-The chart documents every value, with the reason behind it, in its own
-`values.yaml` and README. Read them from the registry:
+The chart documents every value, with the reason behind it, in its values and
+its README. Read both from the registry:
 
 ```bash
 helm show values oci://ghcr.io/stigmer/charts/stigmer
 helm show readme oci://ghcr.io/stigmer/charts/stigmer
 ```
 
-The chart refuses a misspelled value instead of ignoring it.
+Your values file holds only the lines you change. The chart refuses a misspelled
+or unknown value instead of ignoring it.
 
 ## Next step
 
-Your stack is running on the cluster. Before a team uses it, turn authentication
-on with your identity provider.
+Your stack is running on the cluster, and right now anyone who can reach its
+Service or its Ingress has full control of it. Before your team uses it, turn
+authentication on with your OIDC provider.
 
 <Cards>
   <Card
     title="Enable authentication"
     href="/docs/guides/self-hosting/authentication"
-    description="Sign in with your identity provider and give the runner and CI their API keys."
+    description="Sign in with your OIDC provider and give the CLI and CI their API keys."
   />
 </Cards>
