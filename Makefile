@@ -94,8 +94,8 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
-build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
+build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
 
@@ -362,7 +362,20 @@ gen-ipc-fixtures-check: $(RUNNER_DIR)/node_modules ## Verify golden IPC fixtures
 build-ts-stubs: node_modules ## Rebuild the runner-linked workspace lib dists (@stigmer/protos after stub regeneration + @stigmer/temporal-codecs)
 	npm run build:runner-deps
 
+# Build only. The libs' unit suites are test-libs, run by `make check` and
+# `make test-libs`, never as a side effect of building something that links
+# the libs: the web console's export, every smoke-* target and two release
+# lane jobs depend on this target, and each of them once re-ran the whole
+# workspace suite (4,800+ React tests, ~5.5 min) on a commit CI had already
+# tested, because the prerequisite was a build+test composite.
+build-libs: node_modules ## Build the publishable workspace libs (turbo `build` over the publish set)
+	npm run build:libs
+
 # ─── Test ─────────────────────────────────────
+
+.PHONY: test-libs
+test-libs: node_modules ## Run the repo scripts' tests and the workspace libs' unit suites (`npm test`)
+	npm test
 
 .PHONY: test
 test: ## Run all unit tests
@@ -617,7 +630,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
-       lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
+       lint-docs lint-docs-audit format-docs format-docs-check check-links web-build validate-demos tsdoc-check test-demos \
        check-docs-inventory check-conformance-inventory \
        test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-a11y check check-all \
        check-prep check-go check-node check-site check-rust check-java
@@ -639,16 +652,14 @@ lint: ## Run all linters and type checks
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
 
-libs-build:
-	npm run build:libs
-	npm test
-
 # ─── Client Apps: Web (Next.js) ──────────────
 
 run-web: ## Start web console dev server (Vite/Next)
 	npm run dev -w client-apps/web
 
-build-web: libs-build ## Build web console for production
+# build-libs, not the libs' tests: the export needs the built libs (the
+# embed loader is copied from sdk/embed/dist), nothing more.
+build-web: build-libs ## Build web console for production
 	npm run build -w client-apps/web
 
 clean-web: ## Remove web build artifacts
@@ -840,12 +851,16 @@ check: ## Run full CI gate locally (parallelized)
 	@echo ""
 	@echo "✓ check passed"
 
-# Stage 1 — sequential prep (tree mutations + shared artifact builds).
-check-prep: ## Sequential prep for check: tidy, fix, build shared libs/stubs, regenerate + verify docs
+# Stage 1 — sequential prep (tree mutations + shared artifact builds). The
+# workspace libs' unit suites run here, before the parallel buckets, on
+# purpose: the React suite alone is ~4 minutes of vitest workers, and it
+# should not compete with the cargo, Maven and site builds of stage 2.
+check-prep: ## Sequential prep for check: tidy, fix, build + test shared libs, build stubs, regenerate + verify docs
 	$(MAKE) tidy
 	$(MAKE) node_modules
 	$(MAKE) fix
-	$(MAKE) libs-build
+	$(MAKE) build-libs
+	$(MAKE) test-libs
 	$(MAKE) build-ts-stubs
 	$(MAKE) gen-sdk-docs
 	$(MAKE) gen-sdk-docs-check
