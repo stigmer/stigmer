@@ -3,9 +3,9 @@
  * metadata ladder, the SSE arm and the retry, with no network.
  *
  * Pins, in order of what would hurt most if it regressed: the 401 rule is
- * the runner's (`mcp-oauth-detect.ts`), proven on the same header strings
- * its own tests use, so what this audit calls OAuth is what a user is told
- * is OAuth; the request is a complete `initialize`, and a 2xx is read as
+ * the shared one (`@stigmer/outbound/mcp-oauth`, the runner's and the
+ * control plane's), proven on the same header strings its own tests use, so
+ * what this audit calls OAuth is what a user is told is OAuth; the request is a complete `initialize`, and a 2xx is read as
  * JSON-RPC, so a server that answers 200 with "Missing protocol version"
  * (Google's do, to a bare request) is a rejected handshake and never
  * `open`; a challenge with a `resource_metadata` pointer resolves through

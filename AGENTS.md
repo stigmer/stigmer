@@ -38,7 +38,9 @@ skill" when it could be misread.
   and workflow tasks through two harnesses (Cursor, native deep-agent). Own
   lockfile.
 - `backend/libs/ts/`: `temporal-codecs`, `zip-structure`, `plugin-package` (the
-  Agent Plugins reader the CLI validates with and the server installs from).
+  Agent Plugins reader the CLI validates with and the server installs from),
+  `outbound` (the egress address policy and the MCP OAuth rules the server, the
+  runner and the catalogue audit dial user-supplied URLs by).
 - `sdk/`: `typescript` (`@stigmer/sdk`), `react`, `theme`, `ink`, `embed`, `go`,
   `python`, `java`. Generated clients live under each SDK's `gen` directory.
 - `client-apps/`: `cli` (the `stigmer` command), `web` (Next.js console),

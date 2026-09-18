@@ -68,6 +68,7 @@ import {
   InvalidTokenError,
   isRunGateCheck,
   loadConfig,
+  strictEgressPolicy,
   LOADED_EXECUTION_KEY,
   MintingDisabledError,
   newAgentExecutionTemporalConfigFromEnv,
@@ -110,6 +111,7 @@ import type {
   MintedToken,
   ModelCatalogProvider,
   OrganizationDirectory,
+  OutboundEgressPolicy,
   PipelineStep,
   PolicyGrantScope,
   PresignedUpload,
@@ -277,6 +279,13 @@ export async function runConsumerIamPolicyStoreContract(): Promise<void> {
     await contractCase.run();
   }
 }
+
+/**
+ * The outbound-egress registration a managed composition makes: the strict
+ * posture, typed against the exported contract so a change to either the
+ * type or the constructor is a compile failure here.
+ */
+const consumerOutboundEgress: OutboundEgressPolicy = strictEgressPolicy();
 
 /**
  * A consumer-shaped policy grant scope (the 20260913.01 seam, Q-OR-3): which
@@ -908,6 +917,11 @@ export const fakeExtension: ServerExtension = {
     iamPolicyStore: consumerIamPolicyStore,
     policyGrantScope: consumerPolicyGrantScope,
     authorizationQueries: consumerAuthorizationQueries,
+    // The outbound-egress seam: which addresses this edition's control
+    // plane may dial when it reaches a URL a user supplied. A managed
+    // composition registers the strict posture the library exports and
+    // owns no copy of the address ranges.
+    outboundEgress: consumerOutboundEgress,
   },
   services: [registerBillingService],
   workers: [workerFactory],

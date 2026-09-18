@@ -109,8 +109,12 @@ export interface ServerConfig {
   readonly gitHubOAuthClientSecret: string;
   /**
    * The OAuth callback URL for the McpServer OAuth Connect flows
-   * (STIGMER_OAUTH_REDIRECT_URI; Go config.go OAuthRedirectURI). Unset is
-   * a WARN at wiring time, not a boot failure — every RPC except
+   * (STIGMER_OAUTH_REDIRECT_URI; Go config.go OAuthRedirectURI). Unset, a
+   * server that serves the web console on its unified port derives the
+   * console's own callback page at `http://localhost:<port>` (the
+   * `trusted-local` reading; boot/oauth-redirect-uri.ts), so a local
+   * install signs in without being told. Unset on a server that serves no
+   * console is a WARN at wiring time, not a boot failure — every RPC except
    * initiateOAuthConnect works without it, and initiate refuses with a
    * FailedPrecondition naming the variable (the pinned copy).
    */

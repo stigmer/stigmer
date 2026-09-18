@@ -112,10 +112,22 @@ export interface CapturedMcpRequest {
   headers: Record<string, string | string[] | undefined>;
 }
 
+// The OAuth posture a hosted MCP server takes (the MCP Authorization spec,
+// RFC 9728): a request without a Bearer credential is answered 401 with a
+// WWW-Authenticate challenge that names the protected-resource metadata.
+// The lever for the save-time completion arms: the control plane's probe
+// must read exactly this challenge and complete the server's auth.
+export interface OAuthChallengePosture {
+  // The resource_metadata URL the challenge names; the fixture serves no
+  // metadata itself (the completion never fetches it at save).
+  resourceMetadataUrl: string;
+}
+
 export class McpToolFixture {
   private server: Server | undefined;
   private captured: CapturedMcpRequest[] = [];
   private hold: { promise: Promise<void>; release: () => void } | undefined;
+  private oauthChallenge: OAuthChallengePosture | undefined;
 
   // Every JSON-RPC request observed since the last reset, oldest first.
   // Suites reset in afterEach (the mock-LLM convention) so captures never
@@ -151,6 +163,14 @@ export class McpToolFixture {
     const hold = this.hold;
     this.hold = undefined;
     hold?.release();
+  }
+
+  // Answer every credential-less POST with the OAuth challenge (`undefined`
+  // restores the open surface). A request carrying an `Authorization: Bearer`
+  // header passes through to the tool surface, so a suite can also prove
+  // the completed server works once a token is in hand.
+  requireOAuth(posture: OAuthChallengePosture | undefined): void {
+    this.oauthChallenge = posture;
   }
 
   // Binds to an ephemeral loopback port; resolves once listening.
@@ -200,6 +220,23 @@ export class McpToolFixture {
     if (req.method !== "POST") {
       res.writeHead(405, { "content-type": "application/json", allow: "POST" });
       res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32000, message: "method not allowed" } }));
+      return;
+    }
+
+    // The OAuth posture answers before anything else, the way a hosted
+    // server's authentication layer does: a credential-less request never
+    // reaches the tool surface.
+    const challenge = this.oauthChallenge;
+    if (challenge !== undefined && !/^Bearer\s+\S+/i.test(String(req.headers.authorization ?? ""))) {
+      const body: unknown = JSON.parse(await readBody(req));
+      for (const method of jsonRpcMethods(body)) {
+        this.captured.push({ method, headers: { ...req.headers } });
+      }
+      res.writeHead(401, {
+        "content-type": "application/json",
+        "www-authenticate": `Bearer realm="OAuth", resource_metadata="${challenge.resourceMetadataUrl}"`,
+      });
+      res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "authentication required" } }));
       return;
     }
 

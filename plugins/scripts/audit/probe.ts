@@ -3,129 +3,75 @@
  * means for a Stigmer user; pure over an injected `fetch`.
  *
  * The rubric asks whether every server a plugin brings is one Stigmer can
- * connect to. The product answers that question today at the first tool
- * call, in the runner: `backend/services/runner/src/shared/mcp-oauth-detect.ts`
- * sends one unauthenticated `initialize` and calls a 401 an OAuth challenge
- * only when `WWW-Authenticate` carries `Bearer` and either `oauth` or
- * `resource_metadata`, so a static-token API's plain `Bearer` 401 is not
- * misread as "requires OAuth". That module is the rule's home; this probe
- * applies the same rule (`isOAuthChallenge`, `parseResourceMetadataUrl`,
- * kept word for word and pinned against the same header strings in the
- * suite), so what the report calls OAuth is what a user is told is OAuth.
- * When the rule moves to a shared home, this file imports it and changes
- * nothing it says.
+ * connect to. The rules the answer rests on have one home,
+ * `@stigmer/outbound/mcp-oauth`, shared with the runner (which applies them
+ * at the first failed tool call) and the control plane (which applies them
+ * at save time): a 401 is an OAuth challenge only when `WWW-Authenticate`
+ * carries `Bearer` and either `oauth` or `resource_metadata`, so a
+ * static-token API's plain `Bearer` 401 is not misread as "requires OAuth";
+ * the request is a complete `initialize` (protocol version, capabilities,
+ * client info), because several hosted servers (Google's Gmail, Calendar,
+ * Drive and BigQuery endpoints, GoDaddy's, Shopify's) validate the request
+ * before they check authentication and answer a bare one with HTTP 200 and
+ * "Missing protocol version for Initialize", so a bare request never
+ * reached their 401 (measured 2026-09-19; the bare request called seven
+ * OAuth servers open); and the login server is found by the RFC 9728,
+ * RFC 8414 and OpenID walk whose document order the library states once.
+ * This file imports all three and adds what a measurement needs on top.
  *
- * The request differs from the runner's in one deliberate way. The runner
- * sends `initialize` with empty params; several hosted servers (Google's
- * Gmail, Calendar, Drive and BigQuery endpoints, GoDaddy's, Shopify's)
- * validate the request before they check authentication and answer HTTP
- * 200 with a JSON-RPC error, "Missing protocol version for Initialize", so
- * a bare request never reaches their 401. The probe sends a complete
- * `initialize` (protocol version, capabilities, client info) and reads the
- * JSON-RPC answer, not the status line: a `result` is an open handshake, an
- * `error` is a rejected one, and only a 401 enters the OAuth rule. Measured
- * 2026-09-19 against the three vendor catalogues; the bare request called
- * seven OAuth servers open.
- *
- * An open handshake is then followed by one anonymous `tools/list`, which
- * is what the product's connect does next (`discover-mcp-server.ts`
- * initialises, then lists tools). Google's hosted servers complete
- * `initialize` for anyone and ask for the credential only when tools are
- * touched, so a probe that stopped at the handshake would call them open
- * and a user would learn otherwise at the first tool call. A 401 to
- * `tools/list` enters the same OAuth rule; the outcome says which request
- * drew the challenge. The probe stops there: it never calls a tool, because
- * a tool call on a vendor's server is an act with effects, not a
- * measurement. A server that lists its tools anonymously and asks for the
- * credential only at `tools/call` (Google's do, measured 2026-09-19) is
- * therefore `open` here, and the report says what `open` covers.
- *
- * Beyond the runner's yes-or-no, the probe walks the metadata the challenge
- * points at, because the rubric needs two more facts the sign-in flow will
- * need: whether the login server registers clients dynamically (RFC 7591;
- * without it Sign in cannot complete) and whether it lives on another origin
- * than the MCP URL (RFC 9728, which today's discovery does not read). The
- * walk: `resource_metadata` from the challenge, else the well-known
- * protected-resource document at the MCP origin (path-suffixed first, as the
- * RFC allows), then the authorization server's metadata (RFC 8414 with the
- * issuer's path, then at its origin, then OpenID's document at either).
- *
- * The transport arm: the runner's MCP client falls back to SSE when the
- * streamable-HTTP POST is answered with a 4xx (`discover-mcp-server.ts`), so
- * a 4xx other than 401 is followed by one GET asking for an event stream,
- * and a server that answers with one is `open`. Every request made is kept
- * as evidence, raw header included, so an inconsistent answer is settled by
- * what was seen rather than by a second guess. One retry after a pause on a
- * network failure, a 429 (honouring `Retry-After`, capped) or a 5xx; the
- * probe never sends a credential and never follows a redirect.
+ * What is the audit's own. A 2xx to `initialize` is read as JSON-RPC, not as
+ * a status line: a `result` is an open handshake, an `error` is a rejected
+ * one (its message kept), because the report must say which. An open
+ * handshake is followed by one anonymous `tools/list`, the product's next
+ * move (`discover-mcp-server.ts` initialises, then lists tools); a 401 there
+ * enters the same rule and the outcome says which request drew it. The
+ * probe stops there: it never calls a tool, because a tool call on a
+ * vendor's server is an act with effects, not a measurement, so a server
+ * that lists its tools anonymously and asks for the credential only at
+ * `tools/call` (Google's do, measured 2026-09-19) is `open` here, and the
+ * report says what `open` covers. The metadata walk is followed to learn
+ * two facts Sign in will need: whether the login server registers clients
+ * dynamically (RFC 7591; without it Sign in cannot complete) and whether it
+ * lives on another origin than the MCP URL. The transport arm: the runner's
+ * MCP client falls back to SSE when the streamable-HTTP POST is answered
+ * with a 4xx, so a 4xx other than 401 is followed by one GET asking for an
+ * event stream, and a server that answers with one is `open`. Every request
+ * made is kept as evidence, raw header included, so an inconsistent answer
+ * is settled by what was seen rather than by a second guess. One retry
+ * after a pause on a network failure, a 429 (honouring `Retry-After`,
+ * capped) or a 5xx; the probe never sends a credential and never follows a
+ * redirect.
  *
  * The outcome vocabulary is closed and says only what the wire said; what a
  * host or a vendor means (a Cursor-proxied endpoint, a personal-account
  * tool) is the rubric's reading in `classify.ts`.
  */
+import {
+  authorizationServerMetadataUrls,
+  initializeRequest,
+  isOAuthChallenge,
+  MCP_PROTOCOL_VERSION,
+  MCP_SESSION_HEADER,
+  parseResourceMetadataUrl,
+  protectedResourceMetadataUrls,
+  toolsListRequest,
+} from "@stigmer/outbound/mcp-oauth";
 
-/** The runner's probe timeout (`OAUTH_PROBE_TIMEOUT_MS` in `mcp-oauth-detect.ts`). */
+export { isOAuthChallenge, MCP_PROTOCOL_VERSION, parseResourceMetadataUrl };
+
+/** The runner's probe timeout (`OAUTH_PROBE_TIMEOUT_MS` in `shared/mcp-oauth-detect.ts`); a measurement can afford the runner's patience. */
 export const PROBE_TIMEOUT_MS = 10_000;
 /** The pause before the one retry, and the most a `Retry-After` may ask for. */
 export const RETRY_PAUSE_MS = 1_500;
 export const RETRY_AFTER_CAP_MS = 30_000;
 /** How much of a response body is kept as evidence. */
 const BODY_SNIPPET_CHARS = 512;
-/** Who is asking; some hosts refuse a request that does not say. */
-const USER_AGENT = "stigmer-catalogue-audit (+https://github.com/stigmer/stigmer/tree/main/plugins)";
+/** Who is asking; some hosts refuse a request that does not say, and the handshake names it too. */
+const CLIENT_NAME = "stigmer-catalogue-audit";
+const USER_AGENT = `${CLIENT_NAME} (+https://github.com/stigmer/stigmer/tree/main/plugins)`;
 
-/** The MCP protocol revision the handshake names; the one the runner's client speaks. */
-export const MCP_PROTOCOL_VERSION = "2025-06-18";
-
-/**
- * A complete `initialize`: the runner's method, headers and body shape
- * (`detectOAuthChallenge`), with the params a server validates before it
- * authenticates (see the header).
- */
-export const INITIALIZE_REQUEST = {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json, text/event-stream",
-    "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
-  },
-  body: JSON.stringify({
-    jsonrpc: "2.0",
-    id: 1,
-    method: "initialize",
-    params: {
-      protocolVersion: MCP_PROTOCOL_VERSION,
-      capabilities: {},
-      clientInfo: { name: "stigmer-catalogue-audit", version: "0" },
-    },
-  }),
-} as const;
-
-/** The request that follows an open handshake: the product's next move, anonymous. */
-export const TOOLS_LIST_REQUEST = {
-  method: "POST",
-  headers: INITIALIZE_REQUEST.headers,
-  body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
-} as const;
-
-/** The header a stateful server hands back on `initialize` and expects on every later request. */
-const SESSION_HEADER = "mcp-session-id";
-
-/**
- * Whether a `WWW-Authenticate` value is an OAuth challenge: the runner's
- * `isOAuthChallenge`, word for word.
- */
-export function isOAuthChallenge(wwwAuthenticate: string): boolean {
-  const value = wwwAuthenticate.toLowerCase();
-  if (!value.includes("bearer")) return false;
-  return value.includes("oauth") || value.includes("resource_metadata");
-}
-
-/** The `resource_metadata` URL in a challenge, if any: the runner's `parseResourceMetadataUrl`, word for word. */
-export function parseResourceMetadataUrl(wwwAuthenticate: string): string | undefined {
-  const match = /resource_metadata="([^"]+)"/i.exec(wwwAuthenticate);
-  return match?.[1];
-}
+/** The complete `initialize` this audit sends, named as the audit. */
+export const INITIALIZE_REQUEST = initializeRequest(CLIENT_NAME);
 
 /** One request the probe made and what came back; the report's raw evidence. */
 export interface ProbeStep {
@@ -247,9 +193,8 @@ async function classifyHandshake(url: string, post: Extract<Answer, { kind: "res
   if (answer === undefined) return { kind: "http-other", status: post.status, via: "post" };
   if ("error" in answer) return { kind: "handshake-rejected", status: post.status, message: errorMessage(answer["error"]) };
 
-  const headers: Record<string, string> = { ...TOOLS_LIST_REQUEST.headers };
-  if (post.sessionId !== undefined) headers[SESSION_HEADER] = post.sessionId;
-  const tools = await request.withRetry("tools-list", url, { method: TOOLS_LIST_REQUEST.method, headers, body: TOOLS_LIST_REQUEST.body });
+  const toolsRequest = toolsListRequest(undefined, post.sessionId);
+  const tools = await request.withRetry("tools-list", url, { method: toolsRequest.method, headers: { ...toolsRequest.headers }, body: toolsRequest.body });
   if (tools.kind === "response" && tools.status === 401) return classifyChallenge(url, "tools/list", tools.wwwAuthenticate, request);
   return { kind: "open", status: post.status, via: "post", tools: toolsListOutcome(tools) };
 }
@@ -312,7 +257,7 @@ async function resolveAuthorizationServers(
   request: Requester,
 ): Promise<{ kind: "ok"; issuers: readonly string[] } | { kind: "error"; reason: string }> {
   const mcp = new URL(mcpUrl);
-  const candidates = pointer !== undefined ? [pointer] : protectedResourceWellKnownUrls(mcp);
+  const candidates = pointer !== undefined ? [pointer] : protectedResourceMetadataUrls(mcp);
   for (const candidate of candidates) {
     const response = await request.json("resource-metadata", candidate);
     if (response.kind !== "json") continue;
@@ -323,10 +268,6 @@ async function resolveAuthorizationServers(
   return { kind: "ok", issuers: [mcp.origin] };
 }
 
-function protectedResourceWellKnownUrls(mcp: URL): readonly string[] {
-  const bare = `${mcp.origin}/.well-known/oauth-protected-resource`;
-  return mcp.pathname === "/" ? [bare] : [`${bare}${mcp.pathname.replace(/\/+$/, "")}`, bare];
-}
 
 /**
  * RFC 8414 metadata for `issuer` (path-suffixed per its section 3, then at
@@ -340,7 +281,7 @@ async function readAuthorizationServer(mcpUrl: string, issuer: string, request: 
   } catch {
     return undefined;
   }
-  for (const metadataUrl of authorizationServerWellKnownUrls(parsed)) {
+  for (const metadataUrl of authorizationServerMetadataUrls(parsed)) {
     const response = await request.json("authorization-server-metadata", metadataUrl);
     if (response.kind !== "json" || !isRecord(response.value)) continue;
     const document = response.value;
@@ -360,17 +301,6 @@ async function readAuthorizationServer(mcpUrl: string, issuer: string, request: 
     };
   }
   return undefined;
-}
-
-function authorizationServerWellKnownUrls(issuer: URL): readonly string[] {
-  const path = issuer.pathname.replace(/\/+$/, "");
-  const urls = [
-    ...(path === "" ? [] : [`${issuer.origin}/.well-known/oauth-authorization-server${path}`]),
-    `${issuer.origin}/.well-known/oauth-authorization-server`,
-    ...(path === "" ? [] : [`${issuer.origin}${path}/.well-known/openid-configuration`]),
-    `${issuer.origin}/.well-known/openid-configuration`,
-  ];
-  return [...new Set(urls)];
 }
 
 function sameOrigin(a: string, b: string): boolean {
@@ -437,7 +367,7 @@ class Requester {
       const wwwAuthenticate = response.headers.get("www-authenticate") ?? "";
       const contentType = response.headers.get("content-type") ?? "";
       const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"));
-      const sessionId = response.headers.get(SESSION_HEADER) ?? undefined;
+      const sessionId = response.headers.get(MCP_SESSION_HEADER) ?? undefined;
       let body = "";
       if (options.headersOnly === true) {
         // An event stream never ends; the headers alone classify it.

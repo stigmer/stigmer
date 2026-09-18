@@ -35,6 +35,7 @@
     "directory": "plugins"
   },
   "devDependencies": {
+    "@stigmer/outbound": "*",
     "@stigmer/plugin-package": "*",
     "@types/node": "^22.0.0",
     "tsx": "^4.21.0",

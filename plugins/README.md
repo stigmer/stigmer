@@ -91,8 +91,8 @@ preparation chain an install runs (`preparePluginFromTree`: ignore rules,
 security defaults, the reader, the digest), so "what this entry becomes" in
 the report is what an install would produce. It probes every distinct hosted
 MCP endpoint once, unauthenticated, with the request and the 401 rule the
-runner uses at a first tool call (`mcp-oauth-detect.ts` is the rule's home),
-then follows the challenge's metadata (RFC 9728, then RFC 8414) to learn
+runner applies at a first tool call and the control plane at save time
+(`backend/libs/ts/outbound` is the rule's home), then follows the challenge's metadata (RFC 9728, then RFC 8414) to learn
 whether the login server registers clients and where it lives. It writes
 `audit.md`, the report a maintainer strikes names from, and `audit.json`, every
 fact and every probe's raw evidence, pinned to the commits read.
@@ -116,5 +116,5 @@ image bakes the package the same way it bakes the server and the runner.
 - The format: `docs/guides/plugins/marketplace-file.mdx`.
 - Installing from it: `docs/guides/plugins/install-from-a-marketplace.mdx`.
 - The reader: `backend/libs/ts/plugin-package` (`readMarketplace`).
-- The rule that says an endpoint wants OAuth:
-  `backend/services/runner/src/shared/mcp-oauth-detect.ts`.
+- The rule that says an endpoint wants OAuth, and the request that asks:
+  `backend/libs/ts/outbound` (`@stigmer/outbound/mcp-oauth`).
