@@ -17,7 +17,9 @@
  * preview, the todo projection, and the rest of the header's rules —
  * the row per id, the message boundary, the thinking row, the sub-agent
  * rows, finalize, artifacts and write-backs, the dirty flag, the error
- * guard — joined commit by commit in the same PR.
+ * guard — joined commit by commit in the same PR. The observer arm (the
+ * runtime's fold-watcher: told after the fold, guarded apart from the
+ * handlers, silent on seed) joined with the turn timeline.
  */
 
 import { describe, it, expect } from "vitest";
@@ -971,5 +973,71 @@ describe("TranscriptBuilder — the dirty flag and the error guard", () => {
     expect(errors[0]).toContain("exec-test");
     expect(errors[0]).toContain("kind=tool_finished");
     expect(errors[0]).toContain("property access failed");
+  });
+});
+
+describe("TranscriptBuilder — the observer sees every folded event, after the fold, and can break nothing", () => {
+  it("is told every applied event, in order, once the fold has landed", () => {
+    const status = create(AgentExecutionStatusSchema, {});
+    const seen: Array<{ kind: string; rowsAtNotify: number }> = [];
+    const sb = new TranscriptBuilder("exec-observe", status, (event) => {
+      seen.push({ kind: event.kind, rowsAtNotify: status.messages.flatMap((m) => m.toolCalls).length });
+    });
+    for (const e of proposedCall()) sb.apply(e);
+    sb.apply({ kind: "tool_finished", callId: "call-1", result: "ok" });
+
+    expect(seen.map((s) => s.kind)).toEqual(["message_start", "text_delta", "message_finish", "tool_started", "tool_finished"]);
+    // "After the fold": when the observer hears tool_started, the row exists.
+    expect(seen[3]!.rowsAtNotify).toBe(1);
+  });
+
+  it("a throwing observer is logged with the execution and the event kind, and the fold stands", () => {
+    const errors: string[] = [];
+    const original = console.error;
+    console.error = (msg: unknown) => { errors.push(String(msg)); };
+    try {
+      const status = create(AgentExecutionStatusSchema, {});
+      const sb = new TranscriptBuilder("exec-observe", status, () => { throw new Error("observer fell over"); });
+      expect(() => { for (const e of proposedCall()) sb.apply(e); }).not.toThrow();
+      expect(rowOf(status, "call-1").status, "the transcript is whole").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    } finally {
+      console.error = original;
+    }
+    expect(errors).toHaveLength(4);
+    expect(errors[0]).toContain("exec-observe");
+    expect(errors[0]).toContain("kind=message_start");
+    expect(errors[0]).toContain("observer fell over");
+  });
+
+  it("still hears an event whose handler threw: the two guards are independent", () => {
+    const original = console.error;
+    console.error = () => {};
+    const seen: string[] = [];
+    try {
+      const { status } = feed(builder(), proposedCall());
+      const sb = new TranscriptBuilder("exec-observe", status, (event) => { seen.push(event.kind); });
+      const poisoned = { kind: "tool_finished", callId: "call-1", get result(): string { throw new Error("property access failed"); } } as TranscriptEvent;
+      sb.apply(poisoned);
+    } finally {
+      console.error = original;
+    }
+    expect(seen).toEqual(["tool_finished"]);
+  });
+
+  it("seed() does not notify: a seeded row is last turn's fact, not an event of this turn", () => {
+    const status = create(AgentExecutionStatusSchema, {});
+    const seen: string[] = [];
+    const sb = new TranscriptBuilder("exec-observe", status, (event) => { seen.push(event.kind); });
+    sb.seed(create(AgentExecutionStatusSchema, {
+      messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "earlier", toolCalls: [create(ToolCallSchema, { id: "old-1", name: "read_file", status: ToolCallStatus.TOOL_CALL_COMPLETED })] })],
+    }));
+    expect(seen).toEqual([]);
+    expect(status.messages).toHaveLength(1);
+  });
+
+  it("is optional: the two-argument constructor folds exactly as before", () => {
+    const { sb, status } = feed(builder(), proposedCall());
+    sb.apply({ kind: "tool_finished", callId: "call-1", result: "ok" });
+    expect(rowOf(status, "call-1").status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 });
