@@ -97,6 +97,24 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node scripts/publish-libs.mjs --version ${{ needs.determine-version.outputs.version }}
 
+      # The compose-runner image's CLI (stigmer/stigmer#1158): @stigmer/cli
+      # and its @stigmer/* closure, packed from the dist/ the step above just
+      # published (--skip-build), handed to publish-runner-image-* as an
+      # artifact. The image installs these tarballs instead of asking the
+      # registry for the version this job published seconds earlier — the
+      # replication race that failed the runner image on three consecutive
+      # releases. Same bytes as the registry's, provably this commit's.
+      - name: Stage the compose-runner CLI tarballs
+        run: node scripts/stage-compose-runner-cli.mjs --version=${{ needs.determine-version.outputs.version }} --skip-build
+
+      - name: Upload the compose-runner CLI tarballs
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-runner-cli
+          path: backend/services/runner/stage/cli
+          retention-days: 3
+          if-no-files-found: error
+
   # @stigmer/runner is an npm package too, so it ships from this same npm workflow.
   # It lives in its own job (not publish-libs.mjs) only because it is deliberately
   # NOT an npm workspace (see root package.json) and is built via make build-runner.
@@ -555,10 +573,13 @@ jobs:
   # bump the committed compose pin.
   #
   # Unlike the server image (COPY-only, QEMU-safe), this build compiles
-  # the runner and npm-installs the CLI in RUN steps — so each arch builds
+  # the runner and installs the CLI in RUN steps — so each arch builds
   # NATIVELY on its own runner (per-arch tags), and a manifest job merges
-  # them. Needs `publish`: the CLI installs from the npm registry at this
-  # release's version.
+  # them. Needs `publish` for two reasons: the CLI tarballs the image
+  # installs are that job's artifact (compose-runner-cli, staged from the
+  # dist/ it published — never the registry, which lost the replication
+  # race on v3.15.2, v3.16.0 and v3.17.0; stigmer/stigmer#1158), and no
+  # image should exist for a version the registry never got.
   publish-runner-image-amd64:
     needs: [determine-version, publish]
     runs-on: ubuntu-latest
@@ -569,6 +590,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Into the path the compose-runner stage COPYs from; the build-arg
+      # below must equal the staged VERSION, and the Dockerfile asserts it.
+      - name: Download the compose-runner CLI tarballs
+        uses: actions/download-artifact@v4
+        with:
+          name: compose-runner-cli
+          path: backend/services/runner/stage/cli
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -603,6 +632,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # The same artifact on both arches: the tarballs are plain JavaScript,
+      # and the native pieces the CLI's closure pulls come from the registry
+      # per platform at install time, as on a laptop.
+      - name: Download the compose-runner CLI tarballs
+        uses: actions/download-artifact@v4
+        with:
+          name: compose-runner-cli
+          path: backend/services/runner/stage/cli
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -740,11 +778,16 @@ jobs:
   # platform package differ), build natively per arch (the Dockerfile has RUN
   # steps — the compose-runner precedent, no QEMU), merge the per-arch tags,
   # smoke the PUSHED tag on native runners, promote `latest` on stable only.
-  # `needs` the npm publishes so an image never exists for a version the
-  # registry never got, even though the image is built from this checkout.
+  #
+  # Staging needs only `publish`: it builds everything from this checkout and
+  # reads nothing from the registry, so it runs beside publish-server-slim
+  # instead of after it (the two were serialized for ~10 minutes with no data
+  # between them). The rule that no image exists for a version the registry
+  # never got is kept where it costs nothing: the image jobs below `needs`
+  # the runner and server-slim publishes, which finish before staging does.
   # ---------------------------------------------------------------------------
   stage-all-in-one:
-    needs: [determine-version, publish, publish-runner, publish-server-slim]
+    needs: [determine-version, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -788,8 +831,11 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
+  # publish-runner and publish-server-slim are policy edges, not data (the
+  # stage is built from the checkout): an image tag never exists for a
+  # version whose npm packages the same run did not publish.
   publish-all-in-one-image-amd64:
-    needs: [determine-version, stage-all-in-one]
+    needs: [determine-version, stage-all-in-one, publish-runner, publish-server-slim]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -825,7 +871,7 @@ jobs:
             deploy/all-in-one
 
   publish-all-in-one-image-arm64:
-    needs: [determine-version, stage-all-in-one]
+    needs: [determine-version, stage-all-in-one, publish-runner, publish-server-slim]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     permissions:
@@ -993,9 +1039,16 @@ jobs:
   # withhold — the moment it is in the registry, `helm install` without a
   # version resolves to it. Pre-releases are pushed too; Helm's semver
   # resolution hides them from a version-less install.
+  #
+  # Starts as soon as both version tags are pushed, beside the compose
+  # smokes rather than after them: the kind install is its own proof of the
+  # same pushed tags, and sequencing two independent proofs adds nothing
+  # but minutes to the tail. `stigmer-runner:latest` still waits for the
+  # compose smokes (promote-runner-image-latest); the chart still waits for
+  # its own.
   # ---------------------------------------------------------------------------
   package-helm-chart:
-    needs: [determine-version, smoke-compose-amd64, smoke-compose-arm64]
+    needs: [determine-version, publish-server-image, publish-runner-image]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

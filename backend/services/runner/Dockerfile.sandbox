@@ -1,7 +1,13 @@
 # Unified TypeScript Runner — Sandbox + Compose Images
 #
 # Build context: Repository root
-# Build command: docker build -f backend/services/runner/Dockerfile.sandbox .
+# Build commands:
+#   the cloud sandbox image:
+#     docker build --target sandbox -f backend/services/runner/Dockerfile.sandbox .
+#   the compose runner (stage the CLI first; see the compose-runner stage):
+#     node scripts/stage-compose-runner-cli.mjs
+#     docker build --build-arg STIGMER_CLI_VERSION=$(cat backend/services/runner/stage/cli/VERSION) \
+#       -f backend/services/runner/Dockerfile.sandbox .
 #
 # TWO published images derive from one stage chain (DD-014: the compose
 # runner derives from the sandbox image; no second runner image is invented):
@@ -150,14 +156,42 @@ CMD ["/bin/bash"]
 # and channel MCP attachments as a spawned `stigmer mcp-server` stdio child
 # (shared/memory-attachment.ts, shared/channel-attachment.ts). On a laptop
 # the CLI is on PATH by definition; in a container it must be baked in, or
-# every memory-enabled session fails at spawn (ENOENT). The npm registry is
-# the CLI's canonical distribution channel — these are the same bytes a
-# laptop's global install resolves. The release lane pins the in-train
-# version; dev/CI source builds default to the latest published CLI.
+# every memory-enabled session fails at spawn (ENOENT).
+#
+# Where the CLI comes from: the build context, never the registry. The
+# build that produces this image has already built the CLI from the same
+# commit; scripts/stage-compose-runner-cli.mjs packs it and its @stigmer/*
+# closure into stage/cli/pkgs/ with the same stamped dist/ the registry
+# receives (publish-libs.mjs --pack-dir --only @stigmer/cli). Installing
+# from the registry instead raced its replication: the release lane
+# published @stigmer/cli and asked for it seconds later, and lost on three
+# consecutive releases (stigmer/stigmer#1158). From tarballs the image's
+# CLI is provably this commit's, a PR's compose smoke tests the PR's own
+# CLI rather than the last release's, and no build step waits on npm.
+#
+# One `npm install` of all the tarballs into one prefix, the all-in-one
+# image's mechanism (deploy/all-in-one/Dockerfile): npm resolves every
+# @stigmer/* edge among the given tarballs and fetches only third-party
+# deps. NOT `npm install -g`: a global install nests each top-level
+# package's tree separately, so the CLI's edge to @stigmer/sdk would be
+# fetched from the registry — the race, one layer down. The `.bin` of the
+# prefix goes on PATH, which is where the runner's spawn looks.
+#
+# STIGMER_CLI_VERSION is the version the staged tarballs were stamped with
+# (stage/cli/VERSION); the build asserts the installed CLI reports it so
+# a stale stage or a mismatched artifact fails here, not in a session.
 FROM sandbox AS compose-runner
 
-ARG STIGMER_CLI_VERSION=latest
-RUN npm install -g "@stigmer/cli@${STIGMER_CLI_VERSION}"
+ARG STIGMER_CLI_VERSION
+ENV STIGMER_CLI_PREFIX=/opt/stigmer/cli
+
+COPY backend/services/runner/stage/cli/pkgs/ /tmp/stigmer-cli-pkgs/
+RUN test -n "${STIGMER_CLI_VERSION}" || { echo "STIGMER_CLI_VERSION build-arg is required (backend/services/runner/stage/cli/VERSION)" >&2; exit 1; } \
+    && npm install --prefix "${STIGMER_CLI_PREFIX}" --omit=dev --no-audit --no-fund /tmp/stigmer-cli-pkgs/*.tgz \
+    && installed="$(node -p "require('${STIGMER_CLI_PREFIX}/node_modules/@stigmer/cli/package.json').version")" \
+    && test "${installed}" = "${STIGMER_CLI_VERSION}" || { echo "staged CLI is ${installed}, build-arg says ${STIGMER_CLI_VERSION}" >&2; exit 1; } \
+    && rm -rf /tmp/stigmer-cli-pkgs /root/.npm
+ENV PATH="${STIGMER_CLI_PREFIX}/node_modules/.bin:${PATH}"
 
 # State home. The runner keeps session state — HITL/pause checkpoints
 # (sessions/<id>/checkpoints.db), the HITL gate dir — under $HOME/.stigmer
