@@ -6,7 +6,11 @@
  * can read it, so no real runner install is needed.
  *
  * Unix-only like the runner itself; deterministic (poll with timeout,
- * never sleep).
+ * never sleep). Every poll gets an explicit budget: vitest's default
+ * second is enough on an idle laptop and not under the full suite's
+ * load, where a /bin/sh child can take longer than that to start and
+ * write its first line. Polling returns the moment the condition holds,
+ * so the larger budget costs nothing on a quiet host.
  */
 import {
   chmodSync,
@@ -24,6 +28,9 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { createLogger } from "../../boot/logger.js";
 import { newLocalProcessSandboxProvisioner } from "../local-process.js";
 import type { SandboxDriverConfig } from "../provisioner.js";
+
+/** How long a spawned child is given to start, write, or die under load. */
+const CHILD_SETTLE_TIMEOUT_MS = 10_000;
 
 const silentLogger = createLogger({
   level: "error",
@@ -75,7 +82,9 @@ describe.skipIf(process.platform === "win32")(
         taskQueue: "session:ses_smoke",
         stigmerToken: "tok-smoke",
       });
-      await vi.waitFor(() => expect(spawnCount()).toBe(1));
+      await vi.waitFor(() => expect(spawnCount()).toBe(1), {
+        timeout: CHILD_SETTLE_TIMEOUT_MS,
+      });
       expect(await driver.probe("session", "ses_smoke")).toBe("running");
 
       // Fast path: a second ensure must not spawn a second process.
@@ -104,16 +113,21 @@ describe.skipIf(process.platform === "win32")(
 
     it("deprovision kills the child; probe reports absent; re-ensure respawns", async () => {
       await driver.deprovisionSessionSandbox("ses_smoke");
-      await vi.waitFor(async () => {
-        expect(await driver.probe("session", "ses_smoke")).toBe("absent");
-      });
+      await vi.waitFor(
+        async () => {
+          expect(await driver.probe("session", "ses_smoke")).toBe("absent");
+        },
+        { timeout: CHILD_SETTLE_TIMEOUT_MS },
+      );
 
       // The repair arm without stored state: a fresh ensure respawns.
       await driver.ensureSessionSandbox("ses_smoke", {
         taskQueue: "session:ses_smoke",
         stigmerToken: "",
       });
-      await vi.waitFor(() => expect(spawnCount()).toBe(2));
+      await vi.waitFor(() => expect(spawnCount()).toBe(2), {
+        timeout: CHILD_SETTLE_TIMEOUT_MS,
+      });
       expect(await driver.probe("session", "ses_smoke")).toBe("running");
     });
 
