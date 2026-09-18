@@ -83,7 +83,7 @@ export interface UpForegroundDeps {
   runDaemon?: (deps: InternalDaemonDeps) => Promise<number>;
   /** Resolves when the stack should shut down (default: the first SIGTERM/SIGINT). */
   waitForShutdown?: () => Promise<void>;
-  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`, the seedpack then the default plugins). */
+  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`: prepare the defaults, retire an older release's seedpack, ensure the org, install). */
   bootstrap?: (home: string) => Promise<void>;
   /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
   mirror?: OutputMirror;

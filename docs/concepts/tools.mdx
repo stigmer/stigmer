@@ -48,24 +48,23 @@ addresses are refused.
 Reach for an MCP server when you need more than retrieval of a public page —
 authenticated APIs, site-specific extraction, or write operations.
 
-## The tool library
+## Where MCP Servers come from
 
-Stigmer includes a curated library of MCP servers for common integrations —
-GitHub, Slack, Neon, Notion, web search, and dozens more. Each server in the
-library includes a description, category tags, and a link to its source
-repository so you can inspect the implementation before connecting it.
+Most MCP Servers arrive as Plugins. A plugin from Cursor, Claude Code, Codex, or
+the official marketplace declares the servers it needs; installing it creates
+them in your Organization, marked as the plugin's, beside the Agent that uses
+them. You connect a server once and Stigmer discovers its tools. A server
+another Organization publishes as public can be referenced by your Agents as
+well.
 
-Every server in the library is a remote (HTTP) server, so it works on any
-session — local or cloud-hosted. You browse the library, pick a server, and
-connect it — Stigmer handles discovery and configuration. Stdio servers (local
-subprocesses launched via `npx` or `uvx`) are not part of the curated library
-because they run only on local runners; you can still register your own for
-local-runner sessions.
+A remote (HTTP) server works in any Session, local or cloud-hosted. A stdio
+server (a local subprocess launched through `npx` or `uvx`) runs only on a local
+runner, so it fits local Sessions and not the hosted product.
 
-You can also define your own MCP servers for internal or proprietary systems.
-The library is a starting point, not a constraint. Any server that speaks the
-Model Context Protocol works with Stigmer, whether it's in the library or
-custom-built for your Organization.
+You can also define your own MCP Servers for internal or proprietary systems. A
+plugin is a starting point, not a constraint: any server that speaks the Model
+Context Protocol works with Stigmer, whether a plugin installed it, or you wrote
+its definition for your Organization.
 
 ## MCP Server resource
 

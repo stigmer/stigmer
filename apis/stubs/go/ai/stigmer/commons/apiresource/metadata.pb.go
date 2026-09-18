@@ -50,7 +50,9 @@ type ApiResourceMetadata struct {
 	// so one grant can only ever be one row.
 	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	// Organization that owns this resource.
-	// In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+	// In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+	// then the configured context); the CLI's bootstrap creates the "stigmer"
+	// organization on every start and installs the default plugins into it.
 	// In Cloud Mode: Required and enforced by the Authorization Service.
 	// All resources belong to exactly one organization.
 	Org string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`

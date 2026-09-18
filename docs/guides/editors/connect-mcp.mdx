@@ -143,18 +143,17 @@ With the connector in place, your assistant can work with Stigmer directly:
 - **Validate before you push** — check Workflow YAML for errors as you write it.
 - **Create resources** — author Agents and MCP servers from a description.
 
-To teach your assistant _how_ to author Stigmer resources correctly, pair the
-connector with Stigmer's creator Skills — see
-[Use Stigmer Skills in your AI editor](/docs/guides/editors/skills).
+When your assistant authors Agents, Skills and MCP servers, it writes a plugin:
+the same folder Cursor, Claude Code and Codex read, with a `skills/` directory
+and an `mcp.json`. Installing that folder on Stigmer is one command or one
+upload — see [Install a plugin](/docs/guides/plugins/install-a-plugin).
 
 ## Going deeper
 
 <Cards>
-  <Card
-    href="/docs/guides/editors/skills"
-    title="Use Stigmer Skills in your editor"
-  >
-    Let your assistant author Agents, Workflows, and Skills the right way.
+  <Card href="/docs/guides/plugins/install-a-plugin" title="Install a plugin">
+    Turn the plugin your assistant wrote into a running Agent with its Skills
+    and tools.
   </Card>
   <Card
     href="/docs/cli/commands/mcp-server"

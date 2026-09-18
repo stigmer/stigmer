@@ -8,8 +8,10 @@
  * SKILL.md with the plugin's labels on the request, a version the tag
  * pattern rejects becoming a warning, an overlay that redefines the
  * transport refused, the composed agent declaring its tools' variables
- * (OAuth targets excluded, an authored agent left as written), and the
- * convergence and drop rules over members.
+ * (OAuth targets excluded, an authored agent left as written), and each
+ * planned member's system flag read from its overlay and never from a
+ * skill. The member rules themselves (the slug decision, convergence, the
+ * dropped set) are members.test.ts's.
  */
 import { describe, expect, it } from "vitest";
 
@@ -37,6 +39,7 @@ import { openArchive } from "../../../archive/open.js";
 import {
   PLUGIN_LABEL,
   PLUGIN_VERSION_LABEL,
+  SYSTEM_LABEL,
 } from "../../../pipeline/apiresource-labels.js";
 import {
   DEFAULT_AGENT_INSTRUCTIONS_VERSION,
@@ -45,8 +48,6 @@ import {
 import type { PluginIdentity } from "../materialize/identity.js";
 import { McpServerOverlayError } from "../materialize/mcp-servers.js";
 import { planMaterialization } from "../materialize/plan.js";
-import { droppedMembers, membersConverge } from "../members.js";
-import type { Member } from "../members.js";
 
 const IDENTITY: PluginIdentity = {
   org: "acme",
@@ -231,7 +232,10 @@ describe("planMaterialization", () => {
 
   it("declares the servers' variables on the composed agent so a session asks for them", () => {
     expect(plan.agent!.resource.spec?.env).toEqual({
-      GITHUB_TOKEN: expect.objectContaining({ isSecret: true, optional: false }),
+      GITHUB_TOKEN: expect.objectContaining({
+        isSecret: true,
+        optional: false,
+      }),
     });
   });
 
@@ -259,7 +263,9 @@ describe("planMaterialization", () => {
     );
     // The server still declares it (the connect flow reads it there); the
     // agent does not, because the value comes from a managed environment.
-    expect(withOAuth.mcpServers[0]!.resource.spec?.env).toHaveProperty("GITHUB_TOKEN");
+    expect(withOAuth.mcpServers[0]!.resource.spec?.env).toHaveProperty(
+      "GITHUB_TOKEN",
+    );
     expect(withOAuth.agent!.resource.spec?.env).toEqual({});
   });
 
@@ -313,50 +319,39 @@ describe("planMaterialization", () => {
   });
 });
 
-describe("members: convergence and drops", () => {
-  const digest = "d".repeat(64);
-  const stored: Member[] = [
-    {
-      kind: ApiResourceKind.skill,
-      id: "skl_1",
-      slug: "thermo-review",
-      name: "thermo-review",
-      version: digest,
-    },
-    {
-      kind: ApiResourceKind.agent,
-      id: "agt_1",
-      slug: "thermos",
-      name: "thermos",
-      version: digest,
-    },
-  ];
-  const planned = [
-    {
-      kind: ApiResourceKind.skill,
-      slug: "thermo-review",
-      name: "thermo-review",
-    },
-    { kind: ApiResourceKind.agent, slug: "thermos", name: "thermos" },
-  ];
+describe("planned members: the system flag", () => {
+  const pkg = read(thermos);
 
-  it("converges only when every planned member is present and stamped with the digest", () => {
-    expect(membersConverge(stored, planned, digest)).toBe(true);
-    expect(membersConverge(stored, planned, "e".repeat(64))).toBe(false);
-    expect(membersConverge(stored.slice(1), planned, digest)).toBe(false);
-    expect(
-      membersConverge(
-        [...stored, { ...stored[0]!, slug: "extra", id: "skl_2" }],
-        planned,
-        digest,
-      ),
-    ).toBe(false);
+  it("reads system content from the overlay's labels, never from a skill's request", () => {
+    const authored = create(AgentSchema, {
+      metadata: { name: "thermos", labels: { [SYSTEM_LABEL]: "true" } },
+      spec: create(AgentSpecSchema, { instructions: "You read thermostats." }),
+    });
+    const plan = planMaterialization(
+      pkg,
+      inMemoryPluginFiles(thermos),
+      {
+        agent: { path: "ai.stigmer/agent.yaml", resource: authored },
+        workflows: [],
+        mcpServers: [],
+      },
+      IDENTITY,
+      "",
+    );
+    const byKind = new Map(plan.members.map((m) => [m.kind, m.system]));
+    expect(byKind.get(ApiResourceKind.agent)).toBe(true);
+    expect(byKind.get(ApiResourceKind.skill)).toBe(false);
+    expect(byKind.get(ApiResourceKind.mcp_server)).toBe(false);
   });
 
-  it("drops the members the plan no longer names", () => {
-    expect(droppedMembers(stored, planned.slice(1)).map((m) => m.slug)).toEqual(
-      ["thermo-review"],
+  it("plans no system content when no overlay declares it", () => {
+    const plan = planMaterialization(
+      pkg,
+      inMemoryPluginFiles(thermos),
+      { workflows: [], mcpServers: [] },
+      IDENTITY,
+      "",
     );
-    expect(droppedMembers(stored, planned)).toEqual([]);
+    expect(plan.members.every((m) => m.system === false)).toBe(true);
   });
 });

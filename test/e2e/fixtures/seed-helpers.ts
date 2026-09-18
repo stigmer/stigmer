@@ -9,10 +9,10 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 const DEFAULT_ORG = "default";
 
 /**
- * The OSS seedpack system org (OSS is operationally single-tenant on
- * `"stigmer"` — see `identity.SystemOrg` in stigmer-server). E2E specs
- * that exercise system-org behavior seed here and point the console's
- * active org at it.
+ * The system org the CLI's bootstrap creates (OSS is operationally
+ * single-tenant on `"stigmer"` — see `identity.SystemOrg` in stigmer-server
+ * and `local/system-org.ts` in the CLI). E2E specs that exercise system-org
+ * behavior seed here and point the console's active org at it.
  */
 const SYSTEM_ORG = "stigmer";
 
@@ -45,8 +45,9 @@ export async function ensureDefaultOrg(client: Stigmer): Promise<void> {
  * Ensures a platform default agent exists — the agent the session launcher's
  * send path resolves when the user picked none (`AgentQuery.getDefault`,
  * keyed on the `stigmer.ai/default-agent=true` label + public visibility).
- * The e2e stack boots a raw server with no seedpack bootstrap, so without
- * this seed every launcher send dead-ends on getDefault's NOT_FOUND
+ * The e2e stack boots a raw server that no CLI bootstrap has run against
+ * (nothing installs the default plugins), so without this seed every
+ * launcher send dead-ends on getDefault's NOT_FOUND
  * (stigmer/stigmer#743). Mirrors the integration harness's boot-time seed;
  * idempotent — a no-op when a default agent already exists, and tolerant of
  * a parallel worker winning the create race.
@@ -81,9 +82,9 @@ export async function ensureDefaultAgent(client: Stigmer): Promise<void> {
 
 /**
  * Ensures the `stigmer` system Organization exists. The e2e stack boots
- * a raw server with no seedpack bootstrap (which normally creates it),
- * so specs that need it create it explicitly — idempotent, like
- * {@link ensureDefaultOrg}.
+ * a raw server that no CLI bootstrap has run against (`stigmer up` and
+ * `stigmer bootstrap` normally create it), so specs that need it create
+ * it explicitly — idempotent, like {@link ensureDefaultOrg}.
  */
 export async function ensureSystemOrg(client: Stigmer): Promise<void> {
   const existing = await client.organization.findMyOrganizations();

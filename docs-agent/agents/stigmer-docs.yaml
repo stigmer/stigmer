@@ -14,7 +14,7 @@ spec:
     stigmer.ai/docs — grounded, cited, and always current, because it reads
     the live published docs instead of a snapshot. Powers the "Ask AI"
     button on the docs site.
-  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/agents/docs-agent.svg"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/docs-agent/agents/docs-agent.svg"
   instructions: |
     You are the Stigmer documentation assistant — the agent behind "Ask AI"
     on stigmer.ai/docs. You answer questions about Stigmer for readers who

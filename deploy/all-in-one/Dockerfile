@@ -9,12 +9,12 @@
 # self-host shape is docker-compose.yml (and, later, the Helm chart).
 #
 # What this image IS: a pre-warmed `stigmer up`. The CLI acquires the server,
-# the runner and the seedpack on a laptop's first `up` into
+# the runner and the plugin catalogue on a laptop's first `up` into
 # ~/.stigmer/runtimes/<version>/node_modules/@stigmer/…, and downloads the
 # Temporal CLI into ~/.stigmer/bin. Here those acquisitions are already done,
 # read-only, off the data volume: the same npm packages, installed into the
 # same layout under /opt/stigmer, and the composition `stigmer up` runs
-# (server, runner, Temporal, seedpack; see client-apps/cli/src/local/) runs
+# (server, runner, Temporal, the bootstrap; see client-apps/cli/src/local/) runs
 # here in the foreground. There is no second launcher.
 #
 # Build (scripts/stage-all-in-one.mjs stages the packages and the Temporal
@@ -65,7 +65,7 @@ ENV STIGMER_RUNTIMES_DIR=/opt/stigmer/runtimes \
     STIGMER_TEMPORAL_BIN=/opt/stigmer/bin/temporal
 
 # The acquisitions, pre-warmed: every workspace package (the CLI, its
-# @stigmer/* deps, the seedpack) plus @stigmer/server-slim and
+# @stigmer/* deps, the plugin catalogue) plus @stigmer/server-slim and
 # @stigmer/runner-slim with this arch's native bridge, packed from source by
 # stage-all-in-one.mjs. One `npm install` into the per-version prefix the
 # CLI's acquirers read; our @stigmer/* graph resolves among the tarballs,

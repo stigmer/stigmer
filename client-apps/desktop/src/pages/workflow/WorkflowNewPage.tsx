@@ -10,6 +10,7 @@ import {
   useActiveOrgSlug,
   useBreadcrumbOverride,
   useElkLayoutEngine,
+  useWorkflowArchitect,
   toast,
   type WorkflowTemplate,
 } from "@stigmer/react";
@@ -25,6 +26,9 @@ export default function WorkflowNewPage() {
   const navigate = useNavigate();
   const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
+  // "Generate with AI" runs on the Organization's Workflow Architect and is
+  // offered only when that agent exists (see workflow-architect in the SDK).
+  const architect = useWorkflowArchitect(org);
 
   const [phase, setPhase] = useState<PagePhase>("picking");
   const [initialYaml, setInitialYaml] = useState(STARTER_WORKFLOW_YAML);
@@ -139,7 +143,14 @@ export default function WorkflowNewPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-3",
+            architect.availability === "available"
+              ? "sm:grid-cols-3"
+              : "sm:grid-cols-2",
+          )}
+        >
           <OptionCard
             title="Start from template"
             description="Browse pre-built workflow patterns and customize them."
@@ -156,24 +167,28 @@ export default function WorkflowNewPage() {
               setPhase("editor");
             }}
           />
-          <OptionCard
-            title="Generate with AI"
-            description="Describe what you want and let AI create a workflow for you."
-            icon={<SparklesIcon />}
-            onClick={() => setPhase("generating")}
-          />
+          {architect.availability === "available" && (
+            <OptionCard
+              title="Generate with AI"
+              description="Describe what you want and let AI create a workflow for you."
+              icon={<SparklesIcon />}
+              onClick={() => setPhase("generating")}
+            />
+          )}
         </div>
       </div>
 
-      <WorkflowArchitectDialog
-        open={phase === "generating"}
-        onOpenChange={(open) => {
-          if (!open) setPhase("picking");
-        }}
-        org={org}
-        onSuccess={handleGenerateSuccess}
-        onError={(message) => toast.error(message)}
-      />
+      {architect.availability === "available" && (
+        <WorkflowArchitectDialog
+          open={phase === "generating"}
+          onOpenChange={(open) => {
+            if (!open) setPhase("picking");
+          }}
+          org={org}
+          onSuccess={handleGenerateSuccess}
+          onError={(message) => toast.error(message)}
+        />
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 // Local-only execution test for the Open Computer Use desktop-automation server.
-// Domain: agentic / agentexecution — proves the seedpack's open-computer-use
-// McpServer definition actually drives the GUI through the real runner stack
+// Domain: agentic / agentexecution — proves an open-computer-use McpServer
+// (a stdio server spawned through npx) actually drives the GUI through the real runner stack
 // (Temporal orchestrator + TS runner + stdio MCP subprocess + mock LLM).
 //
 // Why this is skip-gated rather than always-on:
@@ -58,7 +58,7 @@ describe.skipIf(!ENABLED)("Open Computer Use — desktop tool dispatch (local-on
   it("dispatches get_app_state(Finder) through the runner and reaches COMPLETED with the screenshot relayed", async () => {
     const { org } = await target.provisionTenancy();
 
-    // The shipped seedpack invocation: a stdio subprocess launched via npx. The
+    // The server's documented invocation: a stdio subprocess launched via npx. The
     // runner spawns it live and speaks JSON-RPC over stdio — no connect/discovery.
     const server = await clients.mcpServerCommand.create(
       makeMcpServer({

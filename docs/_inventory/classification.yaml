@@ -418,14 +418,6 @@ pages:
       or Cursor and verify the connection.
     medium: none
 
-  guides/editors/skills:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      How editors discover domain and creator Skills, where to get Stigmer's
-      creator Skills, and how to author your own.
-    medium: none
-
   # ── Workflows ──────────────────────────────────────────────────────────
   concepts/workflows:
     fate: keep

@@ -137,9 +137,10 @@ export async function assertArtifactLane(artifactBaseUrl) {
 /**
  * The default plugin a fresh backend is bootstrapped with, read back the way
  * `stigmer up` decides whether to push it: the `assistant` plugin in the
- * system org, materialised (READY) and public. The seedpack marker proves the
- * first bootstrap step ran; this proves the second, the one that gives a
- * fresh install its default agent. Resolves to the plugin's digest.
+ * system org, materialised (READY) and public. The plugin can only exist in
+ * an org the bootstrap created, so this one read proves the whole bootstrap
+ * ran, and it is the step that gives a fresh install its default agent.
+ * Resolves to the plugin's digest.
  */
 export async function waitForDefaultPlugin(baseUrl, timeoutMs, { org = "stigmer", slug = "assistant" } = {}) {
   return pollUntil(`default plugin '${slug}' READY`, timeoutMs, async () => {

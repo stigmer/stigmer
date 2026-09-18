@@ -8,14 +8,17 @@
  * pattern.
  *
  * The same module answers the two questions a push asks before any write:
- * which planned slugs are already held in the organization, and by whom
- * (this plugin: an upgrade; another plugin or an unmanaged resource: a
- * refusal naming the holder); and whether the plugin's members already
- * converge on the head's digest (every planned member present, each
- * carrying `stigmer.ai/plugin-version` equal to it), which is what lets a
- * re-push of the same archive return without a child write.
+ * what to do about each planned slug in the organization (`judgeSlug`:
+ * free; ours, an upgrade; system content the plugin replaces, adopted;
+ * another plugin's or a user's, refused naming the holder); and whether the
+ * plugin's members already converge on the head's digest (every planned
+ * member present, each carrying `stigmer.ai/plugin-version` equal to it),
+ * which is what lets a re-push of the same archive return without a child
+ * write.
  *
- * Proven by __tests__/members.test.ts and the conformance suite's
+ * Proven by __tests__/members.test.ts (the slug decision on plain values,
+ * convergence, the dropped set), __tests__/plugin.test.ts (adoption and
+ * refusal through a composed server) and the conformance suite's
  * listMembers, collision and reconcile arms.
  */
 import { fromBinary } from "@bufbuild/protobuf";
@@ -31,6 +34,7 @@ import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/api
 import {
   PLUGIN_LABEL,
   PLUGIN_VERSION_LABEL,
+  isSystemContent,
   pluginIdOf,
 } from "../../pipeline/apiresource-labels.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
@@ -56,6 +60,8 @@ export interface Member {
   readonly name: string;
   /** The `stigmer.ai/plugin-version` value it was last materialised from. */
   readonly version: string;
+  /** Whether the stored row carries `stigmer.ai/system` (isSystemContent). */
+  readonly system: boolean;
 }
 
 /** A member the plan intends to exist after this push. */
@@ -63,6 +69,8 @@ export interface PlannedMember {
   readonly kind: ApiResourceKind;
   readonly slug: string;
   readonly name: string;
+  /** Whether the member the plugin brings declares `stigmer.ai/system`. */
+  readonly system: boolean;
 }
 
 function memberOf(
@@ -75,6 +83,7 @@ function memberOf(
     slug: metadata.slug,
     name: metadata.name,
     version: metadata.labels[PLUGIN_VERSION_LABEL] ?? "",
+    system: isSystemContent(metadata),
   };
 }
 
@@ -143,6 +152,66 @@ export async function slugHolder(
     byPlugin: pluginIdOf(metadata),
     holder: memberOf(planned.kind, metadata),
   };
+}
+
+/**
+ * What a push does about one planned slug, decided before any write.
+ *
+ *   free              nothing holds it; the member is created
+ *   ours              this plugin's own member; the push is an upgrade
+ *   adopt             system content no plugin manages, and the plugin
+ *                     brings system content for the same slug: the child's
+ *                     apply (upsert-by-slug) rewrites the row in place, so
+ *                     its id, its default instance, every personal instance
+ *                     and every session bound to them survive
+ *   held-unmanaged    a resource no plugin manages and the rule above does
+ *                     not admit; refused naming it
+ *   held-by-plugin    another plugin's member; refused naming that plugin
+ *
+ * Adoption is deliberately narrow, "system replaces system": the held row's
+ * label narrows which rows are eligible (a user's row never carries it on
+ * an edition that enforces reserved labels), and the plugin's own claim to
+ * the label was charged to `can_write_reserved_labels` by the sanitiser
+ * moments before, so the grant is the caller's live permission and never
+ * the label alone (pipeline/apiresource-labels.ts). It never transfers a
+ * member between plugins: another plugin's slug is refused whatever labels
+ * either side carries. The one case it exists for is the platform re-homing
+ * the content it seeded before plugins existed (the default agent; the
+ * platform's own server) without orphaning a single conversation.
+ */
+export type SlugDecision =
+  | { readonly kind: "free" }
+  | { readonly kind: "ours"; readonly holder: Member }
+  | { readonly kind: "adopt"; readonly holder: Member }
+  | { readonly kind: "held-unmanaged"; readonly holder: Member }
+  | {
+      readonly kind: "held-by-plugin";
+      readonly holder: Member;
+      readonly pluginId: string;
+    };
+
+export function judgeSlug(
+  holder: SlugHolder,
+  planned: PlannedMember,
+  pluginId: string,
+): SlugDecision {
+  if (!holder.held) {
+    return { kind: "free" };
+  }
+  if (holder.byPlugin === pluginId) {
+    return { kind: "ours", holder: holder.holder };
+  }
+  if (holder.byPlugin !== undefined) {
+    return {
+      kind: "held-by-plugin",
+      holder: holder.holder,
+      pluginId: holder.byPlugin,
+    };
+  }
+  if (holder.holder.system && planned.system) {
+    return { kind: "adopt", holder: holder.holder };
+  }
+  return { kind: "held-unmanaged", holder: holder.holder };
 }
 
 /**

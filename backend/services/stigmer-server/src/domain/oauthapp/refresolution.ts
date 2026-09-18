@@ -18,7 +18,7 @@
  *  1. An exact (org, slug) match wins. Uniqueness is guaranteed by the
  *     create pipeline's duplicate check.
  *  2. Otherwise a slug-only match is honored when it is UNIQUE — what
- *     lets a self-hosted deployment satisfy seedpack refs pinned to
+ *     lets a deployment satisfy a public server's ref pinned to
  *     `org: stigmer` with an OAuthApp applied in the user's own org.
  *  3. Two or more slug matches with no exact hit resolve to nothing, with
  *     a WARN naming the candidate orgs: ambiguity is never silently

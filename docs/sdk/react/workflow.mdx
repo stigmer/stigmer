@@ -131,7 +131,8 @@ const handleDelete = async () => {
 ### useDiagnoseExecutionFlow
 
 Behavior hook that orchestrates agent-powered workflow execution
-diagnosis using the built-in Workflow Architect system agent.
+diagnosis using the Organization's Workflow Architect agent
+(`workflow-architect.ts`).
 
 Manages a multi-turn conversation within a single Session:
 - First turn creates a Session + AgentExecution with diagnosis context
@@ -312,7 +313,7 @@ const { approvals, totalCount, isLoading } = usePendingApprovals({
 ### useRefineWorkflowFlow
 
 Behavior hook that orchestrates agent-powered workflow refinement
-using the built-in Workflow Architect system agent.
+using the Organization's Workflow Architect agent (`workflow-architect.ts`).
 
 Manages a multi-turn conversation within a single Session:
 - First turn creates a Session + AgentExecution
@@ -722,10 +723,49 @@ function WorkflowDetail({ org, slug }: { org: string; slug: string }) {
 ```
 
 
+### useWorkflowArchitect
+
+Data hook that answers whether the Workflow Architect exists in an
+Organization, for the entry points that launch it.
+
+Pass `null` or `undefined` for `org` to skip the probe (stable `absent`),
+the shape a host without an Organization in scope already passes to the
+flows' consumers.
+
+**Signature**
+
+```tsx
+function useWorkflowArchitect(org: string | null | undefined): UseWorkflowArchitectReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null | undefined", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkflowArchitectReturn`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent | null", description: "The agent when `availability` is `available`, otherwise `null`." },
+    availability: { type: "WorkflowArchitectAvailability", description: "Whether the entry points that launch the architect should render.", typeDescriptionLink: "#workflowarchitectavailability" },
+    error: { type: "Error | null", description: "The probe's error, when `absent` is a failure rather than a NOT_FOUND." },
+  }}
+/>
+
+```tsx
+const architect = useWorkflowArchitect(org);
+{architect.availability === "available" && (
+  <button onClick={openGenerate}>Generate with AI</button>
+)}
+```
+
+
 ### useWorkflowArchitectFlow
 
 Behavior hook that orchestrates the agent-powered "generate a workflow"
-flow using the built-in Workflow Architect system agent.
+flow using the Organization's Workflow Architect agent.
 
 Composes existing infrastructure:
 - [`useCreateSession`](/docs/sdk/react/session#usecreatesession) to create a session with the agent
@@ -758,7 +798,7 @@ function useWorkflowArchitectFlow(options: UseWorkflowArchitectFlowOptions): Use
     execution: { type: "AgentExecution | null", description: "Latest execution snapshot from the agent stream.  Non-null during `streaming`, `complete`, and `extraction-failed` phases. Pass to `MessageThread` for rendering agent messages." },
     explanation: { type: "string | null", description: "Agent's explanation prose when phase is `complete`, otherwise `null`." },
     extractedYaml: { type: "string | null", description: "Extracted YAML when phase is `complete`, otherwise `null`." },
-    generate: { type: "() => Promise<void>", description: "Validate the prompt and launch the Workflow Architect agent.  Creates a session with the `workflow-architect` system agent, starts an execution with the user's prompt, and begins streaming. The stream phase transitions automatically when the agent finishes." },
+    generate: { type: "() => Promise<void>", description: "Validate the prompt and launch the Workflow Architect agent.  Creates a session with the Organization's Workflow Architect agent (`workflow-architect.ts`), starts an execution with the user's prompt, and begins streaming. The stream phase transitions automatically when the agent finishes." },
     isStreaming: { type: "boolean", description: "`true` while the agent execution is actively streaming." },
     phase: { type: "ArchitectPhase", description: "Current lifecycle phase.", typeDescriptionLink: "#architectphase" },
     prompt: { type: "string", description: "Current prompt value." },
@@ -2054,7 +2094,7 @@ in code mode, or as a sidebar in visual mode). Layout:
 3. **Result strip** — diff preview + accept/discard (when YAML extracted)
 4. **Composer** — textarea + send button (pinned to bottom)
 
-Powered by the Workflow Architect system agent via
+Powered by the Organization's Workflow Architect agent via
 [`useRefineWorkflowFlow`](#userefineworkflowflow). Styled via `--stgm-*` design tokens.
 Zero console dependencies (DD-004).
 
@@ -3704,6 +3744,11 @@ Options for [`useWorkflowList`](#useworkflowlist).
 />
 
 
+### WORKFLOW_ARCHITECT_SLUG
+
+The slug the Workflow Architect agent is installed under.
+
+
 ### WORKFLOW_CATEGORY_LABELS
 
 Human-readable labels for workflow template categories.
@@ -3793,6 +3838,28 @@ Submit handler for a workflow-level tool-approval decision, matching
 `useWorkflowExecutionActions().submitApproval`. The tool-call id is bound per
 card so the shared [`ApprovalCard`](/docs/sdk/react/execution#approvalcard) only needs the card-level
 `(action, comment)`.
+
+
+### WorkflowArchitectAvailability
+
+Whether the architect can be launched in an Organization.
+
+- `loading` — the probe is in flight; render nothing yet rather than an
+  action that may vanish.
+- `available` — the agent exists; the entry points render.
+- `absent` — no agent under the slug, or the probe failed (a backend a
+  page cannot reach is reported by the page itself; an AI button is the
+  wrong place to surface it). `error` says which.
+
+
+### workflowArchitectRef
+
+The reference the flows hand to the session create: the architect in
+the given Organization.
+
+```tsx
+function workflowArchitectRef(org: string): { org: string; slug: string }
+```
 
 
 ### WorkflowArtifactEntry

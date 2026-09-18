@@ -79,6 +79,22 @@ vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
   ExecutionComparisonPicker: () => null,
 }));
 
+// Diagnose renders only when the Organization's Workflow Architect exists
+// (workflow-architect.ts). The probe is a data hook over the client (its
+// own suite covers it); here its answer is the seam: present by default so
+// the Diagnose tests below exercise the action, absent in the one test
+// that proves the action is withheld.
+const architect = vi.hoisted(() => ({
+  availability: "available" as "available" | "absent" | "loading",
+}));
+vi.mock("../workflow-architect", () => ({
+  useWorkflowArchitect: () => ({
+    availability: architect.availability,
+    agent: null,
+    error: null,
+  }),
+}));
+
 // The inline child transcript fetches and streams (its own suite covers
 // that); here it only proves the thread mounts it in the AGENT_CALL card
 // with the right child identity (T07).
@@ -217,6 +233,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     // The center view persists to localStorage — isolate tests from each
     // other (and from ResizableSplit's persisted widths).
     localStorage.clear();
+    architect.availability = "available";
     arrange();
   });
   afterEach(cleanup);
@@ -279,6 +296,24 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     expect(screen.getAllByRole("tab", { name: /AI Diagnosis/ })).toHaveLength(
       1,
     );
+  });
+
+  it("Diagnose is withheld when the Organization has no Workflow Architect — the action would dead-end on the agent", () => {
+    architect.availability = "absent";
+    arrange(ExecutionPhase.EXECUTION_FAILED);
+    renderViewer({ org: "acme" });
+
+    expect(screen.queryByRole("button", { name: "Diagnose" })).toBeNull();
+    // The failed execution's other actions are untouched.
+    expect(screen.getByRole("button", { name: "Recover" })).toBeTruthy();
+  });
+
+  it("Diagnose is withheld while the Workflow Architect probe is in flight — never an action that vanishes", () => {
+    architect.availability = "loading";
+    arrange(ExecutionPhase.EXECUTION_FAILED);
+    renderViewer({ org: "acme" });
+
+    expect(screen.queryByRole("button", { name: "Diagnose" })).toBeNull();
   });
 
   it("the Usage facet carries the absorbed budget gauge (the retired cost panel's bars)", () => {

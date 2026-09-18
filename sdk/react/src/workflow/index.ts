@@ -426,6 +426,16 @@ export {
   type ExtractedWorkflowYaml,
 } from "./extract-workflow-yaml.js";
 
+// Workflow Architect — the agent the AI-assisted actions run against, and
+// the probe the entry points render on
+export {
+  WORKFLOW_ARCHITECT_SLUG,
+  workflowArchitectRef,
+  useWorkflowArchitect,
+  type WorkflowArchitectAvailability,
+  type UseWorkflowArchitectReturn,
+} from "./workflow-architect.js";
+
 // Workflow Architect — behavior hook (replaces T16 generateWorkflowFromPrompt)
 export {
   useWorkflowArchitectFlow,

@@ -1203,7 +1203,7 @@
           "kind": "message",
           "messageType": "DiscoveredCapabilities"
         },
-        "description": "Tools and resource templates discovered from the MCP server.\n Optional — absent until the connect RPC has been called (or seeded from seedpack).",
+        "description": "Tools and resource templates discovered from the MCP server.\n Optional — absent until the connect RPC has been called.",
         "required": false
       },
       {

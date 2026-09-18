@@ -37,8 +37,8 @@ docker run -d --name stigmer \
 
 Open the console at [http://localhost:7234](http://localhost:7234). The first
 start takes a moment: the container starts Temporal, the server, and the runner,
-then loads the system Agents, Skills, and MCP Servers. Watch it with
-`docker logs -f stigmer`.
+then creates the `stigmer` Organization and installs the default Plugins into
+it. Watch it with `docker logs -f stigmer`.
 
 Both amd64 and arm64 are supported — every release is smoke-tested on both
 architectures before the image publishes.
@@ -88,8 +88,7 @@ data layout under `/data/.stigmer` is byte for byte a laptop's `~/.stigmer`.
 
 MCP Servers that run as a local process (stdio) start inside the container. Ones
 that need `node` or `npx` work. Ones that need `uvx`, Python, or Go do not — the
-image ships Node.js and git only. Remote MCP Servers, including every one in the
-system catalog, are unaffected.
+image ships Node.js and git only. Remote MCP Servers are unaffected.
 
 Temporal's own web UI is running inside the container but is not published; it
 is not part of the evaluation surface.

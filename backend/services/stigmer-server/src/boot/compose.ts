@@ -1669,8 +1669,8 @@ export async function composeServer(
       await artifactStorage.health();
       // Rebuild the search index before the port binds (Go
       // server.go:617): the index is separate from the resources table,
-      // and rebuilding here makes every resource — including seedpack
-      // rows bootstrapped into an earlier database — discoverable the
+      // and rebuilding here makes every resource — including rows an
+      // earlier release wrote into this database — discoverable the
       // moment the server accepts connections. Warn-only: a partial
       // rebuild degrades search, never boot.
       try {

@@ -1034,15 +1034,18 @@ Ephemeral runtime secrets and variables scoped to a specific execution.
 
 #### Seedpack
 
-A pre-built starter package containing Agent definitions, Skills, and MCP Server
-configurations.
+Retired term. The starter bundle of Agents, Skills, MCP Servers and Workflows
+that earlier releases installed on a fresh stack. A fresh install now gets the
+`stigmer` Organization and the official marketplace's default Plugins
+(`stigmer up` on a laptop, `stigmer bootstrap` against a raw server), and
+everything else is a Plugin you install by name; see Plugin and Marketplace.
 
-- **Capitalize**: Yes.
-- **Context rule**: Mentioned in STYLE.md's capitalization list. Use when the
-  feature is documented. Currently low-priority for customer-facing copy.
-- **Retiring**: the Plugin (Tier 1) is the unit of install that replaces it; the
-  seedpack's catalog is being migrated to plugins, and once `stigmer up`
-  installs a default set of plugins this term leaves the vocabulary.
+- **Capitalize**: Yes (when quoting historical docs or the upgrade report).
+- **Context rule**: Do not use in new writing. It appears in exactly two places
+  a reader still meets: the report `stigmer up` prints once when it retires the
+  content an older release installed, and the upgrade note in the marketplace
+  how-to. A doc describing "the built-in Agents and servers" or "the curated
+  library" is describing the retired bundle; point it at Plugin instead.
 
 ---
 

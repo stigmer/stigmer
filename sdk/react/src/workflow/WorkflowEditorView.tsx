@@ -9,6 +9,7 @@ import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor.js";
 import type { LayoutEngine } from "./layout/index.js";
 import { WorkflowRefinePanel } from "./WorkflowRefinePanel.js";
 import { WorkflowExplainDialog } from "./WorkflowExplainDialog.js";
+import { useWorkflowArchitect } from "./workflow-architect.js";
 import { yamlToGraph } from "./workflow-graph-conversions.js";
 
 /** Props for {@link WorkflowEditorView}. */
@@ -77,6 +78,11 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   const [showRefinePanel, setShowRefinePanel] = useState(false);
   const [pendingFixInstruction, setPendingFixInstruction] = useState<string | undefined>(undefined);
   const [showExplainDialog, setShowExplainDialog] = useState(false);
+  // Refine, Fix with AI and Explain all open a Session on the Organization's
+  // Workflow Architect; without one they would dead-end, so they render
+  // only when the agent exists (workflow-architect.ts).
+  const architect = useWorkflowArchitect(org);
+  const architectAvailable = architect.availability === "available";
 
   // Track canvas dirty state separately for mode switch prompts
   const [canvasDirty, setCanvasDirty] = useState(false);
@@ -227,27 +233,31 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
           {/* Mode Toggle */}
           <ModeToggle mode={mode} onSwitchToCode={handleSwitchToCode} onSwitchToVisual={handleSwitchToVisual} />
           <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
-          <button
-            type="button"
-            onClick={toggleRefinePanel}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-              showRefinePanel
-                ? "stg:bg-primary/10 stg:text-primary"
-                : "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
-            )}
-            aria-pressed={showRefinePanel}
-            aria-label="Refine with AI"
-          >
-            <RefineSparklesIcon />
-            Refine
-          </button>
-          <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+          {architectAvailable && (
+            <>
+              <button
+                type="button"
+                onClick={toggleRefinePanel}
+                className={cn(
+                  "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+                  showRefinePanel
+                    ? "stg:bg-primary/10 stg:text-primary"
+                    : "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
+                )}
+                aria-pressed={showRefinePanel}
+                aria-label="Refine with AI"
+              >
+                <RefineSparklesIcon />
+                Refine
+              </button>
+              <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+            </>
+          )}
           <ValidationSummary
             errorCount={editor.errorCount}
             warningCount={editor.warningCount}
           />
-          {editor.errorCount > 0 && (
+          {architectAvailable && editor.errorCount > 0 && (
             <button
               type="button"
               onClick={handleFixWithAI}
@@ -310,18 +320,20 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               {editor.isSaving ? "Saving\u2026" : "Save"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowExplainDialog(true)}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-              "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
-            )}
-            aria-label="Explain this workflow"
-          >
-            <ExplainIcon />
-            Explain
-          </button>
+          {architectAvailable && (
+            <button
+              type="button"
+              onClick={() => setShowExplainDialog(true)}
+              className={cn(
+                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
+              )}
+              aria-label="Explain this workflow"
+            >
+              <ExplainIcon />
+              Explain
+            </button>
+          )}
           <button
             type="button"
             onClick={toggleFullPage}
@@ -351,12 +363,14 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
       )}
 
       {/* Explain dialog */}
-      <WorkflowExplainDialog
-        open={showExplainDialog}
-        onOpenChange={setShowExplainDialog}
-        org={org}
-        currentYaml={editor.yaml}
-      />
+      {architectAvailable && (
+        <WorkflowExplainDialog
+          open={showExplainDialog}
+          onOpenChange={setShowExplainDialog}
+          org={org}
+          currentYaml={editor.yaml}
+        />
+      )}
 
       {/* Main content area */}
       <div className="stg:flex stg:min-h-0 stg:flex-1">

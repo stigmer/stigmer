@@ -48,7 +48,7 @@ export function binDir(home: string = homedir()): string {
 
 /**
  * Env var that relocates the acquired-runtimes root. The acquirers (server,
- * runner, seedpack) keep their `<root>/<version>/node_modules/@stigmer/<pkg>`
+ * runner, the official plugin catalogue) keep their `<root>/<version>/node_modules/@stigmer/<pkg>`
  * layout under it, so a root that already holds the packages is used as-is
  * and nothing is downloaded. The all-in-one image bakes exactly that layout
  * read-only off its data volume — a `stigmer up` whose first-run acquisitions

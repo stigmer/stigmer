@@ -19,8 +19,10 @@
  * digest, READY, every member present and stamped with it) the controller
  * returns the head and the install chain never runs, so a re-push writes
  * nothing. Everything that can refuse — the archive, the package, the
- * overlay, a reserved label, a held slug, a missing permission, the level
- * — refuses in the plan chain BEFORE any write; the install chain's own
+ * overlay, a reserved label, a held slug (unless it is system content the
+ * plugin replaces, which is adopted in place: members.ts, judgeSlug), a
+ * missing permission, the level — refuses in the plan chain BEFORE any
+ * write; the install chain's own
  * failures are a child's, wrapped with the plugin's name, and leave a head
  * that says FAILED so the next push of the same archive converges.
  *
@@ -52,6 +54,7 @@ import {
   PluginStatusSchema,
   PluginWarningSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import {
@@ -95,7 +98,7 @@ import { requireOperatorMaySetPublic } from "../../pipeline/steps/visibility-gat
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { openPluginArchive } from "./archive.js";
-import { VERSION_TAG_PATTERN } from "./constants.js";
+import { SERVER_WARNING_KINDS, VERSION_TAG_PATTERN } from "./constants.js";
 import type { OpenedPluginArchive } from "./archive.js";
 import type { PluginIdentity } from "./materialize/identity.js";
 import { McpServerOverlayError } from "./materialize/mcp-servers.js";
@@ -105,10 +108,11 @@ import type { PluginMaterializerProvider } from "./materialize/ports.js";
 import {
   droppedMembers,
   findMembers,
+  judgeSlug,
   membersConverge,
   slugHolder,
 } from "./members.js";
-import type { Member } from "./members.js";
+import type { Member, PlannedMember } from "./members.js";
 import { parseOverlays } from "./overlay/documents.js";
 import type { ParsedOverlays } from "./overlay/documents.js";
 import { OverlayParseError } from "./overlay/parse.js";
@@ -339,9 +343,11 @@ export function requestedVisibility(
 
 /**
  * PlanMaterialization — everything the push will write, checked whole:
- * every child slug against the organization (free, ours, or refused
- * naming the holder), the caller's permission for every member kind, and
- * the plugin's current members for the convergence and drop decisions.
+ * every child slug against the organization (free, ours, adopted system
+ * content, or refused naming the holder), the caller's permission for
+ * every member kind, and the plugin's current members for the convergence
+ * and drop decisions. An adopted slug is recorded as a warning on the plan,
+ * so the install receipt says which rows the plugin took over.
  */
 export function newPlanMaterializationStep(
   store: Store,
@@ -376,6 +382,7 @@ export function newPlanMaterializationStep(
         throw error;
       }
 
+      const adopted: PluginWarning[] = [];
       for (const member of plan.members) {
         let holder;
         try {
@@ -383,20 +390,41 @@ export function newPlanMaterializationStep(
         } catch (error) {
           throw internalError(error, "failed to check a member slug");
         }
-        if (!holder.held || holder.byPlugin === identity.id) {
-          continue;
-        }
+        const decision = judgeSlug(holder, member, identity.id);
         const noun = memberNoun(member.kind);
-        if (holder.byPlugin === undefined) {
-          throw alreadyExistsError(
-            noun,
-            `'${member.slug}' exists in org '${identity.org}' and is not managed by a plugin; rename or delete it first`,
-          );
+        switch (decision.kind) {
+          case "free":
+          case "ours":
+            break;
+          case "adopt":
+            adopted.push(
+              create(PluginWarningSchema, {
+                kind: SERVER_WARNING_KINDS.memberAdopted,
+                path: declaringDocumentOf(overlays, member),
+                message:
+                  `${noun} '${member.slug}' (${decision.holder.id}) was seeded by the platform before this plugin and is now managed by it; ` +
+                  "its definition is the plugin's, and its instances and conversations continue",
+              }),
+            );
+            break;
+          case "held-unmanaged":
+            throw alreadyExistsError(
+              noun,
+              `'${member.slug}' exists in org '${identity.org}' and is not managed by a plugin; rename or delete it first`,
+            );
+          case "held-by-plugin":
+            throw alreadyExistsError(
+              noun,
+              `'${member.slug}' is held by plugin '${await pluginSlugOf(store, decision.pluginId)}'`,
+            );
+          default: {
+            const exhaustive: never = decision;
+            throw internalError(
+              new Error(`unknown slug decision ${JSON.stringify(exhaustive)}`),
+              "failed to check a member slug",
+            );
+          }
         }
-        throw alreadyExistsError(
-          noun,
-          `'${member.slug}' is held by plugin '${await pluginSlugOf(store, holder.byPlugin)}'`,
-        );
       }
 
       const missing: string[] = [];
@@ -452,7 +480,12 @@ export function newPlanMaterializationStep(
       } catch (error) {
         throw internalError(error, "failed to list plugin members");
       }
-      ctx.set(PLUGIN_PLAN_KEY, plan);
+      // An adoption is something this push noticed and did not refuse, so it
+      // rides the plan's warnings onto the install receipt like the rest.
+      ctx.set(PLUGIN_PLAN_KEY, {
+        ...plan,
+        warnings: [...plan.warnings, ...adopted],
+      } satisfies MaterializationPlan);
       ctx.set(EXISTING_MEMBERS_KEY, members);
     },
   };
@@ -984,6 +1017,33 @@ const MEMBER_NOUNS: ReadonlyMap<ApiResourceKind, string> = new Map([
 
 function memberNoun(kind: ApiResourceKind): string {
   return MEMBER_NOUNS.get(kind) ?? ApiResourceKind[kind] ?? String(kind);
+}
+
+/**
+ * The overlay document that declared an adopted member, for the warning's
+ * path: only an overlay can carry the system label, so a skill (whose
+ * request carries the plugin's labels alone) never reaches this.
+ */
+function declaringDocumentOf(
+  overlays: ParsedOverlays,
+  member: PlannedMember,
+): string {
+  switch (member.kind) {
+    case ApiResourceKind.agent:
+      return overlays.agent?.path ?? "";
+    case ApiResourceKind.mcp_server:
+      return (
+        overlays.mcpServers.find((document) => document.server === member.name)
+          ?.path ?? ""
+      );
+    case ApiResourceKind.workflow:
+      return (
+        overlays.workflows.find((document) => document.name === member.name)
+          ?.path ?? ""
+      );
+    default:
+      return "";
+  }
 }
 
 /** The holding plugin's slug for a refusal; a dangling id names itself. */
