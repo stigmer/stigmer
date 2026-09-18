@@ -1,16 +1,18 @@
 ---
-title: Connect from the marketplace
+title: Connect an MCP Server
 description:
-  Browse the tool library, select an MCP server, connect it, and see its
-  discovered tools and approval policies — all from the web console.
+  Open an MCP Server in your Library, connect it, and see its discovered tools
+  and approval policies — whether a plugin installed the server or you defined
+  it yourself.
 ---
 
 import { DemoMarketplaceConnectTour } from "@/components/docs";
 
-The tool library is a curated catalog of MCP servers that your Agents can use.
-Each entry is a vetted integration — GitHub, PostgreSQL, Slack, Stripe, and
-dozens more — ready to connect in a single action. This guide walks through the
-marketplace-to-connected-tools process.
+An MCP Server definition tells Stigmer where a server is and how to reach it.
+Connecting it is how Stigmer learns what the server can do: one action discovers
+every tool the server exposes and decides which of them may run without a
+human's approval. This guide walks through connecting a server from the web
+console and reading what comes back.
 
 <Callout type="info">
   New to tools in Stigmer? Start with the [Tools concept
@@ -20,35 +22,27 @@ marketplace-to-connected-tools process.
 
 <DemoMarketplaceConnectTour />
 
-## Browse the tool library
+## Find the server in your Library
 
-The Library section of the web console shows your MCP servers in a card grid.
-Each card displays the server's name, a short description, and the Organization
-it belongs to. Public servers from the curated catalog appear alongside any
-custom servers your team has created.
+Open **Library** in the sidebar and choose **MCP Servers**. The page lists every
+MCP Server your Organization holds, in a card grid: the servers a plugin
+installed and the servers you defined yourself. Each card shows the server's
+name, a short description, and the Organization it belongs to; a server that
+came from a plugin says so at the top of its page.
 
-The catalog organizes servers into categories:
+If the server you need is not there yet, get it one of two ways. Install a
+plugin that carries it, from the Marketplace or from a folder on your computer
+([Install from the console](/docs/guides/plugins/install-from-the-console); in
+the CLI, [Install a plugin](/docs/guides/plugins/install-a-plugin) or
+[Install from a marketplace](/docs/guides/plugins/install-from-a-marketplace)).
+Or write the definition by hand, as the
+[Connect your tools](/docs/getting-started/connect-tools) tutorial does.
 
-| Category                 | Examples                  |
-| ------------------------ | ------------------------- |
-| **Developer tools**      | GitHub, GitLab, Buildkite |
-| **Databases**            | Neon, Supabase            |
-| **Communication**        | Slack, Linear             |
-| **Search**               | Tavily, Context7          |
-| **Cloud infrastructure** | Cloudflare, Netlify       |
-| **Monitoring**           | Sentry, Datadog           |
-| **Payments**             | Stripe, PayPal, Square    |
-| **Design**               | Figma, Canva              |
-| **Productivity**         | Notion, Google Maps       |
+A remote (HTTP) server works on any session, local or cloud-hosted. A stdio
+server, a local subprocess launched with `npx`, `uvx` or a binary, runs only on
+a local runner; you can still define one for local-runner sessions.
 
-Each server definition includes tags for search and filtering and a link to its
-source repository, so you can inspect the implementation before connecting.
-Every catalog server is a remote (HTTP) server — it works on any session, local
-or cloud-hosted. Stdio servers (local subprocesses) are not curated in the
-catalog because they run only on local runners; you can still register your own
-for local-runner sessions.
-
-## Connect an MCP server
+## Connect an MCP Server
 
 When you open a server's detail view and click **Connect**, Stigmer performs
 three steps in a single action:
@@ -132,7 +126,7 @@ cover the range:
 
 ## Wire tools to your Agent
 
-Once an MCP server is connected, reference it from your Agent definition using
+Once an MCP Server is connected, reference it from your Agent definition using
 `mcp_server_usages`:
 
 ```yaml validate-as="Agent"

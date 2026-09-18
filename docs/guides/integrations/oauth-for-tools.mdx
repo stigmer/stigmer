@@ -13,10 +13,10 @@ entire OAuth flow: sign-in popup, token exchange, encrypted storage, and
 automatic refresh. You never handle tokens directly.
 
 <Callout type="info">
-  This guide assumes you've read the [Connect from the
-  marketplace](/docs/guides/integrations/connect-from-marketplace) guide. The
-  connect process (discovery, classification, approval policies) is the same for
-  OAuth and non-OAuth servers — the difference is how credentials are obtained.
+  This guide assumes you've read the [Connect an MCP
+  Server](/docs/guides/integrations/connect-an-mcp-server) guide. The connect
+  process (discovery, classification, approval policies) is the same for OAuth
+  and non-OAuth servers — the difference is how credentials are obtained.
 </Callout>
 
 <DemoOAuthConnectFlow />
@@ -61,21 +61,21 @@ The `auth` block tells Stigmer two things:
 - **What scopes to request** — `scope_hints` appear in the authorization prompt
   so you know what access you're granting before you authorize.
 
-The `oauth_app_ref` names the OAuth app registration that backs the sign-in.
-Marketplace servers ship refs pinned to `org: stigmer` — on the hosted platform
-that is the platform's own registration, which is why sign-in works with no
-setup.
+The `oauth_app_ref` names the OAuth app registration that backs the sign-in. A
+ref pinned to `org: stigmer`, as above, names the platform's own registration on
+the hosted platform, which is why sign-in works there with no setup.
 
 <Callout type="info">
   **Self-hosted deployments.** The platform's OAuth app registration does not
-  ship with a self-hosted install, so a marketplace server's sign-in button
-  works only after you register your own OAuth app with the vendor and apply it
-  as an `OAuthApp` resource carrying the same slug the ref names (for the GitHub
-  server above, `github-oauth`). Your app is found regardless of which
-  organization it lives in: resolution prefers an exact org match and otherwise
-  accepts the app as long as its slug is unique across your deployment. See
-  [Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth) for
-  the vendor-side registration steps.
+  ship with a self-hosted install, so a server whose ref points at it gets a
+  working sign-in button only after you register your own OAuth app with the
+  vendor and apply it as an `OAuthApp` resource carrying the same slug the ref
+  names (for the GitHub server above, `github-oauth`). Your app is found
+  regardless of which organization it lives in: resolution prefers an exact org
+  match and otherwise accepts the app as long as its slug is unique across your
+  deployment. See [Bring Your Own OAuth
+  App](/docs/guides/integrations/bring-your-own-oauth) for the vendor-side
+  registration steps.
 </Callout>
 
 The Environment variable section in the detail view labels the OAuth-managed
@@ -84,15 +84,15 @@ manually.
 
 ## Connect an OAuth-protected tool
 
-1. Open the MCP server detail view from the tool library.
+1. Open the server's detail view from the Library's MCP Servers page.
 2. Click **Sign in to connect**. A popup opens to the provider's authorization
    page — GitHub, Slack, or whichever service the server integrates with.
 3. Review the requested permissions and authorize the application.
 4. The popup closes. Stigmer exchanges the authorization code for an access
    token, stores it in a managed Environment, then connects to the server.
 5. Tools are discovered and approval policies are classified — the same process
-   described in the
-   [marketplace guide](/docs/guides/integrations/connect-from-marketplace#connect-an-mcp-server).
+   described in
+   [Connect an MCP Server](/docs/guides/integrations/connect-an-mcp-server#connect-an-mcp-server).
 
 <Callout type="info">
   You never see or handle the access token. Stigmer stores it in an encrypted
