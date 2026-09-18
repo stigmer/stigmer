@@ -738,9 +738,10 @@ pages:
     diataxis: how-to
     teaches:
       Run the whole stack from one Docker image for evaluation — the run
-      command and what each flag means, stopping and upgrading, looking inside
-      with the CLI, what runs where — with the evaluation-only label and the
-      no-auth trust model stated up front.
+      command and what each flag means, a first message to the default Agent
+      from the console, stopping and upgrading, looking inside with the CLI,
+      what runs where — with the evaluation-only label, the no-auth trust model
+      and the laptop sibling (`stigmer up`) named up front.
     medium: none
 
   guides/self-hosting/docker-compose:
