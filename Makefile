@@ -668,9 +668,14 @@ run-web: ## Start web console dev server (Vite/Next)
 	npm run dev -w client-apps/web
 
 # build-libs, not the libs' tests: the export needs the built libs (the
-# embed loader is copied from sdk/embed/dist), nothing more.
+# embed loader is copied from sdk/embed/dist), nothing more. The export
+# itself runs as the `web#build` Turbo task (turbo.json says why out/ and
+# .next/ are its outputs), through the same door as build:libs, so a second
+# build over unchanged inputs is a replay, locally and in the PR lanes
+# (.github/workflows/ci.turbo-cache.yaml). build-libs stays a prerequisite:
+# the smoke-* targets stage every lib's dist, not only the console's.
 build-web: build-libs ## Build web console for production
-	npm run build -w client-apps/web
+	npm run build:web
 
 clean-web: ## Remove web build artifacts
 	rm -rf client-apps/web/out client-apps/web/.next
