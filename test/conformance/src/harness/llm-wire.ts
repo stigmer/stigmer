@@ -14,6 +14,15 @@
 // mock_llm_proxy.go (git history); the OpenAI one mirrors what the
 // Java proxy's OpenAiUsageExtractor and OpenAiJsonUsageExtractor parse (the
 // usage-bearing final chunk that `stream_options.include_usage` requests).
+//
+// The REQUEST side of the Anthropic wire lives here too (readAnthropicRequest
+// and its types): what the runner's @langchain/anthropic client puts in a
+// `messages` body — the model, the system prompt as a string or as text blocks
+// carrying cache breakpoints, the tool declarations with their JSON schemas,
+// the thinking configuration. The request-shape facet asserts on it through
+// the mock's captured bodies; keeping the reader beside the response builders
+// makes this file the one place a change to either direction of the wire is
+// made.
 import type { ServerResponse } from "node:http";
 
 // An Anthropic message body, in the shape the provider's `messages` endpoint
@@ -262,4 +271,121 @@ export function writeOpenAiSse(res: ServerResponse, body: OpenAiChatCompletionBo
 export function writeJson(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
   res.writeHead(status, { "content-type": "application/json", ...headers });
   res.end(JSON.stringify(body));
+}
+
+// ---------------------------------------------------------------------------
+// The request side of the Anthropic wire
+// ---------------------------------------------------------------------------
+
+// One block of a system prompt sent as an array. The runner's deepagents
+// engine assembles the system prompt from several blocks (the agent's own
+// prompt, the framework's base prompt, one block per prompt-bearing
+// middleware) and marks the last with a prompt-cache breakpoint; a client
+// that sends one plain prompt sends `system` as a string instead. Anthropic's
+// `cache_control` is carried as received — its shape is the provider's.
+export interface AnthropicSystemBlock {
+  type: "text";
+  text: string;
+  cache_control?: Record<string, unknown>;
+}
+
+// One tool as the model sees it: the name it calls, the description that
+// steers when it calls, and the JSON schema of its arguments. Carried as
+// received; the facet that pins the surface renders the schema verbatim.
+export interface AnthropicToolDeclaration {
+  name: string;
+  description?: string;
+  input_schema: unknown;
+}
+
+// The fields of a `messages` request the suites assert on. `messages` itself
+// is deliberately not modelled: the conversation is the transcript facet's
+// business, read from execution status, not from the wire.
+export interface AnthropicRequestBody {
+  model: string;
+  system?: string | AnthropicSystemBlock[];
+  tools?: AnthropicToolDeclaration[];
+  // Anthropic's extended-thinking configuration when the client enables it
+  // (`{ type: "enabled", budget_tokens }` or the adaptive shape); absent on a
+  // request that asked for none. Carried as received so an assertion on its
+  // presence needs no knowledge of which shape a model takes.
+  thinking?: unknown;
+  temperature?: number;
+  stream?: boolean;
+}
+
+// Reads a captured request body as an Anthropic `messages` request, refusing
+// by name when it is not one (a fenced call's body, an embeddings body, a
+// response written by mistake): a suite asserting on the request's shape
+// must fail on the shape it did not expect, never on a downstream undefined.
+export function readAnthropicRequest(body: unknown): AnthropicRequestBody {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new Error(`not an Anthropic messages body: expected an object, found ${describeValue(body)}`);
+  }
+  const record = body as Record<string, unknown>;
+  if (typeof record.model !== "string" || !Array.isArray(record.messages)) {
+    throw new Error(
+      `not an Anthropic messages body: expected string \`model\` and array \`messages\`, ` +
+        `found keys [${Object.keys(record).join(", ")}]`,
+    );
+  }
+  return {
+    model: record.model,
+    ...(record.system !== undefined ? { system: readSystem(record.system) } : {}),
+    ...(record.tools !== undefined ? { tools: readTools(record.tools) } : {}),
+    ...(record.thinking !== undefined ? { thinking: record.thinking } : {}),
+    ...(typeof record.temperature === "number" ? { temperature: record.temperature } : {}),
+    ...(typeof record.stream === "boolean" ? { stream: record.stream } : {}),
+  };
+}
+
+function readSystem(system: unknown): string | AnthropicSystemBlock[] {
+  if (typeof system === "string") return system;
+  if (!Array.isArray(system)) {
+    throw new Error(`Anthropic \`system\` must be a string or an array of text blocks, found ${describeValue(system)}`);
+  }
+  return system.map((block, index) => {
+    const candidate = block as { type?: unknown; text?: unknown; cache_control?: unknown } | null;
+    if (typeof candidate !== "object" || candidate === null || candidate.type !== "text" || typeof candidate.text !== "string") {
+      throw new Error(`Anthropic \`system[${index}]\` must be a text block, found ${describeValue(block)}`);
+    }
+    const shaped: AnthropicSystemBlock = { type: "text", text: candidate.text };
+    if (candidate.cache_control !== undefined) {
+      if (typeof candidate.cache_control !== "object" || candidate.cache_control === null) {
+        throw new Error(`Anthropic \`system[${index}].cache_control\` must be an object, found ${describeValue(candidate.cache_control)}`);
+      }
+      shaped.cache_control = candidate.cache_control as Record<string, unknown>;
+    }
+    return shaped;
+  });
+}
+
+function readTools(tools: unknown): AnthropicToolDeclaration[] {
+  if (!Array.isArray(tools)) {
+    throw new Error(`Anthropic \`tools\` must be an array, found ${describeValue(tools)}`);
+  }
+  return tools.map((tool, index) => {
+    const candidate = tool as { name?: unknown; description?: unknown; input_schema?: unknown } | null;
+    if (typeof candidate !== "object" || candidate === null || typeof candidate.name !== "string") {
+      throw new Error(`Anthropic \`tools[${index}]\` must carry a string \`name\`, found ${describeValue(tool)}`);
+    }
+    if (candidate.description !== undefined && typeof candidate.description !== "string") {
+      throw new Error(`Anthropic \`tools[${index}].description\` must be a string when present, found ${describeValue(candidate.description)}`);
+    }
+    return {
+      name: candidate.name,
+      ...(candidate.description !== undefined ? { description: candidate.description } : {}),
+      input_schema: candidate.input_schema,
+    };
+  });
+}
+
+// A short, safe description of a value for a refusal message: the type, and
+// for a small scalar its text, never a whole body.
+function describeValue(value: unknown): string {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return `an array of ${value.length}`;
+  if (typeof value === "object") return `an object with keys [${Object.keys(value).join(", ")}]`;
+  if (typeof value === "string") return `a string ${JSON.stringify(value.length > 40 ? `${value.slice(0, 40)}…` : value)}`;
+  return `${typeof value} ${String(value)}`;
 }
