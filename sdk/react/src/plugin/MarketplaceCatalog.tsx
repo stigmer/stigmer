@@ -21,6 +21,13 @@
  * the page never waits for its slowest source. A catalogue that arrives
  * late appends after the ones already shown; nothing reorders.
  *
+ * The entries a catalogue lists that this console cannot install (a
+ * source form Stigmer does not fetch, a directory with no manifest) are
+ * not the storefront's business: nobody browsing can act on a vendor's
+ * file. They are counted and explained on the source's row in Manage
+ * sources, where someone who wonders why a chip says 62 and the vendor
+ * says 65 will look.
+ *
  * "Installed" on a card is a slug match against the organization's
  * plugins; the exact-version fact ("already installed", "upgrade") belongs
  * to the install dialog, where the archive exists to compare.
@@ -28,7 +35,7 @@
 
 import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { MarketplaceEntry, MarketplaceFinding } from "@stigmer/plugin-package";
+import type { MarketplaceEntry } from "@stigmer/plugin-package";
 
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -173,8 +180,6 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
 
       {totalPages > 1 && <Pagination pageNum={page} totalPages={totalPages} onPageChange={setPageNum} ariaLabel="Plugins pagination" />}
 
-      <DroppedEntries reads={shownReads} />
-
       <PluginInstallDialog
         opened={installing?.opened ?? null}
         entryName={installing?.entry.name ?? null}
@@ -201,6 +206,7 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
       <ManageSourcesDialog
         open={managing}
         onClose={() => setManaging(false)}
+        reads={reads}
         marketplaces={sources.marketplaces}
         unreadable={sources.unreadable}
         isBuiltIn={sources.isBuiltIn}
@@ -257,33 +263,6 @@ function FailedSources({
         ) : null,
       )}
     </ul>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Entries a catalogue lists that this console cannot install, per source
-// ---------------------------------------------------------------------------
-
-function DroppedEntries({ reads }: { readonly reads: readonly SourceRead[] }) {
-  const dropped = reads.flatMap((read) =>
-    read.state.kind === "ready" && read.state.opened.warnings.length > 0 ? [{ name: read.marketplace.name, warnings: read.state.opened.warnings }] : [],
-  );
-  if (dropped.length === 0) return null;
-  return (
-    <div className="stg:flex stg:flex-col stg:gap-2">
-      {dropped.map(({ name, warnings }) => (
-        <details key={name} className="stg:text-sm">
-          <summary className="stg:cursor-pointer stg:text-muted-foreground">
-            {warnings.length === 1 ? `1 entry from ${name} cannot be installed` : `${warnings.length} entries from ${name} cannot be installed`}
-          </summary>
-          <ul className="stg:mt-2 stg:list-disc stg:space-y-1 stg:pl-5 stg:text-muted-foreground">
-            {warnings.map((warning: MarketplaceFinding, index) => (
-              <li key={`${warning.kind}:${index}`}>{warning.message}</li>
-            ))}
-          </ul>
-        </details>
-      ))}
-    </div>
   );
 }
 

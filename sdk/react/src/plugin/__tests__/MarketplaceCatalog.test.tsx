@@ -14,7 +14,9 @@
  * from that source; the Upload tile opens the uploader in a dialog; the
  * grid pages at CATALOG_PAGE_SIZE and a new query returns to page one;
  * Manage sources opens the dialog listing the built-ins as such with
- * Remove on the added one only.
+ * Remove on the added one only, and each row says what its catalogue
+ * offers and what it lists that cannot be installed, a fact the grid
+ * itself never shows.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -229,7 +231,8 @@ describe("MarketplaceCatalog: Manage sources", () => {
     fireEvent.click(screen.getByRole("button", { name: "Manage sources" }));
     const dialog = await screen.findByRole("dialog", { name: "Sources" });
     const list = within(dialog).getByRole("list", { name: "Known sources" });
-    const items = within(list).getAllByRole("listitem");
+    // The rows themselves; a row's disclosure of dropped entries nests its own list.
+    const items = Array.from(list.querySelectorAll(":scope > li"));
     expect(items).toHaveLength(5);
     expect(items[0]?.textContent).toContain("stigmer");
     expect(items[0]?.textContent).toContain("built in");
@@ -239,6 +242,23 @@ describe("MarketplaceCatalog: Manage sources", () => {
     ]);
     expect(within(dialog).getByRole("form", { name: "Add a source" })).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "Add source" })).toBeTruthy();
+  });
+
+  it("says what each catalogue came to on its row, and the storefront itself says nothing about dropped entries", async () => {
+    renderCatalog();
+    await screen.findByRole("button", { name: "Install thermos" });
+    // The fixture lists `ghost`, whose directory the tree lacks: dropped with its sentence, which the grid never shows.
+    expect(screen.queryByText(/cannot be installed/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Manage sources" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sources" });
+    const row = within(dialog).getAllByRole("listitem").find((item) => item.textContent?.includes(HOSTED_MARKETPLACE_NAME));
+    expect(row).toBeTruthy();
+    expect(within(row!).getByText("Offers 2 plugins; 1 entry it lists cannot be installed from here.")).toBeTruthy();
+    expect(within(row!).getByText(/'ghost'.*not offered/)).toBeTruthy();
+    // A source that could not be read says so in the same place.
+    const official = within(dialog).getAllByRole("listitem").find((item) => item.textContent?.startsWith("stigmer"));
+    expect(official?.textContent).toContain("cannot be read: the official marketplace is published with each release");
   });
 });
 
