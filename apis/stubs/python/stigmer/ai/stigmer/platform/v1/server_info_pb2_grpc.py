@@ -15,6 +15,10 @@ class PlatformQueryControllerStub(object):
     Embedded runners call getRunnerBootstrapConfig during boot to discover
     the Temporal coordinates they need to join the execution backbone, so
     integrators never hardcode infrastructure addresses.
+
+    Signed-in clients call getLicenseStatus to learn the state of the
+    license the server holds; every edition answers, and only an Enterprise
+    deployment ever answers anything but absent.
     """
 
     def __init__(self, channel):
@@ -27,6 +31,11 @@ class PlatformQueryControllerStub(object):
                 '/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo',
                 request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoOutput.FromString,
+                _registered_method=True)
+        self.getLicenseStatus = channel.unary_unary(
+                '/ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus',
+                request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusOutput.FromString,
                 _registered_method=True)
         self.getRunnerBootstrapConfig = channel.unary_unary(
                 '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig',
@@ -50,6 +59,10 @@ class PlatformQueryControllerServicer(object):
     Embedded runners call getRunnerBootstrapConfig during boot to discover
     the Temporal coordinates they need to join the execution backbone, so
     integrators never hardcode infrastructure addresses.
+
+    Signed-in clients call getLicenseStatus to learn the state of the
+    license the server holds; every edition answers, and only an Enterprise
+    deployment ever answers anything but absent.
     """
 
     def getServerInfo(self, request, context):
@@ -58,6 +71,26 @@ class PlatformQueryControllerServicer(object):
         This is the authoritative source for deployment mode detection.
         Clients should call this once on startup and pass the result
         to StigmerProvider as the deploymentMode prop.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getLicenseStatus(self, request, context):
+        """Returns the state of the license this server holds, with its verified
+        claims when there are any.
+
+        A server's license status is a fact about the server, like its edition,
+        so every edition answers it here rather than on the License kind (which
+        only the cloud serves, and which an SDK hides on the editions that need
+        the answer most). The open-source and Cloud editions always answer
+        `absent`: neither holds a key. An Enterprise deployment answers from the
+        ticket it was configured with, so its console can show "licensed to
+        Acme until March" and warn before expiry.
+
+        Authenticated, no permission: the answer is for every signed-in person
+        (the console banner), and unlike getServerInfo it is not public because
+        a license names its customer. The handler performs no further check.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -115,6 +148,11 @@ def add_PlatformQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoOutput.SerializeToString,
             ),
+            'getLicenseStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.getLicenseStatus,
+                    request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusOutput.SerializeToString,
+            ),
             'getRunnerBootstrapConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.getRunnerBootstrapConfig,
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.FromString,
@@ -143,6 +181,10 @@ class PlatformQueryController(object):
     Embedded runners call getRunnerBootstrapConfig during boot to discover
     the Temporal coordinates they need to join the execution backbone, so
     integrators never hardcode infrastructure addresses.
+
+    Signed-in clients call getLicenseStatus to learn the state of the
+    license the server holds; every edition answers, and only an Enterprise
+    deployment ever answers anything but absent.
     """
 
     @staticmethod
@@ -162,6 +204,33 @@ class PlatformQueryController(object):
             '/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo',
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoInput.SerializeToString,
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getLicenseStatus(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus',
+            ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusInput.SerializeToString,
+            ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusOutput.FromString,
             options,
             channel_credentials,
             insecure,

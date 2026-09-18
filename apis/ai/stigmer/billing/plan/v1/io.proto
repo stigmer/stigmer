@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.plan.v1;
+
+import "ai/stigmer/billing/plan/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// PlanId identifies a plan by its unique identifier.
+message PlanId {
+  // Unique identifier of the plan resource.
+  string value = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+}
+
+// Plans contains a list of plan resources.
+message Plans {
+  // Plan entries.
+  repeated Plan entries = 1;
+}
+
+// ListPlansInput selects which plans to list.
+message ListPlansInput {
+  // When true, retired plans are included beside the active ones; by
+  // default only plans that can still be bought are returned.
+  bool include_retired = 1;
+}

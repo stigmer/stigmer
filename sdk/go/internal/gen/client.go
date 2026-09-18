@@ -20,16 +20,19 @@ type Client struct {
 	IdentityAccount   *IdentityAccountClient
 	IdentityProvider  *IdentityProviderClient
 	Invitation        *InvitationClient
+	License           *LicenseClient
 	McpServer         *McpServerClient
 	Memory            *MemoryClient
 	OAuthApp          *OAuthAppClient
 	Organization      *OrganizationClient
+	Plan              *PlanClient
 	PlatformClient    *PlatformClientClient
 	Plugin            *PluginClient
 	Project           *ProjectClient
 	Schedule          *ScheduleClient
 	Session           *SessionClient
 	Skill             *SkillClient
+	Subscription      *SubscriptionClient
 	Workflow          *WorkflowClient
 	WorkflowExecution *WorkflowExecutionClient
 	WorkflowInstance  *WorkflowInstanceClient
@@ -52,16 +55,19 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		IdentityAccount:   NewIdentityAccountClient(conn),
 		IdentityProvider:  NewIdentityProviderClient(conn),
 		Invitation:        NewInvitationClient(conn),
+		License:           NewLicenseClient(conn),
 		McpServer:         NewMcpServerClient(conn),
 		Memory:            NewMemoryClient(conn),
 		OAuthApp:          NewOAuthAppClient(conn),
 		Organization:      NewOrganizationClient(conn),
+		Plan:              NewPlanClient(conn),
 		PlatformClient:    NewPlatformClientClient(conn),
 		Plugin:            NewPluginClient(conn),
 		Project:           NewProjectClient(conn),
 		Schedule:          NewScheduleClient(conn),
 		Session:           NewSessionClient(conn),
 		Skill:             NewSkillClient(conn),
+		Subscription:      NewSubscriptionClient(conn),
 		Workflow:          NewWorkflowClient(conn),
 		WorkflowExecution: NewWorkflowExecutionClient(conn),
 		WorkflowInstance:  NewWorkflowInstanceClient(conn),

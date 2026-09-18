@@ -14,7 +14,7 @@ from ai.stigmer.agentic.schedule.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
-from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as agentexecution_spec_pb2
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as agentexecution_invocation_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -152,8 +152,8 @@ class AgentInvocationInput:
     environment_refs: list[ResourceRef] = field(default_factory=list)
     run_config: RunConfigInput | None = None
 
-    def _to_proto(self) -> agentexecution_spec_pb2.AgentInvocation:
-        msg = agentexecution_spec_pb2.AgentInvocation(
+    def _to_proto(self) -> agentexecution_invocation_pb2.AgentInvocation:
+        msg = agentexecution_invocation_pb2.AgentInvocation(
             message=self.message,
             harness=self.harness,
         )

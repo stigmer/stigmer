@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	PlatformQueryController_GetServerInfo_FullMethodName            = "/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo"
+	PlatformQueryController_GetLicenseStatus_FullMethodName         = "/ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus"
 	PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig"
 	PlatformQueryController_GetRunnerScopedToken_FullMethodName     = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerScopedToken"
 )
@@ -37,6 +38,10 @@ const (
 // Embedded runners call getRunnerBootstrapConfig during boot to discover
 // the Temporal coordinates they need to join the execution backbone, so
 // integrators never hardcode infrastructure addresses.
+//
+// Signed-in clients call getLicenseStatus to learn the state of the
+// license the server holds; every edition answers, and only an Enterprise
+// deployment ever answers anything but absent.
 type PlatformQueryControllerClient interface {
 	// Returns the server edition and version.
 	//
@@ -44,6 +49,21 @@ type PlatformQueryControllerClient interface {
 	// Clients should call this once on startup and pass the result
 	// to StigmerProvider as the deploymentMode prop.
 	GetServerInfo(ctx context.Context, in *GetServerInfoInput, opts ...grpc.CallOption) (*GetServerInfoOutput, error)
+	// Returns the state of the license this server holds, with its verified
+	// claims when there are any.
+	//
+	// A server's license status is a fact about the server, like its edition,
+	// so every edition answers it here rather than on the License kind (which
+	// only the cloud serves, and which an SDK hides on the editions that need
+	// the answer most). The open-source and Cloud editions always answer
+	// `absent`: neither holds a key. An Enterprise deployment answers from the
+	// ticket it was configured with, so its console can show "licensed to
+	// Acme until March" and warn before expiry.
+	//
+	// Authenticated, no permission: the answer is for every signed-in person
+	// (the console banner), and unlike getServerInfo it is not public because
+	// a license names its customer. The handler performs no further check.
+	GetLicenseStatus(ctx context.Context, in *GetLicenseStatusInput, opts ...grpc.CallOption) (*GetLicenseStatusOutput, error)
 	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
@@ -98,6 +118,16 @@ func (c *platformQueryControllerClient) GetServerInfo(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *platformQueryControllerClient) GetLicenseStatus(ctx context.Context, in *GetLicenseStatusInput, opts ...grpc.CallOption) (*GetLicenseStatusOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLicenseStatusOutput)
+	err := c.cc.Invoke(ctx, PlatformQueryController_GetLicenseStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *platformQueryControllerClient) GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRunnerBootstrapConfigOutput)
@@ -131,6 +161,10 @@ func (c *platformQueryControllerClient) GetRunnerScopedToken(ctx context.Context
 // Embedded runners call getRunnerBootstrapConfig during boot to discover
 // the Temporal coordinates they need to join the execution backbone, so
 // integrators never hardcode infrastructure addresses.
+//
+// Signed-in clients call getLicenseStatus to learn the state of the
+// license the server holds; every edition answers, and only an Enterprise
+// deployment ever answers anything but absent.
 type PlatformQueryControllerServer interface {
 	// Returns the server edition and version.
 	//
@@ -138,6 +172,21 @@ type PlatformQueryControllerServer interface {
 	// Clients should call this once on startup and pass the result
 	// to StigmerProvider as the deploymentMode prop.
 	GetServerInfo(context.Context, *GetServerInfoInput) (*GetServerInfoOutput, error)
+	// Returns the state of the license this server holds, with its verified
+	// claims when there are any.
+	//
+	// A server's license status is a fact about the server, like its edition,
+	// so every edition answers it here rather than on the License kind (which
+	// only the cloud serves, and which an SDK hides on the editions that need
+	// the answer most). The open-source and Cloud editions always answer
+	// `absent`: neither holds a key. An Enterprise deployment answers from the
+	// ticket it was configured with, so its console can show "licensed to
+	// Acme until March" and warn before expiry.
+	//
+	// Authenticated, no permission: the answer is for every signed-in person
+	// (the console banner), and unlike getServerInfo it is not public because
+	// a license names its customer. The handler performs no further check.
+	GetLicenseStatus(context.Context, *GetLicenseStatusInput) (*GetLicenseStatusOutput, error)
 	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
@@ -184,6 +233,9 @@ type UnimplementedPlatformQueryControllerServer struct{}
 func (UnimplementedPlatformQueryControllerServer) GetServerInfo(context.Context, *GetServerInfoInput) (*GetServerInfoOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServerInfo not implemented")
 }
+func (UnimplementedPlatformQueryControllerServer) GetLicenseStatus(context.Context, *GetLicenseStatusInput) (*GetLicenseStatusOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLicenseStatus not implemented")
+}
 func (UnimplementedPlatformQueryControllerServer) GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRunnerBootstrapConfig not implemented")
 }
@@ -224,6 +276,24 @@ func _PlatformQueryController_GetServerInfo_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PlatformQueryControllerServer).GetServerInfo(ctx, req.(*GetServerInfoInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PlatformQueryController_GetLicenseStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLicenseStatusInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformQueryControllerServer).GetLicenseStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformQueryController_GetLicenseStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformQueryControllerServer).GetLicenseStatus(ctx, req.(*GetLicenseStatusInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -274,6 +344,10 @@ var PlatformQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getServerInfo",
 			Handler:    _PlatformQueryController_GetServerInfo_Handler,
+		},
+		{
+			MethodName: "getLicenseStatus",
+			Handler:    _PlatformQueryController_GetLicenseStatus_Handler,
 		},
 		{
 			MethodName: "getRunnerBootstrapConfig",

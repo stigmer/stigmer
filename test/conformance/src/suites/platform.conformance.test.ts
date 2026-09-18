@@ -18,11 +18,19 @@
 //     is — never half-populated. Clients branch on presence, so a
 //     half-populated response is a broken contract even when every field is
 //     individually well-formed.
+//   - getLicenseStatus answers on every edition and follows the same
+//     presence contract: the state names what the server holds, claims are
+//     present exactly when a ticket verified, key_id exactly when a ticket
+//     was presented, checked_at always. Every target here answers `absent`
+//     (open source and the cloud hold no key); an Enterprise target with a
+//     configured ticket would answer from it, and that assertion arrives
+//     with the edition that serves it.
 //
 // getRunnerScopedToken is deliberately NOT covered here: its arms are gated
 // on runner-class credentials (embedded_runner / pool_sandbox / sandbox
 // token types) that only exist mid-execution, so it belongs to the
 // execution-lifecycle slice.
+import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -64,6 +72,22 @@ describe("Platform conformance — getServerInfo", () => {
 
     expect(second.edition).toBe(first.edition);
     expect(second.version).toBe(first.version);
+  });
+});
+
+describe("Platform conformance — getLicenseStatus", () => {
+  it("answers absent with no claims, no key and a checked_at — the presence contract of a keyless server", async () => {
+    const status = await clients.platformQuery.getLicenseStatus({});
+
+    expect(
+      status.state,
+      "unspecified is a broken server; a target that holds no key answers absent",
+    ).toBe(LicenseState.absent);
+    // Presence follows the state: absent means nothing was presented, so
+    // there is no key to name and no claims to report.
+    expect(status.claims, "absent carries no claims").toBeUndefined();
+    expect(status.keyId, "absent names no key").toBe("");
+    expect(status.checkedAt, "checked_at is always set").toBeDefined();
   });
 });
 

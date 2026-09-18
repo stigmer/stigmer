@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.license.v1;
+
+import "ai/stigmer/billing/license/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// LicenseId identifies a license by its unique identifier.
+message LicenseId {
+  // Unique identifier of the license resource.
+  string value = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+}
+
+// Licenses contains a list of license resources.
+message Licenses {
+  // License entries.
+  repeated License entries = 1;
+}
+
+// ListLicensesInput selects which licenses to list.
+message ListLicensesInput {
+  // When set, only licenses issued to this customer (LicenseCustomer.id)
+  // are returned; every license otherwise.
+  string customer_id = 1;
+}

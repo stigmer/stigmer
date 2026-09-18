@@ -154,6 +154,20 @@ enum IamPermission {
   // the installing caller: who may bring a package into an organization is a
   // policy an administrator sets on its own.
   can_create_plugin = 40;
+
+  // Platform-level permission to create and retire Plans, the catalog the
+  // cloud sells subscriptions and licenses against. A human operator
+  // action on the static platform target, kept distinct from
+  // can_execute_billing_ops (the machine account's pipeline) the way
+  // can_manage_model_pricing is, so an audit line names what happened.
+  can_manage_plans = 41;
+
+  // Platform-level permission to issue and read Licenses: the signed
+  // grants of entitlements to self-hosting customers. Every License RPC
+  // checks it on the static platform target. Distinct from
+  // can_manage_plans because issuing a license to a named customer is a
+  // different act, and a different audit line, from editing the catalog.
+  can_issue_license = 42;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

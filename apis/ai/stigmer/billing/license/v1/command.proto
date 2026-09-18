@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.license.v1;
+
+import "ai/stigmer/billing/license/v1/api.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// LicenseCommandController provides the write operations on licenses.
+//
+// Issuing is the one write: the claims are immutable once signed, so there
+// is no update, and a renewal or a change of entitlements is a new License.
+// Issuing is a platform operator act on the static platform target. A
+// self-serve trial door, if one is offered, is a separate public entry the
+// issuer adds beside this controller; it is not this RPC relaxed.
+//
+// @internal
+// Served by the cloud composition only (the kind is cloud_only). Authorizes
+// against platform:stigmer with can_issue_license; the relation lands in
+// the authorization model with the entry that serves the kind. The
+// issuer signs with an Ed25519 key held in the platform's vault, distinct
+// from the runtime token-signing key, and records the ticket in the status.
+service LicenseCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = license;
+
+  // Issue a license.
+  //
+  // Builds the signed claims from the spec, signs them, and returns the
+  // license with its ticket in the status. The spec is final: nothing about
+  // an issued license changes afterwards.
+  rpc create(License) returns (License) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_issue_license;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can issue licenses";
+  }
+}
