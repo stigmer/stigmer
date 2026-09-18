@@ -568,6 +568,21 @@ approval ledger, the APPROVE_ALL lease across turns, durable resume) and
 `runner-ipc.harness.smoke` proves the manager-mode `ready` handshake end to
 end.
 
+`agentexecution-request-shape` reads the other direction of the wire: not
+what the client sees on status but what the MODEL receives from the native
+harness for a bare agent, photographed as two readable file goldens under
+`suites-execution/goldens/` (the system prompt as the provider gets it — the
+engine's blocks with the prompt-cache breakpoint — and the tool surface with
+every description and schema in wire order), plus value arms for the thinking
+posture and byte-stability across two turns of one session. It reads the
+mock's `scriptedRequests()` (the agent loop's calls, the background titling
+call left out) through `harness/llm-wire.ts`'s request reader and
+`support/request-shape.ts`'s renderers. A golden moves only under a ruling
+the PR quotes, every hunk explained — never a quiet `vitest -u`; in CI a
+missing golden fails rather than being written. The cloud execution config
+excludes the file: the cloud composition's bare agent is a different
+photograph, not a missing capability.
+
 ## Layout
 
 ```
@@ -580,13 +595,15 @@ src/
   contract/         errors, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll, workflowexecutions,
                     agentexecutions, file-review, workflow-architect, agents, mcpservers, memories, skills, environments,
-                    executioncontexts, sessions, …
+                    executioncontexts, sessions, request-shape (the golden renderers), …
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.smoke.test.ts (engine, agent, mcp, runner-ipc)
                     + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
-                      structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect)
+                      structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
+                      request-shape)
                     + mcpserver-connect, mcp-caller-identity, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
+                    + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 ```
 
 ## Adding a domain
