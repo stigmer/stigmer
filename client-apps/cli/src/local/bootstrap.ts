@@ -6,7 +6,7 @@
 // lane. One definition, so a laptop, a container and the hosted platform
 // cannot drift in what "ready" means.
 //
-// Two phases, and the order matters:
+// Two phases, and the order matters (a third, `up`'s retire, follows them):
 //
 //   1. prepare: resolve the official marketplace (acquiring `@stigmer/plugins`
 //      at the CLI's version on a release's first run) and prepare every
@@ -14,11 +14,15 @@
 //   2. run: ensure the system org, then push the prepared defaults, each
 //      skipped when the backend already holds it at the same digest.
 //
-// `stigmer up` slides one more step between them: retiring the seedpack an
-// older release installed. That step deletes rows, so it runs only after
-// phase 1 has every replacement in hand; a user who upgrades offline and
-// cannot fetch the new catalogue keeps the old rows for another day instead
-// of losing them and getting nothing back. The retire lives here and not in
+// `stigmer up` adds a third phase after them: retiring the seedpack an
+// older release installed. That step deletes rows, so it runs only once
+// every default has LANDED, not merely been prepared: the plugin push adopts
+// the system-content rows it replaces in place (the seedpack's `assistant`
+// keeps its id, its instances and every conversation bound to them), and a
+// row that is now a plugin's member is never a candidate for the retire. A
+// user who upgrades offline and cannot fetch the new catalogue, or whose
+// backend refused a default, keeps the old rows for another day instead of
+// losing them and getting nothing back. The retire lives here and not in
 // `stigmer bootstrap` on purpose: a verb a scheduled lane runs against the
 // platform must never be able to delete rows.
 //
@@ -143,34 +147,42 @@ export async function bootstrapLocalBackend(
     return;
   }
 
+  let result: BootstrapResult;
+  try {
+    result = await (deps.run ?? runLocalBootstrap)(
+      client.stigmer,
+      prepared,
+      say,
+    );
+  } catch (err) {
+    log.warn("bootstrap failed", { error: String(err) });
+    say(
+      "Warning: failed to bootstrap the local backend, so nothing was retired. Run 'stigmer up' again to retry.",
+    );
+    return;
+  }
+  log.debug("bootstrap complete", {
+    org: result.org,
+    outcomes: result.plugins.outcomes,
+  });
+  if (result.plugins.failed.length > 0) {
+    for (const name of result.plugins.failed) {
+      say(
+        `Warning: failed to install default plugin '${name}'. Run 'stigmer bootstrap' to retry.`,
+      );
+    }
+    say(
+      "Nothing was retired: the resources an older release installed stay until every default plugin is in place.",
+    );
+    return;
+  }
+
   try {
     await (deps.retire ?? retireSeedpack)(client.stigmer, home, say);
   } catch (err) {
     log.warn("seedpack retire failed", { error: String(err) });
     say(
       "Warning: failed to retire the resources an older release installed. Run 'stigmer up' again to retry.",
-    );
-  }
-
-  try {
-    const result = await (deps.run ?? runLocalBootstrap)(
-      client.stigmer,
-      prepared,
-      say,
-    );
-    log.debug("bootstrap complete", {
-      org: result.org,
-      outcomes: result.plugins.outcomes,
-    });
-    for (const name of result.plugins.failed) {
-      say(
-        `Warning: failed to install default plugin '${name}'. Run 'stigmer bootstrap' to retry.`,
-      );
-    }
-  } catch (err) {
-    log.warn("bootstrap failed", { error: String(err) });
-    say(
-      "Warning: failed to bootstrap the local backend. Run 'stigmer bootstrap' to retry.",
     );
   }
 }

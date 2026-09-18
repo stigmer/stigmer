@@ -17,7 +17,12 @@
 // whole uninstall and tells the user to detach first; a retire inside `up`
 // has no user to ask, so it keeps only what is referenced and removes the
 // rest. Members referencing each other are the seedpack's own business and
-// never keep anything. Deletes run children-first in reference order
+// never keep anything. A member the default plugins ADOPTED (the bootstrap
+// runs first, and the plugin push takes over the system-content row it
+// replaces in place, so the seedpack's `assistant` keeps its id and every
+// conversation with it) now carries `stigmer.ai/plugin` and is reported as
+// such, never deleted: the store says what was adopted, this module keeps
+// no list of its own. Deletes run children-first in reference order
 // (workflows, agents, skills, MCP servers) through the same SDK calls
 // `stigmer delete` binds, so a refusal reaches the user as the server's
 // own sentence; the Project row goes last and the marker file with it. A
@@ -78,6 +83,12 @@ export type MemberOutcome =
   | { readonly action: "removed"; readonly member: SeedpackMember }
   | { readonly action: "already-gone"; readonly member: SeedpackMember }
   | {
+      readonly action: "adopted";
+      readonly member: SeedpackMember;
+      /** The plugin that now manages the row: its slug, or its id when the plugin row is gone. */
+      readonly byPlugin: string;
+    }
+  | {
       readonly action: "kept-referenced";
       readonly member: SeedpackMember;
       /** The referrers, as "agent 'org/slug'". */
@@ -121,6 +132,7 @@ export async function retireSeedpack(
 
   const members = (project.members ?? []).map(toMember);
   const referrers = await indexReferrers(stigmer, members);
+  const pluginSlugs = new Map<string, string>();
 
   const outcomes: MemberOutcome[] = [];
   for (const member of inRemovalOrder(members)) {
@@ -129,7 +141,7 @@ export async function retireSeedpack(
       outcomes.push({ action: "kept-referenced", member, by });
       continue;
     }
-    outcomes.push(await removeMember(stigmer, member));
+    outcomes.push(await removeMember(stigmer, member, pluginSlugs));
   }
 
   let projectRemoved = true;
@@ -158,19 +170,31 @@ export function renderRetireReport(
   const removed = result.outcomes.filter(
     (outcome) => outcome.action === "removed",
   ).length;
+  const adopted = result.outcomes.filter(
+    (outcome) => outcome.action === "adopted",
+  ).length;
   const kept = result.outcomes.filter(
     (outcome) =>
       outcome.action === "kept-referenced" ||
       outcome.action === "kept-refused",
   );
+  const tail = [
+    adopted === 0 ? "" : `${count(adopted, "resource")} now managed by a plugin`,
+    kept.length === 0 ? "" : `kept ${count(kept.length, "resource")}`,
+  ].filter((part) => part !== "");
   say(
     `Retired the system content an older release installed: removed ${count(removed, "resource")}` +
-      (kept.length === 0 ? "." : `, kept ${count(kept.length, "resource")}.`),
+      (tail.length === 0 ? "." : `, ${tail.join(", ")}.`),
   );
   for (const outcome of result.outcomes) {
     switch (outcome.action) {
       case "removed":
       case "already-gone":
+        break;
+      case "adopted":
+        say(
+          `  ${describe(outcome.member)} is now managed by plugin '${outcome.byPlugin}'; its instances and conversations continue`,
+        );
         break;
       case "kept-referenced":
         say(
@@ -283,9 +307,17 @@ async function indexReferrers(
   return referrers;
 }
 
+/**
+ * The membership label the server stamps on every resource a plugin
+ * materialises; its value is the plugin's id. Read here, never written: a
+ * seedpack member carrying it was adopted by a default plugin moments ago.
+ */
+const PLUGIN_LABEL = "stigmer.ai/plugin";
+
 async function removeMember(
   stigmer: Stigmer,
   member: SeedpackMember,
+  pluginSlugs: Map<string, string>,
 ): Promise<MemberOutcome> {
   const getter = getterFor(member.kind);
   const deleter = DELETE_HANDLERS.get(member.kind);
@@ -303,8 +335,20 @@ async function removeMember(
       org: member.org,
       slug: member.slug,
     });
-    id =
-      (found.message as { metadata?: { id?: string } }).metadata?.id ?? "";
+    const metadata = (
+      found.message as {
+        metadata?: { id?: string; labels?: Record<string, string> };
+      }
+    ).metadata;
+    id = metadata?.id ?? "";
+    const pluginId = metadata?.labels?.[PLUGIN_LABEL];
+    if (pluginId !== undefined && pluginId !== "") {
+      return {
+        action: "adopted",
+        member,
+        byPlugin: await pluginSlugOf(stigmer, pluginId, pluginSlugs),
+      };
+    }
   } catch (error) {
     if (isNotFound(error)) return { action: "already-gone", member };
     return { action: "kept-refused", member, reason: messageOf(error) };
@@ -316,6 +360,24 @@ async function removeMember(
     if (isNotFound(error)) return { action: "already-gone", member };
     return { action: "kept-refused", member, reason: messageOf(error) };
   }
+}
+
+/** The adopting plugin's slug, read once per id; a plugin row that is gone names itself. */
+async function pluginSlugOf(
+  stigmer: Stigmer,
+  pluginId: string,
+  cache: Map<string, string>,
+): Promise<string> {
+  const known = cache.get(pluginId);
+  if (known !== undefined) return known;
+  let slug = pluginId;
+  try {
+    slug = (await stigmer.plugin.get(pluginId)).metadata?.slug || pluginId;
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+  }
+  cache.set(pluginId, slug);
+  return slug;
 }
 
 function removeMarker(markerDir: string): void {

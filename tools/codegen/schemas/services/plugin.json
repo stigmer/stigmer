@@ -1013,7 +1013,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Stable warning kind, e.g. \"component-ignored\", \"model-hint-unresolved\",\n \"sub-agent-name-builtin\", \"version-not-taggable\".",
+          "description": "Stable warning kind, e.g. \"component-ignored\", \"member-adopted\",\n \"model-hint-unresolved\", \"sub-agent-name-builtin\", \"version-not-taggable\".",
           "required": false
         },
         {

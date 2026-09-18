@@ -2,10 +2,13 @@
 // Project is removed children-first (workflows, agents, skills, MCP servers)
 // through the kinds' own delete RPCs, then the Project row, then the marker;
 // a member some user agent references, in any org the identity sees, is kept
-// and the report names the agent; a seedpack agent referencing a seedpack
-// server keeps nothing; a delete the server refuses is kept with the server's
-// sentence; a member already gone is not an error; no Project means one read
-// and a stale marker's removal; a second run is a no-op.
+// and the report names the agent; a member a default plugin adopted (its row
+// carries `stigmer.ai/plugin`) is reported as the plugin's and never deleted,
+// the plugin's slug read once and its id standing in when the plugin row is
+// gone; a seedpack agent referencing a seedpack server keeps nothing; a
+// delete the server refuses is kept with the server's sentence; a member
+// already gone is not an error; no Project means one read and a stale
+// marker's removal; a second run is a no-op.
 
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import {
@@ -26,6 +29,8 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
@@ -81,6 +86,7 @@ let deletes: string[];
 let refusals: Map<string, string>;
 let orgs: string[];
 let projectReads: number;
+let pluginReads: number;
 
 function key(kind: ApiResourceKind, org: string, slug: string): string {
   return `${kind}:${org}/${slug}`;
@@ -104,9 +110,10 @@ function put(
   org: string,
   slug: string,
   spec: Record<string, unknown> = {},
+  labels: Record<string, string> = {},
 ): void {
   const message = create(schema, {
-    metadata: { id: idOf(kind, slug), slug, org },
+    metadata: { id: idOf(kind, slug), slug, org, labels },
     spec,
   } as never);
   rows.set(key(kind, org, slug), { kind, org, slug, message });
@@ -250,6 +257,12 @@ beforeAll(async () => {
     router.service(WorkflowCommandController, {
       delete: deleteById(ApiResourceKind.workflow),
     });
+    router.service(PluginQueryController, {
+      get: (id) => {
+        pluginReads += 1;
+        return byId(ApiResourceKind.plugin)(id);
+      },
+    });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -274,6 +287,7 @@ beforeEach(() => {
   refusals = new Map();
   orgs = ["stigmer", "acme"];
   projectReads = 0;
+  pluginReads = 0;
   markerDir = mkdtempSync(join(tmpdir(), "stigmer-retire-"));
   writeFileSync(join(markerDir, SEEDPACK_MARKER_FILE), "sha256:abc\n");
 });
@@ -349,6 +363,73 @@ describe("retireSeedpack", () => {
       "  kept mcpserver 'stigmer/github': referenced by agent 'acme/my-reviewer'",
       "  A kept resource's icon no longer resolves. Once its referrer is edited, remove it with 'stigmer delete <kind> <org>/<slug>'.",
     ]);
+  });
+
+  it("reports a member a default plugin adopted as the plugin's, never deletes it, and reads the plugin once", async () => {
+    seedFullSeedpack();
+    put(ApiResourceKind.plugin, PluginSchema, "stigmer", "assistant");
+    const pluginId = idOf(ApiResourceKind.plugin, "assistant");
+    // The bootstrap ran first and its push adopted two rows in place.
+    put(
+      ApiResourceKind.agent,
+      AgentSchema,
+      "stigmer",
+      "code-review-agent",
+      {},
+      { "stigmer.ai/plugin": pluginId, "stigmer.ai/system": "true" },
+    );
+    put(
+      ApiResourceKind.mcp_server,
+      McpServerSchema,
+      "stigmer",
+      "github",
+      {},
+      { "stigmer.ai/plugin": pluginId },
+    );
+    const result = await run();
+    if (!result.present) throw new Error("expected a project");
+    expect(result.outcomes.map((o) => [o.member.slug, o.action])).toEqual([
+      ["content-review", "removed"],
+      ["code-review-agent", "adopted"],
+      ["code-reviewer", "removed"],
+      ["github", "adopted"],
+    ]);
+    expect(
+      result.outcomes
+        .filter((o) => o.action === "adopted")
+        .map((o) => o.action === "adopted" && o.byPlugin),
+    ).toEqual(["assistant", "assistant"]);
+    expect(pluginReads).toBe(1);
+    expect(deletes).toEqual([
+      key(ApiResourceKind.workflow, "stigmer", "content-review"),
+      key(ApiResourceKind.skill, "stigmer", "code-reviewer"),
+      projectKey,
+    ]);
+    expect(rows.has(key(ApiResourceKind.agent, "stigmer", "code-review-agent"))).toBe(true);
+    expect(report(result)).toEqual([
+      "Retired the system content an older release installed: removed 2 resources, 2 resources now managed by a plugin.",
+      "  agent 'stigmer/code-review-agent' is now managed by plugin 'assistant'; its instances and conversations continue",
+      "  mcpserver 'stigmer/github' is now managed by plugin 'assistant'; its instances and conversations continue",
+    ]);
+  });
+
+  it("names the adopting plugin by id when its row is gone", async () => {
+    seedFullSeedpack();
+    put(
+      ApiResourceKind.agent,
+      AgentSchema,
+      "stigmer",
+      "code-review-agent",
+      {},
+      { "stigmer.ai/plugin": "plg_vanished" },
+    );
+    const result = await run();
+    if (!result.present) throw new Error("expected a project");
+    const agent = result.outcomes.find((o) => o.member.slug === "code-review-agent");
+    expect(agent).toMatchObject({ action: "adopted", byPlugin: "plg_vanished" });
+    expect(deletes).not.toContain(
+      key(ApiResourceKind.agent, "stigmer", "code-review-agent"),
+    );
   });
 
   it("keeps a member whose delete the server refuses, with the server's sentence", async () => {

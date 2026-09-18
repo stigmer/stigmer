@@ -151,13 +151,13 @@ marketplace offers; `stigmer install stigmer/<name>` installs one of them into
 your own Organization.
 
 <Callout type="info">
-  Upgrading a local stack that predates plugins retires the system content an
-  older release installed: its Agents, Skills, MCP Servers and Workflows are
-  removed, except any that one of your own Agents still references, and `stigmer
-  up` reports what went and what it kept and why. `assistant` is then installed
-  from the official marketplace under a new ID. Sessions and channels that were
-  bound to the old `assistant` lose their Agent; start a new Session on the new
-  one.
+  Upgrading a local stack that predates plugins installs the official
+  marketplace's defaults first, then retires the system content an older release
+  installed. The `assistant` plugin takes over the existing `assistant` Agent in
+  place: same ID, same personal instance, and every Session bound to it
+  continues. The other Agents, Skills, MCP Servers and Workflows are removed,
+  except any that one of your own Agents still references, and `stigmer up`
+  reports what went, what is now the plugin's, and what it kept and why.
 </Callout>
 
 ## Limits, stated
