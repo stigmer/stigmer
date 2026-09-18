@@ -844,6 +844,87 @@ enum ApiResourceKind {
       ]
     }
   }];
+
+  // Billing - Plans, and the subscriptions and licenses that grant them.
+  //
+  // An entitlement is what the platform permits; a subscription and a
+  // license are the two instruments that grant it. The three kinds below
+  // are what the cloud sells and issues, so every one is cloud_only: the
+  // open-source and Enterprise servers never store or serve them. What
+  // those editions read (the entitlement vocabulary, the signed license
+  // claims, a server's license status) lives under platform/v1, not here.
+
+  // Catalog entry naming a bundle of entitlements and the terms that buy it.
+  //
+  // Platform-level: a plan belongs to no organization, so it carries no
+  // authorization scope and no owner. Immutable once created; a change of
+  // terms is a new Plan and the old one retires.
+  plan = 70 [(kind_meta) = {
+    group: billing
+    version: v1
+    name: "Plan"
+    display_name: "Plan"
+    id_prefix: "pln"
+    is_versioned: false
+    // A catalog, not a searchable resource: read through its own query
+    // controller, never through the cross-kind search index.
+    not_search_indexed: true
+    // Sold and served by the cloud alone. An Enterprise deployment reads
+    // its entitlements from its license, never from a plan.
+    tier: cloud_only
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+    }
+  }];
+
+  // An organization's binding to a Plan; at most one active per organization.
+  //
+  // System-created: the payment system drives its lifecycle, so it has no
+  // owner and grants no roles. Its reads and writes authorize on the
+  // organization through the billing permissions.
+  //
+  // @internal
+  // Organization-scoped with owner NONE is the memory kind's combination:
+  // the organization link is the only tuple the kind ever needs.
+  subscription = 71 [(kind_meta) = {
+    group: billing
+    version: v1
+    name: "Subscription"
+    display_name: "Subscription"
+    id_prefix: "sub"
+    is_versioned: false
+    not_search_indexed: true
+    tier: cloud_only
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+    }
+  }];
+
+  // A signed grant of entitlements to a self-hosting customer for a term.
+  //
+  // Platform-level: issued by the cloud's operators and verified offline by
+  // the Enterprise server, so the customer is a value inside the license
+  // (which may or may not name a cloud organization) and the kind has no
+  // authorization scope and no owner. Claims are immutable once signed; a
+  // renewal is a new License.
+  license = 72 [(kind_meta) = {
+    group: billing
+    version: v1
+    name: "License"
+    display_name: "License"
+    id_prefix: "lic"
+    is_versioned: false
+    not_search_indexed: true
+    // Issued by the cloud; the Enterprise server that a license unlocks
+    // never serves the kind, it reads the signed claims the license carries.
+    tier: cloud_only
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+    }
+  }];
 }
 
 // Note: Extension field 'kind_meta' (90101) is used for metadata access in Java

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto.
  */
 export const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group: GenFile = /*@__PURE__*/
-  fileDesc("CkdhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2FwaV9yZXNvdXJjZV9ncm91cC5wcm90bxIuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZCI8ChRBcGlSZXNvdXJjZUdyb3VwTWV0YRIOCgZkb21haW4YASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJKroBChBBcGlSZXNvdXJjZUdyb3VwEiIKHmFwaV9yZXNvdXJjZV9ncm91cF91bnNwZWNpZmllZBAAEi4KB2FnZW50aWMQARoh6r0sHQoSYWdlbnRpYy5zdGlnbWVyLmFpEgdBZ2VudGljEiIKA2lhbRACGhnqvSwVCg5pYW0uc3RpZ21lci5haRIDSUFNEi4KB3RlbmFuY3kQAxoh6r0sHQoSdGVuYW5jeS5zdGlnbWVyLmFpEgdUZW5hbmN5OogBCgpncm91cF9tZXRhEiEuZ29vZ2xlLnByb3RvYnVmLkVudW1WYWx1ZU9wdGlvbnMY3ccFIAEoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXBpUmVzb3VyY2VHcm91cE1ldGFSCWdyb3VwTWV0YWIGcHJvdG8z", [file_google_protobuf_descriptor]);
+  fileDesc("CkdhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2FwaV9yZXNvdXJjZV9ncm91cC5wcm90bxIuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZCI8ChRBcGlSZXNvdXJjZUdyb3VwTWV0YRIOCgZkb21haW4YASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJKuoBChBBcGlSZXNvdXJjZUdyb3VwEiIKHmFwaV9yZXNvdXJjZV9ncm91cF91bnNwZWNpZmllZBAAEi4KB2FnZW50aWMQARoh6r0sHQoSYWdlbnRpYy5zdGlnbWVyLmFpEgdBZ2VudGljEiIKA2lhbRACGhnqvSwVCg5pYW0uc3RpZ21lci5haRIDSUFNEi4KB3RlbmFuY3kQAxoh6r0sHQoSdGVuYW5jeS5zdGlnbWVyLmFpEgdUZW5hbmN5Ei4KB2JpbGxpbmcQBBoh6r0sHQoSYmlsbGluZy5zdGlnbWVyLmFpEgdCaWxsaW5nOogBCgpncm91cF9tZXRhEiEuZ29vZ2xlLnByb3RvYnVmLkVudW1WYWx1ZU9wdGlvbnMY3ccFIAEoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXBpUmVzb3VyY2VHcm91cE1ldGFSCWdyb3VwTWV0YWIGcHJvdG8z", [file_google_protobuf_descriptor]);
 
 /**
  * Metadata for api-resource-group
@@ -73,6 +73,18 @@ export enum ApiResourceGroup {
    * @generated from enum value: tenancy = 3;
    */
   tenancy = 3,
+
+  /**
+   * Billing - What is sold: plans, the subscriptions and licenses that
+   * grant them. The entitlement vocabulary these kinds carry lives under
+   * platform, because every edition reads it; the kinds live here because
+   * only the cloud sells. The flat billing/v1 aggregate (BillingAccount and
+   * its ledger) is a plain message, not an envelope kind, and stays outside
+   * the group; this group covers the envelope kinds only.
+   *
+   * @generated from enum value: billing = 4;
+   */
+  billing = 4,
 }
 
 /**

@@ -54,7 +54,10 @@
           "schedule",
           "memory",
           "plugin",
-          "project"
+          "project",
+          "plan",
+          "subscription",
+          "license"
         ]
       },
       "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",

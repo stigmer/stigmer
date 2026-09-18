@@ -67,9 +67,10 @@ tools/codegen/
 │   └── gojson.ts                   # Go json.MarshalIndent-equivalent serializer
 ├── schemas/
 │   ├── tasks/           # workflow task configs (+ tasks/types/ shared types)
-│   ├── agentic/         # per-resource spec schemas (+ <resource>/types/)
-│   ├── iam/
+│   ├── agentic/         # per-resource spec schemas (+ <resource>/types/), one
+│   ├── iam/             #   directory per ApiResourceGroup value
 │   ├── tenancy/
+│   ├── billing/
 │   └── services/        # service/RPC schemas (sdk-docs)
 └── output/              # task-registry staging (synced into the server embed)
 ```

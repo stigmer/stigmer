@@ -143,6 +143,18 @@ const (
 	// the installing caller: who may bring a package into an organization is a
 	// policy an administrator sets on its own.
 	IamPermission_can_create_plugin IamPermission = 40
+	// Platform-level permission to create and retire Plans, the catalog the
+	// cloud sells subscriptions and licenses against. A human operator
+	// action on the static platform target, kept distinct from
+	// can_execute_billing_ops (the machine account's pipeline) the way
+	// can_manage_model_pricing is, so an audit line names what happened.
+	IamPermission_can_manage_plans IamPermission = 41
+	// Platform-level permission to issue and read Licenses: the signed
+	// grants of entitlements to self-hosting customers. Every License RPC
+	// checks it on the static platform target. Distinct from
+	// can_manage_plans because issuing a license to a named customer is a
+	// different act, and a different audit line, from editing the catalog.
+	IamPermission_can_issue_license IamPermission = 42
 )
 
 // Enum value maps for IamPermission.
@@ -186,6 +198,8 @@ var (
 		38: "can_view_provider_standing",
 		39: "can_set_public_visibility",
 		40: "can_create_plugin",
+		41: "can_manage_plans",
+		42: "can_issue_license",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -226,6 +240,8 @@ var (
 		"can_view_provider_standing":   38,
 		"can_set_public_visibility":    39,
 		"can_create_plugin":            40,
+		"can_manage_plans":             41,
+		"can_issue_license":            42,
 	}
 )
 
@@ -335,7 +351,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe9\a\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x96\b\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -376,7 +392,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x19can_write_reserved_labels\x10%\x12\x1e\n" +
 	"\x1acan_view_provider_standing\x10&\x12\x1d\n" +
 	"\x19can_set_public_visibility\x10'\x12\x15\n" +
-	"\x11can_create_plugin\x10(\"\x04\b!\x10!\"\x04\b\"\x10\"*\x0fcan_use_records*\x14can_create_datastore*b\n" +
+	"\x11can_create_plugin\x10(\x12\x14\n" +
+	"\x10can_manage_plans\x10)\x12\x15\n" +
+	"\x11can_issue_license\x10*\"\x04\b!\x10!\"\x04\b\"\x10\"*\x0fcan_use_records*\x14can_create_datastore*b\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

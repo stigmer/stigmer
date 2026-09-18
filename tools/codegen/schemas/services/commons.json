@@ -462,6 +462,21 @@
           "name": "project",
           "number": 60,
           "description": "Aggregate root grouping related resources for lifecycle management."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
         }
       ]
     },

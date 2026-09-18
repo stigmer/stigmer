@@ -1,0 +1,22 @@
+{
+  "name": "SubscriptionSpec",
+  "kind": "SUBSCRIPTION_SPEC",
+  "description": "SubscriptionSpec names the plan an organization is bound to.\n\n The plan is referenced by its id, not by an organization-scoped reference:\n a Plan belongs to no organization, and the id is exact and immutable,\n which is what \"a change of terms is a new Plan\" needs. Everything else\n about a subscription is state the payment system reports, and lives in\n the status.",
+  "protoType": "ai.stigmer.billing.subscription.v1.SubscriptionSpec",
+  "protoFile": "apis/ai/stigmer/billing/subscription/v1/spec.proto",
+  "fields": [
+    {
+      "name": "PlanId",
+      "jsonName": "planId",
+      "protoField": "plan_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The id of the Plan the organization is bound to.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

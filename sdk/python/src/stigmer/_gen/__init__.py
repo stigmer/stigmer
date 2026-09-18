@@ -16,16 +16,19 @@ from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
+from ._license import LicenseClient, LicenseInput, LicenseCustomerInput, EntitlementsInput, EntitlementLimitsInput
 from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput, McpServerAuthInput
 from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput
+from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._project import ProjectClient, ProjectInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
+from ._subscription import SubscriptionClient, SubscriptionInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput, WorkflowBudgetInput
 from ._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
 from ._workflowinstance import WorkflowInstanceClient, WorkflowInstanceInput
@@ -106,6 +109,11 @@ __all__ = [
     "IdentityProviderInput",
     "InvitationClient",
     "InvitationInput",
+    "LicenseClient",
+    "LicenseInput",
+    "LicenseCustomerInput",
+    "EntitlementsInput",
+    "EntitlementLimitsInput",
     "McpServerClient",
     "McpServerInput",
     "StdioServerConfigInput",
@@ -120,6 +128,9 @@ __all__ = [
     "OrganizationClient",
     "OrganizationInput",
     "OrganizationPreferencesInput",
+    "PlanClient",
+    "PlanInput",
+    "PlanTermsInput",
     "PlatformClientClient",
     "PlatformClientInput",
     "PluginClient",
@@ -134,6 +145,8 @@ __all__ = [
     "SessionInput",
     "SkillClient",
     "SkillInput",
+    "SubscriptionClient",
+    "SubscriptionInput",
     "WorkflowClient",
     "WorkflowInput",
     "WorkflowDocumentInput",

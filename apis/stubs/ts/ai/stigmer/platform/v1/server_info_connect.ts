@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetRunnerBootstrapConfigInput, GetRunnerBootstrapConfigOutput, GetRunnerScopedTokenInput, GetRunnerScopedTokenOutput, GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
+import { GetLicenseStatusInput, GetLicenseStatusOutput, GetRunnerBootstrapConfigInput, GetRunnerBootstrapConfigOutput, GetRunnerScopedTokenInput, GetRunnerScopedTokenOutput, GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -16,6 +16,10 @@ import { MethodKind } from "@bufbuild/protobuf";
  * Embedded runners call getRunnerBootstrapConfig during boot to discover
  * the Temporal coordinates they need to join the execution backbone, so
  * integrators never hardcode infrastructure addresses.
+ *
+ * Signed-in clients call getLicenseStatus to learn the state of the
+ * license the server holds; every edition answers, and only an Enterprise
+ * deployment ever answers anything but absent.
  *
  * @generated from service ai.stigmer.platform.v1.PlatformQueryController
  */
@@ -35,6 +39,30 @@ export const PlatformQueryController = {
       name: "getServerInfo",
       I: GetServerInfoInput,
       O: GetServerInfoOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Returns the state of the license this server holds, with its verified
+     * claims when there are any.
+     *
+     * A server's license status is a fact about the server, like its edition,
+     * so every edition answers it here rather than on the License kind (which
+     * only the cloud serves, and which an SDK hides on the editions that need
+     * the answer most). The open-source and Cloud editions always answer
+     * `absent`: neither holds a key. An Enterprise deployment answers from the
+     * ticket it was configured with, so its console can show "licensed to
+     * Acme until March" and warn before expiry.
+     *
+     * Authenticated, no permission: the answer is for every signed-in person
+     * (the console banner), and unlike getServerInfo it is not public because
+     * a license names its customer. The handler performs no further check.
+     *
+     * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus
+     */
+    getLicenseStatus: {
+      name: "getLicenseStatus",
+      I: GetLicenseStatusInput,
+      O: GetLicenseStatusOutput,
       kind: MethodKind.Unary,
     },
     /**

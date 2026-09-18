@@ -12,7 +12,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { PACKAGES, generateDistPackageJson, packCommand, resolvePackageTag, rewriteBinPaths } from "./publish-libs.mjs";
+import {
+  PACKAGES,
+  generateDistPackageJson,
+  packCommand,
+  packageClosure,
+  resolvePackageTag,
+  rewriteBinPaths,
+} from "./publish-libs.mjs";
 
 test("PACKAGES is exactly the workspace members that are not private", () => {
   // The publish set and the workspace's `private` flags are two statements of
@@ -138,6 +145,86 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
     assert.equal(dist.dependencies.zod, "^3.25.0");
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+// A synthetic publish set shaped like the real one's hazards: a peer-only
+// edge (sdk -> protos), a diamond (cli -> ink -> sdk, cli -> sdk), a
+// third-party dep to ignore, and a package nothing reaches (embed). Keyed by
+// real PACKAGES paths so the order assertion is meaningful.
+const syntheticManifests = new Map([
+  ["apis/stubs/ts", { name: "@stigmer/protos" }],
+  ["sdk/typescript", { name: "@stigmer/sdk", peerDependencies: { "@stigmer/protos": "*", "@bufbuild/protobuf": "^2" } }],
+  ["sdk/embed", { name: "@stigmer/embed" }],
+  ["sdk/ink", { name: "@stigmer/ink", dependencies: { ink: "^5" }, peerDependencies: { "@stigmer/sdk": "*" } }],
+  ["client-apps/cli", { name: "@stigmer/cli", dependencies: { "@stigmer/ink": "*", "@stigmer/sdk": "*" } }],
+]);
+
+test("packageClosure follows dependencies and peers, in PACKAGES order", () => {
+  // Peers count: npm 7+ installs them, so a peer left out of the tarball set
+  // is fetched from the registry — the race --only exists to remove.
+  assert.deepEqual(packageClosure("@stigmer/cli", syntheticManifests), [
+    "apis/stubs/ts",
+    "sdk/typescript",
+    "sdk/ink",
+    "client-apps/cli",
+  ]);
+  // A leaf's closure is itself.
+  assert.deepEqual(packageClosure("@stigmer/protos", syntheticManifests), ["apis/stubs/ts"]);
+});
+
+test("packageClosure refuses a name outside the publish set", () => {
+  // A typo must not pack an empty set that an image then installs "successfully".
+  assert.throws(() => packageClosure("@stigmer/clii", syntheticManifests), /not a publishable workspace package/);
+});
+
+test("packageClosure refuses an @stigmer/* edge that leaves the publish set", () => {
+  // Such an edge could only be satisfied by the registry, and nothing there
+  // carries that name; the closure is unusable and says so.
+  const manifests = new Map(syntheticManifests);
+  manifests.set("client-apps/cli", {
+    name: "@stigmer/cli",
+    dependencies: { "@stigmer/sdk": "*", "@stigmer/not-published": "*" },
+  });
+  assert.throws(() => packageClosure("@stigmer/cli", manifests), /@stigmer\/not-published, which is not in the publish set/);
+});
+
+test("the checked-in @stigmer/cli closure is exactly what the compose-runner image installs", () => {
+  // The compose-runner image (backend/services/runner/Dockerfile.sandbox)
+  // installs this set from tarballs in one `npm install`; the release lane
+  // stages it with `--only @stigmer/cli`. Pinned so a new @stigmer/* dep on
+  // the CLI's path is a visible change here, not a silent registry fetch in
+  // the image build. plugins, embed and temporal-codecs are NOT on the
+  // CLI's path and stay out of the image.
+  assert.deepEqual(packageClosure("@stigmer/cli"), [
+    "apis/stubs/ts",
+    "backend/libs/ts/zip-structure",
+    "backend/libs/ts/plugin-package",
+    "sdk/typescript",
+    "sdk/theme",
+    "sdk/react",
+    "sdk/ink",
+    "mcp-server",
+    "client-apps/cli",
+  ]);
+});
+
+test("every @stigmer/* edge of a closure member stays inside the closure", () => {
+  // The completeness invariant behind the snapshot above, checked against the
+  // manifests themselves: an install of exactly these tarballs never needs the
+  // registry for an @stigmer/* package.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const closure = packageClosure("@stigmer/cli");
+  const names = new Set(
+    closure.map((relDir) => JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8")).name),
+  );
+  for (const relDir of closure) {
+    const manifest = JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8"));
+    for (const dep of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
+      if (dep.startsWith("@stigmer/")) {
+        assert.ok(names.has(dep), `${manifest.name} -> ${dep} leaves the closure`);
+      }
+    }
   }
 });
 

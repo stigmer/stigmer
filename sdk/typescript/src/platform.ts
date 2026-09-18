@@ -1,10 +1,12 @@
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import {
+  GetLicenseStatusInputSchema,
   GetServerInfoInputSchema,
   PlatformQueryController,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type {
+  GetLicenseStatusOutput,
   GetServerInfoOutput,
   ServerEdition,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -25,11 +27,12 @@ export interface ServerInfo {
 }
 
 /**
- * Client for platform-level queries (server info, capabilities).
+ * Client for platform-level queries (server info, capabilities, license).
  *
  * The {@link getServerInfo} method is the authoritative source for
  * deployment mode detection. It replaces URL-based hostname guessing
- * with a server-reported value.
+ * with a server-reported value. {@link getLicenseStatus} is its sibling
+ * for the license the server holds; every edition answers it.
  */
 export class PlatformClient {
   private readonly platform: Client<typeof PlatformQueryController>;
@@ -58,6 +61,26 @@ export class PlatformClient {
         edition: resp.edition,
         version: resp.version,
       };
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Retrieve the state of the license the connected server holds.
+   *
+   * Every edition answers: open source and Stigmer Cloud report `absent`
+   * (neither holds a key); a Stigmer Enterprise deployment reports the
+   * state of its configured ticket with the verified claims. Requires a
+   * signed-in caller. The generated output is returned as it is, so the
+   * presence contract it documents (claims exactly when a ticket verified,
+   * key id whenever one was presented) reaches the caller unchanged.
+   */
+  async getLicenseStatus(): Promise<GetLicenseStatusOutput> {
+    try {
+      return await this.platform.getLicenseStatus(
+        create(GetLicenseStatusInputSchema, {}),
+      );
     } catch (e) {
       throw wrapError(e);
     }

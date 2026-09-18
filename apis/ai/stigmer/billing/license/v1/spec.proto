@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.license.v1;
+
+import "ai/stigmer/platform/v1/entitlement.proto";
+import "ai/stigmer/platform/v1/license.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// LicenseSpec is what an operator issues: who the license is for, what it
+// permits and for how long.
+//
+// The spec is the source of the signed claims: at issue, the issuer builds
+// LicenseClaims from it, the license's id and the signing instant, signs
+// them, and records the ticket in the status. The spec is final at create;
+// a license that must say something else is a new License.
+message LicenseSpec {
+  option (buf.validate.message).cel = {
+    id: "license_spec.grace_not_before_expiry"
+    message: "grace_until must not be before expires_at"
+    expression: "this.grace_until >= this.expires_at"
+  };
+
+  // Who the license is issued to.
+  ai.stigmer.platform.v1.LicenseCustomer customer = 1 [(buf.validate.field).required = true];
+
+  // The id of the Plan the entitlements were copied from. Empty when the
+  // entitlements are bespoke to this customer.
+  string plan_id = 2;
+
+  // What the license permits. Copied from the plan when plan_id is set, so
+  // the license reads whole without a lookup; written by hand otherwise.
+  ai.stigmer.platform.v1.Entitlements entitlements = 3 [(buf.validate.field).required = true];
+
+  // Whether the term is a trial or a paid license.
+  ai.stigmer.platform.v1.LicenseTerm term = 4 [(buf.validate.field) = {
+    required: true
+    enum: {
+      defined_only: true
+      not_in: [0]
+    }
+  }];
+
+  // When the term ends.
+  google.protobuf.Timestamp expires_at = 5 [(buf.validate.field).required = true];
+
+  // The end of the grace period after expiry, during which the licensed
+  // server keeps serving and reports the license as expired.
+  google.protobuf.Timestamp grace_until = 6 [(buf.validate.field).required = true];
+
+  // Operator notes about this issuance (the order, the contact, the reason
+  // for a bespoke entitlement). Never signed, never shown to the customer.
+  string notes = 7 [(buf.validate.field).string.max_len = 4096];
+}

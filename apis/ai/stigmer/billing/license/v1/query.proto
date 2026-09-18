@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.license.v1;
+
+import "ai/stigmer/billing/license/v1/api.proto";
+import "ai/stigmer/billing/license/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// LicenseQueryController provides the read operations on issued licenses.
+//
+// A license carries a customer's name and a ticket that unlocks a server, so
+// every read is a platform operator act on the static platform target, with
+// the same permission that issues.
+//
+// @internal
+// Served by the cloud composition only (the kind is cloud_only). Authorizes
+// against platform:stigmer with can_issue_license.
+service LicenseQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = license;
+
+  // Get a license by its unique identifier.
+  rpc get(LicenseId) returns (License) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_issue_license;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view licenses";
+  }
+
+  // List issued licenses, optionally for one customer.
+  rpc list(ListLicensesInput) returns (Licenses) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_issue_license;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view licenses";
+  }
+}

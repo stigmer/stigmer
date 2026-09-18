@@ -51,7 +51,10 @@
               "schedule",
               "memory",
               "plugin",
-              "project"
+              "project",
+              "plan",
+              "subscription",
+              "license"
             ],
             "type": "string"
           },

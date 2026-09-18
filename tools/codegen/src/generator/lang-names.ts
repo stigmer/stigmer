@@ -90,18 +90,24 @@ export function pyProtoFileToModule(protoFile: string): string {
   return name + "_pb2";
 }
 
-/** "ai.stigmer.agentic.agent.v1" → "agent_spec_pb2". */
-export function pyProtoModuleAlias(protoPkg: string): string {
+/**
+ * Alias for a cross-package proto module: "ai.stigmer.agentic.agent.v1" with
+ * "spec_pb2" → "agent_spec_pb2"; "ai.stigmer.platform.v1" with
+ * "entitlement_pb2" → "platform_entitlement_pb2". The module comes from the
+ * type's own proto file, because a package may spread its messages over
+ * several topic files and one alias per package would name only one of them.
+ */
+export function pyProtoModuleAlias(protoPkg: string, module: string = "spec_pb2"): string {
   const parts = protoPkg.split(".");
   if (parts.length >= 2) {
-    return parts[parts.length - 2] + "_spec_pb2";
+    return parts[parts.length - 2] + "_" + module;
   }
-  return protoPkg + "_spec_pb2";
+  return protoPkg + "_" + module;
 }
 
-/** Cross-package proto import line for Python. */
-export function pyProtoImportLine(protoPkg: string): string {
-  return `from ${protoPkg} import spec_pb2 as ${pyProtoModuleAlias(protoPkg)}`;
+/** Cross-package proto import line for Python, for one module of the package. */
+export function pyProtoImportLine(protoPkg: string, module: string = "spec_pb2"): string {
+  return `from ${protoPkg} import ${module} as ${pyProtoModuleAlias(protoPkg, module)}`;
 }
 
 /** snake_case → CapCamel with the house acronym overrides. */
