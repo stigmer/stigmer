@@ -510,13 +510,23 @@ smoke-all-in-one: build-runner build-server build-web ## Stage, build and boot-s
 	node scripts/stage-all-in-one.mjs
 	node scripts/smoke-all-in-one.mjs
 
+# The compose-runner image's CLI (Dockerfile.sandbox, the compose-runner
+# stage): @stigmer/cli and its @stigmer/* closure packed from THIS checkout
+# into backend/services/runner/stage/cli, which the stage COPYs and installs.
+# The release lane stages the same way (--version <release>) and hands the
+# result to the image jobs as an artifact; here it is the input every
+# source build of the compose runner needs (stigmer/stigmer#1158).
+.PHONY: stage-compose-runner-cli
+stage-compose-runner-cli: build-libs ## Stage the CLI tarballs the compose-runner image installs (from this checkout, dev version)
+	node scripts/stage-compose-runner-cli.mjs --skip-build
+
 # The compose gate (DD-013, Phase-2 P5): build both images from source and
 # prove the full self-host stack — server + Postgres + Temporal + runner —
 # up to one end-to-end workflow run. The same script the PR gate
 # (ci.compose-stack.yaml) and the release lane run. Fixed ports 7234/7235:
 # stop any running `stigmer up` first.
 .PHONY: smoke-compose
-smoke-compose: build-server build-web ## Build the compose stack from source and run the clean-clone gate smoke (DD-013; needs Docker)
+smoke-compose: build-server build-web stage-compose-runner-cli ## Build the compose stack from source and run the clean-clone gate smoke (DD-013; needs Docker)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the compose smoke needs a Docker daemon"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node scripts/smoke-compose.mjs --build
@@ -551,7 +561,7 @@ test-helm: node_modules ## Run the chart's render, compose-parity and schema tes
 	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
 
 .PHONY: smoke-helm
-smoke-helm: build-server build-web ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
+smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node scripts/smoke-helm.mjs --build

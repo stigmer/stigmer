@@ -14,6 +14,7 @@
  *   node scripts/publish-libs.mjs --version 0.5.0-dev.20260608 --tag dev  # dev channel
  *   NPM_TOKEN=npm_xxx node scripts/publish-libs.mjs --version 0.5.0  # CI with token
  *   node scripts/publish-libs.mjs --version 0.0.0-dev.abc1234 --pack-dir out/pkgs  # tarballs, no registry
+ *   node scripts/publish-libs.mjs --version 3.17.0 --pack-dir out/pkgs --only @stigmer/cli  # one package + its @stigmer/* closure
  *
  * --version is required. It stamps the version into every dist/package.json.
  *
@@ -24,6 +25,15 @@
  * version — the all-in-one image built from a PR's sources — gets bytes
  * identical to a release's, and it needs no npm token. Mutually exclusive
  * with --dry-run and --tag (no dist-tag exists for a directory).
+ *
+ * --only <name> narrows a --pack-dir run to one package and the @stigmer/*
+ * packages it depends on, transitively, through `dependencies` and
+ * `peerDependencies` (npm 7+ installs peers). An image that bakes one of our
+ * packages installs exactly that set of tarballs in one `npm install`, and
+ * npm resolves every @stigmer/* edge among them instead of asking the
+ * registry — the compose-runner image's CLI (stigmer/stigmer#1158). Refused
+ * without --pack-dir: the registry publish is lockstep by design, and a
+ * subset there would leave the other packages' pinned deps unresolvable.
  *
  * The npm dist-tag is chosen as follows:
  *   - If --tag is passed explicitly, that tag is used verbatim. This is how the
@@ -123,13 +133,85 @@ function parseArgs() {
     process.exit(1);
   }
 
+  const only = args.includes("--only")
+    ? args[args.indexOf("--only") + 1]
+    : undefined;
+  if (args.includes("--only") && !only) {
+    console.error("error: --only requires a package name (e.g. --only @stigmer/cli)");
+    process.exit(1);
+  }
+  if (only && !packDir) {
+    console.error("error: --only is only valid with --pack-dir (the registry publish is lockstep)");
+    process.exit(1);
+  }
+
   return {
     version,
     tag,
     dryRun: args.includes("--dry-run"),
     skipBuild: args.includes("--skip-build"),
     packDir: packDir ? resolve(packDir) : undefined,
+    only,
   };
+}
+
+/**
+ * The transitive @stigmer/* closure of one package over the publish set: the
+ * package itself plus every @stigmer/* package reachable through
+ * `dependencies` and `peerDependencies`, in PACKAGES order (so a caller that
+ * cares about publish order keeps it). Peers count because npm 7+ installs
+ * them; an edge left out would send npm to the registry for it, which is
+ * the race this closure exists to remove.
+ *
+ * `manifests` maps each PACKAGES entry to its parsed package.json; the
+ * default reads them from the checkout. Injectable so the test can pin the
+ * rule on a synthetic graph, and the checked-in graph's closure separately.
+ * Throws when `name` is not a published package (a typo must not pack an
+ * empty set that an image then installs "successfully"), and when a member
+ * names an @stigmer/* package outside the publish set (that edge could only
+ * be satisfied by the registry, and there is no such package on it).
+ */
+export function packageClosure(name, manifests = readWorkspaceManifests()) {
+  const byName = new Map();
+  for (const [relPath, manifest] of manifests) byName.set(manifest.name, relPath);
+  if (!byName.has(name)) {
+    throw new Error(
+      `--only ${name}: not a publishable workspace package (PACKAGES names ${[...byName.keys()].join(", ")})`,
+    );
+  }
+
+  const closure = new Set();
+  const pending = [name];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (closure.has(current)) continue;
+    closure.add(current);
+    const manifest = manifests.get(byName.get(current));
+    const edges = { ...manifest.dependencies, ...manifest.peerDependencies };
+    for (const dep of Object.keys(edges)) {
+      if (!dep.startsWith("@stigmer/")) continue;
+      if (!byName.has(dep)) {
+        throw new Error(
+          `${current} depends on ${dep}, which is not in the publish set; the closure cannot be installed from tarballs alone`,
+        );
+      }
+      if (!closure.has(dep)) pending.push(dep);
+    }
+  }
+
+  return PACKAGES.filter(
+    (relPath) => manifests.has(relPath) && closure.has(manifests.get(relPath).name),
+  );
+}
+
+/** PACKAGES entry → parsed package.json, read from this checkout. */
+function readWorkspaceManifests() {
+  return new Map(
+    PACKAGES.map((relPath) => [
+      relPath,
+      JSON.parse(readFileSync(resolve(root, relPath, "package.json"), "utf8")),
+    ]),
+  );
 }
 
 function isPrerelease(version) {
@@ -315,13 +397,15 @@ export function packCommand(distDir, packDir) {
 }
 
 async function main() {
-  const { version, tag: explicitTag, dryRun, skipBuild, packDir } = parseArgs();
+  const { version, tag: explicitTag, dryRun, skipBuild, packDir, only } = parseArgs();
   const inferredTag = isPrerelease(version) ? "next" : "latest";
   const tag = explicitTag ?? inferredTag;
+  const packages = only ? packageClosure(only) : PACKAGES;
 
   console.log(`\n  version: ${version}`);
   if (packDir) {
     console.log(`  pack to: ${packDir} (no registry)`);
+    if (only) console.log(`  only:    ${only} and its @stigmer/* closure (${packages.length} packages)`);
   } else {
     console.log(`  tag:     ${tag}${explicitTag ? "" : " (default; some packages may pin lower)"}`);
     console.log(`  dry-run: ${dryRun}`);
@@ -343,7 +427,7 @@ async function main() {
   try {
     console.log(packDir ? "=== Packing packages ===\n" : "=== Publishing packages ===\n");
 
-    for (const relPath of PACKAGES) {
+    for (const relPath of packages) {
       const pkgDir = resolve(root, relPath);
       const srcPkg = JSON.parse(
         readFileSync(resolve(pkgDir, "package.json"), "utf8"),

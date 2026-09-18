@@ -27,10 +27,12 @@
  *
  * Usage:
  *   node scripts/smoke-compose.mjs --build
- *       Builds both images from source via docker-compose.dev.yml. The
- *       server image COPYs a prebuilt slim tree: run `make build-server
- *       build-web` and `node backend/services/stigmer-server/scripts/
- *       bundle-slim.mjs` first (make smoke-compose does all of it).
+ *       Builds both images from source via docker-compose.dev.yml. Both
+ *       images COPY staged inputs: the server image a prebuilt slim tree
+ *       (`make build-server build-web` and `node backend/services/
+ *       stigmer-server/scripts/bundle-slim.mjs`), the runner image the CLI
+ *       tarballs it installs (`make stage-compose-runner-cli`). `make
+ *       smoke-compose` does all of it.
  *
  *   node scripts/smoke-compose.mjs --published --version=vX.Y.Z
  *       Pulls the published ghcr.io images at that tag (the release
@@ -47,7 +49,7 @@
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { cpSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -62,6 +64,7 @@ import {
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
+const runnerCliStage = join(repoRoot, "backend", "services", "runner", "stage", "cli");
 
 const SERVER_PORT = 7234;
 const ARTIFACT_PORT = 7235;
@@ -122,6 +125,23 @@ function stageServerTree() {
   cpSync(distSlim, staged, { recursive: true });
 }
 
+/**
+ * The dev runner image installs the CLI tarballs staged under
+ * backend/services/runner/stage/cli (scripts/stage-compose-runner-cli.mjs)
+ * and asserts their version against the STIGMER_CLI_VERSION build-arg, which
+ * docker-compose.dev.yml requires. Returns that version for the env file.
+ */
+function stagedRunnerCliVersion() {
+  const versionFile = join(runnerCliStage, "VERSION");
+  if (!existsSync(versionFile)) {
+    fail(
+      "backend/services/runner/stage/cli is not staged — run `make stage-compose-runner-cli` " +
+        "(or `node scripts/stage-compose-runner-cli.mjs`) first; `make smoke-compose` does",
+    );
+  }
+  return readFileSync(versionFile, "utf8").trim();
+}
+
 async function main() {
   const { mode, version, keep } = parseArgs();
 
@@ -138,6 +158,7 @@ async function main() {
     `STIGMER_RUNNER_TOKEN_KEY=${randomBytes(32).toString("base64")}`,
   ];
   if (version !== "") envLines.push(`STIGMER_VERSION=${version}`);
+  if (mode === "build") envLines.push(`STIGMER_CLI_VERSION=${stagedRunnerCliVersion()}`);
   writeFileSync(envFile, envLines.join("\n") + "\n");
 
   const project = `stigmer-smoke-${Date.now()}`;
