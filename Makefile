@@ -589,17 +589,31 @@ test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra n
 
 # ─── Plugin Catalogue Testing ────────────────
 
-.PHONY: test-plugins-static
+.PHONY: test-plugins-static audit-plugins
 
 # The official plugin marketplace (plugins/) read through
 # @stigmer/plugin-package, the reader the CLI and the server use: the
 # marketplace file and the tree agree, every offered plugin reads clean under
 # its own name, the defaults are the file's. Deterministic, network-free;
-# runs on every plugins/** PR. Structural validity of the ai.stigmer/ overlays
-# against the contract is check-docs-yaml's job (authoring dir `plugins`).
+# runs on every plugins/** PR. The typecheck covers the catalogue's own
+# tooling (plugins/scripts) and the suite; a script nobody typechecks is a
+# gate nobody hears. Structural validity of the ai.stigmer/ overlays against
+# the contract is check-docs-yaml's job (authoring dir `plugins`).
 test-plugins-static: ## Run the plugin catalogue's static suite (fast, no network)
 	@npm run build -w @stigmer/plugin-package --silent
+	npm run typecheck -w @stigmer/plugins
 	npm run test -w @stigmer/plugins
+
+# The vendor-catalogue audit (plugins/scripts/audit): reads the vendors'
+# marketplaces at a pinned commit through the product's own preparation
+# chain, probes every hosted MCP server unauthenticated, applies the
+# inclusion rubric from plugins/README.md, and writes the report a
+# maintainer rules on. Network; run by hand when the catalogue is curated,
+# never in CI. Arguments after `--` reach the script (`--out <dir>` required;
+# `--ref owner/repo=<sha>` reproduces a past report).
+audit-plugins: ## Audit the vendor catalogues against the inclusion rubric (network, by hand; ARGS="--out <dir>")
+	@npm run build -w @stigmer/plugin-package --silent
+	npm run audit -w @stigmer/plugins -- $(ARGS)
 
 
 # ─── Tidy ────────────────────────────────────
