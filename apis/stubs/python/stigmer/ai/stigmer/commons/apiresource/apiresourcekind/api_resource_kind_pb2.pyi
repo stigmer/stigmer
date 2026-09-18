@@ -58,6 +58,9 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     memory: _ClassVar[ApiResourceKind]
     plugin: _ClassVar[ApiResourceKind]
     project: _ClassVar[ApiResourceKind]
+    plan: _ClassVar[ApiResourceKind]
+    subscription: _ClassVar[ApiResourceKind]
+    license: _ClassVar[ApiResourceKind]
 api_resource_version_unspecified: ApiResourceVersion
 v1: ApiResourceVersion
 resource_tier_unspecified: ResourceTier
@@ -96,6 +99,9 @@ schedule: ApiResourceKind
 memory: ApiResourceKind
 plugin: ApiResourceKind
 project: ApiResourceKind
+plan: ApiResourceKind
+subscription: ApiResourceKind
+license: ApiResourceKind
 KIND_META_FIELD_NUMBER: _ClassVar[int]
 kind_meta: _descriptor.FieldDescriptor
 

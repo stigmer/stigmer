@@ -53,6 +53,7 @@ import type { SecretCodec } from "../encryption/codec.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { IdentityFederation } from "./identity-federation.js";
+import type { LicenseStatusProvider } from "./license-status.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
@@ -272,6 +273,11 @@ export interface ResolvedExtensionDrivers {
    * tuple-half RPC arms refuse UNIMPLEMENTED with the edition reason.
    */
   readonly authorizationQueries: AuthorizationQueryEngine | undefined;
+  /**
+   * The license-status provider — undefined = compose.ts installs the
+   * built-in `absent` answer, so every edition serves getLicenseStatus.
+   */
+  readonly licenseStatus: LicenseStatusProvider | undefined;
 }
 
 /**
@@ -325,6 +331,8 @@ export function resolveExtensions(
   let policyGrantScopeDeclaredBy: string | undefined;
   let authorizationQueries: AuthorizationQueryEngine | undefined;
   let authorizationQueriesDeclaredBy: string | undefined;
+  let licenseStatus: LicenseStatusProvider | undefined;
+  let licenseStatusDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -516,6 +524,16 @@ export function resolveExtensions(
       authorizationQueriesDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.licenseStatus !== undefined) {
+      if (licenseStatusDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a LicenseStatusProvider, but '${licenseStatusDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      licenseStatus = unit.drivers.licenseStatus;
+      licenseStatusDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -641,6 +659,7 @@ export function resolveExtensions(
       iamPolicyStore,
       policyGrantScope,
       authorizationQueries,
+      licenseStatus,
     },
     services,
     workers,

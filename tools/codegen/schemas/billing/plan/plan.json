@@ -1,0 +1,65 @@
+{
+  "name": "PlanSpec",
+  "kind": "PLAN_SPEC",
+  "description": "PlanSpec defines what a plan grants and what buys it.\n\n The spec is written once, at create, and never updated: a plan's terms are\n what a customer agreed to, so a change is a new Plan. Every money field is\n a term of one specific plan row, and no row ships in the contract, so the\n contract itself carries no price.\n\n The instrument decides which terms a plan may carry, and the two rules\n below refuse the cross: a license plan is invoiced for a term, so monthly\n terms have no meaning on it; a subscription plan bills monthly, so an\n annual price has none. per_extra_organization_micros is bound to the\n entitlements' managed organizations, not to the instrument, and stays free.",
+  "protoType": "ai.stigmer.billing.plan.v1.PlanSpec",
+  "protoFile": "apis/ai/stigmer/billing/plan/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Instrument",
+      "jsonName": "instrument",
+      "protoField": "instrument",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.billing.plan.v1.PlanInstrument",
+        "enumValues": [
+          "subscription",
+          "license"
+        ]
+      },
+      "description": "The instrument this plan is bought through.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Entitlements",
+      "jsonName": "entitlements",
+      "protoField": "entitlements",
+      "type": {
+        "kind": "message",
+        "messageType": "Entitlements"
+      },
+      "description": "What the plan permits: its limits and features.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Terms",
+      "jsonName": "terms",
+      "protoField": "terms",
+      "type": {
+        "kind": "message",
+        "messageType": "PlanTerms"
+      },
+      "description": "The commercial terms. Which fields are set depends on the instrument:\n a subscription plan carries the greater-of terms, a license plan its\n annual price.",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "One or two sentences describing the plan as the pricing page shows it.",
+      "required": false,
+      "validation": {
+        "maxLength": 1024
+      }
+    }
+  ]
+}

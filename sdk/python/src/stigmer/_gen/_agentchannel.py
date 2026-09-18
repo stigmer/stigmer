@@ -20,7 +20,7 @@ from ai.stigmer.agentic.agentchannel.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
-from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as agentexecution_spec_pb2
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as agentexecution_invocation_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -267,8 +267,8 @@ class RunConfigInput:
     service_tier: int = 0
     thinking_mode: int = 0
 
-    def _to_proto(self) -> agentexecution_spec_pb2.RunConfig:
-        msg = agentexecution_spec_pb2.RunConfig(
+    def _to_proto(self) -> agentexecution_invocation_pb2.RunConfig:
+        msg = agentexecution_invocation_pb2.RunConfig(
             model_name=self.model_name,
             max_cost_usd=self.max_cost_usd,
             max_tool_rounds=self.max_tool_rounds,

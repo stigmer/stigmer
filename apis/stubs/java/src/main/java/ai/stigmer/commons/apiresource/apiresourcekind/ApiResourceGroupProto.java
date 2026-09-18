@@ -57,22 +57,23 @@ public final class ApiResourceGroupProto extends com.google.protobuf.GeneratedFi
       "igmer.commons.apiresource.apiresourcekin" +
       "d\032 google/protobuf/descriptor.proto\"Q\n\024A" +
       "piResourceGroupMeta\022\026\n\006domain\030\001 \001(\tR\006dom" +
-      "ain\022!\n\014display_name\030\002 \001(\tR\013displayName*\272" +
+      "ain\022!\n\014display_name\030\002 \001(\tR\013displayName*\352" +
       "\001\n\020ApiResourceGroup\022\"\n\036api_resource_grou" +
       "p_unspecified\020\000\022.\n\007agentic\020\001\032!\352\275,\035\n\022agen" +
       "tic.stigmer.ai\022\007Agentic\022\"\n\003iam\020\002\032\031\352\275,\025\n\016" +
       "iam.stigmer.ai\022\003IAM\022.\n\007tenancy\020\003\032!\352\275,\035\n\022" +
-      "tenancy.stigmer.ai\022\007Tenancy:\210\001\n\ngroup_me" +
-      "ta\022!.google.protobuf.EnumValueOptions\030\335\307" +
-      "\005 \001(\0132D.ai.stigmer.commons.apiresource.a" +
-      "piresourcekind.ApiResourceGroupMetaR\tgro" +
-      "upMetaB\365\001B\025ApiResourceGroupProtoP\001\242\002\005ASC" +
-      "AA\252\002.Ai.Stigmer.Commons.Apiresource.Apir" +
-      "esourcekind\312\002.Ai\\Stigmer\\Commons\\Apireso" +
-      "urce\\Apiresourcekind\342\002:Ai\\Stigmer\\Common" +
-      "s\\Apiresource\\Apiresourcekind\\GPBMetadat" +
-      "a\352\0022Ai::Stigmer::Commons::Apiresource::A" +
-      "piresourcekindb\006proto3"
+      "tenancy.stigmer.ai\022\007Tenancy\022.\n\007billing\020\004" +
+      "\032!\352\275,\035\n\022billing.stigmer.ai\022\007Billing:\210\001\n\n" +
+      "group_meta\022!.google.protobuf.EnumValueOp" +
+      "tions\030\335\307\005 \001(\0132D.ai.stigmer.commons.apire" +
+      "source.apiresourcekind.ApiResourceGroupM" +
+      "etaR\tgroupMetaB\365\001B\025ApiResourceGroupProto" +
+      "P\001\242\002\005ASCAA\252\002.Ai.Stigmer.Commons.Apiresou" +
+      "rce.Apiresourcekind\312\002.Ai\\Stigmer\\Commons" +
+      "\\Apiresource\\Apiresourcekind\342\002:Ai\\Stigme" +
+      "r\\Commons\\Apiresource\\Apiresourcekind\\GP" +
+      "BMetadata\352\0022Ai::Stigmer::Commons::Apires" +
+      "ource::Apiresourcekindb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

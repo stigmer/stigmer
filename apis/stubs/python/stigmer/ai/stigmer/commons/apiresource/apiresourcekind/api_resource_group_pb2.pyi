@@ -12,10 +12,12 @@ class ApiResourceGroup(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     agentic: _ClassVar[ApiResourceGroup]
     iam: _ClassVar[ApiResourceGroup]
     tenancy: _ClassVar[ApiResourceGroup]
+    billing: _ClassVar[ApiResourceGroup]
 api_resource_group_unspecified: ApiResourceGroup
 agentic: ApiResourceGroup
 iam: ApiResourceGroup
 tenancy: ApiResourceGroup
+billing: ApiResourceGroup
 GROUP_META_FIELD_NUMBER: _ClassVar[int]
 group_meta: _descriptor.FieldDescriptor
 

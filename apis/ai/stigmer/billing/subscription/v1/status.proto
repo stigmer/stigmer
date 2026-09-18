@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.subscription.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// SubscriptionStatus is the system-managed state of a subscription: its audit
+// trail, its lifecycle state and the billing period it is in.
+//
+// Deliberately absent: the entitlements. They are derived from the plan on
+// every read (SubscriptionQueryController.getEntitlements) so a plan's
+// terms are stated once, on the plan.
+message SubscriptionStatus {
+  // Standard audit information tracking creation and modification.
+  //
+  // @internal
+  // Field 99 follows Stigmer convention for audit placement.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // The lifecycle state the payment system last reported.
+  SubscriptionState state = 1;
+
+  // Start of the current billing period.
+  google.protobuf.Timestamp current_period_start = 2;
+
+  // End of the current billing period.
+  google.protobuf.Timestamp current_period_end = 3;
+
+  // When the subscription was canceled. Unset while it is not.
+  google.protobuf.Timestamp canceled_at = 4;
+}
+
+// SubscriptionState is the lifecycle state a subscription is in.
+//
+// The vocabulary is the smallest set the entitlement read cannot do without
+// and names no payment processor; the billing engine adds states as it needs
+// them, additively.
+enum SubscriptionState {
+  subscription_state_unspecified = 0;
+
+  // In good standing; the plan's entitlements apply.
+  active = 1;
+
+  // A payment is overdue; the plan's entitlements still apply while the
+  // payment system retries.
+  past_due = 2;
+
+  // Ended by the organization or the payment system; the organization is
+  // on Free from the end of the period.
+  canceled = 3;
+}

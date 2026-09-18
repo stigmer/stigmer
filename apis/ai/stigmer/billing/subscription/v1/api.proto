@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.subscription.v1;
+
+import "ai/stigmer/billing/subscription/v1/spec.proto";
+import "ai/stigmer/billing/subscription/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Subscription is an organization's binding to a Plan.
+//
+// At most one subscription is active per organization, and an organization
+// with none is on the Free plan: nothing is written to say so. The
+// subscription is created and moved by the payment system, not by a user's
+// manifest, so it has no owner and grants no roles; its reads and writes
+// authorize on the organization it belongs to (metadata.org) through the
+// billing permissions. The entitlements an organization holds are derived
+// from its subscription's plan on every read and never stored on the
+// subscription.
+message Subscription {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'billing.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Subscription'];
+
+  // Standard resource metadata. metadata.org is the organization the
+  // subscription belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Which plan the organization is bound to.
+  SubscriptionSpec spec = 4;
+
+  // System-managed state: audit, the billing period and the lifecycle state
+  // the payment system reports.
+  SubscriptionStatus status = 5;
+}

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.license.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// LicenseStatus is the system-managed state of an issued license: its audit
+// trail and the signed ticket the customer installs.
+//
+// This is the issuance record, kept by the cloud. What a licensed server
+// reports about the ticket it holds is a different question, answered by
+// PlatformQueryController.getLicenseStatus on that server.
+message LicenseStatus {
+  // Standard audit information tracking creation and modification.
+  //
+  // @internal
+  // Field 99 follows Stigmer convention for audit placement.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // The `kid` of the key that signed the ticket, so the issuer can tell
+  // which licenses a rotated key still covers.
+  string key_id = 1;
+
+  // When the ticket was signed; the issued_at the claims carry.
+  google.protobuf.Timestamp issued_at = 2;
+
+  // The signed ticket: a compact JWS whose payload is the proto JSON of the
+  // LicenseClaims built from the spec. The customer configures the licensed
+  // server with this value. Visible to platform operators only.
+  string ticket = 3;
+}
