@@ -68,6 +68,7 @@ describe.skipIf(!optedIn || !dockerAnswers())(
       await driver.ensureSessionSandbox(sessionId, {
         taskQueue: `session:${sessionId}`,
         stigmerToken: "tok-docker-smoke",
+        callerClass: "user",
       });
       expect(await driver.probe("session", sessionId)).toBe("running");
 
@@ -91,6 +92,7 @@ describe.skipIf(!optedIn || !dockerAnswers())(
       await driver.ensureSessionSandbox(sessionId, {
         taskQueue: `session:${sessionId}`,
         stigmerToken: "tok-docker-smoke",
+        callerClass: "user",
       });
       expect(await driver.probe("session", sessionId)).toBe("running");
 

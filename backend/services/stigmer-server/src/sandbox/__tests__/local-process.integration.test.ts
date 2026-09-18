@@ -81,6 +81,7 @@ describe.skipIf(process.platform === "win32")(
       await driver.ensureSessionSandbox("ses_smoke", {
         taskQueue: "session:ses_smoke",
         stigmerToken: "tok-smoke",
+        callerClass: "user",
       });
       await vi.waitFor(() => expect(spawnCount()).toBe(1), {
         timeout: CHILD_SETTLE_TIMEOUT_MS,
@@ -91,6 +92,7 @@ describe.skipIf(process.platform === "win32")(
       await driver.ensureSessionSandbox("ses_smoke", {
         taskQueue: "session:ses_smoke",
         stigmerToken: "tok-smoke",
+        callerClass: "user",
       });
       expect(spawnCount()).toBe(1);
 
@@ -124,6 +126,7 @@ describe.skipIf(process.platform === "win32")(
       await driver.ensureSessionSandbox("ses_smoke", {
         taskQueue: "session:ses_smoke",
         stigmerToken: "",
+        callerClass: "user",
       });
       await vi.waitFor(() => expect(spawnCount()).toBe(2), {
         timeout: CHILD_SETTLE_TIMEOUT_MS,
