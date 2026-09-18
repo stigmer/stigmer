@@ -109,6 +109,7 @@ import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
+import { SERVER_VERSION } from "../domain/platform/version.js";
 import { registerProjectServices } from "../domain/project/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerPluginServices } from "../domain/plugin/controller.js";
@@ -283,6 +284,18 @@ export interface ComposeOptions {
    * conformance rosters.
    */
   extensions?: ReadonlyArray<ServerExtension>;
+  /**
+   * The release this server reports through getServerInfo. Defaults to
+   * SERVER_VERSION: the esbuild define the all-in-one bundle stamps, or
+   * "dev" when unbundled. A composition that consumes @stigmer/server as a
+   * library runs no bundle and would otherwise report "dev" whatever
+   * release it installed, so it states the version of the package it
+   * composes (the installed package's own manifest is the honest source).
+   * A fact about the library the consumer installed, not about any
+   * extension unit — which is why it lives here and not on
+   * ServerExtension beside `edition`.
+   */
+  version?: string;
   /** Test seam forwarded to the model-registry upstream fetch. */
   fetchImpl?: typeof fetch;
   /** Test seam: bind an ephemeral port instead of config.grpcPort. */
@@ -1473,6 +1486,7 @@ export async function composeServer(
       temporalNamespace: config.temporalNamespace,
       runnerAuthService: runnerCredentials,
       edition: extensions.edition,
+      version: options.version ?? SERVER_VERSION,
       // The built-in `absent` answer installs here, at the consumer, when
       // no unit registered a license-status provider: open source and the
       // cloud hold no key, and only an Enterprise unit ever has one.

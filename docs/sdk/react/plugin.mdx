@@ -37,6 +37,36 @@ const outcome = await install(prepared, { org, installedFrom: "cursor-plugins" }
 ```
 
 
+### useInstallRelation
+
+Pass `null` for either argument to skip (stable no-op).
+
+**Signature**
+
+```tsx
+function useInstallRelation(prepared: PreparedInstall | null, org: string | null): UseInstallRelationReturn
+```
+
+<TypeTable
+  type={{
+    prepared: { type: "PreparedInstall | null", description: "", required: true },
+    org: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseInstallRelationReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "" },
+    installed: { type: "Plugin | null", description: "The org's plugin of the same name, or `null` when none is installed (or not yet asked)." },
+    isLoading: { type: "boolean", description: "" },
+    refetch: { type: "() => void", description: "" },
+    relation: { type: "InstallRelation | null", description: "" },
+  }}
+/>
+
+
 ### useManagingPlugin
 
 Behaviour hook that says whether a resource is managed by an installed
@@ -115,7 +145,7 @@ const { marketplace, warnings, isLoading, error } = useMarketplace({ type: "gith
 
 ### useMarketplaces
 
-The marketplaces this browser knows, with add and remove.
+The sources this browser knows, with add and remove.
 
 Reads through `useSyncExternalStore`, so every mounted consumer sees an
 add or remove at once, and a change from another tab arrives through
@@ -124,25 +154,32 @@ the `storage` event.
 **Signature**
 
 ```tsx
-function useMarketplaces(): UseMarketplacesReturn
+function useMarketplaces(options: UseMarketplacesOptions): UseMarketplacesReturn
 ```
+
+<TypeTable
+  type={{
+    options: { type: "UseMarketplacesOptions", description: "", required: true },
+  }}
+/>
 
 **Returns** — `UseMarketplacesReturn`
 
 <TypeTable
   type={{
-    add: { type: "(name: string, sourceText: string) => string | null", description: "Remember a GitHub source under `name`. Returns the sentence refusing it (a reserved or taken name, a text that is not a GitHub source) or `null` when it was added." },
-    marketplaces: { type: "readonly KnownMarketplace[]", description: "The official marketplace first, then the remembered ones in the order they were added." },
+    add: { type: "(sourceText: string, name?: string) => Promise<AddSourceOutcome>", description: "Read a GitHub source and remember it. The name is the marketplace file's own unless `name` is given; a reserved or taken name, a text that is not a GitHub source, and a repository that is not a marketplace are refused with their sentences." },
+    isBuiltIn: { type: "(name: string) => boolean", description: "Whether `name` is a source the user may neither add over nor remove." },
+    marketplaces: { type: "readonly KnownMarketplace[]", description: "The built-in sources first, then the remembered ones in the order they were added." },
     parseSource: { type: "(sourceText: string) => GitHubSourceOutcome", description: "Parse a source the user typed without adding it, for live validation in a form." },
-    remove: { type: "(name: string) => string | null", description: "Forget the marketplace called `name`; the official one refuses. Returns the refusal or `null`." },
+    remove: { type: "(name: string) => string | null", description: "Forget the source called `name`; a built-in refuses. Returns the refusal or `null`." },
     unreadable: { type: "readonly UnreadableMarketplace[]", description: "" },
   }}
 />
 
 ```tsx
 const { marketplaces, add, remove } = useMarketplaces();
-const refusal = add("cursor-plugins", "cursor/plugins");
-if (refusal) toast.error(refusal);
+const outcome = await add("acme/plugins");
+if (!outcome.ok) toast.error(outcome.message);
 ```
 
 
@@ -297,6 +334,27 @@ byKind.agents[0] // the agent to start a session on, when the plugin carries one
 ```
 
 
+### usePluginUpload
+
+**Signature**
+
+```tsx
+function usePluginUpload(): UsePluginUploadReturn
+```
+
+**Returns** — `UsePluginUploadReturn`
+
+<TypeTable
+  type={{
+    fromDrop: { type: "(items: DataTransferItemList, files: FileList) => Promise<void>", description: "The items of a drop: a directory is walked, a `.zip` is read, anything else is refused." },
+    fromFolderInput: { type: "(files: ArrayLike<File>) => Promise<void>", description: "The files of an `<input type=\"file\" webkitdirectory multiple>` pick." },
+    fromZip: { type: "(file: File) => Promise<void>", description: "One `.zip` file, from an input or a drop." },
+    phase: { type: "PluginUploadPhase", description: "", typeDescriptionLink: "#pluginuploadphase" },
+    reset: { type: "() => void", description: "Back to the drop zone." },
+  }}
+/>
+
+
 ### usePluginVersions
 
 Data hook that fetches the version history of an installed plugin and
@@ -332,15 +390,15 @@ function usePluginVersions(org: string | null, slug: string | null): UsePluginVe
 
 ### usePreparePluginInstall
 
-Behaviour hook that turns a marketplace entry into the push the server
+Behaviour hook that turns a source's entry into the push the server
 expects, and says whether the organization already holds it.
 
-The entry's subtree is fetched at the tree's commit, selected by the
-shared rule, read by the library, archived and digested, so `prepared.
-digest` is the digest `stigmer install` would compute for the same tree
-and the digest the server records after the push. The org's plugin of
-the same name is read by reference; equal digest and READY is
-`installed`, anything else present is `upgrade`.
+The entry's subtree is handed to the one preparation every client runs
+(the ignore files, the selection, then only the selected files, read at
+the tree's commit), so `prepared.digest` is the digest `stigmer install`
+would compute for the same tree and the digest the server records after
+the push. The relation to the org's plugin of the same name is
+`useInstallRelation`'s, shared with the upload path.
 
 Pass `null` for `opened`, `entryName` or `org` to skip (stable no-op).
 
@@ -374,6 +432,21 @@ function usePreparePluginInstall(opened: OpenedMarketplace | null, entryName: st
 
 ## Components
 
+### InstallPreview
+
+The `Plugin`, `Installs`, `Warnings` and `Not installed` blocks, then the relation sentence.
+
+**Props** — `InstallPreviewProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    prepared: { type: "PreparedInstall", description: "", required: true, typeDescriptionLink: "#preparedinstall" },
+    relation: { type: "InstallRelation | null", description: "How the archive relates to the org's plugin of the same name; `null` while unknown.", required: true },
+  }}
+/>
+
+
 ### ManagedByPluginNotice
 
 States that a resource was installed by a plugin and is changed by pushing the plugin again.
@@ -389,23 +462,23 @@ States that a resource was installed by a plugin and is changed by pushing the p
 />
 
 
-### MarketplaceBrowser
+### MarketplaceCatalog
 
-Browse the known marketplaces and install a plugin from one.
+Browse every known source and install a plugin from any of them.
 
-**Props** — `MarketplaceBrowserProps`
+**Props** — `MarketplaceCatalogProps`
 
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
-    fetchImpl: { type: "(input: URL | RequestInfo, init?: RequestInit) => Promise<Response>", description: "The HTTP client the marketplace hosts are read through; `globalThis.fetch` when absent." },
+    fetchImpl: { type: "(input: URL | RequestInfo, init?: RequestInit) => Promise<Response>", description: "The HTTP client the sources are read through; `globalThis.fetch` when absent. Tests inject a fake." },
     onInstalled: { type: "(outcome: InstallPluginOutcome) => void", description: "Called after a plugin is installed; the host navigates to its page." },
-    org: { type: "string", description: "The organization plugins are installed into.", required: true },
+    org: { type: "string", description: "The organization plugins are installed into, and whose installed plugins mark the cards.", required: true },
   }}
 />
 
 ```tsx
-<MarketplaceBrowser
+<MarketplaceCatalog
   org={org}
   onInstalled={({ plugin }) => navigateToDetail("plugins", org, plugin.metadata.slug)}
 />
@@ -459,7 +532,7 @@ so the SDK adds no icon dependency for one shape.
 
 ### PluginInstallDialog
 
-Previews a marketplace entry as the CLI describes it and installs it on
+Previews a source's entry as the CLI describes it and installs it on
 confirmation.
 
 **Props** — `PluginInstallDialogProps`
@@ -468,12 +541,12 @@ confirmation.
   type={{
     className: { type: "string", description: "" },
     entryName: { type: "string | null", description: "The name of the entry to install; `null` closes the dialog.", required: true },
-    marketplaceName: { type: "string", description: "The marketplace's name as the user knows it, kept in the version message.", required: true },
     onClose: { type: "() => void", description: "", required: true },
     onInstalled: { type: "(outcome: InstallPluginOutcome) => void", description: "Called after a successful install with the plugin and its members." },
     open: { type: "boolean", description: "", required: true },
-    opened: { type: "OpenedMarketplace | null", description: "The opened marketplace the entry belongs to; `null` closes the dialog.", required: true },
+    opened: { type: "OpenedMarketplace | null", description: "The opened source the entry belongs to; `null` closes the dialog.", required: true },
     org: { type: "string", description: "The organization to install into.", required: true },
+    sourceName: { type: "string", description: "The source's name as the user knows it (`cursor-plugins`), kept in the version message.", required: true },
   }}
 />
 
@@ -481,7 +554,7 @@ confirmation.
 <PluginInstallDialog
   opened={opened}
   entryName={selected}
-  marketplaceName="cursor-plugins"
+  sourceName="cursor-plugins"
   org={org}
   open={selected !== null}
   onClose={() => setSelected(null)}
@@ -490,11 +563,64 @@ confirmation.
 ```
 
 
+### PluginUploader
+
+Upload a plugin folder or zip and install it.
+
+**Props** — `PluginUploaderProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    onCancel: { type: "() => void", description: "" },
+    onComplete: { type: "(outcome: InstallPluginOutcome) => void", description: "Called after a successful install; the host navigates to the plugin's page." },
+    org: { type: "string", description: "The organization to install into.", required: true },
+  }}
+/>
+
+```tsx
+<PluginUploader org={org} onComplete={({ plugin }) => navigateToDetail("plugins", org, plugin.metadata.slug)} />
+```
+
+
+### PrepareRefusal
+
+The reader's refusal with every sentence, the way `validate -f` prints it; any other error as it is.
+
+
 ## Types
+
+### AddSourceOutcome
+
+What `add` comes to: the source recorded under `name`, or the sentence refusing it.
+
+
+### BUILT_IN_SOURCES
+
+The sources every console ships with, in listing order: the CLI's list, in the console's type.
+
+
+### describeOrigin
+
+One line saying where the archive came from, for a preview's header.
+
+```tsx
+function describeOrigin(origin: InstallOrigin): string
+```
+
 
 ### FetchImpl
 
 The HTTP client a source reads through; injectable so tests run with none.
+
+
+### filterEntries
+
+The entries whose name or description contains `query`, case-insensitively; every entry for an empty query.
+
+```tsx
+function filterEntries(entries: readonly MarketplaceEntry[], query: string): readonly MarketplaceEntry[]
+```
 
 
 ### findEntry
@@ -506,13 +632,49 @@ function findEntry(marketplace: Marketplace, name: string): MarketplaceEntry | u
 ```
 
 
+### folderPick
+
+A folder the component walked itself (a drop), already as root-relative pairs.
+
+```tsx
+function folderPick(name: string, files: readonly LocalFile[]): LocalPick
+```
+
+
+### folderPickFromInput
+
+The `File`s of an `<input type="file" webkitdirectory>` pick. Every path
+begins with the picked folder's own name, which is stripped so the tree
+is rooted where the manifest is.
+
+```tsx
+function folderPickFromInput(files: ArrayLike<File>): LocalPick
+```
+
+
+### formatMib
+
+`bytes` as the MiB figure every size sentence quotes, one decimal.
+
+```tsx
+function formatMib(bytes: number): string
+```
+
+
+### InstallOrigin
+
+Where a prepared install came from: a source's entry, or something the
+user handed the browser. The preview says it in one line; the push's
+version message records the source's name or "uploaded from the console".
+
+
 ### InstallPluginOptions
 
 What an install needs beyond the prepared archive.
 
 <TypeTable
   type={{
-    installedFrom: { type: "string", description: "The marketplace the archive came from, kept in the version message as `stigmer install` keeps it." },
+    installedFrom: { type: "string", description: "The source the archive came from, kept in the version message as `stigmer install` keeps it; omitted for an upload, whose message says so, as `stigmer push plugin` says nothing about a source." },
     org: { type: "string", description: "The organization the plugin is installed into.", required: true },
     visibility: { type: "ApiResourceVisibility", description: "Visibility for the plugin and every resource it materialises; the kind's default when omitted." },
   }}
@@ -533,8 +695,6 @@ The install as the server reports it: the plugin and the members it now holds.
 
 ### InstallRelation
 
-How the prepared archive relates to what the organization already holds.
-
 - `not-installed`: no plugin of this name in the org.
 - `installed`: the org's plugin carries this exact digest and is ready.
 - `upgrade`: the org's plugin exists with another digest (or is not
@@ -543,7 +703,7 @@ How the prepared archive relates to what the organization already holds.
 
 ### isPublishedVersion
 
-Whether `version` names a published release of the catalogue.
+Whether `version` names a release the catalogue is published for: the shared rule, under this module's older name.
 
 ```tsx
 function isPublishedVersion(version: string): boolean
@@ -560,6 +720,41 @@ A marketplace the console can read, named as the user sees it.
     source: { type: "MarketplaceSource", description: "", required: true, typeDescriptionLink: "#marketplacesource" },
   }}
 />
+
+
+### LocalFile
+
+One file of a local pick, at the path it has inside the plugin's root.
+
+<TypeTable
+  type={{
+    file: { type: "File", description: "", required: true },
+    path: { type: "string", description: "", required: true },
+  }}
+/>
+
+
+### LocalPick
+
+What the user handed over, before preparation.
+
+<TypeTable
+  type={{
+    candidates: { type: "readonly LazyCandidate[]", description: "", required: true },
+    kind: { type: "\"folder\" | \"zip\"", description: "", required: true },
+    name: { type: "string", description: "The folder's or the archive's name, for sentences.", required: true },
+    rerooted: { type: "string", description: "The one directory a zip wrapped its contents in, stripped before reading; `undefined` when none." },
+  }}
+/>
+
+
+### looksLikeDroppedDotfiles
+
+Whether `error` is the reader's "no manifest" refusal of a folder pick: the shape a browser that drops dotfiles produces.
+
+```tsx
+function looksLikeDroppedDotfiles(phase: PluginUploadPhase): boolean
+```
 
 
 ### MARKETPLACE_TREE_LIMITS
@@ -604,7 +799,7 @@ function narrowStoredEntry(entry: unknown): Narrowed
 
 ### OFFICIAL_MARKETPLACE
 
-The built-in marketplace, listed first everywhere.
+The official catalogue, listed first everywhere.
 
 
 ### officialFileUrl
@@ -725,15 +920,18 @@ The members of a plugin grouped by kind, in the order the server materialises th
 />
 
 
+### PluginUploadPhase
+
+
 ### PreparedInstall
 
-An entry read, selected and archived, but not yet pushed: what the install preview shows.
+A plugin read, selected and archived, but not yet pushed: what the install preview shows.
 
 <TypeTable
   type={{
     archive: { type: "Uint8Array", description: "The exact bytes a push sends.", required: true },
     digest: { type: "string", description: "SHA-256 of `archive`: the identity the server records, so \"already installed\" is known before a push.", required: true },
-    entry: { type: "MarketplaceEntry", description: "", required: true },
+    origin: { type: "InstallOrigin", description: "", required: true, typeDescriptionLink: "#installorigin" },
     plugin: { type: "PluginPackage", description: "", required: true },
     stats: { type: "SelectionStats", description: "", required: true },
     warnings: { type: "readonly PluginFinding[]", description: "", required: true },
@@ -743,12 +941,26 @@ An entry read, selected and archived, but not yet pushed: what the install previ
 
 ### prepareEntry
 
-Fetch, select, read and archive the entry. The budget is checked from the
-listing's declared sizes before a byte moves; each fetched file is
-length-checked against its declaration by the tree itself.
+Prepare the entry through the one preparation every client runs. The
+declared sizes are checked before a byte moves (a fast refusal for a
+subtree no selection could bring under the cap); the shared preparation
+then reads the ignore files, selects, checks the selected size, and
+fetches only the files the archive carries, each length-checked against
+its declaration by the tree itself.
 
 ```tsx
 function prepareEntry(opened: OpenedMarketplace, entry: MarketplaceEntry): Promise<PreparedInstall>
+```
+
+
+### prepareLocalPlugin
+
+Prepare the pick through the one preparation every client runs. The
+console's archive cap applies to the selected files, so a folder whose
+ignored contents are large is not refused for them.
+
+```tsx
+function prepareLocalPlugin(pick: LocalPick): Promise<PreparedInstall>
 ```
 
 
@@ -758,6 +970,15 @@ The raw content URL of `path` at `commit`.
 
 ```tsx
 function rawUrl(repo: string, commit: string, path: string): string
+```
+
+
+### summariseInstall
+
+"2 skills, 1 MCP server, 1 agent": what the push produced, in the CLI's words.
+
+```tsx
+function summariseInstall(outcome: InstallPluginOutcome): string
 ```
 
 
@@ -793,6 +1014,15 @@ Options for [`useMarketplace`](#usemarketplace).
 />
 
 
+### UseMarketplacesOptions
+
+<TypeTable
+  type={{
+    fetchImpl: { type: "(input: URL | RequestInfo, init?: RequestInit) => Promise<Response>", description: "The HTTP client `add` reads a source with; `globalThis.fetch` by default, a fake in tests." },
+  }}
+/>
+
+
 ### UsePluginCountOptions
 
 Options for [`usePluginCount`](#useplugincount).
@@ -818,4 +1048,13 @@ Options for [`usePluginList`](#usepluginlist).
     scope: { type: "ResourceListScope", description: "Controls which plugins are visible.  - `\"org\"` — only plugins installed in the given organization. - `\"all\"` — includes public plugins other organizations installed." },
   }}
 />
+
+
+### zipPick
+
+A `.zip` the user picked, inflated and re-rooted; its bytes are all in memory once read.
+
+```tsx
+function zipPick(file: File): Promise<LocalPick>
+```
 

@@ -1,0 +1,119 @@
+# =============================================================================
+# Turbo cache writer (main only)
+# =============================================================================
+# Every pull-request lane that builds the workspace libs started from zero:
+# turbo.json declares the task graph and its outputs, but no job kept
+# .turbo/cache between runs, so `npm run build:libs` (~1m25s) ran cold in
+# about eight jobs per push, and the console export in every server and
+# image gate. This lane is the one writer of that cache;
+# .github/actions/turbo-cache is the one reader.
+#
+# The trust model, in three lines:
+#   - main writes. This lane runs on every push to main on a fresh runner
+#     with nothing to restore, so every artifact it saves was built cold
+#     from the commit it is keyed by. No force flag is needed for that.
+#   - PRs read. The reader restores the newest main entry on pull_request
+#     events only. Turbo decides per task, by content hash, what to replay
+#     and what to rebuild; no workflow file decides "did this change".
+#   - main's own lanes and every release lane stay cold. They never
+#     restore, so main remains the uncached ground truth: a hit that lied
+#     (an input turbo.json does not declare) can only surface on a PR, and
+#     main going red afterwards is the honest signal. The fix for such a
+#     case is an `inputs` or `env` line in turbo.json, pinned by
+#     scripts/turbo-inputs.test.mjs, never a path filter here.
+#
+# Only `build` tasks are cached. A cached `test` or `typecheck` is a
+# replayed log, and a required check should mean the tests ran; nothing
+# here ever saves one.
+#
+# Two runners, two entries. Turbo's global hash has no platform component
+# and these outputs (tsc dist, a Next static export) are architecture
+# neutral, so one entry would serve both; keying by runner.os and
+# runner.arch costs two small entries per push (~10MB of libs, ~40MB with
+# the console) and assumes nothing about native build steps.
+#
+# This lane blocks no PR, the exact shape notify-failure.yaml's header
+# warns about (#323): red here means PR lanes quietly rebuild cold again.
+# A red push run files one issue per breakage window. A red writer costs
+# speed, never correctness.
+# =============================================================================
+
+name: ci.turbo-cache
+
+on:
+  push:
+    branches: [main]
+  # A "warm it now" button. A dispatch is watched, so it does not notify.
+  workflow_dispatch:
+
+concurrency:
+  group: turbo-cache-${{ github.ref }}
+  # Main pushes queue rather than cancel, so every merge writes its entry
+  # (the estate's rule since stigmer/stigmer#725).
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# npm ci resilience to transient registry drops, as in every other lane.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
+jobs:
+  write:
+    name: Write Turbo cache (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # Exactly the Turbo tasks the PR lanes consume: the publish set
+      # (build:runner-deps is a subset of it) and the console export.
+      - name: Build the publishable workspace libs
+        run: npm run build:libs
+
+      - name: Build the web console static export
+        run: npm run build:web
+
+      - name: Save the Turbo cache
+        uses: actions/cache/save@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+
+  # Push runs are unattended; dispatches are watched (#477). Shared
+  # file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Turbo Cache Writer Failure Issue
+    needs: [write]
+    if: failure() && github.event_name == 'push'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-turbo-cache-failure
+      title: "ci.turbo-cache: the Turbo cache writer is failing on main"
+      body-context: >-
+        This lane builds the workspace libs and the web console on every
+        push to main and saves .turbo/cache for the pull-request lanes to
+        restore. While it is red, PR lanes fall back to cold builds: slower,
+        never wrong. A failure here is usually a build break on main that
+        the PR lanes also show, or a change to the key scheme in
+        .github/actions/turbo-cache that this lane did not follow.

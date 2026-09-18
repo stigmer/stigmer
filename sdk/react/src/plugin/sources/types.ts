@@ -72,3 +72,8 @@ export const MARKETPLACE_TREE_LIMITS = {
    */
   pluginBytes: 100 * 1024 * 1024,
 } as const;
+
+/** `bytes` as the MiB figure every size sentence quotes, one decimal. */
+export function formatMib(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}

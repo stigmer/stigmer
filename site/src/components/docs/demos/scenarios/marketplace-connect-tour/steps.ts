@@ -1,14 +1,15 @@
 /**
- * Marketplace connect tour for "Connect from the marketplace".
+ * Connect tour for "Connect an MCP Server" (the scenario id keeps
+ * its historical name; the docs inventory keys the embed by it).
  *
- * 6-step sequence: Library grid of MCP servers → cursor selects
+ * 6-step sequence: the Library's MCP Servers grid → cursor selects
  * Neon → detail view → cursor clicks Connect → tools
  * discovered → policies tab showing approval classifications.
  *
- * Fixture data modeled after real public MCP servers to give the
- * demo an authentic marketplace feel. The catalog is HTTP-only
- * (stdio MCP servers are local-runner-only and not shipped in
- * the marketplace), so every fixture uses the http transport.
+ * Fixture data modeled after real public MCP servers, so the
+ * Library reads like one an Organization would hold. Every
+ * fixture uses the http transport: the Connect the tour shows
+ * works on any session, while stdio servers are local-runner-only.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -238,7 +239,7 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
     delayMs: 0,
     data: { view: "grid-browse", servers: MARKETPLACE_SERVERS },
     narration:
-      "The tool library is a curated catalog of remote MCP servers — from GitHub and Slack to databases, monitoring, and design tools.",
+      "Your Library lists every MCP Server your Organization holds — the ones a plugin installed and the ones you defined yourself. Any of them can be connected.",
   },
   {
     delayMs: 3000,

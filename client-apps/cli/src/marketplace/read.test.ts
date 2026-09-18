@@ -24,7 +24,7 @@ afterAll(() => {
 describe("readMarketplaceTree", () => {
   it("reads a Cursor-dialect tree into the one shape, dropping the missing entry with its sentence", () => {
     const tree = readMarketplaceTree(root);
-    expect(tree.marketplace.name).toBe("cursor-plugins");
+    expect(tree.marketplace.name).toBe("acme-plugins");
     expect(tree.marketplace.dialect).toBe("cursor");
     expect(tree.marketplace.plugins.map((entry) => entry.name)).toEqual([
       "thermos",

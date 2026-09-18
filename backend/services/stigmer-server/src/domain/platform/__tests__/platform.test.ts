@@ -15,6 +15,9 @@
  *     execution id;
  *   - getRunnerBootstrapConfig echoes the configured Temporal coordinates
  *     with the token fields empty (minting a proxy token is cloud-only);
+ *   - getServerInfo reports the build stamp by default and the release a
+ *     library consumer states through ComposeOptions.version otherwise
+ *     (stigmer#1168: unbundled, the stamp is always "dev");
  *   - getLicenseStatus answers `absent` with no claims and no key when no
  *     provider is composed, and the composed provider's report verbatim
  *     when one is — both stamped with the ONE instant the controller
@@ -229,6 +232,48 @@ describe("platform domain (composed server)", () => {
   });
 });
 
+describe("platform domain (composed with a stated version)", () => {
+  let server: ComposedServer;
+  let client: PlatformClient;
+  let dir: string;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "platform-domain-version-test-"));
+    vi.stubEnv("STIGMER_ENCRYPTION_KEY", ENC_KEY.toString("base64"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: silentLogger,
+      version: "3.99.0",
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    client = createClient(
+      PlatformQueryController,
+      createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` }),
+    );
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+  });
+
+  it("getServerInfo reports the composition's stated release, not the build stamp", async () => {
+    // A library consumer (the cloud composition) runs no bundle, so the
+    // define is never stamped for it; ComposeOptions.version is how it
+    // states the release it installed. Edition is untouched by it.
+    const info = await client.getServerInfo({});
+    expect(info.version).toBe("3.99.0");
+    expect(info.edition).toBe(ServerEdition.oss);
+  });
+});
+
 describe("platform domain (keyless runner-token service)", () => {
   it("a keyless service answers not-minted — fail-soft, never an error", async () => {
     const transport = createRouterTransport((router) => {
@@ -239,6 +284,7 @@ describe("platform domain (keyless runner-token service)", () => {
           RunnerAuthService.create(undefined),
         ),
         edition: ServerEdition.oss,
+        version: "dev",
         licenseStatus: ABSENT_LICENSE_STATUS,
         now: () => new Date(),
         logger: silentLogger,
@@ -273,6 +319,7 @@ describe("platform domain (license status)", () => {
           RunnerAuthService.create(undefined),
         ),
         edition: ServerEdition.enterprise,
+        version: "dev",
         licenseStatus: provider,
         now: () => instant,
         logger: silentLogger,

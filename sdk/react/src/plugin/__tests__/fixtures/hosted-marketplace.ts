@@ -10,7 +10,8 @@
 
 import type { FetchImpl } from "../../sources/types.js";
 
-export const HOSTED_MARKETPLACE_NAME = "cursor-plugins";
+/** The fixture names itself `acme-plugins`: the vendors' names are built in, and a fixture under one would meet the reserved-name refusal. */
+export const HOSTED_MARKETPLACE_NAME = "acme-plugins";
 export const HOSTED_REPO = "acme/plugins";
 export const HOSTED_COMMIT = "0123456789abcdef0123456789abcdef01234567";
 
