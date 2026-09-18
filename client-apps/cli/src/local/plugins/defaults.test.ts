@@ -148,7 +148,11 @@ const say = (): void => {};
 
 async function run() {
   const prepared = await prepareDefaultPlugins({ repoDir: () => official });
-  return installPreparedDefaults({ stigmer, info: say }, prepared, "stigmer");
+  return installPreparedDefaults(
+    { stigmer, info: say, verb: "stigmer bootstrap" },
+    prepared,
+    "stigmer",
+  );
 }
 
 describe("prepareDefaultPlugins", () => {
@@ -182,7 +186,7 @@ describe("prepareDefaultPlugins", () => {
 });
 
 describe("installPreparedDefaults", () => {
-  it("installs every default in order, public, with the CLI's message, on a fresh backend", async () => {
+  it("installs every default in order, public, with the invoking verb in the message, on a fresh backend", async () => {
     const result = await run();
     expect(result.outcomes.map((o) => [o.name, o.action])).toEqual([
       ["thermos", "installed"],
@@ -196,7 +200,7 @@ describe("installPreparedDefaults", () => {
       ),
     ).toBe(true);
     expect(pushes[0]?.message).toMatch(
-      /^default plugin, installed by stigmer up \(/,
+      /^default plugin, installed by stigmer bootstrap \(/,
     );
     expect(digestOf(pushes[0]!.artifact)).toBe(thermosDigest);
     expect(digestOf(pushes[1]!.artifact)).toBe(githubDigest);

@@ -37,6 +37,7 @@ import { log } from "../logger.js";
 import type { ResolveOfficialOptions } from "../marketplace/official.js";
 import type {
   DefaultPluginsResult,
+  InstallingVerb,
   PreparedDefault,
 } from "./plugins/defaults.js";
 import { dataDir } from "./paths.js";
@@ -70,12 +71,14 @@ export async function prepareBootstrap(
 /**
  * Phase 2. Throws when the system org cannot be ensured; a default that
  * fails to land is reported in the result, not thrown, so the caller can
- * name each one.
+ * name each one. `verb` is the command running this, stamped into each
+ * installed plugin's version message.
  */
 export async function runBootstrap(
   stigmer: Stigmer,
   prepared: PreparedBootstrap,
   say: Say,
+  verb: InstallingVerb,
 ): Promise<BootstrapResult> {
   const [{ ensureSystemOrg }, { installPreparedDefaults }] = await Promise.all(
     [import("./system-org.js"), import("./plugins/defaults.js")],
@@ -83,7 +86,7 @@ export async function runBootstrap(
   const org = await ensureSystemOrg(stigmer);
   if (org === "created") say(`Created the '${SYSTEM_ORG}' organization`);
   const plugins = await installPreparedDefaults(
-    { stigmer, info: say },
+    { stigmer, info: say, verb },
     prepared.defaults,
     SYSTEM_ORG,
   );
@@ -96,7 +99,12 @@ export async function bootstrapBackend(
   say: Say,
   options: PrepareBootstrapOptions = {},
 ): Promise<BootstrapResult> {
-  return runBootstrap(stigmer, await prepareBootstrap(options), say);
+  return runBootstrap(
+    stigmer,
+    await prepareBootstrap(options),
+    say,
+    "stigmer bootstrap",
+  );
 }
 
 /** Seams of the local bootstrap, injectable for tests; the defaults are the real phases over the real local client. */
@@ -145,7 +153,11 @@ export async function bootstrapLocalBackend(
   }
 
   try {
-    const result = await (deps.run ?? runBootstrap)(client.stigmer, prepared, say);
+    const result = await (deps.run ?? runLocalBootstrap)(
+      client.stigmer,
+      prepared,
+      say,
+    );
     log.debug("bootstrap complete", {
       org: result.org,
       outcomes: result.plugins.outcomes,
@@ -161,6 +173,16 @@ export async function bootstrapLocalBackend(
       "Warning: failed to bootstrap the local backend. Run 'stigmer bootstrap' to retry.",
     );
   }
+}
+
+// Phase 2 in the seam's shape, naming the verb: everything this file's
+// local bootstrap installs was installed by `stigmer up`.
+function runLocalBootstrap(
+  stigmer: Stigmer,
+  prepared: PreparedBootstrap,
+  say: Say,
+): Promise<BootstrapResult> {
+  return runBootstrap(stigmer, prepared, say, "stigmer up");
 }
 
 // The retire step in the shape the seam expects; the module is loaded only

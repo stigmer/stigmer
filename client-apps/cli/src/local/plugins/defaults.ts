@@ -40,11 +40,20 @@ import {
   pushPrepared,
 } from "../../resources/plugin.js";
 
+/**
+ * The command that ran the install, as the plugin's stored version message
+ * names it. Two verbs share the one bootstrap function, and a platform
+ * operator reading the row a year later must see which one wrote it.
+ */
+export type InstallingVerb = "stigmer up" | "stigmer bootstrap";
+
 export interface DefaultPluginsDeps {
   /** The client bound to the backend being bootstrapped. */
   readonly stigmer: Stigmer;
   /** Human progress lines (stderr). */
   readonly info: (line: string) => void;
+  /** Stamped into each installed plugin's version message. */
+  readonly verb: InstallingVerb;
 }
 
 /** One default, ready to push: its marketplace name and the prepared archive. */
@@ -123,7 +132,7 @@ export async function installPreparedDefaults(
       await pushPrepared(deps.stigmer, push, {
         org,
         visibility: ApiResourceVisibility.visibility_public,
-        message: `default plugin, installed by stigmer up (${VERSION})`,
+        message: `default plugin, installed by ${deps.verb} (${VERSION})`,
       });
       outcomes.push({ name, action: "installed", digest: push.digest });
     } catch (error) {
