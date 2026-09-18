@@ -13,39 +13,51 @@ the CLI are one plugin with one digest, and the server treats a second install
 of the same version as nothing to do.
 
 There are two ways in. The **Marketplace**, in the sidebar, is where you find a
-plugin someone else publishes. **Upload plugin**, from the Library's Plugins
-page, is how you install a plugin folder you already have. Everything here works
-the same in the web console and the desktop app.
+plugin someone else publishes, and its first tile is **Upload a plugin** for a
+plugin folder you already have. The Library's Plugins page offers the same
+upload as **Upload plugin**. Everything here works the same in the web console
+and the desktop app.
 
 ## Find a plugin in the Marketplace
 
-Open **Marketplace** in the sidebar. The page lists the plugins on offer in a
-section per source, with one search box that filters all of them. Four sources
-are built in, in this order: Stigmer's official catalogue, then Cursor's, Claude
-Code's and Codex's public catalogues. A card says **Installed** when your
-Organization already holds a plugin of that name.
+Open **Marketplace** in the sidebar. The sources come first, one chip each, with
+the mark of the GitHub account that publishes it, its name, and how many plugins
+it offers. Four sources are built in, in this order: Stigmer's official
+catalogue, then Cursor's, Claude Code's and Codex's public catalogues; any
+source you add follows. **All sources** is chosen by default; choose a chip to
+see one source alone.
 
-Each section reads its own catalogue. A section that cannot be read right now
-says so and the rest of the page stands. On a development server the official
-section says the catalogue is not published for that build; the other sections
-still work.
+Below the chips, one search box and one grid of cards across the chosen sources,
+24 to a page; **Previous** and **Next** sit under the grid. A card shows the
+plugin's own logo where its manifest names one and a monogram where it does not,
+the plugin's display name, its author, its description, the source it comes
+from, and **Install**. A card says **Installed** when your Organization already
+holds a plugin of that name. Searching filters the grid by name and description
+and returns to the first page.
 
-Below the sections, **Sources** lists the catalogues the page reads and lets you
-add your own: type a public GitHub repository as `owner/repo`, `owner/repo@ref`
-or the URL a browser shows, and choose **Add source**. The repository is read
-before it is added, and the source takes the name its marketplace file gives
-itself unless you type one. The built-in sources cannot be removed; a source you
-added can. The list is this browser's, exactly as the CLI's is this machine's
-(`marketplaces` in `~/.stigmer/config.yaml`): nothing about a source reaches the
-server.
+Each source is read on its own, so the first cards appear when the first
+catalogue arrives. A source that cannot be read right now says so on its chip
+and in one line before the grid, with **Retry**; choose its chip to read the
+whole sentence. On a development server the official source says the catalogue
+is not published for that build; the other sources still work.
+
+**Manage sources**, beside the chips, lists the catalogues the page reads and
+lets you add your own: type a public GitHub repository as `owner/repo`,
+`owner/repo@ref` or the URL a browser shows, and choose **Add source**. The
+repository is read before it is added, and the source takes the name its
+marketplace file gives itself unless you type one. The built-in sources cannot
+be removed; a source you added can. The list is this browser's, exactly as the
+CLI's is this machine's (`marketplaces` in `~/.stigmer/config.yaml`): nothing
+about a source reaches the server.
 
 ## Upload a plugin from your computer
 
-In the Library, open **Plugins**, then **Upload plugin**. Drop a plugin folder
-onto the page, or choose one with **Choose a folder**; a Cursor, Claude Code,
-Codex or Agent Plugins folder installs unchanged. A `.zip` of the folder works
-too, and a zip that wraps everything in one directory (the shape `zip -r` gives
-a folder) is read from inside that directory.
+In the Marketplace, choose the **Upload a plugin** tile; or in the Library, open
+**Plugins**, then **Upload plugin**. Drop a plugin folder onto the drop zone, or
+choose one with **Choose a folder**; a Cursor, Claude Code, Codex or Agent
+Plugins folder installs unchanged. A `.zip` of the folder works too, and a zip
+that wraps everything in one directory (the shape `zip -r` gives a folder) is
+read from inside that directory.
 
 The console rebuilds the archive from the folder's files with the same ignore
 rules and the same deterministic packaging `stigmer push plugin` applies, so the

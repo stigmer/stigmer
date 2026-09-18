@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   HOSTED_MARKETPLACE_NAME,
   HOSTED_PLUGIN,
+  HOSTED_PLUGIN_DISPLAY_NAME,
   HOSTED_REPO,
   HOSTED_SERVER,
   HOSTED_SKILL,
@@ -14,10 +15,11 @@ import {
 
 /**
  * The console's plugin journeys, end to end and hermetic. The Marketplace
- * arm: open the Marketplace, see the built-in sources (the official one
- * honest about a development server, the vendors answered 404 by the
- * fixture and honest about that), add a source through the Sources panel,
- * install a plugin from its section's card, land on the plugin's page,
+ * arm: open the Marketplace, see the built-in sources as chips (the
+ * official one honest about a development server, the vendors answered
+ * 404 by the fixture and honest about that), see the Upload tile first in
+ * the grid, add a source through Manage sources, find its card wearing the
+ * manifest's display name, install from it, land on the plugin's page,
  * open a session on its agent, and be asked for the variable the plugin's
  * tool needs, because the install declared it on the agent. The upload
  * arm: hand a plugin folder to the directory input as a browser would,
@@ -52,21 +54,32 @@ test.describe("Plugin install journey", () => {
     await page.goto("/marketplace");
     await expect(page.getByRole("heading", { level: 1, name: "Marketplace" })).toBeVisible({ timeout: 15_000 });
 
-    // The built-in sections, official first; each honest in its own section, the page standing.
-    const sections = page.getByRole("heading", { level: 2 });
-    await expect(sections.nth(0)).toHaveText("stigmer");
-    await expect(sections.nth(1)).toHaveText("cursor-plugins");
-    await expect(page.getByText(/development build/)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/cursor-plugins cannot be read right now/)).toBeVisible({ timeout: 15_000 });
+    // The sources first, as chips: All sources, then the built-ins official first; each honest about
+    // its read (the official one names the development build, the vendors are 404 here), the page standing.
+    const sources = page.getByRole("radiogroup", { name: "Sources" });
+    const chips = sources.getByRole("radio");
+    await expect(chips.nth(0)).toHaveAccessibleName("All sources");
+    await expect(chips.nth(1)).toHaveAccessibleName("stigmer");
+    await expect(chips.nth(2)).toHaveAccessibleName("cursor-plugins");
+    const unreadable = page.getByRole("list", { name: "Sources that cannot be read" });
+    await expect(unreadable.getByText(/development build/)).toBeVisible({ timeout: 15_000 });
+    await expect(unreadable.getByText(/cursor-plugins/)).toBeVisible({ timeout: 15_000 });
 
-    // Sources: add one (its name comes from its marketplace file).
-    await page.getByText(/^Sources \(/).click();
-    await page.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
-    await page.getByRole("button", { name: "Add source" }).click();
-    await expect(page.getByText(`Added source '${HOSTED_MARKETPLACE_NAME}'.`)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("heading", { level: 2, name: HOSTED_MARKETPLACE_NAME })).toBeVisible();
+    // The Upload tile is the first tile in the grid; uploading is one more place plugins come from.
+    await expect(page.getByRole("list", { name: "Plugins" }).getByRole("button", { name: /Upload a plugin/ })).toBeVisible();
 
-    // The section's card, then the preview in the CLI's words.
+    // Sources: add one through Manage sources (its name comes from its marketplace file).
+    await page.getByRole("button", { name: "Manage sources" }).click();
+    const manage = page.getByRole("dialog", { name: "Sources" });
+    await manage.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
+    await manage.getByRole("button", { name: "Add source" }).click();
+    await expect(manage.getByText(`Added source '${HOSTED_MARKETPLACE_NAME}'.`)).toBeVisible({ timeout: 15_000 });
+    await manage.getByRole("button", { name: "Close" }).click();
+    await expect(sources.getByRole("radio", { name: HOSTED_MARKETPLACE_NAME })).toBeVisible();
+
+    // Its card in the grid wears the manifest's display name and names its source; Install opens the preview in the CLI's words.
+    const card = page.getByRole("list", { name: "Plugins" }).getByRole("listitem").filter({ hasText: HOSTED_MARKETPLACE_NAME }).first();
+    await expect(card.getByRole("heading", { level: 3 })).toHaveText(HOSTED_PLUGIN_DISPLAY_NAME, { timeout: 15_000 });
     await page.getByRole("button", { name: `Install ${HOSTED_PLUGIN}` }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: `Install ${HOSTED_PLUGIN}` })).toBeVisible();
@@ -124,9 +137,12 @@ test.describe("Plugin install journey", () => {
   }) => {
     // A fresh browser context remembers no added source; add it again.
     await page.goto("/marketplace");
-    await page.getByText(/^Sources \(/).click();
-    await page.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
-    await page.getByRole("button", { name: "Add source" }).click();
+    await page.getByRole("button", { name: "Manage sources" }).click();
+    const manage = page.getByRole("dialog", { name: "Sources" });
+    await manage.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
+    await manage.getByRole("button", { name: "Add source" }).click();
+    await expect(manage.getByText(`Added source '${HOSTED_MARKETPLACE_NAME}'.`)).toBeVisible({ timeout: 15_000 });
+    await manage.getByRole("button", { name: "Close" }).click();
     const card = page.getByRole("button", { name: `Install ${HOSTED_PLUGIN}` });
     await expect(card).toHaveText("Install again", { timeout: 15_000 });
     await card.click();
