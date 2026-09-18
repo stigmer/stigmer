@@ -37,6 +37,10 @@ on:
       - "scripts/smoke-helm.mjs"
       # The whole lib: the smoke imports stigmer-smoke.mjs (#1087).
       - "scripts/lib/**"
+      # The kind gate builds the compose-runner image, which installs the
+      # CLI tarballs these two stage (ci.compose-stack lists them too).
+      - "scripts/stage-compose-runner-cli.mjs"
+      - "scripts/publish-libs.mjs"
       - "Makefile"
       - ".github/workflows/ci.helm-chart.yaml"
   push:
@@ -46,6 +50,10 @@ on:
       - "docker-compose.yml"
       - "scripts/smoke-helm.mjs"
       - "scripts/lib/**"
+      # The kind gate builds the compose-runner image, which installs the
+      # CLI tarballs these two stage (ci.compose-stack lists them too).
+      - "scripts/stage-compose-runner-cli.mjs"
+      - "scripts/publish-libs.mjs"
       - "Makefile"
       - ".github/workflows/ci.helm-chart.yaml"
   workflow_dispatch:
@@ -125,8 +133,10 @@ jobs:
           helm version --short && kind version && kubectl version --client
 
       # make smoke-helm = build-server (stubs + deps + compile) + build-web
-      # (the console export bundle-slim stages, DD-012) + bundle-slim +
-      # scripts/smoke-helm.mjs --build (docker compose build, kind create,
+      # (the console export bundle-slim stages, DD-012) +
+      # stage-compose-runner-cli (the CLI tarballs the runner image
+      # installs) + bundle-slim + scripts/smoke-helm.mjs --build (docker
+      # compose build, kind create,
       # kind load, the two profiles, the arms). One entry point, identical to
       # what a contributor runs locally.
       - name: Build both images from source, install the chart on kind and run the gate smoke
