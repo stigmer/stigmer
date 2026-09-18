@@ -5,8 +5,9 @@
  * What runs here and nowhere else: the activity's identity and its
  * execution-scoped context; the status, the one transcript builder over it
  * (born with the status, seeded by the reinvocation phase, handed to the
- * adapter as `sink.transcript`, finalized once the adapter returns) and the
- * single persist chokepoint;
+ * adapter as `sink.transcript`, finalized once the adapter returns), the turn
+ * timeline folded from that builder's events and written once at settle
+ * (`turn-timeline.ts`), and the single persist chokepoint;
  * the periodic heartbeat; the stop controller and its four producers (the
  * stall watchdog, the cost cap, the platform STOP, Temporal's cancellation);
  * the resolution phases (`turn-context.ts`) composed into the `TurnInput`;
@@ -85,6 +86,7 @@ import {
 } from "./terminal-table.js";
 import { TranscriptBuilder } from "./transcript/builder.js";
 import { resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
+import { TurnTimeline } from "./turn-timeline.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
 
@@ -151,20 +153,34 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     startedAt: utcTimestamp(),
   });
 
+  // The turn's origin, read once on both clocks so the two timelines below
+  // and the harness's observed instants (`transcript/events.ts` `Observed`)
+  // all subtract against the same moment.
+  const originMs = performance.now();
+  const originWallMs = Date.now();
+
+  // The turn timeline (`turn-timeline.ts`): the runtime's fold over every
+  // event the adapter folds through the builder, emitted once at settle as
+  // the `turn_phases` line — first visible token, model rounds, tool and
+  // sub-agent spans, the longest silence — for every harness alike.
+  const timeline = new TurnTimeline({ originMs, originWallMs, now: () => performance.now() });
+
   // The one transcript builder of this turn, born with the status and before
   // any phase, so it exists for everything that writes a row or an output
   // onto the status: the write-back coordinator (phase 2c), the seed of a
   // reinvocation's prior rows (phase 3, through `seed()`, which indexes them
   // as it appends), the adapter (`sink.transcript`), and the epilogue. One
   // constructor call per turn; a second builder over the same status would
-  // index the same rows twice.
-  const transcript = new TranscriptBuilder(executionId, status);
+  // index the same rows twice. The timeline is its observer.
+  const transcript = new TranscriptBuilder(executionId, status, (event) => timeline.observe(event));
 
   // Cold-start timeline of this turn's setup: one mark after each phase, the
   // adapter's own segments marked through the sink, emitted by the adapter
   // once its engine is resolved (an early return skips it — partial setups
-  // are not comparable cold-start samples).
-  const setupTiming = new TimingRecorder();
+  // are not comparable cold-start samples). On the turn's origin, so
+  // `turn_phases.first_visible_token_ms - execution_setup.total_ms` is the
+  // wait after the engine was ready, with no join.
+  const setupTiming = new TimingRecorder(originMs);
 
   // Artifact storage for offloading oversized tool outputs out of the
   // persisted status and for publishing the plan artifact. Resolved once so
@@ -365,6 +381,20 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     // Idempotent: an adapter that persists on the settled rows mid-settle
     // finalizes first, as the Cursor harness does before `run.wait()`.
     transcript.finalize();
+
+    // The engine's turn is over: write its timeline, once, on every outcome.
+    // Here and not in the settles, because this is the one place that sees
+    // every path, and before the epilogue, because the epilogue is the
+    // runtime's, not the turn the user watched. A turn that settled during
+    // resolution never reaches here and gets no line: no engine, no phases.
+    // `harness` is the adapter's diagnostic name, the runtime's vocabulary.
+    timeline.emit({
+      execution_id: executionId,
+      session_id: turn.sessionId,
+      turn_seq: input.turnSeq,
+      harness: adapter.name,
+      outcome: outcome.kind,
+    });
 
     // The capture boundary, ONCE, over whatever the whole turn left on the
     // tree — unless a stop fired mid-turn (`interrupted`: the tree may be

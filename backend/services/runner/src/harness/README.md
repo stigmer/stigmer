@@ -47,6 +47,10 @@ pinned somewhere. Read a row across before searching for anything.
   translator emits.
 - `harness/transcript/builder.ts` — `TranscriptBuilder`, the one builder every
   harness folds its events through.
+- `harness/turn-timeline.ts` — `TurnTimeline`, the runtime's fold over that
+  builder's events into the `turn_phases` timing line every harness gets for
+  free: first visible token, model rounds, tool and sub-agent spans, the
+  longest silence.
 - `harness/capture.ts` — the file-review capture. The runtime owns all of it; an
   adapter supplies one fact, which CAS-owned paths its engine touched.
 - `harness/turn-context.ts` — the resolution phases that build the `TurnInput`
