@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import { inMemoryPluginFiles, PLUGIN_DOCUMENT_LIMITS, type PluginFileEntry, type PluginFiles } from "../files.js";
 import type { Marketplace, MarketplaceErrorKind, MarketplaceFinding, MarketplaceReadOutcome, MarketplaceWarningKind } from "../marketplace/outcome.js";
-import { hasMarketplaceFile, readMarketplace } from "../marketplace/read-marketplace.js";
+import { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "../marketplace/read-marketplace.js";
 import { cursorPlugin, openPlugin, type PluginFixture } from "../testing.js";
 import { directoryPluginFiles } from "../__test-utils__/directory-files.js";
 import { findingOf, type Kinds } from "../__test-utils__/read.js";
@@ -221,6 +221,18 @@ describe("the Cursor file, verbatim from cursor/plugins at c1c0a32, over a parti
     expect(marketplace.defaults).toEqual([]);
     expect(outcome.warnings).toHaveLength(73);
     expect(new Set(outcome.warnings.map((w) => w.kind))).toEqual(new Set(["entry-directory-missing"]));
+  });
+
+  it("read as a file alone, declares all seventy-nine with no directory warnings: the CLI's bare-name peek", () => {
+    const fileOnly = readMarketplaceFile(
+      inMemoryPluginFiles(new Map([[".cursor-plugin/marketplace.json", files.get(".cursor-plugin/marketplace.json")!]])),
+    );
+    const declared = accepted(fileOnly);
+    expect(declared.plugins).toHaveLength(79);
+    expect(declared.plugins.map((p) => p.name)).toContain("thermos");
+    expect(fileOnly.warnings.filter((w) => w.kind === "entry-directory-missing")).toEqual([]);
+    // Still refused for what the file itself gets wrong, exactly as the tree read is.
+    expect(readMarketplaceFile(inMemoryPluginFiles(new Map([["README.md", "x"]]))).ok).toBe(false);
   });
 
   it("offers every entry when the whole catalogue is present (the sources all resolve inside the root)", () => {

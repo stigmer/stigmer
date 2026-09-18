@@ -68,7 +68,7 @@ describe("openMarketplace", () => {
   it("fetches only the marketplace file and reads the catalogue with its dropped entries", async () => {
     const { fetchImpl, requests } = hostedFetch();
     const opened = await openMarketplace(await openGitHubTree(SOURCE, fetchImpl));
-    expect(opened.marketplace.name).toBe("cursor-plugins");
+    expect(opened.marketplace.name).toBe("acme-plugins");
     expect(opened.marketplace.plugins.map((p) => p.name)).toEqual(["thermos", "github"]);
     expect(opened.warnings.map((w) => w.subject)).toEqual(["ghost"]);
     const rawReads = requests.filter((r) => r.url.includes("raw.githubusercontent.com"));

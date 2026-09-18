@@ -95,7 +95,7 @@ function renderDialog(opened: OpenedMarketplace, backend: Backend, onInstalled?:
     <PluginInstallDialog
       opened={opened}
       entryName="thermos"
-      sourceName="cursor-plugins"
+      sourceName="acme-plugins"
       org={ORG}
       open
       onClose={() => {}}

@@ -31,13 +31,19 @@ export type { UseManagingPluginReturn } from "./useManagingPlugin.js";
 
 // Marketplaces
 export {
+  BUILT_IN_SOURCES,
   MARKETPLACES_STORAGE_KEY,
   OFFICIAL_MARKETPLACE,
   OFFICIAL_MARKETPLACE_NAME,
   narrowStoredEntry,
   useMarketplaces,
 } from "./useMarketplaces.js";
-export type { UnreadableMarketplace, UseMarketplacesReturn } from "./useMarketplaces.js";
+export type {
+  AddSourceOutcome,
+  UnreadableMarketplace,
+  UseMarketplacesOptions,
+  UseMarketplacesReturn,
+} from "./useMarketplaces.js";
 export { useMarketplace } from "./useMarketplace.js";
 export type { UseMarketplaceOptions, UseMarketplaceReturn } from "./useMarketplace.js";
 export { usePreparePluginInstall } from "./usePreparePluginInstall.js";

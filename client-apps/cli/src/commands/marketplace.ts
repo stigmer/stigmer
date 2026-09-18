@@ -22,12 +22,14 @@ interface AddFlags extends OutputFlags {
 export function registerMarketplace(program: Command): void {
   const marketplace = program
     .command("marketplace")
-    .description("manage the plugin marketplaces you install from");
+    .description(
+      "manage the sources the Marketplace installs from: the built-in catalogues and the ones you add",
+    );
 
   const add = marketplace
     .command("add <source>")
     .description(
-      "add a marketplace: a directory, a GitHub 'owner/repo[@ref]', or that repository's URL",
+      "add a source: a directory, a GitHub 'owner/repo[@ref]', or that repository's URL",
     )
     .option(
       "--name <name>",
@@ -38,19 +40,19 @@ export function registerMarketplace(program: Command): void {
 
   const list = marketplace
     .command("list")
-    .description("list the configured marketplaces (offline)")
+    .description("list the known sources, built in and added (offline)")
     .action((options: OutputFlags) => runList(options));
   addResultFlags(list);
 
   const show = marketplace
     .command("show <name>")
-    .description("show the plugins a marketplace offers (reads its source)")
+    .description("show the plugins a source offers (reads it)")
     .action((name: string, options: OutputFlags) => runShow(name, options));
   addResultFlags(show);
 
   const remove = marketplace
     .command("remove <name>")
-    .description("remove a configured marketplace (installed plugins stay)")
+    .description("remove an added source (installed plugins stay; a built-in cannot be removed)")
     .action((name: string, options: OutputFlags) => runRemove(name, options));
   addResultFlags(remove);
 }
@@ -81,7 +83,7 @@ async function runAdd(source: string, flags: AddFlags): Promise<void> {
   m.addMarketplace(name, parsed);
 
   const result = CommandResult.success(
-    `Added marketplace '${name}' (${m.describeSource(parsed)}), offering ${offered} plugin${offered === 1 ? "" : "s"}`,
+    `Added source '${name}' (${m.describeSource(parsed)}), offering ${offered} plugin${offered === 1 ? "" : "s"}`,
   );
   result.hint(`See what it offers with: stigmer marketplace show ${name}`);
   result.hint(`Install from it with:     stigmer install ${name}/<plugin>`);
@@ -123,7 +125,7 @@ async function runRemove(name: string, flags: OutputFlags): Promise<void> {
   const m = await import("../marketplace/index.js");
   const { CommandResult } = await import("../output/index.js");
   m.removeMarketplace(name);
-  const result = CommandResult.success(`Removed marketplace '${name}'`);
+  const result = CommandResult.success(`Removed source '${name}'`);
   result.hint(
     "Plugins installed from it stay installed; remove one with: stigmer delete plugin <name>",
   );

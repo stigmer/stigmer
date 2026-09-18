@@ -63,3 +63,17 @@ const BUILT_IN_NAMES: ReadonlySet<string> = new Set(BUILT_IN_MARKETPLACES.map((e
 export function isBuiltInMarketplaceName(name: string): boolean {
   return BUILT_IN_NAMES.has(name);
 }
+
+/** The one sentence every client refuses with when a user tries to add over or remove a built-in source. */
+export function builtInSourceRefusal(name: string, act: "add" | "remove"): string {
+  switch (act) {
+    case "add":
+      return `'${name}' is a built-in source and cannot be added or replaced; choose another name`;
+    case "remove":
+      return `'${name}' is a built-in source and cannot be removed`;
+    default: {
+      const exhaustive: never = act;
+      return exhaustive;
+    }
+  }
+}

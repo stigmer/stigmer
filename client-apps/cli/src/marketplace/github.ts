@@ -23,11 +23,27 @@
 // 1,169 entries; anthropics/claude-code 11.7 / 13.6 / 1,595; openai/codex
 // 18.6 / 76.8 / 9,188, its marketplace file at the repository root so the
 // whole repository is the tree), with room above the largest.
+//
+// The peek. A bare `stigmer install <name>` asks every known source whether
+// it offers the name, and with the vendors' catalogues built in that would be
+// three zipballs (about 35 MiB) per install. `peekGitHubMarketplace` reads
+// only the marketplace file instead: the four locations the library knows,
+// tried in its precedence, from raw.githubusercontent.com at the ref (no API
+// call, no token, no rate budget, the same reasons as the zipball). It
+// answers what the file declares; the zipball is then downloaded for the one
+// holder and the tree read verifies the entry before anything is installed.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { inflateRawSync } from "node:zlib";
-import { isContainedPath } from "@stigmer/plugin-package";
+import {
+  MARKETPLACE_LOCATIONS,
+  type Marketplace,
+  type MarketplaceFinding,
+  inMemoryPluginFiles,
+  isContainedPath,
+  readMarketplaceFile,
+} from "@stigmer/plugin-package";
 import {
   type ZipStructuralEntry,
   crc32,
@@ -71,6 +87,104 @@ export interface FetchGitHubTreeOptions {
 /** The URL codeload answers with the zipball of `ref` (no API, no token). */
 export function zipballUrl(source: GitHubTreeSource): string {
   return `https://codeload.github.com/${source.repo}/zip/${source.ref ?? DEFAULT_REF}`;
+}
+
+/** The URL raw.githubusercontent.com serves `path` from at `ref` (no API, no token). */
+export function rawFileUrl(source: GitHubTreeSource, path: string): string {
+  return `https://raw.githubusercontent.com/${source.repo}/${source.ref ?? DEFAULT_REF}/${path}`;
+}
+
+/** What a peek learned: the file as declared, and where it sat. */
+export interface PeekedMarketplace {
+  readonly marketplace: Marketplace;
+  readonly warnings: readonly MarketplaceFinding[];
+  /** The marketplace file's path in the tree, the first present in the library's precedence. */
+  readonly location: string;
+}
+
+export type PeekOutcome =
+  | { readonly ok: true; readonly peeked: PeekedMarketplace }
+  /** No marketplace file at any of the four locations: the repository is not a marketplace. */
+  | { readonly ok: false; readonly kind: "not-a-marketplace" }
+  /** A file was found and the library refused it; its sentences travel. */
+  | {
+      readonly ok: false;
+      readonly kind: "refused";
+      readonly location: string;
+      readonly errors: readonly MarketplaceFinding[];
+      readonly warnings: readonly MarketplaceFinding[];
+    };
+
+/**
+ * Read only the marketplace file of a GitHub source. The four locations are
+ * tried in the library's precedence and the first that exists is read as
+ * declared (`readMarketplaceFile`: the tree is not consulted). Network and
+ * server faults throw a `CliExitError` naming the repository, as the
+ * zipball download does; a 404 at every location is the `not-a-marketplace`
+ * outcome, not an error, because a bare-name search must say which sources
+ * it looked at and move on.
+ */
+export async function peekGitHubMarketplace(
+  source: GitHubTreeSource,
+  fetchImpl: typeof globalThis.fetch = globalThis.fetch,
+): Promise<PeekOutcome> {
+  for (const location of Object.values(MARKETPLACE_LOCATIONS)) {
+    const bytes = await fetchRawFile(source, location, fetchImpl);
+    if (bytes === undefined) continue;
+    const outcome = readMarketplaceFile(
+      inMemoryPluginFiles(new Map([[location, bytes]])),
+    );
+    if (!outcome.ok) {
+      return {
+        ok: false,
+        kind: "refused",
+        location,
+        errors: outcome.errors,
+        warnings: outcome.warnings,
+      };
+    }
+    return {
+      ok: true,
+      peeked: {
+        marketplace: outcome.marketplace,
+        warnings: outcome.warnings,
+        location,
+      },
+    };
+  }
+  return { ok: false, kind: "not-a-marketplace" };
+}
+
+/** One raw file, or `undefined` when the path does not exist at the ref. */
+async function fetchRawFile(
+  source: GitHubTreeSource,
+  path: string,
+  fetchImpl: typeof globalThis.fetch,
+): Promise<Uint8Array | undefined> {
+  const url = rawFileUrl(source, path);
+  let response: Response;
+  try {
+    response = await fetchImpl(url, { redirect: "follow" });
+  } catch (error) {
+    throw new CliExitError(
+      `could not reach GitHub for ${source.repo}`,
+      ExitCode.Connection,
+      [
+        `URL: ${url}`,
+        "Check the network connection and retry.",
+        error instanceof Error ? error.message : String(error),
+      ],
+    );
+  }
+  if (response.status === 404) return undefined;
+  if (!response.ok) {
+    throw new CliExitError(
+      `GitHub answered ${response.status} for ${source.repo}`,
+      ExitCode.Connection,
+      [`URL: ${url}`, "Retry; if it persists, the repository or GitHub is unavailable."],
+    );
+  }
+  return new Uint8Array(await response.arrayBuffer());
 }
 
 /**

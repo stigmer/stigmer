@@ -74,10 +74,10 @@ export function MarketplaceBrowser({ org, onInstalled, fetchImpl, className }: M
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
       <AddMarketplaceForm
-        onAdd={(name, source) => {
-          const refusal = add(name, source);
-          if (refusal === null) setActiveName(name);
-          return refusal;
+        onAdd={async (name, source) => {
+          const outcome = await add(source, name);
+          if (outcome.ok) setActiveName(outcome.name);
+          return outcome.ok ? null : outcome.message;
         }}
       />
 
@@ -220,7 +220,7 @@ function DroppedEntries({ warnings }: { readonly warnings: readonly MarketplaceF
 // `marketplace add <source> --name <name>`
 // ---------------------------------------------------------------------------
 
-function AddMarketplaceForm({ onAdd }: { readonly onAdd: (name: string, source: string) => string | null }) {
+function AddMarketplaceForm({ onAdd }: { readonly onAdd: (name: string, source: string) => Promise<string | null> }) {
   const [name, setName] = useState("");
   const [source, setSource] = useState("");
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -231,12 +231,13 @@ function AddMarketplaceForm({ onAdd }: { readonly onAdd: (name: string, source: 
       className="stg:flex stg:flex-col stg:gap-2"
       onSubmit={(event) => {
         event.preventDefault();
-        const outcome = onAdd(name.trim(), source);
-        setRefusal(outcome);
-        if (outcome === null) {
-          setName("");
-          setSource("");
-        }
+        void onAdd(name.trim(), source).then((outcome) => {
+          setRefusal(outcome);
+          if (outcome === null) {
+            setName("");
+            setSource("");
+          }
+        });
       }}
       aria-label="Add a marketplace"
     >

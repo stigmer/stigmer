@@ -65,7 +65,12 @@ export {
   preparePluginArchive,
   preparePluginFromTree,
 } from "./client/prepare.js";
-export { type BuiltInMarketplace, BUILT_IN_MARKETPLACES, isBuiltInMarketplaceName } from "./client/builtin.js";
+export {
+  type BuiltInMarketplace,
+  BUILT_IN_MARKETPLACES,
+  builtInSourceRefusal,
+  isBuiltInMarketplaceName,
+} from "./client/builtin.js";
 export { isReleaseVersion } from "./client/release.js";
 export { rerootSingleDirectory, stripDirectoryPrefix } from "./client/reroot.js";
 export {
