@@ -539,6 +539,7 @@ States that a resource was installed by a plugin and is changed by pushing the p
     marketplaces: { type: "readonly KnownMarketplace[]", description: "", required: true },
     onClose: { type: "() => void", description: "", required: true },
     open: { type: "boolean", description: "", required: true },
+    reads: { type: "readonly SourceRead[]", description: "The catalogue reads, so each row can say what its source came to; a source without a read shows its identity alone." },
     remove: { type: "(name: string) => string | null", description: "", required: true },
     unreadable: { type: "readonly UnreadableMarketplace[]", description: "", required: true },
   }}

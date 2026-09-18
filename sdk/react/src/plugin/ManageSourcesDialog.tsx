@@ -8,6 +8,13 @@
  * that adds one. The CLI's `marketplace list`, `add` and `remove` have
  * their twins here; the page itself stays about plugins.
  *
+ * Each row also says what its catalogue came to: how many plugins it
+ * offers and how many it lists that this console cannot install, with the
+ * reader's own sentences behind a disclosure (`marketplace show`'s words).
+ * That fact lives here and not under the grid because nobody browsing a
+ * storefront can act on a vendor's marketplace file; the person who can,
+ * or who wonders where a plugin went, opens this dialog.
+ *
  * A form dialog: no light dismiss on the backdrop, so a stray click never
  * discards a half-typed repository.
  */
@@ -21,6 +28,7 @@ import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SourceMark } from "./SourceMark.js";
+import type { SourceRead } from "./catalog-store.js";
 import type { KnownMarketplace, MarketplaceSource } from "./sources/types.js";
 import type { AddSourceOutcome, UnreadableMarketplace } from "./useMarketplaces.js";
 
@@ -28,6 +36,8 @@ import type { AddSourceOutcome, UnreadableMarketplace } from "./useMarketplaces.
 export interface ManageSourcesDialogProps {
   readonly open: boolean;
   readonly onClose: () => void;
+  /** The catalogue reads, so each row can say what its source came to; a source without a read shows its identity alone. */
+  readonly reads?: readonly SourceRead[];
   readonly marketplaces: readonly KnownMarketplace[];
   readonly unreadable: readonly UnreadableMarketplace[];
   readonly isBuiltIn: (name: string) => boolean;
@@ -35,7 +45,9 @@ export interface ManageSourcesDialogProps {
   readonly remove: (name: string) => string | null;
 }
 
-export function ManageSourcesDialog({ open, onClose, marketplaces, unreadable, isBuiltIn, add, remove }: ManageSourcesDialogProps) {
+const NO_READS: readonly SourceRead[] = [];
+
+export function ManageSourcesDialog({ open, onClose, reads = NO_READS, marketplaces, unreadable, isBuiltIn, add, remove }: ManageSourcesDialogProps) {
   const titleId = useId();
   return (
     <DialogShell
@@ -58,7 +70,7 @@ export function ManageSourcesDialog({ open, onClose, marketplaces, unreadable, i
               client; the ones you add are remembered in this browser, as the CLI remembers its own.
             </p>
           </header>
-          <SourceList marketplaces={marketplaces} unreadable={unreadable} isBuiltIn={isBuiltIn} remove={remove} />
+          <SourceList reads={reads} marketplaces={marketplaces} unreadable={unreadable} isBuiltIn={isBuiltIn} remove={remove} />
           <AddSourceForm add={add} />
           <footer className="stg:flex stg:justify-end stg:pt-1">
             <Button variant="outline" size="sm" onClick={onClose}>
@@ -72,11 +84,13 @@ export function ManageSourcesDialog({ open, onClose, marketplaces, unreadable, i
 }
 
 function SourceList({
+  reads,
   marketplaces,
   unreadable,
   isBuiltIn,
   remove,
 }: {
+  readonly reads: readonly SourceRead[];
   readonly marketplaces: readonly KnownMarketplace[];
   readonly unreadable: readonly UnreadableMarketplace[];
   readonly isBuiltIn: (name: string) => boolean;
@@ -87,22 +101,25 @@ function SourceList({
     <div className="stg:flex stg:flex-col stg:gap-2">
       <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border")} aria-label="Known sources">
         {marketplaces.map((marketplace) => (
-          <li key={marketplace.name} className="stg:flex stg:items-center stg:justify-between stg:gap-4 stg:px-3 stg:py-2">
-            <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-3">
-              <SourceMark source={marketplace.source} size="md" />
-              <div className="stg:min-w-0">
-                <p className="stg:text-sm stg:text-foreground">{marketplace.name}</p>
-                <p className="stg:font-mono stg:text-xs stg:text-muted-foreground">
-                  {describeSource(marketplace.source)}
-                  {isBuiltIn(marketplace.name) && marketplace.source.type !== "official" ? " (built in)" : ""}
-                </p>
+          <li key={marketplace.name} className="stg:flex stg:flex-col stg:gap-2 stg:px-3 stg:py-2">
+            <div className="stg:flex stg:items-center stg:justify-between stg:gap-4">
+              <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-3">
+                <SourceMark source={marketplace.source} size="md" />
+                <div className="stg:min-w-0">
+                  <p className="stg:text-sm stg:text-foreground">{marketplace.name}</p>
+                  <p className="stg:font-mono stg:text-xs stg:text-muted-foreground">
+                    {describeSource(marketplace.source)}
+                    {isBuiltIn(marketplace.name) && marketplace.source.type !== "official" ? " (built in)" : ""}
+                  </p>
+                </div>
               </div>
+              {!isBuiltIn(marketplace.name) && (
+                <Button variant="ghost" size="sm" onClick={() => setRefusal(remove(marketplace.name))} aria-label={`Remove source ${marketplace.name}`}>
+                  Remove
+                </Button>
+              )}
             </div>
-            {!isBuiltIn(marketplace.name) && (
-              <Button variant="ghost" size="sm" onClick={() => setRefusal(remove(marketplace.name))} aria-label={`Remove source ${marketplace.name}`}>
-                Remove
-              </Button>
-            )}
+            <SourceOutcome read={reads.find((candidate) => candidate.marketplace.name === marketplace.name)} />
           </li>
         ))}
         {unreadable.map((entry) => (
@@ -124,6 +141,45 @@ function SourceList({
       )}
     </div>
   );
+}
+
+/**
+ * What a source's catalogue came to, in one line under its row: the count
+ * it offers and, when the reader dropped entries, how many and why (the
+ * reader's sentences, behind a disclosure). A source still reading or one
+ * that failed says so in the same place, in the failure's own words.
+ */
+function SourceOutcome({ read }: { readonly read: SourceRead | undefined }) {
+  if (read === undefined) return null;
+  const { state } = read;
+  switch (state.kind) {
+    case "reading":
+      return <p className="stg:text-xs stg:text-muted-foreground">Reading…</p>;
+    case "failed":
+      return <p className="stg:text-xs stg:text-destructive">cannot be read: {state.error.message}</p>;
+    case "ready": {
+      const offered = state.opened.marketplace.plugins.length;
+      const dropped = state.opened.warnings;
+      const offers = offered === 1 ? "Offers 1 plugin" : `Offers ${offered} plugins`;
+      if (dropped.length === 0) return <p className="stg:text-xs stg:text-muted-foreground">{offers}.</p>;
+      return (
+        <details className="stg:text-xs stg:text-muted-foreground">
+          <summary className="stg:cursor-pointer">
+            {offers}; {dropped.length === 1 ? "1 entry it lists" : `${dropped.length} entries it lists`} cannot be installed from here.
+          </summary>
+          <ul className="stg:mt-1 stg:list-disc stg:space-y-1 stg:pl-5">
+            {dropped.map((warning, index) => (
+              <li key={`${warning.kind}:${index}`}>{warning.message}</li>
+            ))}
+          </ul>
+        </details>
+      );
+    }
+    default: {
+      const exhaustive: never = state;
+      return exhaustive;
+    }
+  }
 }
 
 function AddSourceForm({ add }: { readonly add: (sourceText: string, name?: string) => Promise<AddSourceOutcome> }) {

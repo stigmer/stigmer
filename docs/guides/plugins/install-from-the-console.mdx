@@ -41,14 +41,16 @@ and in one line before the grid, with **Retry**; choose its chip to read the
 whole sentence. On a development server the official source says the catalogue
 is not published for that build; the other sources still work.
 
-**Manage sources**, beside the chips, lists the catalogues the page reads and
-lets you add your own: type a public GitHub repository as `owner/repo`,
-`owner/repo@ref` or the URL a browser shows, and choose **Add source**. The
-repository is read before it is added, and the source takes the name its
-marketplace file gives itself unless you type one. The built-in sources cannot
-be removed; a source you added can. The list is this browser's, exactly as the
-CLI's is this machine's (`marketplaces` in `~/.stigmer/config.yaml`): nothing
-about a source reaches the server.
+**Manage sources**, beside the chips, lists the catalogues the page reads, says
+for each how many plugins it offers and how many it lists that cannot be
+installed from here (with the reason for each), and lets you add your own: type
+a public GitHub repository as `owner/repo`, `owner/repo@ref` or the URL a
+browser shows, and choose **Add source**. The repository is read before it is
+added, and the source takes the name its marketplace file gives itself unless
+you type one. The built-in sources cannot be removed; a source you added can.
+The list is this browser's, exactly as the CLI's is this machine's
+(`marketplaces` in `~/.stigmer/config.yaml`): nothing about a source reaches the
+server.
 
 ## Upload a plugin from your computer
 
