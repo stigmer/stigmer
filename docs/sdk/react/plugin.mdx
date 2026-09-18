@@ -143,6 +143,39 @@ const { marketplace, warnings, isLoading, error } = useMarketplace({ type: "gith
 ```
 
 
+### useMarketplaceCatalog
+
+Read every source in `marketplaces` independently.
+
+**Signature**
+
+```tsx
+function useMarketplaceCatalog(marketplaces: readonly KnownMarketplace[], options: UseMarketplaceCatalogOptions): UseMarketplaceCatalogReturn
+```
+
+<TypeTable
+  type={{
+    marketplaces: { type: "readonly KnownMarketplace[]", description: "", required: true },
+    options: { type: "UseMarketplaceCatalogOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseMarketplaceCatalogReturn`
+
+<TypeTable
+  type={{
+    reads: { type: "readonly SourceRead[]", description: "One read per source, in the order given; reference-stable while nothing changed." },
+    refetch: { type: "(name: string) => void", description: "Read one source again (a conditional request for a GitHub tree, free when nothing changed)." },
+  }}
+/>
+
+```tsx
+const { marketplaces } = useMarketplaces();
+const { reads, refetch } = useMarketplaceCatalog(marketplaces);
+const entries = useMemo(() => catalogEntries(reads), [reads]);
+```
+
+
 ### useMarketplaces
 
 The sources this browser knows, with add and remove.
@@ -334,6 +367,39 @@ byKind.agents[0] // the agent to start a session on, when the plugin carries one
 ```
 
 
+### usePluginPresentation
+
+The presentation of `entry` in `opened`; idle (and `{}`) when either is `null`.
+
+**Signature**
+
+```tsx
+function usePluginPresentation(opened: OpenedMarketplace | null, entry: MarketplaceEntry | null): UsePluginPresentationReturn
+```
+
+<TypeTable
+  type={{
+    opened: { type: "OpenedMarketplace | null", description: "", required: true },
+    entry: { type: "MarketplaceEntry | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UsePluginPresentationReturn`
+
+<TypeTable
+  type={{
+    isLoading: { type: "boolean", description: "`true` until the manifest has been read once." },
+    logoUrl: { type: "string | null", description: "The logo's URL at the tree's commit or version, or `null` when the plugin names none the tree can show." },
+    presentation: { type: "PluginPresentation", description: "What the manifest says; every field optional, `{}` until read or when the manifest says nothing." },
+  }}
+/>
+
+```tsx
+const { presentation, logoUrl } = usePluginPresentation(opened, entry);
+const title = presentation.displayName ?? entry.name;
+```
+
+
 ### usePluginUpload
 
 **Signature**
@@ -462,9 +528,26 @@ States that a resource was installed by a plugin and is changed by pushing the p
 />
 
 
+### ManageSourcesDialog
+
+**Props** — `ManageSourcesDialogProps`
+
+<TypeTable
+  type={{
+    add: { type: "(sourceText: string, name?: string) => Promise<AddSourceOutcome>", description: "", required: true },
+    isBuiltIn: { type: "(name: string) => boolean", description: "", required: true },
+    marketplaces: { type: "readonly KnownMarketplace[]", description: "", required: true },
+    onClose: { type: "() => void", description: "", required: true },
+    open: { type: "boolean", description: "", required: true },
+    remove: { type: "(name: string) => string | null", description: "", required: true },
+    unreadable: { type: "readonly UnreadableMarketplace[]", description: "", required: true },
+  }}
+/>
+
+
 ### MarketplaceCatalog
 
-Browse every known source and install a plugin from any of them.
+Browse every known source and install a plugin from any of them, or upload one.
 
 **Props** — `MarketplaceCatalogProps`
 
@@ -472,7 +555,7 @@ Browse every known source and install a plugin from any of them.
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
     fetchImpl: { type: "(input: URL | RequestInfo, init?: RequestInit) => Promise<Response>", description: "The HTTP client the sources are read through; `globalThis.fetch` when absent. Tests inject a fake." },
-    onInstalled: { type: "(outcome: InstallPluginOutcome) => void", description: "Called after a plugin is installed; the host navigates to its page." },
+    onInstalled: { type: "(outcome: InstallPluginOutcome) => void", description: "Called after a plugin is installed, from a card or from the Upload tile; the host navigates to its page." },
     org: { type: "string", description: "The organization plugins are installed into, and whose installed plugins mark the cards.", required: true },
   }}
 />
@@ -483,6 +566,20 @@ Browse every known source and install a plugin from any of them.
   onInstalled={({ plugin }) => navigateToDetail("plugins", org, plugin.metadata.slug)}
 />
 ```
+
+
+### PluginCard
+
+**Props** — `PluginCardProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    entry: { type: "CatalogEntry", description: "", required: true, typeDescriptionLink: "#catalogentry" },
+    installed: { type: "boolean", description: "Whether the organization already holds a plugin of this name.", required: true },
+    onInstall: { type: "(entry: CatalogEntry) => void", description: "", required: true },
+  }}
+/>
 
 
 ### PluginDetailView
@@ -521,6 +618,20 @@ its manifest declares, what the server warned about, and its versions.
   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
 />
 ```
+
+
+### PluginFace
+
+**Props** — `PluginFaceProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    displayName: { type: "string", description: "The name for people; its first letter is the monogram.", required: true },
+    logoUrl: { type: "string | null", description: "The logo's URL, or `null` for the monogram.", required: true },
+    name: { type: "string", description: "The install name; the hash key for the monogram's colour, so a display-name edit does not recolour it.", required: true },
+  }}
+/>
 
 
 ### PluginIcon
@@ -588,6 +699,46 @@ Upload a plugin folder or zip and install it.
 The reader's refusal with every sentence, the way `validate -f` prints it; any other error as it is.
 
 
+### SourceChips
+
+**Props** — `SourceChipsProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    onManage: { type: "() => void", description: "", required: true },
+    onSelect: { type: "(name: string | null) => void", description: "", required: true },
+    reads: { type: "readonly SourceRead[]", description: "", required: true },
+    selected: { type: "string | null", description: "The selected source's name, or `null` for every source.", required: true },
+  }}
+/>
+
+
+### SourceMark
+
+**Props** — `SourceMarkProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    size: { type: "\"md\" | \"sm\"", description: "`sm` for a chip or a card footer, `md` for a list row." },
+    source: { type: "MarketplaceSource", description: "", required: true, typeDescriptionLink: "#marketplacesource" },
+  }}
+/>
+
+
+### UploadTile
+
+**Props** — `UploadTileProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    onUpload: { type: "() => void", description: "", required: true },
+  }}
+/>
+
+
 ## Types
 
 ### AddSourceOutcome
@@ -600,12 +751,60 @@ What `add` comes to: the source recorded under `name`, or the sentence refusing 
 The sources every console ships with, in listing order: the CLI's list, in the console's type.
 
 
+### CATALOG_PAGE_SIZE
+
+Cards per page: three columns by eight rows at the widest layout, so a page is one screen and a half.
+
+
+### catalogEntries
+
+Every entry the ready sources offer, in source order then catalogue order.
+
+```tsx
+function catalogEntries(reads: readonly SourceRead[]): readonly CatalogEntry[]
+```
+
+
+### CatalogEntry
+
+One plugin a grid can show: the entry, and where it came from.
+
+<TypeTable
+  type={{
+    entry: { type: "MarketplaceEntry", description: "", required: true },
+    opened: { type: "OpenedMarketplace", description: "", required: true, typeDescriptionLink: "#openedmarketplace" },
+    source: { type: "KnownMarketplace", description: "", required: true, typeDescriptionLink: "#knownmarketplace" },
+  }}
+/>
+
+
 ### describeOrigin
 
 One line saying where the archive came from, for a preview's header.
 
 ```tsx
 function describeOrigin(origin: InstallOrigin): string
+```
+
+
+### describeSource
+
+How a source is named in a list row: "built in" for the official catalogue, the repository for a GitHub one.
+
+```tsx
+function describeSource(source: MarketplaceSource): string
+```
+
+
+### entryCandidates
+
+The entry's subtree as a lazily-read tree: plugin-relative paths with
+their declared sizes, each fetched from the host on demand. One shape for
+the install (`prepareEntry`) and for the card's face (the presentation
+read), so both see the same files at the same commit.
+
+```tsx
+function entryCandidates(opened: OpenedMarketplace, entry: MarketplaceEntry): readonly LazyCandidate[]
 ```
 
 
@@ -658,6 +857,28 @@ function folderPickFromInput(files: ArrayLike<File>): LocalPick
 
 ```tsx
 function formatMib(bytes: number): string
+```
+
+
+### githubAvatarUrl
+
+The public avatar of the GitHub account `owner`, at a size a chip or a
+card mark renders. This is how a source is identified visually: the
+account that publishes a catalogue shows its own picture, for the
+built-in vendors and for any repository a user adds alike, so the SDK
+ships no vendor artwork and a new source needs no new asset.
+
+```tsx
+function githubAvatarUrl(owner: string, size: number): string
+```
+
+
+### githubOwner
+
+The account half of an `owner/repo` slug.
+
+```tsx
+function githubOwner(repo: string): string
 ```
 
 
@@ -775,17 +996,38 @@ Where a marketplace tree comes from.
 ### MarketplaceTree
 
 A marketplace tree the console can read: every file the host lists, with
-its size, and a way to fetch one. `fetchFile` returns exactly `size`
-bytes or rejects; the tree is read at one commit, so the answer cannot
-change between the listing and the read.
+its size, a way to fetch one, and the URL a browser would fetch it from.
+`fetchFile` returns exactly `size` bytes or rejects; the tree is read at
+one commit, so the answer cannot change between the listing and the read.
+`fileUrl` names the same immutable file, for an `<img>` the browser loads
+itself (a card's logo) rather than bytes through JavaScript.
 
 <TypeTable
   type={{
     describe: { type: "string", description: "One phrase naming the tree for sentences, e.g. `github.com/cursor/plugins@abc123`.", required: true },
     fetchFile: { type: "(path: string) => Promise<Uint8Array<ArrayBufferLike>>", description: "", required: true },
     files: { type: "readonly { path: string; size: number }[]", description: "Root-relative POSIX paths and declared sizes; files only.", required: true },
+    fileUrl: { type: "(path: string) => string", description: "The URL of `path` at the commit or version this tree was read at; not checked against the listing.", required: true },
   }}
 />
+
+
+### matchesQuery
+
+Whether `entry`'s name or description contains `query`, case-insensitively; everything matches an empty query.
+
+```tsx
+function matchesQuery(entry: MarketplaceEntry, query: string): boolean
+```
+
+
+### monogramRing
+
+A stable small hash: the same name, the same colour, across visits and clients.
+
+```tsx
+function monogramRing(name: string): "stg:border-chart-1" | "stg:border-chart-2" | "stg:border-chart-3" | "stg:border-chart-4" | "stg:border-chart-5"
+```
 
 
 ### narrowStoredEntry
@@ -800,6 +1042,13 @@ function narrowStoredEntry(entry: unknown): Narrowed
 ### OFFICIAL_MARKETPLACE
 
 The official catalogue, listed first everywhere.
+
+
+### OFFICIAL_PUBLISHER
+
+The GitHub account the official catalogue is published from
+(`github.com/stigmer/stigmer`, `plugins/`), so its mark follows the one
+rule every source's mark follows: the publisher's own avatar.
 
 
 ### officialFileUrl
@@ -867,6 +1116,11 @@ Open the catalogue the server's release ships.
 ```tsx
 function openOfficialTree(serverVersion: string, fetchImpl: (input: URL | RequestInfo, init?: RequestInit) => Promise<Response>): Promise<MarketplaceTree>
 ```
+
+
+### OpenSource
+
+Opens a source; the store is agnostic of how (the hook binds the client and the fetch).
 
 
 ### OpenSourceOptions
@@ -964,6 +1218,15 @@ function prepareLocalPlugin(pick: LocalPick): Promise<PreparedInstall>
 ```
 
 
+### publisherOf
+
+The GitHub account that publishes `source`.
+
+```tsx
+function publisherOf(source: MarketplaceSource): string
+```
+
+
 ### rawUrl
 
 The raw content URL of `path` at `commit`.
@@ -971,6 +1234,32 @@ The raw content URL of `path` at `commit`.
 ```tsx
 function rawUrl(repo: string, commit: string, path: string): string
 ```
+
+
+### sourceKeyOf
+
+One string per source identity, so a re-added name with another repository reads again.
+
+```tsx
+function sourceKeyOf(source: MarketplaceSource): string
+```
+
+
+### SourceRead
+
+One source and its read.
+
+<TypeTable
+  type={{
+    marketplace: { type: "KnownMarketplace", description: "", required: true, typeDescriptionLink: "#knownmarketplace" },
+    state: { type: "SourceReadState", description: "", required: true, typeDescriptionLink: "#sourcereadstate" },
+  }}
+/>
+
+
+### SourceReadState
+
+Where one source's read stands.
 
 
 ### summariseInstall
@@ -999,6 +1288,17 @@ A remembered entry this browser cannot read; listed with its reason so the user 
   type={{
     name: { type: "string", description: "", required: true },
     reason: { type: "string", description: "", required: true },
+  }}
+/>
+
+
+### UseMarketplaceCatalogOptions
+
+Options for [`useMarketplaceCatalog`](#usemarketplacecatalog).
+
+<TypeTable
+  type={{
+    fetchImpl: { type: "(input: URL | RequestInfo, init?: RequestInit) => Promise<Response>", description: "The HTTP client the sources are read through; `globalThis.fetch` when absent. Tests inject a fake." },
   }}
 />
 

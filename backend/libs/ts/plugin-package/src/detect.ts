@@ -41,6 +41,14 @@ export const OPEN_MCP_CONFIG = "mcp.json";
 /** The vendor precedence when no root manifest exists. */
 const VENDOR_PRECEDENCE: readonly Exclude<PluginDialect, "agent-plugins">[] = ["claude", "cursor", "codex"];
 
+/**
+ * Every manifest location in the order that names a plugin: the root
+ * manifest, then the vendors. The one precedence the reader applies,
+ * exported so a partial read (`presentation.ts`) cannot rank the manifests
+ * differently from the full one.
+ */
+export const MANIFEST_PRECEDENCE: readonly PluginDialect[] = ["agent-plugins", ...VENDOR_PRECEDENCE];
+
 const NAME_MAX_LENGTH = 64;
 const NAME_PATTERN = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/;
 

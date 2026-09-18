@@ -47,6 +47,18 @@ export type {
 } from "./useMarketplaces.js";
 export { useMarketplace } from "./useMarketplace.js";
 export type { UseMarketplaceOptions, UseMarketplaceReturn } from "./useMarketplace.js";
+export { catalogEntries, useMarketplaceCatalog } from "./useMarketplaceCatalog.js";
+export type {
+  CatalogEntry,
+  SourceRead,
+  SourceReadState,
+  UseMarketplaceCatalogOptions,
+  UseMarketplaceCatalogReturn,
+} from "./useMarketplaceCatalog.js";
+export { MarketplaceCatalogStore, sourceKeyOf } from "./catalog-store.js";
+export type { OpenSource } from "./catalog-store.js";
+export { usePluginPresentation } from "./usePluginPresentation.js";
+export type { UsePluginPresentationReturn } from "./usePluginPresentation.js";
 export { usePreparePluginInstall } from "./usePreparePluginInstall.js";
 export type { UsePreparePluginInstallReturn } from "./usePreparePluginInstall.js";
 export { useInstallRelation } from "./useInstallRelation.js";
@@ -61,20 +73,30 @@ export type {
   MarketplaceSource,
   MarketplaceTree,
 } from "./sources/types.js";
-export { PluginReadRefusal, findEntry, openMarketplace, prepareEntry } from "./sources/read.js";
+export { PluginReadRefusal, entryCandidates, findEntry, openMarketplace, prepareEntry } from "./sources/read.js";
 export type { InstallOrigin, OpenedMarketplace, PreparedInstall } from "./sources/read.js";
 export { LocalPluginError, folderPick, folderPickFromInput, prepareLocalPlugin, zipPick } from "./sources/local.js";
 export type { LocalFile, LocalPick } from "./sources/local.js";
 export { openMarketplaceSource } from "./sources/open.js";
 export type { OpenSourceOptions } from "./sources/open.js";
-export { openGitHubTree, rawUrl, treesUrl } from "./sources/github.js";
-export { isPublishedVersion, officialFileUrl, officialListingUrl, openOfficialTree } from "./sources/official.js";
+export { githubAvatarUrl, githubOwner, openGitHubTree, rawUrl, treesUrl } from "./sources/github.js";
+export { OFFICIAL_PUBLISHER, isPublishedVersion, officialFileUrl, officialListingUrl, openOfficialTree } from "./sources/official.js";
 
 // Components
 export { PluginDetailView, kindLabel as pluginMemberKindLabel } from "./PluginDetailView.js";
 export type { PluginDetailViewProps, PluginMemberRef } from "./PluginDetailView.js";
-export { MarketplaceCatalog, filterEntries } from "./MarketplaceCatalog.js";
+export { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries, matchesQuery } from "./MarketplaceCatalog.js";
 export type { MarketplaceCatalogProps } from "./MarketplaceCatalog.js";
+export { PluginCard, UploadTile } from "./PluginCard.js";
+export type { PluginCardProps, UploadTileProps } from "./PluginCard.js";
+export { PluginFace, monogramRing } from "./PluginFace.js";
+export type { PluginFaceProps } from "./PluginFace.js";
+export { SourceMark, publisherOf } from "./SourceMark.js";
+export type { SourceMarkProps } from "./SourceMark.js";
+export { SourceChips } from "./SourceChips.js";
+export type { SourceChipsProps } from "./SourceChips.js";
+export { ManageSourcesDialog, describeSource } from "./ManageSourcesDialog.js";
+export type { ManageSourcesDialogProps } from "./ManageSourcesDialog.js";
 export { PluginUploader } from "./PluginUploader.js";
 export type { PluginUploaderProps } from "./PluginUploader.js";
 export { usePluginUpload, looksLikeDroppedDotfiles } from "./usePluginUpload.js";

@@ -225,14 +225,14 @@ install; an agent is what runs.
 #### Marketplace
 
 Where you find and install plugins. In the console it is the Marketplace page:
-one search box, the plugins on offer in a section per source, Install on each.
-In the CLI it is `stigmer install <name>`. What the Marketplace shows comes from
-its **sources**: catalogues the client reads, each a directory tree with a
-marketplace file at its root listing the plugins it offers as a name and a
-folder. Four sources are built in, in this order: Stigmer's official catalogue,
-then Cursor's, Claude Code's and Codex's public catalogues (`cursor-plugins`,
-`claude-code-plugins`, `codex-plugins`). You add your own by pointing at a
-GitHub repository.
+the sources first as chips, one search box, one grid of cards across the chosen
+sources with Install on each, and an Upload a plugin tile. In the CLI it is
+`stigmer install <name>`. What the Marketplace shows comes from its **sources**:
+catalogues the client reads, each a directory tree with a marketplace file at
+its root listing the plugins it offers as a name and a folder. Four sources are
+built in, in this order: Stigmer's official catalogue, then Cursor's, Claude
+Code's and Codex's public catalogues (`cursor-plugins`, `claude-code-plugins`,
+`codex-plugins`). You add your own by pointing at a GitHub repository.
 
 - **User-facing alternative**: none needed. "Marketplace" is the word Cursor,
   Claude Code and Codex use for the same place, and Stigmer reads their

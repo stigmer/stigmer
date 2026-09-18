@@ -2,8 +2,9 @@
  * A GitHub marketplace as the console reads it, served from fixtures so
  * the plugin journey needs no network: `page.route()` answers the Trees
  * API listing and the raw file reads for one repository at one commit,
- * and the three built-in vendor sources 404 so their sections say they
- * cannot be read and the run never touches GitHub. The tree offers a
+ * the three built-in vendor sources 404 so their chips say they cannot be
+ * read, and the avatars the marks load abort, so the run never touches
+ * GitHub. The tree offers a
  * plugin with a skill, a sub-agent and an HTTP MCP server that declares
  * `${API_TOKEN}`, so the journey can prove that the agent the install
  * materialises asks for its tool's variable at session start. The same
@@ -26,6 +27,8 @@ export const HOSTED_MARKETPLACE_NAME = "acme-plugins";
  */
 const RUN = Date.now().toString(36);
 export const HOSTED_PLUGIN = `warmth-kit-${RUN}`;
+/** The name the manifest gives it for people; the card shows this, the install keeps `HOSTED_PLUGIN`. */
+export const HOSTED_PLUGIN_DISPLAY_NAME = "Warmth Kit";
 /** The plugin's children carry the suffix too: a child slug is unique across plugins in an organization. */
 export const HOSTED_SKILL = `keep-warm-${RUN}`;
 export const HOSTED_SERVER = `warmth-${RUN}`;
@@ -48,8 +51,10 @@ export function pluginFiles(plugin: string, skill: string, server: string): Map<
       ".cursor-plugin/plugin.json",
       json({
         name: plugin,
+        displayName: HOSTED_PLUGIN_DISPLAY_NAME,
         version: "1.0.0",
         description: "A fixture plugin whose tool needs a token.",
+        author: { name: "Acme" },
         skills: "./skills/",
         agents: "./agents/",
         mcpServers: "./mcp.json",
@@ -112,10 +117,17 @@ export function writeUploadPluginDir(): string {
   return root;
 }
 
-/** Route the two GitHub hosts to the fixture tree for this page, and the built-in vendor sources to 404. */
+/**
+ * Route the two GitHub hosts to the fixture tree for this page, the
+ * built-in vendor sources to 404, and every source's avatar (the mark a
+ * chip and a card wear, `github.com/<owner>.png`) to an abort, so the run
+ * never touches GitHub for an image either.
+ */
 export async function routeHostedMarketplace(page: Page): Promise<void> {
   const files = hostedMarketplaceFiles();
   const encoder = new TextEncoder();
+
+  await page.route("https://github.com/**", (route) => route.abort());
 
   for (const repo of BUILT_IN_VENDOR_REPOS) {
     await page.route(`https://api.github.com/repos/${repo}/git/trees/**`, (route) =>

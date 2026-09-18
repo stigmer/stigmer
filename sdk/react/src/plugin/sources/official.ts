@@ -105,5 +105,13 @@ export async function openOfficialTree(serverVersion: string, fetchImpl: FetchIm
       }
       return bytes;
     },
+    fileUrl: (path) => officialFileUrl(serverVersion, path),
   };
 }
+
+/**
+ * The GitHub account the official catalogue is published from
+ * (`github.com/stigmer/stigmer`, `plugins/`), so its mark follows the one
+ * rule every source's mark follows: the publisher's own avatar.
+ */
+export const OFFICIAL_PUBLISHER = "stigmer";
