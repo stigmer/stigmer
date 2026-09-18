@@ -17,7 +17,11 @@
  *     with the token fields empty (minting a proxy token is cloud-only);
  *   - getServerInfo reports the build stamp by default and the release a
  *     library consumer states through ComposeOptions.version otherwise
- *     (stigmer#1168: unbundled, the stamp is always "dev").
+ *     (stigmer#1168: unbundled, the stamp is always "dev");
+ *   - getLicenseStatus answers `absent` with no claims and no key when no
+ *     provider is composed, and the composed provider's report verbatim
+ *     when one is — both stamped with the ONE instant the controller
+ *     hands the provider (the checked_at contract).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,7 +37,14 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
+import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
+import {
+  LicenseClaimsSchema,
+  LicenseState,
+  LicenseTerm,
+} from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import {
   GetRunnerScopedTokenInputSchema,
   PlatformQueryController,
@@ -44,6 +55,8 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { ABSENT_LICENSE_STATUS } from "../../../extensions/license-status.js";
+import type { LicenseStatusProvider } from "../../../extensions/license-status.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import type {
   RunnerCredentialProvider,
@@ -65,6 +78,25 @@ const RUNNER_KEY = Buffer.alloc(32, 5);
 const ENC_KEY = Buffer.alloc(32, 6);
 
 type PlatformClient = Client<typeof PlatformQueryController>;
+
+/**
+ * A verified ticket's claims, shared by every arm that fakes a provider in
+ * a verified state: the report type requires them there, so a fixture that
+ * omitted them would not compile.
+ */
+const verifiedClaims = create(LicenseClaimsSchema, {
+  licenseId: "lic_01platformtest",
+  customer: {
+    id: "cus_acme",
+    displayName: "Acme Corp",
+    contactEmail: "billing@acme.example",
+  },
+  term: LicenseTerm.paid,
+  entitlements: { features: [] },
+  issuedAt: timestampFromDate(new Date("2026-09-01T00:00:00Z")),
+  expiresAt: timestampFromDate(new Date("2027-09-01T00:00:00Z")),
+  graceUntil: timestampFromDate(new Date("2027-10-01T00:00:00Z")),
+});
 
 describe("platform domain (composed server)", () => {
   let server: ComposedServer;
@@ -124,6 +156,25 @@ describe("platform domain (composed server)", () => {
     expect(config.runnerAccessTokenExpiresInSeconds).toBe(0);
     expect(config.payloadEncryptionKeyId).toBe("");
     expect(config.payloadEncryptionKey).toBe("");
+  });
+
+  it("getLicenseStatus answers absent — no claims, no key, a fresh checked_at — when nothing is composed", async () => {
+    const before = Date.now();
+    const status = await client.getLicenseStatus({});
+    const after = Date.now();
+
+    expect(status.state).toBe(LicenseState.absent);
+    // Presence follows the state: an absent license names no key and
+    // carries no claims — the same all-or-nothing coupling the runner
+    // bootstrap fields keep.
+    expect(status.claims).toBeUndefined();
+    expect(status.keyId).toBe("");
+    if (status.checkedAt === undefined) {
+      throw new Error("checked_at is always set");
+    }
+    const checkedAt = timestampDate(status.checkedAt).getTime();
+    expect(checkedAt).toBeGreaterThanOrEqual(before - 1000);
+    expect(checkedAt).toBeLessThanOrEqual(after + 1000);
   });
 
   it("mints for the agent_execution_id arm, bound to exactly that execution", async () => {
@@ -234,6 +285,8 @@ describe("platform domain (keyless runner-token service)", () => {
         ),
         edition: ServerEdition.oss,
         version: "dev",
+        licenseStatus: ABSENT_LICENSE_STATUS,
+        now: () => new Date(),
         logger: silentLogger,
       });
     });
@@ -245,6 +298,75 @@ describe("platform domain (keyless runner-token service)", () => {
     expect(out.runnerScopedToken).toBe("");
     expect(out.tokenType).toBe("");
     expect(out.expiresInSeconds).toBe(0);
+  });
+});
+
+/**
+ * The license-status arm on an in-process router, where the clock is
+ * injected: the controller hands the provider ONE instant and stamps
+ * checked_at from the same one, so a report and its timestamp can never
+ * disagree about when the license was evaluated.
+ */
+describe("platform domain (license status)", () => {
+  const instant = new Date("2026-09-18T00:00:00Z");
+
+  function clientWith(provider: LicenseStatusProvider) {
+    const transport = createRouterTransport((router) => {
+      registerPlatformServices(router, {
+        temporalHostPort: "localhost:7233",
+        temporalNamespace: "default",
+        runnerAuthService: newExecutionScopedRunnerCredentialProvider(
+          RunnerAuthService.create(undefined),
+        ),
+        edition: ServerEdition.enterprise,
+        version: "dev",
+        licenseStatus: provider,
+        now: () => instant,
+        logger: silentLogger,
+      });
+    });
+    return createClient(PlatformQueryController, transport);
+  }
+
+  it("the built-in provider answers absent, stamped with the injected instant", async () => {
+    const status = await clientWith(ABSENT_LICENSE_STATUS).getLicenseStatus({});
+    expect(status.state).toBe(LicenseState.absent);
+    expect(status.claims).toBeUndefined();
+    expect(status.keyId).toBe("");
+    expect(status.checkedAt).toEqual(timestampFromDate(instant));
+  });
+
+  it("a composed provider's report is returned verbatim, evaluated at the same instant it is stamped with", async () => {
+    const seen: Date[] = [];
+    const provider: LicenseStatusProvider = {
+      status: (now) => {
+        seen.push(now);
+        return Promise.resolve({
+          state: LicenseState.valid,
+          claims: verifiedClaims,
+          keyId: "lk_2026",
+        });
+      },
+    };
+
+    const status = await clientWith(provider).getLicenseStatus({});
+    expect(status.state).toBe(LicenseState.valid);
+    expect(status.keyId).toBe("lk_2026");
+    expect(status.claims?.licenseId).toBe("lic_01platformtest");
+    expect(status.claims?.customer?.displayName).toBe("Acme Corp");
+    expect(status.checkedAt).toEqual(timestampFromDate(instant));
+    expect(seen).toEqual([instant]);
+  });
+
+  it("an invalid ticket names its key and carries no claims", async () => {
+    const provider: LicenseStatusProvider = {
+      status: () =>
+        Promise.resolve({ state: LicenseState.invalid, keyId: "lk_unknown" }),
+    };
+    const status = await clientWith(provider).getLicenseStatus({});
+    expect(status.state).toBe(LicenseState.invalid);
+    expect(status.keyId).toBe("lk_unknown");
+    expect(status.claims).toBeUndefined();
   });
 });
 
@@ -329,6 +451,22 @@ describe("platform domain (capability-delegating provider — C4)", () => {
           name: "fake-cloud-credentials",
           drivers: { runnerCredentialProvider: capabilityProvider },
         },
+        {
+          // A second unit registering a different single-instance point:
+          // the licenseStatus driver rides the same registry and reaches
+          // the same controller as the credential provider does.
+          name: "fake-enterprise-license",
+          drivers: {
+            licenseStatus: {
+              status: () =>
+                Promise.resolve({
+                  state: LicenseState.expiring,
+                  keyId: "lk_composed",
+                  claims: verifiedClaims,
+                }),
+            },
+          },
+        },
       ],
     });
     const port = await server.start();
@@ -406,6 +544,16 @@ describe("platform domain (capability-delegating provider — C4)", () => {
     expect(config.payloadEncryptionSecondaryKeyId).toBe("rpk_test0");
     expect(config.payloadEncryptionSecondaryKey).toBe("b2xk");
     expect(bootstrapCallerIds).toHaveLength(1);
+  });
+
+  it("a composed licenseStatus driver answers getLicenseStatus through the full stack", async () => {
+    const status = await client.getLicenseStatus({});
+    expect(status.state).toBe(LicenseState.expiring);
+    expect(status.keyId).toBe("lk_composed");
+    // The verified arm's claims cross the gRPC boundary whole; the instant
+    // itself is pinned on the in-process router above, where it is injected.
+    expect(status.claims?.customer?.displayName).toBe("Acme Corp");
+    expect(status.checkedAt).toBeDefined();
   });
 
   it("a bootstrap-credentials failure degrades to coordinates-only, never an error", async () => {

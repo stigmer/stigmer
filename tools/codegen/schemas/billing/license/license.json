@@ -1,0 +1,104 @@
+{
+  "name": "LicenseSpec",
+  "kind": "LICENSE_SPEC",
+  "description": "LicenseSpec is what an operator issues: who the license is for, what it\n permits and for how long.\n\n The spec is the source of the signed claims: at issue, the issuer builds\n LicenseClaims from it, the license's id and the signing instant, signs\n them, and records the ticket in the status. The spec is final at create;\n a license that must say something else is a new License.",
+  "protoType": "ai.stigmer.billing.license.v1.LicenseSpec",
+  "protoFile": "apis/ai/stigmer/billing/license/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Customer",
+      "jsonName": "customer",
+      "protoField": "customer",
+      "type": {
+        "kind": "message",
+        "messageType": "LicenseCustomer"
+      },
+      "description": "Who the license is issued to.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "PlanId",
+      "jsonName": "planId",
+      "protoField": "plan_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The id of the Plan the entitlements were copied from. Empty when the\n entitlements are bespoke to this customer.",
+      "required": false
+    },
+    {
+      "name": "Entitlements",
+      "jsonName": "entitlements",
+      "protoField": "entitlements",
+      "type": {
+        "kind": "message",
+        "messageType": "Entitlements"
+      },
+      "description": "What the license permits. Copied from the plan when plan_id is set, so\n the license reads whole without a lookup; written by hand otherwise.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Term",
+      "jsonName": "term",
+      "protoField": "term",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.platform.v1.LicenseTerm",
+        "enumValues": [
+          "trial",
+          "paid"
+        ]
+      },
+      "description": "Whether the term is a trial or a paid license.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "ExpiresAt",
+      "jsonName": "expiresAt",
+      "protoField": "expires_at",
+      "type": {
+        "kind": "timestamp"
+      },
+      "description": "When the term ends.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "GraceUntil",
+      "jsonName": "graceUntil",
+      "protoField": "grace_until",
+      "type": {
+        "kind": "timestamp"
+      },
+      "description": "The end of the grace period after expiry, during which the licensed\n server keeps serving and reports the license as expired.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Notes",
+      "jsonName": "notes",
+      "protoField": "notes",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Operator notes about this issuance (the order, the contact, the reason\n for a bespoke entitlement). Never signed, never shown to the customer.",
+      "required": false,
+      "validation": {
+        "maxLength": 4096
+      }
+    }
+  ]
+}

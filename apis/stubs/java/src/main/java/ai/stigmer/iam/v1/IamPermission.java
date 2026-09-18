@@ -318,6 +318,30 @@ public enum IamPermission
    * <code>can_create_plugin = 40;</code>
    */
   can_create_plugin(40),
+  /**
+   * <pre>
+   * Platform-level permission to create and retire Plans, the catalog the
+   * cloud sells subscriptions and licenses against. A human operator
+   * action on the static platform target, kept distinct from
+   * can_execute_billing_ops (the machine account's pipeline) the way
+   * can_manage_model_pricing is, so an audit line names what happened.
+   * </pre>
+   *
+   * <code>can_manage_plans = 41;</code>
+   */
+  can_manage_plans(41),
+  /**
+   * <pre>
+   * Platform-level permission to issue and read Licenses: the signed
+   * grants of entitlements to self-hosting customers. Every License RPC
+   * checks it on the static platform target. Distinct from
+   * can_manage_plans because issuing a license to a named customer is a
+   * different act, and a different audit line, from editing the catalog.
+   * </pre>
+   *
+   * <code>can_issue_license = 42;</code>
+   */
+  can_issue_license(42),
   UNRECOGNIZED(-1),
   ;
 
@@ -623,6 +647,30 @@ public enum IamPermission
    * <code>can_create_plugin = 40;</code>
    */
   public static final int can_create_plugin_VALUE = 40;
+  /**
+   * <pre>
+   * Platform-level permission to create and retire Plans, the catalog the
+   * cloud sells subscriptions and licenses against. A human operator
+   * action on the static platform target, kept distinct from
+   * can_execute_billing_ops (the machine account's pipeline) the way
+   * can_manage_model_pricing is, so an audit line names what happened.
+   * </pre>
+   *
+   * <code>can_manage_plans = 41;</code>
+   */
+  public static final int can_manage_plans_VALUE = 41;
+  /**
+   * <pre>
+   * Platform-level permission to issue and read Licenses: the signed
+   * grants of entitlements to self-hosting customers. Every License RPC
+   * checks it on the static platform target. Distinct from
+   * can_manage_plans because issuing a license to a named customer is a
+   * different act, and a different audit line, from editing the catalog.
+   * </pre>
+   *
+   * <code>can_issue_license = 42;</code>
+   */
+  public static final int can_issue_license_VALUE = 42;
 
 
   public final int getNumber() {
@@ -687,6 +735,8 @@ public enum IamPermission
       case 38: return can_view_provider_standing;
       case 39: return can_set_public_visibility;
       case 40: return can_create_plugin;
+      case 41: return can_manage_plans;
+      case 42: return can_issue_license;
       default: return null;
     }
   }

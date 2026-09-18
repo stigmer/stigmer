@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.subscription.v1;
+
+import "ai/stigmer/billing/subscription/v1/api.proto";
+import "ai/stigmer/billing/subscription/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// SubscriptionCommandController provides the write operations on an
+// organization's subscription.
+//
+// There is no create: how a subscription comes to exist is the payment
+// system's (a checkout), so changePlan on an organization with none is the
+// act of subscribing. Every write authorizes on the organization with
+// can_manage_billing, the permission the billing account's writes use.
+//
+// @internal
+// Served by the cloud composition only (the kind is cloud_only). The
+// billing engine owns what each write does against the payment system;
+// this contract states only the organization-facing act and its
+// authorization.
+service SubscriptionCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = subscription;
+
+  // Move the organization onto a plan.
+  //
+  // Subscribes an organization that has no subscription, or changes the plan
+  // of one that does. The plan must be active and bought through a
+  // subscription. Returns the subscription as it stands after the change.
+  rpc changePlan(ChangePlanInput) returns (Subscription) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to change this organization's plan";
+  }
+
+  // Cancel the organization's subscription.
+  //
+  // The organization keeps its plan to the end of the current period and is
+  // on Free after it. NOT_FOUND when the organization has no subscription.
+  rpc cancel(CancelSubscriptionInput) returns (Subscription) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel this organization's subscription";
+  }
+}

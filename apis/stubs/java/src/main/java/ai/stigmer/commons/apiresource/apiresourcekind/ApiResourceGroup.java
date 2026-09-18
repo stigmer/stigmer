@@ -43,6 +43,19 @@ public enum ApiResourceGroup
    * <code>tenancy = 3 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>
    */
   tenancy(3),
+  /**
+   * <pre>
+   * Billing - What is sold: plans, the subscriptions and licenses that
+   * grant them. The entitlement vocabulary these kinds carry lives under
+   * platform, because every edition reads it; the kinds live here because
+   * only the cloud sells. The flat billing/v1 aggregate (BillingAccount and
+   * its ledger) is a plain message, not an envelope kind, and stays outside
+   * the group; this group covers the envelope kinds only.
+   * </pre>
+   *
+   * <code>billing = 4 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>
+   */
+  billing(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -83,6 +96,19 @@ public enum ApiResourceGroup
    * <code>tenancy = 3 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>
    */
   public static final int tenancy_VALUE = 3;
+  /**
+   * <pre>
+   * Billing - What is sold: plans, the subscriptions and licenses that
+   * grant them. The entitlement vocabulary these kinds carry lives under
+   * platform, because every edition reads it; the kinds live here because
+   * only the cloud sells. The flat billing/v1 aggregate (BillingAccount and
+   * its ledger) is a plain message, not an envelope kind, and stays outside
+   * the group; this group covers the envelope kinds only.
+   * </pre>
+   *
+   * <code>billing = 4 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>
+   */
+  public static final int billing_VALUE = 4;
 
 
   public final int getNumber() {
@@ -113,6 +139,7 @@ public enum ApiResourceGroup
       case 1: return agentic;
       case 2: return iam;
       case 3: return tenancy;
+      case 4: return billing;
       default: return null;
     }
   }

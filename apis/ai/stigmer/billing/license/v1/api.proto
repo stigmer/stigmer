@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.license.v1;
+
+import "ai/stigmer/billing/license/v1/spec.proto";
+import "ai/stigmer/billing/license/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// License is a signed grant of entitlements to a self-hosting customer for a
+// term.
+//
+// A license is issued where it is sold, here, and verified where it is used:
+// an Enterprise deployment checks the signed ticket offline against a key
+// compiled into it, with no call home. The customer is a value inside the
+// license, because a self-hosting customer need not hold a cloud
+// organization. The claims are immutable once signed; a renewal is a new
+// License. Licenses belong to the platform, not to any organization, so
+// metadata.org is empty.
+message License {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'billing.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'License'];
+
+  // Standard resource metadata. A license has no organization: metadata.org
+  // is empty.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // What the operator issues: the customer, the entitlements and the term.
+  LicenseSpec spec = 4;
+
+  // System-managed state: audit and the signed ticket.
+  LicenseStatus status = 5;
+}

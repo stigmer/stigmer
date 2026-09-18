@@ -268,6 +268,26 @@ const (
 	ApiResourceKind_plugin ApiResourceKind = 58
 	// Aggregate root grouping related resources for lifecycle management.
 	ApiResourceKind_project ApiResourceKind = 60
+	// Catalog entry naming a bundle of entitlements and the terms that buy it.
+	//
+	// Platform-level: a plan belongs to no organization, so it carries no
+	// authorization scope and no owner. Immutable once created; a change of
+	// terms is a new Plan and the old one retires.
+	ApiResourceKind_plan ApiResourceKind = 70
+	// An organization's binding to a Plan; at most one active per organization.
+	//
+	// System-created: the payment system drives its lifecycle, so it has no
+	// owner and grants no roles. Its reads and writes authorize on the
+	// organization through the billing permissions.
+	ApiResourceKind_subscription ApiResourceKind = 71
+	// A signed grant of entitlements to a self-hosting customer for a term.
+	//
+	// Platform-level: issued by the cloud's operators and verified offline by
+	// the Enterprise server, so the customer is a value inside the license
+	// (which may or may not name a cloud organization) and the kind has no
+	// authorization scope and no owner. Claims are immutable once signed; a
+	// renewal is a new License.
+	ApiResourceKind_license ApiResourceKind = 72
 )
 
 // Enum value maps for ApiResourceKind.
@@ -303,6 +323,9 @@ var (
 		57: "memory",
 		58: "plugin",
 		60: "project",
+		70: "plan",
+		71: "subscription",
+		72: "license",
 	}
 	ApiResourceKind_value = map[string]int32{
 		"api_resource_kind_unknown": 0,
@@ -335,6 +358,9 @@ var (
 		"memory":                    57,
 		"plugin":                    58,
 		"project":                   60,
+		"plan":                      70,
+		"subscription":              71,
+		"license":                   72,
 	}
 )
 
@@ -527,7 +553,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xc6\x12\n" +
+	"\astigmer\x10\x01*\xf4\x13\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -575,7 +601,10 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x06memory\x109\x1aa\xaa\xff+]\b\x01\x10\x01\x1a\x06Memory\"\x06Memory*\x03mem8\x01@\x01J>\b\x02\x10\x04\"8\n" +
 	"\x10identity_account\x12\asubject\x1a\x1bsubject_identity_account_id\x12A\n" +
 	"\x06plugin\x10:\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\x06Plugin\"\x06Plugin*\x03plg0\x01@\x01J\x12\b\x02\x10\x01*\b\b\x01\x10\x01\x18\x01 \x01:\x02\x01\x04\x128\n" +
-	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04\"\x04\b1\x101*\tdatastore:\x85\x01\n" +
+	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12-\n" +
+	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
+	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
+	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b1\x101*\tdatastore:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x83\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.v1;
+
+import "ai/stigmer/platform/v1/entitlement.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_outer_classname = "LicenseProto";
+
+// The signed part of a license: what the ticket carries and what a server
+// verifies offline.
+//
+// A license is issued where it is sold (the cloud's License kind under
+// billing) and verified where it is used (an Enterprise deployment, with no
+// call home), so the claims are platform vocabulary both sides import. The
+// ticket is a compact JWS: `alg` is `EdDSA` (Ed25519), the protected header
+// carries the `kid` of the signing key, and the payload is the proto JSON of
+// this message. Claims are immutable once signed; a renewal is a new license
+// with new claims.
+message LicenseClaims {
+  option (buf.validate.message).cel = {
+    id: "license_claims.expires_after_issue"
+    message: "expires_at must be after issued_at"
+    expression: "this.expires_at > this.issued_at"
+  };
+  option (buf.validate.message).cel = {
+    id: "license_claims.grace_not_before_expiry"
+    message: "grace_until must not be before expires_at"
+    expression: "this.grace_until >= this.expires_at"
+  };
+
+  // The License resource this ticket was issued from (its metadata.id).
+  string license_id = 1 [(buf.validate.field).required = true];
+
+  // Who the license was issued to.
+  LicenseCustomer customer = 2 [(buf.validate.field).required = true];
+
+  // Whether the term is a trial or a paid license.
+  LicenseTerm term = 3 [(buf.validate.field) = {
+    required: true
+    enum: {
+      defined_only: true
+      not_in: [0]
+    }
+  }];
+
+  // What the license permits for its term.
+  Entitlements entitlements = 4 [(buf.validate.field).required = true];
+
+  // When the ticket was signed.
+  google.protobuf.Timestamp issued_at = 5 [(buf.validate.field).required = true];
+
+  // When the term ends. After this instant the license is expired, and the
+  // server it unlocks enters its grace period.
+  google.protobuf.Timestamp expires_at = 6 [(buf.validate.field).required = true];
+
+  // The end of the grace period after expiry, during which the server keeps
+  // serving and reports the license as expired. The issuer decides the
+  // grace; the verifier reads it.
+  google.protobuf.Timestamp grace_until = 7 [(buf.validate.field).required = true];
+}
+
+// The customer a license is issued to, carried as a value inside the license.
+//
+// A self-hosting customer need not hold a cloud organization, so the license
+// names its customer directly and links to an organization only when one
+// exists. The customer is never a resource the license depends on: deleting
+// an organization does not touch a license issued to its company.
+message LicenseCustomer {
+  // Identifier the issuer minted for this customer, stable across every
+  // license issued to them.
+  string id = 1 [(buf.validate.field).required = true];
+
+  // The customer's name as the licensed server shows it ("licensed to Acme").
+  string display_name = 2 [(buf.validate.field).required = true];
+
+  // The address renewal and expiry notices go to. Every license has one: a
+  // term that ends must be able to warn someone before it does.
+  string contact_email = 3 [(buf.validate.field) = {
+    required: true
+    string: {email: true}
+  }];
+
+  // The cloud organization this customer also holds, as its slug (the same
+  // value a resource's metadata.org carries). Empty when the customer has
+  // none.
+  string organization = 4;
+}
+
+// The commercial nature of a license's term.
+enum LicenseTerm {
+  license_term_unspecified = 0;
+
+  // A time-limited evaluation with fixed modest limits.
+  trial = 1;
+
+  // A paid license for its full term.
+  paid = 2;
+}
+
+// What a running server reports about the license it holds.
+//
+// Every edition answers the question; the states describe the ticket the
+// server was configured with, checked against the clock at the moment of
+// the read.
+enum LicenseState {
+  license_state_unspecified = 0;
+
+  // No license is configured. The open-source and Cloud editions always
+  // answer this: neither holds a key.
+  absent = 1;
+
+  // The ticket verified and its term has not ended.
+  valid = 2;
+
+  // The ticket verified and its term ends soon enough that the server
+  // warns about it.
+  expiring = 3;
+
+  // The term has ended and the server is inside the grace period the
+  // claims carry.
+  grace = 4;
+
+  // The term and its grace period have both ended.
+  expired = 5;
+
+  // A ticket is configured but did not verify: a signature that does not
+  // match a known key, a payload that does not parse, or claims that fail
+  // validation. Its claims are not trusted and not reported.
+  invalid = 6;
+}

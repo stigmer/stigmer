@@ -50,6 +50,9 @@ import { file_ai_stigmer_agentic_workflow_v1_tasks_validate } from "@stigmer/pro
 import { file_ai_stigmer_agentic_workflow_v1_tasks_wait } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/wait_pb";
 import { file_ai_stigmer_agentic_workflowexecution_v1_api } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { file_ai_stigmer_agentic_workflowinstance_v1_api } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { file_ai_stigmer_billing_license_v1_api } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
+import { file_ai_stigmer_billing_plan_v1_api } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
+import { file_ai_stigmer_billing_subscription_v1_api } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
 import { file_ai_stigmer_iam_apikey_v1_api } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_api } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { file_ai_stigmer_iam_identityaccount_v1_api } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -102,6 +105,9 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_workflow_v1_tasks_wait,
   file_ai_stigmer_agentic_workflowexecution_v1_api,
   file_ai_stigmer_agentic_workflowinstance_v1_api,
+  file_ai_stigmer_billing_license_v1_api,
+  file_ai_stigmer_billing_plan_v1_api,
+  file_ai_stigmer_billing_subscription_v1_api,
   file_ai_stigmer_iam_apikey_v1_api,
   file_ai_stigmer_iam_iampolicy_v1_api,
   file_ai_stigmer_iam_identityaccount_v1_api,

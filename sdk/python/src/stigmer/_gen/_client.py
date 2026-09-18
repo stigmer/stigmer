@@ -18,16 +18,19 @@ from ._iampolicy import IamPolicyClient
 from ._identityaccount import IdentityAccountClient
 from ._identityprovider import IdentityProviderClient
 from ._invitation import InvitationClient
+from ._license import LicenseClient
 from ._mcpserver import McpServerClient
 from ._memory import MemoryClient
 from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
+from ._plan import PlanClient
 from ._platformclient import PlatformClientClient
 from ._plugin import PluginClient
 from ._project import ProjectClient
 from ._schedule import ScheduleClient
 from ._session import SessionClient
 from ._skill import SkillClient
+from ._subscription import SubscriptionClient
 from ._workflow import WorkflowClient
 from ._workflowexecution import WorkflowExecutionClient
 from ._workflowinstance import WorkflowInstanceClient
@@ -51,16 +54,19 @@ class GeneratedClient:
         self.identity_accounts = IdentityAccountClient(channel)
         self.identity_providers = IdentityProviderClient(channel)
         self.invitations = InvitationClient(channel)
+        self.licenses = LicenseClient(channel)
         self.mcp_servers = McpServerClient(channel)
         self.memorys = MemoryClient(channel)
         self.oauthapps = OAuthAppClient(channel)
         self.organizations = OrganizationClient(channel)
+        self.plans = PlanClient(channel)
         self.platformclients = PlatformClientClient(channel)
         self.plugins = PluginClient(channel)
         self.projects = ProjectClient(channel)
         self.schedules = ScheduleClient(channel)
         self.sessions = SessionClient(channel)
         self.skills = SkillClient(channel)
+        self.subscriptions = SubscriptionClient(channel)
         self.workflows = WorkflowClient(channel)
         self.workflow_executions = WorkflowExecutionClient(channel)
         self.workflow_instances = WorkflowInstanceClient(channel)

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.subscription.v1;
+
+import "ai/stigmer/platform/v1/entitlement.proto";
+import "buf/validate/validate.proto";
+
+// GetSubscriptionForOrganizationInput names the organization whose
+// subscription is read.
+message GetSubscriptionForOrganizationInput {
+  // The organization's id.
+  string org_id = 1 [(buf.validate.field).required = true];
+}
+
+// GetEntitlementsInput names the organization whose entitlements are
+// resolved.
+message GetEntitlementsInput {
+  // The organization's id.
+  string org_id = 1 [(buf.validate.field).required = true];
+}
+
+// GetEntitlementsOutput is what an organization is permitted right now and
+// the plan that permits it.
+message GetEntitlementsOutput {
+  // The entitlements in force for the organization.
+  ai.stigmer.platform.v1.Entitlements entitlements = 1;
+
+  // The id of the Plan the entitlements were resolved from. Empty when the
+  // organization is on Free, which is not a plan row.
+  string plan_id = 2;
+}
+
+// ChangePlanInput moves an organization onto a plan.
+message ChangePlanInput {
+  // The organization's id.
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // The id of the Plan to move onto. Must be an active subscription plan.
+  string plan_id = 2 [(buf.validate.field).required = true];
+}
+
+// CancelSubscriptionInput names the organization whose subscription is
+// canceled.
+message CancelSubscriptionInput {
+  // The organization's id.
+  string org_id = 1 [(buf.validate.field).required = true];
+}

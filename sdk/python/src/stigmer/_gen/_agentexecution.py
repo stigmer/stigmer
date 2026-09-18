@@ -16,6 +16,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as executioncontext_spec_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2 as session_spec_pb2
+from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2
 
 from ._errors import wrap_error
 from ._types import EnvVarInput, ResourceRef
@@ -292,8 +293,8 @@ class WorkspaceEntryInput:
     source: WorkspaceSourceInput | None
     name: str = ""
 
-    def _to_proto(self) -> session_spec_pb2.WorkspaceEntry:
-        msg = session_spec_pb2.WorkspaceEntry(
+    def _to_proto(self) -> session_workspace_pb2.WorkspaceEntry:
+        msg = session_workspace_pb2.WorkspaceEntry(
             name=self.name,
         )
         if self.source is not None:
@@ -308,8 +309,8 @@ class WorkspaceSourceInput:
     git_repo: GitRepoSourceInput | None = None
     local_path: LocalPathSourceInput | None = None
 
-    def _to_proto(self) -> session_spec_pb2.WorkspaceSource:
-        msg = session_spec_pb2.WorkspaceSource()
+    def _to_proto(self) -> session_workspace_pb2.WorkspaceSource:
+        msg = session_workspace_pb2.WorkspaceSource()
         if self.git_repo is not None:
             msg.git_repo.CopyFrom(self.git_repo._to_proto())
         if self.local_path is not None:
@@ -327,8 +328,8 @@ class GitRepoSourceInput:
     depth: int = 0
     write_back_mode: int = 0
 
-    def _to_proto(self) -> session_spec_pb2.GitRepoSource:
-        msg = session_spec_pb2.GitRepoSource(
+    def _to_proto(self) -> session_workspace_pb2.GitRepoSource:
+        msg = session_workspace_pb2.GitRepoSource(
             url=self.url,
             branch=self.branch,
             commit=self.commit,
@@ -344,8 +345,8 @@ class LocalPathSourceInput:
 
     path: str = ""
 
-    def _to_proto(self) -> session_spec_pb2.LocalPathSource:
-        msg = session_spec_pb2.LocalPathSource(
+    def _to_proto(self) -> session_workspace_pb2.LocalPathSource:
+        msg = session_workspace_pb2.LocalPathSource(
             path=self.path,
         )
         return msg

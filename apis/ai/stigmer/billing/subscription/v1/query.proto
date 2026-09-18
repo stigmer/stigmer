@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.subscription.v1;
+
+import "ai/stigmer/billing/subscription/v1/api.proto";
+import "ai/stigmer/billing/subscription/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// SubscriptionQueryController provides the read operations on an
+// organization's subscription.
+//
+// Every read is keyed by the organization, because an organization has at
+// most one active subscription, and authorizes on the organization with
+// can_view_billing, the permission the billing account's reads use.
+//
+// @internal
+// Served by the cloud composition only (the kind is cloud_only).
+service SubscriptionQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = subscription;
+
+  // Get the organization's subscription.
+  //
+  // NOT_FOUND when the organization has none: it is on the Free plan, which
+  // is not a row. Callers that only need what the organization may do
+  // should call getEntitlements, which answers for every organization.
+  rpc getForOrganization(GetSubscriptionForOrganizationInput) returns (Subscription) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's subscription";
+  }
+
+  // Resolve what the organization is permitted right now.
+  //
+  // The answer is derived, never stored: the entitlements of the plan the
+  // organization's active subscription names, else the Free plan's with an
+  // empty plan_id. A platform-managed organization has no subscription of
+  // its own; its entitlements resolve through its identity provider to the
+  // integrator organization, whose plan counts the managed organization
+  // against the managed organizations it includes.
+  rpc getEntitlements(GetEntitlementsInput) returns (GetEntitlementsOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's entitlements";
+  }
+}

@@ -39,6 +39,7 @@ import { newBuiltInOrganizationDirectory } from "../authorization/organization-d
 import { authorizationPostureOf } from "../authorization/posture.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import type { Authorizer } from "../extensions/authorizer.js";
+import { ABSENT_LICENSE_STATUS } from "../extensions/license-status.js";
 import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
@@ -1486,6 +1487,11 @@ export async function composeServer(
       runnerAuthService: runnerCredentials,
       edition: extensions.edition,
       version: options.version ?? SERVER_VERSION,
+      // The built-in `absent` answer installs here, at the consumer, when
+      // no unit registered a license-status provider: open source and the
+      // cloud hold no key, and only an Enterprise unit ever has one.
+      licenseStatus: extensions.drivers.licenseStatus ?? ABSENT_LICENSE_STATUS,
+      now: () => new Date(),
       logger,
     });
     // Extension services register after the whole OSS set, inside the ONE

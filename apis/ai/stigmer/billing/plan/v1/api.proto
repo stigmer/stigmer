@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.plan.v1;
+
+import "ai/stigmer/billing/plan/v1/spec.proto";
+import "ai/stigmer/billing/plan/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Plan is a catalog entry naming a bundle of entitlements and the terms that
+// buy it.
+//
+// A plan is bought through one of two instruments: a Subscription (an
+// organization on Stigmer Cloud) or a License (a self-hosting customer). The
+// entitlements it names are the platform's vocabulary; the terms are the
+// cloud's. A plan is immutable once created: a change of terms is a new Plan,
+// and the old one retires so existing subscriptions can still show what they
+// bought. Plans belong to the platform, not to any organization, so
+// metadata.org is empty. No plan ships in the contract; the catalog's rows
+// are seeded by the cloud.
+message Plan {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'billing.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Plan'];
+
+  // Standard resource metadata. A plan has no organization: metadata.org is
+  // empty, and the slug is the plan's stable handle ("team", "business").
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Operator-provided plan definition: the instrument, the entitlements and
+  // the terms.
+  PlanSpec spec = 4;
+
+  // System-managed state: audit and lifecycle.
+  PlanStatus status = 5;
+}

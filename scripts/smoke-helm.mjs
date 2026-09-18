@@ -31,10 +31,11 @@
  * Usage:
  *   node scripts/smoke-helm.mjs --build
  *       Builds both images from source through docker-compose.dev.yml (the
- *       compose gate's own path; run `make build-server build-web` and
- *       bundle-slim first — make smoke-helm does all of it), tags them as
- *       the chart's repositories at tag `compose-dev`, loads them into kind
- *       and installs with pullPolicy Never.
+ *       compose gate's own path; run `make build-server build-web
+ *       stage-compose-runner-cli` and bundle-slim first — make smoke-helm
+ *       does all of it), tags them as the chart's repositories at tag
+ *       `compose-dev`, loads them into kind and installs with pullPolicy
+ *       Never.
  *
  *   node scripts/smoke-helm.mjs --published --version=vX.Y.Z
  *       Installs the chart pointing at the published ghcr.io images at that
@@ -53,7 +54,7 @@
  */
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { cpSync, existsSync, rmSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { connect } from "node:net";
 import { join } from "node:path";
 import process from "node:process";
@@ -70,6 +71,7 @@ import {
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
+const runnerCliStage = join(repoRoot, "backend", "services", "runner", "stage", "cli");
 const chartRoot = join(repoRoot, "deploy", "helm", "stigmer");
 
 const SERVER_PORT = 7234;
@@ -179,6 +181,23 @@ function stageServerTree() {
 }
 
 /**
+ * The dev runner image installs the CLI tarballs staged under
+ * backend/services/runner/stage/cli (the smoke-compose.mjs contract) and
+ * asserts their version against the STIGMER_CLI_VERSION build-arg, which
+ * docker-compose.dev.yml requires.
+ */
+function stagedRunnerCliVersion() {
+  const versionFile = join(runnerCliStage, "VERSION");
+  if (!existsSync(versionFile)) {
+    fail(
+      "backend/services/runner/stage/cli is not staged — run `make stage-compose-runner-cli` " +
+        "(or `node scripts/stage-compose-runner-cli.mjs`) first; `make smoke-helm` does",
+    );
+  }
+  return readFileSync(versionFile, "utf8").trim();
+}
+
+/**
  * Build both images from source exactly as the compose gate does, retag them
  * under the chart's repositories, and load them into the kind node. The
  * chart then installs with pullPolicy Never, so nothing can be pulled from
@@ -204,6 +223,7 @@ function buildAndLoadImages(cluster) {
         POSTGRES_PASSWORD: "unused",
         STIGMER_ENCRYPTION_KEY: "unused",
         STIGMER_RUNNER_TOKEN_KEY: "unused",
+        STIGMER_CLI_VERSION: stagedRunnerCliVersion(),
       },
     },
   );
