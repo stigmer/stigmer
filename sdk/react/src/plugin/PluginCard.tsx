@@ -43,6 +43,9 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
   const displayName = presentation.displayName ?? name;
   const description = entry.entry.description ?? presentation.description;
   const author = presentation.author?.name;
+  // The line under the title: the author when the manifest names one; the install name when it differs
+  // from the display name; nothing while the manifest is still on its way, so a name is never shown twice.
+  const byline = author ? `by ${author}` : displayName !== name ? name : null;
 
   return (
     <li className={cn(CARD, className)}>
@@ -57,7 +60,7 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
               </span>
             )}
           </div>
-          <p className="stg:truncate stg:text-xs stg:text-muted-foreground">{author ? `by ${author}` : name}</p>
+          {byline && <p className="stg:truncate stg:text-xs stg:text-muted-foreground">{byline}</p>}
         </div>
       </div>
       {description && <p className="stg:line-clamp-2 stg:flex-1 stg:text-xs stg:text-muted-foreground">{description}</p>}
