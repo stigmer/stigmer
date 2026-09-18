@@ -17,6 +17,8 @@
  *   the SHA-256 the server records;
  * - the preparation (`prepare.ts`): select, read, refuse, archive, digest,
  *   once, for a tree on disk, on a host, or in a browser's memory;
+ * - the presentation (`presentation.ts`): a card's face from a listed
+ *   tree, reading the entry's manifest and nothing else;
  * - the grammars (`refs.ts`): an install ref and a GitHub marketplace
  *   source, with their refusal sentences;
  * - the built-in sources (`builtin.ts`): the official catalogue and the
@@ -65,6 +67,7 @@ export {
   preparePluginArchive,
   preparePluginFromTree,
 } from "./client/prepare.js";
+export { readPluginPresentationFromTree } from "./client/presentation.js";
 export {
   type BuiltInMarketplace,
   BUILT_IN_MARKETPLACES,

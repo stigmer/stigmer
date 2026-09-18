@@ -59,6 +59,13 @@ export const PLUGIN_DOCUMENT_LIMITS = {
   /** A document under `ai.stigmer/`: a resource YAML. */
   overlay: 1024 * 1024,
   /**
+   * A plugin's logo, the image a storefront card shows. Checked from the
+   * listing's declared size before a client hands the file's URL to an
+   * `<img>`; measured across the three vendors' catalogues on 2026-09-18,
+   * the largest published logo is 361 KB and the median 7.5 KB.
+   */
+  logo: 1024 * 1024,
+  /**
    * A marketplace file in any dialect. The largest public catalogue
    * (`cursor/plugins`, 79 entries with descriptions) is under 32 KB; the cap
    * leaves room for catalogues an order of magnitude larger.

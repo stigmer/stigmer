@@ -2,7 +2,8 @@
  * `@stigmer/plugin-package`: the public surface.
  *
  * `readPluginPackage` reads one plugin; `readMarketplace` reads a catalogue
- * of them. Everything else here is what a consumer needs to supply its
+ * of them; `readPluginPresentation` reads what a card shows for one entry
+ * without opening the rest of it. Everything else here is what a consumer needs to supply its
  * input (`PluginFiles`, the caps), route a directory (`MANIFEST_LOCATIONS`,
  * `hasPluginManifest`, `MARKETPLACE_LOCATIONS`, `hasMarketplaceFile`), or
  * render an outcome (the finding kinds and `isErrorKind`). The dialect
@@ -56,6 +57,7 @@ export type {
 } from "./marketplace/outcome.js";
 export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./marketplace/read-marketplace.js";
 export { readPluginPackage } from "./read-plugin-package.js";
+export { type PluginPresentation, readPluginPresentation } from "./presentation.js";
 export type {
   IgnoredComponent,
   IgnoredComponentKind,
