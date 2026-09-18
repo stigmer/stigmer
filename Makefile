@@ -600,7 +600,7 @@ test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra n
 # gate nobody hears. Structural validity of the ai.stigmer/ overlays against
 # the contract is check-docs-yaml's job (authoring dir `plugins`).
 test-plugins-static: ## Run the plugin catalogue's static suite (fast, no network)
-	@npm run build -w @stigmer/plugin-package --silent
+	@npm run build -w @stigmer/plugin-package -w @stigmer/outbound --silent
 	npm run typecheck -w @stigmer/plugins
 	npm run test -w @stigmer/plugins
 
