@@ -1,13 +1,20 @@
 /**
  * Platform controller — ports pkg/domain/platform: the server's
  * self-description surface (NOT a resource domain — no store, no
- * pipelines; three direct handlers on PlatformQueryController).
+ * pipelines; four direct handlers on PlatformQueryController).
  *
- * Proven by platform.conformance.test.ts (getServerInfo +
- * getRunnerBootstrapConfig shapes; getRunnerScopedToken is deliberately
- * excluded there — its arms are exercised mid-execution) and
- * __tests__/platform.test.ts (the fail-soft mint matrix, the #15
- * composed-server pattern).
+ * Proven by platform.conformance.test.ts (getServerInfo,
+ * getRunnerBootstrapConfig and getLicenseStatus shapes; getRunnerScopedToken
+ * is deliberately excluded there — its arms are exercised mid-execution)
+ * and __tests__/platform.test.ts (the fail-soft mint matrix, the license
+ * status arms, the #15 composed-server pattern).
+ *
+ * getLicenseStatus is the one arm every edition answers from a driver
+ * point: a server's license is a fact about the server, like its edition,
+ * and the provider behind `deps.licenseStatus` is the one place that
+ * knows it (extensions/license-status.ts). The controller owns the clock
+ * — it hands the provider one instant and stamps checked_at from the same
+ * one — and copies the provider's presence contract to the wire unchanged.
  *
  * getRunnerScopedToken is the mint side of the runner-token lane
  * (oss#535) — the seam src/runnerauth/. What the token IS depends on the
@@ -41,8 +48,11 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
+import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import {
+  GetLicenseStatusOutputSchema,
   GetRunnerBootstrapConfigOutputSchema,
   GetRunnerScopedTokenOutputSchema,
   GetServerInfoOutputSchema,
@@ -50,6 +60,7 @@ import {
   ServerEdition,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type {
+  GetLicenseStatusOutput,
   GetRunnerBootstrapConfigOutput,
   GetRunnerScopedTokenInput,
   GetRunnerScopedTokenOutput,
@@ -57,6 +68,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { LicenseStatusProvider } from "../../extensions/license-status.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import type {
   RunnerCredentialProvider,
@@ -88,6 +100,18 @@ export interface PlatformControllerDeps {
    * cloud composition answers `cloud` without forking this controller.
    */
   readonly edition: ServerEdition;
+  /**
+   * What license this server holds (extensions/license-status.ts). The
+   * composition root installs the built-in `absent` provider when no unit
+   * registers one, so the field is required: a server that cannot answer
+   * the question is a wiring error, never a silent no-op.
+   */
+  readonly licenseStatus: LicenseStatusProvider;
+  /**
+   * The clock getLicenseStatus evaluates against — injected so a test can
+   * pin that the provider's instant and checked_at are the same one.
+   */
+  readonly now: () => Date;
   readonly logger: Logger;
 }
 
@@ -98,6 +122,7 @@ export function registerPlatformServices(
 ): void {
   router.service(PlatformQueryController, {
     getServerInfo: () => getServerInfo(deps),
+    getLicenseStatus: () => getLicenseStatus(deps),
     getRunnerBootstrapConfig: (_input, ctx) =>
       getRunnerBootstrapConfig(deps, ctx),
     getRunnerScopedToken: (input, ctx) =>
@@ -111,6 +136,51 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
     edition: deps.edition,
     version: SERVER_VERSION,
   });
+}
+
+/**
+ * The state of the license this server holds, as the composed provider
+ * reports it at one instant.
+ *
+ * The report's arm (extensions/license-status.ts) is copied to the wire
+ * field for field, so the output's presence contract holds by construction:
+ * claims exactly when a ticket verified, key_id whenever one was presented.
+ * checked_at is stamped from the SAME instant the provider evaluated
+ * against, so the answer can never say "valid as of now" about a moment
+ * other than the one it was asked about. No caller check beyond
+ * authentication: the annotation is is_skip_authorization because the
+ * banner this feeds is for every signed-in person, and the handler adds
+ * none (the RPC comment states it).
+ */
+async function getLicenseStatus(
+  deps: PlatformControllerDeps,
+): Promise<GetLicenseStatusOutput> {
+  const now = deps.now();
+  const report = await deps.licenseStatus.status(now);
+  const output = create(GetLicenseStatusOutputSchema, {
+    state: report.state,
+    checkedAt: timestampFromDate(now),
+  });
+  switch (report.state) {
+    case LicenseState.absent:
+      return output;
+    case LicenseState.invalid:
+      output.keyId = report.keyId;
+      return output;
+    case LicenseState.valid:
+    case LicenseState.expiring:
+    case LicenseState.grace:
+    case LicenseState.expired:
+      output.keyId = report.keyId;
+      output.claims = report.claims;
+      return output;
+    default: {
+      const exhaustive: never = report;
+      throw new Error(
+        `unhandled license report: ${JSON.stringify(exhaustive)}`,
+      );
+    }
+  }
 }
 
 /**

@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.v1;
+
+import "buf/validate/validate.proto";
+
+option java_outer_classname = "EntitlementProto";
+
+// What the platform permits a tenant: a set of limits and a set of features.
+//
+// An entitlement is what the platform permits; a subscription and a license
+// are the two instruments that grant it. The cloud derives an organization's
+// entitlements from its subscription's plan and the Enterprise server reads
+// them from the signed claims of its license, so this message lives under
+// platform, where both editions can import it, and never under billing,
+// which only the cloud composes. Entitlements are derived on read and never
+// stored as truth; there is no Entitlement resource kind.
+message Entitlements {
+  // The numeric limits in force. A limit that is absent is unlimited.
+  EntitlementLimits limits = 1;
+
+  // The features unlocked, each named once. A feature not listed is not
+  // unlocked; a gate switches over the closed vocabulary and treats every
+  // unknown value as locked.
+  repeated Feature features = 2 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      enum: {
+        defined_only: true
+        not_in: [0]
+      }
+    }
+  }];
+}
+
+// The numeric limits an entitlement carries.
+//
+// Every field has explicit presence: absent means "no limit", and zero is
+// refused because a limit of nothing is never what an operator meant. The
+// comment on each limit names the instrument that reads it.
+message EntitlementLimits {
+  // The most organizations the tenant may hold at once. Read by a license
+  // (an Enterprise deployment counts its organizations against it) and by
+  // a subscription (a Business plan counts the managed organizations it
+  // includes).
+  optional int32 max_organizations = 1 [(buf.validate.field).int32.gt = 0];
+
+  // The most identity accounts the tenant may hold at once. Read by both
+  // instruments.
+  optional int32 max_users = 2 [(buf.validate.field).int32.gt = 0];
+
+  // The platform-managed organizations a subscription includes before the
+  // per-organization fee applies. Read by a subscription only: an
+  // integrator's plan includes this many managed organizations, and the
+  // organizations resolve their own entitlements through the integrator's.
+  // A license ignores it.
+  optional int32 included_managed_organizations = 3 [(buf.validate.field).int32.gt = 0];
+}
+
+// A capability an entitlement can unlock.
+//
+// The vocabulary is closed and grows one value at a time, each landing with
+// the gate that reads it: an enum value is a wire identifier that can never
+// be removed, so a feature is named here only once something in the
+// platform can be gated on it. Values are added, never renamed or reused.
+enum Feature {
+  feature_unspecified = 0;
+
+  // Enforcing sign-in through a registered identity provider, so members
+  // cannot use another login. The identity-provider kind is Enterprise and
+  // Cloud; this feature is what a plan or license turns on for it.
+  sso_enforcement = 1;
+
+  // Creating PlatformClient credentials so the tenant's own product can
+  // mint Stigmer tokens for its users.
+  platform_client = 2;
+
+  // Bringing the tenant's own LLM provider keys instead of the platform's
+  // metered proxy credentials.
+  byo_provider_keys = 3;
+
+  // Delivering agents over messaging channels (Slack, WhatsApp) through a
+  // channel runtime. The channel kinds themselves are open source; this
+  // feature tiers the hosted runtime inside Cloud plans and licenses. It
+  // is not an edition gate: the open-source server stores channels freely.
+  channels = 4;
+
+  // Sharing an agent with individuals and guests through hosted share
+  // links. The agent-share kind itself is open source; this feature tiers
+  // the hosted sharing lane inside Cloud plans and licenses. It is not an
+  // edition gate: the open-source server stores shares freely.
+  sharing = 5;
+}

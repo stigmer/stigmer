@@ -266,6 +266,48 @@ public enum ApiResourceKind
    * <code>project = 60 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   project(60),
+  /**
+   * <pre>
+   * Catalog entry naming a bundle of entitlements and the terms that buy it.
+   *
+   * Platform-level: a plan belongs to no organization, so it carries no
+   * authorization scope and no owner. Immutable once created; a change of
+   * terms is a new Plan and the old one retires.
+   * </pre>
+   *
+   * <code>plan = 70 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  plan(70),
+  /**
+   * <pre>
+   * An organization's binding to a Plan; at most one active per organization.
+   *
+   * System-created: the payment system drives its lifecycle, so it has no
+   * owner and grants no roles. Its reads and writes authorize on the
+   * organization through the billing permissions.
+   *
+   * &#64;internal
+   * Organization-scoped with owner NONE is the memory kind's combination:
+   * the organization link is the only tuple the kind ever needs.
+   * </pre>
+   *
+   * <code>subscription = 71 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  subscription(71),
+  /**
+   * <pre>
+   * A signed grant of entitlements to a self-hosting customer for a term.
+   *
+   * Platform-level: issued by the cloud's operators and verified offline by
+   * the Enterprise server, so the customer is a value inside the license
+   * (which may or may not name a cloud organization) and the kind has no
+   * authorization scope and no owner. Claims are immutable once signed; a
+   * renewal is a new License.
+   * </pre>
+   *
+   * <code>license = 72 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  license(72),
   UNRECOGNIZED(-1),
   ;
 
@@ -529,6 +571,48 @@ public enum ApiResourceKind
    * <code>project = 60 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int project_VALUE = 60;
+  /**
+   * <pre>
+   * Catalog entry naming a bundle of entitlements and the terms that buy it.
+   *
+   * Platform-level: a plan belongs to no organization, so it carries no
+   * authorization scope and no owner. Immutable once created; a change of
+   * terms is a new Plan and the old one retires.
+   * </pre>
+   *
+   * <code>plan = 70 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int plan_VALUE = 70;
+  /**
+   * <pre>
+   * An organization's binding to a Plan; at most one active per organization.
+   *
+   * System-created: the payment system drives its lifecycle, so it has no
+   * owner and grants no roles. Its reads and writes authorize on the
+   * organization through the billing permissions.
+   *
+   * &#64;internal
+   * Organization-scoped with owner NONE is the memory kind's combination:
+   * the organization link is the only tuple the kind ever needs.
+   * </pre>
+   *
+   * <code>subscription = 71 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int subscription_VALUE = 71;
+  /**
+   * <pre>
+   * A signed grant of entitlements to a self-hosting customer for a term.
+   *
+   * Platform-level: issued by the cloud's operators and verified offline by
+   * the Enterprise server, so the customer is a value inside the license
+   * (which may or may not name a cloud organization) and the kind has no
+   * authorization scope and no owner. Claims are immutable once signed; a
+   * renewal is a new License.
+   * </pre>
+   *
+   * <code>license = 72 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int license_VALUE = 72;
 
 
   public final int getNumber() {
@@ -585,6 +669,9 @@ public enum ApiResourceKind
       case 57: return memory;
       case 58: return plugin;
       case 60: return project;
+      case 70: return plan;
+      case 71: return subscription;
+      case 72: return license;
       default: return null;
     }
   }

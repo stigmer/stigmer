@@ -1,0 +1,55 @@
+{
+  "name": "PlanTerms",
+  "description": "The commercial terms of a plan.\n\n Amounts are micro-USD (one millionth of a dollar), the unit the billing\n ledger already uses; shares are basis points (one hundredth of a percent).\n Every field has explicit presence: absent means the term does not apply to\n this plan, which is how a subscription plan and a license plan share one\n message. A monthly plan costs the greater of monthly_minimum_micros and\n usage_share_basis_points of the month's usage.",
+  "protoType": "ai.stigmer.billing.plan.v1.PlanTerms",
+  "protoFile": "apis/ai/stigmer/billing/plan/v1/spec.proto",
+  "fields": [
+    {
+      "name": "MonthlyMinimumMicros",
+      "jsonName": "monthlyMinimumMicros",
+      "protoField": "monthly_minimum_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "The least a subscription plan bills per month, in micro-USD. Absent on a\n license plan.",
+      "required": false,
+      "oneofGroup": "_monthly_minimum_micros"
+    },
+    {
+      "name": "UsageShareBasisPoints",
+      "jsonName": "usageShareBasisPoints",
+      "protoField": "usage_share_basis_points",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "The share of monthly usage a subscription plan bills when it exceeds the\n minimum, in basis points. Absent on a license plan.",
+      "required": false,
+      "oneofGroup": "_usage_share_basis_points",
+      "validation": {
+        "max": 10000
+      }
+    },
+    {
+      "name": "PerExtraOrganizationMicros",
+      "jsonName": "perExtraOrganizationMicros",
+      "protoField": "per_extra_organization_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "What a subscription plan bills per month for each platform-managed\n organization beyond the ones its entitlements include, in micro-USD.\n Absent when the plan includes no managed organizations.",
+      "required": false,
+      "oneofGroup": "_per_extra_organization_micros"
+    },
+    {
+      "name": "AnnualPriceMicros",
+      "jsonName": "annualPriceMicros",
+      "protoField": "annual_price_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "What a license plan invoices for a one-year term, in micro-USD. Absent on\n a subscription plan.",
+      "required": false,
+      "oneofGroup": "_annual_price_micros"
+    }
+  ]
+}

@@ -11,6 +11,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Embedded runners call getRunnerBootstrapConfig during boot to discover
  * the Temporal coordinates they need to join the execution backbone, so
  * integrators never hardcode infrastructure addresses.
+ * Signed-in clients call getLicenseStatus to learn the state of the
+ * license the server holds; every edition answers, and only an Enterprise
+ * deployment ever answers anything but absent.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -50,6 +53,37 @@ public final class PlatformQueryControllerGrpc {
       }
     }
     return getGetServerInfoMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetLicenseStatusInput,
+      ai.stigmer.platform.v1.GetLicenseStatusOutput> getGetLicenseStatusMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getLicenseStatus",
+      requestType = ai.stigmer.platform.v1.GetLicenseStatusInput.class,
+      responseType = ai.stigmer.platform.v1.GetLicenseStatusOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetLicenseStatusInput,
+      ai.stigmer.platform.v1.GetLicenseStatusOutput> getGetLicenseStatusMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetLicenseStatusInput, ai.stigmer.platform.v1.GetLicenseStatusOutput> getGetLicenseStatusMethod;
+    if ((getGetLicenseStatusMethod = PlatformQueryControllerGrpc.getGetLicenseStatusMethod) == null) {
+      synchronized (PlatformQueryControllerGrpc.class) {
+        if ((getGetLicenseStatusMethod = PlatformQueryControllerGrpc.getGetLicenseStatusMethod) == null) {
+          PlatformQueryControllerGrpc.getGetLicenseStatusMethod = getGetLicenseStatusMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.platform.v1.GetLicenseStatusInput, ai.stigmer.platform.v1.GetLicenseStatusOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getLicenseStatus"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetLicenseStatusInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetLicenseStatusOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new PlatformQueryControllerMethodDescriptorSupplier("getLicenseStatus"))
+              .build();
+        }
+      }
+    }
+    return getGetLicenseStatusMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput,
@@ -182,6 +216,9 @@ public final class PlatformQueryControllerGrpc {
    * Embedded runners call getRunnerBootstrapConfig during boot to discover
    * the Temporal coordinates they need to join the execution backbone, so
    * integrators never hardcode infrastructure addresses.
+   * Signed-in clients call getLicenseStatus to learn the state of the
+   * license the server holds; every edition answers, and only an Enterprise
+   * deployment ever answers anything but absent.
    * </pre>
    */
   public interface AsyncService {
@@ -197,6 +234,33 @@ public final class PlatformQueryControllerGrpc {
     default void getServerInfo(ai.stigmer.platform.v1.GetServerInfoInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetServerInfoOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetServerInfoMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Returns the state of the license this server holds, with its verified
+     * claims when there are any.
+     * A server's license status is a fact about the server, like its edition,
+     * so every edition answers it here rather than on the License kind (which
+     * only the cloud serves, and which an SDK hides on the editions that need
+     * the answer most). The open-source and Cloud editions always answer
+     * `absent`: neither holds a key. An Enterprise deployment answers from the
+     * ticket it was configured with, so its console can show "licensed to
+     * Acme until March" and warn before expiry.
+     * Authenticated, no permission: the answer is for every signed-in person
+     * (the console banner), and unlike getServerInfo it is not public because
+     * a license names its customer. The handler performs no further check.
+     * &#64;internal
+     * Served by the OSS platform controller over the licenseStatus driver
+     * point: composed provider when an Enterprise unit registers one, the
+     * built-in `absent` provider otherwise. The controller stamps checked_at
+     * from the same instant it hands the provider. The console gates its
+     * license banner on edition == enterprise, never on this state alone.
+     * </pre>
+     */
+    default void getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetLicenseStatusOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetLicenseStatusMethod(), responseObserver);
     }
 
     /**
@@ -281,6 +345,9 @@ public final class PlatformQueryControllerGrpc {
    * Embedded runners call getRunnerBootstrapConfig during boot to discover
    * the Temporal coordinates they need to join the execution backbone, so
    * integrators never hardcode infrastructure addresses.
+   * Signed-in clients call getLicenseStatus to learn the state of the
+   * license the server holds; every edition answers, and only an Enterprise
+   * deployment ever answers anything but absent.
    * </pre>
    */
   public static abstract class PlatformQueryControllerImplBase
@@ -301,6 +368,9 @@ public final class PlatformQueryControllerGrpc {
    * Embedded runners call getRunnerBootstrapConfig during boot to discover
    * the Temporal coordinates they need to join the execution backbone, so
    * integrators never hardcode infrastructure addresses.
+   * Signed-in clients call getLicenseStatus to learn the state of the
+   * license the server holds; every edition answers, and only an Enterprise
+   * deployment ever answers anything but absent.
    * </pre>
    */
   public static final class PlatformQueryControllerStub
@@ -328,6 +398,34 @@ public final class PlatformQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetServerInfoOutput> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetServerInfoMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Returns the state of the license this server holds, with its verified
+     * claims when there are any.
+     * A server's license status is a fact about the server, like its edition,
+     * so every edition answers it here rather than on the License kind (which
+     * only the cloud serves, and which an SDK hides on the editions that need
+     * the answer most). The open-source and Cloud editions always answer
+     * `absent`: neither holds a key. An Enterprise deployment answers from the
+     * ticket it was configured with, so its console can show "licensed to
+     * Acme until March" and warn before expiry.
+     * Authenticated, no permission: the answer is for every signed-in person
+     * (the console banner), and unlike getServerInfo it is not public because
+     * a license names its customer. The handler performs no further check.
+     * &#64;internal
+     * Served by the OSS platform controller over the licenseStatus driver
+     * point: composed provider when an Enterprise unit registers one, the
+     * built-in `absent` provider otherwise. The controller stamps checked_at
+     * from the same instant it hands the provider. The console gates its
+     * license banner on edition == enterprise, never on this state alone.
+     * </pre>
+     */
+    public void getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetLicenseStatusOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetLicenseStatusMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -414,6 +512,9 @@ public final class PlatformQueryControllerGrpc {
    * Embedded runners call getRunnerBootstrapConfig during boot to discover
    * the Temporal coordinates they need to join the execution backbone, so
    * integrators never hardcode infrastructure addresses.
+   * Signed-in clients call getLicenseStatus to learn the state of the
+   * license the server holds; every edition answers, and only an Enterprise
+   * deployment ever answers anything but absent.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingV2Stub
@@ -440,6 +541,33 @@ public final class PlatformQueryControllerGrpc {
     public ai.stigmer.platform.v1.GetServerInfoOutput getServerInfo(ai.stigmer.platform.v1.GetServerInfoInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetServerInfoMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Returns the state of the license this server holds, with its verified
+     * claims when there are any.
+     * A server's license status is a fact about the server, like its edition,
+     * so every edition answers it here rather than on the License kind (which
+     * only the cloud serves, and which an SDK hides on the editions that need
+     * the answer most). The open-source and Cloud editions always answer
+     * `absent`: neither holds a key. An Enterprise deployment answers from the
+     * ticket it was configured with, so its console can show "licensed to
+     * Acme until March" and warn before expiry.
+     * Authenticated, no permission: the answer is for every signed-in person
+     * (the console banner), and unlike getServerInfo it is not public because
+     * a license names its customer. The handler performs no further check.
+     * &#64;internal
+     * Served by the OSS platform controller over the licenseStatus driver
+     * point: composed provider when an Enterprise unit registers one, the
+     * built-in `absent` provider otherwise. The controller stamps checked_at
+     * from the same instant it hands the provider. The console gates its
+     * license banner on edition == enterprise, never on this state alone.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetLicenseStatusOutput getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetLicenseStatusMethod(), getCallOptions(), request);
     }
 
     /**
@@ -524,6 +652,9 @@ public final class PlatformQueryControllerGrpc {
    * Embedded runners call getRunnerBootstrapConfig during boot to discover
    * the Temporal coordinates they need to join the execution backbone, so
    * integrators never hardcode infrastructure addresses.
+   * Signed-in clients call getLicenseStatus to learn the state of the
+   * license the server holds; every edition answers, and only an Enterprise
+   * deployment ever answers anything but absent.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingStub
@@ -550,6 +681,33 @@ public final class PlatformQueryControllerGrpc {
     public ai.stigmer.platform.v1.GetServerInfoOutput getServerInfo(ai.stigmer.platform.v1.GetServerInfoInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetServerInfoMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Returns the state of the license this server holds, with its verified
+     * claims when there are any.
+     * A server's license status is a fact about the server, like its edition,
+     * so every edition answers it here rather than on the License kind (which
+     * only the cloud serves, and which an SDK hides on the editions that need
+     * the answer most). The open-source and Cloud editions always answer
+     * `absent`: neither holds a key. An Enterprise deployment answers from the
+     * ticket it was configured with, so its console can show "licensed to
+     * Acme until March" and warn before expiry.
+     * Authenticated, no permission: the answer is for every signed-in person
+     * (the console banner), and unlike getServerInfo it is not public because
+     * a license names its customer. The handler performs no further check.
+     * &#64;internal
+     * Served by the OSS platform controller over the licenseStatus driver
+     * point: composed provider when an Enterprise unit registers one, the
+     * built-in `absent` provider otherwise. The controller stamps checked_at
+     * from the same instant it hands the provider. The console gates its
+     * license banner on edition == enterprise, never on this state alone.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetLicenseStatusOutput getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetLicenseStatusMethod(), getCallOptions(), request);
     }
 
     /**
@@ -634,6 +792,9 @@ public final class PlatformQueryControllerGrpc {
    * Embedded runners call getRunnerBootstrapConfig during boot to discover
    * the Temporal coordinates they need to join the execution backbone, so
    * integrators never hardcode infrastructure addresses.
+   * Signed-in clients call getLicenseStatus to learn the state of the
+   * license the server holds; every edition answers, and only an Enterprise
+   * deployment ever answers anything but absent.
    * </pre>
    */
   public static final class PlatformQueryControllerFutureStub
@@ -661,6 +822,34 @@ public final class PlatformQueryControllerGrpc {
         ai.stigmer.platform.v1.GetServerInfoInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetServerInfoMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Returns the state of the license this server holds, with its verified
+     * claims when there are any.
+     * A server's license status is a fact about the server, like its edition,
+     * so every edition answers it here rather than on the License kind (which
+     * only the cloud serves, and which an SDK hides on the editions that need
+     * the answer most). The open-source and Cloud editions always answer
+     * `absent`: neither holds a key. An Enterprise deployment answers from the
+     * ticket it was configured with, so its console can show "licensed to
+     * Acme until March" and warn before expiry.
+     * Authenticated, no permission: the answer is for every signed-in person
+     * (the console banner), and unlike getServerInfo it is not public because
+     * a license names its customer. The handler performs no further check.
+     * &#64;internal
+     * Served by the OSS platform controller over the licenseStatus driver
+     * point: composed provider when an Enterprise unit registers one, the
+     * built-in `absent` provider otherwise. The controller stamps checked_at
+     * from the same instant it hands the provider. The console gates its
+     * license banner on edition == enterprise, never on this state alone.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetLicenseStatusOutput> getLicenseStatus(
+        ai.stigmer.platform.v1.GetLicenseStatusInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetLicenseStatusMethod(), getCallOptions()), request);
     }
 
     /**
@@ -738,8 +927,9 @@ public final class PlatformQueryControllerGrpc {
   }
 
   private static final int METHODID_GET_SERVER_INFO = 0;
-  private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 1;
-  private static final int METHODID_GET_RUNNER_SCOPED_TOKEN = 2;
+  private static final int METHODID_GET_LICENSE_STATUS = 1;
+  private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 2;
+  private static final int METHODID_GET_RUNNER_SCOPED_TOKEN = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -761,6 +951,10 @@ public final class PlatformQueryControllerGrpc {
         case METHODID_GET_SERVER_INFO:
           serviceImpl.getServerInfo((ai.stigmer.platform.v1.GetServerInfoInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetServerInfoOutput>) responseObserver);
+          break;
+        case METHODID_GET_LICENSE_STATUS:
+          serviceImpl.getLicenseStatus((ai.stigmer.platform.v1.GetLicenseStatusInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetLicenseStatusOutput>) responseObserver);
           break;
         case METHODID_GET_RUNNER_BOOTSTRAP_CONFIG:
           serviceImpl.getRunnerBootstrapConfig((ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput) request,
@@ -795,6 +989,13 @@ public final class PlatformQueryControllerGrpc {
               ai.stigmer.platform.v1.GetServerInfoInput,
               ai.stigmer.platform.v1.GetServerInfoOutput>(
                 service, METHODID_GET_SERVER_INFO)))
+        .addMethod(
+          getGetLicenseStatusMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.platform.v1.GetLicenseStatusInput,
+              ai.stigmer.platform.v1.GetLicenseStatusOutput>(
+                service, METHODID_GET_LICENSE_STATUS)))
         .addMethod(
           getGetRunnerBootstrapConfigMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -858,6 +1059,7 @@ public final class PlatformQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new PlatformQueryControllerFileDescriptorSupplier())
               .addMethod(getGetServerInfoMethod())
+              .addMethod(getGetLicenseStatusMethod())
               .addMethod(getGetRunnerBootstrapConfigMethod())
               .addMethod(getGetRunnerScopedTokenMethod())
               .build();

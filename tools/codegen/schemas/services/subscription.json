@@ -1,0 +1,470 @@
+{
+  "resource": "subscription",
+  "package": "ai.stigmer.billing.subscription.v1",
+  "goImportPath": "subscriptionv1",
+  "services": [
+    {
+      "name": "SubscriptionCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/billing/subscription/v1/command.proto",
+      "methods": [
+        {
+          "name": "ChangePlan",
+          "inputType": "ChangePlanInput",
+          "inputFullType": "ai.stigmer.billing.subscription.v1.ChangePlanInput",
+          "outputType": "Subscription",
+          "outputFullType": "ai.stigmer.billing.subscription.v1.Subscription",
+          "description": "Move the organization onto a plan.\n\n Subscribes an organization that has no subscription, or changes the plan\n of one that does. The plan must be active and bought through a\n subscription. Returns the subscription as it stands after the change."
+        },
+        {
+          "name": "Cancel",
+          "inputType": "CancelSubscriptionInput",
+          "inputFullType": "ai.stigmer.billing.subscription.v1.CancelSubscriptionInput",
+          "outputType": "Subscription",
+          "outputFullType": "ai.stigmer.billing.subscription.v1.Subscription",
+          "description": "Cancel the organization's subscription.\n\n The organization keeps its plan to the end of the current period and is\n on Free after it. NOT_FOUND when the organization has no subscription."
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/billing/subscription/v1/query.proto",
+      "methods": [
+        {
+          "name": "GetForOrganization",
+          "inputType": "GetSubscriptionForOrganizationInput",
+          "inputFullType": "ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput",
+          "outputType": "Subscription",
+          "outputFullType": "ai.stigmer.billing.subscription.v1.Subscription",
+          "description": "Get the organization's subscription.\n\n NOT_FOUND when the organization has none: it is on the Free plan, which\n is not a row. Callers that only need what the organization may do\n should call getEntitlements, which answers for every organization."
+        },
+        {
+          "name": "GetEntitlements",
+          "inputType": "GetEntitlementsInput",
+          "inputFullType": "ai.stigmer.billing.subscription.v1.GetEntitlementsInput",
+          "outputType": "GetEntitlementsOutput",
+          "outputFullType": "ai.stigmer.billing.subscription.v1.GetEntitlementsOutput",
+          "description": "Resolve what the organization is permitted right now.\n\n The answer is derived, never stored: the entitlements of the plan the\n organization's active subscription names, else the Free plan's with an\n empty plan_id. A platform-managed organization has no subscription of\n its own; its entitlements resolve through its identity provider to the\n integrator organization, whose plan counts the managed organization\n against the managed organizations it includes."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ChangePlanInput",
+      "description": "ChangePlanInput moves an organization onto a plan.",
+      "protoType": "ai.stigmer.billing.subscription.v1.ChangePlanInput",
+      "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's id.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PlanId",
+          "jsonName": "planId",
+          "protoField": "plan_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The id of the Plan to move onto. Must be an active subscription plan.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "CancelSubscriptionInput",
+      "description": "CancelSubscriptionInput names the organization whose subscription is\n canceled.",
+      "protoType": "ai.stigmer.billing.subscription.v1.CancelSubscriptionInput",
+      "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's id.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetSubscriptionForOrganizationInput",
+      "description": "GetSubscriptionForOrganizationInput names the organization whose\n subscription is read.",
+      "protoType": "ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput",
+      "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's id.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetEntitlementsInput",
+      "description": "GetEntitlementsInput names the organization whose entitlements are\n resolved.",
+      "protoType": "ai.stigmer.billing.subscription.v1.GetEntitlementsInput",
+      "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's id.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetEntitlementsOutput",
+      "description": "GetEntitlementsOutput is what an organization is permitted right now and\n the plan that permits it.",
+      "protoType": "ai.stigmer.billing.subscription.v1.GetEntitlementsOutput",
+      "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entitlements",
+          "jsonName": "entitlements",
+          "protoField": "entitlements",
+          "type": {
+            "kind": "message",
+            "messageType": "Entitlements"
+          },
+          "description": "The entitlements in force for the organization.",
+          "required": false
+        },
+        {
+          "name": "PlanId",
+          "jsonName": "planId",
+          "protoField": "plan_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The id of the Plan the entitlements were resolved from. Empty when the\n organization is on Free, which is not a plan row.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "SubscriptionState",
+      "description": "SubscriptionState is the lifecycle state a subscription is in.\n\n The vocabulary is the smallest set the entitlement read cannot do without\n and names no payment processor; the billing engine adds states as it needs\n them, additively.",
+      "protoType": "ai.stigmer.billing.subscription.v1.SubscriptionState",
+      "values": [
+        {
+          "name": "active",
+          "number": 1,
+          "description": "In good standing; the plan's entitlements apply."
+        },
+        {
+          "name": "past_due",
+          "number": 2,
+          "description": "A payment is overdue; the plan's entitlements still apply while the\n payment system retries."
+        },
+        {
+          "name": "canceled",
+          "number": 3,
+          "description": "Ended by the organization or the payment system; the organization is\n on Free from the end of the period."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (Before cloud#257 the tuple targeted organization#member, which\n excluded viewer-role users; legacy tuples keep resolving until the\n cloud's boot-time backfill converges them.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "Feature",
+      "description": "A capability an entitlement can unlock.\n\n The vocabulary is closed and grows one value at a time, each landing with\n the gate that reads it: an enum value is a wire identifier that can never\n be removed, so a feature is named here only once something in the\n platform can be gated on it. Values are added, never renamed or reused.",
+      "protoType": "ai.stigmer.platform.v1.Feature",
+      "values": [
+        {
+          "name": "sso_enforcement",
+          "number": 1,
+          "description": "Enforcing sign-in through a registered identity provider, so members\n cannot use another login. The identity-provider kind is Enterprise and\n Cloud; this feature is what a plan or license turns on for it."
+        },
+        {
+          "name": "platform_client",
+          "number": 2,
+          "description": "Creating PlatformClient credentials so the tenant's own product can\n mint Stigmer tokens for its users."
+        },
+        {
+          "name": "byo_provider_keys",
+          "number": 3,
+          "description": "Bringing the tenant's own LLM provider keys instead of the platform's\n metered proxy credentials."
+        },
+        {
+          "name": "channels",
+          "number": 4,
+          "description": "Delivering agents over messaging channels (Slack, WhatsApp) through a\n channel runtime. The channel kinds themselves are open source; this\n feature tiers the hosted runtime inside Cloud plans and licenses. It\n is not an edition gate: the open-source server stores channels freely."
+        },
+        {
+          "name": "sharing",
+          "number": 5,
+          "description": "Sharing an agent with individuals and guests through hosted share\n links. The agent-share kind itself is open source; this feature tiers\n the hosted sharing lane inside Cloud plans and licenses. It is not an\n edition gate: the open-source server stores shares freely."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Subscription is an organization's binding to a Plan.\n\n At most one subscription is active per organization, and an organization\n with none is on the Free plan: nothing is written to say so. The\n subscription is created and moved by the payment system, not by a user's\n manifest, so it has no owner and grants no roles; its reads and writes\n authorize on the organization it belongs to (metadata.org) through the\n billing permissions. The entitlements an organization holds are derived\n from its subscription's plan on every read and never stored on the\n subscription.",
+  "statusType": {
+    "name": "SubscriptionStatus",
+    "description": "SubscriptionStatus is the system-managed state of a subscription: its audit\n trail, its lifecycle state and the billing period it is in.\n\n Deliberately absent: the entitlements. They are derived from the plan on\n every read (SubscriptionQueryController.getEntitlements) so a plan's\n terms are stated once, on the plan.",
+    "protoType": "ai.stigmer.billing.subscription.v1.SubscriptionStatus",
+    "protoFile": "apis/ai/stigmer/billing/subscription/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information tracking creation and modification.",
+        "required": false
+      },
+      {
+        "name": "State",
+        "jsonName": "state",
+        "protoField": "state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.billing.subscription.v1.SubscriptionState",
+          "enumValues": [
+            "active",
+            "past_due",
+            "canceled"
+          ]
+        },
+        "description": "The lifecycle state the payment system last reported.",
+        "required": false
+      },
+      {
+        "name": "CurrentPeriodStart",
+        "jsonName": "currentPeriodStart",
+        "protoField": "current_period_start",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "Start of the current billing period.",
+        "required": false
+      },
+      {
+        "name": "CurrentPeriodEnd",
+        "jsonName": "currentPeriodEnd",
+        "protoField": "current_period_end",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "End of the current billing period.",
+        "required": false
+      },
+      {
+        "name": "CanceledAt",
+        "jsonName": "canceledAt",
+        "protoField": "canceled_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the subscription was canceled. Unset while it is not.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

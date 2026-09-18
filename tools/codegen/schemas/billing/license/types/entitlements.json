@@ -1,0 +1,40 @@
+{
+  "name": "Entitlements",
+  "description": "What the platform permits a tenant: a set of limits and a set of features.\n\n An entitlement is what the platform permits; a subscription and a license\n are the two instruments that grant it. The cloud derives an organization's\n entitlements from its subscription's plan and the Enterprise server reads\n them from the signed claims of its license, so this message lives under\n platform, where both editions can import it, and never under billing,\n which only the cloud composes. Entitlements are derived on read and never\n stored as truth; there is no Entitlement resource kind.",
+  "protoType": "ai.stigmer.platform.v1.Entitlements",
+  "protoFile": "apis/ai/stigmer/platform/v1/entitlement.proto",
+  "fields": [
+    {
+      "name": "Limits",
+      "jsonName": "limits",
+      "protoField": "limits",
+      "type": {
+        "kind": "message",
+        "messageType": "EntitlementLimits"
+      },
+      "description": "The numeric limits in force. A limit that is absent is unlimited.",
+      "required": false
+    },
+    {
+      "name": "Features",
+      "jsonName": "features",
+      "protoField": "features",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string",
+          "enumType": "ai.stigmer.platform.v1.Feature",
+          "enumValues": [
+            "sso_enforcement",
+            "platform_client",
+            "byo_provider_keys",
+            "channels",
+            "sharing"
+          ]
+        }
+      },
+      "description": "The features unlocked, each named once. A feature not listed is not\n unlocked; a gate switches over the closed vocabulary and treats every\n unknown value as locked.",
+      "required": false
+    }
+  ]
+}

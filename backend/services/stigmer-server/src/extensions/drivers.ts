@@ -53,6 +53,7 @@ import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-p
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { IdentityFederation } from "./identity-federation.js";
+import type { LicenseStatusProvider } from "./license-status.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
@@ -219,4 +220,14 @@ export interface ExtensionDrivers {
    * with the edition reason — the identityFederation absent shape.
    */
   readonly authorizationQueries?: AuthorizationQueryEngine;
+  /**
+   * The license-status provider (single-instance point): what license
+   * this server holds, answered by PlatformQueryController.getLicenseStatus
+   * in every edition. An Enterprise unit registers the provider that
+   * verifies its configured ticket; when absent, the built-in `absent`
+   * answer installs at the compose.ts consumption site, so open source
+   * and the cloud (which hold no key) answer the same question the same
+   * way (extensions/license-status.ts carries the contract).
+   */
+  readonly licenseStatus?: LicenseStatusProvider;
 }

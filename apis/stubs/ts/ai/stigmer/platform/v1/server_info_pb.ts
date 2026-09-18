@@ -5,14 +5,18 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/method_options_pb.js";
+import type { LicenseClaims, LicenseState } from "./license_pb.js";
+import { file_ai_stigmer_platform_v1_license } from "./license_pb.js";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb.js";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLjAgoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIeChZwYXlsb2FkX2VuY3J5cHRpb25fa2V5GAYgASgJEiEKGXBheWxvYWRfZW5jcnlwdGlvbl9rZXlfaWQYByABKAkSKAogcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXkYCCABKAkSKwojcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXlfaWQYCSABKAki3AEKGUdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQSHAoSYWdlbnRfZXhlY3V0aW9uX2lkGAEgASgJSAASHwoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAIgASgJSAASNwoKcG9vbF9jbGFpbRgDIAEoCzIhLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuUG9vbENsYWltSAASNwoHcmVuZXdhbBgEIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuVG9rZW5SZW5ld2FsSABCDgoFc2NvcGUSBbpIAggBIigKCVBvb2xDbGFpbRIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABIg4KDFRva2VuUmVuZXdhbCJpChpHZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dBIbChNydW5uZXJfc2NvcGVkX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAMgASgFKlMKDVNlcnZlckVkaXRpb24SHgoac2VydmVyX2VkaXRpb25fdW5zcGVjaWZpZWQQABIHCgNvc3MQARIJCgVjbG91ZBACEg4KCmVudGVycHJpc2UQAzKhAwoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAESgwEKFGdldFJ1bm5lclNjb3BlZFRva2VuEjEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbklucHV0GjIuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dCIE0LgYAUIRQg9TZXJ2ZXJJbmZvUHJvdG9iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIXChVHZXRMaWNlbnNlU3RhdHVzSW5wdXQixAEKFkdldExpY2Vuc2VTdGF0dXNPdXRwdXQSMwoFc3RhdGUYASABKA4yJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkxpY2Vuc2VTdGF0ZRI1CgZjbGFpbXMYAiABKAsyJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkxpY2Vuc2VDbGFpbXMSDgoGa2V5X2lkGAMgASgJEi4KCmNoZWNrZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIh8KHUdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0IuMCCh5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQSIQoQdGVtcG9yYWxfYWRkcmVzcxgBIAEoCUIHukgEcgIQARIjChJ0ZW1wb3JhbF9uYW1lc3BhY2UYAiABKAlCB7pIBHICEAESGwoTcnVubmVyX2FjY2Vzc190b2tlbhgDIAEoCRISCgp0b2tlbl90eXBlGAQgASgJEi4KJnJ1bm5lcl9hY2Nlc3NfdG9rZW5fZXhwaXJlc19pbl9zZWNvbmRzGAUgASgFEh4KFnBheWxvYWRfZW5jcnlwdGlvbl9rZXkYBiABKAkSIQoZcGF5bG9hZF9lbmNyeXB0aW9uX2tleV9pZBgHIAEoCRIoCiBwYXlsb2FkX2VuY3J5cHRpb25fc2Vjb25kYXJ5X2tleRgIIAEoCRIrCiNwYXlsb2FkX2VuY3J5cHRpb25fc2Vjb25kYXJ5X2tleV9pZBgJIAEoCSLcAQoZR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBIcChJhZ2VudF9leGVjdXRpb25faWQYASABKAlIABIfChV3b3JrZmxvd19leGVjdXRpb25faWQYAiABKAlIABI3Cgpwb29sX2NsYWltGAMgASgLMiEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Qb29sQ2xhaW1IABI3CgdyZW5ld2FsGAQgASgLMiQuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Ub2tlblJlbmV3YWxIAEIOCgVzY29wZRIFukgCCAEiKAoJUG9vbENsYWltEhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEiDgoMVG9rZW5SZW5ld2FsImkKGkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0EhsKE3J1bm5lcl9zY29wZWRfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRIaChJleHBpcmVzX2luX3NlY29uZHMYAyABKAUqUwoNU2VydmVyRWRpdGlvbhIeChpzZXJ2ZXJfZWRpdGlvbl91bnNwZWNpZmllZBAAEgcKA29zcxABEgkKBWNsb3VkEAISDgoKZW50ZXJwcmlzZRADMpoEChdQbGF0Zm9ybVF1ZXJ5Q29udHJvbGxlchJuCg1nZXRTZXJ2ZXJJbmZvEiouYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvSW5wdXQaKy5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9PdXRwdXQiBMi4GAESdwoQZ2V0TGljZW5zZVN0YXR1cxItLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0TGljZW5zZVN0YXR1c0lucHV0Gi4uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRMaWNlbnNlU3RhdHVzT3V0cHV0IgTQuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAESgwEKFGdldFJ1bm5lclNjb3BlZFRva2VuEjEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbklucHV0GjIuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dCIE0LgYAUIRQg9TZXJ2ZXJJbmZvUHJvdG9iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_platform_v1_license, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * Empty request — no parameters needed.
@@ -58,6 +62,71 @@ export const GetServerInfoOutputSchema: GenMessage<GetServerInfoOutput> = /*@__P
   messageDesc(file_ai_stigmer_platform_v1_server_info, 1);
 
 /**
+ * Empty request — the server reports on the one license it holds.
+ *
+ * @generated from message ai.stigmer.platform.v1.GetLicenseStatusInput
+ */
+export type GetLicenseStatusInput = Message<"ai.stigmer.platform.v1.GetLicenseStatusInput"> & {
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.GetLicenseStatusInput.
+ * Use `create(GetLicenseStatusInputSchema)` to create a new message.
+ */
+export const GetLicenseStatusInputSchema: GenMessage<GetLicenseStatusInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 2);
+
+/**
+ * The state of the server's license, with the claims that verified.
+ *
+ * Presence follows the state, so a client branches on `state` and never on a
+ * half-populated answer: `claims` is set exactly when the ticket's signature
+ * verified (valid, expiring, grace, expired); `key_id` is set whenever a
+ * ticket was presented at all (every state but absent), so an invalid answer
+ * still names the key that failed; `checked_at` is always set.
+ *
+ * @generated from message ai.stigmer.platform.v1.GetLicenseStatusOutput
+ */
+export type GetLicenseStatusOutput = Message<"ai.stigmer.platform.v1.GetLicenseStatusOutput"> & {
+  /**
+   * The license's state at checked_at.
+   *
+   * @generated from field: ai.stigmer.platform.v1.LicenseState state = 1;
+   */
+  state: LicenseState;
+
+  /**
+   * The verified claims. Unset when no ticket is configured or the ticket
+   * did not verify.
+   *
+   * @generated from field: ai.stigmer.platform.v1.LicenseClaims claims = 2;
+   */
+  claims?: LicenseClaims;
+
+  /**
+   * The `kid` of the key the ticket names. Empty when no ticket is
+   * configured.
+   *
+   * @generated from field: string key_id = 3;
+   */
+  keyId: string;
+
+  /**
+   * The instant the state was evaluated against.
+   *
+   * @generated from field: google.protobuf.Timestamp checked_at = 4;
+   */
+  checkedAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.GetLicenseStatusOutput.
+ * Use `create(GetLicenseStatusOutputSchema)` to create a new message.
+ */
+export const GetLicenseStatusOutputSchema: GenMessage<GetLicenseStatusOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 3);
+
+/**
  * Empty request — the caller is identified by its bearer token, and the
  * coordinates are the same for every runner in the environment.
  *
@@ -71,7 +140,7 @@ export type GetRunnerBootstrapConfigInput = Message<"ai.stigmer.platform.v1.GetR
  * Use `create(GetRunnerBootstrapConfigInputSchema)` to create a new message.
  */
 export const GetRunnerBootstrapConfigInputSchema: GenMessage<GetRunnerBootstrapConfigInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 2);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 4);
 
 /**
  * Everything an embedded runner needs to bootstrap: Temporal coordinates plus
@@ -176,7 +245,7 @@ export type GetRunnerBootstrapConfigOutput = Message<"ai.stigmer.platform.v1.Get
  * Use `create(GetRunnerBootstrapConfigOutputSchema)` to create a new message.
  */
 export const GetRunnerBootstrapConfigOutputSchema: GenMessage<GetRunnerBootstrapConfigOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 3);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 5);
 
 /**
  * Names the unit of dispatched work a runner wants a scoped token for.
@@ -237,7 +306,7 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
  * Use `create(GetRunnerScopedTokenInputSchema)` to create a new message.
  */
 export const GetRunnerScopedTokenInputSchema: GenMessage<GetRunnerScopedTokenInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 4);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 6);
 
 /**
  * Claim exchange for a warm-pool sandbox member.
@@ -264,7 +333,7 @@ export type PoolClaim = Message<"ai.stigmer.platform.v1.PoolClaim"> & {
  * Use `create(PoolClaimSchema)` to create a new message.
  */
 export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 5);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 7);
 
 /**
  * Renewal exchange for a running sandbox's own credential.
@@ -293,7 +362,7 @@ export type TokenRenewal = Message<"ai.stigmer.platform.v1.TokenRenewal"> & {
  * Use `create(TokenRenewalSchema)` to create a new message.
  */
 export const TokenRenewalSchema: GenMessage<TokenRenewal> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 6);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 8);
 
 /**
  * A runner token scoped to one unit of work, or empty when the server cannot
@@ -336,7 +405,7 @@ export type GetRunnerScopedTokenOutput = Message<"ai.stigmer.platform.v1.GetRunn
  * Use `create(GetRunnerScopedTokenOutputSchema)` to create a new message.
  */
 export const GetRunnerScopedTokenOutputSchema: GenMessage<GetRunnerScopedTokenOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 7);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 9);
 
 /**
  * Edition of the Stigmer server.
@@ -411,6 +480,10 @@ export const ServerEditionSchema: GenEnum<ServerEdition> = /*@__PURE__*/
  * the Temporal coordinates they need to join the execution backbone, so
  * integrators never hardcode infrastructure addresses.
  *
+ * Signed-in clients call getLicenseStatus to learn the state of the
+ * license the server holds; every edition answers, and only an Enterprise
+ * deployment ever answers anything but absent.
+ *
  * @generated from service ai.stigmer.platform.v1.PlatformQueryController
  */
 export const PlatformQueryController: GenService<{
@@ -427,6 +500,29 @@ export const PlatformQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetServerInfoInputSchema;
     output: typeof GetServerInfoOutputSchema;
+  },
+  /**
+   * Returns the state of the license this server holds, with its verified
+   * claims when there are any.
+   *
+   * A server's license status is a fact about the server, like its edition,
+   * so every edition answers it here rather than on the License kind (which
+   * only the cloud serves, and which an SDK hides on the editions that need
+   * the answer most). The open-source and Cloud editions always answer
+   * `absent`: neither holds a key. An Enterprise deployment answers from the
+   * ticket it was configured with, so its console can show "licensed to
+   * Acme until March" and warn before expiry.
+   *
+   * Authenticated, no permission: the answer is for every signed-in person
+   * (the console banner), and unlike getServerInfo it is not public because
+   * a license names its customer. The handler performs no further check.
+   *
+   * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus
+   */
+  getLicenseStatus: {
+    methodKind: "unary";
+    input: typeof GetLicenseStatusInputSchema;
+    output: typeof GetLicenseStatusOutputSchema;
   },
   /**
    * Returns everything an embedded runner needs to bootstrap itself.

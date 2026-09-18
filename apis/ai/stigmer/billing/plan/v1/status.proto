@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.plan.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// PlanStatus is the system-managed state of a plan: its audit trail and
+// whether it is still offered.
+message PlanStatus {
+  // Standard audit information tracking creation and modification.
+  //
+  // @internal
+  // Field 99 follows Stigmer convention for audit placement.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Whether the plan is offered to new buyers or retired.
+  PlanLifecycle lifecycle = 1;
+
+  // When the plan was retired. Unset while the plan is active.
+  google.protobuf.Timestamp retired_at = 2;
+}
+
+// PlanLifecycle is whether a plan can still be bought.
+//
+// A retired plan stays readable so a subscription or license that bought it
+// can still show its terms; retirement is the only state change a plan has.
+enum PlanLifecycle {
+  plan_lifecycle_unspecified = 0;
+
+  // Offered to new buyers.
+  active = 1;
+
+  // No longer offered; existing subscriptions and licenses keep it.
+  retired = 2;
+}

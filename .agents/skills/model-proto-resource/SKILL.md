@@ -124,7 +124,11 @@ Two other postures exist and each is a deliberate statement:
 - `is_skip_authorization = true`: the handler authorizes itself after loading
   what it needs, because the request carries no target id (a list filtered by
   what the caller may see, a lookup by hash or by token). Never on an RPC whose
-  request carries the target's id.
+  request carries the target's id, with one exception: a kind whose `kind_meta`
+  declares `scope_type: AUTHORIZATION_SCOPE_TYPE_NONE` has no tuple to check a
+  caller against, so a signed-in read of it (`Plan.get`) is
+  `is_skip_authorization` even when the request names the row, and the handler
+  adds no check. The RPC comment says so.
 
 An RPC that needs more than one check (a parent's permission and a membership,
 for instance) declares the check the annotation can express and performs the

@@ -1,5 +1,9 @@
+import datetime
+
 from ai.stigmer.commons.rpc import method_options_pb2 as _method_options_pb2
+from ai.stigmer.platform.v1 import license_pb2 as _license_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -30,6 +34,22 @@ class GetServerInfoOutput(_message.Message):
     edition: ServerEdition
     version: str
     def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ...) -> None: ...
+
+class GetLicenseStatusInput(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class GetLicenseStatusOutput(_message.Message):
+    __slots__ = ("state", "claims", "key_id", "checked_at")
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    CLAIMS_FIELD_NUMBER: _ClassVar[int]
+    KEY_ID_FIELD_NUMBER: _ClassVar[int]
+    CHECKED_AT_FIELD_NUMBER: _ClassVar[int]
+    state: _license_pb2.LicenseState
+    claims: _license_pb2.LicenseClaims
+    key_id: str
+    checked_at: _timestamp_pb2.Timestamp
+    def __init__(self, state: _Optional[_Union[_license_pb2.LicenseState, str]] = ..., claims: _Optional[_Union[_license_pb2.LicenseClaims, _Mapping]] = ..., key_id: _Optional[str] = ..., checked_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class GetRunnerBootstrapConfigInput(_message.Message):
     __slots__ = ()
