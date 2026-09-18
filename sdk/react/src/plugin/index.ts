@@ -85,8 +85,18 @@ export { OFFICIAL_PUBLISHER, isPublishedVersion, officialFileUrl, officialListin
 // Components
 export { PluginDetailView, kindLabel as pluginMemberKindLabel } from "./PluginDetailView.js";
 export type { PluginDetailViewProps, PluginMemberRef } from "./PluginDetailView.js";
-export { MarketplaceCatalog, filterEntries } from "./MarketplaceCatalog.js";
+export { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries, matchesQuery } from "./MarketplaceCatalog.js";
 export type { MarketplaceCatalogProps } from "./MarketplaceCatalog.js";
+export { PluginCard, UploadTile } from "./PluginCard.js";
+export type { PluginCardProps, UploadTileProps } from "./PluginCard.js";
+export { PluginFace, monogramRing } from "./PluginFace.js";
+export type { PluginFaceProps } from "./PluginFace.js";
+export { SourceMark, publisherOf } from "./SourceMark.js";
+export type { SourceMarkProps } from "./SourceMark.js";
+export { SourceChips } from "./SourceChips.js";
+export type { SourceChipsProps } from "./SourceChips.js";
+export { ManageSourcesDialog, describeSource } from "./ManageSourcesDialog.js";
+export type { ManageSourcesDialogProps } from "./ManageSourcesDialog.js";
 export { PluginUploader } from "./PluginUploader.js";
 export type { PluginUploaderProps } from "./PluginUploader.js";
 export { usePluginUpload, looksLikeDroppedDotfiles } from "./usePluginUpload.js";

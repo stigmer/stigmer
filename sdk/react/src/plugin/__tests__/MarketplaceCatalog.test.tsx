@@ -1,13 +1,20 @@
 /**
  * The Marketplace page against a fetch fake and a router transport. Pins:
- * one section per known source, the four built-ins first, then an added
- * one; a section that cannot be read says so in its own section and the
- * page stands (the official one on a development server, the vendors
- * unreachable here); the search box filters every section's cards; a card
- * for a plugin the organization already holds says "Installed"; Install on
- * a card opens the install dialog for that entry from that source; the
- * Sources disclosure lists the built-ins as such and offers Remove on the
- * added one only.
+ * the sources come first as chips, "All sources" then the four built-ins
+ * then an added one, each chip carrying its count once read and a warning
+ * when it cannot be read, and the page stands when some cannot (the
+ * official one on a development server, the vendors unreachable here);
+ * choosing a chip narrows the grid to that source and, for a failed one,
+ * shows its sentence with a retry; one grid across the sources, the
+ * Upload tile first, cards wearing the plugin's display name, author and
+ * logo where the manifest carries them and a monogram where it does not,
+ * each naming its source; the search box filters the grid and hides the
+ * Upload tile; a card for a plugin the organization already holds says
+ * "Installed"; Install on a card opens the install dialog for that entry
+ * from that source; the Upload tile opens the uploader in a dialog; the
+ * grid pages at CATALOG_PAGE_SIZE and a new query returns to page one;
+ * Manage sources opens the dialog listing the built-ins as such with
+ * Remove on the added one only.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -22,10 +29,10 @@ import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { SearchResponseSchema, SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import { StigmerContext } from "../../context.js";
-import { MarketplaceCatalog, filterEntries } from "../MarketplaceCatalog.js";
+import { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries } from "../MarketplaceCatalog.js";
 import { resetGitHubListingCache } from "../sources/github.js";
 import { MARKETPLACES_STORAGE_KEY } from "../useMarketplaces.js";
-import { HOSTED_MARKETPLACE_NAME, HOSTED_REPO, hostedFetch } from "./fixtures/hosted-marketplace.js";
+import { HOSTED_COMMIT, HOSTED_MARKETPLACE_NAME, HOSTED_REPO, hostedFetch, hostedMarketplaceFiles } from "./fixtures/hosted-marketplace.js";
 
 const ORG = "acme";
 
@@ -61,36 +68,103 @@ function transport(installedSlugs: readonly string[]) {
   });
 }
 
-function renderCatalog(installedSlugs: readonly string[] = []) {
+function renderCatalog(installedSlugs: readonly string[] = [], files = hostedMarketplaceFiles()) {
   const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport(installedSlugs) });
-  const { fetchImpl } = hostedFetch();
+  const { fetchImpl } = hostedFetch(files);
   const wrapper = ({ children }: { children: ReactNode }) => (
     <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
   );
   return render(<MarketplaceCatalog org={ORG} fetchImpl={fetchImpl} />, { wrapper });
 }
 
-describe("MarketplaceCatalog", () => {
-  it("shows one section per source, built-ins first, and stands when some cannot be read", async () => {
-    renderCatalog();
-    const headings = await screen.findAllByRole("heading", { level: 2 });
-    expect(headings.map((h) => h.textContent)).toEqual(["stigmer", "cursor-plugins", "claude-code-plugins", "codex-plugins", HOSTED_MARKETPLACE_NAME]);
+/** The chips, by accessible name, in order. */
+function chips() {
+  return within(screen.getByRole("radiogroup", { name: "Sources" })).getAllByRole("radio");
+}
 
-    // The added source lists its two installable entries; the page did not wait for the others.
+function chip(name: string) {
+  return within(screen.getByRole("radiogroup", { name: "Sources" })).getByRole("radio", { name });
+}
+
+describe("MarketplaceCatalog: the sources first", () => {
+  it("lists All sources, the built-ins in order and the added one as chips; the page stands when some cannot be read", async () => {
+    renderCatalog();
+    expect(chips().map((radio) => radio.getAttribute("aria-label"))).toEqual([
+      "All sources",
+      "stigmer",
+      "cursor-plugins",
+      "claude-code-plugins",
+      "codex-plugins",
+      HOSTED_MARKETPLACE_NAME,
+    ]);
+    expect(chip("All sources").getAttribute("aria-checked")).toBe("true");
+
+    // The added source's cards paint without waiting for the others; the chip shows its count.
     await screen.findByRole("button", { name: "Install thermos" });
     expect(screen.getByRole("button", { name: "Install github" })).toBeTruthy();
+    await waitFor(() => expect(chip(HOSTED_MARKETPLACE_NAME).textContent).toContain("2"));
 
-    // The official source says why it cannot be read on a development server; the vendors are unreachable through this fake.
-    await waitFor(() => expect(screen.getByText(/development build/)).toBeTruthy());
-    await waitFor(() => expect(screen.getAllByText(/cannot be read right now/).length).toBeGreaterThanOrEqual(3));
+    // The sources that cannot be read say so in one line each, with a retry; the official one names the development build.
+    await waitFor(() => expect(screen.getByRole("list", { name: "Sources that cannot be read" })).toBeTruthy());
+    const failed = within(screen.getByRole("list", { name: "Sources that cannot be read" })).getAllByRole("listitem");
+    expect(failed.map((item) => item.textContent)).toEqual([
+      expect.stringMatching(/^stigmer.*development build/),
+      expect.stringMatching(/^cursor-plugins.*cannot be read right now/),
+      expect.stringMatching(/^claude-code-plugins.*cannot be read right now/),
+      expect.stringMatching(/^codex-plugins.*cannot be read right now/),
+    ]);
+    expect(screen.getByRole("button", { name: "Retry cursor-plugins" })).toBeTruthy();
   });
 
-  it("filters every section's cards by the search box", async () => {
+  it("choosing a chip narrows the grid to that source; a failed source shows its sentence whole with a retry", async () => {
+    renderCatalog();
+    await screen.findByRole("button", { name: "Install thermos" });
+    await waitFor(() => expect(screen.getByRole("list", { name: "Sources that cannot be read" })).toBeTruthy());
+
+    fireEvent.click(chip("stigmer"));
+    expect(chip("stigmer").getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByRole("button", { name: "Install thermos" })).toBeNull();
+    expect(screen.getByText(/development build/)).toBeTruthy();
+    expect(screen.getByText("stigmer cannot be read right now")).toBeTruthy();
+    // The Upload tile stays: uploading is not a source's business.
+    expect(screen.getByRole("button", { name: /Upload a plugin/ })).toBeTruthy();
+
+    fireEvent.click(chip(HOSTED_MARKETPLACE_NAME));
+    expect(screen.getByRole("button", { name: "Install thermos" })).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Sources that cannot be read" })).toBeNull();
+  });
+});
+
+describe("MarketplaceCatalog: the grid", () => {
+  it("shows the Upload tile first, then cards with a face, a display name, an author and a source mark", async () => {
+    renderCatalog();
+    const grid = await screen.findByRole("list", { name: "Plugins" });
+    const items = within(grid).getAllByRole("listitem");
+    expect(within(items[0]!).getByRole("button", { name: /Upload a plugin/ })).toBeTruthy();
+
+    // thermos: the manifest's display name, author and logo, once its manifest is read.
+    const thermos = items[1]!;
+    await waitFor(() => expect(within(thermos).getByRole("heading", { level: 3 }).textContent).toBe("Thermos"));
+    expect(within(thermos).getByText("by Acme")).toBeTruthy();
+    expect(within(thermos).getByText("Keeps things warm.")).toBeTruthy();
+    const logo = thermos.querySelector<HTMLImageElement>("img[src*='thermos/assets/logo.png']");
+    expect(logo?.getAttribute("src")).toBe(`https://raw.githubusercontent.com/${HOSTED_REPO}/${HOSTED_COMMIT}/thermos/assets/logo.png`);
+    expect(logo?.getAttribute("referrerpolicy")).toBe("no-referrer");
+    expect(thermos.textContent).toContain(HOSTED_MARKETPLACE_NAME);
+
+    // github: no display name, no logo, so the name stands and a monogram wears the first letter.
+    const github = items[2]!;
+    expect(within(github).getByRole("heading", { level: 3 }).textContent).toBe("github");
+    await waitFor(() => expect(github.querySelector("[data-monogram]")?.getAttribute("data-monogram")).toBe("G"));
+  });
+
+  it("filters the grid by the search box, hides the Upload tile while searching, and says when nothing matches", async () => {
     renderCatalog();
     await screen.findByRole("button", { name: "Install thermos" });
     fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "GIT" } });
     expect(screen.queryByRole("button", { name: "Install thermos" })).toBeNull();
     expect(screen.getByRole("button", { name: "Install github" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
     fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "nothing-here" } });
     expect(screen.getByText("Nothing here matches 'nothing-here'.")).toBeTruthy();
   });
@@ -109,10 +183,52 @@ describe("MarketplaceCatalog", () => {
     expect(within(dialog).getByText(new RegExp(`From ${HOSTED_MARKETPLACE_NAME} `))).toBeTruthy();
   });
 
-  it("lists the sources behind a disclosure: the built-ins as such, Remove on the added one only", async () => {
+  it("the Upload tile opens the uploader in a dialog on the page", async () => {
+    renderCatalog();
+    fireEvent.click(await screen.findByRole("button", { name: /Upload a plugin/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Upload a plugin" });
+    expect(within(dialog).getByTestId("plugin-folder-input")).toBeTruthy();
+    expect(within(dialog).getByText(/Drop a plugin folder/)).toBeTruthy();
+  });
+
+  it("pages at CATALOG_PAGE_SIZE, the Upload tile taking one slot on the first page, and a new query returns to page one", async () => {
+    // A catalogue of thirty entries, each its own manifest-only directory.
+    const files = hostedMarketplaceFiles();
+    const many = Array.from({ length: 30 }, (_, index) => `plugin-${String(index).padStart(2, "0")}`);
+    files.set(
+      ".cursor-plugin/marketplace.json",
+      `${JSON.stringify({ name: HOSTED_MARKETPLACE_NAME, plugins: many.map((name) => ({ name, source: name })) })}\n`,
+    );
+    for (const name of many) files.set(`${name}/.cursor-plugin/plugin.json`, `${JSON.stringify({ name })}\n`);
+    renderCatalog([], files);
+
+    await screen.findByRole("button", { name: "Install plugin-00" });
+    let cards = within(screen.getByRole("list", { name: "Plugins" })).getAllByRole("listitem");
+    expect(cards).toHaveLength(CATALOG_PAGE_SIZE); // the tile plus 23 cards
+    expect(screen.getByRole("button", { name: `Install plugin-${CATALOG_PAGE_SIZE - 2}` })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: `Install plugin-${CATALOG_PAGE_SIZE - 1}` })).toBeNull();
+
+    const pagination = screen.getByRole("navigation", { name: "Plugins pagination" });
+    expect(pagination.textContent).toContain("Page 1 of 2");
+    fireEvent.click(within(pagination).getByRole("button", { name: "Next" }));
+    cards = within(screen.getByRole("list", { name: "Plugins" })).getAllByRole("listitem");
+    expect(cards).toHaveLength(30 - (CATALOG_PAGE_SIZE - 1));
+    expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
+    expect(screen.getByRole("button", { name: `Install plugin-${CATALOG_PAGE_SIZE - 1}` })).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "plugin-2" } });
+    expect(screen.queryByRole("navigation", { name: "Plugins pagination" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: /^Install plugin-2/ })).toHaveLength(10);
+  });
+});
+
+describe("MarketplaceCatalog: Manage sources", () => {
+  it("opens a dialog listing the built-ins as such, Remove on the added one only, and the add form", async () => {
     renderCatalog();
     await screen.findByRole("button", { name: "Install thermos" });
-    const list = screen.getByRole("list", { name: "Known sources" });
+    fireEvent.click(screen.getByRole("button", { name: "Manage sources" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sources" });
+    const list = within(dialog).getByRole("list", { name: "Known sources" });
     const items = within(list).getAllByRole("listitem");
     expect(items).toHaveLength(5);
     expect(items[0]?.textContent).toContain("stigmer");
@@ -121,6 +237,8 @@ describe("MarketplaceCatalog", () => {
     expect(within(list).getAllByRole("button", { name: /^Remove source/ }).map((b) => b.getAttribute("aria-label"))).toEqual([
       `Remove source ${HOSTED_MARKETPLACE_NAME}`,
     ]);
+    expect(within(dialog).getByRole("form", { name: "Add a source" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Add source" })).toBeTruthy();
   });
 });
 
