@@ -31,6 +31,9 @@ on:
   pull_request:
     paths:
       - "deploy/helm/**"
+      # The parity test reads the compose file: a compose-only change must
+      # run it, or the drift it exists to catch merges green.
+      - "docker-compose.yml"
       - "scripts/smoke-helm.mjs"
       # The whole lib: the smoke imports stigmer-smoke.mjs (#1087).
       - "scripts/lib/**"
@@ -40,6 +43,7 @@ on:
     branches: [main]
     paths:
       - "deploy/helm/**"
+      - "docker-compose.yml"
       - "scripts/smoke-helm.mjs"
       - "scripts/lib/**"
       - "Makefile"
