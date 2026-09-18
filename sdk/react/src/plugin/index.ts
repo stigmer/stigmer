@@ -5,9 +5,10 @@
  * `usePluginCount`, `usePluginMembers`, `usePluginVersions`), the
  * marketplace layer a browser reads without a zipball (`useMarketplaces`,
  * `useMarketplace`, `usePreparePluginInstall`, `useInstallPlugin`), the
- * styled surfaces (`PluginDetailView`, `MarketplaceBrowser`,
- * `PluginInstallDialog`, `ManagedByPluginNotice`) and the label rule the
- * member detail views apply (`useManagingPlugin`). Remove goes through
+ * upload path (`usePluginUpload` over `sources/local.ts`), the styled
+ * surfaces (`PluginDetailView`, `MarketplaceCatalog`, `PluginUploader`,
+ * `PluginInstallDialog`, `InstallPreview`, `ManagedByPluginNotice`) and the
+ * label rule the member detail views apply (`useManagingPlugin`). Remove goes through
  * `useDeleteResource("plugin", id)`; visibility through
  * `useUpdateVisibility("plugin", id)`, the one home each already has.
  */
@@ -72,8 +73,12 @@ export { isPublishedVersion, officialFileUrl, officialListingUrl, openOfficialTr
 // Components
 export { PluginDetailView, kindLabel as pluginMemberKindLabel } from "./PluginDetailView.js";
 export type { PluginDetailViewProps, PluginMemberRef } from "./PluginDetailView.js";
-export { MarketplaceBrowser } from "./MarketplaceBrowser.js";
-export type { MarketplaceBrowserProps } from "./MarketplaceBrowser.js";
+export { MarketplaceCatalog, filterEntries } from "./MarketplaceCatalog.js";
+export type { MarketplaceCatalogProps } from "./MarketplaceCatalog.js";
+export { PluginUploader } from "./PluginUploader.js";
+export type { PluginUploaderProps } from "./PluginUploader.js";
+export { usePluginUpload, looksLikeDroppedDotfiles } from "./usePluginUpload.js";
+export type { PluginUploadPhase, UsePluginUploadReturn } from "./usePluginUpload.js";
 export { PluginInstallDialog, summariseInstall } from "./PluginInstallDialog.js";
 export type { PluginInstallDialogProps } from "./PluginInstallDialog.js";
 export { InstallPreview, PrepareRefusal, describeOrigin } from "./InstallPreview.js";
