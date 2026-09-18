@@ -505,12 +505,13 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      A Runner is the self-registering compute process that executes work —
-      three modes, five lifecycle phases, three selection paths.
+      A Runner is the process that executes work, not a resource; where one
+      comes from in each way of running Stigmer; how work reaches it through a
+      task queue and what happens when none is polling.
     medium: diagram
     why:
-      The lifecycle is literally a state machine and the page already renders it
-      as one.
+      The runner's place at the end of the Agent, Instance, Session, Execution
+      chain is structure; the existing mermaid carries it.
 
   guides/runners/overview:
     fate: keep
@@ -797,6 +798,22 @@ pages:
       between Compose and Kubernetes, upgrade by version pin, change a setting
       or rotate the runner's key, uninstall, each per shape.
     medium: none
+
+  guides/self-hosting/runners:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      What executes Agents and Workflows on a self-hosted stack and how a run
+      reaches it through the one task queue; what an Agent run and a Workflow
+      run each do when no runner is polling; where the LLM key, the shared
+      artifact disk and the runner's own API key come from per shape; why the
+      runner is one trust domain; the per-Session sandbox provisioner as a
+      mechanism and its limit at the current release.
+    medium: diagram
+    why:
+      The path one run takes (you, the server, the queue, the runner, your LLM
+      provider, and back) is a sequence; the shape pages carry topology, this
+      page carries the flow.
 
   # ── CLI ────────────────────────────────────────────────────────────────
   cli:

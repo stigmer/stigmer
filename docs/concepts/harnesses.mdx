@@ -124,10 +124,10 @@ flowchart LR
   EC --> P
 ```
 
-When a [Runner](/docs/concepts/runners) starts, it can host workers for both
-harnesses. Native executions route to the base task queue, and Cursor executions
-route to a dedicated queue. The runner handles both transparently — you don't
-need separate runner processes for each Harness.
+One [Runner](/docs/concepts/runners) serves both harnesses. The Harness is a
+property of the Session and travels with each execution on the same task queue;
+the runner reads it and hands the work to the matching runtime. You don't need
+separate runner processes, or separate queues, for each Harness.
 
 ## Creating a Session with a Harness
 

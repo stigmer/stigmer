@@ -359,31 +359,31 @@ A process that connects to Stigmer and executes your Agents.
   when used generically ("start a runner").
 - **Not an API resource**: A Runner is a runtime process, not a declarative
   resource---there is no `kind: Runner`, no `apiVersion`, and no
-  `stigmer apply`. You start one with `stigmer up` (and stop it with
-  `stigmer down`); it self-registers and heartbeats. The control plane tracks
-  its live status, surfaced in the web console. (The Runner API resource that
-  once existed was removed from the OSS repo.)
-- **Lifecycle**: A runner moves through phases---Pending, Ready, Busy, Stopped,
-  Failed---driven by heartbeats. The control plane tracks each runner's status
-  (phase, current execution count, machine info); none of this is applied or
-  edited by the user. See the [Runners concept page](/docs/concepts/runners).
-- **Two types**: Local runners (user-started via CLI, persistent) and cloud
-  runners (platform-provisioned, ephemeral, labeled
-  `stigmer.ai/system-managed: "true"`).
-- **Related terms**: Sessions find a runner one of three ways---automatic
-  provisioning, explicit selection from the runner picker, or Session binding (a
-  Session reuses the runner that ran its first execution). Do not confuse with
-  "Agent Runner" (the TypeScript Temporal worker binary---architecture docs
-  only).
+  `stigmer apply`. The server keeps no record of which runners exist and the web
+  console has no runner page. You start one with `stigmer up` (and stop it with
+  `stigmer down`); the Docker Compose stack and the Helm chart each run one
+  beside the server. (The Runner API resource that once existed, with its
+  phases, heartbeats and runner picker, was removed from the OSS repo.)
+- **How work reaches it**: The server puts each execution on a Temporal task
+  queue (`stigmer_runner` by default) and whichever runner polls that queue
+  takes the work. Nothing selects a runner; the queue is the contract. A run
+  carries the Session's Harness and a credential minted for that run alone. See
+  the [Runners concept page](/docs/concepts/runners).
+- **Two postures**: One shared runner (the laptop, the all-in-one, Compose, the
+  chart) or a runner per Session started by the server's sandbox provisioner
+  (Stigmer Cloud; described, not taught, on the
+  [self-hosting runner page](/docs/guides/self-hosting/runners)).
+- **Related terms**: Do not confuse with "Agent Runner" (the TypeScript Temporal
+  worker binary---architecture docs only).
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Run Agents on your machine or let the platform handle it."                                                                                |
-| Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                       |
-| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                     |
-| Reference  | "`Runner`---a self-registering process the server tracks with a thin spec and rich status. Phases: PENDING, READY, BUSY, STOPPED, FAILED." |
+| Context    | Copy                                                                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Run Agents on your machine or let the platform handle it."                                                                                                                 |
+| Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                                                        |
+| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                                                      |
+| Reference  | "The runner polls the `stigmer_runner` task queue; set `STIGMER_TASK_QUEUE` on the runner and `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE` on the server to the same name." |
 
 **Bad examples**:
 
