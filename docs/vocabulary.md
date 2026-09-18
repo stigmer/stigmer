@@ -270,7 +270,7 @@ GitHub repository.
 
 | Context    | Copy                                                                                                                        |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Quickstart | "Open the Marketplace, find a plugin, click Install."                                                                       |
+| Quickstart | "Open the Marketplace, find a plugin, choose Install."                                                                      |
 | Quickstart | "Cursor's plugins are already there; install any of them by name."                                                          |
 | How-to     | "`stigmer install cursor-plugins/thermos`; to read from your own catalogue first, `stigmer marketplace add owner/repo`."    |
 | Reference  | "A source is a directory tree with a marketplace file at its root; `stigmer marketplace show <name>` lists what it offers." |

@@ -1,13 +1,19 @@
 /**
  * A GitHub marketplace as the console reads it, served from fixtures so
  * the plugin journey needs no network: `page.route()` answers the Trees
- * API listing and the raw file reads for one repository at one commit.
- * The tree offers a plugin with a skill, a sub-agent and an HTTP MCP
- * server that declares `${API_TOKEN}`, so the journey can prove that the
- * agent the install materialises asks for its tool's variable at session
- * start.
+ * API listing and the raw file reads for one repository at one commit,
+ * and the three built-in vendor sources 404 so their sections say they
+ * cannot be read and the run never touches GitHub. The tree offers a
+ * plugin with a skill, a sub-agent and an HTTP MCP server that declares
+ * `${API_TOKEN}`, so the journey can prove that the agent the install
+ * materialises asks for its tool's variable at session start. The same
+ * plugin, under a second suffix, is written to a directory for the upload
+ * arm, which hands it to the folder input as a browser would.
  */
 
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import type { Page } from "@playwright/test";
 
 export const HOSTED_REPO = "acme/plugins";
@@ -23,29 +29,25 @@ export const HOSTED_PLUGIN = `warmth-kit-${RUN}`;
 /** The plugin's children carry the suffix too: a child slug is unique across plugins in an organization. */
 export const HOSTED_SKILL = `keep-warm-${RUN}`;
 export const HOSTED_SERVER = `warmth-${RUN}`;
+/** The upload arm's plugin: the same shape under its own names, so the two arms never collide on a slug. */
+export const UPLOADED_PLUGIN = `warmth-kit-upload-${RUN}`;
+export const UPLOADED_SKILL = `keep-warm-upload-${RUN}`;
+export const UPLOADED_SERVER = `warmth-upload-${RUN}`;
 const HOSTED_COMMIT = "0123456789abcdef0123456789abcdef01234567";
+/** The vendor catalogues built into every client; answered 404 here so no run reads GitHub. */
+const BUILT_IN_VENDOR_REPOS = ["cursor/plugins", "anthropics/claude-code", "openai/plugins"];
 
 function json(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-/** Root-relative path to content. */
-export function hostedMarketplaceFiles(): Map<string, string> {
+/** One plugin's files, plugin-relative, under the given names. */
+export function pluginFiles(plugin: string, skill: string, server: string): Map<string, string> {
   return new Map<string, string>([
     [
-      ".cursor-plugin/marketplace.json",
+      ".cursor-plugin/plugin.json",
       json({
-        name: HOSTED_MARKETPLACE_NAME,
-        metadata: { description: "A fixture catalogue for the console journey" },
-        plugins: [
-          { name: HOSTED_PLUGIN, source: HOSTED_PLUGIN, description: "Keeps things warm; its tool needs a token." },
-        ],
-      }),
-    ],
-    [
-      `${HOSTED_PLUGIN}/.cursor-plugin/plugin.json`,
-      json({
-        name: HOSTED_PLUGIN,
+        name: plugin,
         version: "1.0.0",
         description: "A fixture plugin whose tool needs a token.",
         skills: "./skills/",
@@ -59,10 +61,10 @@ export function hostedMarketplaceFiles(): Map<string, string> {
       }),
     ],
     [
-      `${HOSTED_PLUGIN}/mcp.json`,
+      "mcp.json",
       json({
         mcpServers: {
-          [HOSTED_SERVER]: {
+          [server]: {
             type: "http",
             url: "https://warmth.example.com/mcp",
             headers: { Authorization: "Bearer ${API_TOKEN}" },
@@ -70,21 +72,56 @@ export function hostedMarketplaceFiles(): Map<string, string> {
         },
       }),
     ],
-    [
-      `${HOSTED_PLUGIN}/skills/${HOSTED_SKILL}/SKILL.md`,
-      `---\nname: ${HOSTED_SKILL}\ndescription: Keep it warm\n---\n# Keep warm\n\nInstructions.\n`,
-    ],
-    [
-      `${HOSTED_PLUGIN}/agents/checker.md`,
-      "---\nname: checker\ndescription: Checks temperature\n---\nYou check the temperature carefully and report.\n",
-    ],
+    [`skills/${skill}/SKILL.md`, `---\nname: ${skill}\ndescription: Keep it warm\n---\n# Keep warm\n\nInstructions.\n`],
+    ["agents/checker.md", "---\nname: checker\ndescription: Checks temperature\n---\nYou check the temperature carefully and report.\n"],
   ]);
 }
 
-/** Route the two GitHub hosts to the fixture tree for this page. */
+/** Root-relative path to content: the marketplace file and the hosted plugin's folder. */
+export function hostedMarketplaceFiles(): Map<string, string> {
+  const files = new Map<string, string>([
+    [
+      ".cursor-plugin/marketplace.json",
+      json({
+        name: HOSTED_MARKETPLACE_NAME,
+        metadata: { description: "A fixture catalogue for the console journey" },
+        plugins: [
+          { name: HOSTED_PLUGIN, source: HOSTED_PLUGIN, description: "Keeps things warm; its tool needs a token." },
+        ],
+      }),
+    ],
+  ]);
+  for (const [path, content] of pluginFiles(HOSTED_PLUGIN, HOSTED_SKILL, HOSTED_SERVER)) {
+    files.set(`${HOSTED_PLUGIN}/${path}`, content);
+  }
+  return files;
+}
+
+/**
+ * The upload arm's plugin written to a temp directory, the shape a user's
+ * folder has on disk (dotfiles included), for `setInputFiles` on the
+ * console's directory input. Returns the folder's path.
+ */
+export function writeUploadPluginDir(): string {
+  const root = join(mkdtempSync(join(tmpdir(), "stigmer-e2e-upload-")), UPLOADED_PLUGIN);
+  for (const [path, content] of pluginFiles(UPLOADED_PLUGIN, UPLOADED_SKILL, UPLOADED_SERVER)) {
+    const full = join(root, ...path.split("/"));
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, content);
+  }
+  return root;
+}
+
+/** Route the two GitHub hosts to the fixture tree for this page, and the built-in vendor sources to 404. */
 export async function routeHostedMarketplace(page: Page): Promise<void> {
   const files = hostedMarketplaceFiles();
   const encoder = new TextEncoder();
+
+  for (const repo of BUILT_IN_VENDOR_REPOS) {
+    await page.route(`https://api.github.com/repos/${repo}/git/trees/**`, (route) =>
+      route.fulfill({ status: 404, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: "{}" }),
+    );
+  }
 
   await page.route(`https://api.github.com/repos/${HOSTED_REPO}/git/trees/**`, (route) =>
     route.fulfill({
