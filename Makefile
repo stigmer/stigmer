@@ -1140,24 +1140,28 @@ release-preflight: ## Refuse to release while RELEASE_HOLD.md exists at the repo
 	fi
 	@echo "release preflight OK: no hold"
 
-# The four release pins travel in the commit the tag is cut from: the
+# The five release pins travel in the commit the tag is cut from: the
 # mcp-server bridge pin (release.npm-libs refuses to publish on a mismatch),
 # the compose stack pin in docker-compose.yml + .env.example (the release
 # lane cannot push the bump to the protected main — GH006 on v3.14.0 and
-# v3.14.1 — so it moved here, next to the pin it already required), and the
+# v3.14.1 — so it moved here, next to the pin it already required), the
 # Helm chart's Chart.yaml (version == appVersion; the chart's image tags
 # default to v<appVersion>, and release.npm-libs refuses to package on a
-# mismatch). `make release` refuses to tag until all four name the new
+# mismatch), and the two upgrade examples on the self-hosting operations
+# page (the version a reader copies into .env and into `helm upgrade
+# --version`; a literal nothing owned went stale at v3.14.0 while the stack
+# was at v3.16.0). `make release` refuses to tag until all five name the new
 # version. perl, not sed -i: the recipe must run the same on macOS and
 # Linux.
-release-pins: ## Bump the release pins to version=X.Y.Z (mcp-server bridge, compose stack, Helm chart); commit before `make release`
+release-pins: ## Bump the release pins to version=X.Y.Z (mcp-server bridge, compose stack, Helm chart, operations page); commit before `make release`
 	@[ -n "$(version)" ] || { echo "usage: make release-pins version=X.Y.Z"; exit 1; }
 	@echo "$(version)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "error: version must be X.Y.Z (got '$(version)')"; exit 1; }
 	@perl -pi -e 's/^ARG MCP_SERVER_VERSION=.*/ARG MCP_SERVER_VERSION=$(version)/' mcp-server/Dockerfile
 	@perl -pi -e 's/STIGMER_VERSION:-v[0-9A-Za-z.+-]+/STIGMER_VERSION:-v$(version)/g' docker-compose.yml
 	@perl -pi -e 's/^#STIGMER_VERSION=.*/#STIGMER_VERSION=v$(version)/' .env.example
 	@perl -pi -e 's/^version: .*/version: $(version)/; s/^appVersion: .*/appVersion: "$(version)"/' deploy/helm/stigmer/Chart.yaml
-	@echo "release pins set to $(version):"; git --no-pager diff --stat -- mcp-server/Dockerfile docker-compose.yml .env.example deploy/helm/stigmer/Chart.yaml
+	@perl -pi -e 's/^STIGMER_VERSION=v[0-9A-Za-z.+-]+$$/STIGMER_VERSION=v$(version)/; s/^(\s+--version )[0-9A-Za-z.+-]+( \\)$$/$${1}$(version)$${2}/' docs/guides/self-hosting/operations.mdx
+	@echo "release pins set to $(version):"; git --no-pager diff --stat -- mcp-server/Dockerfile docker-compose.yml .env.example deploy/helm/stigmer/Chart.yaml docs/guides/self-hosting/operations.mdx
 
 release: release-preflight ## Tag and push a release (usage: make release [bump=patch|minor|major]); run `make release-pins` and commit first
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
@@ -1182,12 +1186,14 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	ENV_PIN=$$(git show HEAD:.env.example | sed -n -E 's/^#STIGMER_VERSION=v(.*)$$/\1/p'); \
 	CHART_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^version: (.*)$$/\1/p'); \
 	CHART_APP_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^appVersion: "?([^"]*)"?$$/\1/p'); \
-	if [ "$$PIN" != "$$NEW_VERSION" ] || [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_APP_PIN" != "$$NEW_VERSION" ]; then \
+	DOCS_PIN=$$(git show HEAD:docs/guides/self-hosting/operations.mdx | sed -n -E 's/^STIGMER_VERSION=v(.*)$$/\1/p; s/^ +--version ([0-9A-Za-z.+-]+) \\$$/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
+	if [ "$$PIN" != "$$NEW_VERSION" ] || [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_APP_PIN" != "$$NEW_VERSION" ] || [ "$$DOCS_PIN" != "$$NEW_VERSION" ]; then \
 		echo "error: the release pins at HEAD do not all name $$NEW_VERSION:"; \
 		echo "  mcp-server/Dockerfile  MCP_SERVER_VERSION=$$PIN   (release.npm-libs refuses to publish on a mismatch; prod deploys the pin, not the tag)"; \
 		echo "  docker-compose.yml     STIGMER_VERSION:-v$$COMPOSE_PIN   (a fresh clone runs this stack)"; \
 		echo "  .env.example           #STIGMER_VERSION=v$$ENV_PIN"; \
 		echo "  deploy/helm/stigmer/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the chart's image tags default to v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
+		echo "  docs/guides/self-hosting/operations.mdx  $$DOCS_PIN   (the version a reader copies into .env and helm upgrade --version)"; \
 		echo "Bump them and COMMIT before tagging:"; \
 		echo "  make release-pins version=$$NEW_VERSION"; \
 		echo "  git commit -am 'chore(release): bump the release pins to $$NEW_VERSION'"; \

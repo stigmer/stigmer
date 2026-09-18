@@ -792,8 +792,10 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      What a complete backup of a self-hosted stack is (three volumes plus
-      .env), how to restore one, and the version-pin upgrade path.
+      One backup format for both team shapes (a dump of the three databases, a
+      tarball per file store, the keys as a flat file); back up, restore, move
+      between Compose and Kubernetes, upgrade by version pin, change a setting
+      or rotate the runner's key, uninstall, each per shape.
     medium: none
 
   # ── CLI ────────────────────────────────────────────────────────────────

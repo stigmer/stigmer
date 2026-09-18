@@ -63,13 +63,16 @@ the user's confirmation.
 
 ## 3. Bump the pins and commit them
 
-Four pins travel in the commit the tag is cut from, and `make release` refuses
-to tag until all four name the new version: the MCP server image version in
+Five pins travel in the commit the tag is cut from, and `make release` refuses
+to tag until all five name the new version: the MCP server image version in
 `mcp-server/Dockerfile` (the npm publish lane refuses a version that does not
 match it; production deploys the pin, not the tag), the compose stack's
 `STIGMER_VERSION` in `docker-compose.yml` and `.env.example` (the stack a fresh
-clone runs), and `version` and `appVersion` in `deploy/helm/stigmer/Chart.yaml`
-(the chart's image tags default to the app version).
+clone runs), `version` and `appVersion` in `deploy/helm/stigmer/Chart.yaml` (the
+chart's image tags default to the app version), and the two upgrade examples on
+`docs/guides/self-hosting/operations.mdx` (the version a reader copies into
+`.env` and into `helm upgrade --version`; the page went stale once when nothing
+owned it).
 
 ```bash
 make release-pins version=<X.Y.Z>
