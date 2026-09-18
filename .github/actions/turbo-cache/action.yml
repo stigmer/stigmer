@@ -1,0 +1,29 @@
+# The one reader of the Turbo cache that ci.turbo-cache.yaml writes on main.
+# One step, so the key scheme lives in one place and the lanes that call it
+# cannot drift apart (the reason ci.docs retired its twin workflow, #709).
+#
+# Restores on pull_request events only. Main's own lanes and the release
+# lanes never restore, by design: they are the uncached ground truth
+# (ci.turbo-cache.yaml's header carries the trust model). There is no save
+# here and must never be: GitHub scopes a cache entry to the branch that
+# wrote it and its children, so a PR's save would be invisible to main
+# anyway, and a reader that saved would turn every lane into a writer.
+#
+# `key` can never match (no PR run shares main's sha); it is present because
+# the input is required. `restore-keys` does the work: the newest entry whose
+# key starts with this runner's OS and architecture. A miss is not a failure;
+# Turbo then builds cold, exactly as every lane did before this action.
+name: Restore the Turbo cache
+description: >-
+  Restore .turbo/cache from the newest entry main wrote for this runner's OS
+  and architecture; pull_request events only.
+runs:
+  using: composite
+  steps:
+    - name: Restore the Turbo cache written by main
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v4
+      with:
+        path: .turbo/cache
+        key: turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+        restore-keys: turbo-${{ runner.os }}-${{ runner.arch }}-
