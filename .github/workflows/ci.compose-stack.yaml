@@ -31,6 +31,11 @@ on:
       # the build-from-source path runs bundle-slim.mjs, which imports
       # source-map-pragma.mjs (#1087).
       - "scripts/lib/**"
+      # The compose-runner image installs the CLI tarballs these two stage
+      # (the stage script packs through publish-libs.mjs --only); a change
+      # to either is a change to what the runner image contains.
+      - "scripts/stage-compose-runner-cli.mjs"
+      - "scripts/publish-libs.mjs"
       - "backend/services/runner/Dockerfile.sandbox"
       - "backend/services/stigmer-server/Dockerfile"
       - "Makefile"
@@ -46,6 +51,11 @@ on:
       # the build-from-source path runs bundle-slim.mjs, which imports
       # source-map-pragma.mjs (#1087).
       - "scripts/lib/**"
+      # The compose-runner image installs the CLI tarballs these two stage
+      # (the stage script packs through publish-libs.mjs --only); a change
+      # to either is a change to what the runner image contains.
+      - "scripts/stage-compose-runner-cli.mjs"
+      - "scripts/publish-libs.mjs"
       - "backend/services/runner/Dockerfile.sandbox"
       - "backend/services/stigmer-server/Dockerfile"
       - "Makefile"
@@ -80,7 +90,8 @@ jobs:
 
       # make smoke-compose = build-server (stubs + deps + compile) +
       # build-web (the console export bundle-slim stages, DD-012) +
-      # bundle-slim + scripts/smoke-compose.mjs --build. One entry point,
-      # identical to what a contributor runs locally.
+      # stage-compose-runner-cli (the CLI tarballs the runner image
+      # installs) + bundle-slim + scripts/smoke-compose.mjs --build. One
+      # entry point, identical to what a contributor runs locally.
       - name: Build the stack from source and run the gate smoke
         run: make smoke-compose

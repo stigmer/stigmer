@@ -13,6 +13,8 @@ dist-slim-pkgs/
 # Per-arch trees the Docker image build stages (scripts/smoke-docker-image.mjs).
 dist-slim-amd64/
 dist-slim-arm64/
+# The compose-runner image's CLI tarballs (scripts/stage-compose-runner-cli.mjs).
+backend/services/runner/stage/
 
 # Desktop embedded-runner staging: a symlink in dev (setup-runner-dev.sh),
 # the staged slim artifact in packaged builds (stage-runner-slim.sh).

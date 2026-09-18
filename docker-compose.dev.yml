@@ -2,15 +2,17 @@
 #
 #   make smoke-compose            # the full gate: build, up, probe, teardown
 #
-# or by hand — the server image COPYs a prebuilt slim tree, so stage it first:
+# or by hand — both images COPY staged inputs, so stage them first: the
+# server image its prebuilt slim tree, the runner image the CLI tarballs it
+# installs (backend/services/runner/stage/cli):
 #
-#   make build-server build-web
+#   make build-server build-web stage-compose-runner-cli
 #   cd backend/services/stigmer-server && node scripts/bundle-slim.mjs && cd -
 #   node scripts/smoke-compose.mjs --build --keep
 #
 # (smoke-compose.mjs stages dist-slim into the dist-slim-<arch>/ directory
-# the Dockerfile's TARGETARCH COPY expects, then runs `docker compose build`
-# with both files. The runner image builds straight from the repo tree.)
+# the Dockerfile's TARGETARCH COPY expects, reads the staged CLI version into
+# STIGMER_CLI_VERSION, then runs `docker compose build` with both files.)
 #
 # The published-image pins in docker-compose.yml stay the user contract;
 # this file exists so every PR can prove the real topology without waiting
@@ -30,7 +32,8 @@ services:
       dockerfile: backend/services/runner/Dockerfile.sandbox
       target: compose-runner
       args:
-        # Source builds take the latest published CLI (the CLI is
-        # npm-distributed; the release lane pins the in-train version).
-        STIGMER_CLI_VERSION: ${STIGMER_CLI_VERSION:-latest}
+        # The version the staged CLI tarballs carry (stage/cli/VERSION); the
+        # image asserts the installed CLI reports it. Required, no default:
+        # a source build without a staged CLI has nothing to install.
+        STIGMER_CLI_VERSION: ${STIGMER_CLI_VERSION:?run scripts/stage-compose-runner-cli.mjs (make stage-compose-runner-cli) and set STIGMER_CLI_VERSION to backend/services/runner/stage/cli/VERSION}
     pull_policy: never
