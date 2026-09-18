@@ -2,7 +2,7 @@
   "title": "Integrations",
   "pages": [
     "overview",
-    "connect-from-marketplace",
+    "connect-an-mcp-server",
     "oauth-for-tools",
     "bring-your-own-oauth",
     "oauth-architecture",

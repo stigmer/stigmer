@@ -15,7 +15,11 @@ export interface InstallPluginOptions {
   readonly org: string;
   /** Visibility for the plugin and every resource it materialises; the kind's default when omitted. */
   readonly visibility?: ApiResourceVisibility;
-  /** The marketplace the archive came from, kept in the version message as `stigmer install` keeps it. */
+  /**
+   * The source the archive came from, kept in the version message as
+   * `stigmer install` keeps it; omitted for an upload, whose message says
+   * so, as `stigmer push plugin` says nothing about a source.
+   */
   readonly installedFrom?: string;
 }
 
@@ -66,7 +70,9 @@ export function useInstallPlugin(): UseInstallPluginReturn {
             artifact: prepared.archive,
             message:
               options.installedFrom === undefined
-                ? "installed from the console"
+                ? prepared.origin.kind === "upload"
+                  ? "uploaded from the console"
+                  : "installed from the console"
                 : `installed from marketplace '${options.installedFrom}'`,
             ...(options.visibility !== undefined && { visibility: options.visibility }),
           }),

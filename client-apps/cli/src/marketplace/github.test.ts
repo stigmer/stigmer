@@ -2,7 +2,10 @@
 // its top directory stripped; every cap refuses naming itself, from the
 // central directory before anything inflates; an escaping path, a second
 // top-level directory and a lying declared size refuse; 404 and a network
-// failure carry their own exit codes.
+// failure carry their own exit codes. The peek reads one raw file, the first
+// of the four locations that exists, as declared; a repository with none is
+// not a marketplace, a refused file travels with its sentences, and a
+// network failure carries its exit code.
 
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,6 +16,8 @@ import { ExitCode } from "../errors/index.js";
 import {
   GITHUB_ZIPBALL_LIMITS,
   fetchGitHubTree,
+  peekGitHubMarketplace,
+  rawFileUrl,
   zipballUrl,
 } from "./github.js";
 
@@ -314,5 +319,76 @@ describe("fetchGitHubTree", () => {
     );
     expect(offline.message).toBe("could not reach GitHub for a/b");
     expect(offline.exitCode).toBe(ExitCode.Connection);
+  });
+});
+
+/** A fetch answering raw.githubusercontent.com from a path map, 404 elsewhere. */
+function rawServing(
+  files: Record<string, string>,
+): typeof globalThis.fetch {
+  return async (input) => {
+    const url = String(input);
+    const prefix = "https://raw.githubusercontent.com/a/b/HEAD/";
+    const path = url.startsWith(prefix) ? url.slice(prefix.length) : undefined;
+    const content = path === undefined ? undefined : files[path];
+    return content === undefined
+      ? new Response("Not Found", { status: 404 })
+      : new Response(content, { status: 200 });
+  };
+}
+
+describe("rawFileUrl", () => {
+  it("names raw.githubusercontent.com at HEAD by default and the ref when given", () => {
+    expect(rawFileUrl({ repo: "a/b" }, ".cursor-plugin/marketplace.json")).toBe(
+      "https://raw.githubusercontent.com/a/b/HEAD/.cursor-plugin/marketplace.json",
+    );
+    expect(rawFileUrl({ repo: "a/b", ref: "v1" }, "marketplace.json")).toBe(
+      "https://raw.githubusercontent.com/a/b/v1/marketplace.json",
+    );
+  });
+});
+
+describe("peekGitHubMarketplace", () => {
+  it("reads the first location present in the library's precedence, as declared, tree unverified", async () => {
+    const peek = await peekGitHubMarketplace(
+      { repo: "a/b" },
+      rawServing({
+        ".cursor-plugin/marketplace.json": JSON.stringify({
+          name: "acme",
+          plugins: [{ name: "thermos", source: "thermos" }],
+        }),
+      }),
+    );
+    expect(peek.ok).toBe(true);
+    if (!peek.ok) return;
+    expect(peek.peeked.location).toBe(".cursor-plugin/marketplace.json");
+    expect(peek.peeked.marketplace.plugins.map((p) => p.name)).toEqual([
+      "thermos",
+    ]);
+  });
+
+  it("is not-a-marketplace when no location exists, and refused with the library's sentences when the file is broken", async () => {
+    expect(await peekGitHubMarketplace({ repo: "a/b" }, rawServing({}))).toEqual({
+      ok: false,
+      kind: "not-a-marketplace",
+    });
+    const refused = await peekGitHubMarketplace(
+      { repo: "a/b" },
+      rawServing({ "marketplace.json": JSON.stringify({ plugins: "no" }) }),
+    );
+    expect(refused.ok).toBe(false);
+    if (refused.ok || refused.kind !== "refused") throw new Error("expected refused");
+    expect(refused.location).toBe("marketplace.json");
+    expect(refused.errors.length).toBeGreaterThan(0);
+  });
+
+  it("carries the connection exit code when GitHub cannot be reached", async () => {
+    const offline = await peekGitHubMarketplace({ repo: "a/b" }, async () => {
+      throw new Error("ENOTFOUND");
+    }).catch((e: unknown) => e);
+    expect(offline).toMatchObject({
+      message: "could not reach GitHub for a/b",
+      exitCode: ExitCode.Connection,
+    });
   });
 });

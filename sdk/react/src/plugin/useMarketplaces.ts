@@ -1,36 +1,54 @@
 "use client";
 
 /**
- * The marketplaces this browser knows: the official one, built in, and the
- * GitHub sources the user added, remembered in `localStorage`.
+ * The sources this browser knows: the built-in ones, and the GitHub sources
+ * the user added, remembered in `localStorage`.
  *
- * A marketplace is client-side configuration, never a server resource (the
+ * A source is client-side configuration, never a server resource (the
  * server only ever sees the archive a client pushes), so the console keeps
- * the list where the CLI keeps its own: per machine, per user, here under
- * one versioned key in the CLI's entry shape. The official marketplace is
- * always first and cannot be added, replaced or removed, exactly as the
- * CLI reserves the name `stigmer`. An entry this version cannot read is
- * dropped from the known list and named with its reason, never silently.
+ * its list where the CLI keeps its own: per machine, per user, here under
+ * one versioned key in the CLI's entry shape. The built-ins (the official
+ * catalogue and the three vendors' public ones) are code shared with the
+ * CLI, never stored, so the two clients list the same sources and a user
+ * can neither add over nor remove one. An entry this version cannot read
+ * is dropped from the known list and named with its reason, never silently.
+ *
+ * `add` reads the source before recording it, as `stigmer marketplace add`
+ * does: a repository that is not a marketplace is refused with the
+ * library's sentences, and the name defaults to the one the marketplace
+ * file gives itself, so the form has one required field.
  */
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { isValidPluginName } from "@stigmer/plugin-package";
 import {
+  type GitHubMarketplaceSource,
   type GitHubSourceOutcome,
+  BUILT_IN_MARKETPLACES,
   OFFICIAL_MARKETPLACE_NAME,
+  builtInSourceRefusal,
+  isBuiltInMarketplaceName,
   isOwnerRepo,
   parseGitHubSource,
 } from "@stigmer/plugin-package/client";
 
-import type { KnownMarketplace, MarketplaceSource } from "./sources/types.js";
+import { openGitHubTree } from "./sources/github.js";
+import { PluginReadRefusal, openMarketplace } from "./sources/read.js";
+import type { FetchImpl, KnownMarketplace, MarketplaceSource } from "./sources/types.js";
 
 export { OFFICIAL_MARKETPLACE_NAME };
 
 /** The storage key; the version suffix changes when the entry shape does. */
 export const MARKETPLACES_STORAGE_KEY = "stigmer:plugins:marketplaces:v1";
 
-/** The built-in marketplace, listed first everywhere. */
-export const OFFICIAL_MARKETPLACE: KnownMarketplace = {
+/** The sources every console ships with, in listing order: the CLI's list, in the console's type. */
+export const BUILT_IN_SOURCES: readonly KnownMarketplace[] = BUILT_IN_MARKETPLACES.map((entry) => ({
+  name: entry.name,
+  source: entry.source,
+}));
+
+/** The official catalogue, listed first everywhere. */
+export const OFFICIAL_MARKETPLACE: KnownMarketplace = BUILT_IN_SOURCES[0] ?? {
   name: OFFICIAL_MARKETPLACE_NAME,
   source: { type: "official" },
 };
@@ -41,21 +59,32 @@ export interface UnreadableMarketplace {
   readonly reason: string;
 }
 
+/** What `add` comes to: the source recorded under `name`, or the sentence refusing it. */
+export type AddSourceOutcome = { readonly ok: true; readonly name: string } | { readonly ok: false; readonly message: string };
+
+export interface UseMarketplacesOptions {
+  /** The HTTP client `add` reads a source with; `globalThis.fetch` by default, a fake in tests. */
+  readonly fetchImpl?: FetchImpl;
+}
+
 /** Return value of {@link useMarketplaces}. */
 export interface UseMarketplacesReturn {
-  /** The official marketplace first, then the remembered ones in the order they were added. */
+  /** The built-in sources first, then the remembered ones in the order they were added. */
   readonly marketplaces: readonly KnownMarketplace[];
   readonly unreadable: readonly UnreadableMarketplace[];
   /**
-   * Remember a GitHub source under `name`. Returns the sentence refusing it
-   * (a reserved or taken name, a text that is not a GitHub source) or
-   * `null` when it was added.
+   * Read a GitHub source and remember it. The name is the marketplace
+   * file's own unless `name` is given; a reserved or taken name, a text that
+   * is not a GitHub source, and a repository that is not a marketplace are
+   * refused with their sentences.
    */
-  readonly add: (name: string, sourceText: string) => string | null;
-  /** Forget the marketplace called `name`; the official one refuses. Returns the refusal or `null`. */
+  readonly add: (sourceText: string, name?: string) => Promise<AddSourceOutcome>;
+  /** Forget the source called `name`; a built-in refuses. Returns the refusal or `null`. */
   readonly remove: (name: string) => string | null;
   /** Parse a source the user typed without adding it, for live validation in a form. */
   readonly parseSource: (sourceText: string) => GitHubSourceOutcome;
+  /** Whether `name` is a source the user may neither add over nor remove. */
+  readonly isBuiltIn: (name: string) => boolean;
 }
 
 type StoredEntries = Readonly<Record<string, unknown>>;
@@ -79,7 +108,7 @@ function readRaw(): string {
   try {
     return window.localStorage.getItem(MARKETPLACES_STORAGE_KEY) ?? "";
   } catch {
-    // Private browsing or a disabled store: the official marketplace alone.
+    // Private browsing or a disabled store: the built-in sources alone.
     return "";
   }
 }
@@ -128,7 +157,27 @@ export function narrowStoredEntry(entry: unknown): Narrowed {
 }
 
 /**
- * The marketplaces this browser knows, with add and remove.
+ * Read a GitHub source once, for `add`: the marketplace's own name and how
+ * many plugins it offers. Refusals are the source's or the library's
+ * sentences, returned rather than thrown.
+ */
+async function readSourceForAdd(
+  source: GitHubMarketplaceSource,
+  fetchImpl: FetchImpl,
+): Promise<{ readonly ok: true; readonly name: string } | { readonly ok: false; readonly message: string }> {
+  try {
+    const opened = await openMarketplace(await openGitHubTree(source, fetchImpl));
+    return { ok: true, name: opened.marketplace.name };
+  } catch (error) {
+    if (error instanceof PluginReadRefusal) {
+      return { ok: false, message: `${error.subject}: ${error.errors.map((finding) => finding.message).join("; ")}` };
+    }
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * The sources this browser knows, with add and remove.
  *
  * Reads through `useSyncExternalStore`, so every mounted consumer sees an
  * add or remove at once, and a change from another tab arrives through
@@ -137,18 +186,20 @@ export function narrowStoredEntry(entry: unknown): Narrowed {
  * @example
  * ```tsx
  * const { marketplaces, add, remove } = useMarketplaces();
- * const refusal = add("cursor-plugins", "cursor/plugins");
- * if (refusal) toast.error(refusal);
+ * const outcome = await add("acme/plugins");
+ * if (!outcome.ok) toast.error(outcome.message);
  * ```
  */
-export function useMarketplaces(): UseMarketplacesReturn {
+export function useMarketplaces(options: UseMarketplacesOptions = {}): UseMarketplacesReturn {
   const raw = useSyncExternalStore(subscribe, readRaw, () => "");
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
 
   const { marketplaces, unreadable } = useMemo(() => {
-    const known: KnownMarketplace[] = [OFFICIAL_MARKETPLACE];
+    const known: KnownMarketplace[] = [...BUILT_IN_SOURCES];
     const broken: UnreadableMarketplace[] = [];
     for (const [name, entry] of Object.entries(parseRaw(raw))) {
-      if (name === OFFICIAL_MARKETPLACE_NAME) continue;
+      // Remembered before a vendor was built in: the built-in wins, the entry stays.
+      if (isBuiltInMarketplaceName(name)) continue;
       const narrowed = narrowStoredEntry(entry);
       if (narrowed.ok) known.push({ name, source: narrowed.source });
       else broken.push({ name, reason: narrowed.reason });
@@ -156,29 +207,33 @@ export function useMarketplaces(): UseMarketplacesReturn {
     return { marketplaces: known, unreadable: broken };
   }, [raw]);
 
-  const add = useCallback((name: string, sourceText: string): string | null => {
-    if (name === OFFICIAL_MARKETPLACE_NAME) {
-      return `'${OFFICIAL_MARKETPLACE_NAME}' is the built-in marketplace and cannot be added or replaced; choose another name`;
-    }
-    if (!isValidPluginName(name)) {
-      return `'${name}' is not a marketplace name; use lowercase letters, digits, '.' and '-'`;
-    }
-    const parsed = parseGitHubSource(sourceText.trim());
-    if (!parsed.ok) return parsed.message;
-    const entries = parseRaw(readRaw());
-    if (entries[name] !== undefined) {
-      return `a marketplace named '${name}' is already configured; remove it first or choose another name`;
-    }
-    writeEntries({ ...entries, [name]: parsed.source });
-    return null;
-  }, []);
+  const add = useCallback(
+    async (sourceText: string, name?: string): Promise<AddSourceOutcome> => {
+      const parsed = parseGitHubSource(sourceText.trim());
+      if (!parsed.ok) return { ok: false, message: parsed.message };
+      const read = await readSourceForAdd(parsed.source, fetchImpl);
+      if (!read.ok) return read;
+      const chosen = name === undefined || name.trim() === "" ? read.name : name.trim();
+      if (isBuiltInMarketplaceName(chosen)) {
+        return { ok: false, message: builtInSourceRefusal(chosen, "add") };
+      }
+      if (!isValidPluginName(chosen)) {
+        return { ok: false, message: `'${chosen}' is not a source name; use lowercase letters, digits, '.' and '-'` };
+      }
+      const entries = parseRaw(readRaw());
+      if (entries[chosen] !== undefined) {
+        return { ok: false, message: `a source named '${chosen}' is already added; remove it first or choose another name` };
+      }
+      writeEntries({ ...entries, [chosen]: parsed.source });
+      return { ok: true, name: chosen };
+    },
+    [fetchImpl],
+  );
 
   const remove = useCallback((name: string): string | null => {
-    if (name === OFFICIAL_MARKETPLACE_NAME) {
-      return `'${OFFICIAL_MARKETPLACE_NAME}' is the built-in marketplace and cannot be removed`;
-    }
+    if (isBuiltInMarketplaceName(name)) return builtInSourceRefusal(name, "remove");
     const entries = parseRaw(readRaw());
-    if (entries[name] === undefined) return `no marketplace named '${name}' is configured`;
+    if (entries[name] === undefined) return `no source named '${name}' is added`;
     const { [name]: _removed, ...rest } = entries;
     writeEntries(rest);
     return null;
@@ -187,7 +242,7 @@ export function useMarketplaces(): UseMarketplacesReturn {
   const parseSource = useCallback((sourceText: string) => parseGitHubSource(sourceText.trim()), []);
 
   return useMemo(
-    () => ({ marketplaces, unreadable, add, remove, parseSource }),
+    () => ({ marketplaces, unreadable, add, remove, parseSource, isBuiltIn: isBuiltInMarketplaceName }),
     [marketplaces, unreadable, add, remove, parseSource],
   );
 }

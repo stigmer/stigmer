@@ -54,7 +54,7 @@ export type {
   MarketplaceReadOutcome,
   MarketplaceWarningKind,
 } from "./marketplace/outcome.js";
-export { hasMarketplaceFile, readMarketplace } from "./marketplace/read-marketplace.js";
+export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./marketplace/read-marketplace.js";
 export { readPluginPackage } from "./read-plugin-package.js";
 export type {
   IgnoredComponent,

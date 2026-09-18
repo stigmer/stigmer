@@ -87,6 +87,8 @@ export function Sidebar() {
     !isSessionZone && location.pathname.startsWith("/conversations");
   const isLibraryActive =
     !isSessionZone && location.pathname.startsWith("/library");
+  const isMarketplaceActive =
+    !isSessionZone && location.pathname.startsWith("/marketplace");
   const activeNav: WorkspaceNavId | null =
     location.pathname === "/"
       ? "new-session"
@@ -96,7 +98,9 @@ export function Sidebar() {
           ? "conversations"
           : isLibraryActive
             ? "library"
-            : null;
+            : isMarketplaceActive
+              ? "marketplace"
+              : null;
 
   const renderLink = useCallback(
     ({

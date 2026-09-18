@@ -48,25 +48,38 @@ function writeConfig(yaml: string): void {
   writeFileSync(configPath(), yaml);
 }
 
+const BUILT_IN_NAMES = [
+  OFFICIAL_MARKETPLACE_NAME,
+  "cursor-plugins",
+  "claude-code-plugins",
+  "codex-plugins",
+];
+
 describe("listMarketplaces", () => {
-  it("is the official marketplace alone on a fresh machine", () => {
+  it("is the built-in sources alone on a fresh machine, the official one first", () => {
     const listing = listMarketplaces();
-    expect(listing.known.map((m) => m.name)).toEqual([
-      OFFICIAL_MARKETPLACE_NAME,
-    ]);
+    expect(listing.known.map((m) => m.name)).toEqual(BUILT_IN_NAMES);
     expect(listing.known[0]?.source).toEqual({ type: "official" });
+    expect(listing.known[1]?.source).toEqual({
+      type: "github",
+      repo: "cursor/plugins",
+    });
     expect(listing.unreadable).toEqual([]);
   });
 
-  it("lists configured entries after the official one, in file order, and names the unreadable ones", () => {
+  it("lists configured entries after the built-ins, in file order, names the unreadable ones, and lets a built-in win over a same-named entry", () => {
     writeConfig(
       [
         "backend:",
         "  type: local",
         "marketplaces:",
+        "  acme:",
+        "    type: github",
+        "    repo: acme/plugins",
+        // Written before the vendors were built in: the built-in wins, the entry stays in the file.
         "  cursor-plugins:",
         "    type: github",
-        "    repo: cursor/plugins",
+        "    repo: someone/fork",
         "  pinned:",
         "    type: github",
         "    repo: anthropics/claude-code",
@@ -84,23 +97,27 @@ describe("listMarketplaces", () => {
     );
     const listing = listMarketplaces();
     expect(listing.known.map((m) => m.name)).toEqual([
-      "stigmer",
-      "cursor-plugins",
+      ...BUILT_IN_NAMES,
+      "acme",
       "pinned",
       "team",
     ]);
-    expect(listing.known[1]?.source).toEqual({
+    expect(listing.known[4]?.source).toEqual({
       type: "github",
-      repo: "cursor/plugins",
+      repo: "acme/plugins",
     });
-    expect(listing.known[2]?.source).toEqual({
+    expect(listing.known[5]?.source).toEqual({
       type: "github",
       repo: "anthropics/claude-code",
       ref: "v1.2.3",
     });
-    expect(listing.known[3]?.source).toEqual({
+    expect(listing.known[6]?.source).toEqual({
       type: "local",
       path: "/srv/plugins",
+    });
+    expect(listing.known[1]?.source).toEqual({
+      type: "github",
+      repo: "cursor/plugins",
     });
     expect(listing.unreadable).toEqual([
       {
@@ -114,26 +131,26 @@ describe("listMarketplaces", () => {
 
 describe("addMarketplace and removeMarketplace", () => {
   it("round-trips a github source and a local source through the file", () => {
-    addMarketplace("cursor-plugins", {
+    addMarketplace("acme", {
       type: "github",
-      repo: "cursor/plugins",
+      repo: "acme/plugins",
     });
     addMarketplace("team", { type: "local", path: "/srv/plugins" });
     const text = readFileSync(configPath(), "utf8");
     expect(text).toContain("marketplaces:");
     expect(text).toContain("type: github");
-    expect(text).toContain("repo: cursor/plugins");
+    expect(text).toContain("repo: acme/plugins");
     expect(text).not.toContain("ref:");
     expect(text).toContain("path: /srv/plugins");
     expect(listMarketplaces().known.map((m) => m.name)).toEqual([
-      "stigmer",
-      "cursor-plugins",
+      ...BUILT_IN_NAMES,
+      "acme",
       "team",
     ]);
 
-    removeMarketplace("cursor-plugins");
+    removeMarketplace("acme");
     expect(listMarketplaces().known.map((m) => m.name)).toEqual([
-      "stigmer",
+      ...BUILT_IN_NAMES,
       "team",
     ]);
     removeMarketplace("team");
@@ -156,10 +173,13 @@ describe("addMarketplace and removeMarketplace", () => {
     });
   });
 
-  it("refuses the reserved name, a duplicate, an unknown removal, and the reserved removal", () => {
+  it("refuses every built-in name, a duplicate, an unknown removal, and a built-in removal", () => {
     expect(() =>
       addMarketplace("stigmer", { type: "local", path: "/x" }),
-    ).toThrow(/built-in marketplace/);
+    ).toThrow(/'stigmer' is a built-in source and cannot be added or replaced/);
+    expect(() =>
+      addMarketplace("cursor-plugins", { type: "local", path: "/x" }),
+    ).toThrow(/'cursor-plugins' is a built-in source/);
     addMarketplace("team", { type: "local", path: "/srv/plugins" });
     expect(() =>
       addMarketplace("team", { type: "local", path: "/other" }),
@@ -167,7 +187,12 @@ describe("addMarketplace and removeMarketplace", () => {
     expect(() => removeMarketplace("nope")).toThrow(
       /no marketplace named 'nope'/,
     );
-    expect(() => removeMarketplace("stigmer")).toThrow(/cannot be removed/);
+    expect(() => removeMarketplace("stigmer")).toThrow(
+      /'stigmer' is a built-in source and cannot be removed/,
+    );
+    expect(() => removeMarketplace("codex-plugins")).toThrow(
+      /'codex-plugins' is a built-in source and cannot be removed/,
+    );
   });
 
   it("refuses under --standalone instead of writing a default file over the user's", () => {
