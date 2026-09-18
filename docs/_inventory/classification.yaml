@@ -747,9 +747,11 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Run the complete stack (server, Postgres, Temporal, runner) on your own
-      machine with Docker Compose, bootstrap it with the CLI, and run a first
-      Agent — with the no-auth trust model stated up front.
+      Run the production one-server stack (server, Postgres, Temporal, runner)
+      with Docker Compose, every setting a line in .env; connect the CLI as a
+      named backend, create the first Organization and run a first Agent; then
+      put a TLS proxy in front and turn authentication on from .env — with
+      sign-in off-by-default stated up front.
     medium: diagram
     why:
       The four-service topology and which volume holds what state is

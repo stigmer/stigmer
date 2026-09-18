@@ -1,31 +1,29 @@
 ---
 title: Self-host with Docker Compose
 description:
-  Run the complete Stigmer stack — server, Postgres, Temporal, and runner — on
-  your own machine with Docker Compose.
+  Run the production Stigmer stack on one machine with Docker Compose, connect
+  the CLI, run a first Agent, then put TLS in front and turn authentication on.
+  Every setting is a line in your `.env` file.
 ---
 
-The Stigmer repository ships a Docker Compose file that runs the complete
-platform on a machine you control: the server (API and web console), Postgres, a
-real Temporal server, and the runner that executes your Agents and Workflows.
-All state lives in Docker volumes on your machine.
+The Docker Compose stack is the one-server shape from
+[Self-hosting](./overview): the server with the web console, one runner,
+Postgres and a real Temporal server, on a machine you control. One rule holds
+for the whole page: every setting you change is a line in `.env`. You never edit
+`docker-compose.yml`; it belongs to the release you're running.
 
 <Callout type="warn">
-  **Know the limitations before you start.** A self-hosted server has **no
-  authentication** — it's a single-operator trust domain. Anyone who can reach
-  the port has full control, so keep the stack on localhost or a private network
-  you trust, and never expose it to the internet. stdio MCP Servers spawn
-  **inside the runner container**: they can reach that container's filesystem
-  and network, not your host's.
+  **No sign-in until you turn it on.** A fresh stack trusts every caller that
+  can reach its ports. Keep it on a private network until you [turn
+  authentication on](./authentication). stdio MCP Servers spawn **inside the
+  runner container**: they can reach that container's filesystem and network,
+  not your host's.
 </Callout>
-
-Both amd64 and arm64 are supported — every release is smoke-tested on both
-architectures before its images publish.
 
 ## What's in the stack
 
-Four services. The server and the runner share one artifact volume — file
-sharing is the contract between them, not HTTP.
+Four services. The server and the runner share one artifact volume: file sharing
+is the contract between them, not HTTP.
 
 ```mermaid
 flowchart LR
@@ -43,15 +41,32 @@ flowchart LR
     server -. "shared artifacts volume" .- runner
 ```
 
-Durable state lives in three volumes — `postgres-data`, `artifacts`, and
-`server-data` — plus your `.env` file. See
-[Back up and upgrade your stack](/docs/guides/self-hosting/operations) for the
-complete backup story.
+The stack keeps its state in four Docker volumes and your `.env` file. Three
+volumes hold durable state: `postgres-data` (every resource and execution
+record, and Temporal's own tables), `artifacts` (files produced by executions)
+and `server-data` (the Skill content store). The fourth, `runner-data`, holds
+in-flight Session checkpoints so a paused run survives a container restart;
+losing it abandons runs in flight but loses no durable data. Those three volumes
+plus `.env` are a complete backup.
+[Back up and upgrade your stack](./operations) has the procedures.
+
+## What you need
+
+- A machine with Docker and the Compose plugin. Both amd64 and arm64 work; every
+  release is smoke-tested on both before its images publish.
+- Host ports 7234 and 7235 free. If the laptop stack runs on this machine, stop
+  it first with `stigmer down`; it uses the same ports.
+- The Stigmer CLI on whichever machine you drive the stack from, this one or
+  your laptop. The [local quickstart](/docs/getting-started/local) has the
+  install commands.
+- An LLM provider key if you want Agents to answer. Workflows without Agent
+  tasks run without one.
+
+## Install
 
 <Steps>
-<Step>
 
-## Get the stack
+### Get the stack
 
 Clone the repository. The compose file and its `.env` template live at the root.
 
@@ -60,95 +75,105 @@ git clone https://github.com/stigmer/stigmer.git
 cd stigmer
 ```
 
-**Prerequisites**: Docker with the Compose plugin, and free host ports 7234
-and 7235. If the laptop stack is running on this machine, stop it first with
-`stigmer down` — it uses the same ports.
+### Fill in `.env`
 
-</Step>
-<Step>
-
-## Configure your secrets
-
-Copy the template and fill in the three required secrets:
+Copy the template and fill in the three required values. The stack refuses to
+start until all three exist; that's deliberate, so the keys you must back up are
+never generated somewhere you can't see.
 
 ```bash
 cp .env.example .env
 ```
 
-The stack refuses to boot until all three exist — that's deliberate. Keys that
-materialize implicitly make the backup story invisible exactly where you need it
-explicit.
-
 ```bash
-# Postgres superuser password (internal to the stack)
+# POSTGRES_PASSWORD, internal to the stack
 openssl rand -hex 24
 
-# STIGMER_ENCRYPTION_KEY — encrypts secret values at rest
+# STIGMER_ENCRYPTION_KEY, encrypts secret values at rest
 openssl rand -base64 32
 
-# STIGMER_RUNNER_TOKEN_KEY — signs the runner's execution-scoped tokens
+# STIGMER_RUNNER_TOKEN_KEY, signs the runner's execution-scoped tokens
 openssl rand -base64 32
 ```
 
-Paste each value into its line in `.env`. To run Agents, also set
-`ANTHROPIC_API_KEY` in `.env` now — without it the stack still serves the
-console, the API, and LLM-free Workflow executions, but Agent runs fail at the
-LLM call.
+Paste each value into its line. Two optional lines are worth setting now:
+
+- `ANTHROPIC_API_KEY`, so Agents can answer. Without it the stack still serves
+  the console, the API and LLM-free Workflow executions; Agent runs fail at the
+  LLM call.
+- `STIGMER_OPERATOR_EMAIL`, your own email. It's stamped on what you create, and
+  when you later turn authentication on, the person who signs in with this email
+  becomes an administrator of every Organization.
 
 <Callout type="info">
-  Back up `.env` like a key file. Losing the two `STIGMER_*` keys strands every
-  encrypted value in the database.
+  Back up `.env` like a key file. Losing `STIGMER_ENCRYPTION_KEY` strands every
+  encrypted value in the database with no recovery path.
 </Callout>
 
-</Step>
-<Step>
-
-## Start the stack
+### Start it
 
 ```bash
 docker compose up -d
 ```
 
-The first boot pulls four images and sets up Temporal's databases, so give it a
-few minutes. The command returns once the server is healthy and the runner has
-started; confirm with `docker compose ps` — every service shows `Up`, with
-`postgres`, `temporal`, and `stigmer-server` also reporting `(healthy)`.
+The first start pulls four images and lets Temporal create its databases, so
+give it a few minutes. `docker compose ps` is the health check: every service
+shows `Up`, and `postgres`, `temporal` and `stigmer-server` also show
+`(healthy)`.
 
-Open the web console at [http://localhost:7234](http://localhost:7234). The
-artifact file server answers on port 7235 — download links the platform mints
-point there.
+### Open the console
 
-</Step>
-<Step>
+Open [http://localhost:7234](http://localhost:7234). The console asks you to
+create an Organization: a fresh stack has none yet. Leave it there for a moment;
+the next two steps create one from the CLI so you see both paths. Download links
+the platform mints point at port 7235.
 
-## Bootstrap with the CLI
+### Connect the CLI
 
-Install the Stigmer CLI on the host if you don't have it:
-
-<Tabs items={["Homebrew", "Shell script", "npm"]}>
-  <Tab value="Homebrew">```bash brew install stigmer/tap/stigmer ```</Tab>
-  <Tab value="Shell script">
-    ```bash curl -fsSL https://stigmer.ai/install.sh | sh ```
-  </Tab>
-  <Tab value="npm">```bash npm install -g @stigmer/cli ```</Tab>
-</Tabs>
-
-The CLI's local backend points at `localhost:7234` by default — exactly where
-the stack serves. If you've used Stigmer Cloud from this machine, switch back
-first with `stigmer config backend set local`.
-
-Apply the system Seedpack. It creates the default `stigmer` Organization and the
-built-in Agents, Skills, and Workflows — the same bootstrap `stigmer up`
-performs on the laptop tier:
+Tell the CLI where the stack is, as a named backend, then switch to it:
 
 ```bash
-stigmer seedpack apply
+stigmer config backend add myserver --endpoint localhost:7234
+stigmer config backend use myserver
 ```
 
-</Step>
-<Step>
+From your laptop, use the machine's address instead of `localhost`. A named
+backend keeps its own address and, later, its own API key, so switching between
+this stack, your laptop and Stigmer Cloud is one command. For CI jobs and
+scripts, setting `STIGMER_SERVER_ADDRESS=<host>:<port>` in the process's
+variables overrides the active backend for that process. The
+[`stigmer config`](/docs/cli/commands/config) reference lists every backend
+command.
 
-## Run your first Agent
+### Create your first Organization
+
+Everything you build lives in an Organization. Create a file called
+`organization.yaml`:
+
+```yaml
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Your Team
+  slug: stigmer
+spec:
+  description: Our self-hosted Stigmer
+  management_mode: self_managed
+```
+
+Keep the slug `stigmer`. It's the Organization the CLI uses when you don't name
+one, so every `apply`, `run` and `get` on this page lands where the console
+looks. The name is yours to choose. Apply it:
+
+```bash
+stigmer apply -f organization.yaml
+```
+
+Reload the console: it opens on the workbench. The form you saw a moment ago
+does the same thing from the browser; either path is fine for a first
+Organization.
+
+### Run your first Agent
 
 Create a file called `agent.yaml`:
 
@@ -171,42 +196,120 @@ stigmer run my-first-agent -m "What can you help me with?"
 ```
 
 The Agent responds in your terminal. The run traveled from the CLI to the
-server, through Temporal, and executed inside the runner container — your whole
+server, through Temporal, and executed inside the runner container: your whole
 stack, end to end.
 
-</Step>
 </Steps>
 
-## Connect from another machine
+## Reach it from outside the VM
 
-Point any CLI at the stack by setting the server address:
+To serve your team, put a TLS reverse proxy in front of the stack. Any proxy
+works if it does three things:
+
+- Accepts HTTPS from clients and forwards **HTTP/2 in the clear** (h2c) to
+  port 7234. The CLI and SDKs speak gRPC, which needs HTTP/2 all the way to the
+  server; the console speaks Connect, which is happy on the same upstream. One
+  h2c upstream serves all of them.
+- Serves the API on **port 443**. The CLI decides whether to use TLS from the
+  port alone: `:443` is HTTPS, anything else is plain HTTP.
+- Uses two hostnames, one for the API and console and one for downloads. The
+  artifact file server is a separate listener and cannot share a host with the
+  API. The Helm chart's Ingress uses the same two.
+
+Then tell the stack the addresses your clients reach it on, so the URLs it mints
+for downloads and Skill transfers point at the proxy. Two lines in `.env`:
 
 ```bash
-export STIGMER_SERVER_ADDRESS=<stack-host>:7234
+# .env
+STIGMER_PUBLIC_URL=https://stigmer.example.com
+STIGMER_ARTIFACT_PUBLIC_URL=https://artifacts.stigmer.example.com
 ```
 
-Two things to know before you do:
+```bash
+docker compose up -d
+```
 
-- **There is no authentication by default.** Every machine that can reach the
-  port has full control. Treat network reachability as the access boundary — or
-  [turn authentication on](/docs/guides/self-hosting/authentication) with your
-  own identity provider and API keys.
-- Artifact download links are minted for the stack host by default
-  (`http://localhost:7235`). To serve them to other machines, change the
-  `x-artifact-serve-url` anchor in `docker-compose.yml` to an address they can
-  reach.
+Compose recreates the services whose settings changed. A worked example with
+[Caddy](https://caddyserver.com), which fetches and renews its certificates
+itself when the hostnames resolve to this machine:
+
+```text
+stigmer.example.com {
+    reverse_proxy h2c://127.0.0.1:7234
+}
+
+artifacts.stigmer.example.com {
+    reverse_proxy 127.0.0.1:7235
+}
+```
+
+Point your CLI at the API host on port 443:
+
+```bash
+stigmer config backend add prod --endpoint stigmer.example.com:443
+stigmer config backend use prod
+```
+
+The console needs nothing: it reads its own origin, so the proxy needs no
+forwarded-header configuration. The stack still publishes ports 7234 and 7235 on
+every interface of the machine; with the proxy in place, close both at the
+machine's firewall so the proxy is the only way in.
+
+## Turn authentication on
+
+Authentication is off until you set the issuer. Three lines in `.env` turn it
+on; from the next start every caller needs a credential, and the console signs
+in through your OIDC provider:
+
+```bash
+# .env
+STIGMER_OIDC_ISSUER=https://auth.example.com/realms/main
+STIGMER_OIDC_AUDIENCE=https://stigmer.example.com
+STIGMER_OIDC_CONSOLE_CLIENT_ID=stigmer-console
+```
+
+```bash
+docker compose up -d
+```
+
+Sign in through the console. The person whose provider email matches
+`STIGMER_OPERATOR_EMAIL` becomes an administrator of every Organization. The
+[authentication guide](./authentication) has the rest: what to register with
+your OIDC provider, how API keys work for the CLI and CI, and where the runner's
+own key goes.
+
+## Bring your own Postgres and Temporal
+
+The compose stack bundles both, on purpose: one machine, one backup story. If
+your team already runs Postgres or Temporal, the [Helm chart](./kubernetes) is
+the shape that points at them, through its `externalDatabase` and
+`externalTemporal` values.
+
+## Back up, upgrade, uninstall
+
+A complete backup is the three durable volumes and `.env`. `STIGMER_VERSION` in
+`.env` moves both Stigmer images together to a released version;
+`docker compose pull` then `docker compose up -d` performs the upgrade, and the
+server migrates its schema forward on start. `docker compose down` stops the
+stack and keeps every volume; `docker compose down -v` deletes them.
+[Back up and upgrade your stack](./operations) has each procedure in full.
+
+## Every setting
+
+`.env.example` documents every line you can set, with the reason behind it. Read
+it before you change anything; if a setting isn't there, the stack doesn't
+expect you to change it.
 
 ## Next step
 
-Your stack is running, which means it now holds state worth protecting. Learn
-what a complete backup is and how upgrades work.
+Your stack is running, and right now anyone who can reach its ports has full
+control of it. Before your team uses it, turn authentication on with your OIDC
+provider.
 
 <Cards>
   <Card
-    title="Back up and upgrade your stack"
-    href="/docs/guides/self-hosting/operations"
-  >
-    The complete backup story — three volumes plus your `.env` — and the
-    version-pin upgrade path.
-  </Card>
+    title="Enable authentication"
+    href="/docs/guides/self-hosting/authentication"
+    description="Sign in with your OIDC provider and give the CLI and CI their API keys."
+  />
 </Cards>
