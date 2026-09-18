@@ -146,6 +146,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -211,6 +214,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
 
       - name: Setup Node
         uses: actions/setup-node@v4

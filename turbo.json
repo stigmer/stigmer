@@ -81,8 +81,21 @@
     // (measured 2026-09-10: the tree is clean after a build and the second
     // run is a cache hit); a sharp upgrade that changes the encoding would
     // show up as a modified tracked file, which is the honest signal.
+    // The four env files `next build` reads in production mode are named as
+    // inputs because the default input set is the package's git-visible
+    // files and client-apps/web/.gitignore ignores `.env*`: without this
+    // line a developer who edits `.env.local` between two builds gets the
+    // first export replayed (measured 2026-09-18; with the line, the edit
+    // is a miss). CI carries no env file, so this guards the local path.
     "web#build": {
       "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env",
+        ".env.local",
+        ".env.production",
+        ".env.production.local"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "out/**", "public/embed.js"]
     },
     // The desktop shell: vite build into dist/. Its vite.config reads the
