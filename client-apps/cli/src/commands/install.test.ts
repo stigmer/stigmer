@@ -216,7 +216,7 @@ describe("install", () => {
 
     const payload = JSON.parse(outcome.stdout);
     expect(payload.message).toMatch(
-      /^Installed plugin 'warmer' \(1 skill, 0 MCP servers, 1 agent\)/,
+      /^Installed plugin 'warmer' \(1 skill, 1 agent\)/,
     );
     const about = payload.sections.find(
       (s: { title: string }) => s.title === "Plugin",
@@ -298,9 +298,8 @@ describe("install", () => {
       expect(outcome.message).toMatch(
         /offered by more than one marketplace: acme-plugins, second\n\nName the one you mean: acme-plugins\/warmer or second\/warmer/,
       );
-      // The three built-in vendor sources were asked through their files and nothing was downloaded.
-      expect(fetched.filter((url) => url.startsWith("https://raw.githubusercontent.com/cursor/plugins/")).length).toBeGreaterThan(0);
-      expect(fetched.some((url) => url.startsWith("https://codeload.github.com/"))).toBe(false);
+      // Only the official catalogue is built in, read from the checkout here; no GitHub host was asked.
+      expect(fetched.filter((url) => url.includes("github"))).toEqual([]);
     } finally {
       rmSync(second, { recursive: true, force: true });
     }

@@ -262,7 +262,12 @@ async function runPushPlugin(
     message: options.message ?? "",
     ignoreOptions,
   });
-  renderCommandResult(plugin.renderPushOutcome(outcome), format);
+  renderCommandResult(
+    plugin.renderPushOutcome(outcome, {
+      next: await plugin.readNextSteps(client.stigmer, org, outcome.members),
+    }),
+    format,
+  );
 }
 
 interface ArchiveContext {
