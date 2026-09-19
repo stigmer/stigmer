@@ -1,0 +1,30 @@
+# The quality tasks the harness benchmark grades both harnesses on: each task
+# is one prompt the agent answers and one rubric a judge on a pinned model
+# scores 0..1. Applied per task per harness by `make benchmark-harnesses`
+# (scripts/benchmark-harnesses.ts, --tasks to point at another file).
+#
+# A task marked `placeholder: true` keeps this file's shape until the real
+# task set replaces it; a default run SKIPS placeholders (the lane is proven
+# hermetically by the benchmark-readers smoke, and a paid grade nobody
+# publishes buys nothing), `--include-placeholders` runs them, and the report
+# carries the flag through so the docs page never publishes a placeholder.
+#
+# Replace the placeholders with the real tasks (six to ten is the intended
+# set), each with an id a report can be read by, the prompt as the user
+# would put it, and a rubric that describes the scoring scale in the judge's
+# own terms.
+tasks:
+  - id: placeholder-exact-reply
+    placeholder: true
+    prompt: "Reply with exactly: hello"
+    rubric: >-
+      Score 1.0 if the reply is exactly the single word "hello" with no other
+      text or punctuation, 0.5 if it contains "hello" with anything else, 0.0
+      otherwise.
+  - id: placeholder-one-sentence-definition
+    placeholder: true
+    prompt: "Explain in one sentence what a hash table is."
+    rubric: >-
+      Score 1.0 for one correct, complete sentence naming keys, hashing and
+      buckets or slots; 0.5 for a correct answer in more than one sentence or
+      missing one of those ideas; 0.0 for an incorrect or empty answer.

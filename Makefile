@@ -440,6 +440,22 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 	@echo "=== conformance: execution engine (local-execution) ==="
 	CONFORMANCE_TARGET=local-execution npm run test:execution -w @stigmer/conformance
 
+# The live harness benchmark is an EXPERIMENT, not a test: it drives both
+# harnesses against real providers and spends real money. It is in no vitest
+# config. No `stigmer` CLI check here, unlike the execution suites: the bare
+# agent it measures has no memory attachment, so no `stigmer mcp-server`
+# child is ever spawned. Flags pass through BENCHMARK_ARGS
+# (e.g. BENCHMARK_ARGS="--reps 3 --only native").
+.PHONY: benchmark-harnesses
+benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on real providers and write the docs comparison report (needs the `temporal` CLI, ANTHROPIC_API_KEY, CURSOR_API_KEY; spends money)
+	@command -v temporal >/dev/null 2>&1 || { \
+		echo "error: temporal CLI not found — the dev server backs the benchmark stack"; \
+		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		exit 1; \
+	}
+	@echo "=== benchmark: native vs cursor on real providers (an experiment, not a test) ==="
+	npm run benchmark:harnesses -w @stigmer/conformance -- $(BENCHMARK_ARGS)
+
 .PHONY: postgres-dev
 postgres-dev: ## Start a throwaway Postgres 16 for the postgres targets (docker; port 55432)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the postgres targets need a real Postgres (DD-011)"; exit 1; }

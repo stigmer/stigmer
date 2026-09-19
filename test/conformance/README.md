@@ -155,6 +155,38 @@ and can hide the flake; jitter is what reproduces it. The progress waits in
 their failure message, so a reproduced failure says what the runner published
 (for example `files=0 -> files=1 -> files=3`), not just that it timed out.
 
+### Benchmarking the harnesses (an experiment, not a test)
+
+`make benchmark-harnesses` (or `npm run benchmark:harnesses -w @stigmer/conformance -- <flags>`)
+drives the native and Cursor harnesses against **real providers** and writes
+the report the docs comparison page is generated from. It boots the same
+Temporal + server + runner stack the execution suites use, but with the runner
+in **direct mode** (no mock proxy) reading `ANTHROPIC_API_KEY` and
+`CURSOR_API_KEY` from the environment; a missing key refuses the cells that
+need it by name and the run continues with the rest. It is in no vitest
+config, `npm test` cannot reach it, and it spends money: at the defaults, seven
+scenarios on two harnesses with one warm-up plus five samples each (108
+executions) plus any quality tasks. Its numbers are a new baseline for the
+machine, model versions and runner they were taken on, never a comparison with
+an earlier page.
+
+Per execution it reads five sources and joins them by execution id: the
+`subscribe` stream (when the user first saw a token, when the turn ended), the
+terminal status (`streaming_usage`: tokens and the runner's rate-card cost
+ESTIMATE), the runner's `turn_phases` and `execution_setup` timing lines from
+its tee'd log, the Temporal history through the `temporal` CLI (the wait before
+the runner's activity started, the `EnsureThread` hop), and, for a quality
+task, the `eval` judge's verdict off a graded `agent_call` workflow
+(`scripts/benchmark-harnesses/quality-tasks.yaml`; placeholder tasks run only
+under `--include-placeholders`). Every sample is kept whole, failed attempts
+included; the run's first call per harness and served model is the cold call.
+The report's contract is `src/benchmark/report.ts`, which the site's
+`generate-harness-cost-comparison` script imports; the refresh path is run the
+benchmark, copy the report to `site/src/data/harness-benchmark-report.json`,
+`yarn generate-harness-cost-comparison` in `site/`. The readers' wiring is
+proven hermetically by `benchmark-readers.harness.smoke.test.ts` on the
+execution lane, which asserts presence and shape and never a number.
+
 ### Cloud targets (Class A and the execution class vs the cloud composition)
 
 The `cloud` and `cloud-execution` runs drive the same suites against the cloud
@@ -593,17 +625,20 @@ src/
                     + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
-  support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll, workflowexecutions,
-                    agentexecutions, file-review, workflow-architect, agents, mcpservers, memories, skills, environments,
-                    executioncontexts, sessions, request-shape (the golden renderers), …
+  support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval + graded agent_call), execution-poll,
+                    workflowexecutions, agentexecutions, file-review, workflow-architect, agents, mcpservers, memories, skills,
+                    environments, executioncontexts, sessions, request-shape (the golden renderers), …
+  benchmark/        report (the contract the site imports), cells, run (the direct-mode stack and driver), and the five readers:
+                    stream-watch, status-facts, timing-lines, temporal-history, quality  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ *.harness.smoke.test.ts (engine, agent, mcp, runner-ipc)
+  suites-execution/ *.harness.smoke.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers)
                     + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
                       request-shape)
                     + mcpserver-connect, mcp-caller-identity, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
+scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses (+ benchmark-harnesses/quality-tasks.yaml)
 ```
 
 ## Adding a domain
