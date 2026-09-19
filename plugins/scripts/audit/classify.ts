@@ -16,12 +16,19 @@
  * reading of a Cursor-proxied host is likewise a fact about a vendor, not
  * about the wire, and is flagged beside the probe's own outcome.
  *
+ * Rule 3 reads "reachable AS DECLARED": a server that declares a variable
+ * no header sends (`credential-unwired`) is out even when the wire answers
+ * a standard OAuth challenge, because the install Stigmer would produce
+ * asks for a secret it never uses. The first catalogue found four such
+ * entries, every one a Cursor plugin whose `auth` block the reader drops.
+ *
  * Two lists fall out of the verdicts beyond include and exclude. A vendor
- * whose licence forbids copying may still name a public MCP endpoint that
- * Stigmer can author its own plugin for; those endpoints, deduplicated by
- * URL and minus the ones a vendorable entry already brings, are the
- * candidates to author. And every login server that refuses dynamic
- * registration is the list a platform-registration programme starts from.
+ * whose licence forbids copying, or whose declaration wires nothing, may
+ * still name a public MCP endpoint that Stigmer can author its own plugin
+ * for; those endpoints, deduplicated by URL and minus the ones a vendorable
+ * entry already brings, are the candidates to author. And every login
+ * server that refuses dynamic registration is the list a
+ * platform-registration programme starts from.
  */
 
 import type { PluginVariable } from "@stigmer/plugin-package";
@@ -64,6 +71,13 @@ export type Reachability =
   | "handshake-rejected"
   /** Declares a variable in its headers; the user supplies a key. */
   | "api-key"
+  /**
+   * Declares a variable that no header or URL sends (the shape Cursor's
+   * `auth` block leaves once the reader drops the block): an install would
+   * ask for the value and never use it. Not reachable as declared; the
+   * endpoint may still be worth authoring on what the wire says.
+   */
+  | "credential-unwired"
   /** Standard OAuth whose login server registers clients; Sign in can complete. */
   | "oauth"
   /** Standard OAuth whose login server needs a pre-registered app (rule 6). */
@@ -192,9 +206,23 @@ export function judgeServer(server: EntryServer, probes: ReadonlyMap<string, Pro
   const probe = probes.get(server.url);
   const withProbe = probe === undefined ? {} : { probe };
   if (PROXY_HOSTS.has(hostOf(server.url))) return { server, ...withProbe, reachability: "proxy" };
-  if (server.env.length > 0) return { server, ...withProbe, reachability: "api-key" };
+  if (server.env.length > 0) return { server, ...withProbe, reachability: unwiredVariables(server).length === 0 ? "api-key" : "credential-unwired" };
   if (probe === undefined) return { server, reachability: "not-probed" };
   return { server, probe, reachability: reachabilityOf(probe) };
+}
+
+/**
+ * The declared variables nothing on the wire carries: referenced by neither
+ * a header value nor the URL. The reader lists on `env` every `${VAR}` it
+ * saw anywhere in the server's declaration, a vendor's `auth` block
+ * included; only headers and the URL reach the endpoint.
+ */
+export function unwiredVariables(server: Extract<EntryServer, { transport: "http" }>): readonly string[] {
+  const wired = new Set<string>();
+  for (const text of [server.url, ...Object.values(server.headers)]) {
+    for (const match of text.matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g)) if (match[1] !== undefined) wired.add(match[1]);
+  }
+  return server.env.filter((name) => !wired.has(name));
 }
 
 function reachabilityOf(probe: ProbeResult): Reachability {
@@ -229,6 +257,7 @@ export function isReachable(reachability: Reachability): boolean {
     case "oauth":
     case "oauth-pre-registered":
       return true;
+    case "credential-unwired":
     case "handshake-rejected":
     case "oauth-unresolvable":
     case "challenge-not-oauth":
@@ -257,6 +286,8 @@ export function describeReachability(judged: ServerJudgement): string {
       return `answers, but refuses the handshake${outcome?.kind === "handshake-rejected" ? `: ${outcome.message}` : ""}`;
     case "api-key":
       return `takes a key through ${judged.server.transport === "http" ? judged.server.env.map((v) => `\${${v}}`).join(", ") : "its environment"}`;
+    case "credential-unwired":
+      return `declares ${judged.server.transport === "http" ? unwiredVariables(judged.server).map((v) => `\${${v}}`).join(", ") : "variables"} that no header sends (the vendor's own sign-in, which Stigmer does not read); an install would ask for the value and never use it`;
     case "oauth":
       return `standard OAuth${challengedAt(outcome)}; the login server registers clients`;
     case "oauth-pre-registered":
@@ -365,9 +396,13 @@ function hostOf(url: string): string {
 }
 
 /**
- * Endpoints worth authoring: reachable servers of entries that fail ONLY
- * the licence rule (everything else about them passes), minus the URLs a
- * vendorable entry already brings, one candidate per URL.
+ * Endpoints worth authoring: servers of entries that fail ONLY the rules an
+ * authored plugin cures, minus the URLs a vendorable entry already brings,
+ * one candidate per URL. Two rules are curable by authoring: the licence
+ * (a URL is a fact, no vendor text is copied) and a credential the vendor
+ * declared but never wired (an authored plugin declares nothing, so the
+ * endpoint is judged on what the wire says). Every other failure is about
+ * the endpoint or the plugin's substance and no authoring changes it.
  */
 function authoredCandidates(entries: readonly EntryVerdict[]): readonly AuthoredCandidate[] {
   const vendored = new Set<string>();
@@ -378,11 +413,12 @@ function authoredCandidates(entries: readonly EntryVerdict[]): readonly Authored
   const byUrl = new Map<string, { reachability: Reachability; namedBy: AuthoredCandidate["namedBy"][number][] }>();
   for (const judged of entries) {
     if (judged.verdict.kind !== "exclude") continue;
-    if (!judged.verdict.failures.every((failure) => failure.rule === "1-redistributable")) continue;
+    if (!judged.verdict.failures.every((failure) => isCuredByAuthoring(failure, judged))) continue;
     for (const server of judged.servers) {
       if (server.server.transport !== "http" || vendored.has(server.server.url)) continue;
-      if (!isReachable(server.reachability) || server.reachability === "oauth-pre-registered") continue;
-      const candidate = byUrl.get(server.server.url) ?? { reachability: server.reachability, namedBy: [] };
+      const wire = wireReachability(server);
+      if (!isReachable(wire) || wire === "oauth-pre-registered") continue;
+      const candidate = byUrl.get(server.server.url) ?? { reachability: wire, namedBy: [] };
       candidate.namedBy.push({ source: judged.entry.source.name, entry: judged.entry.name, server: server.server.name });
       byUrl.set(server.server.url, candidate);
     }
@@ -390,11 +426,44 @@ function authoredCandidates(entries: readonly EntryVerdict[]): readonly Authored
   return [...byUrl.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([url, candidate]) => ({ url, ...candidate }));
 }
 
+/** Whether one failure is of a kind an authored plugin for the same endpoint would not have. */
+function isCuredByAuthoring(failure: RubricFailure, judged: EntryVerdict): boolean {
+  switch (failure.rule) {
+    case "1-redistributable":
+      return true;
+    case "3-servers-reachable":
+      // Rule 3 is charged once per unreachable server; it is curable only
+      // when every unreachable server of the entry is unwired, never when
+      // one of them is refused by the wire itself.
+      return judged.servers.every((server) => isReachable(server.reachability) || server.reachability === "credential-unwired");
+    case "2-becomes-something":
+    case "4-no-stdio":
+    case "5-not-personal-account":
+    case "6-dynamic-registration":
+      return false;
+    default: {
+      const exhaustive: never = failure.rule;
+      return exhaustive;
+    }
+  }
+}
+
+/** What the wire alone says of a server: its declaration set aside, the probe's outcome as reachability. */
+function wireReachability(judged: ServerJudgement): Reachability {
+  if (judged.reachability !== "credential-unwired") return judged.reachability;
+  return judged.probe === undefined ? "not-probed" : reachabilityOf(judged.probe);
+}
+
+/**
+ * Judged on the wire, so a server whose declaration is unwired still puts
+ * its login server on the programme's list: the vendor to register with is
+ * the same whichever way the plugin declared its credential.
+ */
 function preRegisteredVendors(entries: readonly EntryVerdict[]): readonly PreRegisteredVendor[] {
   const byIssuer = new Map<string, { metadataUrl: string; servers: PreRegisteredVendor["servers"][number][] }>();
   for (const judged of entries) {
     for (const server of judged.servers) {
-      if (server.reachability !== "oauth-pre-registered" || server.server.transport !== "http") continue;
+      if (wireReachability(server) !== "oauth-pre-registered" || server.server.transport !== "http") continue;
       const outcome = server.probe?.outcome;
       if (outcome?.kind !== "oauth") continue;
       const issuer = outcome.authorizationServer.issuer || new URL(outcome.authorizationServer.authorizationEndpoint).origin;

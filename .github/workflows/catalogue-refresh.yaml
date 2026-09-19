@@ -1,0 +1,151 @@
+name: catalogue-refresh
+
+# Keeps the official plugin catalogue (plugins/) current with the vendors it
+# vendors from. Weekly: the audit reads the vendor marketplaces named in
+# plugins/vendor.json at their current commits and probes their servers
+# against the inclusion rubric (plugins/README.md); the sync rewrites the
+# pins from the verdicts (strikes honoured), copies what passes byte for
+# byte, and rewrites NOTICE and marketplace.json; the static suite proves the
+# result installs and that npm would publish all of it. When the tree moved,
+# the run pushes ONE fixed branch and opens or updates ONE pull request whose
+# body is the report's decision sections (plugins/scripts/sync/refresh-body.ts),
+# with the full report as run artifacts. Curation is that merge: the human
+# acts left are a rule-5 flag moved, an unrecognised licence read, a strike
+# added, and the merge itself.
+#
+# The branch is pushed and the pull request opened with CATALOGUE_REFRESH_TOKEN,
+# a repository secret, not the workflow's own token: a pull request opened
+# with GITHUB_TOKEN triggers no workflows, so its checks would never run and
+# the merge would be blind. Without the secret, a scheduled run fails at the
+# push step naming it.
+#
+# A pull request that changes this file runs every step short of pushing:
+# the lane's own test, and what registers the workflow so it can be
+# dispatched from a branch before it merges (GitHub dispatches only a
+# workflow it has seen on the default branch or in a prior run).
+
+on:
+  schedule:
+    # Mondays at 06:23 UTC (off the top of the hour to avoid scheduler congestion).
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/catalogue-refresh.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalogue-refresh
+  cancel-in-progress: false
+
+env:
+  REFRESH_BRANCH: catalogue/refresh
+
+jobs:
+  refresh:
+    name: Audit, sync and propose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The secret is absent on a fork's pull request and on a repository
+          # that has not created it; the workflow token then serves the read.
+          token: ${{ secrets.CATALOGUE_REFRESH_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Audit the vendor catalogues at their current commits
+        run: make audit-plugins ARGS="--out $RUNNER_TEMP/audit"
+
+      - name: Sync the tree from the audit's verdicts
+        run: make sync-plugins ARGS="--from-audit $RUNNER_TEMP/audit/audit.json"
+
+      - name: Prove the result installs and publishes whole
+        run: make test-plugins-static
+
+      - name: Keep the full report
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-audit
+          path: |
+            ${{ runner.temp }}/audit/audit.md
+            ${{ runner.temp }}/audit/audit.json
+          retention-days: 90
+
+      - name: See whether the tree moved
+        id: tree
+        run: |
+          set -euo pipefail
+          git status --porcelain -- plugins > "$RUNNER_TEMP/changes.txt"
+          if [ -s "$RUNNER_TEMP/changes.txt" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "The sync changed the tree:"
+            cat "$RUNNER_TEMP/changes.txt"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "The pins and the tree already agree; nothing to propose."
+          fi
+
+      - name: Push the refresh branch and open or update the pull request
+        if: steps.tree.outputs.changed == 'true' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.CATALOGUE_REFRESH_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "CATALOGUE_REFRESH_TOKEN is not set; the refresh cannot push a branch or open a pull request." >&2
+            exit 1
+          fi
+          npm run refresh-body -w @stigmer/plugins --silent -- \
+            --audit "$RUNNER_TEMP/audit/audit.md" \
+            --changes "$RUNNER_TEMP/changes.txt" \
+            --run-url "$RUN_URL" > "$RUNNER_TEMP/body.md"
+
+          DATE=$(date -u +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$REFRESH_BRANCH"
+          git add -- plugins
+          git commit -m "chore(plugins): catalogue refresh $DATE" -m "The weekly audit at the vendors' current commits and the sync of what passes the rubric; the report is the pull request's body and the run's artifacts."
+          git push --force origin "$REFRESH_BRANCH"
+
+          EXISTING=$(gh pr list --head "$REFRESH_BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$EXISTING" ]; then
+            gh pr create --base main --head "$REFRESH_BRANCH" \
+              --title "chore(plugins): catalogue refresh $DATE" \
+              --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr edit "$EXISTING" \
+              --title "chore(plugins): catalogue refresh $DATE" \
+              --body-file "$RUNNER_TEMP/body.md"
+            echo "Updated the open refresh pull request #$EXISTING."
+          fi
+
+  # Scheduled runs are unattended; manual dispatches are watched. Shared
+  # file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Catalogue Refresh Failure Issue
+    needs: refresh
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: catalogue-refresh-failure
+      title: "catalogue-refresh: the weekly plugin catalogue refresh is failing"
+      body-context: >-
+        This lane audits the vendor catalogues named in plugins/vendor.json,
+        syncs what passes the rubric and opens a pull request; while it is
+        red, the official catalogue drifts from its vendors. Usual suspects: a
+        vendor repository moved or changed its marketplace file, a hosted
+        server's answer changed shape, an expired CATALOGUE_REFRESH_TOKEN, or
+        a vendored file npm would not publish (the static suite names it).

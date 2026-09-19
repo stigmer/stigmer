@@ -5,18 +5,21 @@
  * excludes on its own and all failing rules are listed together; a licence
  * that cannot be read is a failure, never a pass; a hooks-only plugin fails
  * "becomes something" with the components it does carry named; a declared
- * key makes a server reachable without a probe; a login server without
- * dynamic registration is reachable for rule 3 and fails rule 6, and is
- * listed for the registration programme; a proxied host fails rule 3
- * whatever the wire said; the personal-account word is a flag beside the
- * failure; endpoints to author come only from entries whose sole failure is
- * the licence, minus URLs a vendored entry already brings, one per URL.
+ * key makes a server reachable without a probe, and a declared variable no
+ * header or URL sends makes it unreachable as declared, with the variables
+ * named; a login server without dynamic registration is reachable for rule
+ * 3 and fails rule 6, and is listed for the registration programme; a
+ * proxied host fails rule 3 whatever the wire said; the personal-account
+ * word is a flag beside the failure; endpoints to author come only from
+ * entries whose every failure authoring cures (the licence, an unwired
+ * credential), judged on the wire alone, minus URLs a vendored entry
+ * already brings, one per URL.
  */
 
 import type { PluginVariable } from "@stigmer/plugin-package";
 import { describe, expect, it } from "vitest";
 
-import { classifyCatalogues, describeReachability, judgeEntry, judgeServer, PERSONAL_ACCOUNT_TOKENS, PROXY_HOSTS } from "../scripts/audit/classify.js";
+import { classifyCatalogues, describeReachability, judgeEntry, judgeServer, PERSONAL_ACCOUNT_TOKENS, PROXY_HOSTS, unwiredVariables } from "../scripts/audit/classify.js";
 import type { CatalogueFacts, EntryFacts, EntryRead, EntryServer } from "../scripts/audit/entries.js";
 import type { LicenceClass } from "../scripts/audit/licence.js";
 import type { AuthorizationServerFacts, ProbeResult } from "../scripts/audit/probe.js";
@@ -142,6 +145,21 @@ describe("judgeEntry", () => {
     expect(judged.verdict).toEqual({ kind: "vendor" });
   });
 
+  it("rule 3: a declared variable no header or URL sends is unwired, and the entry is out with the variables named", () => {
+    // Cursor's `auth` block, once the reader drops it, leaves exactly this:
+    // two variables on `env` and nothing on the wire that carries them.
+    const unwired: EntryServer = { name: "gong", transport: "http", url: OAUTH, headers: {}, env: ["CLIENT_ID", "CLIENT_SECRET"], vendorAuthHint: {} };
+    const judged = judgeEntry(entry("gong", readOk({ servers: [unwired] })), PROBES);
+    expect(judged.servers[0]?.reachability).toBe("credential-unwired");
+    expect(failuresOf(judged)).toEqual(["3-servers-reachable"]);
+    expect(judged.verdict.kind === "exclude" && judged.verdict.failures[0]?.detail).toBe(
+      `'gong' at ${OAUTH}: declares \${CLIENT_ID}, \${CLIENT_SECRET} that no header sends (the vendor's own sign-in, which Stigmer does not read); an install would ask for the value and never use it`,
+    );
+    // A variable the URL carries is wired; only the header-less one is named.
+    const half: EntryServer = { name: "api", transport: "http", url: "https://api.vendor.example/${REGION}/mcp", headers: {}, env: ["REGION", "TOKEN"] };
+    expect(unwiredVariables(half)).toEqual(["TOKEN"]);
+  });
+
   it("rule 4: a stdio server fails, and rule 3 is not also charged for it", () => {
     const judged = judgeEntry(entry("local", readOk({ servers: [stdio("fs")] })), PROBES);
     expect(failuresOf(judged)).toEqual(["4-no-stdio"]);
@@ -244,6 +262,39 @@ describe("classifyCatalogues", () => {
         ],
       },
     ]);
+  });
+
+  it("an MIT entry whose only fault is an unwired credential is a candidate on what the wire says; one the wire refuses is not", () => {
+    const GONG = "https://gong.vendor.example/mcp";
+    const DEAD = "https://dead.vendor.example/mcp";
+    const unwired = (name: string, url: string): EntryServer => ({ name, transport: "http", url, headers: {}, env: ["CLIENT_ID"], vendorAuthHint: {} });
+    const cursor = catalogue(SOURCE, [
+      entry("gong", readOk({ servers: [unwired("gong", GONG)] })),
+      entry("dead", readOk({ servers: [unwired("dead", DEAD)] })),
+      // Unwired AND a stdio server: the stdio failure is not cured by authoring.
+      entry("mixed", readOk({ servers: [unwired("api", OAUTH), stdio("local")] })),
+    ]);
+    const verdicts = classifyCatalogues(
+      [cursor],
+      probes({
+        [GONG]: { kind: "oauth", challengedAt: "initialize", challenge: 'Bearer realm="OAuth"', authorizationServer: login(true) },
+        [DEAD]: { kind: "http-other", status: 403, via: "sse" },
+        [OAUTH]: { kind: "oauth", challengedAt: "initialize", challenge: 'Bearer realm="OAuth"', authorizationServer: login(true) },
+      }),
+    );
+    expect(verdicts.entries.map((judged) => judged.verdict.kind)).toEqual(["exclude", "exclude", "exclude"]);
+    expect(verdicts.authoredCandidates).toEqual([{ url: GONG, reachability: "oauth", namedBy: [{ source: "cursor-plugins", entry: "gong", server: "gong" }] }]);
+  });
+
+  it("an unwired server whose login server refuses registration is neither a candidate nor forgotten: it is on the programme's list", () => {
+    const HUBSPOT = "https://hubspot.vendor.example/mcp";
+    const unwired: EntryServer = { name: "hubspot", transport: "http", url: HUBSPOT, headers: {}, env: ["CLIENT_ID"], vendorAuthHint: {} };
+    const verdicts = classifyCatalogues(
+      [catalogue(SOURCE, [entry("hubspot", readOk({ servers: [unwired] }))])],
+      probes({ [HUBSPOT]: { kind: "oauth", challengedAt: "initialize", challenge: 'Bearer realm="OAuth"', authorizationServer: login(false, "https://hubspot.example") } }),
+    );
+    expect(verdicts.authoredCandidates).toEqual([]);
+    expect(verdicts.preRegisteredVendors.map((vendor) => vendor.issuer)).toEqual(["https://hubspot.example"]);
   });
 
   it("lists every login server that refuses dynamic registration, with the servers behind it", () => {

@@ -178,16 +178,18 @@ function becomes(entry: EntryFacts): string {
 }
 
 /**
- * One line per server. A declared key or a proxied host is judged from the
- * declaration, so the wire's own answer is shown beside it: a maintainer
- * should see that a key-taking server also speaks OAuth, or that a proxy
- * answered nothing useful.
+ * One line per server. A declared key, an unwired credential or a proxied
+ * host is judged from the declaration, so the wire's own answer is shown
+ * beside it: a maintainer should see that a key-taking server also speaks
+ * OAuth, that an unwired one is worth authoring, or that a proxy answered
+ * nothing useful.
  */
 function servers(judged: EntryVerdict): string {
   if (judged.servers.length === 0) return "";
   return judged.servers
     .map((s: ServerJudgement) => {
-      const wire = (s.reachability === "api-key" || s.reachability === "proxy") && s.probe !== undefined ? ` (wire: ${s.probe.outcome.kind})` : "";
+      const declared = s.reachability === "api-key" || s.reachability === "credential-unwired" || s.reachability === "proxy";
+      const wire = declared && s.probe !== undefined ? ` (wire: ${s.probe.outcome.kind})` : "";
       return `${s.server.name}: ${s.reachability}${wire}`;
     })
     .join("<br>");

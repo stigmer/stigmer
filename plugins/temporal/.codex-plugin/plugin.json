@@ -1,0 +1,41 @@
+{
+  "author": {
+    "name": "Temporal",
+    "url": "https://temporal.io/"
+  },
+  "description": "Comprehensive skill for the entire Temporal lifecycle \u2014 developing applications, using the Temporal CLI, running and managing Temporal Server, and working with Temporal Cloud.",
+  "homepage": "https://temporal.io/",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "composerIcon": "./.codex-plugin/assets/composer-icon.svg",
+    "defaultPrompt": [
+      "Create a workflow using Temporal.",
+      "Develop an Agent on Temporal"
+    ],
+    "developerName": "Temporal",
+    "displayName": "Temporal",
+    "logo": "./.codex-plugin/assets/logo.svg",
+    "longDescription": "Comprehensive guidance for working with Temporal \u2014 developing workflows, activities, and workers across Python, TypeScript, Go, and Java SDKs; using the Temporal CLI for local development and operations; running and managing self-hosted Temporal Server; and working with Temporal Cloud for production deployments.",
+    "privacyPolicyURL": "https://temporal.io/global-privacy-policy",
+    "shortDescription": "Develop with Temporal",
+    "termsOfServiceURL": "https://temporal.io/terms-of-service",
+    "websiteURL": "https://temporal.io/"
+  },
+  "keywords": [
+    "temporal",
+    "workflow",
+    "durable-execution",
+    "python",
+    "typescript",
+    "go",
+    "java",
+    "microservices",
+    "distributed-systems"
+  ],
+  "license": "MIT",
+  "name": "temporal",
+  "repository": "https://github.com/temporalio/codex-temporal-plugin",
+  "skills": "./skills/",
+  "version": "0.4.0"
+}

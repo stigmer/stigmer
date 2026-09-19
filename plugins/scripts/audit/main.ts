@@ -25,10 +25,12 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { listDirectory } from "../lib/candidates.js";
 import { checkoutTree } from "../lib/git-tree.js";
+import { readVendorPins, VENDOR_PINS_FILE } from "../lib/vendor-pins.js";
 import { classifyCatalogues } from "./classify.js";
 import { type CatalogueFacts, readCatalogue } from "./entries.js";
 import { probeEndpoint, type ProbeResult } from "./probe.js";
@@ -36,6 +38,8 @@ import { type AuditRun, renderJson, renderMarkdown } from "./report.js";
 import { auditSources, parsePinnedRefs } from "./sources.js";
 
 const DEFAULT_CONCURRENCY = 4;
+/** The catalogue root (`plugins/`), where the pin file lives. */
+const CATALOGUE_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -51,7 +55,7 @@ async function main(): Promise<void> {
   const concurrency = Number(values.concurrency);
   if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error(`--concurrency expects a positive integer, got '${values.concurrency}'`);
 
-  const sources = auditSources(parsePinnedRefs(values.ref));
+  const sources = auditSources(readVendorPins(join(CATALOGUE_ROOT, VENDOR_PINS_FILE)), parsePinnedRefs(values.ref));
   const scratch = mkdtempSync(join(tmpdir(), "stigmer-catalogue-audit-"));
   try {
     const catalogues: CatalogueFacts[] = [];

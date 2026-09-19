@@ -313,13 +313,19 @@ test("a .mdc outside .cursor/rules is a finding wherever it is filed; --private-
     "_meetings/_rules/prepare.mdc": "---\ndescription: a framework rule\n---\n",
     "_projects/_rules/README.md": "prose beside the framework rules, not a rule\n",
     "node_modules/pkg/rule.mdc": "vendored; never walked\n",
+    "plugins/cursor-team-kit/.cursor-plugin/plugin.json": '{"name":"cursor-team-kit"}',
+    "plugins/cursor-team-kit/rules/exhaustive-switch.mdc": "a vendored plugin's own Cursor rule, addressed to the agent that installs it\n",
+    "plugins/cursor-team-kit/AGENTS.md": "# the plugin's own guide, not ours\n",
+    "plugins/linear/plugin.json": '{"name":"linear"}',
+    "plugins/linear/rules/x.mdc": "an authored plugin's rule, likewise the plugin's\n",
   });
   try {
+    assert.deepEqual(discoverNestedGuides(root), [], "a plugin package's AGENTS.md is the plugin's, never a nested guide");
     const publicFindings = checkStrayRules(root, { privateRepo: false });
     assert.deepEqual(
       publicFindings.map((f) => f.split(":")[0]),
       ["_changelog/_rules/create.mdc", "_meetings/_rules/prepare.mdc", "_projects/_rules/wrap-up.mdc", "apis/_rules/model-proto.mdc", "docs/how-to.mdc"],
-      "in a public repository every stray .mdc is reported, sorted; the rules folder and vendored trees are not walked",
+      "in a public repository every stray .mdc is reported, sorted; the rules folder, vendored trees and plugin packages are not walked",
     );
     assert.match(publicFindings[0], /Cursor rule outside \.cursor\/rules\/, which no tool loads/);
     assert.deepEqual(

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "granola",
+  "version": "1.0.0",
+  "description": "Granola's hosted MCP server: your meeting notes and transcripts. Sign in with your Granola account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://www.granola.ai",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "granola",
+    "meetings",
+    "notes",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Granola",
+      "category": "integrations"
+    }
+  }
+}

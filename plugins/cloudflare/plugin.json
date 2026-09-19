@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cloudflare",
+  "version": "1.0.0",
+  "description": "Cloudflare's hosted MCP server: the zones, Workers, DNS and settings of your Cloudflare account. Sign in with your Cloudflare account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://www.cloudflare.com",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "cloudflare",
+    "dns",
+    "workers",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Cloudflare",
+      "category": "integrations"
+    }
+  }
+}

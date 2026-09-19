@@ -4,7 +4,9 @@
  * Pins: the vendored Cursor fixtures yield their `displayName`, `logo`,
  * `category` and author (thermos, a PNG; playwright, an SVG); a Codex
  * manifest yields the same fields from `interface`, with the `./` spelling
- * stripped; a Claude manifest and an open manifest yield identity only; a
+ * stripped; a Claude manifest yields identity only, and so does an open
+ * manifest until it carries `extensions["ai.stigmer"]`, which speaks the
+ * same three fields under the same logo rules; a
  * root manifest names the plugin ahead of a vendor manifest beside it,
  * while the vendor manifest still lends its appearance; a logo that is
  * absent from the listing, over the cap, not an image, a URL or an escape
@@ -75,7 +77,7 @@ describe("the dialects that carry appearance", () => {
     expect(present(files)).toEqual({ displayName: "Airtable", logo: "assets/logo.png", category: "Productivity", version: "6.0.1" });
   });
 
-  it("a Claude manifest and an open manifest yield identity only", () => {
+  it("a Claude manifest and an open manifest without the extension yield identity only", () => {
     expect(present(claudePlugin({ version: "1.0.0", description: "Reviews pull requests.", manifest: { author: { name: "Anthropic" } } }))).toEqual({
       version: "1.0.0",
       description: "Reviews pull requests.",
@@ -85,6 +87,29 @@ describe("the dialects that carry appearance", () => {
     expect(open.displayName).toBeUndefined();
     expect(open.logo).toBeUndefined();
     expect(open.version).toBe("2.0.0");
+  });
+
+  it("an open manifest speaks through extensions[\"ai.stigmer\"], under the same logo rules as a vendor manifest", () => {
+    const files = withFile(
+      openPlugin({
+        version: "1.0.0",
+        description: "Linear's hosted MCP server.",
+        manifest: { author: { name: "Stigmer" }, extensions: { "ai.stigmer": { displayName: "Linear", logo: "assets/logo.png", category: "integrations" } } },
+      }),
+      "assets/logo.png",
+      PNG_BYTES,
+    );
+    expect(present(files)).toEqual({
+      displayName: "Linear",
+      logo: "assets/logo.png",
+      category: "integrations",
+      version: "1.0.0",
+      description: "Linear's hosted MCP server.",
+      author: { name: "Stigmer" },
+    });
+    const unlisted = present(openPlugin({ manifest: { extensions: { "ai.stigmer": { displayName: "Linear", logo: "assets/missing.png" } } } }));
+    expect(unlisted).toEqual({ displayName: "Linear" });
+    expect(present(openPlugin({ manifest: { extensions: { "ai.stigmer": "nope" } } }))).toEqual({});
   });
 
   it("a root manifest names the plugin first; a vendor manifest beside it still lends its appearance", () => {

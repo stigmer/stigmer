@@ -13,7 +13,9 @@
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "audit": "tsx scripts/audit/main.ts"
+    "audit": "tsx scripts/audit/main.ts",
+    "sync": "tsx scripts/sync/main.ts",
+    "refresh-body": "tsx scripts/sync/refresh-body.ts"
   },
   "files": [
     "dist"
