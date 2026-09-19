@@ -33,10 +33,11 @@ stigmer --org my-org install acme-plugins/thermos --visibility org
 
 The output ends with a `Next` section, one line per MCP server the plugin
 installed: a server that signs in with OAuth and has no sign-in in your
-organization yet names the command that runs it (`stigmer connect mcp-server
-<server>`, which opens the console's sign-in and waits for it); a server
-already signed in says so; a server that wants an API key names the variables
-and where they are asked (the agent's first session when the plugin installed
+organization yet names the command that runs it
+(`stigmer connect mcp-server <server>`, which opens the console's sign-in and
+waits for it); a server already signed in says so; a server that wants an API
+key names the variables and where they are asked (the agent's first session
+when the plugin installed
 an agent, `stigmer connect mcp-server <server> --env` otherwise). A plugin that
 installed tools and no agent ends with the one thing still missing: an agent
 that lists the servers under `mcp_server_usages`, or the plugin's page in the

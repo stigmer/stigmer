@@ -118,7 +118,7 @@ summary line in the final message. Never report unverified work as done.
 - `plugins/**`: `make test-plugins-static`. `deploy/helm/**`:
   `make lint-helm test-helm`.
 - `docs/**`, `site/**`:
-  `make lint-docs format-docs-check check-docs-yaml check-docs-inventory`,
+  `make lint-docs format-docs-check check-docs-yaml check-docs-inventory build-site`,
   `make -C site lint typecheck`.
 - `scripts/**`: `npm run test:scripts`. Any `AGENTS.md` or `.agents/**`:
   `make agents-check`.

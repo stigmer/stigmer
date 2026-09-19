@@ -9,6 +9,13 @@
 // marked insertion points so flags stay in lockstep with the source. Commands
 // without an enrichment fall back to a generated default page.
 //
+// Template prose is pasted verbatim and then prose-wrapped by Prettier, so
+// every inline code span in a template must open and close on one line: a
+// span wrapped across lines is read by Prettier's MDX mode as block syntax,
+// the paragraph splits, and the site build fails on an unclosed span or a
+// bare <placeholder>. checkEnrichment refuses such a template before any
+// page is written.
+//
 // Enrichment markers:
 //
 //   {/* AUTO_USAGE */}        — replaced with ## Usage + syntax code block
@@ -552,12 +559,74 @@ export function generate(outputDir: string, enrichmentsDir: string, program: Com
 }
 
 function readEnrichment(enrichmentsDir: string, name: string): string | undefined {
+  const path = join(enrichmentsDir, `${name}.mdx`);
+  let content: string;
   try {
-    const content = readFileSync(join(enrichmentsDir, `${name}.mdx`), "utf8");
-    return content.length > 0 ? content : undefined;
+    content = readFileSync(path, "utf8");
   } catch {
     return undefined;
   }
+  if (content.length === 0) return undefined;
+  // Outside the try: a refusal must surface, not fall through to the default page.
+  checkEnrichment(path, content);
+  return content;
+}
+
+// ---------------------------------------------------------------------------
+// Template guard
+// ---------------------------------------------------------------------------
+
+// fenceOpenRe matches a CommonMark fence opener: up to three spaces of indent,
+// then a run of three or more backticks or tildes.
+const fenceOpenRe = /^ {0,3}(`{3,}|~{3,})/;
+
+// checkEnrichment refuses a template whose inline code span does not close on
+// the line that opens it. Backtick runs pair the CommonMark way (a run of
+// length n opens a span the next run of the same length closes); a span still
+// open at a line's end is the shape Prettier's MDX mode splits into a broken
+// paragraph. Fenced blocks are skipped: their body is not prose.
+export function checkEnrichment(path: string, content: string): void {
+  let fence: { char: string; length: number } | undefined;
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    if (fence !== undefined) {
+      const closing = new RegExp(`^ {0,3}${fence.char === "`" ? "`" : "~"}{${fence.length},}\\s*$`);
+      if (closing.test(line)) fence = undefined;
+      continue;
+    }
+    const open = fenceOpenRe.exec(line);
+    if (open !== null) {
+      const run = open[1] ?? "";
+      fence = { char: run.charAt(0), length: run.length };
+      continue;
+    }
+    if (hasUnclosedSpan(line)) {
+      throw new Error(
+        `enrichment ${path} line ${i + 1}: an inline code span opens here and does not close on this line. ` +
+          "Prettier and MDX read a span wrapped across lines as a broken paragraph. Keep each backtick span on one line.",
+      );
+    }
+  }
+}
+
+function hasUnclosedSpan(line: string): boolean {
+  let openLength = 0;
+  let i = 0;
+  while (i < line.length) {
+    if (line.charAt(i) !== "`") {
+      i++;
+      continue;
+    }
+    let run = 0;
+    while (line.charAt(i) === "`") {
+      run++;
+      i++;
+    }
+    if (openLength === 0) openLength = run;
+    else if (run === openLength) openLength = 0;
+  }
+  return openLength !== 0;
 }
 
 // ---------------------------------------------------------------------------
