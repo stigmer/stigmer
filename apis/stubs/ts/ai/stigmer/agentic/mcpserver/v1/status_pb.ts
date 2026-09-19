@@ -49,7 +49,7 @@ export type McpServerStatus = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer
 
   /**
    * Tools and resource templates discovered from the MCP server.
-   * Optional — absent until the connect RPC has been called (or seeded from seedpack).
+   * Optional — absent until the connect RPC has been called.
    *
    * @generated from field: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities discovered_capabilities = 3;
    */

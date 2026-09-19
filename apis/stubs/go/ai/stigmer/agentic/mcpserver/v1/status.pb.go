@@ -235,7 +235,7 @@ type McpServerStatus struct {
 	// - "docker.image is required"
 	ValidationMessage string `protobuf:"bytes,2,opt,name=validation_message,json=validationMessage,proto3" json:"validation_message,omitempty"`
 	// Tools and resource templates discovered from the MCP server.
-	// Optional — absent until the connect RPC has been called (or seeded from seedpack).
+	// Optional — absent until the connect RPC has been called.
 	DiscoveredCapabilities *DiscoveredCapabilities `protobuf:"bytes,3,opt,name=discovered_capabilities,json=discoveredCapabilities,proto3" json:"discovered_capabilities,omitempty"`
 	// System-generated tool approval policies.
 	ToolApprovals []*ToolApprovalPolicy `protobuf:"bytes,4,rep,name=tool_approvals,json=toolApprovals,proto3" json:"tool_approvals,omitempty"`

@@ -14,6 +14,7 @@ import {
   type ExtractedWorkflowYaml,
 } from "./extract-workflow-yaml.js";
 import { WORKFLOW_DIAGNOSIS_RESPONSE_SCHEMA } from "./architect-response-schema.js";
+import { workflowArchitectRef } from "./workflow-architect.js";
 
 /**
  * Lifecycle phases for the workflow execution diagnosis flow.
@@ -79,12 +80,12 @@ export interface UseDiagnoseExecutionFlowReturn {
   readonly reset: () => void;
 }
 
-const AGENT_REF = { org: "", slug: "workflow-architect" } as const;
 const MIN_FOLLOWUP_LENGTH = 5;
 
 /**
  * Behavior hook that orchestrates agent-powered workflow execution
- * diagnosis using the built-in Workflow Architect system agent.
+ * diagnosis using the Organization's Workflow Architect agent
+ * (`workflow-architect.ts`).
  *
  * Manages a multi-turn conversation within a single Session:
  * - First turn creates a Session + AgentExecution with diagnosis context
@@ -236,7 +237,7 @@ export function useDiagnoseExecutionFlow(
       if (!activeSessionId) {
         const { sessionId: newSessionId } = await createSession({
           org: orgRef.current,
-          agentRef: { ...AGENT_REF, org: orgRef.current },
+          agentRef: workflowArchitectRef(orgRef.current),
         });
         sessionIdRef.current = newSessionId;
         activeSessionId = newSessionId;
@@ -296,7 +297,7 @@ export function useDiagnoseExecutionFlow(
         if (!activeSessionId) {
           const { sessionId: newSessionId } = await createSession({
             org: orgRef.current,
-            agentRef: { ...AGENT_REF, org: orgRef.current },
+            agentRef: workflowArchitectRef(orgRef.current),
           });
           sessionIdRef.current = newSessionId;
           activeSessionId = newSessionId;

@@ -1,59 +1,90 @@
 ---
 title: Install from the console
 description:
-  Browse a marketplace in the web console or the desktop app, install a plugin
-  from it, and start a Session on the Agent it installs.
+  Find a plugin in the Marketplace or upload one from your computer, read what
+  it would install, install it, and start a Session on the Agent it installs.
 ---
 
-The console installs a plugin the way the CLI does: it reads the plugin's folder
-from a marketplace's tree, packages it, and pushes one archive to the server.
-The archive is byte-for-byte the one `stigmer install` would push for the same
-tree, so a plugin installed from the console and one installed from the CLI are
-one plugin with one digest, and the server treats a second install of the same
-version as nothing to do.
+The console installs a plugin the way the CLI does: it reads the plugin's files,
+packages them, and pushes one archive to the server. The archive is
+byte-for-byte the one `stigmer install` or `stigmer push plugin` would push for
+the same files, so a plugin installed from the console and one installed from
+the CLI are one plugin with one digest, and the server treats a second install
+of the same version as nothing to do.
 
-Everything here works the same in the web console and the desktop app.
+There are two ways in. The **Marketplace**, in the sidebar, is where you find a
+plugin someone else publishes, and its first tile is **Upload a plugin** for a
+plugin folder you already have. The Library's Plugins page offers the same
+upload as **Upload plugin**. Everything here works the same in the web console
+and the desktop app.
 
-## Open the marketplaces
+## Find a plugin in the Marketplace
 
-In the Library, open **Plugins**, then **Install plugin**. The page shows one
-tab per marketplace this browser knows. The official marketplace is always
-first: it is the catalogue published with the server's release, so a fresh
-install sees exactly the plugins its version ships with. On a development server
-the official tab says the catalogue is not published for that build; add a
-GitHub marketplace instead.
+Open **Marketplace** in the sidebar. The sources come first, one chip each, with
+the mark of the GitHub account that publishes it, its name, and how many plugins
+it offers. Four sources are built in, in this order: Stigmer's official
+catalogue, then Cursor's, Claude Code's and Codex's public catalogues; any
+source you add follows. **All sources** is chosen by default; choose a chip to
+see one source alone.
 
-To add a marketplace, type a public GitHub repository as `owner/repo`,
-`owner/repo@ref`, or the URL a browser shows, give it a name, and choose **Add
-marketplace**. The tab appears at once and lists what the repository offers.
-Cursor's catalogue is `cursor/plugins`; Claude Code's and Codex's are read the
-same way, because every vendor keeps its marketplace file at the repository
-root.
+Below the chips, one search box and one grid of cards across the chosen sources,
+24 to a page; **Previous** and **Next** sit under the grid. A card shows the
+plugin's own logo where its manifest names one and a monogram where it does not,
+the plugin's display name, its author, its description, the source it comes
+from, and **Install**. A card says **Installed** when your Organization already
+holds a plugin of that name. Searching filters the grid by name and description
+and returns to the first page.
 
-The list of marketplaces is this browser's, exactly as the CLI's is this
-machine's (`marketplaces` in `~/.stigmer/config.yaml`): nothing about a
-marketplace reaches the server. **Remove marketplace** forgets one; the official
-marketplace cannot be removed.
+Each source is read on its own, so the first cards appear when the first
+catalogue arrives. A source that cannot be read right now says so on its chip
+and in one line before the grid, with **Retry**; choose its chip to read the
+whole sentence. On a development server the official source says the catalogue
+is not published for that build; the other sources still work.
+
+**Manage sources**, beside the chips, lists the catalogues the page reads, says
+for each how many plugins it offers and how many it lists that cannot be
+installed from here (with the reason for each), and lets you add your own: type
+a public GitHub repository as `owner/repo`, `owner/repo@ref` or the URL a
+browser shows, and choose **Add source**. The repository is read before it is
+added, and the source takes the name its marketplace file gives itself unless
+you type one. The built-in sources cannot be removed; a source you added can.
+The list is this browser's, exactly as the CLI's is this machine's
+(`marketplaces` in `~/.stigmer/config.yaml`): nothing about a source reaches the
+server.
+
+## Upload a plugin from your computer
+
+In the Marketplace, choose the **Upload a plugin** tile; or in the Library, open
+**Plugins**, then **Upload plugin**. Drop a plugin folder onto the drop zone, or
+choose one with **Choose a folder**; a Cursor, Claude Code, Codex or Agent
+Plugins folder installs unchanged. A `.zip` of the folder works too, and a zip
+that wraps everything in one directory (the shape `zip -r` gives a folder) is
+read from inside that directory.
+
+The console rebuilds the archive from the folder's files with the same ignore
+rules and the same deterministic packaging `stigmer push plugin` applies, so the
+preview's digest is the one the CLI prints for the same folder. If the preview
+says no manifest was found, your browser may have left out files whose names
+begin with a dot when the folder was picked (a Cursor or Claude Code plugin
+keeps its manifest in one): zip the folder and upload the `.zip` instead.
 
 ## Read what a plugin would install
 
-Each tab lists the plugins the marketplace offers, and, folded below them, the
-entries the reader cannot install with the sentence saying why (a folder the
-tree does not hold, a folder that is not a plugin).
-
-Choose **Install** beside a plugin. Before anything is pushed, the console reads
-the plugin's files and shows the same description `stigmer validate -f` prints:
-the plugin's name, version and format; the Skills, MCP Servers and Sub-Agents it
-installs; the variables its tools need; the reader's warnings; and what is not
-installed (rules, hooks and the other components Stigmer does not read).
+Before anything is pushed, the console reads the plugin's files and shows the
+same description `stigmer validate -f` prints: the plugin's name, version and
+format; the Skills, MCP Servers and Sub-Agents it installs; the variables its
+tools need; the reader's warnings; and what is not installed (rules, hooks and
+the other components Stigmer does not read). A plugin the reader refuses is
+shown with every problem named, the way the CLI prints it.
 
 The preview also states one fact the CLI states only after the act:
 
 - **Already installed**: your Organization holds this exact version. Install is
   not offered; there is nothing to do.
-- **Upgrade**: your Organization holds another version. Installing replaces the
-  plugin's Skills, MCP Servers and Agent with this version's. The Agent is
-  re-created, so a Session bound to the previous one does not follow it.
+- **Upgrade**: your Organization holds another version, from whichever source it
+  came. Installing replaces the plugin's Skills, MCP Servers and Agent with this
+  version's. The Agent is re-created, so a Session bound to the previous one
+  does not follow it.
 
 ## Install and start a Session
 
@@ -83,12 +114,13 @@ uses the member.
 
 ## What the console does and does not do
 
-- It never reads a marketplace through the server. The GitHub tree and the
-  official catalogue are fetched by the browser, so the control plane makes no
-  outbound request on your behalf.
-- It reads a GitHub marketplace at one commit: the tree is listed once and every
-  file is read at the commit the listing resolved to, so what you preview is
-  what you install.
+- It never reads a source through the server. The GitHub trees and the official
+  catalogue are fetched by the browser, so the control plane makes no outbound
+  request on your behalf.
+- It reads a GitHub source at one commit: the tree is listed once and every file
+  is read at the commit the listing resolved to, so what you preview is what you
+  install.
 - It does not record where a plugin came from. As with the CLI, installing
-  `thermos` from a second marketplace upgrades the `thermos` from the first.
-- Private repositories are not marketplaces, in the console or the CLI.
+  `thermos` from a second source, or uploading it, upgrades the `thermos` from
+  the first.
+- Private repositories are not sources, in the console or the CLI.

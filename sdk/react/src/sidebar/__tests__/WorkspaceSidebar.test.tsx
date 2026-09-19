@@ -157,7 +157,7 @@ describe("WorkspaceSidebar — Conversations badge (channel-conversations DD-011
 });
 
 describe("WorkspaceSidebar — primary navigation", () => {
-  it("renders the four primary rows through renderLink with stable ids and hrefs", () => {
+  it("renders the five primary rows through renderLink with stable ids and hrefs", () => {
     const { container } = renderSidebar(<WorkspaceSidebar {...baseProps()} />);
 
     const row = (id: string) =>
@@ -166,6 +166,7 @@ describe("WorkspaceSidebar — primary navigation", () => {
     expect(row("dashboard")?.getAttribute("href")).toBe("/dashboard");
     expect(row("conversations")?.getAttribute("href")).toBe("/conversations");
     expect(row("library")?.getAttribute("href")).toBe("/library");
+    expect(row("marketplace")?.getAttribute("href")).toBe("/marketplace");
   });
 
   it("marks only the active row with aria-current and the accent classes", () => {

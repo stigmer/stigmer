@@ -44,9 +44,15 @@ export type MaterializedKindName = (typeof MATERIALIZATION_ORDER)[number];
 export const TRANSFER_LANE_NOT_CONFIGURED =
   "plugin artifact transfer lane is not configured on this server";
 
-/** Warning kinds the SERVER adds to the library's; the wire carries them as strings. */
+/**
+ * Warning kinds the SERVER adds to the library's; the wire carries them as
+ * strings, and the list in PluginWarning.kind's comment (plugin/v1/status.proto)
+ * is kept equal to this one because the SDK docs are generated from it.
+ */
 export const SERVER_WARNING_KINDS = {
   componentIgnored: "component-ignored",
+  /** A system-content row the plugin took over in place (members.ts, judgeSlug). */
+  memberAdopted: "member-adopted",
   modelHintUnresolved: "model-hint-unresolved",
   subAgentNameBuiltin: "sub-agent-name-builtin",
   versionNotTaggable: "version-not-taggable",

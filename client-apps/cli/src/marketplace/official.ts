@@ -2,12 +2,12 @@
 //
 // The official catalogue (`plugins/` in the OSS repository, published as
 // `@stigmer/plugins`) is the content `stigmer up` bootstraps a backend with,
-// so it follows the seedpack's rule: acquired at the CLI's OWN version, so
-// the plugins a fresh install gets match the control plane that installs
-// them. A lean `npx @stigmer/cli` does not carry the content; it is fetched
+// so it follows the server's and the runner's rule: acquired at the CLI's OWN
+// version, so the plugins a fresh install gets match the control plane that
+// installs them. A lean `npx @stigmer/cli` does not carry the content; it is fetched
 // once into ~/.stigmer/runtimes/<version>/ like the server and the runner.
 //
-// Two sources, tried in order (mirrors runtime/server.ts and the seedpack):
+// Two sources, tried in order (mirrors runtime/server.ts and runtime/runner.ts):
 //   1. A repo-tree checkout (dev): `<repo>/plugins`, the tree itself.
 //   2. The published `@stigmer/plugins@<cli-version>`, whose package root IS
 //      the marketplace tree (`publish-libs.mjs` publishes from `dist/`, where

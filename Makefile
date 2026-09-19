@@ -587,31 +587,6 @@ test-conformance-all: ## Run both conformance slices (CRUD + execution)
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
 	@echo "test-replay: workflow-runner has been removed (unified into runner)"
 
-# ─── Seedpack Testing ────────────────────────
-
-.PHONY: test-seedpack-static test-seedpack-transport
-
-# Both suites live in @stigmer/seedpack (seedpack/src/__tests__) and decode
-# the catalog through the generated McpServer schema, so @stigmer/protos is
-# built first — the same line every other TS test target here uses.
-#
-# static: the package API and the marketplace curation policies over the
-# shipped manifests (vitest.config.ts). Deterministic, network-free; runs on
-# every seedpack/** PR through ci.seedpack-static. Structural validity against
-# the contract is check-docs-yaml's job, not this suite's.
-test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
-	@npm run build -w @stigmer/protos --silent
-	npm run test -w @stigmer/seedpack
-
-# transport: live HTTP against every catalog endpoint (vitest.transport.config.ts,
-# the only config that reaches seedpack/src/__tests__/transport/). No harness,
-# no credentials; skips on transient network conditions. The config writes the
-# junit.xml the nightly ci.seedpack-canary lane's test report consumes to
-# seedpack/.test-output-transport/.
-test-seedpack-transport: ## Run seedpack transport reachability tests (network required, nightly)
-	@npm run build -w @stigmer/protos --silent
-	npm run test:transport -w @stigmer/seedpack
-
 # ─── Plugin Catalogue Testing ────────────────
 
 .PHONY: test-plugins-static
@@ -668,9 +643,14 @@ run-web: ## Start web console dev server (Vite/Next)
 	npm run dev -w client-apps/web
 
 # build-libs, not the libs' tests: the export needs the built libs (the
-# embed loader is copied from sdk/embed/dist), nothing more.
+# embed loader is copied from sdk/embed/dist), nothing more. The export
+# itself runs as the `web#build` Turbo task (turbo.json says why out/ and
+# .next/ are its outputs), through the same door as build:libs, so a second
+# build over unchanged inputs is a replay, locally and in the PR lanes
+# (.github/workflows/ci.turbo-cache.yaml). build-libs stays a prerequisite:
+# the smoke-* targets stage every lib's dist, not only the console's.
 build-web: build-libs ## Build web console for production
-	npm run build -w client-apps/web
+	npm run build:web
 
 clean-web: ## Remove web build artifacts
 	rm -rf client-apps/web/out client-apps/web/.next
@@ -1021,10 +1001,10 @@ agents-sync: ## Regenerate the Cursor shims (.cursor/rules/agents-*.mdc) from ev
 agents-check: ## Verify agent guidance: shims and hooks.json in sync, every cited path resolves, no private-record ids (CI)
 	@node scripts/agents-check.mjs
 
-check-docs-yaml: ## Validate every docs YAML block + raw examples/seedpack manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
+check-docs-yaml: ## Validate every docs YAML block + raw examples/plugins manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@npm run build -w @stigmer/protos --silent
-	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack,plugins --rules=enforce
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,plugins --rules=enforce
 
 report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (incl. latent platform-blind findings; never fails)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }

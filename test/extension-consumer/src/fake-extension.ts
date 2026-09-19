@@ -922,6 +922,9 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
     config: loadConfig(),
     logger: createLogger({ level: "info", pretty: false }),
     extensions: [fakeExtension],
+    // A consumer runs the library unbundled, so the build stamp is never
+    // set for it; it states the release of the package it installed.
+    version: "0.0.0-consumer",
   });
 }
 

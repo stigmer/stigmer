@@ -69,6 +69,18 @@ vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
   ExecutionComparisonPicker: () => null,
 }));
 
+// The Workflow Architect probe behind the Diagnose action is a data hook
+// over the client; this suite renders without a provider and is not about
+// Diagnose, so the probe answers "absent" (the reconciliation suite covers
+// both answers).
+vi.mock("../workflow-architect", () => ({
+  useWorkflowArchitect: () => ({
+    availability: "absent",
+    agent: null,
+    error: null,
+  }),
+}));
+
 // Fetches and streams its child (its own suite covers that, including the
 // ApprovalCard rendering and the workflow-RPC routing guardrail) — stubbed
 // to a probe recording the seam under test here: which child each card

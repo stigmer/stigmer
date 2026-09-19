@@ -93,7 +93,25 @@ export async function openGitHubTree(
     describe: `${describeGitHubSource(source)} (${commit.slice(0, 7)})`,
     files,
     fetchFile: (path) => fetchRaw(source.repo, commit, path, sizes.get(path), fetchImpl),
+    fileUrl: (path) => rawUrl(source.repo, commit, path),
   };
+}
+
+/**
+ * The public avatar of the GitHub account `owner`, at a size a chip or a
+ * card mark renders. This is how a source is identified visually: the
+ * account that publishes a catalogue shows its own picture, for the
+ * built-in vendors and for any repository a user adds alike, so the SDK
+ * ships no vendor artwork and a new source needs no new asset.
+ */
+export function githubAvatarUrl(owner: string, size = 64): string {
+  return `https://github.com/${encodeURIComponent(owner)}.png?size=${size}`;
+}
+
+/** The account half of an `owner/repo` slug. */
+export function githubOwner(repo: string): string {
+  const slash = repo.indexOf("/");
+  return slash === -1 ? repo : repo.slice(0, slash);
 }
 
 async function fetchListing(source: GitHubMarketplaceSource, fetchImpl: FetchImpl): Promise<TreeListing> {

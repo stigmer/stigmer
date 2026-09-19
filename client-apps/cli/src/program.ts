@@ -9,6 +9,7 @@
 import { Command } from "commander";
 import { registerApiKey } from "./commands/apikey/index.js";
 import { registerApply } from "./commands/apply.js";
+import { registerBootstrap } from "./commands/bootstrap.js";
 import { registerAuth } from "./commands/auth/index.js";
 import { registerCompletion } from "./commands/completion.js";
 import { registerConfig } from "./commands/config/index.js";
@@ -31,7 +32,6 @@ import { registerResume } from "./commands/resume.js";
 import { registerRun } from "./commands/run.js";
 import { registerSchedule } from "./commands/schedule.js";
 import { registerSearch } from "./commands/search.js";
-import { registerSeedpack } from "./commands/seedpack.js";
 import { registerSetup } from "./commands/setup.js";
 import { registerShare } from "./commands/share.js";
 import { registerStatus } from "./commands/status.js";
@@ -94,10 +94,10 @@ export function buildProgram(): Command {
   registerConnect(program);
   registerMcpServer(program);
   registerUp(program);
+  registerBootstrap(program);
   registerDown(program);
   registerStatus(program);
   registerLogs(program);
-  registerSeedpack(program);
   registerSetup(program);
   registerReset(program);
   registerInternalDaemon(program);

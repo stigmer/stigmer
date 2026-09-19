@@ -9,10 +9,14 @@
  * delete of a member is refused naming the plugin while the plugin's own
  * upgrade drops what the archive dropped; uninstall removes every member
  * and is refused while a user's own agent still references one; a slug an
- * unmanaged resource holds refuses the install; a bad overlay refuses
- * before any write. A second composition, under an authorizer that denies
- * `can_write_reserved_labels`, pins the reserved-label refusal the
- * open-source posture allows by design.
+ * unmanaged resource holds refuses the install, and a user's row is never
+ * adopted whichever side declares system content; a bad overlay refuses
+ * before any write. A second composition, under an authorizer that decides
+ * `can_write_reserved_labels` per test, pins the reserved-label refusal the
+ * open-source posture allows by design, and the one adoption the platform
+ * makes: an operator's plugin taking over the system-content row it
+ * replaces in place, the row's id and default instance kept, a member's
+ * identical push refused before the slug is judged.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import net from "node:net";
@@ -38,6 +42,7 @@ import {
   AgentSpecSchema,
   McpServerUsageSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
@@ -59,6 +64,7 @@ import { createLogger } from "../../../boot/logger.js";
 import {
   PLUGIN_LABEL,
   PLUGIN_VERSION_LABEL,
+  SYSTEM_LABEL,
 } from "../../../pipeline/apiresource-labels.js";
 
 const silentLogger = createLogger({
@@ -507,6 +513,66 @@ describe("Plugin members are the plugin's to redefine", () => {
     );
   });
 
+  it("never adopts a user's agent: a same-slug row without the system label is refused even when the plugin declares system content, and a system row is refused by a plugin that does not", async () => {
+    // The open-source authorizer grants reserved-label writes to everyone,
+    // so this is the posture where the label alone would be a weak guard;
+    // the rule needs BOTH sides to carry it.
+    const name = uniqueName("users-own");
+    await agents.create(
+      createMessage(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: createMessage(ApiResourceMetadataSchema, { org: ORG, name }),
+        spec: createMessage(AgentSpecSchema, {
+          instructions: "Mine, written by hand, under my own name.",
+        }),
+      }),
+    );
+    await expectCode(
+      plugins.push({ org: ORG, artifact: archiveOf(systemOverlay(name)) }),
+      Code.AlreadyExists,
+      `'${name}' exists in org '${ORG}' and is not managed by a plugin`,
+    );
+
+    const seeded = uniqueName("seeded-row");
+    await agents.create(
+      createMessage(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: createMessage(ApiResourceMetadataSchema, {
+          org: ORG,
+          name: seeded,
+          labels: { [SYSTEM_LABEL]: "true" },
+        }),
+        spec: createMessage(AgentSpecSchema, {
+          instructions: "System content a plain plugin may not take over.",
+        }),
+      }),
+    );
+    await expectCode(
+      plugins.push({
+        org: ORG,
+        artifact: archiveOf(
+          withFile(
+            thermosLike(seeded),
+            "ai.stigmer/agent.yaml",
+            [
+              "apiVersion: agentic.stigmer.ai/v1",
+              "kind: Agent",
+              "metadata:",
+              `  name: ${seeded}`,
+              "spec:",
+              "  instructions: A plain overlay that declares no system content.",
+              "",
+            ].join("\n"),
+          ),
+        ),
+      }),
+      Code.AlreadyExists,
+      `'${seeded}' exists in org '${ORG}' and is not managed by a plugin`,
+    );
+  });
+
   it("refuses to install a slug another plugin holds, naming that plugin", async () => {
     const first = uniqueName("holder");
     const second = uniqueName("claimant");
@@ -705,7 +771,14 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
   let enforcing: ComposedServer;
   let enforcingPlugins: Client<typeof PluginCommandController>;
   let enforcingQuery: Client<typeof PluginQueryController>;
+  let enforcingAgents: Client<typeof AgentCommandController>;
+  let enforcingAgentQuery: Client<typeof AgentQueryController>;
+  let enforcingInstanceQuery: Client<typeof AgentInstanceQueryController>;
   const observed: AuthzCheck[] = [];
+  // Who the caller is to this authorizer: a member (reserved labels denied,
+  // the hosted default) or the platform operator (granted). The tests flip
+  // it, so one composition shows both sides of every reserved-label rule.
+  let reservedLabels: "deny" | "allow" = "deny";
 
   beforeAll(async () => {
     enforcingDir = mkdtempSync(path.join(tmpdir(), "plugin-domain-enforcing-"));
@@ -714,10 +787,11 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
       authorize(_caller, check) {
         if (check.permission === IamPermission.can_write_reserved_labels) {
           observed.push(check);
-          return Promise.resolve({
-            kind: "deny",
-            reason: "reserved labels are the platform's",
-          });
+          return Promise.resolve(
+            reservedLabels === "allow"
+              ? { kind: "allow" }
+              : { kind: "deny", reason: "reserved labels are the platform's" },
+          );
         }
         return Promise.resolve({ kind: "allow" });
       },
@@ -741,6 +815,12 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
     });
     enforcingPlugins = createClient(PluginCommandController, transport);
     enforcingQuery = createClient(PluginQueryController, transport);
+    enforcingAgents = createClient(AgentCommandController, transport);
+    enforcingAgentQuery = createClient(AgentQueryController, transport);
+    enforcingInstanceQuery = createClient(
+      AgentInstanceQueryController,
+      transport,
+    );
   });
 
   afterAll(async () => {
@@ -799,4 +879,135 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
     });
     expect(members).toHaveLength(3);
   });
+
+  it("adopts a system-content row the operator's plugin replaces: same id, same default instance, the plugin's definition, one warning", async () => {
+    reservedLabels = "allow";
+    const name = uniqueName("plg-adopt");
+    // The row the platform seeded before plugins existed: system content,
+    // no plugin label, a default instance of its own.
+    const seeded = await enforcingAgents.create(
+      createMessage(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: createMessage(ApiResourceMetadataSchema, {
+          org: ORG,
+          name,
+          labels: { [SYSTEM_LABEL]: "true" },
+        }),
+        spec: createMessage(AgentSpecSchema, {
+          instructions: "The instructions the seedpack wrote, long ago.",
+        }),
+      }),
+    );
+    const seededId = seeded.metadata!.id;
+    const seededInstanceId = seeded.status?.defaultInstanceId ?? "";
+    expect(seededInstanceId).not.toBe("");
+
+    const installed = await enforcingPlugins.push({
+      org: ORG,
+      artifact: archiveOf(systemOverlay(name)),
+    });
+    expect(installed.status?.state).toBe(PluginState.READY);
+    const adopted = installed.status!.warnings.filter(
+      (warning) => warning.kind === "member-adopted",
+    );
+    expect(adopted).toHaveLength(1);
+    expect(adopted[0]!.path).toBe("ai.stigmer/agent.yaml");
+    expect(adopted[0]!.message).toContain(`agent '${name}' (${seededId})`);
+    expect(adopted[0]!.message).toContain("conversations continue");
+
+    const after = await enforcingAgentQuery.get({ value: seededId });
+    expect(after.metadata?.labels[PLUGIN_LABEL]).toBe(installed.metadata!.id);
+    expect(after.metadata?.labels[PLUGIN_VERSION_LABEL]).toBe(
+      installed.status!.digest,
+    );
+    expect(after.metadata?.labels[SYSTEM_LABEL]).toBe("true");
+    expect(after.spec?.instructions).toBe(
+      "You are the platform's own agent, re-homed under a plugin.",
+    );
+    expect(after.status?.defaultInstanceId).toBe(seededInstanceId);
+    const instance = await enforcingInstanceQuery.get({
+      value: seededInstanceId,
+    });
+    expect(instance.spec?.agentId).toBe(seededId);
+
+    const { members } = await enforcingQuery.listMembers({
+      value: installed.metadata!.id,
+    });
+    expect(
+      members.find((member) => member.kind === ApiResourceKind.agent)?.id,
+    ).toBe(seededId);
+
+    // The second push of the same archive converges without a write.
+    const again = await enforcingPlugins.push({
+      org: ORG,
+      artifact: archiveOf(systemOverlay(name)),
+    });
+    expect(again.status?.digest).toBe(installed.status?.digest);
+    expect(
+      (await enforcingAgentQuery.get({ value: seededId })).status
+        ?.defaultInstanceId,
+    ).toBe(seededInstanceId);
+    reservedLabels = "deny";
+  });
+
+  it("refuses the same archive from a member before the slug is judged, and leaves the seeded row untouched", async () => {
+    reservedLabels = "allow";
+    const name = uniqueName("plg-member");
+    const seeded = await enforcingAgents.create(
+      createMessage(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: createMessage(ApiResourceMetadataSchema, {
+          org: ORG,
+          name,
+          labels: { [SYSTEM_LABEL]: "true" },
+        }),
+        spec: createMessage(AgentSpecSchema, {
+          instructions: "The instructions the seedpack wrote, long ago.",
+        }),
+      }),
+    );
+    reservedLabels = "deny";
+    const error = await expectCode(
+      enforcingPlugins.push({
+        org: ORG,
+        artifact: archiveOf(systemOverlay(name)),
+      }),
+      Code.InvalidArgument,
+    );
+    expect(error.rawMessage).toContain(
+      `cannot be set by a plugin (ai.stigmer/agent.yaml: ${SYSTEM_LABEL})`,
+    );
+    const untouched = await enforcingAgentQuery.get({
+      value: seeded.metadata!.id,
+    });
+    expect(untouched.metadata?.labels[PLUGIN_LABEL]).toBeUndefined();
+    expect(untouched.spec?.instructions).toBe(
+      "The instructions the seedpack wrote, long ago.",
+    );
+  });
 });
+
+/**
+ * A plugin whose agent overlay declares system content under the given
+ * name: the shape of the official `assistant` plugin, whose agent replaces
+ * the row the retired seedpack wrote under the same slug.
+ */
+function systemOverlay(name: string): PluginFixture {
+  return withFile(
+    thermosLike(name),
+    "ai.stigmer/agent.yaml",
+    [
+      "apiVersion: agentic.stigmer.ai/v1",
+      "kind: Agent",
+      "metadata:",
+      `  name: ${name}`,
+      "  labels:",
+      `    ${SYSTEM_LABEL}: "true"`,
+      "spec:",
+      "  instructions: You are the platform's own agent, re-homed under a plugin.",
+      "",
+    ].join("\n"),
+  );
+}

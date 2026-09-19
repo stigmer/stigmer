@@ -59,7 +59,7 @@ definitions, API names, and examples follow below.
 | **Agent**         | Agent                 | Agent                                  | Agent               | Agent, `kind: Agent`                   | Agent          |
 | **Skill**         | domain knowledge      | Skill ("domain knowledge")             | Skill               | Skill, `skill_refs`                    | Skill          |
 | **Plugin**        | plugin                | plugin ("what you install")            | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
-| **Marketplace**   | marketplace           | marketplace ("where you install from") | Marketplace         | marketplace, `stigmer marketplace`     | marketplace    |
+| **Marketplace**   | marketplace           | Marketplace ("where you install from") | Marketplace         | Marketplace; source, `stigmer install` | marketplace    |
 | **MCP Server**    | tools                 | MCP server ("tool connection")         | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
 | **Session**       | conversation          | Session ("conversation")               | Session             | Session, `kind: Session`               | Session        |
 | **Runner**        | compute               | runner ("where your Agent runs")       | Runner              | Runner                                 | runner         |
@@ -187,11 +187,12 @@ install; an agent is what runs.
 - **API surface**: `kind: Plugin`, prefix `plg`. proto: `plugin/v1/spec.proto`,
   `plugin/v1/command.proto`. CLI: `stigmer push plugin <dir>` (install or
   upgrade), `stigmer get|list|delete plugin`, `stigmer validate -f <dir>`
-  (offline check). Console: Library > Plugins lists what is installed; "Install
-  plugin" opens the marketplaces; a plugin's page shows what it installed and
-  starts a session on its agent; "Remove" is the console's word for
-  `delete plugin`. A plugin is never authored as YAML: its spec is read from the
-  package manifest.
+  (offline check). Console: Library > Plugins lists what is installed and offers
+  the two ways in: "Browse Marketplace" opens the Marketplace page, and "Upload
+  plugin" installs a folder or a `.zip` from your computer (the console's
+  `stigmer push plugin`); a plugin's page shows what it installed and starts a
+  session on its agent; "Remove" is the console's word for `delete plugin`. A
+  plugin is never authored as YAML: its spec is read from the package manifest.
 - **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
   `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/`, and Stigmer's
@@ -223,51 +224,64 @@ install; an agent is what runs.
 
 #### Marketplace
 
-A catalogue of plugins you install by name: a directory tree with a marketplace
-file at its root that lists the plugins it offers, each as a name and a folder
-inside the tree. The official marketplace is built into the CLI; you add others,
-such as Cursor's public catalogue, by pointing at the repository.
+Where you find and install plugins. In the console it is the Marketplace page:
+the sources first as chips, one search box, one grid of cards across the chosen
+sources with Install on each, and an Upload a plugin tile. In the CLI it is
+`stigmer install <name>`. What the Marketplace shows comes from its **sources**:
+catalogues the client reads, each a directory tree with a marketplace file at
+its root listing the plugins it offers as a name and a folder. Four sources are
+built in, in this order: Stigmer's official catalogue, then Cursor's, Claude
+Code's and Codex's public catalogues (`cursor-plugins`, `claude-code-plugins`,
+`codex-plugins`). You add your own by pointing at a GitHub repository.
 
 - **User-facing alternative**: none needed. "Marketplace" is the word Cursor,
-  Claude Code and Codex use for the same catalogue, and Stigmer reads theirs
-  unchanged.
-- **Capitalize**: No, except at the start of a sentence: a marketplace is not a
-  Stigmer resource. Name the official one "the official marketplace"; name an
-  added one by the name it is installed from (`cursor-plugins`).
-- **API surface**: none on the server; a marketplace is client-side
-  configuration (`marketplaces` in `~/.stigmer/config.yaml` for the CLI; this
-  browser's storage for the console), and the server only ever receives the
-  plugin archive a client pushes from it. CLI:
-  `stigmer marketplace add|list|show|remove`,
-  `stigmer install [marketplace/]name[@version]`. Console: Library > Plugins >
-  "Install plugin", one tab per marketplace, "Add marketplace" for a GitHub
-  repository. `stigmer up` installs the official marketplace's default set into
-  the system Organization.
-- **File structure**: a marketplace file in one of four locations, read in this
-  precedence: `marketplace.json` (Stigmer's own),
+  Claude Code and Codex use for the same place, and Stigmer reads their
+  catalogues unchanged. Say "source" for one catalogue the Marketplace reads;
+  never "a marketplace" for a source, and never "marketplace" for the tree
+  format alone.
+- **Capitalize**: "the Marketplace" for the console page; lowercase for the
+  concept ("install from the marketplace") and for a source ("the official
+  source", "Cursor's source"). A source is named by the name it is listed under
+  (`cursor-plugins`). A marketplace is not a Stigmer resource.
+- **API surface**: none on the server; the sources are client-side (the four
+  built-in ones are code in both clients; added ones live in `marketplaces` in
+  `~/.stigmer/config.yaml` for the CLI and in this browser's storage for the
+  console), and the server only ever receives the plugin archive a client pushes
+  from one. CLI: `stigmer marketplace add|list|show|remove` manages sources;
+  `stigmer install [source/]name[@version]` installs. Console: the Marketplace
+  entry in the sidebar; "Sources" at the bottom of the page lists the built-in
+  ones and adds or removes your own. `stigmer up` installs the official source's
+  default set into the system Organization.
+- **File structure**: a source's marketplace file is in one of four locations,
+  read in this precedence: `marketplace.json` (Stigmer's own),
   `.claude-plugin/marketplace.json`, `.cursor-plugin/marketplace.json`,
   `.agents/plugins/marketplace.json`. Each entry is a `name` and a `source`
   naming a folder in the tree; Stigmer's file also carries `defaults`, the names
   a fresh install bootstraps with, in order.
-- **What it is not**: a marketplace does not know what you installed. Nothing on
-  the server records which marketplace a plugin came from, so installing
-  `thermos` from a second marketplace upgrades the `thermos` from the first: a
-  plugin is identified by its name in your Organization.
+- **What it is not**: the Marketplace does not know where an installed plugin
+  came from. Nothing on the server records the source, so installing `thermos`
+  from a second source upgrades the `thermos` from the first: a plugin is
+  identified by its name in your Organization, and the install preview names the
+  installed plugin an upgrade replaces. The Marketplace is also not the
+  Library's "All" scope: that scope shows other Organizations' public resources
+  you may reference in place; the Marketplace shows plugins you install and own.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                   |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Quickstart | "Add Cursor's marketplace and install any of its plugins by name."                                                     |
-| How-to     | "`stigmer marketplace add cursor/plugins`, then `stigmer install cursor-plugins/thermos`."                             |
-| Reference  | "A marketplace is a directory tree with a marketplace file at its root; `stigmer marketplace show` lists its entries." |
+| Context    | Copy                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Quickstart | "Open the Marketplace, find a plugin, choose Install."                                                                      |
+| Quickstart | "Cursor's plugins are already there; install any of them by name."                                                          |
+| How-to     | "`stigmer install cursor-plugins/thermos`; to read from your own catalogue first, `stigmer marketplace add owner/repo`."    |
+| Reference  | "A source is a directory tree with a marketplace file at its root; `stigmer marketplace show <name>` lists what it offers." |
 
 **Bad examples**:
 
-| Context    | Copy                                      | Problem                                                                                |
-| ---------- | ----------------------------------------- | -------------------------------------------------------------------------------------- |
-| Quickstart | "Publish your plugin to the Marketplace." | There is no one Marketplace and no publish step; a marketplace is a tree you point at. |
-| Reference  | "`kind: Marketplace`"                     | A marketplace is not a resource; the server never sees one.                            |
+| Context    | Copy                                       | Problem                                                                                  |
+| ---------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Quickstart | "Publish your plugin to the Marketplace."  | There is no publish step; a plugin reaches the Marketplace through a source's catalogue. |
+| How-to     | "Add a marketplace, then install from it." | You add a source; the Marketplace is the one place you install from.                     |
+| Reference  | "`kind: Marketplace`"                      | A marketplace is not a resource; the server never sees one.                              |
 
 ---
 
@@ -1020,15 +1034,18 @@ Ephemeral runtime secrets and variables scoped to a specific execution.
 
 #### Seedpack
 
-A pre-built starter package containing Agent definitions, Skills, and MCP Server
-configurations.
+Retired term. The starter bundle of Agents, Skills, MCP Servers and Workflows
+that earlier releases installed on a fresh stack. A fresh install now gets the
+`stigmer` Organization and the official marketplace's default Plugins
+(`stigmer up` on a laptop, `stigmer bootstrap` against a raw server), and
+everything else is a Plugin you install by name; see Plugin and Marketplace.
 
-- **Capitalize**: Yes.
-- **Context rule**: Mentioned in STYLE.md's capitalization list. Use when the
-  feature is documented. Currently low-priority for customer-facing copy.
-- **Retiring**: the Plugin (Tier 1) is the unit of install that replaces it; the
-  seedpack's catalog is being migrated to plugins, and once `stigmer up`
-  installs a default set of plugins this term leaves the vocabulary.
+- **Capitalize**: Yes (when quoting historical docs or the upgrade report).
+- **Context rule**: Do not use in new writing. It appears in exactly two places
+  a reader still meets: the report `stigmer up` prints once when it retires the
+  content an older release installed, and the upgrade note in the marketplace
+  how-to. A doc describing "the built-in Agents and servers" or "the curated
+  library" is describing the retired bundle; point it at Plugin instead.
 
 ---
 

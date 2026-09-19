@@ -256,7 +256,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+   * then the configured context); the CLI's bootstrap creates the "stigmer"
+   * organization on every start and installs the default plugins into it.
    * In Cloud Mode: Required and enforced by the Authorization Service.
    * All resources belong to exactly one organization.
    * </pre>
@@ -280,7 +282,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+   * then the configured context); the CLI's bootstrap creates the "stigmer"
+   * organization on every start and installs the default plugins into it.
    * In Cloud Mode: Required and enforced by the Authorization Service.
    * All resources belong to exactly one organization.
    * </pre>
@@ -1579,7 +1583,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * then the configured context); the CLI's bootstrap creates the "stigmer"
+     * organization on every start and installs the default plugins into it.
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1602,7 +1608,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * then the configured context); the CLI's bootstrap creates the "stigmer"
+     * organization on every start and installs the default plugins into it.
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1626,7 +1634,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * then the configured context); the CLI's bootstrap creates the "stigmer"
+     * organization on every start and installs the default plugins into it.
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1646,7 +1656,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * then the configured context); the CLI's bootstrap creates the "stigmer"
+     * organization on every start and installs the default plugins into it.
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1663,7 +1675,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * then the configured context); the CLI's bootstrap creates the "stigmer"
+     * organization on every start and installs the default plugins into it.
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>

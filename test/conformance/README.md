@@ -559,8 +559,8 @@ NOT pinned, see the file header), `agentexecution-file-review` and
 harness git workspace, the secret and binary rules, and the mid-run progress
 strip under the runner's capture throttle), `agentexecution-memory-selection`
 (the embedder posture of DD-008, beside `-memory-retrieval`'s no-embedder one),
-`agentexecution-workflow-architect` (the seedpack agent on the real
-`stigmer mcp-server` over stdio), `workflowexecution-llm-call` and
+`agentexecution-workflow-architect` (a fixture agent on the real
+`stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowexecution-llm-call` and
 `workflowexecution-eval` (the LLM-backed workflow tasks), plus additions to
 `agentexecution` (idempotent cancel/terminate), `agentexecution-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and

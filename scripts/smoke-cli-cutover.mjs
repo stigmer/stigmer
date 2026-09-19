@@ -18,7 +18,7 @@
  *
  * The workflow under test is a single deterministic set_vars task — no LLM,
  * no API keys, no network beyond npm/Temporal's own machinery. What it
- * proves: CLI daemon → server (gRPC gate) → seedpack apply → workflow apply
+ * proves: CLI daemon → server (gRPC gate) → bootstrap → workflow apply
  * → Temporal orchestration → runner execution → event streaming → clean
  * shutdown. Since the console restoration (DD-012) it also proves the
  * unified port serves the bundled web console: /config.json synthesis, a
@@ -72,7 +72,7 @@ const slimDir = join(
   "dist-slim",
 );
 
-/** The seedpack's default local org — created by `stigmer up` itself. */
+/** The system org — created by `stigmer up`'s bootstrap itself. */
 const ORG = "stigmer";
 const UP_TIMEOUT_MS = 300_000; // first `up` may download the Temporal CLI
 const RUN_TIMEOUT_MS = 120_000;
@@ -179,7 +179,7 @@ function teardownBestEffort() {
 
 try {
   // 1. Up — the daemon resolves the staged server, gates on the gRPC port,
-  //    and applies the seedpack (which creates the org).
+  //    and bootstraps the backend (which creates the org).
   upAttempted = true;
   cli(["up", "--no-web"], { timeoutMs: UP_TIMEOUT_MS });
 

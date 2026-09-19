@@ -5,6 +5,7 @@ import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
+import { UploadIcon } from "../internal/UploadIcon.js";
 import { useSkillUpload } from "./useSkillUpload.js";
 import { usePushSkill } from "./usePushSkill.js";
 import { useSkillDuplicateCheck } from "./useSkillDuplicateCheck.js";
@@ -461,21 +462,3 @@ function Spinner() {
   );
 }
 
-function UploadIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
-    </svg>
-  );
-}

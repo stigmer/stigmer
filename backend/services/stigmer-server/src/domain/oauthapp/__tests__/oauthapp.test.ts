@@ -330,8 +330,8 @@ describe("oauthapp domain (encryption enabled)", () => {
 
     it("blocks through the unique-slug fallback (ref pinned to a foreign org)", async () => {
       const app = await ts.command.create(appInput());
-      // The seedpack posture: ref pinned to `org: stigmer`, app applied in
-      // the user's own org — resolution reaches it via unique slug (#584).
+      // A public server's posture: ref pinned to `org: stigmer`, app applied
+      // in the user's own org — resolution reaches it via unique slug (#584).
       await seedReferencingMcpServer(
         ts.server.store,
         "mcps_01reffallback",

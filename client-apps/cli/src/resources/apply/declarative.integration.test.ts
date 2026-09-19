@@ -149,8 +149,8 @@ describe("applyDeclarative", () => {
     // (stigmer/stigmer#402): the server rejects agent enabled_tools against
     // STORED capabilities, so discovery must refresh them between the MCP
     // server applies and the applies that depend on them. Regressing to
-    // discovery-at-the-end resurrects the stale-capabilities race (a seedpack
-    // upgrade adding a tool + enabling it in an agent would fail bootstrap).
+    // discovery-at-the-end resurrects the stale-capabilities race (a project
+    // upgrade adding a tool + enabling it in an agent would fail its apply).
     const dir = mkdtempSync(join(tmpdir(), "decl-it-order-"));
     try {
       writeFileSync(

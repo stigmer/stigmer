@@ -19,14 +19,15 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 
 ## Lifecycle
 
-| Command                      | Description                                                          |
-| ---------------------------- | -------------------------------------------------------------------- |
-| [`stigmer down`](./down)     | stop the local Stigmer stack                                         |
-| [`stigmer logs`](./logs)     | view logs from the local Stigmer stack                               |
-| [`stigmer reset`](./reset)   | stop the stack and remove all local state, then restart fresh        |
-| [`stigmer setup`](./setup)   | configure the LLM provider and operator identity for local execution |
-| [`stigmer status`](./status) | show the status of the local Stigmer stack                           |
-| [`stigmer up`](./up)         | start the local Stigmer stack (server, runner, Temporal)             |
+| Command                            | Description                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [`stigmer bootstrap`](./bootstrap) | make the configured backend ready: ensure the system organization and install the default plugins |
+| [`stigmer down`](./down)           | stop the local Stigmer stack                                                                      |
+| [`stigmer logs`](./logs)           | view logs from the local Stigmer stack                                                            |
+| [`stigmer reset`](./reset)         | stop the stack and remove all local state, then restart fresh                                     |
+| [`stigmer setup`](./setup)         | configure the LLM provider and operator identity for local execution                              |
+| [`stigmer status`](./status)       | show the status of the local Stigmer stack                                                        |
+| [`stigmer up`](./up)               | start the local Stigmer stack (server, runner, Temporal)                                          |
 
 ## Resource Management
 
@@ -57,18 +58,17 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 | Command                              | Description                                                                 |
 | ------------------------------------ | --------------------------------------------------------------------------- |
 | [`stigmer mcp-server`](./mcp-server) | start the MCP server that exposes Stigmer resources to AI coding assistants |
-| [`stigmer seedpack`](./seedpack)     | manage the embedded system seedpack                                         |
 
 ## Configuration
 
-| Command                                | Description                                                      |
-| -------------------------------------- | ---------------------------------------------------------------- |
-| [`stigmer apikey`](./apikey)           | manage API keys for Stigmer Cloud authentication                 |
-| [`stigmer auth`](./auth)               | manage authentication with Stigmer Cloud                         |
-| [`stigmer completion`](./completion)   | generate a shell completion script (bash, zsh, fish, powershell) |
-| [`stigmer config`](./config)           | Manage CLI configuration                                         |
-| [`stigmer marketplace`](./marketplace) | manage the plugin marketplaces you install from                  |
-| [`stigmer version`](./version)         | print the CLI version                                            |
+| Command                                | Description                                                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [`stigmer apikey`](./apikey)           | manage API keys for Stigmer Cloud authentication                                               |
+| [`stigmer auth`](./auth)               | manage authentication with Stigmer Cloud                                                       |
+| [`stigmer completion`](./completion)   | generate a shell completion script (bash, zsh, fish, powershell)                               |
+| [`stigmer config`](./config)           | Manage CLI configuration                                                                       |
+| [`stigmer marketplace`](./marketplace) | manage the sources the Marketplace installs from: the built-in catalogues and the ones you add |
+| [`stigmer version`](./version)         | print the CLI version                                                                          |
 
 ## Global Flags
 

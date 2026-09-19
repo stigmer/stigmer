@@ -11,7 +11,7 @@
  * npm packages a release publishes, packed from source instead of fetched:
  *
  *   stage/pkgs/*.tgz     every workspace package (the CLI, its @stigmer/*
- *                        deps, the seedpack) via publish-libs.mjs --pack-dir,
+ *                        deps, the plugin catalogue) via publish-libs.mjs --pack-dir,
  *                        plus @stigmer/server-slim and @stigmer/runner-slim
  *                        with THIS arch's native-bridge platform package,
  *                        via each service's bundle-slim.mjs --emit-packages.
@@ -112,7 +112,7 @@ function packDir(dir, pkgsDir) {
   execFileSync("npm", ["pack", dir, "--pack-destination", pkgsDir, "--silent"], { stdio: ["ignore", "ignore", "inherit"] });
 }
 
-/** Workspace packages: the CLI, its @stigmer/* deps, the seedpack — every non-private member. */
+/** Workspace packages: the CLI, its @stigmer/* deps, the plugin catalogue — every non-private member. */
 function stageWorkspacePackages(opts, pkgsDir) {
   if (opts.pkgsDir !== "") {
     const tarballs = readdirSync(opts.pkgsDir).filter((f) => f.endsWith(".tgz"));

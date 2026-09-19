@@ -5,6 +5,7 @@
 // same kind of thing: client-side configuration, not a server collection.
 
 import { readPluginPackage } from "@stigmer/plugin-package";
+import { isBuiltInMarketplaceName } from "@stigmer/plugin-package/client";
 import { CommandResult } from "../output/index.js";
 import { count, readPluginDirectory } from "../resources/plugin.js";
 import {
@@ -20,13 +21,21 @@ export function renderMarketplaceList(
   const total = listing.known.length + listing.unreadable.length;
   const result =
     listing.unreadable.length === 0
-      ? CommandResult.success(`${count(total, "marketplace")} configured`)
+      ? CommandResult.success(`${count(total, "source")} known`)
       : CommandResult.warning(
-          `${count(total, "marketplace")} configured, ${count(listing.unreadable.length, "entry")} this CLI cannot read`,
+          `${count(total, "source")} known, ${count(listing.unreadable.length, "entry")} this CLI cannot read`,
         );
-  const section = result.addSection("Marketplaces");
+  const section = result.addSection("Sources");
   for (const marketplace of listing.known) {
-    section.field(marketplace.name, describeSource(marketplace.source));
+    // A built-in reads "built in" beside where it comes from, so the user
+    // knows which names `remove` will refuse.
+    section.field(
+      marketplace.name,
+      isBuiltInMarketplaceName(marketplace.name) &&
+        marketplace.source.type !== "official"
+        ? `${describeSource(marketplace.source)} (built in)`
+        : describeSource(marketplace.source),
+    );
   }
   for (const marketplace of listing.unreadable) {
     section.field(marketplace.name, `cannot be read: ${marketplace.reason}`);

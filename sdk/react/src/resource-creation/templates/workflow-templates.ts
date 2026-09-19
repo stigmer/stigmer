@@ -17,9 +17,9 @@ export interface WorkflowTemplateData {
  * demonstrates a distinct structural pattern. Users customize
  * everything in the editor after selection.
  *
- * The first 3 templates are the same workflows shipped in the
- * seedpack — included here so the gallery works offline and
- * without server bootstrap.
+ * The first 3 are the platform's long-standing sample workflows and
+ * this gallery is their one home: it works offline, and no server-side
+ * content has to exist for a user to start from one.
  *
  * Platform builders can pass their own template arrays to the
  * gallery; these built-in templates are a convenience default.
@@ -27,7 +27,7 @@ export interface WorkflowTemplateData {
 export const WORKFLOW_TEMPLATES: readonly ResourceTemplate<WorkflowTemplateData>[] =
   [
     // -----------------------------------------------------------------------
-    // 1. Research & Summarize (seedpack)
+    // 1. Research & Summarize
     // Pattern: fork/parallel + HITL approval + structured extraction
     // -----------------------------------------------------------------------
     {
@@ -234,7 +234,7 @@ spec:
     },
 
     // -----------------------------------------------------------------------
-    // 2. Support Ticket Triage (seedpack)
+    // 2. Support Ticket Triage
     // Pattern: switch_case branching + structured LLM output + HITL escalation
     // -----------------------------------------------------------------------
     {
@@ -418,7 +418,7 @@ spec:
     },
 
     // -----------------------------------------------------------------------
-    // 3. Content Review Pipeline (seedpack)
+    // 3. Content Review Pipeline
     // Pattern: revision loop (HITL → revise → HITL)
     // -----------------------------------------------------------------------
     {

@@ -19,6 +19,11 @@ import { PluginWarningSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v
 import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import {
+  RESERVED_LABEL_TRUE,
+  SYSTEM_LABEL,
+  isSystemContent,
+} from "../../../pipeline/apiresource-labels.js";
 import { SERVER_WARNING_KINDS, VERSION_TAG_PATTERN } from "../constants.js";
 import type { PlannedMember } from "../members.js";
 import type { ParsedOverlays } from "../overlay/documents.js";
@@ -105,24 +110,38 @@ export function planMaterialization(
   );
   const workflows = planWorkflows(overlays.workflows, identity);
 
+  // `system` is read from the labels each member will be written with (the
+  // overlay author's, the plugin's two merged over them). A skill's request
+  // carries only the plugin's two, so a skill never declares system content
+  // and can never adopt a row; the overlay kinds can.
   const members: PlannedMember[] = [
     ...skills.map((skill) => ({
       kind: ApiResourceKind.skill,
       slug: skill.slug,
       name: skill.name,
+      system: skill.request.labels[SYSTEM_LABEL] === RESERVED_LABEL_TRUE,
     })),
     ...mcpServers.map((server) => ({
       kind: ApiResourceKind.mcp_server,
       slug: server.slug,
       name: server.name,
+      system: isSystemContent(server.resource.metadata),
     })),
     ...(agent === undefined
       ? []
-      : [{ kind: ApiResourceKind.agent, slug: agent.slug, name: agent.name }]),
+      : [
+          {
+            kind: ApiResourceKind.agent,
+            slug: agent.slug,
+            name: agent.name,
+            system: isSystemContent(agent.resource.metadata),
+          },
+        ]),
     ...workflows.map((workflow) => ({
       kind: ApiResourceKind.workflow,
       slug: workflow.slug,
       name: workflow.name,
+      system: isSystemContent(workflow.resource.metadata),
     })),
   ];
 

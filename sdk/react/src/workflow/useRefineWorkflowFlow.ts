@@ -14,6 +14,7 @@ import {
   type ExtractedWorkflowYaml,
 } from "./extract-workflow-yaml.js";
 import { WORKFLOW_ARCHITECT_RESPONSE_SCHEMA } from "./architect-response-schema.js";
+import { workflowArchitectRef } from "./workflow-architect.js";
 
 /**
  * Lifecycle phases for the workflow refinement flow.
@@ -70,12 +71,11 @@ export interface UseRefineWorkflowFlowReturn {
   readonly reset: () => void;
 }
 
-const AGENT_REF = { org: "", slug: "workflow-architect" } as const;
 const MIN_INSTRUCTION_LENGTH = 5;
 
 /**
  * Behavior hook that orchestrates agent-powered workflow refinement
- * using the built-in Workflow Architect system agent.
+ * using the Organization's Workflow Architect agent (`workflow-architect.ts`).
  *
  * Manages a multi-turn conversation within a single Session:
  * - First turn creates a Session + AgentExecution
@@ -249,7 +249,7 @@ export function useRefineWorkflowFlow(
         if (!activeSessionId) {
           const { sessionId: newSessionId } = await createSession({
             org: orgRef.current,
-            agentRef: { ...AGENT_REF, org: orgRef.current },
+            agentRef: workflowArchitectRef(orgRef.current),
           });
           sessionIdRef.current = newSessionId;
           activeSessionId = newSessionId;

@@ -39,7 +39,7 @@ Every McpServer belongs to exactly one organization. The `org` field in metadata
 | [mcpserver-resource-guide.md](mcpserver-resource-guide.md) | Full YAML schema reference — metadata, spec fields, status fields, CLI commands |
 | [server-types.md](server-types.md) | Stdio vs HTTP transport — when to use each, configuration fields, env var interpolation |
 | [tool-approval-policies.md](tool-approval-policies.md) | `default_tool_approvals`, `ToolApprovalPolicy`, message templates, and the full policy chain |
-| [capability-discovery.md](capability-discovery.md) | How tool capabilities are discovered — seedpack, CLI discovery workflow, `DiscoveredCapabilities` |
+| [capability-discovery.md](capability-discovery.md) | How tool capabilities are discovered — the connect flow's entry points, `DiscoveredCapabilities` |
 | [examples.md](examples.md) | Complete YAML examples from minimal to full-featured marketplace server |
 | [validation-checklist.md](validation-checklist.md) | Pre-apply checklist and common pitfalls |
 
