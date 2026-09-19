@@ -153,15 +153,11 @@ describe("rerootSingleDirectory", () => {
 });
 
 describe("BUILT_IN_MARKETPLACES", () => {
-  it("lists the official catalogue first, then the three vendors, each a reserved name", () => {
-    expect(BUILT_IN_MARKETPLACES.map((entry) => entry.name)).toEqual([
-      OFFICIAL_MARKETPLACE_NAME,
-      "cursor-plugins",
-      "claude-code-plugins",
-      "codex-plugins",
-    ]);
+  it("lists the official catalogue alone, a reserved name; a vendor's repository is a source the user adds", () => {
+    expect(BUILT_IN_MARKETPLACES.map((entry) => entry.name)).toEqual([OFFICIAL_MARKETPLACE_NAME]);
     expect(BUILT_IN_MARKETPLACES[0]?.source).toEqual({ type: "official" });
     for (const entry of BUILT_IN_MARKETPLACES) expect(isBuiltInMarketplaceName(entry.name)).toBe(true);
+    expect(isBuiltInMarketplaceName("cursor-plugins")).toBe(false);
     expect(isBuiltInMarketplaceName("acme-plugins")).toBe(false);
   });
 });

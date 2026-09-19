@@ -15,9 +15,8 @@ import {
 
 /**
  * The console's plugin journeys, end to end and hermetic. The Marketplace
- * arm: open the Marketplace, see the built-in sources as chips (the
- * official one honest about a development server, the vendors answered
- * 404 by the fixture and honest about that), see the Upload tile first in
+ * arm: open the Marketplace, see the one built-in source as a chip (the
+ * official catalogue, honest about a development server), see the Upload tile first in
  * the grid, add a source through Manage sources, find its card wearing the
  * manifest's display name, install from it, land on the plugin's page,
  * open a session on its agent, and be asked for the variable the plugin's
@@ -46,7 +45,7 @@ test.describe("Plugin install journey", () => {
     await expect(page.getByRole("link", { name: "Upload plugin" }).first()).toBeVisible();
   });
 
-  test("the Marketplace: built-in sources, an added source, install from a card, and the agent asks for its variable", async ({
+  test("the Marketplace: the official catalogue, an added source, install from a card, and the agent asks for its variable", async ({
     page,
   }) => {
     // One journey of several round trips; the default budget is for one page.
@@ -54,16 +53,15 @@ test.describe("Plugin install journey", () => {
     await page.goto("/marketplace");
     await expect(page.getByRole("heading", { level: 1, name: "Marketplace" })).toBeVisible({ timeout: 15_000 });
 
-    // The sources first, as chips: All sources, then the built-ins official first; each honest about
-    // its read (the official one names the development build, the vendors are 404 here), the page standing.
+    // The sources first, as chips: All sources, then the one built-in, the official catalogue, honest about
+    // its read (it names the development build here), the page standing.
     const sources = page.getByRole("radiogroup", { name: "Sources" });
     const chips = sources.getByRole("radio");
     await expect(chips.nth(0)).toHaveAccessibleName("All sources");
     await expect(chips.nth(1)).toHaveAccessibleName("stigmer");
-    await expect(chips.nth(2)).toHaveAccessibleName("cursor-plugins");
+    await expect(chips).toHaveCount(2);
     const unreadable = page.getByRole("list", { name: "Sources that cannot be read" });
     await expect(unreadable.getByText(/development build/)).toBeVisible({ timeout: 15_000 });
-    await expect(unreadable.getByText(/cursor-plugins/)).toBeVisible({ timeout: 15_000 });
 
     // The Upload tile is the first tile in the grid; uploading is one more place plugins come from.
     await expect(page.getByRole("list", { name: "Plugins" }).getByRole("button", { name: /Upload a plugin/ })).toBeVisible();

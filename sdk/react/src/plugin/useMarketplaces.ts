@@ -1,17 +1,18 @@
 "use client";
 
 /**
- * The sources this browser knows: the built-in ones, and the GitHub sources
+ * The sources this browser knows: the built-in one, and the GitHub sources
  * the user added, remembered in `localStorage`.
  *
  * A source is client-side configuration, never a server resource (the
  * server only ever sees the archive a client pushes), so the console keeps
  * its list where the CLI keeps its own: per machine, per user, here under
- * one versioned key in the CLI's entry shape. The built-ins (the official
- * catalogue and the three vendors' public ones) are code shared with the
- * CLI, never stored, so the two clients list the same sources and a user
- * can neither add over nor remove one. An entry this version cannot read
- * is dropped from the known list and named with its reason, never silently.
+ * one versioned key in the CLI's entry shape. The built-in (the official
+ * catalogue) is code shared with the CLI, never stored, so the two clients
+ * list the same source and a user can neither add over nor remove it; a
+ * vendor's repository is a source the user adds, by his own act. An entry
+ * this version cannot read is dropped from the known list and named with
+ * its reason, never silently.
  *
  * `add` reads the source before recording it, as `stigmer marketplace add`
  * does: a repository that is not a marketplace is refused with the
