@@ -201,8 +201,15 @@ async function initiateDcr(
   }
 
   if (metadata.registrationEndpoint === "") {
+    // A login server without RFC 7591 registration cannot take a client
+    // Stigmer mints on the spot; the sentence keeps its opening (the
+    // conformance suite's pin before this clause joined it) and tells the
+    // user the one thing that helps: an OAuth app registered with the
+    // vendor, referenced from the server's definition.
     throw failedPreconditionError(
-      `MCP server at ${serverUrl} does not advertise a registration_endpoint for DCR`,
+      `MCP server at ${serverUrl} does not advertise a registration_endpoint for DCR: ` +
+        `${loginServerHost(metadata, serverUrl)} does not allow automatic client registration, so this server needs ` +
+        "an OAuth app registered with the vendor and referenced from its definition (auth.oauth_app_ref)",
     );
   }
 
@@ -278,6 +285,19 @@ async function initiateDcr(
     tokenEndpoint: metadata.tokenEndpoint,
     tokenAuthMethod: "",
   };
+}
+
+/** The login server a user must register with: its metadata's issuer, else its authorization endpoint, else the URL we asked. */
+function loginServerHost(metadata: { issuer: string; authorizationEndpoint: string }, serverUrl: string): string {
+  for (const candidate of [metadata.issuer, metadata.authorizationEndpoint, serverUrl]) {
+    try {
+      const host = new URL(candidate).host;
+      if (host !== "") return host;
+    } catch {
+      // Not a URL; try the next candidate.
+    }
+  }
+  return serverUrl;
 }
 
 async function initiateVendorOAuth(
