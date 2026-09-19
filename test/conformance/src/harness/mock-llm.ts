@@ -33,7 +33,12 @@
 //      queue. A NEW background call class surfaces as a hard 500 ("no queued
 //      response") — extend the signature match here, never the test queues.
 // Out-of-band and fenced requests still appear in requests(): that surface's
-// contract is "everything the model received over the wire".
+// contract is "everything the model received over the wire". Each captured
+// request also carries the DISPOSITION the branch that answered it decided
+// (scripted, out-of-band, fenced, unscripted), so a suite that wants only the
+// agent loop's requests reads scriptedRequests() — never re-deriving the
+// titling match from prompt text, which would be a second copy of the
+// signature this mock owns.
 //
 // The `delayMs` knob holds a response open, keeping an execution IN_PROGRESS for
 // a controllable window — the AgentExecution analogue of the WorkflowExecution
@@ -144,9 +149,20 @@ export const DEFAULT_ERROR_BODY = {
   error: { type: "invalid_request_error", message: "MockLlmProxy: injected failure" },
 } as const;
 
+// How this mock answered one chat request — decided by the branch of handle()
+// that wrote the response, never re-derived from the request's bytes:
+// - scripted: claimed the head of the queue (the agent loop under test);
+// - out-of-band: a recognized background call (the session-titling signature)
+//   answered with a canned body;
+// - fenced: refused by the provider fence (a non-Anthropic proxy path);
+// - unscripted: found the queue empty (answered with the 500 authoring error,
+//   or with the persistent fault a scripted turn left behind).
+export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted";
+
 export interface CapturedLlmRequest {
   path: string;
   body: unknown;
+  disposition: RequestDisposition;
 }
 
 // One embeddings request as the retriever sent it: the model it asked for and
@@ -368,6 +384,14 @@ export class MockLlmProxy {
     return this.captured;
   }
 
+  // The requests that claimed a queued turn, in arrival order: exactly the
+  // agent loop under test, with the background titling call and every fenced
+  // or unscripted call left out. The assertion target for arms that read the
+  // request's shape (the system blocks, the tool surface) rather than count it.
+  scriptedRequests(): readonly CapturedLlmRequest[] {
+    return this.captured.filter((request) => request.disposition === "scripted");
+  }
+
   // Holds the response for `ms`, resolving early (returning true) if the client
   // disconnects or releaseHolds() fires. In drain mode the hold is skipped
   // entirely so the response is sent immediately.
@@ -451,11 +475,14 @@ export class MockLlmProxy {
       this.handleEmbeddings(path, parsedBody, res);
       return;
     }
-    this.captured.push({ path, body: parsedBody });
     const streaming =
       typeof parsedBody === "object" &&
       parsedBody !== null &&
       (parsedBody as { stream?: unknown }).stream === true;
+
+    // Every branch below captures the request with the disposition it
+    // decides, right where it decides it (see the header): the record of how
+    // a request was answered is written by the code that answered it.
 
     // Provider fence: queued turns are Anthropic-shaped SSE/JSON, so serving
     // one to another provider's client corrupts BOTH the caller (unparseable
@@ -464,6 +491,7 @@ export class MockLlmProxy {
     // not a phase-timeout mystery (#715).
     const isForeignProvider = path.includes("/v1/proxy/llm/") && !path.includes("/v1/proxy/llm/anthropic");
     if (isForeignProvider) {
+      this.captured.push({ path, body: parsedBody, disposition: "fenced" });
       writeJson(res, 500, {
         error:
           `MockLlmProxy speaks only Anthropic but received ${path}. A runner-side LLM caller ` +
@@ -479,6 +507,7 @@ export class MockLlmProxy {
     // wired all the way through — the titling activity really parses it and
     // writes it as the session subject, so suites can pin the feature.
     if (isTitleGenerationRequest(parsedBody)) {
+      this.captured.push({ path, body: parsedBody, disposition: "out-of-band" });
       this.titleRequestCount += 1;
       const body = anthropicText(MOCK_SESSION_TITLE);
       if (streaming) {
@@ -494,6 +523,7 @@ export class MockLlmProxy {
     // 500 — unless a persistent error turn was served, in which case the fault
     // it models is what every retry keeps hitting.
     const next = this.queue.shift();
+    this.captured.push({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted" });
     if (next === undefined) {
       if (this.persistentError !== undefined) {
         writeJson(res, this.persistentError.status, this.persistentError.body, this.persistentError.headers);

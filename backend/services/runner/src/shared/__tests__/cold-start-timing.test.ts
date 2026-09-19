@@ -3,11 +3,13 @@
  *
  * The warm-agent-surfaces baseline report derives its waterfall from these
  * emissions, so the invariants pinned here are load-bearing for a spend
- * decision: segments must partition the timeline (total == sum, no gaps),
- * the emitted line must keep its stable shape (`stigmer_timing` selector,
- * context spread, `segments` with per-segment `start_ms`/`duration_ms`),
- * and the process-boot timeline must emit exactly once — a worker restart
- * inside one process must never produce a bogus second timeline.
+ * decision: `mark` segments must partition the timeline (total == sum, no
+ * gaps), `span` segments may overlap and never move the mark cursor (so the
+ * two idioms compose on one recorder), the emitted line must keep its stable
+ * shape (`stigmer_timing` selector, context spread, `segments` with
+ * per-segment `start_ms`/`duration_ms`), and the process-boot timeline must
+ * emit exactly once — a worker restart inside one process must never produce
+ * a bogus second timeline.
  *
  * The boot singleton is module-level state, so those tests re-import the
  * module fresh via `vi.resetModules()` to get an unlatched instance.
@@ -98,6 +100,52 @@ describe("TimingRecorder", () => {
   it("reports zero total before any mark", () => {
     expect(new TimingRecorder().totalMs()).toBe(0);
     expect(new TimingRecorder().snapshot()).toHaveLength(0);
+  });
+});
+
+describe("TimingRecorder.span", () => {
+  // Explicit bounds are absolute, like the origin; offsets come out relative.
+  it("records a segment with explicit bounds, relative to the origin", () => {
+    const origin = 1_000;
+    const recorder = new TimingRecorder(origin);
+    recorder.span("model_round", origin + 100, origin + 350.26);
+
+    expect(recorder.snapshot()).toEqual([{ name: "model_round", startMs: 100, durationMs: 250.3 }]);
+    expect(recorder.totalMs()).toBe(350.3);
+  });
+
+  it("lets spans overlap: the timeline is not partitioned and total is the latest end", () => {
+    const origin = 0;
+    const recorder = new TimingRecorder(origin);
+    recorder.span("model_round", 10, 500);
+    recorder.span("tool:read_file", 200, 300);
+    recorder.span("sub_agent:researcher", 250, 900);
+    recorder.span("model_round", 600, 700);
+
+    const segments = recorder.snapshot();
+    expect(segments.map((s) => s.name)).toEqual(["model_round", "tool:read_file", "sub_agent:researcher", "model_round"]);
+    // The tool sits inside the first round; the sub-agent crosses both rounds.
+    expect(segments[1]!.startMs).toBeGreaterThan(segments[0]!.startMs);
+    expect(segments[1]!.startMs + segments[1]!.durationMs).toBeLessThan(segments[0]!.startMs + segments[0]!.durationMs);
+    // Not the last span's end, and not the sum: the segment that ends latest.
+    expect(recorder.totalMs()).toBe(900);
+  });
+
+  it("never moves the mark cursor: a mark after a span still measures from the previous mark", () => {
+    const origin = performance.now();
+    const recorder = new TimingRecorder(origin);
+    recorder.span("model_round", origin + 100, origin + 250);
+    recorder.mark("after");
+
+    const [span, mark] = recorder.snapshot();
+    expect(span!.startMs).toBe(100);
+    // The mark closes from the ORIGIN (the previous mark cursor), not from
+    // the span's end: a span is a fact placed on the timeline, not progress
+    // of the sequential chain.
+    expect(mark!.startMs).toBe(0);
+    expect(mark!.durationMs).toBeLessThan(100);
+    // The span still ends latest, so it is the total.
+    expect(recorder.totalMs()).toBe(250);
   });
 });
 

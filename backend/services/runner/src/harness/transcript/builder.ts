@@ -82,6 +82,17 @@
  *     token delta does; the adapter's loop reads it and clears it with
  *     {@link markPersisted} as it requests the persist.
  *
+ * The runtime may hand the constructor an OBSERVER of the fold: a callback
+ * that sees every event `apply` folded, in order, after the fold, and creates
+ * nothing (the runtime's turn timeline, `harness/turn-timeline.ts`, is the
+ * one observer today). A callback at construction, not a subscribe method,
+ * because that is how the runtime tells its collaborators what to do
+ * everywhere else (`PersistChokepoint`'s options, the stall watchdog's
+ * `onStall`): one observer, fixed at the one constructor call, nothing to
+ * add or remove mid-turn. The observer runs in its own try/catch, so it can
+ * neither block a fold nor break a harness; `seed()` does not notify it,
+ * because a seeded row is last turn's fact.
+ *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
  * `startedAt`, `streamingUsage` and the epilogue's plan artifact are the
@@ -127,9 +138,13 @@ import type {
   TranscriptEvent,
 } from "./events.js";
 
+/** Sees every event the builder folded, in order, after the fold. Creates nothing. */
+export type TranscriptObserver = (event: TranscriptEvent) => void;
+
 export class TranscriptBuilder {
   readonly executionId: string;
   private readonly state: TranscriptState;
+  private readonly observer: TranscriptObserver | undefined;
   private _dirty = false;
   private _awaitingApproval = false;
 
@@ -146,10 +161,15 @@ export class TranscriptBuilder {
    * builder over — `TurnSink.status` in production, the test's own in a
    * test — so the transcript has one read handle and one write handle, and
    * no second spelling of either.
+   *
+   * `observer`, when given, is told every event after it is folded (the
+   * header's rule). The runtime passes its turn timeline; the contract kit
+   * and the test doubles pass nothing.
    */
-  constructor(executionId: string, status: AgentExecutionStatus) {
+  constructor(executionId: string, status: AgentExecutionStatus, observer?: TranscriptObserver) {
     this.executionId = executionId;
     this.state = new TranscriptState(status);
+    this.observer = observer;
   }
 
   /**
@@ -194,8 +214,25 @@ export class TranscriptBuilder {
     this._dirty = false;
   }
 
-  /** Fold one canonical event into the transcript. Never throws: a handler's error is logged and the stream goes on. */
+  /**
+   * Fold one canonical event into the transcript, then tell the observer.
+   * Never throws: a handler's error is logged and the stream goes on, and so
+   * is an observer's — each in its own catch, so a failing observer still
+   * sees a folded transcript and a failing handler still reaches the observer.
+   */
   apply(event: TranscriptEvent): void {
+    this.fold(event);
+    if (!this.observer) return;
+    try {
+      this.observer(event);
+    } catch (err) {
+      console.error(
+        `[TranscriptBuilder] Observer error: execution=${this.executionId} kind=${event.kind}: ${err}`,
+      );
+    }
+  }
+
+  private fold(event: TranscriptEvent): void {
     try {
       switch (event.kind) {
         case "sub_agent_started":

@@ -53,13 +53,16 @@ import {
   assertFailedSurfaceWritesItsCopy,
   assertNonExecutingDecisionSettlesSkipped,
   assertRejectedBindFails,
+  assertWorkspaceLockTimeoutFails,
   describeHarnessRuntimeContract,
   RuntimeExecutionDriver,
   slimOf,
   systemMessages,
   type RuntimeContractHarness,
 } from "../../__test-utils__/harness-contract/runtime-contract.js";
+import { captureTimingLines } from "../../__test-utils__/timing-lines.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
+import { TURN_PHASES_EVENT } from "../turn-timeline.js";
 import type { HarnessAdapter } from "../types.js";
 
 const TASK_QUEUE = "runtime-test-queue";
@@ -216,6 +219,56 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
       const row = final.messages[0]!.toolCalls[0]!;
       expect([row.id, row.isStreaming, row.result], "the row the adapter left streaming output is closed, its output kept").toEqual(["t1", false, "building"]);
+    });
+  });
+
+  describe("the runtime's turn timeline", () => {
+    // `run-turn.ts` emits the `turn_phases` line once, after the adapter
+    // returns and the transcript is finalized, on every outcome; a turn that
+    // never reached the engine emits none. The line's CONTENT is
+    // `turn-timeline.test.ts`'s; what is pinned here is the runtime's act:
+    // that the fold is installed on the one builder the adapter is handed,
+    // that the line names the adapter and the activity's turn, and that it is
+    // written for a failed turn as for a completed one.
+    const turnPhasesLines = (act: () => Promise<void>) => captureTimingLines(TURN_PHASES_EVENT, act);
+
+    it("writes one turn_phases line for a completed turn, naming the adapter, the turn and what the fold saw", async () => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-timeline-completed");
+      const lines = await turnPhasesLines(async () => {
+        const invocation = await driver.turn([scenario.say("Reading it."), scenario.read("t1", "notes.md"), scenario.say("Done.")]);
+        expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+      });
+
+      expect(lines).toHaveLength(1);
+      const [line] = lines;
+      expect(line!.harness).toBe(subject.adapter.name);
+      expect(line!.outcome).toBe("completed");
+      expect(line!.turn_seq).toBeTypeOf("number");
+      expect(line!.rounds, "two `say`s, two rounds").toBe(2);
+      expect(line!.tool_calls, "one `read`").toBe(1);
+      expect(line!.first_text_ms).toBeTypeOf("number");
+    });
+
+    it("writes the line for a failed turn too: every outcome is measured", async () => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-timeline-failed");
+      const lines = await turnPhasesLines(async () => {
+        const invocation = await driver.turn([scenario.say("Checking."), scenario.fail("engine gave up")]);
+        expect(slimOf(subject, invocation).phase).toBe("EXECUTION_FAILED");
+      });
+
+      expect(lines).toHaveLength(1);
+      expect(lines[0]!.outcome).toBe("failed");
+      expect(lines[0]!.rounds).toBe(1);
+    });
+
+    it("writes no line for a turn that settled during resolution: no engine, no phases", async () => {
+      clock.reset();
+      const lines = await turnPhasesLines(async () => {
+        await assertWorkspaceLockTimeoutFails(harness, "fake-timeline-no-engine");
+      });
+      expect(lines).toEqual([]);
     });
   });
 
