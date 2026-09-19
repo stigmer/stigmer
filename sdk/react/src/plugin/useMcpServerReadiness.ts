@@ -74,7 +74,11 @@ export interface UseMcpServerReadinessReturn {
  * if (readiness.kind === "sign-in-needed") return <button onClick={readiness.signIn}>Sign in</button>;
  * ```
  */
-export function useMcpServerReadiness(org: string | null, slug: string | null): UseMcpServerReadinessReturn {
+export function useMcpServerReadiness(
+  org: string | null,
+  slug: string | null,
+  onSignedIn?: (mcpServerId: string) => void,
+): UseMcpServerReadinessReturn {
   const { mcpServer, isLoading, error: readError, refetch: refetchServer } = useMcpServer(org, slug);
   const credentials = useMcpServerCredentials(org, mcpServer);
   const oauth = useMcpServerOAuthConnect();
@@ -105,8 +109,14 @@ export function useMcpServerReadiness(org: string | null, slug: string | null): 
     oauth.clearError();
     // A sign-in that fails leaves the row on "Sign in" with the reason; one
     // that lands refetches so the row says "Signed in" from the grant.
-    void oauth.startOAuth(id, org, declaredVariables).then(refetch, () => undefined);
-  }, [kind, mcpServer, org, oauth.clearError, oauth.startOAuth, declaredVariables, refetch]);
+    void oauth.startOAuth(id, org, declaredVariables).then(
+      () => {
+        refetch();
+        onSignedIn?.(id);
+      },
+      () => undefined,
+    );
+  }, [kind, mcpServer, org, oauth.clearError, oauth.startOAuth, declaredVariables, refetch, onSignedIn]);
 
   const error = useMemo(() => {
     if (readError) return readError;

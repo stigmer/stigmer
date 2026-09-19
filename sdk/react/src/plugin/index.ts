@@ -109,7 +109,7 @@ export { PluginInstallDialog, summariseInstall } from "./PluginInstallDialog.js"
 export type { PluginInstallDialogProps } from "./PluginInstallDialog.js";
 export { InstallPreview, PrepareRefusal, describeOrigin } from "./InstallPreview.js";
 export type { InstallPreviewProps } from "./InstallPreview.js";
-export { McpServerReadiness, McpServerReadinessView } from "./McpServerReadiness.js";
+export { McpServerReadiness } from "./McpServerReadiness.js";
 export type { McpServerReadinessProps } from "./McpServerReadiness.js";
 export { useMcpServerReadiness } from "./useMcpServerReadiness.js";
 export type { McpServerReadinessKind, UseMcpServerReadinessReturn } from "./useMcpServerReadiness.js";

@@ -33,6 +33,8 @@ export interface McpServerReadinessProps {
    * server is connected).
    */
   readonly keysAskedAt: "agent" | "connect";
+  /** Called with the server's id when a sign-in started from this cell lands; the composer records it against the agent. */
+  readonly onSignedIn?: (mcpServerId: string) => void;
   readonly className?: string;
 }
 
@@ -44,13 +46,13 @@ export interface McpServerReadinessProps {
  * <McpServerReadiness org="acme" slug="linear" keysAskedAt="connect" />
  * ```
  */
-export function McpServerReadiness({ org, slug, keysAskedAt, className }: McpServerReadinessProps) {
-  const readiness = useMcpServerReadiness(org, slug);
+export function McpServerReadiness({ org, slug, keysAskedAt, onSignedIn, className }: McpServerReadinessProps) {
+  const readiness = useMcpServerReadiness(org, slug, onSignedIn);
   return <McpServerReadinessView readiness={readiness} keysAskedAt={keysAskedAt} className={className} />;
 }
 
-/** The cell over an already-resolved readiness; the composer renders this one so its hook can live where the agent is resolved. */
-export function McpServerReadinessView({
+/** The cell over an already-resolved readiness. */
+function McpServerReadinessView({
   readiness,
   keysAskedAt,
   className,
