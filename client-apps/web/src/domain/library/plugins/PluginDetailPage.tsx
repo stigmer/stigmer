@@ -100,6 +100,9 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
         onMcpServerClick={({ org: o, slug: s }) => navigateToDetail("mcp-servers", o, s)}
         onAgentClick={({ org: o, slug: s }) => navigateToDetail("agents", o, s)}
         onWorkflowClick={({ org: o, slug: s }) => navigateToDetail("workflows", o, s)}
+        onCreateAgent={(usages) =>
+          router.push(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
+        }
         actions={actions}
       />
       <ConfirmDialog

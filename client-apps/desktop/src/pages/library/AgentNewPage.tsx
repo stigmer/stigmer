@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AgentCreationWizard,
   CreationPicker,
@@ -9,6 +9,20 @@ import {
   useBreadcrumbOverride,
 } from "@stigmer/react";
 import type { CreationPath, AgentWizardData } from "@stigmer/react";
+
+/**
+ * `?mcp=<slug>,<slug>`: a plugin's page hands its servers here through
+ * "Create a new agent with these tools", and the wizard opens with them
+ * preselected, the picker skipped. The same URL the web console reads; the
+ * hash router keeps the query inside the hash, so it is read through the
+ * router rather than `window.location`.
+ */
+function initialUsagesFrom(raw: string | null, org: string): Partial<AgentWizardData> | undefined {
+  if (!raw) return undefined;
+  const slugs = raw.split(",").filter((slug) => slug !== "");
+  if (slugs.length === 0) return undefined;
+  return { mcpServerUsages: slugs.map((slug) => ({ mcpServerRef: { org, slug } })) };
+}
 
 type PageState =
   | { readonly phase: "picking" }
@@ -20,9 +34,13 @@ type PageState =
 export default function AgentNewPage() {
   const org = useActiveOrgSlug();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setLabel } = useBreadcrumbOverride();
 
-  const [state, setState] = useState<PageState>({ phase: "picking" });
+  const [state, setState] = useState<PageState>(() => {
+    const initialData = org ? initialUsagesFrom(searchParams.get("mcp"), org) : undefined;
+    return initialData ? { phase: "wizard", initialData } : { phase: "picking" };
+  });
   const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {

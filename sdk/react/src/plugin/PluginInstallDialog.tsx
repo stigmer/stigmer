@@ -182,16 +182,23 @@ function InstallDialogContent({
   );
 }
 
-/** "2 skills, 1 MCP server, 1 agent": what the push produced, in the CLI's words. */
+/**
+ * "2 skills, 1 MCP server, 1 agent": what the push produced, in the CLI's
+ * words. A kind the plugin did not install is not named: most of the
+ * catalogue installs tools alone, and "0 skills, 1 MCP server, 0 agents"
+ * reads as three facts where there is one. A push that produced nothing
+ * says so.
+ */
 export function summariseInstall(outcome: InstallPluginOutcome): string {
   const counts = outcome.plugin.status?.materialized;
   const parts = [
-    count(counts?.skills ?? 0, "skill"),
-    count(counts?.mcpServers ?? 0, "MCP server"),
-    count(counts?.agents ?? 0, "agent"),
-  ];
-  if (counts !== undefined && counts.workflows > 0) parts.push(count(counts.workflows, "workflow"));
-  return parts.join(", ");
+    [counts?.skills ?? 0, "skill"],
+    [counts?.mcpServers ?? 0, "MCP server"],
+    [counts?.agents ?? 0, "agent"],
+    [counts?.workflows ?? 0, "workflow"],
+  ] as const;
+  const named = parts.filter(([n]) => n > 0).map(([n, noun]) => count(n, noun));
+  return named.length === 0 ? "nothing installed" : named.join(", ");
 }
 
 function count(n: number, noun: string): string {

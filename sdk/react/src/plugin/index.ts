@@ -1,5 +1,6 @@
 /**
- * Plugin: what you install; an agent is what runs.
+ * Plugin: what you install; it installs an agent, tools for your agents,
+ * or both.
  *
  * Data hooks over the installed kind (`usePlugin`, `usePluginList`,
  * `usePluginCount`, `usePluginMembers`, `usePluginVersions`), the
@@ -7,7 +8,10 @@
  * `useMarketplace`, `usePreparePluginInstall`, `useInstallPlugin`), the
  * upload path (`usePluginUpload` over `sources/local.ts`), the styled
  * surfaces (`PluginDetailView`, `MarketplaceCatalog`, `PluginUploader`,
- * `PluginInstallDialog`, `InstallPreview`, `ManagedByPluginNotice`) and the
+ * `PluginInstallDialog`, `InstallPreview`, `ManagedByPluginNotice`), what
+ * ends an install (`McpServerReadiness` over `useMcpServerReadiness`, the
+ * sign-in a server needs before its first tool call; `AddToolsToAgentDialog`
+ * over `useAddToolsToAgent`, tools onto an agent) and the
  * label rule the member detail views apply (`useManagingPlugin`). Remove goes through
  * `useDeleteResource("plugin", id)`; visibility through
  * `useUpdateVisibility("plugin", id)`, the one home each already has.
@@ -105,6 +109,14 @@ export { PluginInstallDialog, summariseInstall } from "./PluginInstallDialog.js"
 export type { PluginInstallDialogProps } from "./PluginInstallDialog.js";
 export { InstallPreview, PrepareRefusal, describeOrigin } from "./InstallPreview.js";
 export type { InstallPreviewProps } from "./InstallPreview.js";
+export { McpServerReadiness, McpServerReadinessView } from "./McpServerReadiness.js";
+export type { McpServerReadinessProps } from "./McpServerReadiness.js";
+export { useMcpServerReadiness } from "./useMcpServerReadiness.js";
+export type { McpServerReadinessKind, UseMcpServerReadinessReturn } from "./useMcpServerReadiness.js";
+export { AddToolsToAgentDialog } from "./AddToolsToAgentDialog.js";
+export type { AddToolsToAgentDialogProps } from "./AddToolsToAgentDialog.js";
+export { useAddToolsToAgent } from "./useAddToolsToAgent.js";
+export type { AddableServer, AddToolsPhase, UseAddToolsToAgentReturn } from "./useAddToolsToAgent.js";
 export { ManagedByPluginNotice } from "./ManagedByPluginNotice.js";
 export type { ManagedByPluginNoticeProps } from "./ManagedByPluginNotice.js";
 export { PluginIcon } from "./PluginIcon.js";
