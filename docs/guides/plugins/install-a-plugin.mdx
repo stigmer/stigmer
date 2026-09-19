@@ -2,22 +2,23 @@
 title: Install a plugin
 description:
   Install a Cursor, Claude Code, Codex or Agent Plugins folder on Stigmer and
-  get an Agent that uses its skills and tools.
+  get an Agent that uses its skills and tools, or the tools for your own Agents.
 ---
 
 A plugin is a folder of skill files, MCP server entries, and sub-agent prompts
 in the layout the Cursor, Claude Code, and Codex communities already publish.
 Installing it on Stigmer creates ordinary Skills and MCP Servers in your
-Organization and an Agent that uses them, as one unit. You talk to that Agent
-the way you talk to any other; the plugin is what you install, the Agent is what
-runs.
+Organization, as one unit, and when the plugin carries skills or sub-agents, an
+Agent that uses them. A plugin installs as an Agent, as tools for your Agents,
+or both: a plugin that is only MCP servers installs its servers, ready to list
+on any Agent, and no Agent of its own.
 
 Before you start, [sign in](/docs/guides/authentication) with
 `stigmer auth login`. Every command below takes `--org <slug>` if you work in
 more than one Organization.
 
 This page installs a plugin from a folder you have. To install one by name from
-a catalogue, Cursor's or your own, see
+a catalogue, Stigmer's or your own, see
 [Install from a marketplace](/docs/guides/plugins/install-from-a-marketplace);
 the plugin lands the same way.
 
@@ -68,12 +69,22 @@ Plugin
   Version  1.2.0
   Digest   3f9a2c1e
   Format   Cursor plugin
+  Size     12.4 KB
 
 Installed
   Skills       code-review, triage
   MCP servers  github
   Agents       thermos
+
+Next
+  - github needs GITHUB_TOKEN; the agent asks at its first session
 ```
+
+The summary names only the kinds the plugin installed, and `Next` says what each
+MCP Server still needs before its first tool call: a variable the Agent asks
+for, a sign-in an OAuth server needs (with the command that runs it), or
+nothing. A plugin that installed servers and no Agent ends with the one thing
+still missing: an Agent that lists them under `mcp_server_usages`.
 
 `stigmer apply` pointed at a plugin directory does the same thing, so a
 repository that is a plugin installs with the command you already run.
@@ -93,6 +104,14 @@ with that variable marked secret, and the Agent's Session asks for it the first
 time the tool is used, exactly as it would for an MCP Server you added by hand.
 Set it once on the [Environment](/docs/concepts/environments) and every Session
 has it.
+
+A server that declares no variable and signs in with OAuth instead (Linear,
+Notion, and most hosted servers) is recognised as such when it is saved: its
+definition is completed with the sign-in, and the server's page, the plugin's
+page and the Session composer carry **Sign in** until someone in the
+Organization has done it once. The CLI's `Next` line names the command
+(`stigmer connect mcp-server <server>`). How the completion works is in
+[OAuth for tools](/docs/guides/integrations/oauth-for-tools).
 
 ## Upgrade
 
@@ -139,3 +158,10 @@ composed one, `workflows/` for Workflows that use the plugin's tools, and
 `mcp-servers/` overlays that set OAuth or transport details on a declared
 server. Each document names the plugin's own resources and nothing else; a
 document that names something outside the plugin is refused.
+
+The manifest may also carry presentation under `extensions["ai.stigmer"]`, the
+extension slot the Agent Plugins format reserves for a host: `displayName` (the
+name a card and a page show; the plugin's `name` stays its slug), `logo` (a URL
+the Marketplace card renders where the format has no logo field) and `category`
+(a word the catalogue groups by). A Cursor manifest's own `displayName`, `logo`
+and `category` are read the same way; nothing else in the slot is read.

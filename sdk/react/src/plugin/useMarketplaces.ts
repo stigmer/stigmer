@@ -70,7 +70,7 @@ export interface UseMarketplacesOptions {
 
 /** Return value of {@link useMarketplaces}. */
 export interface UseMarketplacesReturn {
-  /** The built-in sources first, then the remembered ones in the order they were added. */
+  /** The built-in source first, then the remembered ones in the order they were added. */
   readonly marketplaces: readonly KnownMarketplace[];
   readonly unreadable: readonly UnreadableMarketplace[];
   /**
@@ -109,7 +109,7 @@ function readRaw(): string {
   try {
     return window.localStorage.getItem(MARKETPLACES_STORAGE_KEY) ?? "";
   } catch {
-    // Private browsing or a disabled store: the built-in sources alone.
+    // Private browsing or a disabled store: the built-in source alone.
     return "";
   }
 }

@@ -1,41 +1,103 @@
 ---
 title: Install from a marketplace
 description:
-  Add Cursor's, Claude Code's, Codex's or your own plugin marketplace and
-  install any plugin it offers by name.
+  Install a plugin from Stigmer's official catalogue, or add your own plugin
+  marketplace and install any plugin it offers by name.
 ---
 
 A marketplace is a catalogue of plugins: a directory tree with a marketplace
 file at its root that lists the plugins it offers and where each one lives in
-the tree. Cursor, Claude Code and Codex publish theirs this way, and Stigmer
-reads all three unchanged, plus its own. Once a marketplace is added, you
-install any plugin it offers by name, and the plugin lands exactly as if you had
+the tree. Cursor, Claude Code and Codex publish theirs in this shape, and
+Stigmer reads all three dialects unchanged, plus its own. You install any plugin
+a source offers by name, and the plugin lands exactly as if you had
 [pushed its folder](/docs/guides/plugins/install-a-plugin) yourself.
 
-The official marketplace is built in. A fresh `stigmer up` installs its default
-set, which is where the `assistant` Agent a new install answers with comes from.
+Stigmer's official catalogue is the one source built in. It is published with
+each release and curated: every plugin in it is one Stigmer may ship and one
+whose tools Stigmer can connect to, either copied from a vendor's public set
+under its licence or written by Stigmer for a vendor's public MCP endpoint. A
+fresh `stigmer up` installs its default set, which is where the `assistant`
+Agent a new install answers with comes from.
 
-## Add a marketplace
-
-Point `stigmer marketplace add` at a public GitHub repository, as `owner/repo`
-or as the URL a browser shows:
+## Install from the official catalogue
 
 ```bash
-stigmer marketplace add cursor/plugins
+stigmer marketplace show stigmer
 ```
 
 ```text
-✓ Added marketplace 'cursor-plugins' (github.com/cursor/plugins), offering 79 plugins
+✓ Marketplace 'stigmer' offers 80 plugins
 
-  See what it offers with: stigmer marketplace show cursor-plugins
-  Install from it with:     stigmer install cursor-plugins/<plugin>
+Marketplace
+  Name      stigmer
+  Source    built in
+  Format    marketplace.json
+  Defaults  assistant
+
+Plugins
+  - assistant@1.0.0  General-purpose AI assistant: the agent a fresh Stigmer answers with until you pick another.
+  - linear@1.0.0     Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace. Sign in with your Linear account.
+  - notion@1.0.0     Notion's hosted MCP server: search, read and write the pages and databases your account can reach. Sign in with your Notion account.
+  ...
 ```
 
-The CLI reads the marketplace once before recording it, so a repository that is
-not a marketplace is refused now rather than on your first install. The name it
-is recorded under is the one the marketplace file gives itself; pass
-`--name <name>` to choose your own. Pin a branch, tag or commit with
-`owner/repo@ref`; without one, the repository's default branch is read.
+```bash
+stigmer install linear
+```
+
+```text
+✓ Installed plugin 'linear' (1 MCP server)
+
+Plugin
+  ID           plg_01j9...
+  Slug         linear
+  Version      1.0.0
+  Digest       9c41e7b2
+  Format       Agent Plugins 1.0
+  Size         1.1 KB
+  Marketplace  stigmer (built in)
+
+Installed
+  MCP servers  linear
+
+Next
+  - Sign in to linear:  stigmer connect mcp-server linear
+  - Add these tools to an agent: list 'linear' under mcp_server_usages in an agent's YAML, or from the plugin's page in the console
+```
+
+A plugin installs as an Agent, as tools for your Agents, or both. Most of the
+catalogue is tools: an MCP Server that a vendor hosts, which your own Agents
+list under `mcp_server_usages`. The `Next` section says what each server still
+needs before its first tool call. A server that signs in with OAuth and has no
+sign-in in your Organization yet names the command that runs one
+(`stigmer connect mcp-server <server>` opens the console's sign-in and waits for
+it); one sign-in serves the whole Organization. A server that wants an API key
+names the variables and where they are asked. A plugin that carries an Agent
+ends with none of this: the Agent asks for what its tools need at its first
+Session.
+
+## Add your own marketplace
+
+Point `stigmer marketplace add` at a public GitHub repository your company
+publishes, as `owner/repo` or as the URL a browser shows:
+
+```bash
+stigmer marketplace add acme/agent-plugins
+```
+
+```text
+✓ Added source 'acme-plugins' (github.com/acme/agent-plugins), offering 12 plugins
+
+  See what it offers with: stigmer marketplace show acme-plugins
+  Install from it with:     stigmer install acme-plugins/<plugin>
+```
+
+`acme/agent-plugins` stands for a repository of your own. The CLI reads the
+marketplace once before recording it, so a repository that is not a marketplace
+is refused now rather than on your first install. The name it is recorded under
+is the one the marketplace file gives itself; pass `--name <name>` to choose
+your own. Pin a branch, tag or commit with `owner/repo@ref`; without one, the
+repository's default branch is read.
 
 A marketplace on your own machine is a directory:
 
@@ -46,37 +108,37 @@ stigmer marketplace add ./my-plugins
 ## See what it offers
 
 ```bash
-stigmer marketplace show cursor-plugins
+stigmer marketplace show acme-plugins
 ```
 
 ```text
-✓ Marketplace 'cursor-plugins' offers 79 plugins
+✓ Marketplace 'acme-plugins' offers 12 plugins
 
 Marketplace
-  Name         cursor-plugins
-  Source       github.com/cursor/plugins
-  Description  Official Cursor plugin marketplace: developer tools, framework rules, MCP integrations, and agent skills
-  Owner        Cursor
+  Name         acme-plugins
+  Source       github.com/acme/agent-plugins
+  Description  Acme's agent plugins
+  Owner        Acme
   Format       .cursor-plugin/marketplace.json
 
 Plugins
   - thermos@1.0.0  Keeps long-running agent sessions warm
-  - github@1.0.0   GitHub repositories, issues and pull requests
+  - triage@1.0.0   Triages incoming support tickets
   ...
 ```
 
 `show` reads the marketplace's source every time (nothing is cached), so what it
 lists is what the tree holds now. `stigmer marketplace list` is offline and
-shows the marketplaces you have configured.
+shows the sources you have configured.
 
-## Install a plugin
+## Install from it
 
 ```bash
-stigmer install cursor-plugins/thermos
+stigmer install acme-plugins/thermos
 ```
 
 ```text
-✓ Installed plugin 'thermos' (2 skills, 0 MCP servers, 1 agent)
+✓ Installed plugin 'thermos' (2 skills, 1 agent)
 
 Plugin
   ID           plg_01j9...
@@ -85,7 +147,7 @@ Plugin
   Digest       3f9a2c1e
   Format       Cursor plugin
   Size         12.4 KB
-  Marketplace  cursor-plugins (github.com/cursor/plugins)
+  Marketplace  acme-plugins (github.com/acme/agent-plugins)
 
 Installed
   Skills   thermos-warmup, thermos-checkin
@@ -93,7 +155,7 @@ Installed
 ```
 
 The plugin's folder is read from the marketplace's tree and pushed as one
-archive, so `stigmer install cursor-plugins/thermos` and
+archive, so `stigmer install acme-plugins/thermos` and
 `stigmer push plugin ./plugins/thermos` from a checkout of the same repository
 produce the same plugin with the same digest. From here on, the plugin behaves
 as [Install a plugin](/docs/guides/plugins/install-a-plugin) describes: the
@@ -103,40 +165,40 @@ Agent is `thermos`, its members are the plugin's to redefine, and
 A few forms of the ref:
 
 ```bash
-# A bare name is searched across every configured marketplace;
+# A bare name is searched across every configured source;
 # exactly one must offer it.
 stigmer install thermos
 
-# Pin the version the marketplace must offer; a different one refuses.
-stigmer install cursor-plugins/thermos@1.0.0
+# Pin the version the source must offer; a different one refuses.
+stigmer install acme-plugins/thermos@1.0.0
 
 # See what would install without pushing anything.
-stigmer install cursor-plugins/thermos --dry-run
+stigmer install acme-plugins/thermos --dry-run
 
 # Into another Organization, visible to the whole org.
-stigmer --org my-org install cursor-plugins/thermos --visibility org
+stigmer --org my-org install acme-plugins/thermos --visibility org
 ```
 
-When two marketplaces offer the same name, the bare form refuses and names both,
-so the answer never depends on the order you added them in. A path (`./thermos`)
-is not a ref; install a folder with `stigmer push plugin`.
+When two sources offer the same name, the bare form refuses and names both, so
+the answer never depends on the order you added them in. A path (`./thermos`) is
+not a ref; install a folder with `stigmer push plugin`.
 
 ## What the server knows
 
-Nothing. A marketplace is configuration on your machine, kept under
-`marketplaces` in `~/.stigmer/config.yaml`; the server only ever receives the
-plugin archive the CLI pushes from it. Two consequences follow:
+Nothing. A source is configuration on your machine, kept under `marketplaces` in
+`~/.stigmer/config.yaml`; the server only ever receives the plugin archive the
+CLI pushes from it. Two consequences follow:
 
-- Nothing records which marketplace a plugin came from. A plugin is identified
-  by its name in your Organization, so installing `thermos` from a second
-  marketplace upgrades the `thermos` you installed from the first.
-- Removing a marketplace (`stigmer marketplace remove cursor-plugins`) changes
-  nothing on the server. The plugins you installed from it stay until you
+- Nothing records which source a plugin came from. A plugin is identified by its
+  name in your Organization, so installing `thermos` from a second source
+  upgrades the `thermos` you installed from the first.
+- Removing a source (`stigmer marketplace remove acme-plugins`) changes nothing
+  on the server. The plugins you installed from it stay until you
   `stigmer delete plugin` them.
 
-## The official marketplace and `stigmer up`
+## The official catalogue and `stigmer up`
 
-The official marketplace ships with the CLI: the `plugins/` tree of the Stigmer
+The official catalogue ships with the CLI: the `plugins/` tree of the Stigmer
 repository when you run from a checkout, and the `@stigmer/plugins` package at
 the CLI's own version otherwise, so the content a fresh install bootstraps with
 matches the server that installs it. Its marketplace file names a `defaults`
@@ -147,12 +209,12 @@ pushes nothing.
 
 Today the default set is one plugin, `assistant`, the Agent a fresh install
 answers with. `stigmer marketplace show stigmer` lists what the official
-marketplace offers; `stigmer install stigmer/<name>` installs one of them into
+catalogue offers; `stigmer install stigmer/<name>` installs one of them into
 your own Organization.
 
 <Callout type="info">
   Upgrading a local stack that predates plugins installs the official
-  marketplace's defaults first, then retires the system content an older release
+  catalogue's defaults first, then retires the system content an older release
   installed. The `assistant` plugin takes over the existing `assistant` Agent in
   place: same ID, same personal instance, and every Session bound to it
   continues. The other Agents, Skills, MCP Servers and Workflows are removed,
@@ -162,10 +224,14 @@ your own Organization.
 
 ## Limits, stated
 
-- A GitHub marketplace is read at the repository root, where every vendor keeps
-  its marketplace file; private repositories are not supported.
+- A GitHub marketplace is read at the repository root, where the marketplace
+  file lives in every dialect; private repositories are not supported.
 - Entries whose `source` is a remote (a URL, another repository, an npm package)
   are listed under "Not offered" by `show` and cannot be installed; Stigmer
   installs from the tree it fetched.
-- A marketplace is fetched on every `show` and `install`. Cursor's is about 5
-  MB; a marketplace that is a whole repository (Codex's) is larger.
+- A marketplace is fetched on every `show` and `install`; a marketplace that is
+  a whole repository is as large as that repository.
+- The vendors' own public catalogues can be added like any repository, but the
+  official catalogue already carries the plugins Stigmer can offer from them;
+  what a vendor's catalogue adds is mostly what the official one left out, for a
+  reason `show` reports per entry.

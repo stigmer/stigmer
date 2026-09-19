@@ -50,12 +50,12 @@ authenticated APIs, site-specific extraction, or write operations.
 
 ## Where MCP Servers come from
 
-Most MCP Servers arrive as Plugins. A plugin from Cursor, Claude Code, Codex, or
-the official marketplace declares the servers it needs; installing it creates
-them in your Organization, marked as the plugin's, beside the Agent that uses
-them. You connect a server once and Stigmer discovers its tools. A server
-another Organization publishes as public can be referenced by your Agents as
-well.
+Most MCP Servers arrive as Plugins. A plugin from Stigmer's catalogue, or from a
+catalogue you add, declares the servers it needs; installing it creates them in
+your Organization, marked as the plugin's, beside the Agent that uses them when
+the plugin carries one, and ready to list on your own Agents when it does not.
+You connect a server once and Stigmer discovers its tools. A server another
+Organization publishes as public can be referenced by your Agents as well.
 
 A remote (HTTP) server works in any Session, local or cloud-hosted. A stdio
 server (a local subprocess launched through `npx` or `uvx`) runs only on a local

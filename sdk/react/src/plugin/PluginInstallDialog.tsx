@@ -33,7 +33,7 @@ export interface PluginInstallDialogProps {
   readonly opened: OpenedMarketplace | null;
   /** The name of the entry to install; `null` closes the dialog. */
   readonly entryName: string | null;
-  /** The source's name as the user knows it (`cursor-plugins`), kept in the version message. */
+  /** The source's name as the user knows it (`acme-plugins`), kept in the version message. */
   readonly sourceName: string;
   /** The organization to install into. */
   readonly org: string;
@@ -53,7 +53,7 @@ export interface PluginInstallDialogProps {
  * <PluginInstallDialog
  *   opened={opened}
  *   entryName={selected}
- *   sourceName="cursor-plugins"
+ *   sourceName="acme-plugins"
  *   org={org}
  *   open={selected !== null}
  *   onClose={() => setSelected(null)}

@@ -28,7 +28,9 @@ Open **Library** in the sidebar and choose **MCP Servers**. The page lists every
 MCP Server your Organization holds, in a card grid: the servers a plugin
 installed and the servers you defined yourself. Each card shows the server's
 name, a short description, and the Organization it belongs to; a server that
-came from a plugin says so at the top of its page.
+came from a plugin says so at the top of its page, and the plugin's own page
+carries the same **Sign in** for it, so a plugin's servers can be signed in to
+from either place.
 
 If the server you need is not there yet, get it one of two ways. Install a
 plugin that carries it, from the Marketplace or from a folder on your computer
@@ -96,24 +98,26 @@ Agent.
 
 ## Authentication patterns at a glance
 
-Some servers need credentials to reach the systems behind them. Three patterns
+Some servers need credentials to reach the systems behind them. Four patterns
 cover the range:
 
-| Pattern                   | When it applies                                                  | What happens on Connect                                        |
-| ------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------- |
-| **No credentials**        | The server works without authentication (Context7 without a key) | Connects immediately — no extra steps                          |
-| **Environment variables** | The server uses API keys or connection strings (Tavily, Neon)    | You enter the value in the credential form before connecting   |
-| **OAuth**                 | The server uses OAuth with a vendor like GitHub, Slack, or Figma | Stigmer redirects you through the OAuth flow to obtain a token |
-| **OAuth-only (hosted)**   | The hosted endpoint accepts only OAuth tokens (Notion, Monday)   | Only "Sign in" is offered — manual token entry is hidden       |
+| Pattern                   | When it applies                                                                                      | What happens on Connect                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **No credentials**        | The server works without authentication (Context7 without a key)                                     | Connects immediately — no extra steps                                                        |
+| **Environment variables** | The server uses API keys or connection strings (Tavily, Neon)                                        | You enter the value in the credential form before connecting                                 |
+| **OAuth from the URL**    | A hosted server that publishes a standard OAuth challenge (Linear, Notion, Atlassian, most vendors)  | Saved from its URL alone, the definition is completed with the sign-in; "Sign in" is offered |
+| **OAuth with your app**   | A vendor whose sign-in needs an OAuth app registered with it, named in `auth.oauth_app_ref` (GitHub) | Stigmer redirects you through the OAuth flow with that app                                   |
 
 <Callout type="info">
-  Some hosted endpoints — such as Notion (`mcp.notion.com`) and Monday
-  (`mcp.monday.com`) — accept **only** an OAuth-obtained token and reject a
-  personal API token or integration secret pasted into the credential form. For
-  these servers Stigmer offers just the "Sign in" flow and hides manual token
-  entry, so you are never sent down a path that cannot succeed. If you connect
-  such a server another way (for example the CLI `--env` flag or `--dry-run`),
-  you will get a clear message explaining that OAuth is required.
+  A hosted endpoint completed from its URL accepts **only** an OAuth-obtained
+  token and rejects a personal API token or integration secret pasted into the
+  credential form. For these servers Stigmer offers just the "Sign in" flow and
+  hides manual token entry, so you are never sent down a path that cannot
+  succeed. If you connect such a server another way (for example the CLI `--env`
+  flag or `--dry-run`), you will get a clear message explaining that OAuth is
+  required. How the completion works, and what a vendor that refuses automatic
+  registration needs instead, is in [OAuth for
+  tools](/docs/guides/integrations/oauth-for-tools).
 </Callout>
 
 <Callout type="info">

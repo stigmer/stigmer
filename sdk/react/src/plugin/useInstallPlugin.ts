@@ -51,7 +51,7 @@ export interface UseInstallPluginReturn {
  * @example
  * ```tsx
  * const { install, isInstalling } = useInstallPlugin();
- * const outcome = await install(prepared, { org, installedFrom: "cursor-plugins" });
+ * const outcome = await install(prepared, { org, installedFrom: "acme-plugins" });
  * ```
  */
 export function useInstallPlugin(): UseInstallPluginReturn {

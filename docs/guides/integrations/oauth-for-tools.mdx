@@ -28,8 +28,10 @@ view shows a credential form where you enter the value before connecting. OAuth
 servers skip that form entirely. Instead, the connection section shows a **Sign
 in to connect** button.
 
-The difference comes from the `auth` section in the MCP server definition. Here
-is what it looks like for the GitHub server:
+The difference comes from the `auth` section in the MCP server definition, which
+Stigmer fills in for a standard OAuth server from its URL alone (the next
+section) and which you write yourself for a vendor whose sign-in needs a
+registered app. Here is what it looks like for the GitHub server:
 
 ```yaml validate-as="McpServer"
 spec:
@@ -81,6 +83,51 @@ the hosted platform, which is why sign-in works there with no setup.
 The Environment variable section in the detail view labels the OAuth-managed
 variable with an **OAuth** badge to distinguish it from variables you enter
 manually.
+
+## For a standard OAuth server, a URL is enough
+
+Most hosted MCP servers (Linear, Notion, Atlassian, Figma, Stripe and many more)
+publish their sign-in the way the MCP specification describes: an
+unauthenticated request is answered with a challenge that points at the server's
+login metadata. For such a server you write nothing but its address:
+
+```yaml validate-as="McpServer"
+spec:
+  http:
+    url: "https://mcp.linear.app/mcp"
+```
+
+When the server is saved, by `stigmer apply`, by a plugin install or by the
+console's form, Stigmer asks the endpoint once, under a three-second ceiling. If
+it answers with a standard OAuth challenge whose metadata resolves, the
+definition is completed on the spot: `auth.target_env_var` becomes
+`<NAME>_ACCESS_TOKEN`, that variable is declared secret in `env`, the
+`Authorization: Bearer` header that sends it is added, and `auth.oauth_only` is
+set because such an endpoint rejects a pasted token. The row is labelled
+`stigmer.ai/mcp-auth: endpoint` so Stigmer remembers the completion is its own.
+From that moment the server's page, the page of any plugin that installed it,
+and the Session composer carry **Sign in**.
+
+Three rules keep this honest:
+
+- **A definition you wrote is never overwritten.** A server that already carries
+  `auth`, a header that sends a variable, or declared variables is left exactly
+  as written; the probe only completes what is empty.
+- **Applying the same definition again changes nothing.** The completion is
+  carried across a re-apply, a plugin upgrade and a description edit as long as
+  the URL is unchanged and the incoming definition says nothing about auth. A
+  changed URL is asked again. An `auth` block you add yourself wins, and the
+  label is dropped.
+- **Anything but a standard challenge leaves the definition alone.** An open
+  server, a server that wants an API key, a server that is down: none is
+  changed, and the usual connect runs afterwards.
+
+Some vendors publish their login metadata but do not allow a client to register
+itself (dynamic client registration). Their servers are completed like the
+others, so the page tells the truth, but **Sign in** refuses with the reason:
+the vendor does not allow automatic registration, so the server needs an OAuth
+app registered with the vendor and referenced from its definition
+(`auth.oauth_app_ref`, the block below).
 
 ## Connect an OAuth-protected tool
 
