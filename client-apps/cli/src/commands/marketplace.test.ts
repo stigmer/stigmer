@@ -164,12 +164,12 @@ describe("marketplace show", () => {
     );
     expect(payload.data.plugins).toEqual([
       {
-        name: "thermos",
-        dir: "thermos",
+        name: "warmer",
+        dir: "warmer",
         version: "1.0.0",
-        description: "The thermos plugin.",
+        description: "The warmer plugin.",
       },
-      { name: "github", dir: "third_party/github", version: "2.1.0" },
+      { name: "codeforge", dir: "third_party/codeforge", version: "2.1.0" },
     ]);
     expect(payload.data.warnings).toHaveLength(1);
     expect(payload.data.warnings[0].subject).toBe("ghost");
