@@ -34,6 +34,9 @@ export const HOSTED_SERVER = `warmth-${RUN}`;
 export const UPLOADED_PLUGIN = `warmth-kit-upload-${RUN}`;
 export const UPLOADED_SKILL = `keep-warm-upload-${RUN}`;
 export const UPLOADED_SERVER = `warmth-upload-${RUN}`;
+/** The sign-in arm's plugin: one URL-only MCP server, no skill and no agent, the shape most of the catalogue has. */
+export const OAUTH_PLUGIN = `signin-kit-${RUN}`;
+export const OAUTH_SERVER = `signin-${RUN}`;
 const HOSTED_COMMIT = "0123456789abcdef0123456789abcdef01234567";
 
 function json(value: unknown): string {
@@ -78,8 +81,40 @@ export function pluginFiles(plugin: string, skill: string, server: string): Map<
   ]);
 }
 
-/** Root-relative path to content: the marketplace file and the hosted plugin's folder. */
-export function hostedMarketplaceFiles(): Map<string, string> {
+/**
+ * The sign-in arm's plugin: an Agent Plugins manifest and one `http` server
+ * that is nothing but a URL. The control plane completes its OAuth at save
+ * from the challenge the fixture server answers with; nothing here declares
+ * it.
+ */
+export function oauthPluginFiles(mcpUrl: string): Map<string, string> {
+  return new Map<string, string>([
+    [
+      "plugin.json",
+      json({
+        $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+        name: OAUTH_PLUGIN,
+        version: "1.0.0",
+        description: "A fixture plugin whose one tool server signs in with OAuth.",
+        author: { name: "Acme" },
+        extensions: { "ai.stigmer": { displayName: "Sign-in Kit" } },
+      }),
+    ],
+    [
+      "mcp.json",
+      json({
+        $schema: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+        mcpServers: { [OAUTH_SERVER]: { type: "streamable-http", url: mcpUrl } },
+      }),
+    ],
+  ]);
+}
+
+/**
+ * Root-relative path to content: the marketplace file and the hosted
+ * plugin's folder; with `oauthMcpUrl`, the sign-in arm's plugin beside it.
+ */
+export function hostedMarketplaceFiles(oauthMcpUrl?: string): Map<string, string> {
   const files = new Map<string, string>([
     [
       ".cursor-plugin/marketplace.json",
@@ -88,12 +123,20 @@ export function hostedMarketplaceFiles(): Map<string, string> {
         metadata: { description: "A fixture catalogue for the console journey" },
         plugins: [
           { name: HOSTED_PLUGIN, source: HOSTED_PLUGIN, description: "Keeps things warm; its tool needs a token." },
+          ...(oauthMcpUrl === undefined
+            ? []
+            : [{ name: OAUTH_PLUGIN, source: OAUTH_PLUGIN, description: "One tool server that signs in with OAuth." }]),
         ],
       }),
     ],
   ]);
   for (const [path, content] of pluginFiles(HOSTED_PLUGIN, HOSTED_SKILL, HOSTED_SERVER)) {
     files.set(`${HOSTED_PLUGIN}/${path}`, content);
+  }
+  if (oauthMcpUrl !== undefined) {
+    for (const [path, content] of oauthPluginFiles(oauthMcpUrl)) {
+      files.set(`${OAUTH_PLUGIN}/${path}`, content);
+    }
   }
   return files;
 }
@@ -118,8 +161,8 @@ export function writeUploadPluginDir(): string {
  * source's avatar (the mark a chip and a card wear, `github.com/<owner>.png`)
  * to an abort, so the run never touches GitHub for an image either.
  */
-export async function routeHostedMarketplace(page: Page): Promise<void> {
-  const files = hostedMarketplaceFiles();
+export async function routeHostedMarketplace(page: Page, oauthMcpUrl?: string): Promise<void> {
+  const files = hostedMarketplaceFiles(oauthMcpUrl);
   const encoder = new TextEncoder();
 
   await page.route("https://github.com/**", (route) => route.abort());

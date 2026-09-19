@@ -829,6 +829,15 @@ test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial,
 		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1 && \
 		STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FILE_GATES=1 npx playwright test --project=interactive-approval-gate --workers=1
 
+test-e2e-oauth-mcp: ## Run the plugin journey's sign-in arm against a hosted OAuth MCP fixture (fresh stack, the console's callback as redirect)
+	# One stack shape of its own: the conformance harness's OAuth MCP server
+	# and login server as one process (oauth-mcp-fixture-main.ts), the
+	# server booted with STIGMER_OAUTH_REDIRECT_URI at the web dev server's
+	# callback page, so the journey signs in through a real popup. A running
+	# backend on the API port is refused by the global setup.
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && STIGMER_E2E_OAUTH_MCP=1 npx playwright test --project=functional plugin-install-journey
+
 test-e2e-console-login: ## Run the console sign-in E2E against a server in the OIDC posture (hermetic issuer, serial)
 	# One stack shape of its own (20260913.02 sp.console-login): the
 	# conformance harness's local OIDC issuer as a process, the server booted

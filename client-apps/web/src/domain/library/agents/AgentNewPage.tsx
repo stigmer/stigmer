@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AgentCreationWizard,
   CreationPicker,
@@ -14,19 +14,14 @@ import type { CreationPath } from "@stigmer/react";
 import type { AgentWizardData } from "@stigmer/react";
 
 /**
- * Read `?mcp=<slug>,<slug>` once, at mount: a plugin's page hands its
- * servers here through "Create a new agent with these tools", and the
- * wizard opens with them preselected, the picker skipped. Read from
- * `window.location`, as the detail page reads `?tab=`, because the
- * static-export prerender has no URL to read.
+ * `?mcp=<slug>,<slug>`: a plugin's page hands its servers here through
+ * "Create a new agent with these tools", and the wizard opens with them
+ * preselected, the picker skipped. Read through the router (the billing
+ * page's precedent) rather than `window.location`, which a client-side
+ * navigation updates only after this page has rendered once.
  */
-function initialUsagesFromUrl(org: string): Partial<AgentWizardData> | undefined {
-  if (typeof window === "undefined") return undefined;
-  const raw = new URLSearchParams(window.location.search).get("mcp");
-  if (!raw) return undefined;
-  const slugs = raw.split(",").filter((slug) => slug !== "");
-  if (slugs.length === 0) return undefined;
-  return { mcpServerUsages: slugs.map((slug) => ({ mcpServerRef: { org, slug } })) };
+function preselectedServerSlugs(raw: string | null): readonly string[] {
+  return raw ? raw.split(",").filter((slug) => slug !== "") : [];
 }
 
 type PageState =
@@ -49,12 +44,13 @@ type PageState =
 export function AgentNewPage() {
   const org = useActiveOrgSlug();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setLabel } = useBreadcrumbOverride();
 
-  const [state, setState] = useState<PageState>(() => {
-    const initialData = org ? initialUsagesFromUrl(org) : undefined;
-    return initialData ? { phase: "wizard", initialData } : { phase: "picking" };
-  });
+  // The slugs are read once; the org they belong to resolves a render later,
+  // so the usages are built where the wizard is rendered.
+  const [preselected] = useState(() => preselectedServerSlugs(searchParams.get("mcp")));
+  const [state, setState] = useState<PageState>(() => (preselected.length > 0 ? { phase: "wizard" } : { phase: "picking" }));
   const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
@@ -106,7 +102,12 @@ export function AgentNewPage() {
       ) : (
         <AgentCreationWizard
           org={org}
-          initialData={state.initialData}
+          initialData={
+            state.initialData ??
+            (preselected.length > 0
+              ? { mcpServerUsages: preselected.map((slug) => ({ mcpServerRef: { org, slug } })) }
+              : undefined)
+          }
           onComplete={handleWizardComplete}
           onCancel={handleCancel}
           className="min-h-[480px]"

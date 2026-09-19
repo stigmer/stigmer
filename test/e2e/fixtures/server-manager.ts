@@ -22,6 +22,11 @@ export interface ServerState {
   // The hermetic OIDC issuer process, when the stack was booted in the OIDC
   // posture (STIGMER_E2E_OIDC). Torn down with the stack.
   issuerPid?: number;
+  // The OAuth MCP fixture process and its URLs, when the stack was booted in
+  // that shape (STIGMER_E2E_OAUTH_MCP). Torn down with the stack; the spec
+  // reads the URLs to name the server a fixture plugin installs.
+  oauthMcpPid?: number;
+  oauthMcp?: { readonly mcpUrl: string; readonly authorizationServer: string };
 }
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -403,6 +408,7 @@ export function stopBackendStack(state: ServerState): void {
     state.serverPid,
     state.temporalPid,
     state.issuerPid,
+    state.oauthMcpPid,
   ];
   for (const pid of pids) {
     if (pid) {

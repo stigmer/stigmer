@@ -118,9 +118,15 @@ export interface CapturedMcpRequest {
 // The lever for the save-time completion arms: the control plane's probe
 // must read exactly this challenge and complete the server's auth.
 export interface OAuthChallengePosture {
-  // The resource_metadata URL the challenge names; the fixture serves no
-  // metadata itself (the completion never fetches it at save).
+  // The resource_metadata URL the challenge names. The completion never
+  // fetches it at save; Sign in does, so a posture that also names the
+  // login server below has the fixture serve the document itself.
   resourceMetadataUrl: string;
+  // When set, `GET /.well-known/oauth-protected-resource` answers the RFC
+  // 9728 document naming this authorization server, the walk Sign in takes
+  // from a completed URL-only server: the lever a browser-driven sign-in
+  // (the Playwright journey) needs, beside the mock authorization server.
+  authorizationServerOrigin?: string;
 }
 
 export class McpToolFixture {
@@ -217,6 +223,14 @@ export class McpToolFixture {
     // tools/call) over POST. Stateless mode does not support the optional GET
     // notification stream or DELETE session-teardown, so those get a clean 405
     // the MCP client tolerates (it simply forgoes server-initiated streams).
+    if (req.method === "GET" && this.oauthChallenge?.authorizationServerOrigin !== undefined) {
+      const path = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
+      if (path === "/.well-known/oauth-protected-resource" || path.startsWith("/.well-known/oauth-protected-resource/")) {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ resource: this.url(), authorization_servers: [this.oauthChallenge.authorizationServerOrigin] }));
+        return;
+      }
+    }
     if (req.method !== "POST") {
       res.writeHead(405, { "content-type": "application/json", allow: "POST" });
       res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32000, message: "method not allowed" } }));

@@ -17,11 +17,8 @@ import type { CreationPath, AgentWizardData } from "@stigmer/react";
  * hash router keeps the query inside the hash, so it is read through the
  * router rather than `window.location`.
  */
-function initialUsagesFrom(raw: string | null, org: string): Partial<AgentWizardData> | undefined {
-  if (!raw) return undefined;
-  const slugs = raw.split(",").filter((slug) => slug !== "");
-  if (slugs.length === 0) return undefined;
-  return { mcpServerUsages: slugs.map((slug) => ({ mcpServerRef: { org, slug } })) };
+function preselectedServerSlugs(raw: string | null): readonly string[] {
+  return raw ? raw.split(",").filter((slug) => slug !== "") : [];
 }
 
 type PageState =
@@ -37,10 +34,10 @@ export default function AgentNewPage() {
   const [searchParams] = useSearchParams();
   const { setLabel } = useBreadcrumbOverride();
 
-  const [state, setState] = useState<PageState>(() => {
-    const initialData = org ? initialUsagesFrom(searchParams.get("mcp"), org) : undefined;
-    return initialData ? { phase: "wizard", initialData } : { phase: "picking" };
-  });
+  // The slugs are read once; the org they belong to resolves a render later,
+  // so the usages are built where the wizard is rendered.
+  const [preselected] = useState(() => preselectedServerSlugs(searchParams.get("mcp")));
+  const [state, setState] = useState<PageState>(() => (preselected.length > 0 ? { phase: "wizard" } : { phase: "picking" }));
   const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
@@ -93,7 +90,12 @@ export default function AgentNewPage() {
       ) : (
         <AgentCreationWizard
           org={org}
-          initialData={state.initialData}
+          initialData={
+            state.initialData ??
+            (preselected.length > 0
+              ? { mcpServerUsages: preselected.map((slug) => ({ mcpServerRef: { org, slug } })) }
+              : undefined)
+          }
           onComplete={handleWizardComplete}
           onCancel={handleCancel}
           className="min-h-[480px]"
