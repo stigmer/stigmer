@@ -15,6 +15,7 @@ import {
   OIDC_STACK,
   startIssuerProcess,
 } from "./fixtures/oidc";
+import { OAUTH_MCP_STACK, startOAuthMcpFixture } from "./fixtures/oauth-mcp";
 
 const STATE_FILE = path.join(__dirname, ".e2e-server-state.json");
 const API_PORT = Number(process.env.STIGMER_E2E_API_PORT ?? "7234");
@@ -86,6 +87,44 @@ async function globalSetup() {
     console.log(
       "[e2e] Backend stack ready in the OIDC posture (no organization seeded on purpose)",
     );
+    return;
+  }
+
+  // The OAuth MCP stack shape: the conformance harness's hosted OAuth MCP
+  // server and its login server as one process, and the server booted with
+  // the web dev server's callback page as its OAuth redirect, so the plugin
+  // journey can sign in through a real popup. A running stack cannot be
+  // reused: its redirect URI is not this origin's, and the fixture's URLs
+  // are per run.
+  if (OAUTH_MCP_STACK) {
+    if (alreadyRunning) {
+      throw new Error(
+        `[e2e] STIGMER_E2E_OAUTH_MCP is set but a backend is already running on :${API_PORT}.\n` +
+          `  The plugin sign-in arm needs a fresh stack booted with the console's OAuth callback.\n` +
+          `  Stop the running stack (or set STIGMER_E2E_API_PORT to a free port) and retry.`,
+      );
+    }
+    console.log("[e2e] STIGMER_E2E_OAUTH_MCP set — starting the OAuth MCP fixture");
+    const { child: fixture, ready } = await startOAuthMcpFixture();
+    console.log(
+      `[e2e] OAuth MCP fixture ready (pid: ${fixture.pid}); MCP at ${ready.mcpUrl}, login server at ${ready.authorizationServer}`,
+    );
+    const baseURL = process.env.STIGMER_E2E_BASE_URL ?? "http://localhost:3000";
+    const state = await startBackendStack({
+      apiPort: API_PORT,
+      extraServerEnv: {
+        STIGMER_OAUTH_REDIRECT_URI: `${baseURL}/auth/oauth/callback`,
+      },
+    });
+    state.oauthMcpPid = fixture.pid;
+    state.oauthMcp = ready;
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    const client = createNodeClient({
+      baseUrl: `http://localhost:${API_PORT}`,
+      getAccessToken: () => null,
+    });
+    await ensureDefaultOrg(client);
+    console.log(`[e2e] Backend stack ready in the OAuth MCP shape; seeded "default" org`);
     return;
   }
 

@@ -221,8 +221,8 @@
       "slug": "plugin",
       "title": "plugin",
       "description": "",
-      "hooks": 14,
-      "components": 14
+      "hooks": 16,
+      "components": 16
     },
     {
       "slug": "provider-standing",

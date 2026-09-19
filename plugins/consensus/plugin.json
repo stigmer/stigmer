@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "consensus",
+  "version": "1.0.0",
+  "description": "Consensus's hosted MCP server: search peer-reviewed research and summarise what the papers found. Sign in with your Consensus account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://consensus.app",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "consensus",
+    "research",
+    "papers",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Consensus",
+      "category": "integrations"
+    }
+  }
+}

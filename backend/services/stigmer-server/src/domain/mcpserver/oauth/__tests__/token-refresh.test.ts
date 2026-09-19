@@ -287,7 +287,9 @@ describe("refreshTokenIfExpired", () => {
 
   it("expired with no refresh token: throws the re-auth error", async () => {
     await expect(
-      refreshTokenIfExpired(grant(nowSeconds() - 10), "", "", "", silentLogger),
+      refreshTokenIfExpired(grant(nowSeconds() - 10), "", "", "", silentLogger, () => {
+        throw new Error("token endpoint must not be reached");
+      }),
     ).rejects.toThrow(
       "access token for resource 'mcps_1' has expired and no refresh token is available. " +
         "Please re-authenticate via OAuth Connect",

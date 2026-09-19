@@ -17,9 +17,10 @@
  * manifest that carries each; the presentation fields come from the
  * dialects that define them: Cursor's top-level `displayName`, `logo` and
  * `category`; the legacy Codex manifest's `interface.displayName`,
- * `interface.logo` and `interface.category`. Claude Code's manifest and the
- * open format define none, and a logo rule for the `ai.stigmer` extension
- * namespace waits for the first official plugin that needs one.
+ * `interface.logo` and `interface.category`; the open format's
+ * `extensions["ai.stigmer"]` with the same three names, the one place that
+ * format leaves a client for them (Stigmer's authored catalogue plugins are
+ * its first users). Claude Code's manifest defines none.
  *
  * A logo is a path inside the plugin, and the card that shows it fetches it
  * by URL from wherever the tree lives. So the path is kept only when it is
@@ -35,6 +36,7 @@
  */
 
 import { MANIFEST_PRECEDENCE } from "./detect.js";
+import { stigmerExtensionOf } from "./dialects/manifest.js";
 import { decodeUtf8, isContainedPath, PLUGIN_DOCUMENT_LIMITS, PluginFileIndex, type PluginFiles } from "./files.js";
 import { isJsonObject, type JsonObject } from "./documents.js";
 import { MANIFEST_LOCATIONS } from "./messages.js";
@@ -102,7 +104,10 @@ function contributionOf(dialect: PluginDialect, object: JsonObject, index: Plugi
       const surface = object["interface"];
       return isJsonObject(surface) ? { ...identity, ...appearanceOf(surface, index) } : identity;
     }
-    case "agent-plugins":
+    case "agent-plugins": {
+      const extension = stigmerExtensionOf(object);
+      return extension === undefined ? identity : { ...identity, ...appearanceOf(extension, index) };
+    }
     case "claude":
       return identity;
     default: {
@@ -122,7 +127,7 @@ function identityOf(object: JsonObject): PluginPresentation {
   };
 }
 
-/** `displayName`, `logo` and `category` from an object that carries them at its top level (a Cursor manifest, a Codex `interface`). */
+/** `displayName`, `logo` and `category` from an object that carries them at its top level (a Cursor manifest, a Codex `interface`, an open manifest's `extensions["ai.stigmer"]`). */
 function appearanceOf(object: JsonObject, index: PluginFileIndex): PluginPresentation {
   const logo = logoPath(object["logo"], index);
   return {

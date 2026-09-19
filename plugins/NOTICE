@@ -1,0 +1,88 @@
+Vendored plugins in Stigmer's official catalogue.
+
+Every folder named below is a byte-for-byte copy of a directory in a
+vendor's public repository at the commit named, file modes included, with
+nothing of Stigmer's inside it: the licence beside each plugin is the
+vendor's own, and what Stigmer adds (the pins in vendor.json, this notice,
+the marketplace file) lives outside the folders. That is what lets the same
+plugin, installed from this catalogue or from the vendor's repository,
+carry one digest.
+
+Nothing under a vendored folder is formatted, linted or edited; a change
+there is a re-sync at a new commit (`npm run sync -w @stigmer/plugins`),
+which rewrites this notice from vendor.json.
+
+Source:  https://github.com/cursor/plugins
+Commit:  1f84288b2c047b6d39952da23f51cf486f3b2f7a
+License: each folder carries its own licence file, vendored unchanged.
+
+Directories and their paths in the source repository:
+
+  advisor/              <- advisor/  (LICENSE)
+  ahrefs/               <- third_party/ahrefs/  (LICENSE)
+  amplemarket/          <- third_party/amplemarket/  (LICENSE)
+  ashby/                <- third_party/ashby/  (LICENSE)
+  attio/                <- third_party/attio/  (LICENSE)
+  brevo/                <- third_party/brevo/  (LICENSE)
+  brex/                 <- third_party/brex/  (LICENSE)
+  calendly/             <- third_party/calendly/  (LICENSE)
+  circleback/           <- third_party/circleback/  (LICENSE)
+  clay/                 <- third_party/clay/  (LICENSE)
+  cli-for-agent/        <- cli-for-agent/  (LICENSE)
+  coda/                 <- third_party/coda/  (LICENSE)
+  continual-learning/   <- continual-learning/  (LICENSE)
+  craft/                <- third_party/craft/  (LICENSE)
+  create-plugin/        <- create-plugin/  (LICENSE)
+  cursor-sdk/           <- cursor-sdk/  (LICENSE)
+  cursor-team-kit/      <- cursor-team-kit/  (LICENSE)
+  customer-io/          <- third_party/customer-io/  (LICENSE)
+  daloopa/              <- third_party/daloopa/  (LICENSE)
+  docs-canvas/          <- docs-canvas/  (LICENSE)
+  excalidraw/           <- third_party/excalidraw/  (LICENSE)
+  fathom/               <- third_party/fathom/  (LICENSE)
+  fireflies/            <- third_party/fireflies/  (LICENSE)
+  gamma/                <- third_party/gamma/  (LICENSE)
+  github/               <- third_party/github/  (LICENSE)
+  godaddy/              <- third_party/godaddy/  (LICENSE)
+  grok-voice/           <- grok-voice/  (LICENSE)
+  guru/                 <- third_party/guru/  (LICENSE)
+  hunter/               <- third_party/hunter/  (LICENSE)
+  interactive-brokers/  <- third_party/interactive-brokers/  (LICENSE)
+  intercom/             <- third_party/intercom/  (LICENSE)
+  juicebox/             <- third_party/juicebox/  (LICENSE)
+  klaviyo/              <- third_party/klaviyo/  (LICENSE)
+  mailerlite/           <- third_party/mailerlite/  (LICENSE)
+  meltwater/            <- third_party/meltwater/  (LICENSE)
+  mem/                  <- third_party/mem/  (LICENSE)
+  navan/                <- third_party/navan/  (LICENSE)
+  otter/                <- third_party/otter/  (LICENSE)
+  outreach/             <- third_party/outreach/  (LICENSE)
+  pr-review-canvas/     <- pr-review-canvas/  (LICENSE)
+  profound/             <- third_party/profound/  (LICENSE)
+  ralph-loop/           <- ralph-loop/  (LICENSE)
+  readwise/             <- third_party/readwise/  (LICENSE)
+  semrush/              <- third_party/semrush/  (LICENSE)
+  similarweb/           <- third_party/similarweb/  (LICENSE)
+  smartsheet/           <- third_party/smartsheet/  (LICENSE)
+  sp-global/            <- third_party/sp-global/  (LICENSE)
+  statsig/              <- third_party/statsig/  (LICENSE)
+  teaching/             <- teaching/  (LICENSE)
+  thermos/              <- thermos/  (LICENSE)
+  todoist/              <- third_party/todoist/  (LICENSE)
+  typeform/             <- third_party/typeform/  (LICENSE)
+  upwork/               <- third_party/upwork/  (LICENSE)
+  workable/             <- third_party/workable/  (LICENSE)
+  wrike/                <- third_party/wrike/  (LICENSE)
+
+Source:  https://github.com/openai/plugins
+Commit:  1dc195897af4161d039b80d8471ec0a10c9bbc89
+License: each folder carries its own licence file, vendored unchanged.
+
+Directories and their paths in the source repository:
+
+  boltz-api-cli/      <- plugins/boltz-api-cli/  (LICENSE)
+  expo/               <- plugins/expo/  (LICENSE)
+  mixpanel-headless/  <- plugins/mixpanel-headless/  (LICENSE)
+  supabase/           <- plugins/supabase/  (LICENSE)
+  superpowers/        <- plugins/superpowers/  (LICENSE)
+  temporal/           <- plugins/temporal/  (LICENSE)

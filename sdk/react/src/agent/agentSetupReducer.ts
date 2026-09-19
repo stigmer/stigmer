@@ -1,5 +1,28 @@
 import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
+import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
+
+// ---------------------------------------------------------------------------
+// Sign-ins — an OAuth server of the agent's with no grant in the organization
+// ---------------------------------------------------------------------------
+
+/**
+ * One MCP server the agent uses that authenticates by OAuth and has no
+ * usable grant in the organization. The agent is not ready until each is
+ * signed in: execution would start and fail at the first tool call, so the
+ * composer asks first, the way it asks for a missing variable. Grants are
+ * per organization today, so one colleague's sign-in serves everyone.
+ */
+export interface PendingSignIn {
+  /** The server's reference, for the row's own read. */
+  readonly ref: ResourceRef;
+  /** The server's id, the key a sign-in completes under. */
+  readonly id: string;
+  /** The server's display name. */
+  readonly name: string;
+  /** The grant's health as the backend graded it; `NO_GRANT` when none exists. */
+  readonly health: OAuthConnectionHealth;
+}
 
 // ---------------------------------------------------------------------------
 // Resolution — the outcome of agent setup, consumed by session creation
@@ -60,7 +83,11 @@ export type AgentSetupPhase =
       readonly agentRef: ResourceRef;
     }
   | {
-      /** The agent requires environment variables that the user has not yet provided. */
+      /**
+       * The agent needs something from the user before it can run:
+       * environment variables it declares, sign-ins to OAuth servers it
+       * uses, or both. Either list may be empty while the other is not.
+       */
       readonly status: "needsEnvVars";
       /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
@@ -70,6 +97,8 @@ export type AgentSetupPhase =
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
+      /** OAuth servers of the agent's that nobody in the organization has signed in to. */
+      readonly pendingSignIns: readonly PendingSignIn[];
     }
   | {
       /** Environment variables are being persisted or the instance is being provisioned. */
@@ -82,6 +111,8 @@ export type AgentSetupPhase =
       readonly agentName: string;
       /** Environment variables that were collected from the user. */
       readonly missingVariables: AgentEnvFormVariable[];
+      /** Carried so a failed submission returns to the same waiting state. */
+      readonly pendingSignIns: readonly PendingSignIn[];
     }
   | {
       /** The agent is fully resolved and ready for session creation. */
@@ -144,7 +175,7 @@ export interface AgentSetupReadyResult {
 export type AgentSetupResult =
   | AgentSetupReadyResult
   | {
-      /** The agent requires env vars the user has not yet provided. */
+      /** The agent needs env vars, sign-ins, or both, before proceeding. */
       readonly status: "needsEnvVars";
       /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
@@ -152,6 +183,8 @@ export type AgentSetupResult =
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
+      /** OAuth servers of the agent's that nobody in the organization has signed in to. */
+      readonly pendingSignIns: readonly PendingSignIn[];
     };
 
 // ---------------------------------------------------------------------------
@@ -177,6 +210,14 @@ export type AgentSetupAction =
       readonly agentName: string;
       /** Variables the user must provide. */
       readonly missingVariables: AgentEnvFormVariable[];
+      /** Servers the user must sign in to. */
+      readonly pendingSignIns: readonly PendingSignIn[];
+    }
+  | {
+      /** One of the pending sign-ins completed; the hook re-resolves the agent when the last one does. */
+      readonly type: "SIGN_IN_COMPLETED";
+      /** The server's id. */
+      readonly id: string;
     }
   | {
       /** Agent resolved and is ready for session creation. */
@@ -254,8 +295,16 @@ export function agentSetupReducer(
         agentId: action.agentId,
         agentName: action.agentName,
         missingVariables: action.missingVariables,
+        pendingSignIns: action.pendingSignIns,
         error: null,
       };
+
+    case "SIGN_IN_COMPLETED": {
+      if (state.status !== "needsEnvVars") return state;
+      const pendingSignIns = state.pendingSignIns.filter((signIn) => signIn.id !== action.id);
+      if (pendingSignIns.length === state.pendingSignIns.length) return state;
+      return { ...state, pendingSignIns };
+    }
 
     case "RESOLVE_READY":
       return {
@@ -269,7 +318,9 @@ export function agentSetupReducer(
     case "POOL_RESOLVE": {
       if (state.status !== "needsEnvVars") return state;
 
-      if (action.missingVariables.length === 0) {
+      // The pool covers variables, never sign-ins: with a sign-in still
+      // pending the agent stays where it is, its variable list shortened.
+      if (action.missingVariables.length === 0 && state.pendingSignIns.length === 0) {
         return {
           status: "ready",
           agentRef: state.agentRef,
@@ -293,6 +344,7 @@ export function agentSetupReducer(
         agentId: state.agentId,
         agentName: state.agentName,
         missingVariables: state.missingVariables,
+        pendingSignIns: state.pendingSignIns,
         error: null,
       };
     }
@@ -314,6 +366,7 @@ export function agentSetupReducer(
           agentId: state.agentId,
           agentName: state.agentName,
           missingVariables: state.missingVariables,
+          pendingSignIns: state.pendingSignIns,
           error: action.error,
         };
       }

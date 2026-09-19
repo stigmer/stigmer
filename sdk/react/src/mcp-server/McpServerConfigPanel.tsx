@@ -432,8 +432,13 @@ export function McpServerConfigPanel({
 // Inline OAuth sign-in (compact, for config panel context)
 // ---------------------------------------------------------------------------
 
-/** Maps OAuthConnectionHealth to compact status dot + label for InlineOAuthSignIn. */
-function inlineHealthProps(
+/**
+ * Maps OAuthConnectionHealth to a compact status dot and label. The one
+ * vocabulary for a server's sign-in state wherever it is said in a line:
+ * the picker's configure view here, and the plugin page's readiness cell
+ * (`plugin/McpServerReadiness.tsx`), so the two never disagree on a word.
+ */
+export function inlineHealthProps(
   health: OAuthConnectionHealth | undefined,
   isConnected: boolean,
   isVendorApprovalPending: boolean,

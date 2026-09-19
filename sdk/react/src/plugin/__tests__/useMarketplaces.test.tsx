@@ -20,19 +20,19 @@ import {
 } from "../useMarketplaces.js";
 import { HOSTED_MARKETPLACE_NAME, HOSTED_REPO, hostedFetch } from "./fixtures/hosted-marketplace.js";
 
-const BUILT_IN_NAMES = [OFFICIAL_MARKETPLACE_NAME, "cursor-plugins", "claude-code-plugins", "codex-plugins"];
+const BUILT_IN_NAMES = [OFFICIAL_MARKETPLACE_NAME];
 
 beforeEach(() => window.localStorage.clear());
 afterEach(cleanup);
 
 describe("useMarketplaces", () => {
-  it("starts with the four built-in sources, the official one first", () => {
+  it("starts with the official catalogue alone; a vendor's name is not reserved", () => {
     const { result } = renderHook(() => useMarketplaces());
     expect(result.current.marketplaces.map((m) => m.name)).toEqual(BUILT_IN_NAMES);
     expect(result.current.marketplaces[0]?.source).toEqual({ type: "official" });
-    expect(result.current.marketplaces[1]?.source).toEqual({ type: "github", repo: "cursor/plugins" });
     expect(result.current.unreadable).toEqual([]);
     for (const name of BUILT_IN_NAMES) expect(result.current.isBuiltIn(name)).toBe(true);
+    expect(result.current.isBuiltIn("cursor-plugins")).toBe(false);
   });
 
   it("reads a GitHub source, records it under the file's own name in the CLI's entry shape, and removes it", async () => {
@@ -73,10 +73,6 @@ describe("useMarketplaces", () => {
       ok: false,
       message: `'${OFFICIAL_MARKETPLACE_NAME}' is a built-in source and cannot be added or replaced; choose another name`,
     });
-    expect(await result.current.add(HOSTED_REPO, "cursor-plugins")).toMatchObject({
-      ok: false,
-      message: expect.stringContaining("'cursor-plugins' is a built-in source"),
-    });
     expect(await result.current.add(HOSTED_REPO, "Bad Name")).toMatchObject({
       ok: false,
       message: expect.stringContaining("not a source name"),
@@ -92,23 +88,22 @@ describe("useMarketplaces", () => {
     expect(result.current.remove(OFFICIAL_MARKETPLACE_NAME)).toBe(
       `'${OFFICIAL_MARKETPLACE_NAME}' is a built-in source and cannot be removed`,
     );
-    expect(result.current.remove("codex-plugins")).toContain("built-in source and cannot be removed");
     expect(result.current.remove("ghost")).toContain("no source named");
   });
 
-  it("lists an entry it cannot read with its reason, never silently, and lets a built-in win a remembered name", () => {
+  it("lists an entry it cannot read with its reason, never silently, and lets the built-in win a remembered name", () => {
     window.localStorage.setItem(
       MARKETPLACES_STORAGE_KEY,
       JSON.stringify({
         good: { type: "github", repo: "a/b" },
-        "cursor-plugins": { type: "github", repo: "someone/fork" },
+        [OFFICIAL_MARKETPLACE_NAME]: { type: "github", repo: "someone/fork" },
         broken: { type: "local", path: "/tmp" },
         typeless: {},
       }),
     );
     const { result } = renderHook(() => useMarketplaces());
     expect(result.current.marketplaces.map((m) => m.name)).toEqual([...BUILT_IN_NAMES, "good"]);
-    expect(result.current.marketplaces[1]?.source).toEqual({ type: "github", repo: "cursor/plugins" });
+    expect(result.current.marketplaces[0]?.source).toEqual({ type: "official" });
     expect(result.current.unreadable).toEqual([
       { name: "broken", reason: "unknown type 'local' (expected 'github')" },
       { name: "typeless", reason: "no 'type' (expected 'github')" },

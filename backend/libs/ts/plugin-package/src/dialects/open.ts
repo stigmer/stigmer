@@ -8,8 +8,9 @@
  * so this manifest declares no paths and no inline servers; `mcp.json` is
  * read under the open format's rules by `detect.ts` when it exists.
  * Client-specific data belongs under `extensions`, which Stigmer records as
- * ignored per namespace (its own `ai.stigmer` namespace is reserved and
- * empty today).
+ * ignored per foreign namespace; its own `ai.stigmer` namespace carries the
+ * appearance fields a storefront card shows (`manifest.ts`,
+ * `STIGMER_EXTENSION_FIELDS`), the open format's only place for them.
  */
 
 import { describeValue, type JsonObject } from "../documents.js";

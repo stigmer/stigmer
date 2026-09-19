@@ -48,26 +48,18 @@ function writeConfig(yaml: string): void {
   writeFileSync(configPath(), yaml);
 }
 
-const BUILT_IN_NAMES = [
-  OFFICIAL_MARKETPLACE_NAME,
-  "cursor-plugins",
-  "claude-code-plugins",
-  "codex-plugins",
-];
+const BUILT_IN_NAMES = [OFFICIAL_MARKETPLACE_NAME];
 
 describe("listMarketplaces", () => {
-  it("is the built-in sources alone on a fresh machine, the official one first", () => {
+  it("is the built-in source alone on a fresh machine, the official catalogue", () => {
     const listing = listMarketplaces();
     expect(listing.known.map((m) => m.name)).toEqual(BUILT_IN_NAMES);
     expect(listing.known[0]?.source).toEqual({ type: "official" });
-    expect(listing.known[1]?.source).toEqual({
-      type: "github",
-      repo: "cursor/plugins",
-    });
+    expect(listing.known).toHaveLength(1);
     expect(listing.unreadable).toEqual([]);
   });
 
-  it("lists configured entries after the built-ins, in file order, names the unreadable ones, and lets a built-in win over a same-named entry", () => {
+  it("lists configured entries after the built-in, in file order, names the unreadable ones, and lets the built-in win over a same-named entry", () => {
     writeConfig(
       [
         "backend:",
@@ -76,8 +68,8 @@ describe("listMarketplaces", () => {
         "  acme:",
         "    type: github",
         "    repo: acme/plugins",
-        // Written before the vendors were built in: the built-in wins, the entry stays in the file.
-        "  cursor-plugins:",
+        // A hand edit under the built-in's name: the built-in wins, the entry stays in the file.
+        "  stigmer:",
         "    type: github",
         "    repo: someone/fork",
         "  pinned:",
@@ -102,22 +94,19 @@ describe("listMarketplaces", () => {
       "pinned",
       "team",
     ]);
-    expect(listing.known[4]?.source).toEqual({
+    expect(listing.known[0]?.source).toEqual({ type: "official" });
+    expect(listing.known[1]?.source).toEqual({
       type: "github",
       repo: "acme/plugins",
     });
-    expect(listing.known[5]?.source).toEqual({
+    expect(listing.known[2]?.source).toEqual({
       type: "github",
       repo: "anthropics/claude-code",
       ref: "v1.2.3",
     });
-    expect(listing.known[6]?.source).toEqual({
+    expect(listing.known[3]?.source).toEqual({
       type: "local",
       path: "/srv/plugins",
-    });
-    expect(listing.known[1]?.source).toEqual({
-      type: "github",
-      repo: "cursor/plugins",
     });
     expect(listing.unreadable).toEqual([
       {
@@ -173,13 +162,11 @@ describe("addMarketplace and removeMarketplace", () => {
     });
   });
 
-  it("refuses every built-in name, a duplicate, an unknown removal, and a built-in removal", () => {
+  it("refuses the built-in name, a duplicate, an unknown removal, and the built-in's removal; a vendor's name is free", () => {
     expect(() =>
       addMarketplace("stigmer", { type: "local", path: "/x" }),
     ).toThrow(/'stigmer' is a built-in source and cannot be added or replaced/);
-    expect(() =>
-      addMarketplace("cursor-plugins", { type: "local", path: "/x" }),
-    ).toThrow(/'cursor-plugins' is a built-in source/);
+    addMarketplace("cursor-plugins", { type: "github", repo: "cursor/plugins" });
     addMarketplace("team", { type: "local", path: "/srv/plugins" });
     expect(() =>
       addMarketplace("team", { type: "local", path: "/other" }),
@@ -189,9 +176,6 @@ describe("addMarketplace and removeMarketplace", () => {
     );
     expect(() => removeMarketplace("stigmer")).toThrow(
       /'stigmer' is a built-in source and cannot be removed/,
-    );
-    expect(() => removeMarketplace("codex-plugins")).toThrow(
-      /'codex-plugins' is a built-in source and cannot be removed/,
     );
   });
 

@@ -60,8 +60,8 @@ beforeAll(async () => {
       push: (req) => {
         pushes.push(req);
         return create(PluginSchema, {
-          metadata: { id: "plg_1", slug: "thermos", org: "acme" },
-          spec: { name: "thermos", version: "1.0.0" },
+          metadata: { id: "plg_1", slug: "warmer", org: "acme" },
+          spec: { name: "warmer", version: "1.0.0" },
           status: {
             digest: "a".repeat(64),
             state: PluginState.READY,
@@ -83,8 +83,8 @@ beforeAll(async () => {
             {
               kind: ApiResourceKind.agent,
               id: "agt_1",
-              slug: "thermos",
-              name: "thermos",
+              slug: "warmer",
+              name: "warmer",
             },
           ],
         }),
@@ -200,10 +200,10 @@ async function run(
 
 describe("install", () => {
   it("pushes the entry's folder as push plugin would, into the context org, and renders the install", async () => {
-    const outcome = await run("acme-plugins/thermos", "--json");
+    const outcome = await run("acme-plugins/warmer", "--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     expect(pushes).toHaveLength(1);
-    const expected = await preparePluginPush(join(fixture, "thermos"));
+    const expected = await preparePluginPush(join(fixture, "warmer"));
     expect(pushes[0]?.org).toBe("acme");
     expect(
       Buffer.from(pushes[0]?.artifact ?? []).equals(
@@ -216,7 +216,7 @@ describe("install", () => {
 
     const payload = JSON.parse(outcome.stdout);
     expect(payload.message).toMatch(
-      /^Installed plugin 'thermos' \(1 skill, 0 MCP servers, 1 agent\)/,
+      /^Installed plugin 'warmer' \(1 skill, 1 agent\)/,
     );
     const about = payload.sections.find(
       (s: { title: string }) => s.title === "Plugin",
@@ -231,7 +231,7 @@ describe("install", () => {
   it("finds a bare name across the configured marketplaces and honours --org, --visibility and --message", async () => {
     const outcome = await run(
       ["--org", "other"],
-      "github",
+      "codeforge",
       "--visibility",
       "org",
       "-m",
@@ -245,7 +245,7 @@ describe("install", () => {
 
   it("--dry-run reads the marketplace and describes the plugin without pushing", async () => {
     const outcome = await run(
-      "acme-plugins/thermos@1.0.0",
+      "acme-plugins/warmer@1.0.0",
       "--dry-run",
       "--json",
     );
@@ -253,28 +253,28 @@ describe("install", () => {
     expect(pushes).toHaveLength(0);
     const payload = JSON.parse(outcome.stdout);
     expect(payload.message).toBe(
-      "Dry run: 'acme-plugins/thermos' would install plugin 'thermos'",
+      "Dry run: 'acme-plugins/warmer' would install plugin 'warmer'",
     );
-    expect(payload.data.plugin.name).toBe("thermos");
+    expect(payload.data.plugin.name).toBe("warmer");
   });
 
   it("refuses a version the marketplace does not offer, naming the one it does", async () => {
-    const outcome = await run("acme-plugins/thermos@9.9.9");
+    const outcome = await run("acme-plugins/warmer@9.9.9");
     expect(outcome.exitCode).toBe(ExitCode.Usage);
     expect(outcome.message).toMatch(
-      /pins version 9\.9\.9, but the marketplace offers 'thermos' at 1\.0\.0/,
+      /pins version 9\.9\.9, but the marketplace offers 'warmer' at 1\.0\.0/,
     );
     expect(pushes).toHaveLength(0);
   });
 
   it("refuses a path toward push plugin, an unknown name, and an unknown marketplace", async () => {
-    expect((await run("./thermos")).message).toMatch(
-      /is a path.*stigmer push plugin \.\/thermos/s,
+    expect((await run("./warmer")).message).toMatch(
+      /is a path.*stigmer push plugin \.\/warmer/s,
     );
     expect((await run("nope")).message).toMatch(
       /no configured marketplace offers a plugin named 'nope'/,
     );
-    expect((await run("nowhere/thermos")).message).toMatch(
+    expect((await run("nowhere/warmer")).message).toMatch(
       /no marketplace named 'nowhere' is configured/,
     );
     expect(pushes).toHaveLength(0);
@@ -293,14 +293,13 @@ describe("install", () => {
           second: { type: "local", path: second },
         },
       });
-      const outcome = await run("thermos");
+      const outcome = await run("warmer");
       expect(outcome.exitCode).toBe(ExitCode.Usage);
       expect(outcome.message).toMatch(
-        /offered by more than one marketplace: acme-plugins, second\n\nName the one you mean: acme-plugins\/thermos or second\/thermos/,
+        /offered by more than one marketplace: acme-plugins, second\n\nName the one you mean: acme-plugins\/warmer or second\/warmer/,
       );
-      // The three built-in vendor sources were asked through their files and nothing was downloaded.
-      expect(fetched.filter((url) => url.startsWith("https://raw.githubusercontent.com/cursor/plugins/")).length).toBeGreaterThan(0);
-      expect(fetched.some((url) => url.startsWith("https://codeload.github.com/"))).toBe(false);
+      // Only the official catalogue is built in, read from the checkout here; no GitHub host was asked.
+      expect(fetched.filter((url) => url.includes("github"))).toEqual([]);
     } finally {
       rmSync(second, { recursive: true, force: true });
     }

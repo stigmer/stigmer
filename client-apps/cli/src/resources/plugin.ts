@@ -23,6 +23,15 @@
 // and what `stigmer up` compares with the server's digest before deciding
 // to push. `validate -f`, `push plugin --dry-run` and `push plugin` share one
 // description renderer so the author reads one vocabulary at every step.
+//
+// `readNextSteps` is what the install leaves the user to do, read from the
+// servers the push produced: a sign-in an OAuth server needs (`stigmer
+// connect mcp-server` runs it), the variables an API-key server wants and
+// where they are asked, and, for a plugin that installed tools and no
+// agent, the agent the tools still need. Best-effort by design: a server
+// or a grant the CLI cannot read yields no line rather than a failed
+// install, because the install itself succeeded. `stigmer up` does not
+// read them: its plugin is the built-in assistant, not a user's act.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -48,6 +57,10 @@ import {
   PushPluginRequestSchema,
   type PluginMember,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import {
+  GetOAuthGrantStatusInputSchema,
+  OAuthConnectionHealth,
+} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { PluginDialect as PluginDialectProto } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -390,6 +403,113 @@ export async function pushPlugin(
 export interface RenderPushOptions {
   /** Where the archive came from when it was not a folder: the marketplace's name and source. */
   readonly installedFrom?: string;
+  /** What the install leaves the user to do, from `readNextSteps`. */
+  readonly next?: readonly NextStep[];
+}
+
+/** One thing standing between an installed MCP server and its first tool call, or the agent the tools still need. */
+export type NextStep =
+  | { readonly kind: "sign-in"; readonly server: string; readonly command: string }
+  | { readonly kind: "signed-in"; readonly server: string }
+  | {
+      readonly kind: "api-key";
+      readonly server: string;
+      readonly variables: readonly string[];
+      /** Where the variables are asked: the agent's first session, or `stigmer connect mcp-server --env`. */
+      readonly askedAt: "agent" | "connect";
+      readonly command?: string;
+    }
+  | { readonly kind: "add-to-agent"; readonly servers: readonly string[] };
+
+/**
+ * What the install leaves the user to do, read from each MCP server the
+ * push produced. Best-effort: a server or grant this CLI cannot read yields
+ * no step, never a failure, because the install itself succeeded.
+ */
+export async function readNextSteps(
+  client: Stigmer,
+  org: string,
+  members: readonly PluginMember[],
+): Promise<NextStep[]> {
+  const servers = members.filter((m) => m.kind === ApiResourceKind.mcp_server);
+  const hasAgent = members.some((m) => m.kind === ApiResourceKind.agent);
+  const steps: NextStep[] = [];
+  for (const member of servers) {
+    try {
+      const server = await client.mcpServer.getByReference({
+        org,
+        slug: member.slug,
+      });
+      const auth = server.spec?.auth;
+      const variables = Object.keys(server.spec?.env ?? {});
+      if (auth?.targetEnvVar) {
+        let connected = false;
+        try {
+          const grant = await client.mcpServer.getOAuthGrantStatus(
+            create(GetOAuthGrantStatusInputSchema, {
+              resourceId: server.metadata?.id ?? "",
+              org,
+            }),
+          );
+          connected =
+            grant.connected &&
+            grant.connectionHealth !==
+              OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
+        } catch {
+          // Fail closed: a grant the CLI cannot read is a sign-in still owed.
+        }
+        steps.push(
+          connected
+            ? { kind: "signed-in", server: member.slug }
+            : {
+                kind: "sign-in",
+                server: member.slug,
+                command: `stigmer connect mcp-server ${member.slug}`,
+              },
+        );
+      } else if (variables.length > 0) {
+        steps.push({
+          kind: "api-key",
+          server: member.slug,
+          variables,
+          askedAt: hasAgent ? "agent" : "connect",
+          ...(hasAgent
+            ? {}
+            : {
+                command: `stigmer connect mcp-server ${member.slug} --env ${variables.map((v) => `${v}=...`).join(" --env ")}`,
+              }),
+        });
+      }
+    } catch {
+      // A server the CLI cannot read has no line; the Installed section still names it.
+    }
+  }
+  if (!hasAgent && servers.length > 0) {
+    steps.push({
+      kind: "add-to-agent",
+      servers: servers.map((m) => m.slug),
+    });
+  }
+  return steps;
+}
+
+function describeNextStep(step: NextStep): string {
+  switch (step.kind) {
+    case "sign-in":
+      return `Sign in to ${step.server}:  ${step.command}`;
+    case "signed-in":
+      return `${step.server}: signed in`;
+    case "api-key":
+      return step.askedAt === "agent"
+        ? `${step.server} needs ${step.variables.join(", ")}; the agent asks at its first session`
+        : `${step.server} needs ${step.variables.join(", ")}; set them when you connect:  ${step.command ?? ""}`;
+    case "add-to-agent":
+      return `Add these tools to an agent: list ${step.servers.map((s) => `'${s}'`).join(", ")} under mcp_server_usages in an agent's YAML, or from the plugin's page in the console`;
+    default: {
+      const exhaustive: never = step;
+      return exhaustive;
+    }
+  }
 }
 
 /** The install as the user reads it: what landed, what was skipped, what to know. */
@@ -400,14 +520,20 @@ export function renderPushOutcome(
   const { plugin, members } = outcome;
   const warnings = plugin.status?.warnings ?? [];
   const counts = plugin.status?.materialized;
-  const summary = [
-    count(counts?.skills ?? 0, "skill"),
-    count(counts?.mcpServers ?? 0, "MCP server"),
-    count(counts?.agents ?? 0, "agent"),
-    ...(counts !== undefined && counts.workflows > 0
-      ? [count(counts.workflows, "workflow")]
-      : []),
-  ].join(", ");
+  // Only the kinds the plugin installed are named, as the console's
+  // `summariseInstall` names them: most catalogue plugins install tools
+  // alone, and "0 skills, 1 MCP server, 0 agents" reads as three facts.
+  const named = (
+    [
+      [counts?.skills ?? 0, "skill"],
+      [counts?.mcpServers ?? 0, "MCP server"],
+      [counts?.agents ?? 0, "agent"],
+      [counts?.workflows ?? 0, "workflow"],
+    ] as const
+  )
+    .filter(([n]) => n > 0)
+    .map(([n, noun]) => count(n, noun));
+  const summary = named.length === 0 ? "nothing installed" : named.join(", ");
   const headline = `Installed plugin '${plugin.metadata?.slug ?? plugin.spec?.name ?? ""}' (${summary})`;
   const result =
     warnings.length === 0
@@ -447,9 +573,15 @@ export function renderPushOutcome(
     const section = result.addSection("Warnings");
     for (const warning of warnings) section.item(warning.message);
   }
+  const next = options.next ?? [];
+  if (next.length > 0) {
+    const section = result.addSection("Next");
+    for (const step of next) section.item(describeNextStep(step));
+  }
   return result.withData({
     plugin: toJson(PluginSchema, plugin),
     members: members.map((m) => toJson(PluginMemberSchema, m)),
+    ...(options.next !== undefined && { next: options.next }),
   });
 }
 

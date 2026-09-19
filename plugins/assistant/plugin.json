@@ -14,5 +14,11 @@
     "assistant",
     "default-agent",
     "stigmer"
-  ]
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Assistant",
+      "category": "agents"
+    }
+  }
 }

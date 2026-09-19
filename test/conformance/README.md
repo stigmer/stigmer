@@ -446,7 +446,19 @@ provider fault byte-exact — `persistent` because a real fault answers every
 retry, and LangChain's AsyncCaller retries a 5xx six times. `McpToolFixture`
 names its tool surface in the URL: `url()` is the one-tool `echo` server the
 connect suite pins by exact list; `url(["echo", "fail"])` adds the failing
-tool the messages suite needs.
+tool the messages suite needs; `requireOAuth({ resourceMetadataUrl })` turns
+it into a hosted server's OAuth posture (a 401 challenge to every
+credential-less request), the lever the endpoint-auth facet completes a
+URL-only server from.
+
+**Fixture hosts are unreachable by construction.** The control plane dials a
+URL-only HTTP MCP server once at save (`CompleteEndpointAuth`), so a fixture
+that names a resolvable public host would put a real request on the wire
+from every run. A fixture endpoint is a loopback harness component
+(`McpToolFixture`, `MockOAuthAuthorizationServer`), a literal
+`http://127.0.0.1:<port>`, or a name under the reserved `.test` TLD
+(`https://mcp.vendor.test/mcp`), which resolves to nothing at once. Never
+`example.com` or a vendor's real host.
 
 ### Execution engine (Class B, `src/suites-execution/`)
 

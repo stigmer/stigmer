@@ -43,7 +43,7 @@ const NO_WARNINGS: readonly MarketplaceFinding[] = [];
  *
  * @example
  * ```tsx
- * const { marketplace, warnings, isLoading, error } = useMarketplace({ type: "github", repo: "cursor/plugins" });
+ * const { marketplace, warnings, isLoading, error } = useMarketplace({ type: "github", repo: "acme/plugins" });
  * ```
  */
 export function useMarketplace(source: MarketplaceSource | null, options: UseMarketplaceOptions = {}): UseMarketplaceReturn {

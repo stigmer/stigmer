@@ -215,11 +215,36 @@ const EXPERIMENTAL_KINDS: Readonly<Record<string, IgnoredComponentKind>> = {
 };
 
 /**
- * `extensions` in a root manifest: every namespace with content is an
- * ignored component (a client ignores namespaces it does not implement
- * without validating them); an empty object, including Stigmer's own
- * reserved `ai.stigmer`, is silent. A non-object `extensions` is the open
- * format's one non-fatal type violation: reported and ignored.
+ * Stigmer's own namespace under a root manifest's `extensions`. The open
+ * format has no appearance fields, so this is where an open-format plugin
+ * says what a storefront card shows: the same three the Cursor manifest
+ * carries at its top level, read by `presentation.ts` and treated by the
+ * install exactly as Cursor's are (`logo` an ignored component, because
+ * nothing in an Organization carries the image; `displayName` and
+ * `category` silent). The overlay FOLDER `ai.stigmer/` (`normalise/overlay.ts`)
+ * is the same name in a different place: resources there, appearance here.
+ */
+export const STIGMER_EXTENSION_NAMESPACE = "ai.stigmer";
+export const STIGMER_EXTENSION_FIELDS: ReadonlySet<string> = new Set(["displayName", "logo", "category"]);
+
+/** The `ai.stigmer` extension object of a root manifest, or `undefined` when absent or not an object. */
+export function stigmerExtensionOf(object: JsonObject): JsonObject | undefined {
+  const extensions = object["extensions"];
+  if (!isJsonObject(extensions)) return undefined;
+  const content = extensions[STIGMER_EXTENSION_NAMESPACE];
+  return isJsonObject(content) ? content : undefined;
+}
+
+/**
+ * `extensions` in a root manifest: every foreign namespace with content is
+ * an ignored component (a client ignores namespaces it does not implement
+ * without validating them); an empty object is silent. Stigmer's own
+ * namespace is read field by field: `logo` is recorded as the `logo`
+ * component Cursor's would be, the other appearance fields are silent, and
+ * any field beyond `STIGMER_EXTENSION_FIELDS` makes the namespace an
+ * ignored `extension` component so a misspelled key stays visible. A
+ * non-object `extensions` is the open format's one non-fatal type
+ * violation: reported and ignored.
  */
 export function extensionComponents(object: JsonObject, path: string, findings: Findings): IgnoredComponent[] {
   const value = object["extensions"];
@@ -231,7 +256,13 @@ export function extensionComponents(object: JsonObject, path: string, findings: 
   const ignored: IgnoredComponent[] = [];
   for (const [namespace, content] of fields(value)) {
     if (isJsonObject(content) && fields(content).length === 0) continue;
-    ignored.push({ kind: "extension", path: `${path}#extensions.${namespace}` });
+    const at = `${path}#extensions.${namespace}`;
+    if (namespace === STIGMER_EXTENSION_NAMESPACE && isJsonObject(content)) {
+      if (content["logo"] !== undefined) ignored.push({ kind: "logo", path: `${at}.logo` });
+      if (fields(content).some(([name]) => !STIGMER_EXTENSION_FIELDS.has(name))) ignored.push({ kind: "extension", path: at });
+      continue;
+    }
+    ignored.push({ kind: "extension", path: at });
   }
   return ignored;
 }
