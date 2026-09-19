@@ -211,15 +211,18 @@ pod so the server reads them fresh:
 
 ```bash
 kubectl -n stigmer exec -i deploy/stigmer -c server -- \
-  tar xzf - -C /data < backup/server-data.tgz
+  tar xzf - --strip-components=1 -C /data < backup/server-data.tgz
 kubectl -n stigmer exec -i deploy/stigmer -c server -- \
-  tar xzf - -C /artifacts < backup/artifacts.tgz
+  tar xzf - --strip-components=1 -C /artifacts < backup/artifacts.tgz
 
 kubectl -n stigmer rollout restart deploy/stigmer
 ```
 
-The files land owned by the server's user; the runner, which runs as root, reads
-and writes them all the same. Start your port-forward again afterwards; it stops
+`--strip-components=1` drops the archive's own root entry, which names the mount
+point: the server's user can't change the mount point's mode or time, and
+without the flag `tar` writes every file and still exits with an error. The
+files land owned by the server's user; the runner, which runs as root, reads and
+writes them all the same. Start your port-forward again afterwards; it stops
 with the pod.
 
 </Tab>
