@@ -39,15 +39,15 @@ test("PACKAGES is exactly the workspace members that are not private", () => {
   );
 });
 
-test("PACKAGES publishes @stigmer/seedpack before the CLI that acquires it", () => {
-  // A published @stigmer/cli acquires @stigmer/seedpack at its exact version on
-  // demand, so seedpack must be in the publish set. Order is not load-bearing
-  // (seedpack has no @stigmer/* deps; turbo orders builds by the dependency
+test("PACKAGES publishes @stigmer/plugins before the CLI that acquires it", () => {
+  // A published @stigmer/cli acquires @stigmer/plugins at its exact version on
+  // demand, so plugins must be in the publish set. Order is not load-bearing
+  // (plugins has no @stigmer/* deps; turbo orders builds by the dependency
   // graph), but keeping it ahead of the CLI mirrors the acquire relationship.
-  assert.ok(PACKAGES.includes("seedpack"), "seedpack must be in PACKAGES");
+  assert.ok(PACKAGES.includes("plugins"), "plugins must be in PACKAGES");
   assert.ok(
-    PACKAGES.indexOf("seedpack") < PACKAGES.indexOf("client-apps/cli"),
-    "seedpack must publish before client-apps/cli",
+    PACKAGES.indexOf("plugins") < PACKAGES.indexOf("client-apps/cli"),
+    "plugins must publish before client-apps/cli",
   );
 });
 
@@ -194,8 +194,8 @@ test("the checked-in @stigmer/cli closure is exactly what the compose-runner ima
   // installs this set from tarballs in one `npm install`; the release lane
   // stages it with `--only @stigmer/cli`. Pinned so a new @stigmer/* dep on
   // the CLI's path is a visible change here, not a silent registry fetch in
-  // the image build. seedpack, plugins, embed and temporal-codecs are NOT on
-  // the CLI's path and stay out of the image.
+  // the image build. plugins, embed and temporal-codecs are NOT on the
+  // CLI's path and stay out of the image.
   assert.deepEqual(packageClosure("@stigmer/cli"), [
     "apis/stubs/ts",
     "backend/libs/ts/zip-structure",

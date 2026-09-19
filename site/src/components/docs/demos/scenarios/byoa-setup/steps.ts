@@ -7,7 +7,7 @@
  * cursor clicks Save → detail showing "Using your OAuth app" → connected
  * with tools discovered.
  *
- * Fixture data modeled after the real Slack MCP server seedpack entry
+ * Fixture data modeled after the Slack MCP server
  * (vendor OAuth, HTTP transport, marketplace approval pending).
  */
 
@@ -49,7 +49,7 @@ export const DEMO_ORG = "acme";
 export const DEMO_SLUG = "mcp-server-slack";
 
 // ---------------------------------------------------------------------------
-// McpServer fixtures — Slack (from seedpack, vendor OAuth)
+// McpServer fixtures — Slack (vendor OAuth)
 // ---------------------------------------------------------------------------
 
 function buildSlackBase(): McpServer {
@@ -63,7 +63,7 @@ function buildSlackBase(): McpServer {
   server.spec = create(McpServerSpecSchema, {
     description: server.spec!.description,
     iconUrl:
-      "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/slack.svg",
+      "/tours/icons/slack.svg",
     tags: ["slack", "messaging", "communication", "collaboration"],
     serverType: {
       case: "http",

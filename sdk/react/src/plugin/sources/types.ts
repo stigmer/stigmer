@@ -26,9 +26,11 @@ export interface KnownMarketplace {
 
 /**
  * A marketplace tree the console can read: every file the host lists, with
- * its size, and a way to fetch one. `fetchFile` returns exactly `size`
- * bytes or rejects; the tree is read at one commit, so the answer cannot
- * change between the listing and the read.
+ * its size, a way to fetch one, and the URL a browser would fetch it from.
+ * `fetchFile` returns exactly `size` bytes or rejects; the tree is read at
+ * one commit, so the answer cannot change between the listing and the read.
+ * `fileUrl` names the same immutable file, for an `<img>` the browser loads
+ * itself (a card's logo) rather than bytes through JavaScript.
  */
 export interface MarketplaceTree {
   /** One phrase naming the tree for sentences, e.g. `github.com/cursor/plugins@abc123`. */
@@ -36,6 +38,8 @@ export interface MarketplaceTree {
   /** Root-relative POSIX paths and declared sizes; files only. */
   readonly files: readonly { readonly path: string; readonly size: number }[];
   readonly fetchFile: (path: string) => Promise<Uint8Array>;
+  /** The URL of `path` at the commit or version this tree was read at; not checked against the listing. */
+  readonly fileUrl: (path: string) => string;
 }
 
 /** The HTTP client a source reads through; injectable so tests run with none. */
@@ -72,3 +76,8 @@ export const MARKETPLACE_TREE_LIMITS = {
    */
   pluginBytes: 100 * 1024 * 1024,
 } as const;
+
+/** `bytes` as the MiB figure every size sentence quotes, one decimal. */
+export function formatMib(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}

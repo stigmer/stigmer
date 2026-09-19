@@ -1,81 +1,127 @@
 /**
- * The browser's marketplace list: the official one first and immovable,
- * GitHub sources added under a name and remembered in localStorage in the
- * CLI's entry shape, the reserved and taken names refused with a sentence,
- * an entry this version cannot read listed as unreadable with its reason,
+ * The browser's source list: the four built-ins first and immovable (the
+ * CLI's list, so the two clients cannot drift), GitHub sources added after
+ * being read (the name defaulting to the marketplace file's own) and
+ * remembered in localStorage in the CLI's entry shape, the reserved and
+ * taken names and a repository that is not a marketplace refused with a
+ * sentence, an entry this version cannot read listed as unreadable with its
+ * reason, a remembered entry under a built-in name yielding to the built-in,
  * and every mounted consumer seeing a change at once.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 
-import { MARKETPLACES_STORAGE_KEY, OFFICIAL_MARKETPLACE_NAME, useMarketplaces } from "../useMarketplaces.js";
+import {
+  type AddSourceOutcome,
+  MARKETPLACES_STORAGE_KEY,
+  OFFICIAL_MARKETPLACE_NAME,
+  useMarketplaces,
+} from "../useMarketplaces.js";
+import { HOSTED_MARKETPLACE_NAME, HOSTED_REPO, hostedFetch } from "./fixtures/hosted-marketplace.js";
+
+const BUILT_IN_NAMES = [OFFICIAL_MARKETPLACE_NAME, "cursor-plugins", "claude-code-plugins", "codex-plugins"];
 
 beforeEach(() => window.localStorage.clear());
 afterEach(cleanup);
 
 describe("useMarketplaces", () => {
-  it("starts with the official marketplace alone", () => {
+  it("starts with the four built-in sources, the official one first", () => {
     const { result } = renderHook(() => useMarketplaces());
-    expect(result.current.marketplaces).toEqual([{ name: OFFICIAL_MARKETPLACE_NAME, source: { type: "official" } }]);
+    expect(result.current.marketplaces.map((m) => m.name)).toEqual(BUILT_IN_NAMES);
+    expect(result.current.marketplaces[0]?.source).toEqual({ type: "official" });
+    expect(result.current.marketplaces[1]?.source).toEqual({ type: "github", repo: "cursor/plugins" });
     expect(result.current.unreadable).toEqual([]);
+    for (const name of BUILT_IN_NAMES) expect(result.current.isBuiltIn(name)).toBe(true);
   });
 
-  it("adds a GitHub source under a name, in the CLI's entry shape, and removes it", () => {
-    const { result } = renderHook(() => useMarketplaces());
-    let refusal: string | null = "unset";
-    act(() => {
-      refusal = result.current.add("cursor-plugins", "https://github.com/cursor/plugins/tree/main");
+  it("reads a GitHub source, records it under the file's own name in the CLI's entry shape, and removes it", async () => {
+    const { fetchImpl } = hostedFetch();
+    const { result } = renderHook(() => useMarketplaces({ fetchImpl }));
+    let outcome: AddSourceOutcome | undefined;
+    await act(async () => {
+      outcome = await result.current.add(`https://github.com/${HOSTED_REPO}/tree/main`);
     });
-    expect(refusal).toBeNull();
-    expect(result.current.marketplaces[1]).toEqual({
-      name: "cursor-plugins",
-      source: { type: "github", repo: "cursor/plugins", ref: "main" },
+    expect(outcome).toEqual({ ok: true, name: HOSTED_MARKETPLACE_NAME });
+    expect(result.current.marketplaces.at(-1)).toEqual({
+      name: HOSTED_MARKETPLACE_NAME,
+      source: { type: "github", repo: HOSTED_REPO, ref: "main" },
     });
     expect(JSON.parse(window.localStorage.getItem(MARKETPLACES_STORAGE_KEY) ?? "{}")).toEqual({
-      "cursor-plugins": { type: "github", repo: "cursor/plugins", ref: "main" },
+      [HOSTED_MARKETPLACE_NAME]: { type: "github", repo: HOSTED_REPO, ref: "main" },
     });
 
+    let refusal: string | null = "unset";
     act(() => {
-      refusal = result.current.remove("cursor-plugins");
+      refusal = result.current.remove(HOSTED_MARKETPLACE_NAME);
     });
     expect(refusal).toBeNull();
-    expect(result.current.marketplaces).toHaveLength(1);
+    expect(result.current.marketplaces.map((m) => m.name)).toEqual(BUILT_IN_NAMES);
     expect(window.localStorage.getItem(MARKETPLACES_STORAGE_KEY)).toBeNull();
   });
 
-  it("refuses the reserved name, a taken name, a bad name and a non-source", () => {
-    const { result } = renderHook(() => useMarketplaces());
-    expect(result.current.add(OFFICIAL_MARKETPLACE_NAME, "cursor/plugins")).toContain("built-in");
-    expect(result.current.add("Bad Name", "cursor/plugins")).toContain("not a marketplace name");
-    expect(result.current.add("mine", "not a repo")).toContain("not a GitHub");
-    act(() => {
-      result.current.add("mine", "cursor/plugins");
+  it("takes a given name over the file's, and refuses a built-in, a taken and a bad name, a non-source, and a repository that is not a marketplace", async () => {
+    const { fetchImpl } = hostedFetch();
+    const { result } = renderHook(() => useMarketplaces({ fetchImpl }));
+
+    expect(await result.current.add("not a repo")).toMatchObject({ ok: false, message: expect.stringContaining("GitHub") });
+    expect(await result.current.add("other/repo")).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("not"),
     });
-    expect(result.current.add("mine", "other/repo")).toContain("already configured");
-    expect(result.current.remove(OFFICIAL_MARKETPLACE_NAME)).toContain("cannot be removed");
-    expect(result.current.remove("ghost")).toContain("no marketplace named");
+    expect(await result.current.add(HOSTED_REPO, OFFICIAL_MARKETPLACE_NAME)).toEqual({
+      ok: false,
+      message: `'${OFFICIAL_MARKETPLACE_NAME}' is a built-in source and cannot be added or replaced; choose another name`,
+    });
+    expect(await result.current.add(HOSTED_REPO, "cursor-plugins")).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("'cursor-plugins' is a built-in source"),
+    });
+    expect(await result.current.add(HOSTED_REPO, "Bad Name")).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("not a source name"),
+    });
+
+    await act(async () => {
+      expect(await result.current.add(HOSTED_REPO, "mine")).toEqual({ ok: true, name: "mine" });
+    });
+    expect(await result.current.add(HOSTED_REPO, "mine")).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("already added"),
+    });
+    expect(result.current.remove(OFFICIAL_MARKETPLACE_NAME)).toBe(
+      `'${OFFICIAL_MARKETPLACE_NAME}' is a built-in source and cannot be removed`,
+    );
+    expect(result.current.remove("codex-plugins")).toContain("built-in source and cannot be removed");
+    expect(result.current.remove("ghost")).toContain("no source named");
   });
 
-  it("lists an entry it cannot read with its reason, never silently", () => {
+  it("lists an entry it cannot read with its reason, never silently, and lets a built-in win a remembered name", () => {
     window.localStorage.setItem(
       MARKETPLACES_STORAGE_KEY,
-      JSON.stringify({ good: { type: "github", repo: "a/b" }, broken: { type: "local", path: "/tmp" }, typeless: {} }),
+      JSON.stringify({
+        good: { type: "github", repo: "a/b" },
+        "cursor-plugins": { type: "github", repo: "someone/fork" },
+        broken: { type: "local", path: "/tmp" },
+        typeless: {},
+      }),
     );
     const { result } = renderHook(() => useMarketplaces());
-    expect(result.current.marketplaces.map((m) => m.name)).toEqual([OFFICIAL_MARKETPLACE_NAME, "good"]);
+    expect(result.current.marketplaces.map((m) => m.name)).toEqual([...BUILT_IN_NAMES, "good"]);
+    expect(result.current.marketplaces[1]?.source).toEqual({ type: "github", repo: "cursor/plugins" });
     expect(result.current.unreadable).toEqual([
       { name: "broken", reason: "unknown type 'local' (expected 'github')" },
       { name: "typeless", reason: "no 'type' (expected 'github')" },
     ]);
   });
 
-  it("notifies every mounted consumer of a change", () => {
-    const first = renderHook(() => useMarketplaces());
+  it("notifies every mounted consumer of a change", async () => {
+    const { fetchImpl } = hostedFetch();
+    const first = renderHook(() => useMarketplaces({ fetchImpl }));
     const second = renderHook(() => useMarketplaces());
-    act(() => {
-      first.result.current.add("shared", "cursor/plugins");
+    await act(async () => {
+      await first.result.current.add(HOSTED_REPO, "shared");
     });
-    expect(second.result.current.marketplaces.map((m) => m.name)).toEqual([OFFICIAL_MARKETPLACE_NAME, "shared"]);
+    expect(second.result.current.marketplaces.map((m) => m.name)).toEqual([...BUILT_IN_NAMES, "shared"]);
   });
 });

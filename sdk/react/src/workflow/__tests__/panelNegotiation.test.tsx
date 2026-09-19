@@ -45,6 +45,19 @@ vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
   ExecutionComparisonPicker: () => null,
 }));
 
+// Diagnose also gates on the Organization's Workflow Architect existing
+// (workflow-architect.ts). The probe is a data hook over the client and this
+// suite renders without a provider; it answers "available" here so the
+// panel negotiation stays the one thing under test (the reconciliation
+// suite covers the architect gate itself).
+vi.mock("../workflow-architect", () => ({
+  useWorkflowArchitect: () => ({
+    availability: "available",
+    agent: null,
+    error: null,
+  }),
+}));
+
 const mockedUseWorkflowExecution = vi.mocked(useWorkflowExecution);
 const mockedUseEventStream = vi.mocked(useWorkflowExecutionEventStream);
 const mockedUseArtifacts = vi.mocked(useWorkflowExecutionArtifacts);

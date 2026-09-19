@@ -15,6 +15,7 @@ import {
 import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions.js";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader.js";
 import { WorkflowRepairCard } from "./WorkflowRepairCard.js";
+import { useWorkflowArchitect } from "./workflow-architect.js";
 import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph.js";
 import type { DerivedCostSummary, DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker.js";
@@ -368,6 +369,14 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   // panel) — gates on this, so the affordances can never drift apart.
   const panelEnabled = panelMode !== "none";
 
+  // Diagnose opens a Session on the Organization's Workflow Architect;
+  // without the agent it would dead-end, so the action is withheld the
+  // same way it is without a panel (workflow-architect.ts). A host with
+  // no `org` in scope never had the action, and the probe is a no-op.
+  const architect = useWorkflowArchitect(org);
+  const canDiagnose =
+    Boolean(org) && panelEnabled && architect.availability === "available";
+
   // The execution-level workspace panel (facets + virtual document
   // tabs). The controller lives at the owner level — the editors-store
   // SUBSCRIPTION stays inside ExecutionWorkspacePanel so tab churn re-renders
@@ -537,10 +546,11 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         // Diagnose opens (or focuses) the singleton diagnosis document tab —
         // the tab itself is the "diagnosis is active" state, so there is no
         // owner-level isDiagnosing boolean to keep in sync (SSOT). A viewer
-        // without a panel (panel="none") withholds the action: the
-        // conversation renders inside the panel, so offering it would be a
-        // dead end.
-        onDiagnose={org && panelEnabled ? panel.openDiagnosis : undefined}
+        // without a panel (panel="none") or without the Workflow Architect
+        // in the Organization withholds the action: the conversation renders
+        // inside the panel and runs on the agent, so offering it without
+        // either would be a dead end.
+        onDiagnose={canDiagnose ? panel.openDiagnosis : undefined}
         onCompare={handleOpenComparePicker}
         headerActions={
           <>

@@ -11,10 +11,14 @@
  * so the CDN's long cache is correct here where it would be wrong for a
  * live GitHub branch.
  *
- * A development server (`0.0.0-dev`, or any `-dev.` build) has no
+ * A development server (`dev`, `0.0.0-dev`, or any `-dev.` build) has no
  * published catalogue; the console says so in one sentence and the user
- * installs from a GitHub marketplace instead. No fallback is built.
+ * installs from another source instead. No fallback is built. Which
+ * versions count is the shared client predicate, the same one the CLI's
+ * acquisition applies, so the two clients never disagree on a version.
  */
+
+import { isReleaseVersion } from "@stigmer/plugin-package/client";
 
 import { type FetchImpl, MARKETPLACE_TREE_LIMITS, MarketplaceSourceError, type MarketplaceTree } from "./types.js";
 
@@ -24,9 +28,9 @@ interface FlatListing {
   readonly files: readonly { readonly name: string; readonly size: number }[];
 }
 
-/** Whether `version` names a published release of the catalogue. */
+/** Whether `version` names a release the catalogue is published for: the shared rule, under this module's older name. */
 export function isPublishedVersion(version: string): boolean {
-  return /^\d+\.\d+\.\d+$/.test(version);
+  return isReleaseVersion(version);
 }
 
 /** The listing URL for the catalogue at `version`. */
@@ -101,5 +105,13 @@ export async function openOfficialTree(serverVersion: string, fetchImpl: FetchIm
       }
       return bytes;
     },
+    fileUrl: (path) => officialFileUrl(serverVersion, path),
   };
 }
+
+/**
+ * The GitHub account the official catalogue is published from
+ * (`github.com/stigmer/stigmer`, `plugins/`), so its mark follows the one
+ * rule every source's mark follows: the publisher's own avatar.
+ */
+export const OFFICIAL_PUBLISHER = "stigmer";

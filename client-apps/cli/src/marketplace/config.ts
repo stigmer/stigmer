@@ -1,10 +1,14 @@
-// The marketplaces a CLI knows: the official one, built in, and the ones a
-// user added under the `marketplaces` key of ~/.stigmer/config.yaml.
+// The sources a CLI knows: the built-in ones (the official catalogue and the
+// three vendors' public ones, the same list the console ships), and the ones
+// a user added under the `marketplaces` key of ~/.stigmer/config.yaml.
 //
-// A marketplace is client-side configuration, never a server resource: the
+// A source is client-side configuration, never a server resource: the
 // server only ever sees the plugin archive a client pushes. That is why the
 // list lives beside the named backends and the context, and why `stigmer
-// marketplace` is a noun group like `config` and `auth`.
+// marketplace` is a noun group like `config` and `auth`. The built-ins are
+// code, not config: they cannot be added over or removed, so `stigmer
+// install cursor-plugins/thermos` works on a fresh machine and the CLI's
+// list never drifts from the console's.
 //
 // The config module keeps the on-disk entry loose (`MarketplaceEntryConfig`,
 // every field optional) so a hand-edited entry this CLI cannot read survives
@@ -20,8 +24,11 @@ import {
 } from "../config/index.js";
 import {
   type GitHubMarketplaceSource,
+  BUILT_IN_MARKETPLACES,
   OFFICIAL_MARKETPLACE_NAME,
+  builtInSourceRefusal,
   describeGitHubSource,
+  isBuiltInMarketplaceName,
   isOwnerRepo,
 } from "@stigmer/plugin-package/client";
 import { UsageError } from "../errors/index.js";
@@ -61,13 +68,23 @@ export const OFFICIAL_MARKETPLACE: KnownMarketplace = {
   source: { type: "official" },
 };
 
-/** Every marketplace the config names, the official one first. */
+/** The sources every CLI ships with, in listing order; the official one is first. */
+export const BUILT_IN_SOURCES: readonly KnownMarketplace[] =
+  BUILT_IN_MARKETPLACES.map((entry) => ({
+    name: entry.name,
+    source: entry.source,
+  }));
+
+/** Every source the CLI knows: the built-ins first, then the config's entries in file order. */
 export function listMarketplaces(
   config: Config = loadConfig(),
 ): MarketplaceListing {
-  const known: KnownMarketplace[] = [OFFICIAL_MARKETPLACE];
+  const known: KnownMarketplace[] = [...BUILT_IN_SOURCES];
   const unreadable: UnreadableMarketplace[] = [];
   for (const [name, entry] of Object.entries(config.marketplaces ?? {})) {
+    // A config written before the vendors were built in may name one; the
+    // built-in wins and the entry is left in the file untouched.
+    if (isBuiltInMarketplaceName(name)) continue;
     const narrowed = narrowEntry(entry);
     if (narrowed.ok) known.push({ name, source: narrowed.source });
     else unreadable.push({ name, reason: narrowed.reason });
@@ -106,9 +123,9 @@ export function addMarketplace(
   source: Exclude<MarketplaceSource, { type: "official" }>,
 ): void {
   refuseStandalone("add");
-  if (name === OFFICIAL_MARKETPLACE_NAME) {
+  if (isBuiltInMarketplaceName(name)) {
     throw new UsageError(
-      `'${OFFICIAL_MARKETPLACE_NAME}' is the built-in marketplace and cannot be added or replaced\n\n` +
+      `${builtInSourceRefusal(name, "add")}\n\n` +
         "Pass --name <other-name> to add this source under a different name.",
     );
   }
@@ -128,10 +145,8 @@ export function addMarketplace(
 /** Remove the marketplace called `name` and save. Refuses the reserved name and an unknown one. */
 export function removeMarketplace(name: string): void {
   refuseStandalone("remove");
-  if (name === OFFICIAL_MARKETPLACE_NAME) {
-    throw new UsageError(
-      `'${OFFICIAL_MARKETPLACE_NAME}' is the built-in marketplace and cannot be removed`,
-    );
+  if (isBuiltInMarketplaceName(name)) {
+    throw new UsageError(builtInSourceRefusal(name, "remove"));
   }
   const config = loadConfig();
   if (config.marketplaces?.[name] === undefined) {

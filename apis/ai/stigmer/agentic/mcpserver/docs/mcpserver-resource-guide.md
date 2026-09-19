@@ -188,7 +188,7 @@ Status is system-managed and must never be set by users in YAML.
 |---|---|
 | `status.validation_state` | Structural validity of the McpServer definition: `valid`, `invalid`, or `validation_state_unspecified` (not yet validated). |
 | `status.validation_message` | Human-readable explanation of what's wrong. Populated only when `validation_state` is `invalid`. |
-| `status.discovered_capabilities` | Snapshot of tools and resource templates the server reports. Populated by seedpack bootstrap or CLI discovery. See [capability-discovery.md](capability-discovery.md). |
+| `status.discovered_capabilities` | Snapshot of tools and resource templates the server reports. Populated by the connect flow (console, CLI, or the runner's first-time-use backfill). See [capability-discovery.md](capability-discovery.md). |
 | `status.audit` | Standard audit trail: `spec_audit` and `status_audit`, each containing `created_by`, `created_at`, `updated_by`, `updated_at`, and last `event` type. |
 
 ### Validation State

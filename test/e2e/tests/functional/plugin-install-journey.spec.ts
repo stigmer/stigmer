@@ -2,19 +2,29 @@ import { test, expect } from "@playwright/test";
 import {
   HOSTED_MARKETPLACE_NAME,
   HOSTED_PLUGIN,
+  HOSTED_PLUGIN_DISPLAY_NAME,
   HOSTED_REPO,
   HOSTED_SERVER,
   HOSTED_SKILL,
+  UPLOADED_PLUGIN,
+  UPLOADED_SERVER,
+  UPLOADED_SKILL,
   routeHostedMarketplace,
+  writeUploadPluginDir,
 } from "../../fixtures/hosted-marketplace";
 
 /**
- * The console's plugin journey, end to end and hermetic: add a GitHub
- * marketplace (its two hosts answered from fixtures), read what it offers,
- * install a plugin from the preview, land on the plugin's page, open a
- * session on its agent, and be asked for the variable the plugin's tool
- * needs, because the install declared it on the agent. "Starts a session"
- * is the session page opening; no model is involved.
+ * The console's plugin journeys, end to end and hermetic. The Marketplace
+ * arm: open the Marketplace, see the built-in sources as chips (the
+ * official one honest about a development server, the vendors answered
+ * 404 by the fixture and honest about that), see the Upload tile first in
+ * the grid, add a source through Manage sources, find its card wearing the
+ * manifest's display name, install from it, land on the plugin's page,
+ * open a session on its agent, and be asked for the variable the plugin's
+ * tool needs, because the install declared it on the agent. The upload
+ * arm: hand a plugin folder to the directory input as a browser would,
+ * read the same preview, install, land on its page. "Starts a session" is
+ * the session page opening; no model is involved.
  *
  * Prerequisites:
  * - Local backend (auto-started by the Playwright global setup) and the web
@@ -28,35 +38,52 @@ test.describe("Plugin install journey", () => {
     await routeHostedMarketplace(page);
   });
 
-  test("lists installed plugins and offers Install plugin", async ({ page }) => {
+  test("lists installed plugins and offers the two ways in", async ({ page }) => {
     await page.goto("/library/plugins");
     await expect(page.getByRole("heading", { level: 1, name: "Plugins" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByLabel("Plugin workbench")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Install plugin" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Browse Marketplace" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Upload plugin" }).first()).toBeVisible();
   });
 
-  test("adds a marketplace, previews and installs a plugin, and the agent asks for its variable", async ({ page }) => {
+  test("the Marketplace: built-in sources, an added source, install from a card, and the agent asks for its variable", async ({
+    page,
+  }) => {
     // One journey of several round trips; the default budget is for one page.
     test.setTimeout(120_000);
-    await page.goto("/library/plugins/install");
-    await expect(page.getByRole("heading", { level: 1, name: "Install a plugin" })).toBeVisible({ timeout: 15_000 });
+    await page.goto("/marketplace");
+    await expect(page.getByRole("heading", { level: 1, name: "Marketplace" })).toBeVisible({ timeout: 15_000 });
 
-    // The official tab is honest about a development server.
-    await expect(page.getByText(/development build/)).toBeVisible();
+    // The sources first, as chips: All sources, then the built-ins official first; each honest about
+    // its read (the official one names the development build, the vendors are 404 here), the page standing.
+    const sources = page.getByRole("radiogroup", { name: "Sources" });
+    const chips = sources.getByRole("radio");
+    await expect(chips.nth(0)).toHaveAccessibleName("All sources");
+    await expect(chips.nth(1)).toHaveAccessibleName("stigmer");
+    await expect(chips.nth(2)).toHaveAccessibleName("cursor-plugins");
+    const unreadable = page.getByRole("list", { name: "Sources that cannot be read" });
+    await expect(unreadable.getByText(/development build/)).toBeVisible({ timeout: 15_000 });
+    await expect(unreadable.getByText(/cursor-plugins/)).toBeVisible({ timeout: 15_000 });
 
-    // marketplace add <source> --name <name>
-    await page.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
-    await page.getByRole("textbox", { name: "Name" }).fill(HOSTED_MARKETPLACE_NAME);
-    await page.getByRole("button", { name: "Add marketplace" }).click();
+    // The Upload tile is the first tile in the grid; uploading is one more place plugins come from.
+    await expect(page.getByRole("list", { name: "Plugins" }).getByRole("button", { name: /Upload a plugin/ })).toBeVisible();
 
-    // marketplace show: the entry is offered.
-    await expect(page.getByRole("tab", { name: HOSTED_MARKETPLACE_NAME })).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByText(`github.com/${HOSTED_REPO}`)).toBeVisible();
+    // Sources: add one through Manage sources (its name comes from its marketplace file).
+    await page.getByRole("button", { name: "Manage sources" }).click();
+    const manage = page.getByRole("dialog", { name: "Sources" });
+    await manage.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
+    await manage.getByRole("button", { name: "Add source" }).click();
+    await expect(manage.getByText(`Added source '${HOSTED_MARKETPLACE_NAME}'.`)).toBeVisible({ timeout: 15_000 });
+    await manage.getByRole("button", { name: "Close" }).click();
+    await expect(sources.getByRole("radio", { name: HOSTED_MARKETPLACE_NAME })).toBeVisible();
+
+    // Its card in the grid wears the manifest's display name and names its source; Install opens the preview in the CLI's words.
+    const card = page.getByRole("list", { name: "Plugins" }).getByRole("listitem").filter({ hasText: HOSTED_MARKETPLACE_NAME }).first();
+    await expect(card.getByRole("heading", { level: 3 })).toHaveText(HOSTED_PLUGIN_DISPLAY_NAME, { timeout: 15_000 });
     await page.getByRole("button", { name: `Install ${HOSTED_PLUGIN}` }).click();
-
-    // The preview in the CLI's words.
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: `Install ${HOSTED_PLUGIN}` })).toBeVisible();
+    await expect(dialog.getByText(new RegExp(`From ${HOSTED_MARKETPLACE_NAME} `))).toBeVisible();
     await expect(dialog.getByText("Cursor plugin")).toBeVisible();
     await expect(dialog.getByText(`1: ${HOSTED_SKILL}`)).toBeVisible();
     await expect(dialog.getByText(`1: ${HOSTED_SERVER} (http)`)).toBeVisible();
@@ -105,15 +132,45 @@ test.describe("Plugin install journey", () => {
     await expect(page.getByRole("article", { name: "User message" })).toContainText("Is it warm in here?");
   });
 
-  test("a second install of the same version reads as already installed", async ({ page }) => {
-    // A fresh browser context remembers no marketplace; add it again.
-    await page.goto("/library/plugins/install");
-    await page.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
-    await page.getByRole("textbox", { name: "Name" }).fill(HOSTED_MARKETPLACE_NAME);
-    await page.getByRole("button", { name: "Add marketplace" }).click();
-    await page.getByRole("button", { name: `Install ${HOSTED_PLUGIN}` }).click();
+  test("the Marketplace marks the installed plugin, and a second install of the same version reads as already installed", async ({
+    page,
+  }) => {
+    // A fresh browser context remembers no added source; add it again.
+    await page.goto("/marketplace");
+    await page.getByRole("button", { name: "Manage sources" }).click();
+    const manage = page.getByRole("dialog", { name: "Sources" });
+    await manage.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
+    await manage.getByRole("button", { name: "Add source" }).click();
+    await expect(manage.getByText(`Added source '${HOSTED_MARKETPLACE_NAME}'.`)).toBeVisible({ timeout: 15_000 });
+    await manage.getByRole("button", { name: "Close" }).click();
+    const card = page.getByRole("button", { name: `Install ${HOSTED_PLUGIN}` });
+    await expect(card).toHaveText("Install again", { timeout: 15_000 });
+    await card.click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText(/already installed; there is nothing to do/)).toBeVisible({ timeout: 15_000 });
     await expect(dialog.getByRole("button", { name: "Install", exact: true })).toBeDisabled();
+  });
+
+  test("Upload plugin: a folder handed to the directory input previews as the CLI would and installs", async ({ page }) => {
+    test.setTimeout(90_000);
+    const folder = writeUploadPluginDir();
+    await page.goto("/library/plugins/upload");
+    await expect(page.getByRole("heading", { level: 1, name: "Upload a plugin" })).toBeVisible({ timeout: 15_000 });
+
+    // The directory input takes the folder; the browser names every file under it.
+    await page.getByTestId("plugin-folder-input").setInputFiles(folder);
+
+    await expect(page.getByRole("heading", { level: 2, name: `Install ${UPLOADED_PLUGIN}` })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(`From the folder '${UPLOADED_PLUGIN}' into`)).toBeVisible();
+    await expect(page.getByText("Cursor plugin")).toBeVisible();
+    await expect(page.getByText(`1: ${UPLOADED_SKILL}`)).toBeVisible();
+    await expect(page.getByText(`1: ${UPLOADED_SERVER} (http)`)).toBeVisible();
+
+    const install = page.getByRole("button", { name: "Install", exact: true });
+    await expect(install).toBeEnabled({ timeout: 15_000 });
+    await install.click();
+    await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${UPLOADED_PLUGIN}$`), { timeout: 30_000 });
+    await expect(page.getByRole("heading", { level: 2, name: UPLOADED_PLUGIN })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: `Agent ${UPLOADED_PLUGIN}` })).toBeVisible();
   });
 });

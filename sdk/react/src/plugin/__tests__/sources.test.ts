@@ -2,20 +2,22 @@
  * The marketplace sources a browser reads, against a fetch fake. Pins: a
  * GitHub tree is listed once and read at the resolved commit; a second
  * listing is conditional and a 304 reuses the cache; the marketplace file
- * is the only file fetched to read a catalogue; an entry's subtree is
- * fetched whole and selected by the tree's own `.gitignore`; the prepared
- * digest equals the CLI's digest for the same files (the parity the whole
- * design rests on); a truncated listing, a private repository, a short
+ * is the only file fetched to read a catalogue; an entry is selected by
+ * the tree's own `.gitignore` and only the selected files are fetched (an
+ * ignored file's bytes never cross the wire); the prepared digest equals
+ * the CLI's digest for the same files, now through the one preparation the
+ * CLI runs (the parity the whole design rests on); a truncated listing, a private repository, a short
  * read and an over-budget entry are refused with their sentences; the
  * official catalogue refuses a development server and reads a published
- * version.
+ * version; a tree names a file by the URL a browser loads it from, and a
+ * source's mark is its publisher's GitHub avatar under one rule.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
 import { archivePlugin, digestArchive, selectPluginFiles } from "@stigmer/plugin-package/client";
 
-import { openGitHubTree, resetGitHubListingCache } from "../sources/github.js";
-import { openOfficialTree } from "../sources/official.js";
+import { githubAvatarUrl, githubOwner, openGitHubTree, resetGitHubListingCache } from "../sources/github.js";
+import { OFFICIAL_PUBLISHER, openOfficialTree } from "../sources/official.js";
 import { PluginReadRefusal, findEntry, openMarketplace, prepareEntry } from "../sources/read.js";
 import { MARKETPLACE_TREE_LIMITS, MarketplaceSourceError } from "../sources/types.js";
 import { HOSTED_COMMIT, HOSTED_REPO, hostedFetch, hostedMarketplaceFiles } from "./fixtures/hosted-marketplace.js";
@@ -67,7 +69,7 @@ describe("openMarketplace", () => {
   it("fetches only the marketplace file and reads the catalogue with its dropped entries", async () => {
     const { fetchImpl, requests } = hostedFetch();
     const opened = await openMarketplace(await openGitHubTree(SOURCE, fetchImpl));
-    expect(opened.marketplace.name).toBe("cursor-plugins");
+    expect(opened.marketplace.name).toBe("acme-plugins");
     expect(opened.marketplace.plugins.map((p) => p.name)).toEqual(["thermos", "github"]);
     expect(opened.warnings.map((w) => w.subject)).toEqual(["ghost"]);
     const rawReads = requests.filter((r) => r.url.includes("raw.githubusercontent.com"));
@@ -85,7 +87,7 @@ describe("openMarketplace", () => {
 });
 
 describe("prepareEntry", () => {
-  it("fetches the entry's subtree, applies its .gitignore, and arrives at the shared module's digest", async () => {
+  it("fetches only the entry's selected files, applies its .gitignore, and arrives at the shared module's digest", async () => {
     const files = hostedMarketplaceFiles();
     const { fetchImpl, requests } = hostedFetch(files);
     const opened = await openMarketplace(await openGitHubTree(SOURCE, fetchImpl));
@@ -97,11 +99,14 @@ describe("prepareEntry", () => {
     expect(prepared.plugin.variables.map((v) => v.name)).toEqual(["API_TOKEN"]);
     expect(prepared.stats.filesIgnored).toBe(1); // debug.log, by the tree's own .gitignore
 
-    // Only thermos/** was fetched for the install (plus the one marketplace file before it).
+    // Only thermos/** was fetched for the install (plus the one marketplace file before it),
+    // and within it the .gitignore plus the selected files: the ignored debug.log never moved.
     const fetched = requests
       .filter((r) => r.url.includes("raw.githubusercontent.com"))
       .map((r) => r.url.split(`${HOSTED_COMMIT}/`)[1] ?? "");
     expect(fetched.filter((p) => !p.startsWith("thermos/"))).toEqual([".cursor-plugin/marketplace.json"]);
+    expect(fetched).not.toContain("thermos/debug.log");
+    expect(fetched).toContain("thermos/.gitignore");
 
     // Parity: the same files through the client module directly yield the same digest.
     const entryFiles = [...files.entries()]
@@ -151,10 +156,30 @@ describe("openOfficialTree", () => {
   it("refuses a development server in one sentence and reads a published version", async () => {
     const { fetchImpl } = hostedFetch(undefined, { publishedVersion: "3.17.0" });
     await expect(openOfficialTree("0.0.0-dev", fetchImpl)).rejects.toMatchObject({ reason: "unavailable-on-dev-server" });
+    // The bare stamp an unbundled server reports (the cloud composition before it stated its release).
+    await expect(openOfficialTree("dev", fetchImpl)).rejects.toMatchObject({ reason: "unavailable-on-dev-server" });
+    // A pre-release IS published (under `next`); the old `X.Y.Z`-only test called it a dev build.
+    await expect(openOfficialTree("3.17.0-rc.1", fetchImpl)).rejects.toMatchObject({ reason: "not-found" });
     await expect(openOfficialTree("3.16.0", fetchImpl)).rejects.toMatchObject({ reason: "not-found" });
     const tree = await openOfficialTree("3.17.0", fetchImpl);
     expect(tree.describe).toBe("@stigmer/plugins@3.17.0");
     const opened = await openMarketplace(tree);
     expect(opened.marketplace.plugins.map((p) => p.name)).toEqual(["thermos", "github"]);
+  });
+});
+
+describe("a tree names its files by URL, and a source by its publisher's avatar", () => {
+  it("a GitHub tree's URL is the raw file at the resolved commit; the official one the CDN file at the version", async () => {
+    const github = await openGitHubTree(SOURCE, hostedFetch().fetchImpl);
+    expect(github.fileUrl("thermos/assets/logo.png")).toBe(
+      `https://raw.githubusercontent.com/${HOSTED_REPO}/${HOSTED_COMMIT}/thermos/assets/logo.png`,
+    );
+    const official = await openOfficialTree("3.17.0", hostedFetch(undefined, { publishedVersion: "3.17.0" }).fetchImpl);
+    expect(official.fileUrl("assistant/icon.svg")).toBe("https://cdn.jsdelivr.net/npm/@stigmer/plugins@3.17.0/assistant/icon.svg");
+  });
+
+  it("every source's mark is its publishing account's GitHub avatar, the official catalogue's included", () => {
+    expect(githubAvatarUrl(githubOwner("cursor/plugins"))).toBe("https://github.com/cursor.png?size=64");
+    expect(githubAvatarUrl(OFFICIAL_PUBLISHER, 32)).toBe("https://github.com/stigmer.png?size=32");
   });
 });

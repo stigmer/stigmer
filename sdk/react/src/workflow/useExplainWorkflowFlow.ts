@@ -10,6 +10,7 @@ import { useExecutionStream } from "../execution/useExecutionStream.js";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
 import { WORKFLOW_ARCHITECT_RESPONSE_SCHEMA } from "./architect-response-schema.js";
+import { workflowArchitectRef } from "./workflow-architect.js";
 
 /**
  * Lifecycle phases for the workflow explain flow.
@@ -43,8 +44,6 @@ export interface UseExplainWorkflowFlowReturn {
   readonly explain: () => Promise<void>;
   readonly reset: () => void;
 }
-
-const AGENT_REF = { org: "", slug: "workflow-architect" } as const;
 
 const EXPLAIN_PROMPT_PREFIX =
   "Please explain the following workflow in plain language. " +
@@ -130,7 +129,7 @@ export function useExplainWorkflowFlow(
     try {
       const { sessionId } = await createSession({
         org: orgRef.current,
-        agentRef: { ...AGENT_REF, org: orgRef.current },
+        agentRef: workflowArchitectRef(orgRef.current),
       });
 
       const message =

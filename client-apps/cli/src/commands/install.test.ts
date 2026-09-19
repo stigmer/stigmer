@@ -4,7 +4,10 @@
 // the folder prepares to); --dry-run pushes nothing; a version pin, a path,
 // an unknown name and an ambiguous name refuse with their sentences. A real
 // Connect backend over h2c serves the plugin controllers; the config file
-// (HOME redirected) points a selfhost backend at it.
+// (HOME redirected) points a selfhost backend at it. The global fetch is
+// stubbed: the built-in vendor sources are asked through their marketplace
+// files (answered 404, so they declare nothing) and any download would fail
+// loudly, which pins that a bare install never fetches a vendor's zipball.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import {
@@ -101,8 +104,20 @@ afterAll(async () => {
   await new Promise<void>((resolve) => backend.close(() => resolve()));
 });
 
+/** Every URL the stubbed fetch was asked; raw files answer 404, anything else refuses. */
+let fetched: string[] = [];
+
 beforeEach(() => {
   pushes = [];
+  fetched = [];
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+    const url = String(input);
+    fetched.push(url);
+    if (url.startsWith("https://raw.githubusercontent.com/")) {
+      return new Response("Not Found", { status: 404 });
+    }
+    throw new Error(`unexpected network request in test: ${url}`);
+  });
   originalHome = process.env.HOME;
   home = mkdtempSync(join(tmpdir(), "stigmer-install-cmd-"));
   fixture = mkdtempSync(join(tmpdir(), "stigmer-install-cmd-fixture-"));
@@ -122,7 +137,7 @@ beforeEach(() => {
       "context:",
       "  organization: acme",
       "marketplaces:",
-      "  cursor-plugins:",
+      "  acme-plugins:",
       "    type: local",
       `    path: ${fixture}`,
       "",
@@ -131,6 +146,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   if (originalHome === undefined) delete process.env.HOME;
   else process.env.HOME = originalHome;
   rmSync(home, { recursive: true, force: true });
@@ -184,7 +200,7 @@ async function run(
 
 describe("install", () => {
   it("pushes the entry's folder as push plugin would, into the context org, and renders the install", async () => {
-    const outcome = await run("cursor-plugins/thermos", "--json");
+    const outcome = await run("acme-plugins/thermos", "--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     expect(pushes).toHaveLength(1);
     const expected = await preparePluginPush(join(fixture, "thermos"));
@@ -195,7 +211,7 @@ describe("install", () => {
       ),
     ).toBe(true);
     expect(pushes[0]?.message).toBe(
-      "installed from marketplace 'cursor-plugins'",
+      "installed from marketplace 'acme-plugins'",
     );
 
     const payload = JSON.parse(outcome.stdout);
@@ -207,7 +223,7 @@ describe("install", () => {
     );
     expect(about.fields).toContainEqual({
       key: "Marketplace",
-      value: `cursor-plugins (${fixture})`,
+      value: `acme-plugins (${fixture})`,
     });
     expect(payload.data.members).toHaveLength(2);
   });
@@ -229,7 +245,7 @@ describe("install", () => {
 
   it("--dry-run reads the marketplace and describes the plugin without pushing", async () => {
     const outcome = await run(
-      "cursor-plugins/thermos@1.0.0",
+      "acme-plugins/thermos@1.0.0",
       "--dry-run",
       "--json",
     );
@@ -237,13 +253,13 @@ describe("install", () => {
     expect(pushes).toHaveLength(0);
     const payload = JSON.parse(outcome.stdout);
     expect(payload.message).toBe(
-      "Dry run: 'cursor-plugins/thermos' would install plugin 'thermos'",
+      "Dry run: 'acme-plugins/thermos' would install plugin 'thermos'",
     );
     expect(payload.data.plugin.name).toBe("thermos");
   });
 
   it("refuses a version the marketplace does not offer, naming the one it does", async () => {
-    const outcome = await run("cursor-plugins/thermos@9.9.9");
+    const outcome = await run("acme-plugins/thermos@9.9.9");
     expect(outcome.exitCode).toBe(ExitCode.Usage);
     expect(outcome.message).toMatch(
       /pins version 9\.9\.9, but the marketplace offers 'thermos' at 1\.0\.0/,
@@ -280,8 +296,11 @@ describe("install", () => {
       const outcome = await run("thermos");
       expect(outcome.exitCode).toBe(ExitCode.Usage);
       expect(outcome.message).toMatch(
-        /offered by more than one marketplace: cursor-plugins, second\n\nName the one you mean: cursor-plugins\/thermos or second\/thermos/,
+        /offered by more than one marketplace: acme-plugins, second\n\nName the one you mean: acme-plugins\/thermos or second\/thermos/,
       );
+      // The three built-in vendor sources were asked through their files and nothing was downloaded.
+      expect(fetched.filter((url) => url.startsWith("https://raw.githubusercontent.com/cursor/plugins/")).length).toBeGreaterThan(0);
+      expect(fetched.some((url) => url.startsWith("https://codeload.github.com/"))).toBe(false);
     } finally {
       rmSync(second, { recursive: true, force: true });
     }

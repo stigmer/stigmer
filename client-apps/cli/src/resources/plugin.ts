@@ -29,15 +29,13 @@ import { join } from "node:path";
 import { create, toJson } from "@bufbuild/protobuf";
 import {
   MANIFEST_LOCATIONS,
-  readPluginPackage,
   type PluginFiles,
   type PluginFinding,
   type PluginPackage,
 } from "@stigmer/plugin-package";
 import {
   DIALECT_LABELS,
-  archivePlugin,
-  digestArchive,
+  preparePluginArchive,
   selectPluginFiles,
   type CandidateFile,
 } from "@stigmer/plugin-package/client";
@@ -319,20 +317,23 @@ export async function preparePluginPush(
   dir: string,
   ignoreOptions: IgnoreOptions = DEFAULT_IGNORE_OPTIONS,
 ): Promise<PreparedPluginPush> {
+  // The walk is the CLI's (it prunes directories before listing them, which
+  // a flat tree cannot); everything after it is the shared tail every client
+  // runs, so a folder pushed here and the same tree read by the console have
+  // one digest by construction.
   const directory = readPluginDirectory(dir, ignoreOptions);
-  const outcome = readPluginPackage(directory.files);
+  const outcome = await preparePluginArchive(directory);
   if (!outcome.ok) {
     throw pluginRefusal(dir, outcome.errors, outcome.warnings);
   }
-  const archive = archivePlugin(directory.files);
   return {
     dir,
-    files: directory.files,
+    files: outcome.prepared.files,
     stats: directory.stats,
-    plugin: outcome.plugin,
-    warnings: outcome.warnings,
-    archive,
-    digest: await digestArchive(archive),
+    plugin: outcome.prepared.plugin,
+    warnings: outcome.prepared.warnings,
+    archive: outcome.prepared.archive,
+    digest: outcome.prepared.digest,
   };
 }
 

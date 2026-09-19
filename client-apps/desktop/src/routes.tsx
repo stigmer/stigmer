@@ -39,7 +39,8 @@ const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
 const ScheduleNewPage = lazy(() => import("./pages/library/ScheduleNewPage"));
 const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
 const PluginDetailPage = lazy(() => import("./pages/library/PluginDetailPage"));
-const PluginInstallPage = lazy(() => import("./pages/library/PluginInstallPage"));
+const PluginUploadPage = lazy(() => import("./pages/library/PluginUploadPage"));
+const MarketplacePage = lazy(() => import("./pages/marketplace/MarketplacePage"));
 const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const ConversationsPage = lazy(() => import("./pages/conversations/ConversationsPage"));
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
@@ -96,6 +97,14 @@ const routes: RouteObject[] = [
         element: (
           <LazyPage>
             <ConversationsPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "marketplace",
+        element: (
+          <LazyPage>
+            <MarketplacePage />
           </LazyPage>
         ),
       },
@@ -180,10 +189,10 @@ const routes: RouteObject[] = [
             ),
           },
           {
-            path: "plugins/install",
+            path: "plugins/upload",
             element: (
               <LazyPage>
-                <PluginInstallPage />
+                <PluginUploadPage />
               </LazyPage>
             ),
           },

@@ -228,14 +228,16 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install a plugin from a marketplace in the web console or the desktop
-      app, understand what the preview states before the act (what installs,
-      already installed, upgrade), and start a session on the agent it
-      installs, which asks for the variables its tools need.
+      Find a plugin in the Marketplace (the built-in sources and one you add)
+      or upload a plugin folder or zip from your computer, in the web console
+      or the desktop app; understand what the preview states before the act
+      (what installs, already installed, upgrade); and start a session on the
+      agent it installs, which asks for the variables its tools need.
     medium: none
     why:
       A console how-to is a screenshot journey; the tour follows when the
-      Plugins area has settled, and the words here already match the CLI's.
+      Marketplace and the upload path have settled, and the words here already
+      match the CLI's.
 
   guides/plugins/marketplace-file:
     fate: keep
@@ -347,12 +349,13 @@ pages:
       Which of the four integration sub-guides to read and what to know first.
     medium: none
 
-  guides/integrations/connect-from-marketplace:
+  guides/integrations/connect-an-mcp-server:
     fate: keep
     diataxis: how-to
     teaches:
-      What the Library catalog holds and what the single Connect action does —
-      discovery, approval classification, storage.
+      How to find an MCP Server in the Library, whichever way it arrived, and
+      what the single Connect action does — discovery, approval classification,
+      storage.
     medium: animated-tour
     why:
       One click triggers discovery and approval classification —
@@ -413,14 +416,6 @@ pages:
     teaches:
       Register the hosted Stigmer MCP endpoint in Claude Desktop, Claude Code,
       or Cursor and verify the connection.
-    medium: none
-
-  guides/editors/skills:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      How editors discover domain and creator Skills, where to get Stigmer's
-      creator Skills, and how to author your own.
     medium: none
 
   # ── Workflows ──────────────────────────────────────────────────────────

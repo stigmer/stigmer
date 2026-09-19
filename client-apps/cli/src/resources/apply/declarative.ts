@@ -318,8 +318,8 @@ export async function reconcileProjectMembers(
   // apply time (stigmer/stigmer#402), and the backend's own post-apply
   // connect is asynchronous; discovering here means agents in this apply
   // validate against the toolset this apply just shipped, not the previous
-  // generation's (which would falsely reject e.g. a seedpack upgrade that
-  // adds a tool and enables it in the same pass). Discovery stays
+  // generation's (which would falsely reject e.g. a project upgrade that
+  // adds a tool to a server and enables it in an agent in the same pass). Discovery stays
   // best-effort: a failed connect warns, capabilities stay stale, and the
   // dependent apply surfaces an actionable error listing last-known tools.
   for (const res of resources) {

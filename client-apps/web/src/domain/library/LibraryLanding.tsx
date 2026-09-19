@@ -94,9 +94,9 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     href: "/library/schedules/new",
   },
   {
-    label: "Install plugin",
+    label: "Upload plugin",
     icon: <Blocks className="size-4" aria-hidden="true" />,
-    href: "/library/plugins/install",
+    href: "/library/plugins/upload",
   },
 ];
 

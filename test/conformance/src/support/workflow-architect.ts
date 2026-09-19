@@ -1,37 +1,32 @@
-// Fixtures for the Workflow Architect agent: the seedpack agent that designs
-// Workflow YAML through the `stigmer mcp-server` tools.
+// Fixtures for the Workflow Architect arms: an agent that designs Workflow
+// YAML through the `stigmer mcp-server` tools, run against the real
+// mcp-server over stdio.
 // Domain: conformance support (execution engine).
 //
-// The architect is a product surface, not a test invention: its instructions
-// are the seedpack's (seedpack/agents/workflow-architect.yaml) and its tools are
-// the real `@stigmer/mcp-server` full roster, spawned by the runner as a stdio
-// child exactly as an OSS install spawns it. So the fixture reads the seedpack
-// file rather than copying the prompt (a prompt change is a behavior change
-// the arms should see), and registers the CLI as a stdio McpServer the way the
-// memory lane already spawns it (runner shared/memory-attachment.ts —
-// `stigmer mcp-server`; the CLI shim is on PATH wherever the execution class
-// runs, see ci.conformance-execution.yaml).
+// The architect is a fixture, not a product surface: the product no longer
+// ships an architect agent (its former home, a seeded content pack, was
+// retired in favour of plugins), and this suite exists to pin the runner's
+// stdio lane and the `@stigmer/mcp-server` roster on CI, where it is otherwise
+// proven only by envmerge-agent (the desktop-only open-computer-use suite
+// does not run there). So the instructions live here, reduced to the two
+// tools the arms script by name, and the McpServer is the real full roster
+// spawned by the runner as a stdio child exactly as an OSS install spawns it
+// (the way the memory lane already spawns it, runner shared/memory-
+// attachment.ts — `stigmer mcp-server`; the CLI shim is on PATH wherever the
+// execution class runs, see ci.conformance-execution.yaml).
 //
 // The stdio child needs the server's gRPC address (STIGMER_SERVER_ADDRESS,
 // mcp-server/src/config.ts). The runner hands a stdio server ONLY the merged
 // execution env filtered to the keys its spec declares — never the runner's
 // own process env — so the McpServer declares the key and the execution
 // supplies the value through runtime_env, the same envmerge lane
-// envmerge-agent.conformance.test.ts pins. Ported from the Go harness's
-// workflow_architect_helpers.go (entry 20260910.02).
-import { readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { load as parseYaml } from "js-yaml";
+// envmerge-agent.conformance.test.ts pins.
 import type { InitShape } from "./init-shape";
 import type { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { makeAgent } from "./agents";
 import type { ExecutionValueInit } from "./executioncontexts";
 import { makeMcpServer } from "./mcpservers";
-
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
-const SEEDPACK_AGENT_PATH = join(REPO_ROOT, "seedpack", "agents", "workflow-architect.yaml");
 
 // The mcp-server tools the architect's instructions direct it to call; the
 // arms script tool_use turns by these names and assert the ToolCalls carry them.
@@ -41,18 +36,24 @@ export const ARCHITECT_VALIDATE_TOOL = "validate_workflow_yaml";
 // The env key the mcp-server reads its gRPC target from (host:port, no scheme).
 export const STIGMER_SERVER_ADDRESS_ENV = "STIGMER_SERVER_ADDRESS";
 
-// The seedpack agent's instructions, read from disk so the arms exercise the
-// prompt the product ships. Refuses by name when the file or field is gone —
-// a seedpack rename must fail here, not as an agent with no instructions.
+// The fixture's instructions: enough for a scripted model to be asked, by
+// name, for the two tool turns the arms assert on, and for the answer's
+// contract (a fenced YAML block) to be stated. Not a product prompt.
+export const WORKFLOW_ARCHITECT_INSTRUCTIONS = [
+  "You are a workflow architect that designs Stigmer workflows as valid",
+  "Workflow YAML conforming to the agentic.stigmer.ai/v1 specification.",
+  "",
+  `Before designing, call the ${ARCHITECT_REGISTRY_TOOL} tool to learn the`,
+  "task kinds the platform supports and their configuration.",
+  `Before answering, call the ${ARCHITECT_VALIDATE_TOOL} tool on the YAML`,
+  "you produced and fix anything it reports.",
+  "",
+  "Answer with the workflow as a single fenced ```yaml block.",
+].join("\n");
+
+/** The fixture's instructions, as the agent carries them. */
 export function loadWorkflowArchitectInstructions(): string {
-  const parsed = parseYaml(readFileSync(SEEDPACK_AGENT_PATH, "utf8")) as {
-    spec?: { instructions?: unknown };
-  } | null;
-  const instructions = parsed?.spec?.instructions;
-  if (typeof instructions !== "string" || instructions.length === 0) {
-    throw new Error(`${SEEDPACK_AGENT_PATH} carries no spec.instructions`);
-  }
-  return instructions;
+  return WORKFLOW_ARCHITECT_INSTRUCTIONS;
 }
 
 export interface StigmerMcpServerOptions {
@@ -84,7 +85,7 @@ export function makeWorkflowArchitectAgent(opts: WorkflowArchitectAgentOptions):
   return makeAgent({
     org: opts.org,
     name: opts.name,
-    description: "Workflow Architect (seedpack instructions) — conformance fixture",
+    description: "Workflow Architect — conformance fixture",
     instructions: loadWorkflowArchitectInstructions(),
     mcpServerRefs: [opts.stigmerMcpServerSlug],
   });

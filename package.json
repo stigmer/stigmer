@@ -12,7 +12,6 @@
     "sdk/embed",
     "sdk/ink",
     "mcp-server",
-    "seedpack",
     "plugins",
     "demos",
     "client-apps/cli",
@@ -28,6 +27,7 @@
     "prepare": "husky || true",
     "build:runner-deps": "node scripts/turbo-set.mjs runner-deps build",
     "build:libs": "node scripts/turbo-set.mjs libs build",
+    "build:web": "node scripts/turbo-set.mjs workspace build --only=web",
     "clean:libs": "node scripts/turbo-set.mjs libs clean",
     "test:scripts": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs deploy/helm/stigmer/__tests__/*.test.mjs",
     "test": "npm run test:scripts && node scripts/turbo-set.mjs libs test"

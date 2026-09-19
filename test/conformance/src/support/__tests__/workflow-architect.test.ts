@@ -1,8 +1,8 @@
-// Unit arms for the Workflow Architect fixtures (entry 20260910.02): the
-// instructions come from the seedpack file the product ships, the stdio
-// McpServer declares the one env key the mcp-server reads and the runtime env
-// supplies it as host:port, and the YAML extractor reads the architect's
-// fenced answer. Pure file read + builders; no target.
+// Unit arms for the Workflow Architect fixtures: the fixture's instructions
+// name the registry and validate tools the arms script, the stdio McpServer
+// declares the one env key the mcp-server reads and the runtime env supplies
+// it as host:port, and the YAML extractor reads the architect's fenced
+// answer. Pure builders; no target.
 // Domain: conformance support (execution engine).
 import { describe, expect, it } from "vitest";
 import {
@@ -15,7 +15,7 @@ import {
 } from "../workflow-architect";
 
 describe("workflow architect fixtures", () => {
-  it("reads the seedpack agent's instructions, which name the registry and validate tools", () => {
+  it("carries instructions that name the registry and validate tools the arms script", () => {
     const instructions = loadWorkflowArchitectInstructions();
     expect(instructions).toContain("get_task_kind_registry");
     expect(instructions).toContain("validate_workflow_yaml");
@@ -27,7 +27,7 @@ describe("workflow architect fixtures", () => {
     expect(Object.keys(server.spec?.env ?? {})).toEqual([STIGMER_SERVER_ADDRESS_ENV]);
   });
 
-  it("builds the agent on the seedpack instructions referencing the stigmer server", () => {
+  it("builds the agent on the fixture instructions referencing the stigmer server", () => {
     const agent = makeWorkflowArchitectAgent({ org: "o", name: "architect", stigmerMcpServerSlug: "stigmer-mcp" });
     expect(agent.spec?.instructions).toBe(loadWorkflowArchitectInstructions());
     expect(agent.spec?.mcpServerUsages?.map((u) => u.mcpServerRef?.slug)).toEqual(["stigmer-mcp"]);

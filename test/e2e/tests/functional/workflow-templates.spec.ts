@@ -3,10 +3,15 @@ import { test, expect } from "@playwright/test";
 test.describe("Workflow template gallery", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/library/workflows/new");
-    await page.waitForLoadState("networkidle");
+    // The picker's heading is the readiness signal every test here needs;
+    // "networkidle" never settles on a console page whose chrome keeps a
+    // connection open, and Playwright advises against waiting on it.
+    await page
+      .getByRole("heading", { name: "Create a new workflow" })
+      .waitFor({ timeout: 15_000 });
   });
 
-  test("renders creation picker with three options", async ({ page }) => {
+  test("renders creation picker with the template and editor options; Generate with AI needs the Workflow Architect", async ({ page }) => {
     const heading = page.locator('h2:has-text("Create a new workflow")');
     await expect(heading).toBeVisible({ timeout: 10_000 });
 
@@ -16,8 +21,12 @@ test.describe("Workflow template gallery", () => {
     const editorOption = page.locator('button:has-text("Visual Editor")');
     await expect(editorOption).toBeVisible();
 
+    // "Generate with AI" runs on the Organization's Workflow Architect
+    // agent and is offered only when it exists. The e2e stack boots a raw
+    // server that nothing has bootstrapped and no fixture installs that
+    // agent, so the option is absent rather than a dead end.
     const aiOption = page.locator('button:has-text("Generate with AI")');
-    await expect(aiOption).toBeVisible();
+    await expect(aiOption).toHaveCount(0);
   });
 
   test("shows template count badge", async ({ page }) => {

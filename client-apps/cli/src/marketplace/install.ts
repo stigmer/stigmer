@@ -22,10 +22,12 @@ import {
   type OpenMarketplaceOptions,
   openMarketplace,
 } from "./materialize.js";
+import { peekGitHubMarketplace } from "./github.js";
 import {
   type ReadMarketplaceTree,
   entryDirectory,
   findEntry,
+  marketplaceRefusal,
   readMarketplaceTree,
 } from "./read.js";
 import { type InstallRef, formatInstallRef } from "./ref.js";
@@ -38,12 +40,19 @@ export interface LocatedEntry {
 }
 
 /**
- * Find the marketplace a ref names. A prefixed ref names it outright; a bare
- * name is searched across every configured marketplace in listing order
- * (the official one first), and exactly one must offer it: none refuses
- * toward `marketplace show`, more than one refuses by naming each holder,
- * because "the first one wins" would make the answer depend on the order
- * the user added marketplaces in. The caller owns `open` and disposes it.
+ * Find the source a ref names. A prefixed ref names it outright; a bare
+ * name is searched across every known source in listing order (the official
+ * one first), and exactly one must offer it: none refuses toward
+ * `marketplace show`, more than one refuses by naming each holder, because
+ * "the first one wins" would make the answer depend on the order the user
+ * added sources in. The caller owns `open` and disposes it.
+ *
+ * The search is cheap by design: a GitHub source is asked through its
+ * marketplace file alone (`peekGitHubMarketplace`, a few KB), and only the
+ * one source that declares the name is opened as a tree and read whole,
+ * which is where "declared" becomes "offered" or the install refuses. With
+ * the vendors' catalogues built in, the alternative was three zipballs per
+ * bare install.
  */
 export async function locateEntry(
   ref: InstallRef,
@@ -77,20 +86,14 @@ export async function locateEntry(
 
   const holders: LocatedEntry[] = [];
   for (const marketplace of listing.known) {
-    const open = await openMarketplace(marketplace.source, options);
-    let tree: ReadMarketplaceTree;
+    let located: LocatedEntry | undefined;
     try {
-      tree = readMarketplaceTree(open.root, describeSource(marketplace.source));
+      located = await locateIn(marketplace, ref.name, options);
     } catch (error) {
-      open.dispose();
       for (const holder of holders) holder.open.dispose();
       throw error;
     }
-    if (findEntry(tree.marketplace, ref.name) === undefined) {
-      open.dispose();
-      continue;
-    }
-    holders.push({ marketplace, open, tree });
+    if (located !== undefined) holders.push(located);
   }
   if (holders.length === 1) return holders[0]!;
   for (const holder of holders) holder.open.dispose();
@@ -109,6 +112,61 @@ export async function locateEntry(
     `'${ref.name}' is offered by more than one marketplace: ${holders.map((holder) => holder.marketplace.name).join(", ")}\n\n` +
       `Name the one you mean: ${holders.map((holder) => formatInstallRef({ ...ref, marketplace: holder.marketplace.name })).join(" or ")}.`,
   );
+}
+
+/**
+ * The entry called `name` in one source, opened and read, or `undefined`
+ * when the source does not offer it. A GitHub source is first asked through
+ * its marketplace file alone (a few KB); its zipball is downloaded only when
+ * the file declares the name, and the tree read then decides whether it is
+ * held. A local or official tree is on disk and is read once. A GitHub
+ * repository with no marketplace file declares nothing (a built-in whose
+ * vendor moved the file must not break every bare install); one whose file
+ * the library refuses is a real fault and is said so.
+ */
+async function locateIn(
+  marketplace: KnownMarketplace,
+  name: string,
+  options: OpenMarketplaceOptions,
+): Promise<LocatedEntry | undefined> {
+  if (marketplace.source.type === "github") {
+    const peek = await peekGitHubMarketplace(
+      marketplace.source,
+      options.fetchImpl,
+    );
+    if (!peek.ok) {
+      switch (peek.kind) {
+        case "not-a-marketplace":
+          return undefined;
+        case "refused":
+          throw marketplaceRefusal(
+            `${describeSource(marketplace.source)} (${peek.location})`,
+            peek.errors,
+            peek.warnings,
+          );
+        default: {
+          const exhaustive: never = peek;
+          return exhaustive;
+        }
+      }
+    }
+    if (findEntry(peek.peeked.marketplace, name) === undefined) return undefined;
+  }
+
+  const open = await openMarketplace(marketplace.source, options);
+  try {
+    const tree = readMarketplaceTree(open.root, describeSource(marketplace.source));
+    if (findEntry(tree.marketplace, name) === undefined) {
+      // Declared by a file but not held by the tree, or simply absent: not a
+      // holder. The not-found sentence names every source searched.
+      open.dispose();
+      return undefined;
+    }
+    return { marketplace, open, tree };
+  } catch (error) {
+    open.dispose();
+    throw error;
+  }
 }
 
 /** Read, validate and zip the entry called `name`; refuses an entry the marketplace does not offer. */

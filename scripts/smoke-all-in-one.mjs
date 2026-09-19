@@ -17,9 +17,9 @@
  *      the no-key warning — the words a first-time user reads;
  *   3. the real health service answers SERVING and the console lane serves
  *      its contract (/config.json, / as HTML);
- *   4. the seedpack was applied on first boot (the marker on the volume) and
- *      the default plugin was installed from the baked official marketplace
- *      (the `assistant` plugin READY and public in the system org);
+ *   4. the backend was bootstrapped on first boot: the default plugin was
+ *      installed from the baked official marketplace (the `assistant` plugin
+ *      READY and public in the system org the bootstrap created);
  *   5. one end-to-end run — an LLM-free set_vars workflow — reaches
  *      EXECUTION_COMPLETED: only possible if the embedded Temporal, the
  *      server's workers AND the embedded runner all work inside the one
@@ -201,16 +201,11 @@ async function main() {
     await assertConsoleServed(baseUrl);
     log("health service SERVING; console lane answers");
 
-    // 4. The seedpack marker on the volume. `healthy` is the server's SERVING;
-    // the seedpack applies a few seconds later, from the daemon's onStarted.
-    const marker = await pollUntil("seedpack marker", HEALTHY_TIMEOUT_MS, () => {
-      const value = docker(["exec", container, "sh", "-c", "cat /data/.stigmer/data/.seedpack-bootstrapped 2>/dev/null || true"]);
-      return value.startsWith("sha256:") ? value : false;
-    });
-    log(`seedpack applied on first boot (${marker})`);
-    // The second bootstrap step: the official marketplace's default plugin,
-    // installed from the baked @stigmer/plugins into the system org. This is
-    // what gives a fresh install its default agent.
+    // 4. The bootstrap. `healthy` is the server's SERVING; the bootstrap runs
+    // a few seconds later, from the daemon's onStarted: it creates the system
+    // org and installs the official marketplace's default plugin from the
+    // baked @stigmer/plugins. A READY, public default plugin proves both, and
+    // it is what gives a fresh install its default agent.
     const digest = await waitForDefaultPlugin(baseUrl, HEALTHY_TIMEOUT_MS);
     log(`default plugin 'assistant' installed on first boot (${digest.slice(0, 12)})`);
 

@@ -45,7 +45,7 @@ const COMPOSER_ENABLED_PHASES: ReadonlySet<RefinePhase> = new Set([
  * 3. **Result strip** — diff preview + accept/discard (when YAML extracted)
  * 4. **Composer** — textarea + send button (pinned to bottom)
  *
- * Powered by the Workflow Architect system agent via
+ * Powered by the Organization's Workflow Architect agent via
  * {@link useRefineWorkflowFlow}. Styled via `--stgm-*` design tokens.
  * Zero console dependencies (DD-004).
  */

@@ -1,8 +1,9 @@
-// Pins the default-set step over a real Connect backend: a default absent
-// from the org is pushed public with the CLI's message; one present at the
-// same digest, READY and public is skipped without a push; a changed digest,
-// a non-READY state or a non-public visibility pushes again; the defaults go
-// in the marketplace's order; one failure does not stop the next; and a
+// Pins the default-set step over a real Connect backend: preparation is
+// all-or-nothing and touches no backend; a default absent from the org is
+// pushed public with the CLI's message; one present at the same digest,
+// READY and public is skipped without a push; a changed digest, a non-READY
+// state or a non-public visibility pushes again; the defaults go in the
+// marketplace's order; one push failure does not stop the next; and a
 // second run over a converged backend pushes nothing.
 
 import { createHash } from "node:crypto";
@@ -35,7 +36,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { writeCursorMarketplace } from "../../marketplace/__fixtures__/cursor-marketplace.js";
 import { preparePluginPush } from "../../resources/plugin.js";
-import { installDefaultPlugins } from "./defaults.js";
+import { installPreparedDefaults, prepareDefaultPlugins } from "./defaults.js";
 
 let backend: Http2Server;
 let stigmer: Stigmer;
@@ -145,15 +146,47 @@ function digestOf(bytes: Uint8Array): string {
 
 const say = (): void => {};
 
-function run() {
-  return installDefaultPlugins(
-    { stigmer, info: say },
-    { org: "stigmer", official: { repoDir: () => official } },
+async function run() {
+  const prepared = await prepareDefaultPlugins({ repoDir: () => official });
+  return installPreparedDefaults(
+    { stigmer, info: say, verb: "stigmer bootstrap" },
+    prepared,
+    "stigmer",
   );
 }
 
-describe("installDefaultPlugins", () => {
-  it("installs every default in order, public, with the CLI's message, on a fresh backend", async () => {
+describe("prepareDefaultPlugins", () => {
+  it("prepares every default in the marketplace's order without touching the backend", async () => {
+    const prepared = await prepareDefaultPlugins({ repoDir: () => official });
+    expect(prepared.map((entry) => [entry.name, entry.push.digest])).toEqual([
+      ["thermos", thermosDigest],
+      ["github", githubDigest],
+    ]);
+    expect(pushes).toHaveLength(0);
+  });
+
+  it("refuses the whole set when one default cannot be prepared", async () => {
+    const broken = mkdtempSync(join(tmpdir(), "stigmer-defaults-broken-"));
+    try {
+      writeFileSync(
+        join(broken, "marketplace.json"),
+        JSON.stringify({
+          name: "stigmer",
+          plugins: [{ name: "missing", source: "./missing" }],
+          defaults: ["missing"],
+        }),
+      );
+      await expect(
+        prepareDefaultPlugins({ repoDir: () => broken }),
+      ).rejects.toThrow(/1 plugin this CLI cannot install/);
+    } finally {
+      rmSync(broken, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("installPreparedDefaults", () => {
+  it("installs every default in order, public, with the invoking verb in the message, on a fresh backend", async () => {
     const result = await run();
     expect(result.outcomes.map((o) => [o.name, o.action])).toEqual([
       ["thermos", "installed"],
@@ -167,7 +200,7 @@ describe("installDefaultPlugins", () => {
       ),
     ).toBe(true);
     expect(pushes[0]?.message).toMatch(
-      /^default plugin, installed by stigmer up \(/,
+      /^default plugin, installed by stigmer bootstrap \(/,
     );
     expect(digestOf(pushes[0]!.artifact)).toBe(thermosDigest);
     expect(digestOf(pushes[1]!.artifact)).toBe(githubDigest);

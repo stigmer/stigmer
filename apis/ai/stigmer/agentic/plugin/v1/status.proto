@@ -88,8 +88,8 @@ message PluginMaterialization {
 
 // PluginWarning is one thing a push noticed but did not refuse.
 message PluginWarning {
-  // Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-  // "sub-agent-name-builtin", "version-not-taggable".
+  // Stable warning kind, e.g. "component-ignored", "member-adopted",
+  // "model-hint-unresolved", "sub-agent-name-builtin", "version-not-taggable".
   //
   // @internal
   // The library's PluginWarningKind values plus the server's own; a string
