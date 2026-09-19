@@ -23,6 +23,7 @@
  * the authorization server at this point, and nothing is consumed until
  * the callback leg, which the probe never reaches.
  */
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";
 
 /**
@@ -63,7 +64,7 @@ const PREFLIGHT_BODY_READ_CAP = 4096;
  */
 export async function preflightAuthorize(
   authorizationUrl: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: OutboundFetch,
 ): Promise<AuthorizeRejection | undefined> {
   // Network errors propagate to the caller, who treats them as
   // fail-open diagnostics — exactly Go's (nil, err) contract.

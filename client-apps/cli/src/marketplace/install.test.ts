@@ -33,9 +33,9 @@ afterAll(() => {
 describe("prepareEntry", () => {
   it("prepares an offered entry exactly as push plugin would prepare its directory", async () => {
     const tree = readMarketplaceTree(root);
-    const viaMarketplace = await prepareEntry(tree, "github");
-    const viaFolder = await preparePluginPush(join(root, "third_party", "github"));
-    expect(viaMarketplace.plugin.name).toBe("github");
+    const viaMarketplace = await prepareEntry(tree, "codeforge");
+    const viaFolder = await preparePluginPush(join(root, "third_party", "codeforge"));
+    expect(viaMarketplace.plugin.name).toBe("codeforge");
     expect(viaMarketplace.digest).toBe(viaFolder.digest);
     expect(
       Buffer.from(viaMarketplace.archive).equals(
@@ -57,15 +57,15 @@ describe("prepareEntry", () => {
 
 describe("assertVersion", () => {
   it("passes without a pin or with the offered version, refuses another naming the offered one", async () => {
-    const prepared = await prepareEntry(readMarketplaceTree(root), "thermos");
-    expect(() => assertVersion(prepared, undefined, "thermos")).not.toThrow();
+    const prepared = await prepareEntry(readMarketplaceTree(root), "warmer");
+    expect(() => assertVersion(prepared, undefined, "warmer")).not.toThrow();
     expect(() =>
-      assertVersion(prepared, "1.0.0", "thermos@1.0.0"),
+      assertVersion(prepared, "1.0.0", "warmer@1.0.0"),
     ).not.toThrow();
     expect(() =>
-      assertVersion(prepared, "9.9.9", "acme-plugins/thermos@9.9.9"),
+      assertVersion(prepared, "9.9.9", "acme-plugins/warmer@9.9.9"),
     ).toThrow(
-      /pins version 9\.9\.9, but the marketplace offers 'thermos' at 1\.0\.0\n\nInstall it as 'acme-plugins\/thermos@1\.0\.0'/,
+      /pins version 9\.9\.9, but the marketplace offers 'warmer' at 1\.0\.0\n\nInstall it as 'acme-plugins\/warmer@1\.0\.0'/,
     );
   });
 });
@@ -104,10 +104,10 @@ describe("locateEntry", () => {
   const remoteFiles = {
     "marketplace.json": JSON.stringify({
       name: "remote",
-      plugins: [{ name: "thermos", source: "./thermos" }],
+      plugins: [{ name: "warmer", source: "./warmer" }],
     }),
-    "thermos/plugin.json": JSON.stringify({
-      name: "thermos",
+    "warmer/plugin.json": JSON.stringify({
+      name: "warmer",
       version: "3.0.0",
     }),
   };
@@ -122,7 +122,7 @@ describe("locateEntry", () => {
       source: { type: "local", path: root } as const,
     };
     const located = await locateEntry(
-      parseInstallRef("acme-plugins/thermos"),
+      parseInstallRef("acme-plugins/warmer"),
       listing(local),
     );
     try {
@@ -132,7 +132,7 @@ describe("locateEntry", () => {
       located.open.dispose();
     }
     await expect(
-      locateEntry(parseInstallRef("nowhere/thermos"), listing(local)),
+      locateEntry(parseInstallRef("nowhere/warmer"), listing(local)),
     ).rejects.toThrow(/no marketplace named 'nowhere' is configured/);
   });
 
@@ -142,7 +142,7 @@ describe("locateEntry", () => {
       source: { type: "local", path: root } as const,
     };
     const located = await locateEntry(
-      parseInstallRef("github"),
+      parseInstallRef("codeforge"),
       listing(local),
     );
     try {
@@ -178,11 +178,11 @@ describe("locateEntry", () => {
     };
     const before = countTempTrees();
     await expect(
-      locateEntry(parseInstallRef("thermos"), listing(local, remote), {
+      locateEntry(parseInstallRef("warmer"), listing(local, remote), {
         fetchImpl: servingZipOf(remoteFiles),
       }),
     ).rejects.toThrow(
-      /offered by more than one marketplace: acme-plugins, remote\n\nName the one you mean: acme-plugins\/thermos or remote\/thermos/,
+      /offered by more than one marketplace: acme-plugins, remote\n\nName the one you mean: acme-plugins\/warmer or remote\/warmer/,
     );
     expect(countTempTrees()).toBe(before);
   });
@@ -197,8 +197,8 @@ describe("locateEntry", () => {
       source: { type: "github", repo: "a/b" } as const,
     };
     const requests: string[] = [];
-    // `github` is offered by the local fixture alone: the remote is peeked, not downloaded.
-    const located = await locateEntry(parseInstallRef("github"), listing(local, remote), {
+    // `codeforge` is offered by the local fixture alone: the remote is peeked, not downloaded.
+    const located = await locateEntry(parseInstallRef("codeforge"), listing(local, remote), {
       fetchImpl: servingZipOf(remoteFiles, "r-HEAD", requests),
     });
     located.open.dispose();
@@ -241,7 +241,7 @@ describe("locateEntry", () => {
       source: { type: "github", repo: "a/b" } as const,
     };
     const located = await locateEntry(
-      parseInstallRef("remote/thermos"),
+      parseInstallRef("remote/warmer"),
       listing(remote),
       {
         fetchImpl: servingZipOf(remoteFiles),

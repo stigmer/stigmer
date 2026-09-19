@@ -122,7 +122,12 @@ async function runPluginApply(
     message: "",
     ignoreOptions,
   });
-  renderResult(plugin.renderPushOutcome(outcome), format);
+  renderResult(
+    plugin.renderPushOutcome(outcome, {
+      next: await plugin.readNextSteps(client.stigmer, org, outcome.members),
+    }),
+    format,
+  );
 }
 
 // Declarative mode: detect stigmer.yaml (walk up). Absent → atomic guidance.

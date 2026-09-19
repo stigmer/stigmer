@@ -1,0 +1,76 @@
+{
+  "name": "@stigmer/outbound",
+  "version": "0.0.0-dev",
+  "description": "The rules Stigmer's TypeScript processes dial a user-supplied endpoint by, shared by the control plane, the runner and the catalogue audit: the egress address policy and its guarded fetch, and the way an MCP endpoint's authentication is read (the OAuth-challenge rule, the complete initialize handshake, the RFC 9728 / RFC 8414 / OpenID resolution of its login server)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./egress": {
+      "types": "./dist/egress/index.d.ts",
+      "import": "./dist/egress/index.js",
+      "default": "./dist/egress/index.js"
+    },
+    "./mcp-oauth": {
+      "types": "./dist/mcp-oauth/index.d.ts",
+      "import": "./dist/mcp-oauth/index.js",
+      "default": "./dist/mcp-oauth/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  },
+  "keywords": [
+    "stigmer",
+    "egress",
+    "ssrf",
+    "mcp",
+    "oauth"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./egress": {
+        "types": "./dist/egress/index.d.ts",
+        "import": "./dist/egress/index.js",
+        "default": "./dist/egress/index.js"
+      },
+      "./mcp-oauth": {
+        "types": "./dist/mcp-oauth/index.d.ts",
+        "import": "./dist/mcp-oauth/index.js",
+        "default": "./dist/mcp-oauth/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "backend/libs/ts/outbound"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}

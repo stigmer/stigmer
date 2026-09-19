@@ -119,6 +119,16 @@ export type {
   LicenseStatusProvider,
   LicenseStatusReport,
 } from "./extensions/license-status.js";
+// The outbound-egress seam (drivers.outboundEgress): which addresses the
+// control plane may dial when it reaches a URL a user supplied. Both
+// postures are exported so a composition registers one line and owns no
+// copy of the address ranges (the classification lives in
+// @stigmer/outbound/egress, shared with the runner's web_fetch guard).
+export type { OutboundEgressPolicy } from "./extensions/outbound-egress.js";
+export {
+  relaxedEgressPolicy,
+  strictEgressPolicy,
+} from "./extensions/outbound-egress.js";
 // The 20260911.11 identity-account seams (Q-IA-9): the store PORT a
 // composition drives the domain through (drivers.identityAccountStore;
 // a driver throws DuplicateAccountError for a held id), the federation

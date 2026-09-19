@@ -14,12 +14,26 @@
  * OAuthRequiredError} whose message tells the user to connect via OAuth instead
  * of a manual token.
  *
- * Kept transport-library-agnostic (uses global `fetch`) so it is reusable by
- * connect-time discovery, execution-time error enrichment, and any other caller
- * that holds an MCP endpoint URL + headers.
+ * The rule and the request have one home, `@stigmer/outbound/mcp-oauth`,
+ * shared with the control plane (which asks the same question of a URL-only
+ * server at save time, so the Sign in button exists before the first run)
+ * and the catalogue audit. The request is the complete `initialize`
+ * (protocol version, capabilities, client info): several hosted servers
+ * validate the request before they check authentication and answer a bare
+ * one with HTTP 200 and a JSON-RPC error, so the bare request this module
+ * once sent never reached their 401 (stigmer #1188). What stays here is the
+ * runner's own: its deadline, its name in the handshake, and the sentence
+ * the user reads.
  */
+import { probeEndpointAuth } from "@stigmer/outbound/mcp-oauth";
 
+export { isOAuthChallenge, parseResourceMetadataUrl } from "@stigmer/outbound/mcp-oauth";
+
+/** The failure path can afford a patient probe; a save cannot, and uses its own. */
 const OAUTH_PROBE_TIMEOUT_MS = 10_000;
+
+/** How the runner names itself in the handshake's `clientInfo`. */
+const PROBE_CLIENT_NAME = "stigmer-runner";
 
 /**
  * Raised when an HTTP MCP endpoint answers with an OAuth authentication
@@ -44,28 +58,6 @@ export class OAuthRequiredError extends Error {
 }
 
 /**
- * Whether a `WWW-Authenticate` header value is an OAuth challenge.
- *
- * The MCP auth spec emits `Bearer realm="OAuth", resource_metadata="..."`. We
- * require the `Bearer` scheme plus either an OAuth realm or a resource-metadata
- * pointer, so a plain `Bearer` 401 from a static-token API (an invalid key, not
- * an OAuth requirement) is not misclassified.
- */
-export function isOAuthChallenge(wwwAuthenticate: string): boolean {
-  const value = wwwAuthenticate.toLowerCase();
-  if (!value.includes("bearer")) return false;
-  return value.includes("oauth") || value.includes("resource_metadata");
-}
-
-/** Extract the `resource_metadata` URL from a `WWW-Authenticate` value, if present. */
-export function parseResourceMetadataUrl(
-  wwwAuthenticate: string,
-): string | undefined {
-  const match = /resource_metadata="([^"]+)"/i.exec(wwwAuthenticate);
-  return match?.[1];
-}
-
-/**
  * Probe an HTTP MCP endpoint once to decide whether its failure is an OAuth
  * challenge. Returns an {@link OAuthRequiredError} to throw, or `null` when the
  * endpoint is not asking for OAuth (so the caller rethrows the original error).
@@ -78,35 +70,11 @@ export async function detectOAuthChallenge(
   headers: Record<string, string> | undefined,
   slug: string,
 ): Promise<OAuthRequiredError | null> {
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/event-stream",
-        ...(headers ?? {}),
-      },
-      // A minimal MCP initialize request — enough to trigger the endpoint's
-      // auth check without establishing a session.
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {},
-      }),
-      signal: AbortSignal.timeout(OAUTH_PROBE_TIMEOUT_MS),
-    });
-
-    if (response.status !== 401) return null;
-
-    const wwwAuthenticate = response.headers.get("www-authenticate") ?? "";
-    if (!isOAuthChallenge(wwwAuthenticate)) return null;
-
-    return new OAuthRequiredError(
-      slug,
-      parseResourceMetadataUrl(wwwAuthenticate),
-    );
-  } catch {
-    return null;
-  }
+  const outcome = await probeEndpointAuth(url, headers, {
+    fetchImpl: fetch,
+    timeoutMs: OAUTH_PROBE_TIMEOUT_MS,
+    clientName: PROBE_CLIENT_NAME,
+  });
+  if (outcome.kind !== "oauth") return null;
+  return new OAuthRequiredError(slug, outcome.resourceMetadataUrl);
 }

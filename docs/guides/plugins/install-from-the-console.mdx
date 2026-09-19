@@ -2,7 +2,8 @@
 title: Install from the console
 description:
   Find a plugin in the Marketplace or upload one from your computer, read what
-  it would install, install it, and start a Session on the Agent it installs.
+  it would install, install it, sign in to the tools it brought, and use them in
+  a Session.
 ---
 
 The console installs a plugin the way the CLI does: it reads the plugin's files,
@@ -21,11 +22,11 @@ and the desktop app.
 ## Find a plugin in the Marketplace
 
 Open **Marketplace** in the sidebar. The sources come first, one chip each, with
-the mark of the GitHub account that publishes it, its name, and how many plugins
-it offers. Four sources are built in, in this order: Stigmer's official
-catalogue, then Cursor's, Claude Code's and Codex's public catalogues; any
-source you add follows. **All sources** is chosen by default; choose a chip to
-see one source alone.
+the mark of the account that publishes it, its name, and how many plugins it
+offers. One source is built in: Stigmer's official catalogue, published with
+each release and curated so that every plugin in it is one Stigmer may ship and
+one whose tools Stigmer can connect to. Any catalogue you add follows. **All
+sources** is chosen by default; choose a chip to see one source alone.
 
 Below the chips, one search box and one grid of cards across the chosen sources,
 24 to a page; **Previous** and **Next** sit under the grid. A card shows the
@@ -39,18 +40,18 @@ Each source is read on its own, so the first cards appear when the first
 catalogue arrives. A source that cannot be read right now says so on its chip
 and in one line before the grid, with **Retry**; choose its chip to read the
 whole sentence. On a development server the official source says the catalogue
-is not published for that build; the other sources still work.
+is not published for that build; a source you added still works.
 
-**Manage sources**, beside the chips, lists the catalogues the page reads, says
-for each how many plugins it offers and how many it lists that cannot be
-installed from here (with the reason for each), and lets you add your own: type
-a public GitHub repository as `owner/repo`, `owner/repo@ref` or the URL a
-browser shows, and choose **Add source**. The repository is read before it is
-added, and the source takes the name its marketplace file gives itself unless
-you type one. The built-in sources cannot be removed; a source you added can.
-The list is this browser's, exactly as the CLI's is this machine's
-(`marketplaces` in `~/.stigmer/config.yaml`): nothing about a source reaches the
-server.
+**Manage sources**, beside the chips, lists the catalogues the page reads and
+says for each how many plugins it offers and how many it lists that cannot be
+installed from here (with the reason for each). Under **Add your own catalogue**
+it takes a repository you or your company publish with a marketplace file: type
+it as `owner/repo`, `owner/repo@ref` or the URL a browser shows, and choose
+**Add source**. The repository is read before it is added, and the source takes
+the name its marketplace file gives itself unless you type one. The official
+catalogue cannot be removed; a source you added can. The list is this browser's,
+exactly as the CLI's is this machine's (`marketplaces` in
+`~/.stigmer/config.yaml`): nothing about a source reaches the server.
 
 ## Upload a plugin from your computer
 
@@ -86,18 +87,32 @@ The preview also states one fact the CLI states only after the act:
   version's. The Agent is re-created, so a Session bound to the previous one
   does not follow it.
 
-## Install and start a Session
+## Install, sign in, and start a Session
 
-Choose **Install** (or **Upgrade**). The console pushes the archive and shows
-what landed, in the CLI's words: how many Skills, MCP Servers and Agents. Then
-it opens the plugin's page.
+Choose **Install** (or **Upgrade**). The console pushes the archive and opens
+the plugin's page, which is where the install ends: it lists what the install
+produced, each a link to its own page, together with the manifest's version,
+format and author, and the server's install warnings.
 
-The plugin's page lists what the install produced, each a link to its own page,
-together with the manifest's version, format and author, and the server's
-install warnings. When the plugin carries an Agent, **Start session** is the
-page's primary action. The Agent declares the variables its tools need, so the
-first Session asks for them and saves them to your personal Environment; from
-then on they are supplied to every Session on that Agent without asking.
+Each MCP Server the plugin installed says, on its row, what stands between it
+and its first tool call. A server that signs in with OAuth and has no sign-in in
+your Organization yet carries **Sign in**; choose it, grant access in the window
+that opens, and the row reads **Signed in**. One sign-in serves the whole
+Organization. A server that wants an API key names the variables and where they
+are asked. A server that needs nothing says nothing.
+
+What comes next depends on what the plugin brought. When it carries an Agent,
+**Start session** is the page's primary action; the Agent declares the variables
+its tools need, so the first Session asks for them and saves them to your
+personal Environment, and from then on they are supplied to every Session on
+that Agent without asking. When it carries tools and no Agent, the page offers
+**Use these tools**: **Add to an agent** puts the servers on an Agent you
+already run (an Agent a plugin installed cannot take them; the dialog says so)
+or, through **Create a new agent with these tools**, opens the agent wizard with
+the servers already chosen.
+
+A Session on an Agent whose server nobody has signed in to yet asks for the
+sign-in before the first message, the way it asks for a missing variable.
 
 A Skill, MCP Server or Agent a plugin installed says so at the top of its page
 and is not editable there: the plugin's resources are the plugin's to redefine.

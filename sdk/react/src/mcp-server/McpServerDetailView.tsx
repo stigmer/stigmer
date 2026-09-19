@@ -1282,7 +1282,8 @@ function ConnectBar({
   );
 }
 
-function oauthPhaseLabel(phase: OAuthConnectPhase): string {
+/** The busy label for each phase of a sign-in, shared with every surface that starts one (the plugin page's readiness cell among them). */
+export function oauthPhaseLabel(phase: OAuthConnectPhase): string {
   switch (phase) {
     case "initiating":
       return "Starting sign-in...";

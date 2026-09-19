@@ -112,7 +112,7 @@ describe("runOAuthFlow", () => {
       log: () => {},
     });
     expect(openBrowser).toHaveBeenCalledWith(
-      "https://app.stigmer.ai/acme/mcp-servers/github",
+      "https://app.stigmer.ai/library/mcp-servers/acme/github",
     );
   });
 
@@ -152,7 +152,7 @@ describe("runOAuthFlow", () => {
       log: () => {},
     });
     expect(openBrowser).toHaveBeenCalledWith(
-      "http://localhost:7234/acme/mcp-servers/github",
+      "http://localhost:7234/library/mcp-servers/acme/github",
     );
   });
 });

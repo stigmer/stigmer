@@ -210,6 +210,10 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
       pendingOAuthStates: store.pendingOAuthStates,
       secretService: SecretService.create(undefined),
       oauthRedirectUri: "http://127.0.0.1:8234/auth/oauth/callback",
+      // No arm in this harness dials out; a call is a test bug, not a network.
+      outboundFetch: async () => {
+        throw new Error("no outbound fetch in this harness");
+      },
     },
   };
   return harness;
@@ -640,5 +644,32 @@ describe("startBestEffortConnect (apply tail)", () => {
     await expect(
       startBestEffortConnect(harness.deps, server),
     ).resolves.toBeUndefined();
+  });
+
+  it("records a failed run through the same mapping as the blocking lane, so the page says what the runner found", async () => {
+    const harness = makeHarness({
+      outcome: {
+        ok: false,
+        failure: {
+          kind: "application",
+          message: "MCP server 'test' requires OAuth: its endpoint returned an authentication challenge (HTTP 401).",
+        },
+      },
+    });
+    const server = await seedServer({ stdio: false });
+    await startBestEffortConnect(harness.deps, server);
+    const after = await store.getResource(
+      ApiResourceKind.mcp_server,
+      server.metadata!.id,
+      McpServerSchema,
+    );
+    expect(after.status?.connectStatus?.phase).toBe(ConnectPhase.failed);
+    expect(after.status?.connectStatus?.failureCode).toBe("FailedPrecondition");
+    // The runner's "requires OAuth" sentence rides through verbatim
+    // (buildConnectFailureMessage's pass-through), never a generic
+    // "best-effort connect did not complete".
+    expect(after.status?.connectStatus?.failureMessage).toBe(
+      "MCP server 'test' requires OAuth: its endpoint returned an authentication challenge (HTTP 401).",
+    );
   });
 });

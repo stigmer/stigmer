@@ -49,8 +49,8 @@ let pushes: PushPluginRequest[];
 let refusing: Set<string>;
 
 let official: string;
-let thermosDigest: string;
-let githubDigest: string;
+let warmerDigest: string;
+let codeforgeDigest: string;
 
 function pluginRow(
   slug: string,
@@ -75,15 +75,15 @@ beforeAll(async () => {
     JSON.stringify({
       name: "stigmer",
       plugins: [
-        { name: "thermos", source: "./thermos" },
-        { name: "github", source: "./third_party/github" },
+        { name: "warmer", source: "./warmer" },
+        { name: "codeforge", source: "./third_party/codeforge" },
       ],
-      defaults: ["thermos", "github"],
+      defaults: ["warmer", "codeforge"],
     }),
   );
-  thermosDigest = (await preparePluginPush(join(official, "thermos"))).digest;
-  githubDigest = (
-    await preparePluginPush(join(official, "third_party", "github"))
+  warmerDigest = (await preparePluginPush(join(official, "warmer"))).digest;
+  codeforgeDigest = (
+    await preparePluginPush(join(official, "third_party", "codeforge"))
   ).digest;
 
   const routes = (router: ConnectRouter) => {
@@ -92,7 +92,7 @@ beforeAll(async () => {
         pushes.push(req);
         // The archive names the plugin: the backend knows the two trees by their digests.
         const slug =
-          digestOf(req.artifact) === thermosDigest ? "thermos" : "github";
+          digestOf(req.artifact) === warmerDigest ? "warmer" : "codeforge";
         if (refusing.has(slug))
           throw new ConnectError(`refused ${slug}`, Code.FailedPrecondition);
         const row = pluginRow(
@@ -159,8 +159,8 @@ describe("prepareDefaultPlugins", () => {
   it("prepares every default in the marketplace's order without touching the backend", async () => {
     const prepared = await prepareDefaultPlugins({ repoDir: () => official });
     expect(prepared.map((entry) => [entry.name, entry.push.digest])).toEqual([
-      ["thermos", thermosDigest],
-      ["github", githubDigest],
+      ["warmer", warmerDigest],
+      ["codeforge", codeforgeDigest],
     ]);
     expect(pushes).toHaveLength(0);
   });
@@ -189,8 +189,8 @@ describe("installPreparedDefaults", () => {
   it("installs every default in order, public, with the invoking verb in the message, on a fresh backend", async () => {
     const result = await run();
     expect(result.outcomes.map((o) => [o.name, o.action])).toEqual([
-      ["thermos", "installed"],
-      ["github", "installed"],
+      ["warmer", "installed"],
+      ["codeforge", "installed"],
     ]);
     expect(result.failed).toEqual([]);
     expect(pushes.map((p) => p.org)).toEqual(["stigmer", "stigmer"]);
@@ -202,13 +202,13 @@ describe("installPreparedDefaults", () => {
     expect(pushes[0]?.message).toMatch(
       /^default plugin, installed by stigmer bootstrap \(/,
     );
-    expect(digestOf(pushes[0]!.artifact)).toBe(thermosDigest);
-    expect(digestOf(pushes[1]!.artifact)).toBe(githubDigest);
+    expect(digestOf(pushes[0]!.artifact)).toBe(warmerDigest);
+    expect(digestOf(pushes[1]!.artifact)).toBe(codeforgeDigest);
   });
 
   it("pushes nothing when every default is already held at the same digest, READY and public", async () => {
-    held.set("thermos", pluginRow("thermos", thermosDigest));
-    held.set("github", pluginRow("github", githubDigest));
+    held.set("warmer", pluginRow("warmer", warmerDigest));
+    held.set("codeforge", pluginRow("codeforge", codeforgeDigest));
     const result = await run();
     expect(result.outcomes.map((o) => o.action)).toEqual([
       "up-to-date",
@@ -218,8 +218,8 @@ describe("installPreparedDefaults", () => {
   });
 
   it("pushes again on a changed digest, a non-READY state, or a non-public visibility", async () => {
-    held.set("thermos", pluginRow("thermos", "f".repeat(64)));
-    held.set("github", pluginRow("github", githubDigest, PluginState.FAILED));
+    held.set("warmer", pluginRow("warmer", "f".repeat(64)));
+    held.set("codeforge", pluginRow("codeforge", codeforgeDigest, PluginState.FAILED));
     expect((await run()).outcomes.map((o) => o.action)).toEqual([
       "installed",
       "installed",
@@ -228,15 +228,15 @@ describe("installPreparedDefaults", () => {
 
     pushes = [];
     held.set(
-      "thermos",
+      "warmer",
       pluginRow(
-        "thermos",
-        thermosDigest,
+        "warmer",
+        warmerDigest,
         PluginState.READY,
         ApiResourceVisibility.visibility_private,
       ),
     );
-    held.set("github", pluginRow("github", githubDigest));
+    held.set("codeforge", pluginRow("codeforge", codeforgeDigest));
     expect((await run()).outcomes.map((o) => o.action)).toEqual([
       "installed",
       "up-to-date",
@@ -256,16 +256,16 @@ describe("installPreparedDefaults", () => {
   });
 
   it("one default failing does not stop the next, and the failure is named", async () => {
-    refusing.add("thermos");
+    refusing.add("warmer");
     const result = await run();
     expect(result.outcomes.map((o) => [o.name, o.action])).toEqual([
-      ["thermos", "failed"],
-      ["github", "installed"],
+      ["warmer", "failed"],
+      ["codeforge", "installed"],
     ]);
-    expect(result.failed).toEqual(["thermos"]);
+    expect(result.failed).toEqual(["warmer"]);
     const failed = result.outcomes[0];
     expect(failed?.action === "failed" && failed.error).toMatch(
-      /refused thermos/,
+      /refused warmer/,
     );
   });
 });

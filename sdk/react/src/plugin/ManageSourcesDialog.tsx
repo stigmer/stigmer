@@ -2,10 +2,14 @@
 
 /**
  * Manage sources: the catalogues the Marketplace reads, in a dialog opened
- * from the sources row. The built-ins listed as such (they are code in
- * every Stigmer client and cannot be removed), the sources this browser
- * remembers with Remove, the ones it cannot read with Forget, and the form
- * that adds one. The CLI's `marketplace list`, `add` and `remove` have
+ * from the sources row. The built-in listed as such (it is code in every
+ * Stigmer client and cannot be removed), the sources this browser
+ * remembers with Remove, the ones it cannot read with Forget, and, behind
+ * a disclosure, the form that adds one. The form is the user's own
+ * catalogue (a repository he or his company publishes with a marketplace
+ * file); it is never a way to browse a vendor, which is why it sits behind
+ * "Add your own catalogue" rather than open on the page, and why nothing
+ * here names one. The CLI's `marketplace list`, `add` and `remove` have
  * their twins here; the page itself stays about plugins.
  *
  * Each row also says what its catalogue came to: how many plugins it
@@ -66,12 +70,18 @@ export function ManageSourcesDialog({ open, onClose, reads = NO_READS, marketpla
               Sources
             </h2>
             <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-              What the Marketplace shows comes from these catalogues. The built-in ones are the same in every Stigmer
-              client; the ones you add are remembered in this browser, as the CLI remembers its own.
+              What the Marketplace shows comes from Stigmer's catalogue, published with each release, and from any
+              catalogue you add. Added sources are remembered in this browser, as the CLI remembers its own.
             </p>
           </header>
           <SourceList reads={reads} marketplaces={marketplaces} unreadable={unreadable} isBuiltIn={isBuiltIn} remove={remove} />
-          <AddSourceForm add={add} />
+          <details className="stg:rounded-md stg:border stg:border-border stg:p-3">
+            <summary className="stg:cursor-pointer stg:text-sm stg:font-medium stg:text-foreground">Add your own catalogue</summary>
+            <p className="stg:mt-1 stg:mb-3 stg:text-xs stg:text-muted-foreground">
+              A repository you or your company publish with a marketplace file, read from GitHub.
+            </p>
+            <AddSourceForm add={add} />
+          </details>
           <footer className="stg:flex stg:justify-end stg:pt-1">
             <Button variant="outline" size="sm" onClick={onClose}>
               Close

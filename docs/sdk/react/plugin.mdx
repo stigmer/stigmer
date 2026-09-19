@@ -6,6 +6,41 @@ title: plugin
 
 ## Hooks
 
+### useAddToolsToAgent
+
+Behaviour hook behind [`AddToolsToAgentDialog`](#addtoolstoagentdialog).
+
+**Signature**
+
+```tsx
+function useAddToolsToAgent(servers: readonly AddableServer[]): UseAddToolsToAgentReturn
+```
+
+<TypeTable
+  type={{
+    servers: { type: "readonly AddableServer[]", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseAddToolsToAgentReturn`
+
+<TypeTable
+  type={{
+    add: { type: "() => Promise<number>", description: "Append the servers not already listed and save. Resolves to the number added." },
+    clearError: { type: "() => void", description: "" },
+    error: { type: "Error | null", description: "" },
+    phase: { type: "AddToolsPhase", description: "", typeDescriptionLink: "#addtoolsphase" },
+    pick: { type: "(ref: ResourceRef | null) => void", description: "The pick from the agent picker; `null` returns to picking." },
+    reset: { type: "() => void", description: "" },
+  }}
+/>
+
+```tsx
+const flow = useAddToolsToAgent(servers);
+<AgentPicker org={org} value={picked} onChange={flow.pick} />
+```
+
+
 ### useInstallPlugin
 
 Behaviour hook that installs (or upgrades) a plugin from a prepared
@@ -33,7 +68,7 @@ function useInstallPlugin(): UseInstallPluginReturn
 
 ```tsx
 const { install, isInstalling } = useInstallPlugin();
-const outcome = await install(prepared, { org, installedFrom: "cursor-plugins" });
+const outcome = await install(prepared, { org, installedFrom: "acme-plugins" });
 ```
 
 
@@ -139,7 +174,7 @@ function useMarketplace(source: MarketplaceSource | null, options: UseMarketplac
 />
 
 ```tsx
-const { marketplace, warnings, isLoading, error } = useMarketplace({ type: "github", repo: "cursor/plugins" });
+const { marketplace, warnings, isLoading, error } = useMarketplace({ type: "github", repo: "acme/plugins" });
 ```
 
 
@@ -202,7 +237,7 @@ function useMarketplaces(options: UseMarketplacesOptions): UseMarketplacesReturn
   type={{
     add: { type: "(sourceText: string, name?: string) => Promise<AddSourceOutcome>", description: "Read a GitHub source and remember it. The name is the marketplace file's own unless `name` is given; a reserved or taken name, a text that is not a GitHub source, and a repository that is not a marketplace are refused with their sentences." },
     isBuiltIn: { type: "(name: string) => boolean", description: "Whether `name` is a source the user may neither add over nor remove." },
-    marketplaces: { type: "readonly KnownMarketplace[]", description: "The built-in sources first, then the remembered ones in the order they were added." },
+    marketplaces: { type: "readonly KnownMarketplace[]", description: "The built-in source first, then the remembered ones in the order they were added." },
     parseSource: { type: "(sourceText: string) => GitHubSourceOutcome", description: "Parse a source the user typed without adding it, for live validation in a form." },
     remove: { type: "(name: string) => string | null", description: "Forget the source called `name`; a built-in refuses. Returns the refusal or `null`." },
     unreadable: { type: "readonly UnreadableMarketplace[]", description: "" },
@@ -213,6 +248,47 @@ function useMarketplaces(options: UseMarketplacesOptions): UseMarketplacesReturn
 const { marketplaces, add, remove } = useMarketplaces();
 const outcome = await add("acme/plugins");
 if (!outcome.ok) toast.error(outcome.message);
+```
+
+
+### useMcpServerReadiness
+
+Behaviour hook for one installed MCP server's readiness. Pass `null` for
+either argument to hold the hook idle.
+
+**Signature**
+
+```tsx
+function useMcpServerReadiness(org: string | null, slug: string | null, onSignedIn?: (mcpServerId: string) => void): UseMcpServerReadinessReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+    slug: { type: "string | null", description: "", required: true },
+    onSignedIn: { type: "(mcpServerId: string) => void", description: "" },
+  }}
+/>
+
+**Returns** — `UseMcpServerReadinessReturn`
+
+<TypeTable
+  type={{
+    connectionHealth: { type: "OAuthConnectionHealth", description: "The grant's health as the backend grades it; `UNSPECIFIED` until read." },
+    declaredVariables: { type: "readonly string[]", description: "The variables an `api-key` server declares, in declaration order." },
+    error: { type: "Error | null", description: "The read error, or the last sign-in error, or `null`." },
+    isSigningIn: { type: "boolean", description: "`true` while a sign-in is in flight." },
+    kind: { type: "McpServerReadinessKind", description: "", typeDescriptionLink: "#mcpserverreadinesskind" },
+    mcpServer: { type: "McpServer | null", description: "The server, once read." },
+    phase: { type: "OAuthConnectPhase", description: "The sign-in's phase; `idle` when none is running.", typeDescriptionLink: "/docs/sdk/react/mcp-server#oauthconnectphase" },
+    refetch: { type: "() => void", description: "Read the server and its grant again." },
+    signIn: { type: "() => void", description: "Start the OAuth sign-in. Call from a click handler so the popup is allowed. A no-op unless `kind` is `sign-in-needed`." },
+  }}
+/>
+
+```tsx
+const readiness = useMcpServerReadiness(org, member.slug);
+if (readiness.kind === "sign-in-needed") return <button onClick={readiness.signIn}>Sign in</button>;
 ```
 
 
@@ -498,6 +574,37 @@ function usePreparePluginInstall(opened: OpenedMarketplace | null, entryName: st
 
 ## Components
 
+### AddToolsToAgentDialog
+
+Adds a plugin's MCP servers to an existing agent, or hands the host the
+servers for a new one.
+
+**Props** — `AddToolsToAgentDialogProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    onAgentClick: { type: "(ref: ResourceRef) => void", description: "Called with the updated agent's reference after a successful add, from \"Open agent\". The host owns the route." },
+    onClose: { type: "() => void", description: "", required: true },
+    onCreateAgent: { type: "(usages: readonly McpServerUsageInput[]) => void", description: "Called from \"Create a new agent with these tools\" with the usages a wizard preselects. The host owns the route; the link is hidden when omitted." },
+    open: { type: "boolean", description: "", required: true },
+    org: { type: "string", description: "The organization whose agents are offered.", required: true },
+    servers: { type: "readonly AddableServer[]", description: "The servers to add, as the plugin installed them.", required: true },
+  }}
+/>
+
+```tsx
+<AddToolsToAgentDialog
+  org={org}
+  servers={servers}
+  open={adding}
+  onClose={() => setAdding(false)}
+  onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
+  onCreateAgent={(usages) => router.push(`/library/agents/new?mcp=${usages.map((u) => u.mcpServerRef.slug).join(",")}`)}
+/>
+```
+
+
 ### InstallPreview
 
 The `Plugin`, `Installs`, `Warnings` and `Not installed` blocks, then the relation sentence.
@@ -569,6 +676,27 @@ Browse every known source and install a plugin from any of them, or upload one.
 ```
 
 
+### McpServerReadiness
+
+Renders [`useMcpServerReadiness`](#usemcpserverreadiness) for one server.
+
+**Props** — `McpServerReadinessProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    keysAskedAt: { type: "\"connect\" | \"agent\"", description: "Where an `api-key` server's variables are given. `\"agent\"` when the plugin installed an agent that declares them (the composer asks at the agent's first session); `\"connect\"` otherwise (they are set when the server is connected).", required: true },
+    onSignedIn: { type: "(mcpServerId: string) => void", description: "Called with the server's id when a sign-in started from this cell lands; the composer records it against the agent." },
+    org: { type: "string", description: "The organization the server lives in.", required: true },
+    slug: { type: "string", description: "The server's slug.", required: true },
+  }}
+/>
+
+```tsx
+<McpServerReadiness org="acme" slug="linear" keysAskedAt="connect" />
+```
+
+
 ### PluginCard
 
 **Props** — `PluginCardProps`
@@ -598,6 +726,7 @@ its manifest declares, what the server warned about, and its versions.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "" },
     onAgentClick: { type: "(ref: PluginMemberRef) => void", description: "" },
+    onCreateAgent: { type: "(usages: readonly McpServerUsageInput[]) => void", description: "Called from \"Create a new agent with these tools\" with the usages the creation wizard preselects, for a plugin that installed MCP servers and no agent. The host owns the route to its wizard; the link is hidden when omitted, and \"Add to an agent\" still offers the organization's agents." },
     onMcpServerClick: { type: "(ref: PluginMemberRef) => void", description: "" },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the plugin has been fetched, for breadcrumbs and titles. Not called on error or not-found." },
     onSkillClick: { type: "(ref: PluginMemberRef) => void", description: "Called when a member row is selected; the host owns the route to each kind's page." },
@@ -617,6 +746,7 @@ its manifest declares, what the server warned about, and its versions.
   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
   onMcpServerClick={({ org, slug }) => navigateToDetail("mcp-servers", org, slug)}
   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
+  onCreateAgent={(usages) => router.push(`/library/agents/new?mcp=${usages.map((u) => u.mcpServerRef.slug).join(",")}`)}
 />
 ```
 
@@ -658,7 +788,7 @@ confirmation.
     open: { type: "boolean", description: "", required: true },
     opened: { type: "OpenedMarketplace | null", description: "The opened source the entry belongs to; `null` closes the dialog.", required: true },
     org: { type: "string", description: "The organization to install into.", required: true },
-    sourceName: { type: "string", description: "The source's name as the user knows it (`cursor-plugins`), kept in the version message.", required: true },
+    sourceName: { type: "string", description: "The source's name as the user knows it (`acme-plugins`), kept in the version message.", required: true },
   }}
 />
 
@@ -666,7 +796,7 @@ confirmation.
 <PluginInstallDialog
   opened={opened}
   entryName={selected}
-  sourceName="cursor-plugins"
+  sourceName="acme-plugins"
   org={org}
   open={selected !== null}
   onClose={() => setSelected(null)}
@@ -742,9 +872,26 @@ The reader's refusal with every sentence, the way `validate -f` prints it; any o
 
 ## Types
 
+### AddableServer
+
+A server the dialog offers, by reference and by the name the user reads.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "", required: true },
+    ref: { type: "ResourceRef", description: "", required: true },
+  }}
+/>
+
+
 ### AddSourceOutcome
 
 What `add` comes to: the source recorded under `name`, or the sentence refusing it.
+
+
+### AddToolsPhase
+
+Where the flow stands.
 
 
 ### BUILT_IN_SOURCES
@@ -1022,6 +1169,11 @@ function matchesQuery(entry: MarketplaceEntry, query: string): boolean
 ```
 
 
+### McpServerReadinessKind
+
+One of the four things a server can want before its first tool call.
+
+
 ### monogramRing
 
 A stable small hash: the same name, the same colour, across visits and clients.
@@ -1265,7 +1417,11 @@ Where one source's read stands.
 
 ### summariseInstall
 
-"2 skills, 1 MCP server, 1 agent": what the push produced, in the CLI's words.
+"2 skills, 1 MCP server, 1 agent": what the push produced, in the CLI's
+words. A kind the plugin did not install is not named: most of the
+catalogue installs tools alone, and "0 skills, 1 MCP server, 0 agents"
+reads as three facts where there is one. A push that produced nothing
+says so.
 
 ```tsx
 function summariseInstall(outcome: InstallPluginOutcome): string

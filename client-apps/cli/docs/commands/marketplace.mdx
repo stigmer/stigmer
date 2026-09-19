@@ -1,37 +1,44 @@
-Manage the plugin marketplaces you install from.
+Manage the sources you install plugins from.
 
-A marketplace is a directory tree with a marketplace file at its root, the
+A source is a directory tree with a marketplace file at its root, the
 convention Cursor, Claude Code and Codex publish and Stigmer reads unchanged.
-The official marketplace is built in. `stigmer marketplace` records the others
-you want to install from under `marketplaces` in `~/.stigmer/config.yaml`; the
-server never sees a marketplace, only the plugin archive
-[`stigmer install`](./install) pushes from one.
+Stigmer's official catalogue is the one built-in source, published with each
+release and curated: every plugin in it is one Stigmer may ship and one whose
+servers Stigmer can connect to. `stigmer marketplace` records your own
+sources, a repository you or your company publish, under `marketplaces` in
+`~/.stigmer/config.yaml`; the server never sees a source, only the plugin
+archive [`stigmer install`](./install) pushes from one.
 
 {/* AUTO_USAGE */}
 
 ### Common patterns
 
 ```bash
-# Add Cursor's public marketplace (a GitHub repository)
-stigmer marketplace add cursor/plugins
+# Add your company's catalogue (a public GitHub repository with a marketplace file)
+stigmer marketplace add acme/agent-plugins
 
 # Add a repository at a branch or tag, or from its URL
-stigmer marketplace add anthropics/claude-code@main
-stigmer marketplace add https://github.com/openai/codex
+stigmer marketplace add acme/agent-plugins@main
+stigmer marketplace add https://github.com/acme/agent-plugins
 
-# Add a marketplace on this machine
+# Add a catalogue on this machine
 stigmer marketplace add ./my-plugins
 
 # Record it under a name of your own
-stigmer marketplace add cursor/plugins --name cursor
+stigmer marketplace add acme/agent-plugins --name acme
 
 # See what is configured, and what one offers
 stigmer marketplace list
-stigmer marketplace show cursor-plugins
+stigmer marketplace show acme-plugins
 
 # Stop installing from one (plugins already installed stay)
-stigmer marketplace remove cursor-plugins
+stigmer marketplace remove acme-plugins
 ```
+
+`acme/agent-plugins` stands for a repository of your own; the official
+catalogue already carries the plugins Stigmer can offer from the public
+vendor catalogues, so adding one of those mostly re-surfaces what the
+catalogue left out.
 
 {/* AUTO_FLAGS */}
 
@@ -51,15 +58,16 @@ the first install.
   `https://github.com/owner/repo` or `.../tree/<ref>`, unwrapped to the same
   record.
 
-A GitHub marketplace is read at the repository root, where every vendor keeps
-its marketplace file. Private repositories are not supported.
+A GitHub source is read at the repository root, where the marketplace file
+lives in every dialect. Private repositories are not supported.
 
 ### Names
 
-The recorded name is the one the marketplace file gives itself
-(`cursor/plugins` calls itself `cursor-plugins`), unless `--name` says
-otherwise. It is the prefix in `stigmer install <name>/<plugin>`. `stigmer` is
-the built-in marketplace's name and cannot be added, replaced or removed.
+The recorded name is the one the marketplace file gives itself (a repository
+`acme/agent-plugins` whose file says `"name": "acme-plugins"` is recorded as
+`acme-plugins`), unless `--name` says otherwise. It is the prefix in
+`stigmer install <name>/<plugin>`. `stigmer` is the built-in source's name and
+cannot be added, replaced or removed.
 
 {/* AUTO_SUBCOMMANDS */}
 
@@ -69,7 +77,7 @@ the built-in marketplace's name and cannot be added, replaced or removed.
 
 | Command | Description |
 |---------|-------------|
-| [`stigmer install`](./install) | Install a plugin from a marketplace |
+| [`stigmer install`](./install) | Install a plugin from a source |
 | [`stigmer push`](./push) | Install a plugin from a folder on disk |
 | [`stigmer config`](./config) | Manage the rest of the CLI configuration |
 

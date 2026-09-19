@@ -11,7 +11,7 @@
 
 import type { FetchImpl } from "../../sources/types.js";
 
-/** The fixture names itself `acme-plugins`: the vendors' names are built in, and a fixture under one would meet the reserved-name refusal. */
+/** The fixture names itself `acme-plugins`, a company's own catalogue: the shape Add source is for. */
 export const HOSTED_MARKETPLACE_NAME = "acme-plugins";
 export const HOSTED_REPO = "acme/plugins";
 export const HOSTED_COMMIT = "0123456789abcdef0123456789abcdef01234567";

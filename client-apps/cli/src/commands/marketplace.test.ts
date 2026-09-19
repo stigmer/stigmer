@@ -108,22 +108,22 @@ describe("marketplace add", () => {
     expect(load().marketplaces).toBeUndefined();
   });
 
-  it("refuses every built-in name toward --name, and a duplicate", async () => {
+  it("refuses the built-in name toward --name, takes a vendor's name, and refuses a duplicate", async () => {
     expect((await run("add", fixture, "--name", "stigmer")).message).toMatch(
       /'stigmer' is a built-in source and cannot be added or replaced[\s\S]*--name/,
     );
-    // A local clone of a vendor's catalogue names itself after the vendor; the
-    // built-in wins the name and the user is told how to add the clone anyway.
-    expect((await run("add", fixture, "--name", "cursor-plugins")).message).toMatch(
-      /'cursor-plugins' is a built-in source/,
+    // A vendor's catalogue is a source the user adds; its name is his to take.
+    expect((await run("add", fixture, "--name", "cursor-plugins")).exitCode).toBe(
+      ExitCode.Success,
     );
+    expect(load().marketplaces?.["cursor-plugins"]).toBeDefined();
     await run("add", fixture);
     expect((await run("add", fixture)).message).toMatch(/already configured/);
   });
 });
 
 describe("marketplace list", () => {
-  it("is offline, the built-ins first, and names an entry it cannot read", async () => {
+  it("is offline, the built-in first, and names an entry it cannot read", async () => {
     await run("add", fixture);
     const { save } = await import("../config/index.js");
     const config = load();
@@ -138,12 +138,6 @@ describe("marketplace list", () => {
     expect(payload.status).toBe("warning");
     expect(payload.data.marketplaces).toEqual([
       { name: "stigmer", source: { type: "official" } },
-      { name: "cursor-plugins", source: { type: "github", repo: "cursor/plugins" } },
-      {
-        name: "claude-code-plugins",
-        source: { type: "github", repo: "anthropics/claude-code" },
-      },
-      { name: "codex-plugins", source: { type: "github", repo: "openai/plugins" } },
       { name: "acme-plugins", source: { type: "local", path: fixture } },
       {
         name: "broken",
@@ -164,12 +158,12 @@ describe("marketplace show", () => {
     );
     expect(payload.data.plugins).toEqual([
       {
-        name: "thermos",
-        dir: "thermos",
+        name: "warmer",
+        dir: "warmer",
         version: "1.0.0",
-        description: "The thermos plugin.",
+        description: "The warmer plugin.",
       },
-      { name: "github", dir: "third_party/github", version: "2.1.0" },
+      { name: "codeforge", dir: "third_party/codeforge", version: "2.1.0" },
     ]);
     expect(payload.data.warnings).toHaveLength(1);
     expect(payload.data.warnings[0].subject).toBe("ghost");
@@ -203,9 +197,6 @@ describe("marketplace remove", () => {
     expect(load().marketplaces).toBeUndefined();
     expect((await run("remove", "stigmer")).message).toMatch(
       /'stigmer' is a built-in source and cannot be removed/,
-    );
-    expect((await run("remove", "codex-plugins")).message).toMatch(
-      /'codex-plugins' is a built-in source and cannot be removed/,
     );
     expect((await run("remove", "acme-plugins")).message).toMatch(
       /no marketplace named 'acme-plugins'/,

@@ -343,7 +343,7 @@ describe("initiateOAuthConnect", () => {
     await expectCode(
       command.initiateOAuthConnect({ mcpServerId: id, org: ORG }),
       Code.FailedPrecondition,
-      "does not advertise a registration_endpoint for DCR",
+      "does not advertise a registration_endpoint for DCR: 127.0.0.1:",
     );
     mockAs.reset();
   });

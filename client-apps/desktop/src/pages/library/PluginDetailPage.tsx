@@ -98,6 +98,9 @@ export default function PluginDetailPage() {
         onMcpServerClick={({ org: o, slug: s }) => navigate(`/library/mcp-servers/${o}/${s}`)}
         onAgentClick={({ org: o, slug: s }) => navigate(`/library/agents/${o}/${s}`)}
         onWorkflowClick={({ org: o, slug: s }) => navigate(`/library/workflows/${o}/${s}`)}
+        onCreateAgent={(usages) =>
+          navigate(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
+        }
         actions={actions}
       />
       <ConfirmDialog

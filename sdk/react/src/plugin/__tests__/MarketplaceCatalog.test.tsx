@@ -89,16 +89,9 @@ function chip(name: string) {
 }
 
 describe("MarketplaceCatalog: the sources first", () => {
-  it("lists All sources, the built-ins in order and the added one as chips; the page stands when some cannot be read", async () => {
+  it("lists All sources, the official catalogue and the added one as chips; the page stands when one cannot be read", async () => {
     renderCatalog();
-    expect(chips().map((radio) => radio.getAttribute("aria-label"))).toEqual([
-      "All sources",
-      "stigmer",
-      "cursor-plugins",
-      "claude-code-plugins",
-      "codex-plugins",
-      HOSTED_MARKETPLACE_NAME,
-    ]);
+    expect(chips().map((radio) => radio.getAttribute("aria-label"))).toEqual(["All sources", "stigmer", HOSTED_MARKETPLACE_NAME]);
     expect(chip("All sources").getAttribute("aria-checked")).toBe("true");
 
     // The added source's cards paint without waiting for the others; the chip shows its count.
@@ -106,16 +99,11 @@ describe("MarketplaceCatalog: the sources first", () => {
     expect(screen.getByRole("button", { name: "Install github" })).toBeTruthy();
     await waitFor(() => expect(chip(HOSTED_MARKETPLACE_NAME).textContent).toContain("2"));
 
-    // The sources that cannot be read say so in one line each, with a retry; the official one names the development build.
+    // A source that cannot be read says so in one line, with a retry; the official one names the development build.
     await waitFor(() => expect(screen.getByRole("list", { name: "Sources that cannot be read" })).toBeTruthy());
     const failed = within(screen.getByRole("list", { name: "Sources that cannot be read" })).getAllByRole("listitem");
-    expect(failed.map((item) => item.textContent)).toEqual([
-      expect.stringMatching(/^stigmer.*development build/),
-      expect.stringMatching(/^cursor-plugins.*cannot be read right now/),
-      expect.stringMatching(/^claude-code-plugins.*cannot be read right now/),
-      expect.stringMatching(/^codex-plugins.*cannot be read right now/),
-    ]);
-    expect(screen.getByRole("button", { name: "Retry cursor-plugins" })).toBeTruthy();
+    expect(failed.map((item) => item.textContent)).toEqual([expect.stringMatching(/^stigmer.*development build/)]);
+    expect(screen.getByRole("button", { name: "Retry stigmer" })).toBeTruthy();
   });
 
   it("choosing a chip narrows the grid to that source; a failed source shows its sentence whole with a retry", async () => {
@@ -225,7 +213,7 @@ describe("MarketplaceCatalog: the grid", () => {
 });
 
 describe("MarketplaceCatalog: Manage sources", () => {
-  it("opens a dialog listing the built-ins as such, Remove on the added one only, and the add form", async () => {
+  it("opens a dialog listing the built-in as such, Remove on the added one only, and the add form behind its disclosure", async () => {
     renderCatalog();
     await screen.findByRole("button", { name: "Install thermos" });
     fireEvent.click(screen.getByRole("button", { name: "Manage sources" }));
@@ -233,15 +221,19 @@ describe("MarketplaceCatalog: Manage sources", () => {
     const list = within(dialog).getByRole("list", { name: "Known sources" });
     // The rows themselves; a row's disclosure of dropped entries nests its own list.
     const items = Array.from(list.querySelectorAll(":scope > li"));
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(2);
     expect(items[0]?.textContent).toContain("stigmer");
     expect(items[0]?.textContent).toContain("built in");
-    expect(items[1]?.textContent).toContain("(built in)");
     expect(within(list).getAllByRole("button", { name: /^Remove source/ }).map((b) => b.getAttribute("aria-label"))).toEqual([
       `Remove source ${HOSTED_MARKETPLACE_NAME}`,
     ]);
+    // The user's own catalogue is one click away, never presented as a way to browse a vendor.
+    expect(within(dialog).getByText("Add your own catalogue")).toBeTruthy();
+    expect(within(dialog).getByText(/A repository you or your company publish/)).toBeTruthy();
     expect(within(dialog).getByRole("form", { name: "Add a source" })).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "Add source" })).toBeTruthy();
+    // A format path in a reader's sentence (`.cursor-plugin/marketplace.json`) is a fact; a vendor's catalogue on offer would be a presentation.
+    expect(dialog.textContent).not.toMatch(/Cursor's|Claude Code's|Codex's|cursor-plugins|claude-code-plugins|codex-plugins/);
   });
 
   it("says what each catalogue came to on its row, and the storefront itself says nothing about dropped entries", async () => {

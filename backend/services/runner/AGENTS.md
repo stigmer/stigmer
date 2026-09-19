@@ -28,6 +28,9 @@ headers it names are the truth.
   contract and where its one home is.
 - `src/workflows/`: the serverless-workflow engine and its orchestrators;
   `test/golden/` pins its behaviour.
+- `backend/libs/ts/outbound/README.md`: the rules behind
+  `src/tools/url-guard.ts` and `src/shared/mcp-oauth-detect.ts`, shared with the
+  control plane.
 
 ## Laws
 

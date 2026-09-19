@@ -107,6 +107,10 @@ import { completeOAuthConnect } from "./complete-oauth-connect.js";
 import { connect, startBestEffortConnect } from "./connect.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { disconnectOAuth } from "./disconnect-oauth.js";
+import {
+  newCompleteEndpointAuthStep,
+  type CompleteEndpointAuthDeps,
+} from "./complete-endpoint-auth.js";
 import { getOAuthGrantStatus } from "./get-oauth-grant-status.js";
 import { initiateOAuthConnect } from "./initiate-oauth-connect.js";
 import { mcpServerSearchExtractor } from "./search-extractor.js";
@@ -202,6 +206,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
 
+/** The endpoint-auth step's slice of the deps: the guarded fetch the connect slice holds. */
+function endpointAuthDeps(deps: McpServerControllerDeps): CompleteEndpointAuthDeps {
+  return { outboundFetch: deps.connect.outboundFetch, logger: deps.logger };
+}
+
 /** Create — chain per Go buildCreatePipeline. */
 async function createMcpServer(
   deps: McpServerControllerDeps,
@@ -227,6 +236,10 @@ async function createMcpServer(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardPublicVisibilityStep(deps.authorizer))
+    // A URL-only server is asked once whether it wants OAuth and completed
+    // when it does; immediately before GuardReservedLabels because the
+    // provenance label it stamps is one the guard diffs.
+    .addStep(newCompleteEndpointAuthStep(endpointAuthDeps(deps)))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
@@ -275,6 +288,9 @@ async function update(
     // STORED labels and the plugin row's existence).
     .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    // Reads the existing row LoadExisting set, to reuse a completion or to
+    // tell an author's own auth from the derived one (its header).
+    .addStep(newCompleteEndpointAuthStep(endpointAuthDeps(deps)))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateDefaultEnabledToolsStep())
     .addStep(newNormalizeReferencesStep())
