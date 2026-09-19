@@ -497,7 +497,7 @@ interface AuthoringDirsSummary {
   manifests: number;
 }
 
-// Raw authoring surfaces (examples/, seedpack/): every YAML document with
+// Raw authoring surfaces (examples/, plugins/): every YAML document with
 // an apiVersion is validated as a full manifest; every file is scanned for
 // the dead namespace.
 function checkAuthoringDirs(dirs: string[], reg: DocsYamlRegistries): [AuthoringDirsSummary, DocsYamlProblem[]] {

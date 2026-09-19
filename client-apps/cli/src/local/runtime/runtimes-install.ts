@@ -7,6 +7,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { ExitCode } from "../../errors/exit-codes.js";
 
@@ -64,9 +65,11 @@ export function npmInstallIntoRuntimes(installDir: string, spec: string): void {
   }
 }
 
-// A source build reports "0.0.0-dev" and the dev npm channel stamps
-// "<v>-dev.<stamp>" versions; neither publishes matching runtime packages,
-// so they are not acquirable. Release and rc/next versions are.
+// A source build reports "0.0.0-dev", an unbundled server the bare "dev",
+// and the dev npm channel stamps "<v>-dev.<stamp>"; none publishes matching
+// runtime packages, so none is acquirable. Release and rc/next versions are.
+// The rule is the shared client predicate, so the console's read of the
+// official catalogue and this acquisition agree on every version.
 export function isAcquirableRelease(version: string): boolean {
-  return !version.includes("-dev");
+  return isReleaseVersion(version);
 }

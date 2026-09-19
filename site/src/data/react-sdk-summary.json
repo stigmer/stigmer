@@ -221,8 +221,8 @@
       "slug": "plugin",
       "title": "plugin",
       "description": "",
-      "hooks": 10,
-      "components": 5
+      "hooks": 14,
+      "components": 14
     },
     {
       "slug": "provider-standing",
@@ -326,7 +326,7 @@
       "slug": "workflow",
       "title": "Workflow",
       "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
-      "hooks": 39,
+      "hooks": 40,
       "components": 20
     },
     {

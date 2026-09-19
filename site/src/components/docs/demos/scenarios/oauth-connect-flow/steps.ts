@@ -6,7 +6,7 @@
  * clicks sign-in → GitHub authorization page → connected detail
  * with tools discovered → credential status showing healthy token.
  *
- * Fixture data modeled after the real GitHub MCP server seedpack
+ * Fixture data modeled after the GitHub MCP server
  * entry (vendor OAuth, HTTP transport).
  */
 
@@ -43,7 +43,7 @@ export const DEMO_ORG = "acme";
 export const DEMO_SLUG = "mcp-server-github";
 
 // ---------------------------------------------------------------------------
-// McpServer fixtures — GitHub (from seedpack, vendor OAuth)
+// McpServer fixtures — GitHub (vendor OAuth)
 // ---------------------------------------------------------------------------
 
 function buildGitHubBase(): McpServer {
@@ -57,7 +57,7 @@ function buildGitHubBase(): McpServer {
   server.spec = create(McpServerSpecSchema, {
     description: server.spec!.description,
     iconUrl:
-      "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/github.svg",
+      "/tours/icons/github.svg",
     repositoryUrl: "https://github.com/github/github-mcp-server",
     githubStars: 28600,
     tags: ["github", "git", "version-control", "code-review"],

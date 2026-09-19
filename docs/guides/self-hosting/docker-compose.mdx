@@ -137,12 +137,13 @@ The CLI's local backend points at `localhost:7234` by default — exactly where
 the stack serves. If you've used Stigmer Cloud from this machine, switch back
 first with `stigmer config backend set local`.
 
-Apply the system Seedpack. It creates the default `stigmer` Organization and the
-built-in Agents, Skills, and Workflows — the same bootstrap `stigmer up`
-performs on the laptop tier:
+Bootstrap the backend. It creates the `stigmer` Organization and installs the
+official marketplace's default Plugins into it — the same bootstrap `stigmer up`
+performs on the laptop tier. It is safe to run again; a ready backend reports
+every default as up to date:
 
 ```bash
-stigmer seedpack apply
+stigmer bootstrap
 ```
 
 </Step>

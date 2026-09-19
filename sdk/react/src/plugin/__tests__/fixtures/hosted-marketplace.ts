@@ -2,15 +2,17 @@
  * A marketplace tree as a browser would receive it from a host: a flat
  * file map, and a `fetch` fake that answers the GitHub Trees API, raw
  * content, and jsdelivr's listing and CDN for it. Two plugins offered (one
- * with a skill, a sub-agent and an HTTP server declaring `${API_TOKEN}`;
- * one MCP-only under a nested source directory), one entry whose directory
- * is missing, so a suite sees an offered list and a dropped entry, the
- * CLI's own fixture shape.
+ * with a skill, a sub-agent, an HTTP server declaring `${API_TOKEN}`, a
+ * display name, an author and a logo, so a card has a face to show; one
+ * MCP-only under a nested source directory with none of those), one entry
+ * whose directory is missing, so a suite sees an offered list and a
+ * dropped entry, the CLI's own fixture shape.
  */
 
 import type { FetchImpl } from "../../sources/types.js";
 
-export const HOSTED_MARKETPLACE_NAME = "cursor-plugins";
+/** The fixture names itself `acme-plugins`: the vendors' names are built in, and a fixture under one would meet the reserved-name refusal. */
+export const HOSTED_MARKETPLACE_NAME = "acme-plugins";
 export const HOSTED_REPO = "acme/plugins";
 export const HOSTED_COMMIT = "0123456789abcdef0123456789abcdef01234567";
 
@@ -39,8 +41,11 @@ export function hostedMarketplaceFiles(): Map<string, string> {
       "thermos/.cursor-plugin/plugin.json",
       json({
         name: "thermos",
+        displayName: "Thermos",
         version: "1.0.0",
         description: "The thermos plugin.",
+        author: { name: "Acme" },
+        logo: "assets/logo.png",
         skills: "./skills/",
         agents: "./agents/",
         mcpServers: "./mcp.json",
@@ -61,6 +66,7 @@ export function hostedMarketplaceFiles(): Map<string, string> {
     ],
     ["thermos/skills/keep-warm/SKILL.md", "---\nname: keep-warm\ndescription: Keep it warm\n---\n# Keep warm\n\nInstructions.\n"],
     ["thermos/agents/checker.md", "---\nname: checker\ndescription: Checks temperature\n---\nYou check the temperature carefully and report.\n"],
+    ["thermos/assets/logo.png", "not really a png, but listed and sized like one"],
     ["thermos/.gitignore", "*.log\n"],
     ["thermos/debug.log", "excluded by the tree's own .gitignore"],
     [

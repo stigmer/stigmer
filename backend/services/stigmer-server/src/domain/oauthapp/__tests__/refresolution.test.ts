@@ -1,7 +1,7 @@
 /**
  * Pins the OAuthApp ref-resolution ladder against Go's
  * refresolution_test.go table: exact (org, slug) wins; a UNIQUE slug-only
- * match is honored across orgs (the seedpack `org: stigmer` case, #584);
+ * match is honored across orgs (a public server's `org: stigmer` ref, #584);
  * ambiguity resolves to nothing; an empty slug is the DCR/manual-token
  * arm, not a lookup.
  */
@@ -58,7 +58,7 @@ describe("resolveOAuthAppRef", () => {
     expect(app?.metadata?.id).toBe("oaa_github_beta");
   });
 
-  it("honors a UNIQUE slug-only match when the ref's org has no app (the seedpack case, #584)", async () => {
+  it("honors a UNIQUE slug-only match when the ref's org has no app (a public server's ref, #584)", async () => {
     // Two orgs hold 'github' and neither is 'stigmer': ambiguous → nothing.
     expect(await resolveOAuthAppRef(store, ref("stigmer", "github"), silentLogger)).toBeUndefined();
 

@@ -50,6 +50,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../domain/agentexecution/temporal/config.js";
+import type { CallerIdentity } from "../extensions/identity.js";
 import {
   WORKFLOW_ROUTING_EXECUTION,
   type WorkflowExecutionTemporalConfig,
@@ -71,6 +72,17 @@ import { mintSandboxToken, type SandboxLane } from "./lane.js";
  */
 export const SANDBOX_PROVISIONING_FAILED_PREFIX =
   "Sandbox provisioning failed: ";
+
+/**
+ * The two facts about the requesting caller a sandbox ensure carries, cut
+ * from the chain's CallerIdentity (the domain/identityaccount/actor.ts
+ * shape): the id rides into the credential mint, so the session token is
+ * minted FOR the caller; the class rides onto the driver's environment,
+ * so a driver can decide the workspace's durability by who asked. A step
+ * hands `ctx.callerIdentity` in whole; the pick keeps a test's fixture to
+ * the two fields the body reads.
+ */
+export type SandboxCaller = Pick<CallerIdentity, "identityId" | "callerClass">;
 
 type AgentExecutionCreateDesc = typeof AgentExecutionSchema;
 
@@ -101,7 +113,7 @@ export function newEnsureSessionSandboxStep(
       await ensureSessionSandboxForExecution(
         deps,
         ctx.newState,
-        ctx.callerIdentity.identityId,
+        ctx.callerIdentity,
       );
     },
   };
@@ -114,15 +126,18 @@ export function newEnsureSessionSandboxStep(
  * chains' differing context shapes (newState vs loaded execution) meet
  * at this seam instead.
  *
- * `callerIdentityId` rides into the credential mint (lane.ts): the Java
- * ensure step mints session tokens FOR the requesting caller, so the
- * capability mint needs the identity the OSS execution-scoped mint never
- * did. Empty when the invoking site has no caller.
+ * The caller splits two ways (SandboxCaller): `identityId` rides into the
+ * credential mint (lane.ts) — the Java ensure step mints session tokens
+ * FOR the requesting caller, so the capability mint needs the identity
+ * the OSS execution-scoped mint never did — and `callerClass` rides onto
+ * the driver's environment as the one request fact a driver may decide
+ * durability by. The chain always has a caller: the in-process transport
+ * mints `internal` for the server's own calls.
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
   execution: AgentExecution,
-  callerIdentityId: string,
+  caller: SandboxCaller,
 ): Promise<void> {
   if (!deps.lane.enabled) {
     return;
@@ -167,10 +182,11 @@ export async function ensureSessionSandboxForExecution(
           sessionId,
           executionId,
           org: execution.metadata?.org ?? "",
-          callerIdentityId,
+          callerIdentityId: caller.identityId,
         },
         deps.logger,
       ),
+      callerClass: caller.callerClass,
     });
   } catch (error) {
     // Non-critical: never fail the launch — but never silent either
@@ -247,7 +263,7 @@ export function newEnsureWorkflowSandboxStep(
       await ensureWorkflowSandboxForExecution(
         deps,
         ctx.newState,
-        ctx.callerIdentity.identityId,
+        ctx.callerIdentity,
       );
     },
   };
@@ -258,13 +274,13 @@ export function newEnsureWorkflowSandboxStep(
  * re-provision (lifecycle.ts — the previous sandbox was deprovisioned at
  * the terminal FAILED, so a recovered execution needs a fresh one before
  * its fresh workflow starts). Throws Unavailable on provisioning failure
- * — the critical posture in both chains. `callerIdentityId` rides into
- * the credential mint exactly as on the session body.
+ * — the critical posture in both chains. The caller splits exactly as on
+ * the session body: id to the mint, class to the environment.
  */
 export async function ensureWorkflowSandboxForExecution(
   deps: EnsureWorkflowSandboxDeps,
   execution: WorkflowExecution,
-  callerIdentityId: string,
+  caller: SandboxCaller,
 ): Promise<void> {
   if (!deps.lane.enabled) {
     return;
@@ -296,10 +312,11 @@ export async function ensureWorkflowSandboxForExecution(
           sessionId: "",
           executionId,
           org: execution.metadata?.org ?? "",
-          callerIdentityId,
+          callerIdentityId: caller.identityId,
         },
         deps.logger,
       ),
+      callerClass: caller.callerClass,
     });
   } catch (error) {
     deps.logger.error(

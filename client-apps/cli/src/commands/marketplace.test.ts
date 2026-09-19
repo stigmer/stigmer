@@ -78,14 +78,14 @@ describe("marketplace add", () => {
     expect(outcome.exitCode).toBe(ExitCode.Success);
     const payload = JSON.parse(outcome.stdout);
     expect(payload.message).toBe(
-      `Added marketplace 'cursor-plugins' (${fixture}), offering 2 plugins`,
+      `Added source 'acme-plugins' (${fixture}), offering 2 plugins`,
     );
     expect(payload.data).toEqual({
-      name: "cursor-plugins",
+      name: "acme-plugins",
       source: { type: "local", path: fixture },
       plugins: 2,
     });
-    expect(load().marketplaces?.["cursor-plugins"]).toEqual({
+    expect(load().marketplaces?.["acme-plugins"]).toEqual({
       type: "local",
       path: fixture,
     });
@@ -108,9 +108,14 @@ describe("marketplace add", () => {
     expect(load().marketplaces).toBeUndefined();
   });
 
-  it("refuses the reserved name and a duplicate", async () => {
+  it("refuses every built-in name toward --name, and a duplicate", async () => {
     expect((await run("add", fixture, "--name", "stigmer")).message).toMatch(
-      /built-in marketplace/,
+      /'stigmer' is a built-in source and cannot be added or replaced[\s\S]*--name/,
+    );
+    // A local clone of a vendor's catalogue names itself after the vendor; the
+    // built-in wins the name and the user is told how to add the clone anyway.
+    expect((await run("add", fixture, "--name", "cursor-plugins")).message).toMatch(
+      /'cursor-plugins' is a built-in source/,
     );
     await run("add", fixture);
     expect((await run("add", fixture)).message).toMatch(/already configured/);
@@ -118,7 +123,7 @@ describe("marketplace add", () => {
 });
 
 describe("marketplace list", () => {
-  it("is offline, official first, and names an entry it cannot read", async () => {
+  it("is offline, the built-ins first, and names an entry it cannot read", async () => {
     await run("add", fixture);
     const { save } = await import("../config/index.js");
     const config = load();
@@ -133,7 +138,13 @@ describe("marketplace list", () => {
     expect(payload.status).toBe("warning");
     expect(payload.data.marketplaces).toEqual([
       { name: "stigmer", source: { type: "official" } },
-      { name: "cursor-plugins", source: { type: "local", path: fixture } },
+      { name: "cursor-plugins", source: { type: "github", repo: "cursor/plugins" } },
+      {
+        name: "claude-code-plugins",
+        source: { type: "github", repo: "anthropics/claude-code" },
+      },
+      { name: "codex-plugins", source: { type: "github", repo: "openai/plugins" } },
+      { name: "acme-plugins", source: { type: "local", path: fixture } },
       {
         name: "broken",
         unreadable: "unknown type 'gitlab' (expected 'github' or 'local')",
@@ -145,11 +156,11 @@ describe("marketplace list", () => {
 describe("marketplace show", () => {
   it("lists the offered plugins with their manifest versions and the entries it could not offer", async () => {
     await run("add", fixture);
-    const outcome = await run("show", "cursor-plugins", "--json");
+    const outcome = await run("show", "acme-plugins", "--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     const payload = JSON.parse(outcome.stdout);
     expect(payload.message).toBe(
-      "Marketplace 'cursor-plugins' offers 2 plugins, with 1 warning",
+      "Marketplace 'acme-plugins' offers 2 plugins, with 1 warning",
     );
     expect(payload.data.plugins).toEqual([
       {
@@ -184,17 +195,20 @@ describe("marketplace show", () => {
 });
 
 describe("marketplace remove", () => {
-  it("removes a configured marketplace and refuses the built-in and an unknown one", async () => {
+  it("removes an added source and refuses a built-in and an unknown one", async () => {
     await run("add", fixture);
-    expect((await run("remove", "cursor-plugins")).exitCode).toBe(
+    expect((await run("remove", "acme-plugins")).exitCode).toBe(
       ExitCode.Success,
     );
     expect(load().marketplaces).toBeUndefined();
     expect((await run("remove", "stigmer")).message).toMatch(
-      /cannot be removed/,
+      /'stigmer' is a built-in source and cannot be removed/,
     );
-    expect((await run("remove", "cursor-plugins")).message).toMatch(
-      /no marketplace named 'cursor-plugins'/,
+    expect((await run("remove", "codex-plugins")).message).toMatch(
+      /'codex-plugins' is a built-in source and cannot be removed/,
+    );
+    expect((await run("remove", "acme-plugins")).message).toMatch(
+      /no marketplace named 'acme-plugins'/,
     );
   });
 });

@@ -13,7 +13,11 @@
  * authorizer's permissive default ALLOWS reserved-label writes by design
  * (the self-hosted operator owns the store), which is why a restrict-shaped
  * predicate here still pairs the label with server-owned state: the
- * plugin-managed guard refuses only beside an existing plugin row.
+ * plugin-managed guard refuses only beside an existing plugin row, and a
+ * plugin adopts a system-content row only when its own claim to the same
+ * label was just charged to `can_write_reserved_labels` by the sanitiser
+ * (domain/plugin/members.ts) — the label narrows which rows are eligible,
+ * the live authorization is what grants.
  */
 import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -38,6 +42,20 @@ export const DEFAULT_INSTANCE_LABEL = `${RESERVED_LABEL_PREFIX}default-instance`
  * system-managed; user mutations of the managed aspects are rejected.
  */
 export const SYSTEM_MANAGED_LABEL = `${RESERVED_LABEL_PREFIX}system-managed`;
+
+/**
+ * Marks system content: a resource the platform itself seeded rather than a
+ * user authored — the system organization, the default agent, the
+ * platform's own MCP servers. The label predates this module (the retired
+ * seedpack wrote it on every row it applied; the official plugins' overlays
+ * carry it on the resources they replace) and has one server-side meaning:
+ * a plugin push may adopt a system-content row that holds a slug the plugin
+ * needs, keeping the row's id and everything bound to it, instead of
+ * refusing the slug as taken. It never marks a user's resource, so a user's
+ * row is never adopted (domain/plugin/members.ts, judgeSlug). The CLI names
+ * the same bytes as SYSTEM_ORG_LABEL for the organization it ensures.
+ */
+export const SYSTEM_LABEL = `${RESERVED_LABEL_PREFIX}system`;
 
 /**
  * The only value that activates a reserved marker label; any other value is
@@ -85,4 +103,11 @@ export function isDefaultInstance(
   metadata: ApiResourceMetadata | undefined,
 ): boolean {
   return metadata?.labels[DEFAULT_INSTANCE_LABEL] === RESERVED_LABEL_TRUE;
+}
+
+/** Whether the metadata carries the SYSTEM_LABEL marker (undefined-safe). */
+export function isSystemContent(
+  metadata: ApiResourceMetadata | undefined,
+): boolean {
+  return metadata?.labels[SYSTEM_LABEL] === RESERVED_LABEL_TRUE;
 }

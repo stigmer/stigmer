@@ -21,9 +21,8 @@ package ai.stigmer.agentic.mcpserver.v1;
  * never matches a discovered tool, so the runner warns and ignores it
  * (enforcing the intersection with the live toolset).
  *
- * Populated by:
- * - Seedpack bootstrap (built-in servers with known, stable tool sets)
- * - The connect RPC (web console, CLI, or the runner's first-time-use backfill)
+ * Populated by the connect RPC (web console, CLI, or the runner's
+ * first-time-use backfill).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}
@@ -445,9 +444,8 @@ private static final long serialVersionUID = 0L;
    * never matches a discovered tool, so the runner warns and ignores it
    * (enforcing the intersection with the live toolset).
    *
-   * Populated by:
-   * - Seedpack bootstrap (built-in servers with known, stable tool sets)
-   * - The connect RPC (web console, CLI, or the runner's first-time-use backfill)
+   * Populated by the connect RPC (web console, CLI, or the runner's
+   * first-time-use backfill).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}

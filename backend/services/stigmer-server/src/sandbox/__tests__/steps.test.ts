@@ -11,7 +11,10 @@
  *   - the terminal observer deprovisions exactly on transitions INTO a
  *     terminal phase, fire-and-forget, and swallows (logs) teardown
  *     failures;
- *   - a disabled mint lane launches token-less rather than failing.
+ *   - a disabled mint lane launches token-less rather than failing;
+ *   - the caller splits two ways on both lanes: the identity id reaches
+ *     the credential mint, the caller class reaches the driver's
+ *     environment unchanged (a composed lane such as `guest` included).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -53,14 +56,25 @@ import {
   ensureWorkflowSandboxForExecution,
   newWorkflowSandboxTerminalObserver,
   SANDBOX_PROVISIONING_FAILED_PREFIX,
+  type SandboxCaller,
 } from "../steps.js";
 
 /**
- * The caller identity the ensure bodies thread into the credential mint
- * (C4): the OSS execution-scoped mint ignores it, so these tests pass a
- * fixed value and the token assertions stay binding-shaped.
+ * The caller the ensure bodies split two ways: the identity id into the
+ * credential mint (C4 — the OSS execution-scoped mint ignores it, so the
+ * token assertions stay binding-shaped) and the class onto the driver's
+ * environment. `user` is the plain lane; the class-propagation cases hand
+ * in a composed lane's word to prove the body copies, never normalises.
  */
 const TEST_CALLER_IDENTITY_ID = "ida_test_caller";
+const TEST_CALLER: SandboxCaller = {
+  identityId: TEST_CALLER_IDENTITY_ID,
+  callerClass: "user",
+};
+const GUEST_CALLER: SandboxCaller = {
+  identityId: "ida_guest_caller",
+  callerClass: "guest",
+};
 
 const silentLogger = createLogger({
   level: "error",
@@ -235,7 +249,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(provisioner.ensured).toEqual([
       {
@@ -244,9 +258,30 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         env: {
           taskQueue: `session:${sessionId}`,
           stigmerToken: `tok-${execution.metadata?.id ?? ""}`,
+          callerClass: "user",
         },
       },
     ]);
+  });
+
+  it("hands the caller's class to the driver unchanged and the caller's id to the mint", async () => {
+    const provisioner = fakeProvisioner();
+    const credentials = capabilityCredentials();
+    const { execution } = await seed(ExecutionTarget.CLOUD);
+    await ensureSessionSandboxForExecution(
+      {
+        store,
+        logger: silentLogger,
+        lane: lane(provisioner, credentials),
+        temporalConfig: sessionRoutingCloudDefault,
+      },
+      execution,
+      GUEST_CALLER,
+    );
+    expect(provisioner.ensured[0]?.env.callerClass).toBe("guest");
+    expect(credentials.minted[0]?.callerIdentityId).toBe(
+      GUEST_CALLER.identityId,
+    );
   });
 
   it("delegates the mint to the capability provider with the full provisioning context (C4)", async () => {
@@ -277,7 +312,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
 
     expect(credentials.minted).toEqual([
@@ -303,7 +338,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -327,7 +362,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
   });
 
@@ -345,7 +380,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -366,7 +401,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         ),
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -382,7 +417,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(provisioner.ensured[0]?.env.stigmerToken).toBe("");
   });
@@ -401,7 +436,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     const stamped = await store.getResource(
       ApiResourceKind.agent_execution,
@@ -439,7 +474,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     const after = await store.getResource(
       ApiResourceKind.agent_execution,
@@ -467,15 +502,33 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         temporalConfig: executionRoutingConfig,
       },
       workflowExecution(ExecutionTarget.CLOUD),
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(provisioner.ensured).toEqual([
       {
         scope: "workflow",
         id: "wfx_sbx_1",
-        env: { taskQueue: "wfexec:wfx_sbx_1", stigmerToken: "tok-wfx_sbx_1" },
+        env: {
+          taskQueue: "wfexec:wfx_sbx_1",
+          stigmerToken: "tok-wfx_sbx_1",
+          callerClass: "user",
+        },
       },
     ]);
+  });
+
+  it("hands the caller's class to the driver unchanged on the workflow lane", async () => {
+    const provisioner = fakeProvisioner();
+    await ensureWorkflowSandboxForExecution(
+      {
+        logger: silentLogger,
+        lane: lane(provisioner),
+        temporalConfig: executionRoutingConfig,
+      },
+      workflowExecution(ExecutionTarget.CLOUD),
+      GUEST_CALLER,
+    );
+    expect(provisioner.ensured[0]?.env.callerClass).toBe("guest");
   });
 
   it("delegates the mint to the capability provider on the workflow scope (C4)", async () => {
@@ -491,7 +544,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         metadata: { id: "wfx_sbx_cap", name: "wfx_sbx_cap", org: "org-test" },
         spec: { executionTarget: ExecutionTarget.CLOUD },
       }),
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(credentials.minted).toEqual([
       {
@@ -514,7 +567,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         temporalConfig: executionRoutingConfig,
       },
       workflowExecution(ExecutionTarget.LOCAL),
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     await ensureWorkflowSandboxForExecution(
       {
@@ -528,7 +581,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         ),
       },
       workflowExecution(ExecutionTarget.CLOUD),
-      TEST_CALLER_IDENTITY_ID,
+      TEST_CALLER,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -545,7 +598,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
           temporalConfig: executionRoutingConfig,
         },
         workflowExecution(ExecutionTarget.CLOUD),
-        TEST_CALLER_IDENTITY_ID,
+        TEST_CALLER,
       );
       expect.unreachable("the workflow lane must throw on failure");
     } catch (error) {

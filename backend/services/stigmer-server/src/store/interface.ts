@@ -217,8 +217,12 @@ export interface SearchIndexQueryResult {
 // =============================================================================
 
 /**
- * Key-value state for idempotent seedpack bootstrap. Common keys:
- * "seedpack_version", "bootstrap_status", "skill:<name>", "agent:<name>".
+ * Key-value state for one-shot boot work that must run once per database.
+ * The one writer today is the membership rules' reconciliation
+ * (`iampolicy/constants.ts` ROLES_RECONCILED_KEY). A database migrated
+ * from the Go server carries that server's bootstrap keys too; the
+ * migration preserves them (see sqlite/__tests__/migrations.test.ts) and
+ * nothing reads them.
  */
 export interface BootstrapStateStore {
   /** Returns "" (not an error) when the key does not exist — Go's contract. */

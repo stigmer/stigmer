@@ -17,13 +17,13 @@ No sign-in: like `stigmer up`, the container trusts every caller. Keep the ports
 
 ## What the image is
 
-A pre-warmed `stigmer up`. On a laptop, the CLI's first `up` acquires `@stigmer/server-slim`, `@stigmer/runner-slim` and `@stigmer/seedpack` into `~/.stigmer/runtimes/<version>/node_modules/@stigmer/…` and downloads the Temporal CLI into `~/.stigmer/bin`. This image has those acquisitions already done, read-only, off the data volume:
+A pre-warmed `stigmer up`. On a laptop, the CLI's first `up` acquires `@stigmer/server-slim`, `@stigmer/runner-slim` and `@stigmer/plugins` into `~/.stigmer/runtimes/<version>/node_modules/@stigmer/…` and downloads the Temporal CLI into `~/.stigmer/bin`. This image has those acquisitions already done, read-only, off the data volume:
 
 - `/opt/stigmer/runtimes/<version>/` — the same npm packages (plus the CLI itself), installed into the same layout; `STIGMER_RUNTIMES_DIR` points the CLI's acquirers here, and they find everything present.
 - `/opt/stigmer/bin/temporal` — the Temporal CLI, downloaded and checksum-verified by the CLI's own downloader; `STIGMER_TEMPORAL_BIN` points the manager here.
 - `HOME=/data` — everything the stack writes lands on the volume: the SQLite database, the encryption keys, `config.yaml`, Temporal's database, the runner's session state, Workspaces, artifacts, logs. `/data/.stigmer` is byte for byte a laptop's `~/.stigmer`.
 
-The entrypoint prints the evaluation banner, refuses a data directory the non-root user cannot write, warns when no LLM credential is present, and runs `stigmer up --foreground` under `tini`. That is the whole composition (`client-apps/cli/src/local/`): Temporal, then the gated server, then the runner, then the seedpack, supervised, in one process tree. There is no second launcher.
+The entrypoint prints the evaluation banner, refuses a data directory the non-root user cannot write, warns when no LLM credential is present, and runs `stigmer up --foreground` under `tini`. That is the whole composition (`client-apps/cli/src/local/`): Temporal, then the gated server, then the runner, then the bootstrap, supervised, in one process tree. There is no second launcher.
 
 ## Build
 
@@ -40,7 +40,7 @@ docker build --build-arg STIGMER_VERSION=$(cat deploy/all-in-one/stage/VERSION) 
 
 ## Prove
 
-`scripts/smoke-all-in-one.mjs` is the one smoke, run by `make smoke-all-in-one`, by `ci.all-in-one.yaml` on every relevant PR (both arches, from the PR's sources), and by the release lane against the pushed tag. It proves: Docker `healthy`; the banner and the no-key warning; SERVING and the console lane; the seedpack applied; an LLM-free Workflow run to `EXECUTION_COMPLETED` through the embedded Temporal and runner; the artifact lane; `docker restart` persistence; an unclean restart (`docker kill`, `docker start`) with exactly one Temporal across three supervisor ticks; `docker stop -t 30` exiting 0; an unwritable bind mount refused.
+`scripts/smoke-all-in-one.mjs` is the one smoke, run by `make smoke-all-in-one`, by `ci.all-in-one.yaml` on every relevant PR (both arches, from the PR's sources), and by the release lane against the pushed tag. It proves: Docker `healthy`; the banner and the no-key warning; SERVING and the console lane; the default plugin installed on first boot; an LLM-free Workflow run to `EXECUTION_COMPLETED` through the embedded Temporal and runner; the artifact lane; `docker restart` persistence; an unclean restart (`docker kill`, `docker start`) with exactly one Temporal across three supervisor ticks; `docker stop -t 30` exiting 0; an unwritable bind mount refused.
 
 ## Ports and stopping
 

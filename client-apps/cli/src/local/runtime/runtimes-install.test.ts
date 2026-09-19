@@ -36,6 +36,8 @@ describe("isAcquirableRelease", () => {
     expect(isAcquirableRelease("0.5.0-rc.1")).toBe(true);
     expect(isAcquirableRelease("0.0.0-dev")).toBe(false);
     expect(isAcquirableRelease("0.5.0-dev.20260825")).toBe(false);
+    // The bare stamp an unbundled server reports; the substring test this once was let it through.
+    expect(isAcquirableRelease("dev")).toBe(false);
   });
 });
 

@@ -7,6 +7,7 @@ import {
   Library,
   MessageSquare,
   MessagesSquare,
+  Store,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -40,7 +41,8 @@ export type WorkspaceNavId =
   | "new-session"
   | "dashboard"
   | "conversations"
-  | "library";
+  | "library"
+  | "marketplace";
 
 /**
  * Recent-activity data for the sidebar's Recents section — the return
@@ -104,7 +106,7 @@ export interface WorkspaceSidebarProps {
 
 /**
  * The console's workspace-zone sidebar: org switcher, primary navigation
- * (New Session / Dashboard / Conversations / Library), time-bucketed
+ * (New Session / Dashboard / Conversations / Library / Marketplace), time-bucketed
  * recent activity, and a user footer.
  *
  * This is the same component the Stigmer web console and desktop app
@@ -199,6 +201,16 @@ export function WorkspaceSidebar({
           label="Library"
           icon={Library}
           active={activeNav === "library"}
+          renderLink={renderLink}
+        />
+        {/* What you can get, beside what you have: the Marketplace is where
+            plugins are found and installed; the Library is what is installed. */}
+        <PrimaryNavRow
+          id="marketplace"
+          href="/marketplace"
+          label="Marketplace"
+          icon={Store}
+          active={activeNav === "marketplace"}
           renderLink={renderLink}
         />
       </div>

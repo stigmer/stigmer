@@ -18,7 +18,7 @@ import {
 /**
  * Pins the drift comparison and refresh-payload semantics of
  * stigmer/stigmer#228. The scenarios mirror the reporting incident: the
- * monday.com seedpack template was fixed (custom token header ->
+ * monday.com public template was fixed (custom token header ->
  * `Authorization: Bearer`, plus `oauth_only`), and pre-fix copies had to
  * detect exactly that class of change — while cosmetic template edits
  * (descriptions, icons, tags) must never nag.

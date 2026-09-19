@@ -16,6 +16,7 @@ import {
   type ExtractedWorkflowYaml,
 } from "./extract-workflow-yaml.js";
 import { WORKFLOW_ARCHITECT_RESPONSE_SCHEMA } from "./architect-response-schema.js";
+import { workflowArchitectRef } from "./workflow-architect.js";
 
 /**
  * Lifecycle phases for the Workflow Architect generate flow.
@@ -84,8 +85,9 @@ export interface UseWorkflowArchitectFlowReturn {
   /**
    * Validate the prompt and launch the Workflow Architect agent.
    *
-   * Creates a session with the `workflow-architect` system agent,
-   * starts an execution with the user's prompt, and begins streaming.
+   * Creates a session with the Organization's Workflow Architect agent
+   * (`workflow-architect.ts`), starts an execution with the user's prompt,
+   * and begins streaming.
    * The stream phase transitions automatically when the agent finishes.
    */
   readonly generate: () => Promise<void>;
@@ -102,12 +104,11 @@ export interface UseWorkflowArchitectFlowReturn {
   readonly reset: () => void;
 }
 
-const AGENT_REF = { org: "", slug: "workflow-architect" } as const;
 const MIN_PROMPT_LENGTH = 10;
 
 /**
  * Behavior hook that orchestrates the agent-powered "generate a workflow"
- * flow using the built-in Workflow Architect system agent.
+ * flow using the Organization's Workflow Architect agent.
  *
  * Composes existing infrastructure:
  * - {@link useCreateSession} to create a session with the agent
@@ -236,7 +237,7 @@ export function useWorkflowArchitectFlow(
     try {
       const { sessionId: newSessionId } = await createSession({
         org: orgRef.current,
-        agentRef: { ...AGENT_REF, org: orgRef.current },
+        agentRef: workflowArchitectRef(orgRef.current),
       });
       setSessionId(newSessionId);
 

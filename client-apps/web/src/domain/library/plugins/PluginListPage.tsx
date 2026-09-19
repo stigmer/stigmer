@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useReducer, useState } from "react";
 import Link from "next/link";
-import { Blocks, Copy, ExternalLink, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Blocks, Copy, ExternalLink, MoreHorizontal, Store, Trash2, Upload } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   readPersistedScope,
@@ -54,8 +54,27 @@ const PLUGIN_COLUMNS: WorkbenchColumnDef<SearchResult>[] = [
   },
 ];
 
-const INSTALL_LINK_CLASSES =
+const PRIMARY_LINK_CLASSES =
   "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const SECONDARY_LINK_CLASSES =
+  "inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/** The two ways in, side by side: the Marketplace (what you can get) and an upload from disk (what you have). */
+function WaysIn({ size }: { readonly size: "sm" | "xs" }) {
+  const text = size === "sm" ? "text-sm" : "text-xs";
+  return (
+    <div className="flex items-center gap-2">
+      <Link href="/marketplace" className={`${PRIMARY_LINK_CLASSES} ${text}`}>
+        <Store className="size-3.5" aria-hidden="true" />
+        Browse Marketplace
+      </Link>
+      <Link href="/library/plugins/upload" className={`${SECONDARY_LINK_CLASSES} ${text}`}>
+        <Upload className="size-3.5" aria-hidden="true" />
+        Upload plugin
+      </Link>
+    </div>
+  );
+}
 
 export function PluginListPage() {
   const org = useActiveOrgSlug();
@@ -123,19 +142,9 @@ export function PluginListPage() {
         searchPlaceholder="Search plugins…"
         emptyIcon={<Blocks className="size-10" aria-hidden="true" />}
         emptyTitle="No plugins installed"
-        emptyDescription="Install a plugin from a marketplace to add skills, MCP servers and an agent that uses them, as one unit."
-        headerAction={
-          <Link href="/library/plugins/install" className={`${INSTALL_LINK_CLASSES} text-sm`}>
-            <Plus className="size-3.5" aria-hidden="true" />
-            Install plugin
-          </Link>
-        }
-        emptyAction={
-          <Link href="/library/plugins/install" className={`${INSTALL_LINK_CLASSES} text-xs`}>
-            <Plus className="size-3.5" aria-hidden="true" />
-            Install plugin
-          </Link>
-        }
+        emptyDescription="Install a plugin from the Marketplace, or upload one from your computer, to add skills, MCP servers and an agent that uses them, as one unit."
+        headerAction={<WaysIn size="sm" />}
+        emptyAction={<WaysIn size="xs" />}
         onItemClick={(item) => navigateToDetail("plugins", item.org, item.slug)}
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>

@@ -59,6 +59,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   usage: "core",
   // Lifecycle
   up: "lifecycle",
+  bootstrap: "lifecycle",
   down: "lifecycle",
   status: "lifecycle",
   logs: "lifecycle",
@@ -82,7 +83,6 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   download: "artifact",
   // Server
   "mcp-server": "server",
-  seedpack: "server",
   // Configuration
   auth: "config",
   apikey: "config",

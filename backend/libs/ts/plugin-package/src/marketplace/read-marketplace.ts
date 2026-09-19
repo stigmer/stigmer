@@ -25,6 +25,13 @@
  * `readPluginPackage`; a consumer that wants to install it hands the same
  * directory to the walker it already uses. Keeping the two reads apart is
  * what lets a catalogue of eighty entries be listed without eighty reads.
+ *
+ * `readMarketplaceFile` is the same read without the tree: what the file
+ * declares, for a client that holds the file alone and asks only "does this
+ * source offer a plugin called X" before it pays for the tree (the CLI's
+ * bare-name search across GitHub sources fetches one small file per source
+ * instead of a zipball each). Whether the tree holds an entry is still
+ * `readMarketplace`'s to say, on the tree, before anything is installed.
  */
 
 import { hasPluginManifest, isValidPluginName } from "../detect.js";
@@ -47,6 +54,24 @@ export function hasMarketplaceFile(paths: Iterable<string>): boolean {
 }
 
 export function readMarketplace(files: PluginFiles): MarketplaceReadOutcome {
+  return read(files, "tree");
+}
+
+/**
+ * The marketplace file as declared, the tree unverified: every entry with a
+ * readable source is offered, whether or not `files` holds its directory.
+ * For a client that has fetched the file alone; never for an install.
+ */
+export function readMarketplaceFile(files: PluginFiles): MarketplaceReadOutcome {
+  return read(files, "file");
+}
+
+/**
+ * `tree`: entries whose directory the tree lacks, or holds without a plugin
+ * manifest, are dropped with their warning. `file`: entries are taken as the
+ * file declares them, and the tree is not consulted.
+ */
+function read(files: PluginFiles, verify: "tree" | "file"): MarketplaceReadOutcome {
   const findings = new MarketplaceFindings();
   const index = new PluginFileIndex(files);
 
@@ -62,7 +87,7 @@ export function readMarketplace(files: PluginFiles): MarketplaceReadOutcome {
 
   const name = readName(object, path, findings);
   const raw = readEntries(object, dialect, path, findings);
-  const entries = offeredEntries(raw, index, path, findings);
+  const entries = verify === "tree" ? offeredEntries(raw, index, path, findings) : declaredEntries(raw);
   const defaults = resolveDefaults(object, raw, entries, dialect, path, findings);
 
   if (findings.errors.length > 0 || name === undefined) return refused(findings);
@@ -347,6 +372,20 @@ function offeredEntries(
     });
   }
   return offered;
+}
+
+/** Every entry with a readable source, as the file declares it; the tree is not asked. */
+function declaredEntries(raw: readonly RawEntry[]): readonly MarketplaceEntry[] {
+  const declared: MarketplaceEntry[] = [];
+  for (const entry of raw) {
+    if (entry.dir === undefined) continue;
+    declared.push({
+      name: entry.name,
+      dir: entry.dir,
+      ...(entry.description !== undefined && { description: entry.description }),
+    });
+  }
+  return declared;
 }
 
 /** The files under `dir` as plugin-relative paths, so `hasPluginManifest` reads them as it reads a plugin's own listing. */
