@@ -172,7 +172,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     const entry = statsByScenario.get(cell.scenario.name) ?? {};
     entry[cell.harness] = stat;
     statsByScenario.set(cell.scenario.name, entry);
-    io.log(`cell ${cell.id}: n=${stat.n} failed=${stat.failed} median_e2e=${stat.median?.end_to_end_ms ?? "n/a"}ms`);
+    io.log(`cell ${cell.id}: n=${stat.n} failed=${stat.failed} median_e2e=${stat.median ? `${stat.median.end_to_end_ms}ms` : "n/a"}`);
   }
 
   const comparisons: BenchmarkComparison[] = [];

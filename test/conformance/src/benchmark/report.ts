@@ -85,7 +85,12 @@ export interface BenchmarkAxes {
   client_first_text_ms: number | null;
   /** Temporal's clock: WorkflowExecutionStarted to the execute activity's ActivityTaskStarted. */
   before_activity_ms: number | null;
-  /** Temporal's clock: the EnsureThread activity's ActivityTaskScheduled to its ActivityTaskCompleted. */
+  /**
+   * Temporal's clock: the EnsureThread activity's ActivityTaskScheduled to its
+   * ActivityTaskCompleted. Null on every Cursor sample by construction: only the
+   * native flow schedules EnsureThread (the LangGraph thread); the Cursor flow
+   * reads its harness state instead (invoke-agent-execution.ts).
+   */
   ensure_thread_ms: number | null;
   /** Runner clock (the activity's start): `turn_phases.first_visible_token_ms`. */
   runner_first_visible_token_ms: number | null;
