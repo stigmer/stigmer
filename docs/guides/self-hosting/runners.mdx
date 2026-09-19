@@ -164,10 +164,10 @@ SANDBOX_PROVISIONER_TYPE='docker' requires a per-queue routing mode — set STIG
 ```
 
 <Callout type="warn">
-  **At 3.17.0 the shipped stack can't exercise this.** The published server
-  image carries no `docker` CLI and the compose file mounts no Docker socket, so
-  the `docker` driver fails at its first Session. And the two container drivers
-  hand the per-Session runner no artifact path, so attachments a run needs don't
+  **The shipped stack can't exercise this yet.** The published server image
+  carries no `docker` CLI and the compose file mounts no Docker socket, so the
+  `docker` driver fails at its first Session. And the two container drivers hand
+  the per-Session runner no artifact path, so attachments a run needs don't
   resolve ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)). The
   chart offers no sandbox values until that lands. This section describes the
   mechanism so the settings you meet in the server's configuration make sense;

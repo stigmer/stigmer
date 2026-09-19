@@ -21,6 +21,11 @@ machines (CI jobs, the runner, scripts) use API keys. The
   from outside" section set up. The console's redirect URI and the CLI's TLS
   rule both assume it. For an evaluation on one machine over plain HTTP,
   `http://localhost:7234` works too.
+- A stack you have bootstrapped: your shape's page ran `stigmer bootstrap`
+  before it sent you here. A server with authentication on refuses the
+  platform-managed labels and the Public visibility the default Plugins carry,
+  so the bootstrap can't be run afterwards
+  ([stigmer#1192](https://github.com/stigmer/stigmer/issues/1192)).
 - An OIDC provider you control: Keycloak, Okta, Auth0, Dex, or any server that
   supports OIDC discovery. You need three values from it: the **issuer URL**
   (for example `https://auth.example.com/realms/main`), the **audience** your
@@ -189,9 +194,10 @@ that expires stops authenticating on that day. Create a second one for your own
 CLI. Each key is shown exactly once; the server stores only a hash and cannot
 show it again.
 
-Create keys after you sign in. At 3.17.0, a key created while the server still
-trusted everyone does not work once authentication is on
-([stigmer#1169](https://github.com/stigmer/stigmer/issues/1169)).
+Create keys after you sign in: until
+[stigmer#1169](https://github.com/stigmer/stigmer/issues/1169) is fixed, a key
+created while the server still trusted everyone does not work once
+authentication is on.
 
 ### Give the runner its key
 
@@ -215,8 +221,7 @@ Compose recreates the services whose settings changed.
 <Tab value="Kubernetes">
 
 <Callout type="warn">
-  **At 3.17.0, the key you created before the upgrade stopped working when
-  authentication turned on**
+  **A key created before authentication was on stops working when it turns on**
   ([stigmer#1169](https://github.com/stigmer/stigmer/issues/1169)). Give the
   runner the `runner` key you just created instead: write it into the Secret and
   restart the pod so the runner reads it.
