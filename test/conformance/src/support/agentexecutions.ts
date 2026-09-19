@@ -19,7 +19,6 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AttachmentSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { expect } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
@@ -196,9 +195,14 @@ export interface SubmitApprovalPerContractOptions {
 }
 
 // Submits per the contract and returns the response the contract held on.
+// `expect` is imported here, at the call, not at the module's top: this
+// module's builders and phase helpers are also read by the live benchmark
+// script (scripts/benchmark-harnesses.ts), which runs outside vitest, and
+// vitest's `expect` refuses to load without a running test worker.
 export async function submitApprovalPerContract(
   opts: SubmitApprovalPerContractOptions,
 ): Promise<AgentExecution> {
+  const { expect } = await import("vitest");
   const response = await opts.submit();
   expect(response.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining);
   return response;
