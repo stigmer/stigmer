@@ -286,6 +286,13 @@ export class LocalExecutionTarget implements TargetProfile {
     return this.runner.homeDir;
   }
 
+  runnerLogFile(): string {
+    if (this.runner === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before runnerLogFile()");
+    }
+    return this.runner.logFile;
+  }
+
   // The unified port's base URL — gRPC and the plain-HTTP lanes alike (the
   // LocalTarget accessor, here because the architect fixture's stdio
   // mcp-server dials it and the registry lane lives on it).

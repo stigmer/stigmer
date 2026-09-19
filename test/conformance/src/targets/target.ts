@@ -701,6 +701,14 @@ export interface TargetProfile {
   // Valid only after setup().
   runnerHomeDir?(): string;
 
+  // The file the target's runner tees its whole combined output to — the one
+  // place a `stigmer_timing` line (the runtime's `turn_phases` timeline, the
+  // adapters' `execution_setup`) can be read for an execution after it ran,
+  // since the runner emits those lines to stdout and nowhere else. The
+  // benchmark's readers and their smoke read it. Present only on targets that
+  // spawn the runner. Valid only after setup().
+  runnerLogFile?(): string;
+
   // The addresses a SECOND runner would need to join this target's engine: the
   // Temporal frontend and the server's base URL. Present only on targets that
   // boot their own Temporal (the local execution targets); the cloud runner
