@@ -39,13 +39,16 @@
  * runner process polls the queues.
  */
 import type { Logger } from "../boot/logger.js";
+import type { CallerClass } from "../extensions/identity.js";
 
 /**
- * The runtime handed to a provisioner for one sandbox: which queue the
- * sandboxed runner must poll and the credential it authenticates with.
- * Deliberately minimal (the Java SandboxEnvironment carries the same two
- * load-bearing fields plus cloud-only accounting) — endpoints, images,
- * and resource shapes are DRIVER configuration, not per-sandbox state.
+ * What is TRUE about one provisioning request, handed to a driver: which
+ * queue the sandboxed runner must poll, the credential it authenticates
+ * with, and the class of the caller whose request is being served. Facts
+ * only — what a driver DOES with them (the workspace's durability, the
+ * pod's shape, whether a warm pool is consulted) is driver policy and
+ * never travels here. Endpoints, images and resource shapes are driver
+ * configuration, not per-sandbox state.
  */
 export interface SandboxEnvironment {
   /** The Temporal task queue the sandboxed runner polls (session:{id} / wfexec:{id}). */
@@ -56,6 +59,18 @@ export interface SandboxEnvironment {
    * and EC decrypt falls back to redaction, the oss#535 posture.
    */
   readonly stigmerToken: string;
+  /**
+   * The class of the caller whose request provisioned this sandbox — the
+   * identity interceptor's word for it (`user`, `internal`, a composed
+   * verifier's own lane such as a guest or a scheduled fire). A driver
+   * that gives some session classes a workspace that does not outlive the
+   * conversation reads it here; the built-in drivers (`local-process`,
+   * `docker`, `kubernetes`) ignore it and keep every session persistent.
+   * Required rather than optional so a construction site that forgets it
+   * fails to compile instead of silently reading as a persistent user
+   * session to every driver.
+   */
+  readonly callerClass: CallerClass;
 }
 
 /** One sandbox's observed live state (the Q5 probe result). */
