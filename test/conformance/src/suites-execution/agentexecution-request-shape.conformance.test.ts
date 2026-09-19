@@ -49,9 +49,11 @@
 //   a conformance test asserts the intended contract, never the accident.
 //
 // The goldens depend on two things the header names so a moved golden is
-// diagnosed, not guessed at: (1) the execution lane's model pin
-// (harness/runner-process.ts STIGMER_PRIMARY_MODEL), because deepagents
-// appends a per-model prompt suffix; (2) the pinned deepagents version, whose
+// diagnosed, not guessed at: (1) the model the runner resolves for a bare
+// agent with no pin — the model registry's first featured standard native
+// row (runner shared/model-registry.ts getDefaultModel) — because deepagents
+// appends a per-model prompt suffix; a reorder of the registry's featured
+// rows moves this golden; (2) the pinned deepagents version, whose
 // built-in prompt blocks and tool descriptions are part of the photograph on
 // purpose — a dependency bump moves the golden, and the hunk is the review of
 // what upstream changed.
@@ -73,7 +75,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { readAnthropicRequest, type AnthropicRequestBody } from "../harness/llm-wire";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import { anthropicText } from "../harness/mock-llm";
-import { makeAgent } from "../support/agents";
+import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
@@ -100,10 +102,10 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// The bare agent's one instruction: the only agent-authored bytes in the
-// photograph. Fixed here so the golden's first block is this sentence and
-// nothing else of the suite's choosing.
-const BARE_AGENT_INSTRUCTIONS = "Answer in one short sentence.";
+// The bare agent's one instruction is support/agents.ts's
+// BARE_AGENT_INSTRUCTIONS, shared with the live benchmark so the agent it
+// measures is the one photographed here; the golden's first block is that
+// sentence and nothing else of the suite's choosing.
 const BARE_AGENT_MESSAGE = "Say hello.";
 
 // One turn of a bare agent, scripted as a single text reply, on a fresh
