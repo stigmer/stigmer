@@ -34,6 +34,7 @@ export type {
   AgentSetupReadyResult,
   AgentSetupState,
   AgentSetupPhase,
+  PendingSignIn,
   AgentResolution,
   SubmitEnvVarsOptions,
   UseAgentSetupReturn,

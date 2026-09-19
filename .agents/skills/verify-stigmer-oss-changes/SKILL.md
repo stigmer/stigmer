@@ -42,8 +42,9 @@ verified in minutes and the full gate is left to CI.
   so a change to an exported symbol's TSDoc regenerates the docs before the push
   (`make gen-react-sdk-docs`; the site's dependencies must be installed first,
   as `.github/workflows/ci.docs.yaml` shows).
-- Slow, rarely affected targets (`check-links`, `validate-demos`, `test-demos`,
-  `docs-build`) stay out unless asked for.
+- Slow, rarely affected targets (`check-links`, `validate-demos`, `test-demos`)
+  stay out unless asked for. `make build-site` is not among them: it is the only
+  MDX compile, and the `docs/**` row asks for it.
 - The conformance rows cover what runs on this machine alone. The execution
   class (`make test-conformance-execution`, needs the `temporal` and `stigmer`
   CLIs and git) and the cloud classes stay by hand; run the execution class when

@@ -144,4 +144,24 @@ describe("detectOAuthChallenge", () => {
     );
     expect(init?.method).toBe("POST");
   });
+
+  it("sends a complete initialize naming the runner, so servers that validate before they authenticate reach their 401 (#1188)", async () => {
+    const fetchMock = vi.fn(
+      async (_url: string | URL, _init?: RequestInit) =>
+        new Response(null, { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await detectOAuthChallenge("https://mcp.example.com/mcp", undefined, "example");
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    const body = JSON.parse(String(init?.body)) as {
+      method: string;
+      params: { protocolVersion?: string; capabilities?: object; clientInfo?: { name: string } };
+    };
+    expect(body.method).toBe("initialize");
+    expect(body.params.protocolVersion).toBe("2025-06-18");
+    expect(body.params.capabilities).toEqual({});
+    expect(body.params.clientInfo?.name).toBe("stigmer-runner");
+  });
 });

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sentry",
+  "version": "1.0.0",
+  "description": "Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with your Sentry account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://sentry.io",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "sentry",
+    "errors",
+    "monitoring",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Sentry",
+      "category": "integrations"
+    }
+  }
+}

@@ -76,6 +76,12 @@ export class MockOAuthAuthorizationServer {
   // HTTP status for the authorize endpoint. The pre-flight contract: 400 is a
   // definite rejection, anything else (200 login page, 403 bot wall) fails open.
   authorizeStatus = 200;
+  // Consent by redirect: with this on, a 200 authorize answers as a user who
+  // approved would, a 302 to the request's redirect_uri carrying a fresh code
+  // and the request's state, so a browser-driven sign-in (the Playwright
+  // journey) completes against this mock. Off, the static login page stands,
+  // which is what the server's pre-flight probe expects.
+  authorizeRedirect = false;
   // Body served with a non-2xx authorize status. An RFC 6749-shaped JSON
   // object yields a vendor detail in the rejection message; a plain string
   // models an HTML error page (no extractable detail).
@@ -128,6 +134,7 @@ export class MockOAuthAuthorizationServer {
     this.omitRegistrationEndpoint = false;
     this.discoveryStatus = 200;
     this.scopesSupported = [];
+    this.authorizeRedirect = false;
     this.authorizeStatus = 200;
     this.authorizeErrorBody = undefined;
     this.tokenStatus = 200;
@@ -201,7 +208,7 @@ export class MockOAuthAuthorizationServer {
     }
     if (req.method === "GET" && requestUrl.pathname === "/authorize") {
       this.authorizeProbes.push({ params: requestUrl.searchParams });
-      this.serveAuthorize(res);
+      this.serveAuthorize(res, requestUrl.searchParams);
       return;
     }
     if (req.method === "POST" && requestUrl.pathname === "/token") {
@@ -227,7 +234,22 @@ export class MockOAuthAuthorizationServer {
     });
   }
 
-  private serveAuthorize(res: ServerResponse): void {
+  private serveAuthorize(res: ServerResponse, params: URLSearchParams): void {
+    if (this.authorizeStatus === 200 && this.authorizeRedirect) {
+      const redirectUri = params.get("redirect_uri");
+      if (redirectUri === null) {
+        respondJson(res, 400, { error: "invalid_request", error_description: "redirect_uri is required" });
+        return;
+      }
+      this.tokenSerial += 1;
+      const location = new URL(redirectUri);
+      location.searchParams.set("code", `mock-authorization-code-${this.tokenSerial}`);
+      const state = params.get("state");
+      if (state !== null) location.searchParams.set("state", state);
+      res.writeHead(302, { location: location.toString() });
+      res.end();
+      return;
+    }
     if (this.authorizeStatus === 200) {
       res.writeHead(200, { "content-type": "text/html" });
       res.end("<html><body>Sign in to ConformanceVendor</body></html>");

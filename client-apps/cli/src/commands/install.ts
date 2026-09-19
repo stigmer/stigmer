@@ -28,7 +28,7 @@ export function registerInstall(program: Command): void {
   const install = program
     .command("install <ref>")
     .description(
-      "install a plugin from a marketplace by name: [marketplace/]name[@version]",
+      "install a plugin from a source by name: [source/]name[@version]",
     )
     .option(
       "--visibility <level>",
@@ -99,6 +99,7 @@ async function runInstall(
     renderResult(
       plugin.renderPushOutcome(outcome, {
         installedFrom: `${located.marketplace.name} (${m.describeSource(located.marketplace.source)})`,
+        next: await plugin.readNextSteps(client.stigmer, org, outcome.members),
       }),
       format,
     );

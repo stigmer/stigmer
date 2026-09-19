@@ -89,7 +89,11 @@ function fakeGateway(
   };
 }
 
-const env = { taskQueue: "session:ses_1", stigmerToken: "tok-1" };
+const env = {
+  taskQueue: "session:ses_1",
+  stigmerToken: "tok-1",
+  callerClass: "user",
+};
 
 describe("the ensure state machine", () => {
   it("absent → Secret, PVC, Deployment — in that order, no readiness wait", async () => {
@@ -211,7 +215,11 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
   });
 
   it("a token-less sandbox omits the token env but keeps the (empty) Secret", () => {
-    const tokenless = { taskQueue: "session:ses_1", stigmerToken: "" };
+    const tokenless = {
+      taskQueue: "session:ses_1",
+      stigmerToken: "",
+      callerClass: "user",
+    };
     const deployment = buildSandboxDeployment(
       "session",
       "ses_1",

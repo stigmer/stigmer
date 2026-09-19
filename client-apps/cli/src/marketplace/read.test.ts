@@ -27,8 +27,8 @@ describe("readMarketplaceTree", () => {
     expect(tree.marketplace.name).toBe("acme-plugins");
     expect(tree.marketplace.dialect).toBe("cursor");
     expect(tree.marketplace.plugins.map((entry) => entry.name)).toEqual([
-      "thermos",
-      "github",
+      "warmer",
+      "codeforge",
     ]);
     expect(tree.warnings).toHaveLength(1);
     expect(tree.warnings[0]?.kind).toBe("entry-directory-missing");
@@ -71,10 +71,10 @@ describe("readMarketplaceTree", () => {
 describe("findEntry and entryDirectory", () => {
   it("resolves an offered entry to its absolute directory and an unknown name to undefined", () => {
     const tree = readMarketplaceTree(root);
-    const github = findEntry(tree.marketplace, "github");
-    expect(github?.dir).toBe("third_party/github");
-    expect(entryDirectory(tree, github!)).toBe(
-      join(root, "third_party", "github"),
+    const codeforge = findEntry(tree.marketplace, "codeforge");
+    expect(codeforge?.dir).toBe("third_party/codeforge");
+    expect(entryDirectory(tree, codeforge!)).toBe(
+      join(root, "third_party", "codeforge"),
     );
     expect(findEntry(tree.marketplace, "ghost")).toBeUndefined();
   });

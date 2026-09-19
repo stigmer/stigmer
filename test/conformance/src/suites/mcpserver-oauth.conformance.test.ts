@@ -188,8 +188,12 @@ describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
       Code.FailedPrecondition,
       "initiate without registration endpoint",
     );
+    // The sentence a user reads: what the login server lacks, and the one
+    // thing that helps (an OAuth app registered with the vendor).
     expect(err.rawMessage).toBe(
-      `MCP server at ${mockAs.origin()} does not advertise a registration_endpoint for DCR`,
+      `MCP server at ${mockAs.origin()} does not advertise a registration_endpoint for DCR: ` +
+        `${new URL(mockAs.origin()).host} does not allow automatic client registration, so this server needs ` +
+        "an OAuth app registered with the vendor and referenced from its definition (auth.oauth_app_ref)",
     );
   });
 });

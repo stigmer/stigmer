@@ -126,6 +126,17 @@ describe("unknown and mistyped fields", () => {
     expect(plugin.ignored).toEqual([{ kind: "extension", path: "plugin.json#extensions.com.openai" }]);
   });
 
+  it("reads ai.stigmer's appearance fields the way Cursor's are read: the logo an ignored component, the rest silent", () => {
+    const plugin = accepted(read(openPlugin({ manifest: { extensions: { "ai.stigmer": { displayName: "Linear", logo: "assets/logo.png", category: "integrations" } } } })));
+    expect(plugin.ignored).toEqual([{ kind: "logo", path: "plugin.json#extensions.ai.stigmer.logo" }]);
+    expect(kindsOf(read(openPlugin({ manifest: { extensions: { "ai.stigmer": { displayName: "Linear" } } } })))).toEqual({ errors: [], warnings: [] });
+  });
+
+  it("a field ai.stigmer does not define makes the namespace an ignored extension, so a misspelling stays visible", () => {
+    const plugin = accepted(read(openPlugin({ manifest: { extensions: { "ai.stigmer": { displayname: "Linear" } } } })));
+    expect(plugin.ignored).toEqual([{ kind: "extension", path: "plugin.json#extensions.ai.stigmer" }]);
+  });
+
   it("warns on a non-object extensions field and keeps reading", () => {
     const outcome = read(openPlugin({ manifest: { extensions: "nope" } }));
     expect(kindsOf(outcome)).toEqual({ errors: [], warnings: ["manifest-extensions-invalid"] });

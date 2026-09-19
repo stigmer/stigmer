@@ -5,6 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import type { EnvVarInput, ResourceRef, Stigmer } from "@stigmer/sdk";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { GetOAuthGrantStatusInputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -18,10 +20,50 @@ import {
   type AgentSetupResult,
   type AgentSetupReadyResult,
   type AgentSetupState,
+  type PendingSignIn,
 } from "./agentSetupReducer.js";
 
 const PERSONAL_LABEL = "stigmer.ai/personal";
 const FOR_AGENT_LABEL = "stigmer.ai/for-agent";
+
+/**
+ * The agent's OAuth servers that nobody in the organization has signed in
+ * to. The rule is the composer's own MCP path's (`useMcpServerSetup`): a
+ * server whose `spec.auth.targetEnvVar` is set is satisfied by a connected
+ * grant; a grant read that fails leaves it pending, fail-closed, so the row
+ * offers Sign in rather than pretending; a server that cannot be read is the
+ * resolution's error, thrown to the caller's catch.
+ */
+async function findPendingSignIns(stigmer: Stigmer, org: string, agent: Agent): Promise<PendingSignIn[]> {
+  const pending: PendingSignIn[] = [];
+  for (const usage of agent.spec?.mcpServerUsages ?? []) {
+    const ref = usage.mcpServerRef;
+    if (!ref) continue;
+    const server = await stigmer.mcpServer.getByReference(ref);
+    const auth = server.spec?.auth;
+    const id = server.metadata?.id ?? "";
+    if (!auth?.targetEnvVar || id === "") continue;
+    let health = OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT;
+    let connected = false;
+    try {
+      const grant = await stigmer.mcpServer.getOAuthGrantStatus(
+        create(GetOAuthGrantStatusInputSchema, { resourceId: id, org }),
+      );
+      health = grant.connectionHealth;
+      connected = grant.connected && health !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
+    } catch {
+      // Fail closed: an unreadable grant is a sign-in still owed.
+    }
+    if (connected) continue;
+    pending.push({
+      ref: { org: ref.org || server.metadata?.org || org, slug: ref.slug || server.metadata?.slug || "" },
+      id,
+      name: server.metadata?.name || server.metadata?.slug || ref.slug,
+      health,
+    });
+  }
+  return pending;
+}
 
 /**
  * Re-checks for an existing personal instance immediately before
@@ -69,6 +111,7 @@ export type {
   AgentSetupReadyResult,
   AgentSetupState,
   AgentSetupPhase,
+  PendingSignIn,
 } from "./agentSetupReducer.js";
 
 /** Options for {@link UseAgentSetupReturn.submitEnvVars}. */
@@ -153,6 +196,16 @@ export interface UseAgentSetupReturn {
     instanceId: string,
     agentName?: string,
   ) => Promise<AgentSetupReadyResult>;
+
+  /**
+   * Record that one of the pending sign-ins completed (the row's own
+   * OAuth flow landed). When it was the last one, the agent is resolved
+   * again through {@link resolveAgent}, which now finds the grant and
+   * lands in `ready` or in `needsEnvVars` for its variables alone.
+   *
+   * Must only be called when `state.status === "needsEnvVars"`.
+   */
+  readonly signInCompleted: (mcpServerId: string) => Promise<void>;
 
   /** Clear the error without changing the current phase. */
   readonly clearError: () => void;
@@ -246,6 +299,35 @@ export function useAgentSetup(
         const agent = await stigmer.agent.getByReference(ref);
         const agentName = agent.metadata?.name ?? ref.slug;
         const envDeclarations = agent.spec?.env;
+
+        // Sign-ins first: an agent whose OAuth server has no grant is not
+        // ready however its variables stand. Nothing is created here; when
+        // the last sign-in lands, `signInCompleted` resolves again and the
+        // branches below run with the grant in place.
+        const pendingSignIns = await findPendingSignIns(stigmer, org, agent);
+        if (pendingSignIns.length > 0) {
+          const existingKeys = new Set(
+            Object.keys(personalEnv.environment?.spec?.data ?? {}),
+          );
+          const missingVariables = envDeclarations
+            ? diffEnv(envDeclarations, existingKeys, poolKeys)
+            : [];
+          dispatch({
+            type: "RESOLVE_NEEDS_ENV",
+            agentRef: ref,
+            agentId: agent.metadata!.id,
+            agentName,
+            missingVariables,
+            pendingSignIns,
+          });
+          return {
+            status: "needsEnvVars",
+            agentRef: ref,
+            agentName,
+            missingVariables,
+            pendingSignIns,
+          };
+        }
 
         // No env declarations — agent is immediately ready (direct mode).
         if (!envDeclarations || Object.keys(envDeclarations).length === 0) {
@@ -342,12 +424,14 @@ export function useAgentSetup(
           agentId: agent.metadata!.id,
           agentName,
           missingVariables,
+          pendingSignIns: [],
         });
         return {
           status: "needsEnvVars",
           agentRef: ref,
           agentName,
           missingVariables,
+          pendingSignIns: [],
         };
       } catch (err) {
         dispatch({ type: "ERROR", error: toError(err) });
@@ -426,6 +510,13 @@ export function useAgentSetup(
           "useAgentSetup: cannot submit env vars when org is null.",
         );
       }
+      if (state.pendingSignIns.length > 0) {
+        throw new Error(
+          "useAgentSetup: submitEnvVars requires every pending sign-in to have completed. " +
+            `Still pending: ${state.pendingSignIns.map((signIn) => signIn.name).join(", ")}. ` +
+            "Call signInCompleted(id) as each lands; the agent is resolved again when the last one does.",
+        );
+      }
 
       const { agentRef, agentId, agentName } = state;
       const saveForFuture = options?.saveForFuture ?? true;
@@ -486,5 +577,22 @@ export function useAgentSetup(
     [org, stigmer, personalEnv, state],
   );
 
-  return { state, resolveAgent, submitEnvVars, resolveToInstance, clearError, reset };
+  const signInCompleted = useCallback(
+    async (mcpServerId: string): Promise<void> => {
+      if (state.status !== "needsEnvVars") return;
+      const remaining = state.pendingSignIns.filter((signIn) => signIn.id !== mcpServerId);
+      if (remaining.length === state.pendingSignIns.length) return;
+      dispatch({ type: "SIGN_IN_COMPLETED", id: mcpServerId });
+      if (remaining.length === 0) {
+        try {
+          await resolveAgent(state.agentRef);
+        } catch {
+          // resolveAgent dispatched the error; the panel shows it.
+        }
+      }
+    },
+    [state, resolveAgent],
+  );
+
+  return { state, resolveAgent, submitEnvVars, resolveToInstance, signInCompleted, clearError, reset };
 }

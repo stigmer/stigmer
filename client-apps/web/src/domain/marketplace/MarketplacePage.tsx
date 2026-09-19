@@ -23,8 +23,8 @@ export function MarketplacePage() {
       <div className="mb-6">
         <h1 className="text-foreground text-xl font-semibold">Marketplace</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Plugins you can install into {org}, from the sources below or from your computer. A plugin is what you
-          install; the agent it installs is what runs.
+          Plugins you can install into {org}: from Stigmer&apos;s catalogue, from your computer, or from a catalogue you
+          add. A plugin installs as an agent, as tools for your agents, or both.
         </p>
       </div>
       <MarketplaceCatalog

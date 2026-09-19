@@ -6,6 +6,7 @@
     "backend/libs/ts/temporal-codecs",
     "backend/libs/ts/zip-structure",
     "backend/libs/ts/plugin-package",
+    "backend/libs/ts/outbound",
     "sdk/typescript",
     "sdk/theme",
     "sdk/react",

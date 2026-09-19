@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "posthog",
+  "version": "1.0.0",
+  "description": "PostHog's hosted MCP server: insights, feature flags, experiments and error tracking for your projects. Sign in with your PostHog account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://posthog.com",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "posthog",
+    "analytics",
+    "feature-flags",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "PostHog",
+      "category": "integrations"
+    }
+  }
+}

@@ -85,7 +85,14 @@ const RUNNER_RESOURCES = {
   limits: { cpu: "2", memory: "2Gi" },
 } as const;
 
-/** The persistent-workspace scopes (SandboxScope.persistentWorkspace). */
+/**
+ * The persistent-workspace scopes (SandboxScope.persistentWorkspace).
+ * Durability here is decided by SCOPE alone: this driver reads neither the
+ * environment's caller class nor any per-session policy, so every session
+ * keeps its PVC whoever asked. A driver that gives some caller classes a
+ * workspace that dies with the conversation is a composition's choice
+ * built on SandboxEnvironment.callerClass, not a built-in behaviour.
+ */
 const PERSISTENT_SCOPES: ReadonlySet<SandboxScope> = new Set([
   "session",
   "workflow",

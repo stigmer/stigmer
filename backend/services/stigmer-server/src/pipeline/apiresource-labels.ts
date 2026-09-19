@@ -82,6 +82,22 @@ export const PLUGIN_LABEL = `${RESERVED_LABEL_PREFIX}plugin`;
  */
 export const PLUGIN_VERSION_LABEL = `${RESERVED_LABEL_PREFIX}plugin-version`;
 
+/**
+ * How an MCP server's `spec.auth` came to be. The one value, `endpoint`,
+ * says the server itself completed it: the author supplied a URL and
+ * nothing about authentication, the endpoint answered the save-time probe
+ * with an OAuth challenge, and the server wrote the token variable, its
+ * declaration and the Bearer header (domain/mcpserver/complete-endpoint-auth.ts).
+ * The label is provenance, not permission: it lets the next save tell a
+ * completion it may reuse from an author's own `auth` it must not touch.
+ * Stamped through the server-stamped mechanism; dropped when the author
+ * writes their own `auth`.
+ */
+export const MCP_AUTH_LABEL = `${RESERVED_LABEL_PREFIX}mcp-auth`;
+
+/** The MCP_AUTH_LABEL value for a completion the endpoint's own challenge produced. */
+export const MCP_AUTH_ENDPOINT = "endpoint";
+
 /** The plugin id a resource's labels claim, or undefined when unlabelled. */
 export function pluginIdOf(
   metadata: ApiResourceMetadata | undefined,

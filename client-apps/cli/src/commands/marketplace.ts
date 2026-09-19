@@ -23,7 +23,7 @@ export function registerMarketplace(program: Command): void {
   const marketplace = program
     .command("marketplace")
     .description(
-      "manage the sources the Marketplace installs from: the built-in catalogues and the ones you add",
+      "manage the sources the Marketplace installs from: the official catalogue and the ones you add",
     );
 
   const add = marketplace
@@ -40,7 +40,7 @@ export function registerMarketplace(program: Command): void {
 
   const list = marketplace
     .command("list")
-    .description("list the known sources, built in and added (offline)")
+    .description("list the known sources, the official catalogue and the added ones (offline)")
     .action((options: OutputFlags) => runList(options));
   addResultFlags(list);
 
@@ -52,7 +52,7 @@ export function registerMarketplace(program: Command): void {
 
   const remove = marketplace
     .command("remove <name>")
-    .description("remove an added source (installed plugins stay; a built-in cannot be removed)")
+    .description("remove an added source (installed plugins stay; the official catalogue cannot be removed)")
     .action((name: string, options: OutputFlags) => runRemove(name, options));
   addResultFlags(remove);
 }

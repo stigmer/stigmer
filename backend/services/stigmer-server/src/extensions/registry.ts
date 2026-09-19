@@ -54,6 +54,7 @@ import { V1_VERSION } from "../encryption/v1-codec.js";
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
+import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
@@ -278,6 +279,11 @@ export interface ResolvedExtensionDrivers {
    * built-in `absent` answer, so every edition serves getLicenseStatus.
    */
   readonly licenseStatus: LicenseStatusProvider | undefined;
+  /**
+   * The outbound-egress policy — undefined = compose.ts installs open
+   * source's relaxed posture (only the link-local range refused).
+   */
+  readonly outboundEgress: OutboundEgressPolicy | undefined;
 }
 
 /**
@@ -333,6 +339,8 @@ export function resolveExtensions(
   let authorizationQueriesDeclaredBy: string | undefined;
   let licenseStatus: LicenseStatusProvider | undefined;
   let licenseStatusDeclaredBy: string | undefined;
+  let outboundEgress: OutboundEgressPolicy | undefined;
+  let outboundEgressDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -534,6 +542,16 @@ export function resolveExtensions(
       licenseStatusDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.outboundEgress !== undefined) {
+      if (outboundEgressDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers an OutboundEgressPolicy, but '${outboundEgressDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      outboundEgress = unit.drivers.outboundEgress;
+      outboundEgressDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -660,6 +678,7 @@ export function resolveExtensions(
       policyGrantScope,
       authorizationQueries,
       licenseStatus,
+      outboundEgress,
     },
     services,
     workers,

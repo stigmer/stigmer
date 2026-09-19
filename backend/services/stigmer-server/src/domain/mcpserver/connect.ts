@@ -14,6 +14,7 @@
  * Proven by mcpserver-connect.conformance.test.ts
  * (CONFORMANCE_TARGET=local-execution) and __tests__/connect.test.ts.
  */
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -218,6 +219,14 @@ export interface McpServerConnectDeps {
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly secretService: SecretService;
   readonly oauthRedirectUri: string;
+  /**
+   * The ONE fetch this slice dials user-supplied URLs with: the MCP
+   * endpoint probed at save time and the login server reached on Sign in
+   * (discovery, registration, the authorize preflight, token exchange and
+   * refresh). Composed at the root under the edition's egress policy
+   * (`drivers.outboundEgress`); no module here holds a `fetch` of its own.
+   */
+  readonly outboundFetch: OutboundFetch;
 }
 
 /**
@@ -1001,6 +1010,7 @@ export async function refreshOAuthTokenIfNeeded(
       clientSecret,
       tokenAuthMethod,
       deps.logger,
+      deps.outboundFetch,
     );
   } catch (error) {
     throw failedPreconditionError(
@@ -1185,23 +1195,19 @@ export async function startBestEffortConnect(
     CONNECT_TIMEOUT.ms + BEST_EFFORT_CONNECT_GET_BUFFER_MS,
   );
   if (!outcome.ok) {
-    deps.logger.warn(
-      "Best-effort connect workflow did not complete (non-fatal)",
-      {
-        workflow_id: run.workflowId,
-        mcp_server_id: mcpServerId,
-        failure_kind: outcome.failure.kind,
-      },
-    );
-    await persistConnectFailure(
-      deps.store,
+    // The same mapping the blocking lane and the async settle apply, so
+    // the page of a freshly applied server says what the runner found
+    // ("requires OAuth", "Missing Cursor credential") rather than that a
+    // background task did not complete. ConnectStatus promises the lanes
+    // record alike; this arm once recorded a generic sentence instead.
+    const failure = mapConnectFailure(
       deps.logger,
-      mcpServerId,
-      internalError(
-        new Error(`connect run failed: ${outcome.failure.kind}`),
-        "best-effort connect did not complete",
-      ),
+      mcpServer,
+      run.workflowId,
+      outcome.failure,
+      CONNECT_TIMEOUT,
     );
+    await persistConnectFailure(deps.store, deps.logger, mcpServerId, failure);
     return;
   }
 

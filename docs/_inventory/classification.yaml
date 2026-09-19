@@ -219,7 +219,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Add a vendor's or your own plugin marketplace, see what it offers, install
+      Install a plugin from Stigmer's official catalogue and read what it
+      leaves to do, add your own plugin marketplace, see what it offers, install
       a plugin from it by name, and understand what the server does and does
       not record about where a plugin came from.
     medium: none
@@ -228,11 +229,13 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Find a plugin in the Marketplace (the built-in sources and one you add)
+      Find a plugin in the Marketplace (the official catalogue and one you add)
       or upload a plugin folder or zip from your computer, in the web console
       or the desktop app; understand what the preview states before the act
-      (what installs, already installed, upgrade); and start a session on the
-      agent it installs, which asks for the variables its tools need.
+      (what installs, already installed, upgrade); sign in to the tools it
+      brought from the plugin's page; put the tools on an agent or start a
+      session on the agent it installs, which asks for the variables its tools
+      need.
     medium: none
     why:
       A console how-to is a screenshot journey; the tour follows when the

@@ -6,6 +6,7 @@
  * "never ciphertext-of-empty" rule meaningful (oss#394).
  * Proven by mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
  */
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";
 
 /** Dynamic Client Registration response per RFC 7591 (Go DCRResponse). */
@@ -29,7 +30,7 @@ export async function registerClient(
   registrationEndpoint: string,
   redirectUri: string,
   clientName: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: OutboundFetch,
 ): Promise<DcrResponse> {
   const requestBody = JSON.stringify({
     redirect_uris: [redirectUri],

@@ -62,7 +62,10 @@ The site that renders it lives in `site/`; the tours the pages embed live in
 
 ## Verify
 
-The root map's rows, plus `make build-site` when `meta.json`, a section or a
-component changes, and `node scripts/verify-scenar-tours.mjs` when a page adds
-or removes an embed or still (`make check-node` runs it in CI). `make lint-docs`
-needs `vale sync` once in a fresh checkout.
+The root map's rows, plus `node scripts/verify-scenar-tours.mjs` when a page
+adds or removes an embed or still (`make check-node` runs it in CI).
+`make build-site` is the only step that compiles the MDX: a page can pass every
+other gate and fail there, so it runs on every docs change. `make lint-docs` and
+`make build-site` need Vale (`vale sync` once in a fresh checkout); the build
+may rewrite `site/yarn.lock`'s `file:` hashes, which are reverted unless the
+lockfile is the change.

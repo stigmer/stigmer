@@ -73,3 +73,32 @@ describe("McpToolFixture tool surfaces", () => {
     expect(await response.text()).toContain("unknown tool surface");
   });
 });
+
+describe("the OAuth posture's metadata document", () => {
+  it("serves the RFC 9728 document naming the login server only when the posture names one, and never a metadata document otherwise", async () => {
+    const origin = new URL(fixture.url()).origin;
+    try {
+      fixture.requireOAuth({ resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource` });
+      const without = await fetch(`${origin}/.well-known/oauth-protected-resource`);
+      expect(without.status).toBe(405);
+
+      fixture.requireOAuth({
+        resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource`,
+        authorizationServerOrigin: "http://127.0.0.1:1/login",
+      });
+      const served = await fetch(`${origin}/.well-known/oauth-protected-resource`);
+      expect(served.status).toBe(200);
+      expect(await served.json()).toEqual({ resource: fixture.url(), authorization_servers: ["http://127.0.0.1:1/login"] });
+      // The challenge itself is unchanged by the document.
+      const challenged = await fetch(fixture.url(), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }),
+      });
+      expect(challenged.status).toBe(401);
+      expect(challenged.headers.get("www-authenticate")).toContain("resource_metadata=");
+    } finally {
+      fixture.requireOAuth(undefined);
+    }
+  });
+});

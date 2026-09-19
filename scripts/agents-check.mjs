@@ -134,6 +134,25 @@ export function isSkippedDirName(name) {
 }
 
 /**
+ * The manifest locations that make a directory an Agent Plugins package, the
+ * four the reader knows (`backend/libs/ts/plugin-package/src/messages.ts`,
+ * `MANIFEST_LOCATIONS`; a root script imports no workspace build, so the
+ * list is restated here and named at its source).
+ */
+const PLUGIN_MANIFESTS = ["plugin.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"];
+
+/**
+ * Whether `dir` is a plugin: a package whose rules, guides and skills speak
+ * to the agent that installs it, not to a reader of this repository. The
+ * official catalogue vendors such packages byte for byte (`plugins/`), and
+ * the reader's fixtures hold more; a Cursor rule or an AGENTS.md inside one
+ * is the plugin's own and is never a stray rule or a nested guide here.
+ */
+export function isPluginDir(dir) {
+  return PLUGIN_MANIFESTS.some((manifest) => existsSync(join(dir, ...manifest.split("/"))));
+}
+
+/**
  * Top-level trees where a private repository keeps the planning framework's
  * own Cursor rules (`_projects/_rules/`, `_changelog/_rules/`,
  * `_meetings/_rules/`). Only `--private-repo` honours this list; in a public
@@ -189,12 +208,12 @@ const SKILLS_DIR = ".agents/skills";
 const SKILL_FILE = "SKILL.md";
 const SKILL_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 
-/** Walk `root` and return repo-relative POSIX paths of every file `keep` accepts, skipping build output and dot-directories. */
+/** Walk `root` and return repo-relative POSIX paths of every file `keep` accepts, skipping build output, dot-directories and plugin packages. */
 function walk(root, keep, dir = root, acc = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (isSkippedDirName(entry.name)) continue;
+      if (isSkippedDirName(entry.name) || isPluginDir(abs)) continue;
       walk(root, keep, abs, acc);
     } else if (entry.isFile() && keep(entry.name, abs)) {
       acc.push(toPosix(relative(root, abs)));
@@ -441,9 +460,10 @@ export function checkRulesDir(root) {
 
 /**
  * Every `.mdc` file outside `.cursor/rules/`. The walk skips dot-directories,
- * so the rules folder itself is never visited here (invariant 5 owns it); what
- * remains is a Cursor rule filed where Cursor does not look. In private mode
- * the framework's own trees are exempt.
+ * so the rules folder itself is never visited here (invariant 5 owns it), and
+ * plugin packages, whose `rules/*.mdc` are the plugin's own; what remains is
+ * a Cursor rule filed where Cursor does not look. In private mode the
+ * framework's own trees are exempt.
  */
 export function checkStrayRules(root, { privateRepo }) {
   const exempt = (rel) => privateRepo && FRAMEWORK_RULE_TREES.some((tree) => rel.startsWith(`${tree}/`));

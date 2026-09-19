@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "consensus": {
+      "type": "streamable-http",
+      "url": "https://mcp.consensus.app/mcp"
+    }
+  }
+}

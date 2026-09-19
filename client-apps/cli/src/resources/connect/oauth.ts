@@ -60,7 +60,10 @@ export async function runOAuthFlow(deps: OAuthFlowDeps): Promise<void> {
 
   const slug = deps.server.metadata?.slug ?? "";
   const name = deps.server.metadata?.name ?? slug;
-  const pageURL = `${consoleURL}/${deps.org}/mcp-servers/${slug}`;
+  // The route both consoles serve (`/library/mcp-servers/<org>/<slug>`);
+  // the Go-era `/<org>/mcp-servers/<slug>` answered 404 in the TypeScript
+  // console and sent the user to a dead page.
+  const pageURL = `${consoleURL}/library/mcp-servers/${deps.org}/${slug}`;
 
   log(`OAuth authentication required for '${name}'.`);
   log("Opening web console to complete authentication...");
