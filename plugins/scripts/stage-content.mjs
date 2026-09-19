@@ -89,8 +89,24 @@ function listFiles(dir, prefix) {
 
 /** What `npm pack` would put in the tarball, from npm's own dry run. */
 function packList() {
-  const output = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  const [command, prefix] = npmCommand();
+  const output = execFileSync(command, [...prefix, "pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
   const [report] = JSON.parse(output);
   if (report === undefined || !Array.isArray(report.files)) throw new Error("stage-content: npm pack --dry-run --json returned no file list");
   return report.files;
+}
+
+/**
+ * How to invoke the npm that is running this script. Under an npm script
+ * (`npm run build`, which is how every lane and `make` reach this file) npm
+ * sets `npm_execpath` to its own entry module, so running it through the
+ * current Node binary is the same on every platform. A bare `npm` is kept
+ * only for a hand run outside npm; on Windows the bare name is `npm.cmd`,
+ * which `execFileSync` cannot spawn without a shell, and that is exactly how
+ * the desktop release lane's Windows job failed at v3.19.0 (#1194).
+ */
+function npmCommand() {
+  const execpath = process.env.npm_execpath;
+  if (execpath !== undefined && execpath.length > 0) return [process.execPath, [execpath]];
+  return ["npm", []];
 }
