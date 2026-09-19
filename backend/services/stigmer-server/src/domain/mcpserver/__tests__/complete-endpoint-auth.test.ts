@@ -166,12 +166,28 @@ describe("CompleteEndpointAuth: anything the author says about auth is left alon
     expect(ctx.newState.metadata?.labels[MCP_AUTH_LABEL]).toBeUndefined();
   });
 
-  it("adds the Bearer header for a hand-written auth whose headers do not send the token, and leaves one that does", async () => {
+  it("completes the token path for a hand-written auth: the header when no header sends the token, the declaration when none exists", async () => {
     const fake = answering(401, { "www-authenticate": CHALLENGE });
     const bare = await run(server({ auth: { targetEnvVar: "MY_TOKEN" }, env: { MY_TOKEN: { isSecret: true } } }), fake);
     expect(bare.newState.spec?.serverType.case === "http" ? bare.newState.spec.serverType.value.headers : {}).toEqual({ Authorization: "Bearer ${MY_TOKEN}" });
     const custom = await run(server({ auth: { targetEnvVar: "MY_TOKEN" }, env: { MY_TOKEN: { isSecret: true } }, headers: { "X-Token": "${MY_TOKEN}" } }), fake);
     expect(custom.newState.spec?.serverType.case === "http" ? custom.newState.spec.serverType.value.headers : {}).toEqual({ "X-Token": "${MY_TOKEN}" });
+    // An auth whose variable was never declared could never receive its
+    // token (connect and execution inject only declared variables).
+    const undeclared = await run(server({ auth: { targetEnvVar: "MY_TOKEN" } }), fake);
+    expect(undeclared.newState.spec?.env["MY_TOKEN"]).toMatchObject({ isSecret: true, optional: false });
+    expect(undeclared.newState.spec?.env["MY_TOKEN"]?.description).toContain("Sign in fills it");
+    // A declaration the author wrote is left as written.
+    const declared = await run(server({ auth: { targetEnvVar: "MY_TOKEN" }, env: { MY_TOKEN: { isSecret: false, optional: true, description: "mine" } } }), fake);
+    expect(declared.newState.spec?.env["MY_TOKEN"]).toMatchObject({ isSecret: false, optional: true, description: "mine" });
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("declares the variable for a stdio server's hand-written auth and adds no header", async () => {
+    const fake = answering(401, { "www-authenticate": CHALLENGE });
+    const ctx = await run(server({ stdio: true, auth: { targetEnvVar: "MY_TOKEN" } }), fake);
+    expect(ctx.newState.spec?.env["MY_TOKEN"]).toMatchObject({ isSecret: true });
+    expect(ctx.newState.spec?.serverType.case).toBe("stdio");
     expect(fake.calls).toHaveLength(0);
   });
 });

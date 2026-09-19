@@ -52,11 +52,15 @@
  *      network: a plugin re-push and a `stigmer apply` re-run cost nothing
  *      and change nothing.
  *
- * The Bearer default applies to every producer: whenever
+ * The token-path default applies to every producer: whenever
  * `auth.target_env_var` is set (by hand, by a plugin overlay, or by this
- * step) and no header references that variable, the `Authorization` header
- * is added, so an `auth` block never sits silently dead for want of the
- * header that sends its token.
+ * step), the variable is declared in `env` if it is not, and the
+ * `Authorization: Bearer ${VAR}` header is added if no header references
+ * it. The chain is `auth.target_env_var` names the variable, `env` declares
+ * it (connect and execution inject a grant's token only into DECLARED
+ * variables), and a header sends it; break one link and no token is sent.
+ * An `auth` block written without the other two links used to sit silently
+ * dead; this makes it work.
  *
  * The probe: one complete `initialize` to `http.url` with the author's
  * literal headers, through the slice's egress-guarded `outboundFetch`,
@@ -114,7 +118,7 @@ export function newCompleteEndpointAuthStep(deps: CompleteEndpointAuthDeps): Pip
       const spec = server.spec;
       if (spec === undefined) return;
 
-      applyBearerDefault(spec);
+      applyTokenPathDefault(spec, server.metadata?.slug ?? "");
 
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as McpServer | undefined;
       const derived = existing !== undefined ? derivedCompletionOf(existing) : undefined;
@@ -201,17 +205,23 @@ function echoesDerived(spec: McpServerSpec, derived: DerivedCompletion): boolean
 function applyCompletion(spec: McpServerSpec, variable: string, description: string): void {
   spec.auth = create(McpServerAuthSchema, { targetEnvVar: variable, oauthOnly: true });
   spec.env[variable] = create(EnvVarDeclarationSchema, { isSecret: true, optional: false, description });
-  applyBearerDefault(spec);
+  applyTokenPathDefault(spec, "");
 }
 
 /**
- * Whenever a token variable is declared and no header references it, the
- * header that sends it is added; a header that references it is left as
- * the author wrote it.
+ * Whenever `auth.target_env_var` names a variable, the variable is declared
+ * (secret, required) if the author did not, and the header that sends it is
+ * added if no header references it; a declaration or a header the author
+ * wrote is left as written. Only an `http` server carries headers; a stdio
+ * server's token reaches it through the declared variable alone.
  */
-function applyBearerDefault(spec: McpServerSpec): void {
+function applyTokenPathDefault(spec: McpServerSpec, slug: string): void {
   const variable = spec.auth?.targetEnvVar ?? "";
-  if (variable === "" || spec.serverType.case !== "http") return;
+  if (variable === "") return;
+  if (spec.env[variable] === undefined) {
+    spec.env[variable] = create(EnvVarDeclarationSchema, { isSecret: true, optional: false, description: tokenDescription(slug) });
+  }
+  if (spec.serverType.case !== "http") return;
   const headers = spec.serverType.value.headers;
   const reference = `\${${variable}}`;
   if (Object.values(headers).some((value) => value.includes(reference))) return;
