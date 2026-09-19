@@ -1,6 +1,6 @@
 {
-  "runTimestamp": "2026-07-20T12:17:32Z",
-  "gitSha": "d62ac3945b3c",
+  "runTimestamp": "2026-09-19T21:31:42.683Z",
+  "gitSha": "37f7d7f1bed74f6740a14a7f757f24b486a63011",
   "repsPerCell": 5,
   "categories": [
     {
@@ -8,78 +8,78 @@
       "label": "Simple reply",
       "mode": "parity",
       "native": {
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet-4.6",
         "n": 5,
-        "warmBillableMicros": 3689,
+        "warmBillableMicros": 3189,
         "spreadMicros": 0,
-        "coldBillableMicros": 3689,
-        "cacheHitRatio": 0.9997005390297464,
-        "totalTokens": 10022,
-        "latencyMs": 13449
+        "coldBillableMicros": 3189,
+        "cacheHitRatio": 0.9997102009273571,
+        "totalTokens": 10357,
+        "latencyMs": 1417
       },
       "cursor": {
         "model": "claude-sonnet-4-6",
         "n": 5,
-        "warmBillableMicros": 82609,
-        "spreadMicros": 64863,
-        "coldBillableMicros": 82627,
-        "cacheHitRatio": 0,
-        "totalTokens": 18764,
-        "latencyMs": 3427
+        "warmBillableMicros": 32117,
+        "spreadMicros": 17893,
+        "coldBillableMicros": 32132,
+        "cacheHitRatio": 0.24232504851644884,
+        "totalTokens": 8557,
+        "latencyMs": 7520
       },
-      "warmCostRatio": 0.04465615126681112
+      "warmCostRatio": 0.09929320920384843
     },
     {
       "id": "parity-medium",
       "label": "Short explanation",
       "mode": "parity",
       "native": {
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet-4.6",
         "n": 5,
-        "warmBillableMicros": 4500,
+        "warmBillableMicros": 3956,
         "spreadMicros": 0,
-        "coldBillableMicros": 4500,
-        "cacheHitRatio": 0.9997007182761373,
-        "totalTokens": 10073,
-        "latencyMs": 3987
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.9997103687970651,
+        "totalTokens": 10414,
+        "latencyMs": 3274
       },
       "cursor": {
         "model": "claude-sonnet-4-6",
         "n": 5,
-        "warmBillableMicros": 18598,
-        "spreadMicros": 64880,
+        "warmBillableMicros": 32784,
+        "spreadMicros": 17968,
         "coldBillableMicros": null,
-        "cacheHitRatio": 0.9099478112685057,
-        "totalTokens": 18827,
-        "latencyMs": 11383
+        "cacheHitRatio": 0.24222310514876014,
+        "totalTokens": 8605,
+        "latencyMs": 9451
       },
-      "warmCostRatio": 0.2419615012366921
+      "warmCostRatio": 0.12066861883845778
     },
     {
       "id": "parity-codegen",
       "label": "Code generation",
       "mode": "parity",
       "native": {
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet-4.6",
         "n": 5,
-        "warmBillableMicros": 7715,
+        "warmBillableMicros": 6574,
         "spreadMicros": 0,
-        "coldBillableMicros": 7715,
-        "cacheHitRatio": 0.9997015519299642,
-        "totalTokens": 10279,
-        "latencyMs": 5337
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.9997111496244945,
+        "totalTokens": 10616,
+        "latencyMs": 4013
       },
       "cursor": {
         "model": "claude-sonnet-4-6",
         "n": 5,
-        "warmBillableMicros": 19626,
-        "spreadMicros": 123,
-        "coldBillableMicros": 19591,
-        "cacheHitRatio": 0.9087862993298585,
-        "totalTokens": 18906,
-        "latencyMs": 5325
+        "warmBillableMicros": 15881,
+        "spreadMicros": 18133,
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.4827762897403051,
+        "totalTokens": 8691,
+        "latencyMs": 8932
       },
-      "warmCostRatio": 0.3931009884846632
+      "warmCostRatio": 0.4139537812480322
     },
     {
       "id": "default-simple",
@@ -88,24 +88,24 @@
       "native": {
         "model": "claude-sonnet-4-6",
         "n": 5,
-        "warmBillableMicros": 3689,
+        "warmBillableMicros": 3189,
         "spreadMicros": 0,
-        "coldBillableMicros": 45150,
-        "cacheHitRatio": 0.9997005390297464,
-        "totalTokens": 10022,
-        "latencyMs": 2161
+        "coldBillableMicros": 38893,
+        "cacheHitRatio": 0.9997102009273571,
+        "totalTokens": 10357,
+        "latencyMs": 3772
       },
       "cursor": {
-        "model": "cursor-grok-4.5-high",
+        "model": "default",
         "n": 5,
-        "warmBillableMicros": 12731,
-        "spreadMicros": 13517,
-        "coldBillableMicros": 26198,
-        "cacheHitRatio": 0.7015445939212755,
-        "totalTokens": 12069,
-        "latencyMs": 5360
+        "warmBillableMicros": 8191,
+        "spreadMicros": 1557,
+        "coldBillableMicros": 7174,
+        "cacheHitRatio": 0.39679743080800195,
+        "totalTokens": 9002,
+        "latencyMs": 10744
       },
-      "warmCostRatio": 0.2897651402089388
+      "warmCostRatio": 0.3893297521670126
     },
     {
       "id": "default-medium",
@@ -114,24 +114,24 @@
       "native": {
         "model": "claude-sonnet-4-6",
         "n": 5,
-        "warmBillableMicros": 4500,
+        "warmBillableMicros": 3956,
         "spreadMicros": 0,
-        "coldBillableMicros": 5870,
-        "cacheHitRatio": 0.9997007182761373,
-        "totalTokens": 10073,
-        "latencyMs": 3445
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.9997103687970651,
+        "totalTokens": 10414,
+        "latencyMs": 1866
       },
       "cursor": {
-        "model": "cursor-grok-4.5-high",
+        "model": "default",
         "n": 5,
-        "warmBillableMicros": 25859,
-        "spreadMicros": 6600,
-        "coldBillableMicros": 26679,
-        "cacheHitRatio": 0.053147317721308755,
-        "totalTokens": 12106,
-        "latencyMs": 5346
+        "warmBillableMicros": 7253,
+        "spreadMicros": 1643,
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.4166685246705759,
+        "totalTokens": 9038,
+        "latencyMs": 8717
       },
-      "warmCostRatio": 0.17402065045052012
+      "warmCostRatio": 0.5454294774576037
     },
     {
       "id": "default-codegen",
@@ -140,24 +140,24 @@
       "native": {
         "model": "claude-sonnet-4-6",
         "n": 5,
-        "warmBillableMicros": 7715,
+        "warmBillableMicros": 6574,
         "spreadMicros": 0,
-        "coldBillableMicros": 9200,
-        "cacheHitRatio": 0.9997015519299642,
-        "totalTokens": 10279,
-        "latencyMs": 5359
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.9997111496244945,
+        "totalTokens": 10616,
+        "latencyMs": 4165
       },
       "cursor": {
-        "model": "cursor-grok-4.5-high",
+        "model": "default",
         "n": 5,
-        "warmBillableMicros": 27150,
-        "spreadMicros": 14181,
-        "coldBillableMicros": 26484,
-        "cacheHitRatio": 0.021202584064932913,
-        "totalTokens": 12227,
-        "latencyMs": 5352
+        "warmBillableMicros": 10535,
+        "spreadMicros": 2017,
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.44955209282681663,
+        "totalTokens": 9405,
+        "latencyMs": 12992
       },
-      "warmCostRatio": 0.2841620626151013
+      "warmCostRatio": 0.624015187470337
     }
   ]
 }
