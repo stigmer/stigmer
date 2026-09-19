@@ -3,6 +3,7 @@
  * Consumed by the agentexecution EC builder's OAuth injection (#17); the
  * connect-lane refresh callers arrive with #19.
  */
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import type { OAuthGrant } from "../../../store/interface.js";
 import type { Logger } from "../../../boot/logger.js";
 import { refreshToken } from "./token.js";
@@ -40,7 +41,7 @@ export async function refreshTokenIfExpired(
   clientSecret: string,
   tokenAuthMethod: string,
   logger: Logger,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: OutboundFetch,
 ): Promise<RefreshResult> {
   if (grant.accessTokenExpiresAt === 0) {
     // Token does not expire.

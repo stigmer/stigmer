@@ -1,0 +1,6 @@
+{
+  "resource": "https://mcp.vendor.example/mcp",
+  "authorization_servers": ["https://login.vendor.example"],
+  "scopes_supported": ["read", "write"],
+  "bearer_methods_supported": ["header"]
+}

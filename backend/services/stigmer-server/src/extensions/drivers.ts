@@ -31,6 +31,10 @@
  *     port, which kinds an edition grants on, and the tuple-half query
  *     engine only an authorization backend can answer) — landed with
  *     20260913.01, gate ruling Q-OR-10
+ *   - outbound egress (which addresses the control plane may dial when
+ *     it reaches a URL a user supplied: the MCP endpoint it probes at save
+ *     time and the login server it reaches on Sign in) — landed with the
+ *     save-time OAuth completion for URL-only MCP servers, 2026-09-19
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -54,6 +58,7 @@ import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
+import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
@@ -230,4 +235,16 @@ export interface ExtensionDrivers {
    * way (extensions/license-status.ts carries the contract).
    */
   readonly licenseStatus?: LicenseStatusProvider;
+  /**
+   * The outbound-egress policy (single-instance point): which addresses
+   * this edition's control plane may dial when it reaches a URL a user
+   * supplied. The composition root builds one guarded fetch from it and
+   * hands it to the McpServer connect slice, the only fetch its OAuth code
+   * and its save-time endpoint probe hold. When absent, open source's
+   * `relaxedEgressPolicy()` installs at the compose.ts consumption site:
+   * everything but the link-local (cloud metadata) range is allowed, so a
+   * server beside a self-hosted control plane keeps working
+   * (extensions/outbound-egress.ts carries the contract).
+   */
+  readonly outboundEgress?: OutboundEgressPolicy;
 }

@@ -108,7 +108,7 @@ export function mcpOnly(name: string): PluginFixture {
     mcpServers: {
       [name]: {
         type: "streamable-http",
-        url: "https://example.com/mcp",
+        url: "https://mcp.vendor.test/mcp",
         headers: { Authorization: "Bearer ${TOKEN}" },
       },
     },

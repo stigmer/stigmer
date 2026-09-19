@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "linear",
+  "version": "1.0.0",
+  "description": "Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace. Sign in with your Linear account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://linear.app",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "linear",
+    "issues",
+    "project-management",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Linear",
+      "category": "integrations"
+    }
+  }
+}

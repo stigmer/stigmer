@@ -1,0 +1,457 @@
+{
+  "sources": {
+    "cursor-plugins": {
+      "repo": "cursor/plugins",
+      "commit": "1f84288b2c047b6d39952da23f51cf486f3b2f7a"
+    },
+    "claude-code-plugins": {
+      "repo": "anthropics/claude-code",
+      "commit": "6ce37e9f464cf75d172754ba70a42e01c3d876e9"
+    },
+    "codex-plugins": {
+      "repo": "openai/plugins",
+      "commit": "1dc195897af4161d039b80d8471ec0a10c9bbc89"
+    }
+  },
+  "plugins": [
+    {
+      "name": "advisor",
+      "source": "cursor-plugins",
+      "path": "advisor",
+      "licence": "LICENSE",
+      "digest": "2ac21c7a851e28952e6445188f21460d94e2093393a2a052c0406d9a12cd209c"
+    },
+    {
+      "name": "ahrefs",
+      "source": "cursor-plugins",
+      "path": "third_party/ahrefs",
+      "licence": "LICENSE",
+      "digest": "47ac5cfb879a00c29101252566d2c6f7d3768f5130334ffffb35db850b275411"
+    },
+    {
+      "name": "amplemarket",
+      "source": "cursor-plugins",
+      "path": "third_party/amplemarket",
+      "licence": "LICENSE",
+      "digest": "0491b7acf213a2f8e57894d50f01bdf0a8001fe2b86e8509f6f10ed5482eaac4"
+    },
+    {
+      "name": "ashby",
+      "source": "cursor-plugins",
+      "path": "third_party/ashby",
+      "licence": "LICENSE",
+      "digest": "ff17dfcd72e38ddd7de8106fe1099d9e6da40a9c60e9e402a3a40237fe0f5d64"
+    },
+    {
+      "name": "attio",
+      "source": "cursor-plugins",
+      "path": "third_party/attio",
+      "licence": "LICENSE",
+      "digest": "cafb5fac3cb7a56b456f84c21761ca9d362176d7aad1df5508a8a253a669e4af"
+    },
+    {
+      "name": "boltz-api-cli",
+      "source": "codex-plugins",
+      "path": "plugins/boltz-api-cli",
+      "licence": "LICENSE",
+      "digest": "d5bd0a20e813e81cc592e4abebf3bc60ed0af7b0d47d69cbd4ac2d4e527563c7"
+    },
+    {
+      "name": "brevo",
+      "source": "cursor-plugins",
+      "path": "third_party/brevo",
+      "licence": "LICENSE",
+      "digest": "2c2c95ad3c56651512da2b91468b8c3e1cbd8c935f358bbe0ccde403d3a1df33"
+    },
+    {
+      "name": "brex",
+      "source": "cursor-plugins",
+      "path": "third_party/brex",
+      "licence": "LICENSE",
+      "digest": "ea4e57fb32645085ad40d32666dfbe29b474b18a61db635134bfcee5b526c39a"
+    },
+    {
+      "name": "calendly",
+      "source": "cursor-plugins",
+      "path": "third_party/calendly",
+      "licence": "LICENSE",
+      "digest": "9dcfad850d6929e501eb89c0ec0bd74e3f2b8693853a0cf1b75ca6e112c40416"
+    },
+    {
+      "name": "circleback",
+      "source": "cursor-plugins",
+      "path": "third_party/circleback",
+      "licence": "LICENSE",
+      "digest": "abab6eca1863d3e126bfd2c14174b3ce2ba368f6f087512f192cb3a4c91f3d36"
+    },
+    {
+      "name": "clay",
+      "source": "cursor-plugins",
+      "path": "third_party/clay",
+      "licence": "LICENSE",
+      "digest": "ed3a327fbe1a5bf3cb41b6e0155ac8e4e1503ef4e9760da225b173fe7fb2cdab"
+    },
+    {
+      "name": "cli-for-agent",
+      "source": "cursor-plugins",
+      "path": "cli-for-agent",
+      "licence": "LICENSE",
+      "digest": "89e0b168832920afe0a8202a0312f852ebb02f85b178ee4e58b644c3e1055203"
+    },
+    {
+      "name": "coda",
+      "source": "cursor-plugins",
+      "path": "third_party/coda",
+      "licence": "LICENSE",
+      "digest": "b353de187854e1fbfe1fa5cdffcad69a68b5cfd5ef5076f9b5b036ff6ba225bf"
+    },
+    {
+      "name": "continual-learning",
+      "source": "cursor-plugins",
+      "path": "continual-learning",
+      "licence": "LICENSE",
+      "digest": "f3a39188b0e63079d67c5ab6a85da5a51337ffaec2f1d0ce66588c96e596de68"
+    },
+    {
+      "name": "craft",
+      "source": "cursor-plugins",
+      "path": "third_party/craft",
+      "licence": "LICENSE",
+      "digest": "39ce53eaaade0ea27ebb235e6037b5e061772832e2febbf196cfc9a4a876d512"
+    },
+    {
+      "name": "create-plugin",
+      "source": "cursor-plugins",
+      "path": "create-plugin",
+      "licence": "LICENSE",
+      "digest": "bccee34485e0b44acc3366da7c041e63ff0983ebd6411dee86e98d898590194e"
+    },
+    {
+      "name": "cursor-sdk",
+      "source": "cursor-plugins",
+      "path": "cursor-sdk",
+      "licence": "LICENSE",
+      "digest": "7009279b67aec0fef88f48bcebbb4682e110d236625f29fcfca05691f285f133"
+    },
+    {
+      "name": "cursor-team-kit",
+      "source": "cursor-plugins",
+      "path": "cursor-team-kit",
+      "licence": "LICENSE",
+      "digest": "a878feb3e73e5264f71e6edf4d8a215cdc9b129aaff8d6531f251cd5a67a5a50"
+    },
+    {
+      "name": "customer-io",
+      "source": "cursor-plugins",
+      "path": "third_party/customer-io",
+      "licence": "LICENSE",
+      "digest": "6ac25b90abbc7ad2a34235b1d830eab2826394af127e7a666bfa86dddeae3188"
+    },
+    {
+      "name": "daloopa",
+      "source": "cursor-plugins",
+      "path": "third_party/daloopa",
+      "licence": "LICENSE",
+      "digest": "d2ba4b5a00e1425b9a9550608c257261b8304a482acf78ff2e49e240dd218f1c"
+    },
+    {
+      "name": "docs-canvas",
+      "source": "cursor-plugins",
+      "path": "docs-canvas",
+      "licence": "LICENSE",
+      "digest": "233bcc38bfceef6873318e7671929f8579aacfed441fbef38b66aed0767aebae"
+    },
+    {
+      "name": "excalidraw",
+      "source": "cursor-plugins",
+      "path": "third_party/excalidraw",
+      "licence": "LICENSE",
+      "digest": "299c0c061725e66ee2196c16343d435b2c1de66ddfd00f03f43d72a95f6034df"
+    },
+    {
+      "name": "expo",
+      "source": "codex-plugins",
+      "path": "plugins/expo",
+      "licence": "LICENSE",
+      "digest": "a0708e6f89e9eca9299cc56d8971c1e753eda96660fad2725a3630bbeeac57ca"
+    },
+    {
+      "name": "fathom",
+      "source": "cursor-plugins",
+      "path": "third_party/fathom",
+      "licence": "LICENSE",
+      "digest": "811b4556dffa8a1b022b8648014c8f10c4b70e27e80812a272db412375b2ae47"
+    },
+    {
+      "name": "fireflies",
+      "source": "cursor-plugins",
+      "path": "third_party/fireflies",
+      "licence": "LICENSE",
+      "digest": "48a730d77339953160d304cf99c22434d16a403612f3c084a062594a934451b5"
+    },
+    {
+      "name": "gamma",
+      "source": "cursor-plugins",
+      "path": "third_party/gamma",
+      "licence": "LICENSE",
+      "digest": "e1f54722bbfb9ed7b295c4de21677974e5cfedc79be7bb40f7b390075535d300"
+    },
+    {
+      "name": "github",
+      "source": "cursor-plugins",
+      "path": "third_party/github",
+      "licence": "LICENSE",
+      "digest": "eec427c8d0d26cbb1581b956657d719ce6f8118273c067c09ab2bc13e14e8575"
+    },
+    {
+      "name": "godaddy",
+      "source": "cursor-plugins",
+      "path": "third_party/godaddy",
+      "licence": "LICENSE",
+      "digest": "92e6fe2e78844871b515b5f02168711e6317b1935290236d6c6a89576fc461a8"
+    },
+    {
+      "name": "grok-voice",
+      "source": "cursor-plugins",
+      "path": "grok-voice",
+      "licence": "LICENSE",
+      "digest": "c23bbe69ba2c296a8b3b27fc18d342d97268fd7672c844784e0021c5c3cb63fd"
+    },
+    {
+      "name": "guru",
+      "source": "cursor-plugins",
+      "path": "third_party/guru",
+      "licence": "LICENSE",
+      "digest": "55246a2d2729b6d34ba6e9ecd2c8d0543dfecb9ede0e88968376506110d54a6a"
+    },
+    {
+      "name": "hunter",
+      "source": "cursor-plugins",
+      "path": "third_party/hunter",
+      "licence": "LICENSE",
+      "digest": "065c901fcfa5133dbf15dd54cd17f4d4312f69c9a16d883d4bbe47a357d6e4a9"
+    },
+    {
+      "name": "interactive-brokers",
+      "source": "cursor-plugins",
+      "path": "third_party/interactive-brokers",
+      "licence": "LICENSE",
+      "digest": "6d8041d88acd8e5a9756064088ea5aae59ab7801093be8a9c94af8a5806430d6"
+    },
+    {
+      "name": "intercom",
+      "source": "cursor-plugins",
+      "path": "third_party/intercom",
+      "licence": "LICENSE",
+      "digest": "05159d93c6cbe40454ea7b3975c3b34c6cbe54f7b5fad180a1422252c2b9a134"
+    },
+    {
+      "name": "juicebox",
+      "source": "cursor-plugins",
+      "path": "third_party/juicebox",
+      "licence": "LICENSE",
+      "digest": "4cc17480bd444d858e37781f2cd8ae5a97a07f7c8b662051615e8c97bbdecfb8"
+    },
+    {
+      "name": "klaviyo",
+      "source": "cursor-plugins",
+      "path": "third_party/klaviyo",
+      "licence": "LICENSE",
+      "digest": "1fef29683d71e6541c662a1adf92ed241ab76ffc7597895e481a72259cd81069"
+    },
+    {
+      "name": "mailerlite",
+      "source": "cursor-plugins",
+      "path": "third_party/mailerlite",
+      "licence": "LICENSE",
+      "digest": "dab5797b3aaaa9fd630cd6add8296aea475d66f21b4696322394cf90ad665c16"
+    },
+    {
+      "name": "meltwater",
+      "source": "cursor-plugins",
+      "path": "third_party/meltwater",
+      "licence": "LICENSE",
+      "digest": "d4dfd8b7b55b779b4e684087d976f125981906be6450b1a8cdaac1984a9c9792"
+    },
+    {
+      "name": "mem",
+      "source": "cursor-plugins",
+      "path": "third_party/mem",
+      "licence": "LICENSE",
+      "digest": "3f3c89a0d7534f95d86e2cfb12789979dfac5d4ee91f4a46d9d5504044f1822b"
+    },
+    {
+      "name": "mixpanel-headless",
+      "source": "codex-plugins",
+      "path": "plugins/mixpanel-headless",
+      "licence": "LICENSE",
+      "digest": "77d4891b670826e10da7c1edeac5a211559e2aea9187153ff4abc87386330b3c"
+    },
+    {
+      "name": "navan",
+      "source": "cursor-plugins",
+      "path": "third_party/navan",
+      "licence": "LICENSE",
+      "digest": "7932c2b51ff48b4552cd3bc3984e2757e05463c1f7a5a93bdb10b1e216652f90"
+    },
+    {
+      "name": "otter",
+      "source": "cursor-plugins",
+      "path": "third_party/otter",
+      "licence": "LICENSE",
+      "digest": "685d7f77d37c079f4dd299dee06ceb566d9df470710d1dc7f391111de1bba148"
+    },
+    {
+      "name": "outreach",
+      "source": "cursor-plugins",
+      "path": "third_party/outreach",
+      "licence": "LICENSE",
+      "digest": "0b2f3c40d63f32a167eb52572e6695d3755f3e9d51be202363b90c172bb7a328"
+    },
+    {
+      "name": "pr-review-canvas",
+      "source": "cursor-plugins",
+      "path": "pr-review-canvas",
+      "licence": "LICENSE",
+      "digest": "5d8342f718653587ef196688fe5e39f6df3ce3da6e8e34dd114adc14f41b4591"
+    },
+    {
+      "name": "profound",
+      "source": "cursor-plugins",
+      "path": "third_party/profound",
+      "licence": "LICENSE",
+      "digest": "094f215af1795d25731e17b753aad7b2e593f93c8896f5e7f2ee2ea162f59d4f"
+    },
+    {
+      "name": "ralph-loop",
+      "source": "cursor-plugins",
+      "path": "ralph-loop",
+      "licence": "LICENSE",
+      "digest": "b7dfaeeae22c19803d7d5941f61c1b41c6104535a778ee000797a7efc269945c"
+    },
+    {
+      "name": "readwise",
+      "source": "cursor-plugins",
+      "path": "third_party/readwise",
+      "licence": "LICENSE",
+      "digest": "6754ef12e7c622d2a7b52f20f1087d8b6f5fc00e81b2f151cf7b651c5585a092"
+    },
+    {
+      "name": "semrush",
+      "source": "cursor-plugins",
+      "path": "third_party/semrush",
+      "licence": "LICENSE",
+      "digest": "edf39b0bfcecae1dec78e2d86b2538fc601fe736ebab063ab70fe2cf739401b6"
+    },
+    {
+      "name": "similarweb",
+      "source": "cursor-plugins",
+      "path": "third_party/similarweb",
+      "licence": "LICENSE",
+      "digest": "9decf3527c67f9f76d66f66a484c7078a765edd53eff7f46a46c3679c990edfd"
+    },
+    {
+      "name": "smartsheet",
+      "source": "cursor-plugins",
+      "path": "third_party/smartsheet",
+      "licence": "LICENSE",
+      "digest": "85f6e122a1a0d109b8c6ceaea81a250a73f12f4f7db127d617d8f156429d7975"
+    },
+    {
+      "name": "sp-global",
+      "source": "cursor-plugins",
+      "path": "third_party/sp-global",
+      "licence": "LICENSE",
+      "digest": "7d741fc88cfbde349bb5fa80ecf9429c2a81aca8218979c723843bc062983ff5"
+    },
+    {
+      "name": "statsig",
+      "source": "cursor-plugins",
+      "path": "third_party/statsig",
+      "licence": "LICENSE",
+      "digest": "a715124d5335489e8fa6e79bdfa77828591b73bd958721efe2ba6bb177af5557"
+    },
+    {
+      "name": "supabase",
+      "source": "codex-plugins",
+      "path": "plugins/supabase",
+      "licence": "LICENSE",
+      "digest": "77cf726c269eb63d9793a1c0ce1a7b4f31781b6806aaf426a68ea2cda81e0c73"
+    },
+    {
+      "name": "superpowers",
+      "source": "codex-plugins",
+      "path": "plugins/superpowers",
+      "licence": "LICENSE",
+      "digest": "c11d03ae44acf5638bfbcc68697cbdc081057409db5bfe91eb9abe807feffdec"
+    },
+    {
+      "name": "teaching",
+      "source": "cursor-plugins",
+      "path": "teaching",
+      "licence": "LICENSE",
+      "digest": "5cdfbd4996f3497ceafdd7d67a24dd1a8312f9401803fb95d8f3a9e2391913c2"
+    },
+    {
+      "name": "temporal",
+      "source": "codex-plugins",
+      "path": "plugins/temporal",
+      "licence": "LICENSE",
+      "digest": "f691456020e76ea5e15e14bdae4a667b7a5100080e88d0459b94bbe515a7061a"
+    },
+    {
+      "name": "thermos",
+      "source": "cursor-plugins",
+      "path": "thermos",
+      "licence": "LICENSE",
+      "digest": "3fbb55fa98998569f357ca180a504e627dcac7b0eeb57d4410887ba79810486f"
+    },
+    {
+      "name": "todoist",
+      "source": "cursor-plugins",
+      "path": "third_party/todoist",
+      "licence": "LICENSE",
+      "digest": "fc83f53221083dc5cb554062c27ad570644e71eed5185c72eb5edc9a4d28f94b"
+    },
+    {
+      "name": "typeform",
+      "source": "cursor-plugins",
+      "path": "third_party/typeform",
+      "licence": "LICENSE",
+      "digest": "ef89b8fbeaa89e3e1bb5323ca97ee7d8d7ec49dd8515fa15f26151c485bff4ef"
+    },
+    {
+      "name": "upwork",
+      "source": "cursor-plugins",
+      "path": "third_party/upwork",
+      "licence": "LICENSE",
+      "digest": "71b10420bf04e93b3aaac3c32b823fe53d59e93afc642b0f132916aabe07c54c"
+    },
+    {
+      "name": "workable",
+      "source": "cursor-plugins",
+      "path": "third_party/workable",
+      "licence": "LICENSE",
+      "digest": "7ab885757838704dfc42fcad632481f5bd5ef3baef5da181295a15957461e6f1"
+    },
+    {
+      "name": "wrike",
+      "source": "cursor-plugins",
+      "path": "third_party/wrike",
+      "licence": "LICENSE",
+      "digest": "b39d144279f0ab956b0e0ae8f082220e688bc616cfa96df5c1ab84f6e8892c2e"
+    }
+  ],
+  "struck": [
+    {
+      "source": "cursor-plugins",
+      "name": "google-cloud-bigquery",
+      "reason": "asks for OAuth only at the tool call, against a login server (accounts.google.com) that does not register clients dynamically; nothing at save or at connect can see the challenge, and Sign in could not complete; enters when Stigmer holds an OAuth app registered with Google"
+    },
+    {
+      "source": "cursor-plugins",
+      "name": "orchestrate",
+      "reason": "carries a .gitignore, which npm consumes as packing rules rather than publishing, so the released package would not be the tree; enters when the plugin selection leaves ignore files out of the archive"
+    }
+  ]
+}

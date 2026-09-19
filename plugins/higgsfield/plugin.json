@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "higgsfield",
+  "version": "1.0.0",
+  "description": "Higgsfield's hosted MCP server: generate images and video from prompts in your Higgsfield account. Sign in with your Higgsfield account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://higgsfield.ai",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "higgsfield",
+    "video",
+    "images",
+    "generation",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Higgsfield",
+      "category": "integrations"
+    }
+  }
+}

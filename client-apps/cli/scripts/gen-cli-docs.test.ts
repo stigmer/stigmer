@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildProgram } from "../src/program.js";
-import { generate, renderDefaultPage, renderEnrichedPage } from "./gen-cli-docs.js";
+import { checkEnrichment, generate, renderDefaultPage, renderEnrichedPage } from "./gen-cli-docs.js";
 
 const enrichmentsDir = join(dirname(fileURLToPath(import.meta.url)), "../docs/commands");
 
@@ -72,6 +72,54 @@ describe("generate", () => {
     const program = buildProgram();
     program.command("bogus").description("an ungrouped command");
     expect(() => generate(outputDir, enrichmentsDir, program)).toThrow(/no group assignment/);
+  });
+});
+
+describe("checkEnrichment", () => {
+  // The template is pasted into the page verbatim and then prose-wrapped by
+  // Prettier, whose MDX mode reads a wrapped span's continuation line as
+  // block syntax and splits the paragraph; the site build then fails on an
+  // unclosed span or a bare <placeholder>. The guard refuses the template
+  // before any page is written.
+  it("refuses an inline code span that does not close on its line, naming the line", () => {
+    const template = [
+      "### What the install leaves to do",
+      "",
+      "A server names the command that runs it (`stigmer connect mcp-server",
+      "<server>`, which opens the console's sign-in); a server already signed in",
+      "says so.",
+    ].join("\n");
+
+    expect(() => checkEnrichment("docs/commands/install.mdx", template)).toThrow(
+      "enrichment docs/commands/install.mdx line 3: an inline code span opens here and does not close on this line. " +
+        "Prettier and MDX read a span wrapped across lines as a broken paragraph. Keep each backtick span on one line.",
+    );
+  });
+
+  it("accepts every shape the templates use: one-line spans, fences, double-backtick spans", () => {
+    const template = [
+      "Run `stigmer connect mcp-server <server>` once; a second span on the",
+      "same line, `stigmer install stigmer/linear`, closes too.",
+      "",
+      "```bash",
+      "echo `not a span, a fenced line`",
+      "` a lone backtick inside a fence",
+      "```",
+      "",
+      "- A fence under a bullet:",
+      "",
+      "  ```yaml",
+      "  key: `value",
+      "  ```",
+      "",
+      "~~~",
+      "` a lone backtick inside a tilde fence",
+      "~~~",
+      "",
+      "A span carrying a backtick: `` a`b `` reads whole.",
+    ].join("\n");
+
+    expect(() => checkEnrichment("docs/commands/demo.mdx", template)).not.toThrow();
   });
 });
 

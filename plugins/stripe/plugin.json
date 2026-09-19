@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "stripe",
+  "version": "1.0.0",
+  "description": "Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe documentation. Sign in with your Stripe account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://stripe.com",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "stripe",
+    "payments",
+    "billing",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Stripe",
+      "category": "integrations"
+    }
+  }
+}

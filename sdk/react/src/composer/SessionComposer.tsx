@@ -19,6 +19,8 @@ import {
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm.js";
+import { McpServerReadiness } from "../plugin/McpServerReadiness.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide.js";
 import { McpServerPicker } from "../mcp-server/McpServerPicker.js";
@@ -759,10 +761,14 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // bridges that gap so the parent always knows the current resolution.
   // ---------------------------------------------------------------------------
 
+  // The ref rides the same bridge: a sign-in completing in its own row
+  // resolves the agent again with no handler awaiting the result, and the
+  // parent must learn the agent as well as how it was resolved.
   useEffect(() => {
     if (agentSetup.state.status !== "ready") return;
+    onAgentRefChange?.(agentSetup.state.agentRef);
     onAgentResolutionChange?.(agentSetup.state.resolution);
-  }, [agentSetup.state, onAgentResolutionChange]);
+  }, [agentSetup.state, onAgentRefChange, onAgentResolutionChange]);
 
   // The error's own bridge, beside the resolution's: the setup error is
   // orthogonal to phase and is otherwise visible ONLY inside the Configure
@@ -1567,25 +1573,42 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     (panelId: string): React.ReactNode => {
       switch (panelId) {
         case "agent":
-          return showEnvForm ? (
-            <div>
-              <AgentEnvForm
-                agentName={
-                  agentSetup.state.status === "needsEnvVars"
-                    ? agentSetup.state.agentName
-                    : "Agent"
-                }
-                variables={
-                  agentSetup.state.status === "needsEnvVars"
-                    ? agentSetup.state.missingVariables
-                    : []
-                }
-                onSubmit={handleEnvFormSubmit}
-                onCancel={() => agentSetup.reset()}
-                isSubmitting={isAgentBusy}
-                disabled={isDisabled}
-                poolValues={pool.getAvailableValue}
-              />
+          return showEnvForm && agentSetup.state.status === "needsEnvVars" ? (
+            <div className="stg:flex stg:flex-col stg:gap-3">
+              {agentSetup.state.pendingSignIns.length > 0 && (
+                <div className="stg:flex stg:flex-col stg:gap-2">
+                  <p className="stg:text-sm stg:text-foreground">
+                    {agentSetup.state.agentName} uses tools nobody in this organization has signed in to yet.
+                  </p>
+                  <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border")} aria-label="Sign-ins this agent needs">
+                    {agentSetup.state.pendingSignIns.map((signIn) => (
+                      <li key={signIn.id} className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2">
+                        <span className="stg:text-sm stg:font-medium stg:text-foreground">{signIn.name}</span>
+                        <McpServerReadiness
+                          org={signIn.ref.org}
+                          slug={signIn.ref.slug}
+                          keysAskedAt="agent"
+                          onSignedIn={(id) => {
+                            void agentSetup.signInCompleted(id);
+                          }}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {/* Variables come after sign-ins: the form's submit resolves the agent, which a pending sign-in would only undo. */}
+              {agentSetup.state.pendingSignIns.length === 0 && agentSetup.state.missingVariables.length > 0 && (
+                <AgentEnvForm
+                  agentName={agentSetup.state.agentName}
+                  variables={agentSetup.state.missingVariables}
+                  onSubmit={handleEnvFormSubmit}
+                  onCancel={() => agentSetup.reset()}
+                  isSubmitting={isAgentBusy}
+                  disabled={isDisabled}
+                  poolValues={pool.getAvailableValue}
+                />
+              )}
               {agentSetup.state.error && (
                 <AgentSetupError error={agentSetup.state.error} />
               )}

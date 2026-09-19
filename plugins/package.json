@@ -11,7 +11,11 @@
   "scripts": {
     "build": "node scripts/stage-content.mjs",
     "clean": "rm -rf dist",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "audit": "tsx scripts/audit/main.ts",
+    "sync": "tsx scripts/sync/main.ts",
+    "refresh-body": "tsx scripts/sync/refresh-body.ts"
   },
   "files": [
     "dist"
@@ -33,8 +37,11 @@
     "directory": "plugins"
   },
   "devDependencies": {
+    "@stigmer/outbound": "*",
     "@stigmer/plugin-package": "*",
     "@types/node": "^22.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0",
     "vitest": "^3.2.4",
     "yaml": "^2.8.2"
   }

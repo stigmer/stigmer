@@ -4,7 +4,11 @@
 // is missing, so every suite sees an offered list and a dropped entry. It
 // names itself `acme-plugins`: the vendors' own names are built into every
 // client, so a fixture under one of them would meet the reserved-name
-// refusal instead of being added.
+// refusal instead of being added. Its plugins carry names no real catalogue
+// offers (`warmer`, `codeforge`): a bare-name install searches the official
+// catalogue too, which in a checkout is the live `plugins/` tree, and a
+// fixture named after a real plugin would collide with it as the catalogue
+// grows.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -24,41 +28,41 @@ export function writeCursorMarketplace(root: string): void {
       metadata: { description: "A test catalogue" },
       plugins: [
         {
-          name: "thermos",
-          source: "thermos",
+          name: "warmer",
+          source: "warmer",
           description: "Keeps things warm.",
         },
-        { name: "github", source: "third_party/github" },
+        { name: "codeforge", source: "third_party/codeforge" },
         { name: "ghost", source: "ghost", description: "Listed, not present." },
       ],
     }),
   );
   write(
-    "thermos/.cursor-plugin/plugin.json",
+    "warmer/.cursor-plugin/plugin.json",
     JSON.stringify({
-      name: "thermos",
+      name: "warmer",
       version: "1.0.0",
-      description: "The thermos plugin.",
+      description: "The warmer plugin.",
       skills: "./skills/",
     }),
   );
   write(
-    "thermos/skills/warm/SKILL.md",
+    "warmer/skills/warm/SKILL.md",
     "---\nname: warm\ndescription: Warms.\n---\nKeep it warm.\n",
   );
   write(
-    "third_party/github/.cursor-plugin/plugin.json",
+    "third_party/codeforge/.cursor-plugin/plugin.json",
     JSON.stringify({
-      name: "github",
+      name: "codeforge",
       version: "2.1.0",
       mcpServers: "./mcp.json",
     }),
   );
   write(
-    "third_party/github/mcp.json",
+    "third_party/codeforge/mcp.json",
     JSON.stringify({
       mcpServers: {
-        github: { type: "http", url: "https://api.githubcopilot.com/mcp/" },
+        codeforge: { type: "http", url: "https://api.githubcopilot.com/mcp/" },
       },
     }),
   );

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "gong",
+  "version": "1.0.0",
+  "description": "Gong's hosted MCP server: account summaries, deal insights and call briefs from your Gong workspace. Sign in with your Gong account.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://www.gong.io",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "gong",
+    "sales",
+    "calls",
+    "revenue",
+    "mcp"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Gong",
+      "category": "integrations"
+    }
+  }
+}

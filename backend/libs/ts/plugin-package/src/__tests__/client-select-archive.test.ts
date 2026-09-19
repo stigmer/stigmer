@@ -4,12 +4,14 @@
  * list (the console's edge) yields one digest, and that digest is the one
  * the CLI produced before this module existed.
  *
- * The two constants below were computed with the unmodified CLI at
- * `d75b0724a` (`preparePluginPush` over `plugins/assistant` and over the
- * vendored `thermos` fixture). `8d1000b4…` is also the digest the live
- * `assistant` plugin carried after `stigmer up` in that release. If either
- * changes, every installed plugin would look like an upgrade; this test is
- * the tripwire.
+ * The frozen constant below was computed with the unmodified CLI at
+ * `d75b0724a` (`preparePluginPush` over the vendored `thermos` fixture,
+ * whose bytes never change). If it changes, every installed plugin would
+ * look like an upgrade; this test is the tripwire. The catalogue's own
+ * `plugins/assistant` is read too, but its content is allowed to evolve (a
+ * manifest edit is an upgrade by design), so its cases pin the identity
+ * discipline (the directory edge and the in-memory edge agree on one
+ * digest, and the selection is exactly its files) rather than a constant.
  *
  * The selection cases pin the walk order (component-wise, directories and
  * files interleaved by name), the whole-subtree skip of an ignored
@@ -29,7 +31,6 @@ const FIXTURES = fileURLToPath(new URL("./fixtures/cursor-plugins/", import.meta
 const REPO_PLUGINS = fileURLToPath(new URL("../../../../../../plugins/", import.meta.url));
 
 const BASELINE = {
-  assistant: "8d1000b4a48136a8530509f603805693fc2478d279962d4fade40716435064ce",
   thermos: "51bc4e5450e24762bb8515765c76bfe262f65c57f9afeda015c5818038396d5a",
 } as const;
 
@@ -67,7 +68,7 @@ function inMemory(files: Record<string, string>): { candidates: CandidateFile[];
 const RESPECT = { respectGitignore: true };
 
 describe("parity with the CLI's original walk", () => {
-  it("plugins/assistant archives to the digest stigmer up installed", async () => {
+  it("plugins/assistant selects exactly its files, in walk order", () => {
     const { candidates, read } = listDirectory(`${REPO_PLUGINS}assistant`);
     const selection = selectPluginFiles(candidates, read, RESPECT);
     expect(selection.files.entries.map((entry) => entry.path)).toEqual([
@@ -75,7 +76,6 @@ describe("parity with the CLI's original walk", () => {
       "icon.svg",
       "plugin.json",
     ]);
-    expect(await digestArchive(archivePlugin(selection.files))).toBe(BASELINE.assistant);
   });
 
   it("the thermos fixture archives to the CLI's digest", async () => {
@@ -85,13 +85,15 @@ describe("parity with the CLI's original walk", () => {
     expect(await digestArchive(archivePlugin(selection.files))).toBe(BASELINE.thermos);
   });
 
-  it("the same bytes from an in-memory listing yield the same digest", async () => {
+  it("the same bytes from a directory and from an in-memory listing yield one digest", async () => {
     const dir = listDirectory(`${REPO_PLUGINS}assistant`);
+    const fromDirectory = await digestArchive(archivePlugin(selectPluginFiles(dir.candidates, dir.read, RESPECT).files));
     const memory = inMemory(
       Object.fromEntries(dir.candidates.map((c) => [c.path, new TextDecoder().decode(dir.read(c.path))])),
     );
-    const selection = selectPluginFiles(memory.candidates, memory.read, RESPECT);
-    expect(await digestArchive(archivePlugin(selection.files))).toBe(BASELINE.assistant);
+    const fromMemory = await digestArchive(archivePlugin(selectPluginFiles(memory.candidates, memory.read, RESPECT).files));
+    expect(fromMemory).toBe(fromDirectory);
+    expect(fromDirectory).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 

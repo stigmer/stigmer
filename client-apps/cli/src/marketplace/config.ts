@@ -1,14 +1,17 @@
-// The sources a CLI knows: the built-in ones (the official catalogue and the
-// three vendors' public ones, the same list the console ships), and the ones
-// a user added under the `marketplaces` key of ~/.stigmer/config.yaml.
+// The sources a CLI knows: the built-in one (the official catalogue, the same
+// list the console ships) and the ones a user added under the `marketplaces`
+// key of ~/.stigmer/config.yaml.
 //
 // A source is client-side configuration, never a server resource: the
 // server only ever sees the plugin archive a client pushes. That is why the
 // list lives beside the named backends and the context, and why `stigmer
-// marketplace` is a noun group like `config` and `auth`. The built-ins are
-// code, not config: they cannot be added over or removed, so `stigmer
-// install cursor-plugins/thermos` works on a fresh machine and the CLI's
-// list never drifts from the console's.
+// marketplace` is a noun group like `config` and `auth`. The built-in is
+// code, not config: it cannot be added over or removed, so `stigmer install
+// assistant` works on a fresh machine and the CLI's list never drifts from
+// the console's. A vendor's public repository is a source the user adds by
+// name (`stigmer marketplace add cursor/plugins`), never one on offer by
+// default: the official catalogue already carries what Stigmer can offer of
+// it, curated (`plugins/README.md`).
 //
 // The config module keeps the on-disk entry loose (`MarketplaceEntryConfig`,
 // every field optional) so a hand-edited entry this CLI cannot read survives
@@ -82,8 +85,9 @@ export function listMarketplaces(
   const known: KnownMarketplace[] = [...BUILT_IN_SOURCES];
   const unreadable: UnreadableMarketplace[] = [];
   for (const [name, entry] of Object.entries(config.marketplaces ?? {})) {
-    // A config written before the vendors were built in may name one; the
-    // built-in wins and the entry is left in the file untouched.
+    // A config may name the built-in (a hand edit, or a file written by a
+    // CLI whose built-ins differed); the built-in wins and the entry is left
+    // in the file untouched.
     if (isBuiltInMarketplaceName(name)) continue;
     const narrowed = narrowEntry(entry);
     if (narrowed.ok) known.push({ name, source: narrowed.source });

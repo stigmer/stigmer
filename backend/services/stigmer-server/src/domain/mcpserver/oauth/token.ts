@@ -4,6 +4,7 @@
  * (#19). Proven by mcpserver-oauth.conformance.test.ts and the Class B
  * mcpserver-connect suite.
  */
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";
 
 /** Token-endpoint response (Go TokenResponse). */
@@ -40,7 +41,7 @@ export async function exchangeCode(
   clientId: string,
   clientSecret: string,
   tokenAuthMethod: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: OutboundFetch,
 ): Promise<TokenResponse> {
   const params = new URLSearchParams({
     grant_type: "authorization_code",
@@ -71,7 +72,7 @@ export async function refreshToken(
   clientId: string,
   clientSecret: string,
   tokenAuthMethod: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: OutboundFetch,
 ): Promise<TokenResponse> {
   const params = new URLSearchParams({
     grant_type: "refresh_token",
@@ -94,7 +95,7 @@ async function doTokenRequest(
   clientId: string,
   clientSecret: string,
   tokenAuthMethod: string,
-  fetchImpl: typeof fetch,
+  fetchImpl: OutboundFetch,
 ): Promise<TokenResponse> {
   // Exactly one credential channel per request — RFC 6749 §2.3 forbids
   // presenting the secret through more than one method. Post mode rides

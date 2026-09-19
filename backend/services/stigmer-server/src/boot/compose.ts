@@ -40,6 +40,7 @@ import { authorizationPostureOf } from "../authorization/posture.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import type { Authorizer } from "../extensions/authorizer.js";
 import { ABSENT_LICENSE_STATUS } from "../extensions/license-status.js";
+import { relaxedEgressPolicy } from "../extensions/outbound-egress.js";
 import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
@@ -86,6 +87,7 @@ import { newDirectAccountProvisioner } from "../domain/identityaccount/provision
 import { newResourceIdentityAccountStore } from "../domain/identityaccount/resource-store.js";
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
+import { asFetch, guardedFetch, nodeLookup } from "@stigmer/outbound/egress";
 import { newOrganizationOnlyGrantScope } from "../domain/iampolicy/grant-scope.js";
 import { newMembershipRules } from "../domain/iampolicy/membership.js";
 import { newResourceIamPolicyStore } from "../domain/iampolicy/resource-store.js";
@@ -164,6 +166,7 @@ import { PostgresStore } from "../store/postgres/store.js";
 import { SqliteStore } from "../store/sqlite/store.js";
 import type { Store } from "../store/interface.js";
 import { resolveExtensions } from "../extensions/registry.js";
+import { resolveOAuthRedirectUri } from "./oauth-redirect-uri.js";
 import type { ServerExtension } from "../extensions/registry.js";
 import { registerWorkflowServices } from "../domain/workflow/controller.js";
 import {
@@ -1101,14 +1104,46 @@ export async function composeServer(
     config: temporalConfig,
     logger,
   });
-  // WARN-degrade, not boot-fatal (Go server.go:722-729): every OAuth RPC
-  // except initiateOAuthConnect works without the redirect URI, and
-  // initiate refuses with the pinned FailedPrecondition copy.
-  if (config.oauthRedirectUri === "") {
-    logger.warn(
-      "STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)",
-    );
+  // The OAuth callback: configured, or derived from the served console's
+  // own origin when it serves one on a known port (boot/oauth-redirect-uri.ts
+  // carries the posture). Absent is WARN-degrade, not boot-fatal (Go
+  // server.go:722-729): every OAuth RPC except initiateOAuthConnect works
+  // without the redirect URI, and initiate refuses with the pinned
+  // FailedPrecondition copy.
+  const oauthRedirect = resolveOAuthRedirectUri({
+    configured: config.oauthRedirectUri,
+    servesConsole: consoleAssets !== undefined,
+    port: options.portOverride ?? config.grpcPort,
+  });
+  switch (oauthRedirect.kind) {
+    case "configured":
+      break;
+    case "derived":
+      logger.info("STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for MCP server OAuth Connect", {
+        redirectUri: oauthRedirect.uri,
+      });
+      break;
+    case "absent":
+      logger.warn(
+        "STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)",
+      );
+      break;
+    default: {
+      const exhaustive: never = oauthRedirect;
+      throw new Error(String(exhaustive));
+    }
   }
+  const oauthRedirectUri = oauthRedirect.kind === "absent" ? "" : oauthRedirect.uri;
+  // The ONE fetch the McpServer domain dials user-supplied URLs with: the
+  // endpoint it probes at save time and the login server it reaches on
+  // Sign in. Every hop is judged under the edition's egress policy
+  // (`drivers.outboundEgress`; the default is open source's relaxed
+  // posture, installed at this `??` site like the permissive Authorizer).
+  // `options.fetchImpl` is the test seam under the guard.
+  const outboundFetch = guardedFetch(
+    extensions.drivers.outboundEgress ?? relaxedEgressPolicy(),
+    { fetchImpl: options.fetchImpl ?? fetch, lookup: nodeLookup() },
+  );
   // The SAME `routes` function registers every service on BOTH the serving
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
@@ -1334,6 +1369,9 @@ export async function composeServer(
         executionContextCreator: () =>
           requireInProcess().executionContextCreator,
         managedEnvService,
+        // The run-start token refresh dials the vendor's token endpoint;
+        // it rides the same egress-guarded fetch as every other OAuth call.
+        fetchImpl: asFetch(outboundFetch),
       },
     });
     registerWorkflowServices(router, {
@@ -1414,7 +1452,8 @@ export async function composeServer(
         oauthGrants: store.oauthGrants,
         pendingOAuthStates: store.pendingOAuthStates,
         secretService,
-        oauthRedirectUri: config.oauthRedirectUri,
+        oauthRedirectUri,
+        outboundFetch,
       },
     });
     registerSkillServices(router, {

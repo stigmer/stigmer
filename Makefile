@@ -589,17 +589,46 @@ test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra n
 
 # ─── Plugin Catalogue Testing ────────────────
 
-.PHONY: test-plugins-static
+.PHONY: test-plugins-static audit-plugins sync-plugins
 
 # The official plugin marketplace (plugins/) read through
 # @stigmer/plugin-package, the reader the CLI and the server use: the
-# marketplace file and the tree agree, every offered plugin reads clean under
-# its own name, the defaults are the file's. Deterministic, network-free;
-# runs on every plugins/** PR. Structural validity of the ai.stigmer/ overlays
-# against the contract is check-docs-yaml's job (authoring dir `plugins`).
+# marketplace file, the pin file, the notice and the tree agree, every
+# offered plugin installs under its own name, the defaults are the file's.
+# Deterministic, network-free; runs on every plugins/** PR. The typecheck
+# covers the catalogue's own tooling (plugins/scripts) and the suite; a
+# script nobody typechecks is a gate nobody hears. The build stages the
+# package and asks npm what it would publish, so a vendored file npm would
+# drop fails here rather than at the release. Structural validity of the
+# ai.stigmer/ overlays against the contract is check-docs-yaml's job
+# (authoring dir `plugins`).
 test-plugins-static: ## Run the plugin catalogue's static suite (fast, no network)
-	@npm run build -w @stigmer/plugin-package --silent
+	@npm run build -w @stigmer/plugin-package -w @stigmer/outbound --silent
+	npm run typecheck -w @stigmer/plugins
 	npm run test -w @stigmer/plugins
+	npm run build -w @stigmer/plugins
+
+# The vendor-catalogue audit (plugins/scripts/audit): reads the vendors'
+# marketplaces named in plugins/vendor.json at their default branch (or a
+# pinned commit) through the product's own preparation chain, probes every
+# hosted MCP server unauthenticated, applies the inclusion rubric from
+# plugins/README.md, and writes the report a maintainer rules on. Network;
+# run by hand when the catalogue is curated and by the weekly refresh lane,
+# never in a test. Arguments after `--` reach the script (`--out <dir>`
+# required; `--ref owner/repo=<sha>` reproduces a past report).
+audit-plugins: ## Audit the vendor catalogues against the inclusion rubric (network; ARGS="--out <dir>")
+	@npm run build -w @stigmer/plugin-package -w @stigmer/outbound --silent
+	npm run audit -w @stigmer/plugins -- $(ARGS)
+
+# The catalogue sync (plugins/scripts/sync): makes the tree agree with
+# plugins/vendor.json, copying every pinned folder from its source at its
+# commit byte for byte and rewriting NOTICE and marketplace.json's plugin
+# list. With `--from-audit <audit.json>` it first rewrites the pins from an
+# audit's verdicts (minus the strikes, plus any `--strike source/name=reason`).
+# Network through `git` alone; a second run is a no-op.
+sync-plugins: ## Sync the catalogue's vendored folders with plugins/vendor.json (git; ARGS="--from-audit <audit.json>")
+	@npm run build -w @stigmer/plugin-package --silent
+	npm run sync -w @stigmer/plugins -- $(ARGS)
 
 
 # ─── Tidy ────────────────────────────────────
@@ -799,6 +828,15 @@ test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial,
 	cd test/e2e && npx playwright install --with-deps chromium && \
 		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1 && \
 		STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FILE_GATES=1 npx playwright test --project=interactive-approval-gate --workers=1
+
+test-e2e-oauth-mcp: ## Run the plugin journey's sign-in arm against a hosted OAuth MCP fixture (fresh stack, the console's callback as redirect)
+	# One stack shape of its own: the conformance harness's OAuth MCP server
+	# and login server as one process (oauth-mcp-fixture-main.ts), the
+	# server booted with STIGMER_OAUTH_REDIRECT_URI at the web dev server's
+	# callback page, so the journey signs in through a real popup. A running
+	# backend on the API port is refused by the global setup.
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && STIGMER_E2E_OAUTH_MCP=1 npx playwright test --project=functional plugin-install-journey
 
 test-e2e-console-login: ## Run the console sign-in E2E against a server in the OIDC posture (hermetic issuer, serial)
 	# One stack shape of its own (20260913.02 sp.console-login): the

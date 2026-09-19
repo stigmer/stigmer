@@ -131,6 +131,7 @@ export async function completeOAuthConnect(
       pendingState.clientId,
       pendingState.clientSecret,
       pendingState.tokenAuthMethod,
+      deps.outboundFetch,
     );
   } catch (error) {
     throw unavailableError(

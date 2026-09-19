@@ -1,22 +1,27 @@
 "use client";
 
 /**
- * The operational detail hub for an installed Plugin.
+ * The operational detail hub for an installed Plugin, and where an install
+ * ends: every console route lands here after the push.
  *
- * A plugin is what you install; an agent is what runs. So this view shows
- * what the install produced (the members, by kind, each a link into its
- * own detail page), what the manifest said (version, format, author), what
- * the server warned about at install, and the version history; and when
- * the plugin carries an agent, the primary action is to start a session on
- * it. Nothing here edits: a plugin's resources are changed by pushing the
- * plugin again, never one by one, and the members' own pages say so.
+ * A plugin is what you install; it installs an agent, tools for your
+ * agents, or both. So this view shows what the install produced (the
+ * members, by kind, each a link into its own detail page) and, for each
+ * MCP server, what stands between it and its first tool call (signed in,
+ * Sign in, a key to give, nothing: `McpServerReadiness`); what the manifest
+ * said (version, format, author); what the server warned about at install;
+ * and the version history. When the plugin carries an agent, the primary
+ * action is to start a session on it; when it carries tools and no agent,
+ * "Use these tools" leads to an agent that will. Nothing here edits a
+ * member: a plugin's resources are changed by pushing the plugin again,
+ * never one by one, and the members' own pages say so.
  *
  * The shape is `SkillDetailView`'s: the resource fetched inside, rendered
  * in `ResourceDetailShell` with Manage access folded into the kebab, the
  * host adding navigation through callbacks.
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -24,6 +29,7 @@ import type { PluginMember } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/
 import { PluginDialect, type PluginSpec } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import { PluginState, type PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { McpServerUsageInput } from "@stigmer/sdk";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -36,6 +42,9 @@ import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import type { TabItem } from "../tabs/Tabs.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
+import { Button } from "../button/Button.js";
+import { AddToolsToAgentDialog } from "./AddToolsToAgentDialog.js";
+import { McpServerReadiness } from "./McpServerReadiness.js";
 import { PluginIcon } from "./PluginIcon.js";
 import { usePlugin } from "./usePlugin.js";
 import { usePluginMembers } from "./usePluginMembers.js";
@@ -69,6 +78,13 @@ export interface PluginDetailViewProps {
   readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
   readonly onAgentClick?: (ref: PluginMemberRef) => void;
   readonly onWorkflowClick?: (ref: PluginMemberRef) => void;
+  /**
+   * Called from "Create a new agent with these tools" with the usages the
+   * creation wizard preselects, for a plugin that installed MCP servers and
+   * no agent. The host owns the route to its wizard; the link is hidden when
+   * omitted, and "Add to an agent" still offers the organization's agents.
+   */
+  readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
   /** Secondary actions rendered in the kebab overflow menu (remove lives here). */
   readonly actions?: readonly DetailAction[];
   /** Additional tabs beside the built-in Overview and Versions. */
@@ -94,6 +110,7 @@ export interface PluginDetailViewProps {
  *   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
  *   onMcpServerClick={({ org, slug }) => navigateToDetail("mcp-servers", org, slug)}
  *   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
+ *   onCreateAgent={(usages) => router.push(`/library/agents/new?mcp=${usages.map((u) => u.mcpServerRef.slug).join(",")}`)}
  * />
  * ```
  */
@@ -106,6 +123,7 @@ export function PluginDetailView({
   onMcpServerClick,
   onAgentClick,
   onWorkflowClick,
+  onCreateAgent,
   actions,
   additionalTabs,
   activeTab,
@@ -207,6 +225,7 @@ export function PluginDetailView({
         onMcpServerClick={onMcpServerClick}
         onAgentClick={onAgentClick}
         onWorkflowClick={onWorkflowClick}
+        onCreateAgent={onCreateAgent}
       />
     );
   }
@@ -243,6 +262,7 @@ function PluginOverview({
   onMcpServerClick,
   onAgentClick,
   onWorkflowClick,
+  onCreateAgent,
 }: {
   readonly plugin: Plugin;
   readonly members: readonly PluginMember[];
@@ -251,11 +271,21 @@ function PluginOverview({
   readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
   readonly onAgentClick?: (ref: PluginMemberRef) => void;
   readonly onWorkflowClick?: (ref: PluginMemberRef) => void;
+  readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
 }) {
   const org = plugin.metadata?.org ?? "";
   const spec = plugin.spec;
   const status = plugin.status;
   const warnings = status?.warnings ?? [];
+  const hasAgent = members.some((member) => member.kind === ApiResourceKind.agent);
+  const servers = useMemo(
+    () =>
+      members
+        .filter((member) => member.kind === ApiResourceKind.mcp_server)
+        .map((member) => ({ ref: { org, slug: member.slug }, name: member.name || member.slug })),
+    [members, org],
+  );
+  const [adding, setAdding] = useState(false);
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-6">
@@ -278,11 +308,33 @@ function PluginOverview({
                 member={member}
                 onClick={clickFor(member.kind, { onSkillClick, onMcpServerClick, onAgentClick, onWorkflowClick })}
                 org={org}
+                keysAskedAt={hasAgent ? "agent" : "connect"}
               />
             ))}
           </div>
         )}
       </Section>
+
+      {!hasAgent && servers.length > 0 && (
+        <Section title="Use these tools">
+          <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2.5">
+            <p className="stg:text-sm stg:text-muted-foreground">
+              This plugin installed tools and no agent. Add them to an agent to use them in a session.
+            </p>
+            <Button variant="primary" size="sm" onClick={() => setAdding(true)}>
+              Add to an agent
+            </Button>
+          </div>
+          <AddToolsToAgentDialog
+            org={org}
+            servers={servers}
+            open={adding}
+            onClose={() => setAdding(false)}
+            onAgentClick={onAgentClick}
+            onCreateAgent={onCreateAgent}
+          />
+        </Section>
+      )}
 
       {spec && <ManifestSection spec={spec} status={status} />}
 
@@ -334,10 +386,13 @@ function MemberRow({
   member,
   org,
   onClick,
+  keysAskedAt,
 }: {
   readonly member: PluginMember;
   readonly org: string;
   readonly onClick?: (ref: PluginMemberRef) => void;
+  /** Where an MCP server's declared variables are given; passed to its readiness cell. */
+  readonly keysAskedAt: "agent" | "connect";
 }) {
   const row = (
     <div className="stg:flex stg:items-center stg:gap-3">
@@ -350,12 +405,12 @@ function MemberRow({
       )}
     </div>
   );
-  return onClick ? (
+  const link = onClick ? (
     <button
       type="button"
       onClick={() => onClick({ org, slug: member.slug })}
       className={cn(
-        "stg:w-full stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
+        "stg:min-w-0 stg:flex-1 stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
         "stg:hover:bg-accent-hover",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
       )}
@@ -363,7 +418,17 @@ function MemberRow({
       {row}
     </button>
   ) : (
-    <div className="stg:px-3 stg:py-2">{row}</div>
+    <div className="stg:min-w-0 stg:flex-1 stg:px-3 stg:py-2">{row}</div>
+  );
+  // The readiness cell is the link's sibling, never its child: it carries a
+  // button of its own, and a button inside a button is not markup a browser
+  // or a screen reader agrees on.
+  if (member.kind !== ApiResourceKind.mcp_server) return link;
+  return (
+    <div className="stg:flex stg:items-center stg:gap-3">
+      {link}
+      <McpServerReadiness org={org} slug={member.slug} keysAskedAt={keysAskedAt} className="stg:shrink-0 stg:pr-3" />
+    </div>
   );
 }
 

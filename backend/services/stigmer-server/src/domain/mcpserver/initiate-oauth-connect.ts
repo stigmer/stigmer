@@ -45,7 +45,7 @@ import { tokenAuthMethodFromSpec } from "./connect.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { generatePkce } from "./oauth/pkce.js";
 import type { PkcePair } from "./oauth/pkce.js";
-import { discoverAuthorizationServer } from "./oauth/discovery.js";
+import { discoverAtIssuer, discoverForResource } from "./oauth/discovery.js";
 import { registerClient } from "./oauth/dcr.js";
 import { preflightAuthorize } from "./oauth/preflight.js";
 import type { AuthorizeRejection } from "./oauth/preflight.js";
@@ -172,15 +172,15 @@ async function initiateDcr(
   stateParam: string,
 ): Promise<InitiateResult> {
   // Resolve the URL for OAuth authorization server discovery. Priority:
-  // auth.discovery_url > http.url — discovery_url enables DCR for stdio
-  // servers that have no HTTP URL.
-  let serverUrl = mcpServer.spec?.auth?.discoveryUrl ?? "";
-  if (serverUrl === "") {
-    const serverType = mcpServer.spec?.serverType;
-    if (serverType?.case === "http") {
-      serverUrl = serverType.value.url;
-    }
-  }
+  // auth.discovery_url > http.url — discovery_url is the author naming the
+  // login server itself (and the only route for a stdio server, which has
+  // no HTTP URL) and is read as an issuer; http.url is the protected
+  // resource, whose login server the RFC 9728 walk finds
+  // (oauth/discovery.ts).
+  const discoveryUrl = mcpServer.spec?.auth?.discoveryUrl ?? "";
+  const serverType = mcpServer.spec?.serverType;
+  const resourceUrl = serverType?.case === "http" ? serverType.value.url : "";
+  const serverUrl = discoveryUrl !== "" ? discoveryUrl : resourceUrl;
   if (serverUrl === "") {
     throw failedPreconditionError(
       `DCR requires a discoverable URL. MCP server '${mcpServer.metadata?.id ?? ""}' has no http.url and no auth.discovery_url. ` +
@@ -190,7 +190,10 @@ async function initiateDcr(
 
   let metadata;
   try {
-    metadata = await discoverAuthorizationServer(serverUrl);
+    metadata =
+      discoveryUrl !== ""
+        ? await discoverAtIssuer(discoveryUrl, deps.outboundFetch)
+        : await discoverForResource(resourceUrl, deps.outboundFetch);
   } catch (error) {
     throw failedPreconditionError(
       `OAuth authorization server discovery failed for ${serverUrl}: ${error instanceof Error ? error.message : String(error)}`,
@@ -198,8 +201,15 @@ async function initiateDcr(
   }
 
   if (metadata.registrationEndpoint === "") {
+    // A login server without RFC 7591 registration cannot take a client
+    // Stigmer mints on the spot; the sentence keeps its opening (the
+    // conformance suite's pin before this clause joined it) and tells the
+    // user the one thing that helps: an OAuth app registered with the
+    // vendor, referenced from the server's definition.
     throw failedPreconditionError(
-      `MCP server at ${serverUrl} does not advertise a registration_endpoint for DCR`,
+      `MCP server at ${serverUrl} does not advertise a registration_endpoint for DCR: ` +
+        `${loginServerHost(metadata, serverUrl)} does not allow automatic client registration, so this server needs ` +
+        "an OAuth app registered with the vendor and referenced from its definition (auth.oauth_app_ref)",
     );
   }
 
@@ -210,6 +220,7 @@ async function initiateDcr(
       metadata.registrationEndpoint,
       deps.oauthRedirectUri,
       clientName,
+      deps.outboundFetch,
     );
   } catch (error) {
     throw failedPreconditionError(
@@ -239,7 +250,7 @@ async function initiateDcr(
   // Fail-open by contract: only a definite rejection blocks initiate.
   let rejection: AuthorizeRejection | undefined;
   try {
-    rejection = await preflightAuthorize(authUrl);
+    rejection = await preflightAuthorize(authUrl, deps.outboundFetch);
   } catch (probeError) {
     deps.logger.debug("authorize pre-flight probe inconclusive; proceeding", {
       mcp_server_id: mcpServer.metadata?.id ?? "",
@@ -274,6 +285,19 @@ async function initiateDcr(
     tokenEndpoint: metadata.tokenEndpoint,
     tokenAuthMethod: "",
   };
+}
+
+/** The login server a user must register with: its metadata's issuer, else its authorization endpoint, else the URL we asked. */
+function loginServerHost(metadata: { issuer: string; authorizationEndpoint: string }, serverUrl: string): string {
+  for (const candidate of [metadata.issuer, metadata.authorizationEndpoint, serverUrl]) {
+    try {
+      const host = new URL(candidate).host;
+      if (host !== "") return host;
+    } catch {
+      // Not a URL; try the next candidate.
+    }
+  }
+  return serverUrl;
 }
 
 async function initiateVendorOAuth(
