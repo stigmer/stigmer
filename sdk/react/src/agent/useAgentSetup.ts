@@ -6,6 +6,7 @@ import type { EnvVarInput, ResourceRef, Stigmer } from "@stigmer/sdk";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { GetOAuthGrantStatusInputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
@@ -26,16 +27,28 @@ import {
 const PERSONAL_LABEL = "stigmer.ai/personal";
 const FOR_AGENT_LABEL = "stigmer.ai/for-agent";
 
+/** What the agent's OAuth servers say about its readiness. */
+interface OAuthServerReadings {
+  /** The servers nobody in the organization has signed in to. */
+  readonly pendingSignIns: PendingSignIn[];
+  /**
+   * Every `spec.auth.targetEnvVar` among the agent's servers, connected or
+   * not: the variables a sign-in fills and the composer never asks for.
+   */
+  readonly signInVariables: ReadonlySet<string>;
+}
+
 /**
- * The agent's OAuth servers that nobody in the organization has signed in
- * to. The rule is the composer's own MCP path's (`useMcpServerSetup`): a
- * server whose `spec.auth.targetEnvVar` is set is satisfied by a connected
- * grant; a grant read that fails leaves it pending, fail-closed, so the row
- * offers Sign in rather than pretending; a server that cannot be read is the
- * resolution's error, thrown to the caller's catch.
+ * Reads the agent's OAuth servers once. The rule is the composer's own MCP
+ * path's (`useMcpServerSetup`): a server whose `spec.auth.targetEnvVar` is
+ * set is satisfied by a connected grant; a grant read that fails leaves it
+ * pending, fail-closed, so the row offers Sign in rather than pretending; a
+ * server that cannot be read is the resolution's error, thrown to the
+ * caller's catch.
  */
-async function findPendingSignIns(stigmer: Stigmer, org: string, agent: Agent): Promise<PendingSignIn[]> {
-  const pending: PendingSignIn[] = [];
+async function readOAuthServers(stigmer: Stigmer, org: string, agent: Agent): Promise<OAuthServerReadings> {
+  const pendingSignIns: PendingSignIn[] = [];
+  const signInVariables = new Set<string>();
   for (const usage of agent.spec?.mcpServerUsages ?? []) {
     const ref = usage.mcpServerRef;
     if (!ref) continue;
@@ -43,6 +56,7 @@ async function findPendingSignIns(stigmer: Stigmer, org: string, agent: Agent): 
     const auth = server.spec?.auth;
     const id = server.metadata?.id ?? "";
     if (!auth?.targetEnvVar || id === "") continue;
+    signInVariables.add(auth.targetEnvVar);
     let health = OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT;
     let connected = false;
     try {
@@ -55,14 +69,34 @@ async function findPendingSignIns(stigmer: Stigmer, org: string, agent: Agent): 
       // Fail closed: an unreadable grant is a sign-in still owed.
     }
     if (connected) continue;
-    pending.push({
+    pendingSignIns.push({
       ref: { org: ref.org || server.metadata?.org || org, slug: ref.slug || server.metadata?.slug || "" },
       id,
       name: server.metadata?.name || server.metadata?.slug || ref.slug,
       health,
     });
   }
-  return pending;
+  return { pendingSignIns, signInVariables };
+}
+
+/**
+ * The declarations the composer may ask the user to type.
+ *
+ * The server's MergeMcpServerEnvSpecs step copies every referenced MCP
+ * server's `env` onto the agent at save, the OAuth token variable included,
+ * so the agent's schema is complete for execution. That variable is filled
+ * by a grant: execution injects it from the server-managed OAuth
+ * environment, never from a value the user owns. Without a grant it is a
+ * Sign in row; with one it is satisfied. Either way it is not a form field,
+ * and an agent whose only declarations are such variables is as ready as
+ * one that declares nothing.
+ */
+function typedDeclarations(
+  envDeclarations: Record<string, EnvVarDeclaration>,
+  signInVariables: ReadonlySet<string>,
+): Record<string, EnvVarDeclaration> {
+  if (signInVariables.size === 0) return envDeclarations;
+  return Object.fromEntries(Object.entries(envDeclarations).filter(([key]) => !signInVariables.has(key)));
 }
 
 /**
@@ -298,13 +332,14 @@ export function useAgentSetup(
       try {
         const agent = await stigmer.agent.getByReference(ref);
         const agentName = agent.metadata?.name ?? ref.slug;
-        const envDeclarations = agent.spec?.env;
 
         // Sign-ins first: an agent whose OAuth server has no grant is not
         // ready however its variables stand. Nothing is created here; when
         // the last sign-in lands, `signInCompleted` resolves again and the
-        // branches below run with the grant in place.
-        const pendingSignIns = await findPendingSignIns(stigmer, org, agent);
+        // branches below run with the grant in place. The variables those
+        // sign-ins fill leave the declarations here and are never typed.
+        const { pendingSignIns, signInVariables } = await readOAuthServers(stigmer, org, agent);
+        const envDeclarations = agent.spec?.env ? typedDeclarations(agent.spec.env, signInVariables) : undefined;
         if (pendingSignIns.length > 0) {
           const existingKeys = new Set(
             Object.keys(personalEnv.environment?.spec?.data ?? {}),
