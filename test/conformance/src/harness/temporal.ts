@@ -42,7 +42,11 @@ const SERVING_READY_POLL_MS = 200;
 // loop retries, rather than the CLI's default of blocking indefinitely.
 const HEALTH_CONNECT_TIMEOUT = "3s";
 const LOG_TAIL_BYTES = 8_000;
-const NAMESPACE = "default";
+// The one namespace every dev server here serves; the runner is pointed at it
+// by name (runner-process.ts TEMPORAL_NAMESPACE) and a history reader asks
+// the CLI for it by name. Exported so neither side spells it twice.
+export const TEMPORAL_DEV_NAMESPACE = "default";
+const NAMESPACE = TEMPORAL_DEV_NAMESPACE;
 
 export interface RunningTemporal {
   // host:port of the Temporal frontend, for the Go server and the TS runner.
