@@ -20,6 +20,13 @@ import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./environments"
 export const AGENT_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENT_KIND = "Agent";
 
+// The BARE agent's one instruction: the only agent-authored bytes in what the
+// native harness sends the model when nothing else is attached. One home, so
+// the request-shape goldens (which photograph this agent's wire) and the live
+// benchmark (which measures it) are the same agent by construction, not by
+// copy. Changing it moves the goldens and the benchmark's baseline together.
+export const BARE_AGENT_INSTRUCTIONS = "Answer in one short sentence.";
+
 // Per-agent tool approval override on a single MCP server usage. Mirrors the
 // proto ToolApprovalOverride (tool_name, requires_approval, message); this is the
 // per-agent level of the approval-policy chain and the lever that gates a tool

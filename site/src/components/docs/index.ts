@@ -7,7 +7,6 @@ export { ThemingPlayground as DemoThemingPlayground } from "./demos/scenarios/th
 export { ConnectSlackChannel as DemoConnectSlackChannel } from "./demos/scenarios/connect-slack-channel";
 export { ConnectWhatsAppChannel as DemoConnectWhatsAppChannel } from "./demos/scenarios/connect-whatsapp-channel";
 export { glossary } from "./glossary";
-export { HarnessCostComparison } from "./harness-cost-comparison";
 export { Hero } from "./welcome-hero";
 export { Mermaid } from "./mermaid";
 export { PageActions } from "./page-actions";

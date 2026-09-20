@@ -13,6 +13,7 @@
     "test:unit": "vitest run -c vitest.unit.config.ts",
     "inventory:check": "tsx scripts/check-inventory.ts",
     "fixtures:serve": "tsx scripts/cloud-fixtures-serve.ts",
+    "benchmark:harnesses": "tsx scripts/benchmark-harnesses.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

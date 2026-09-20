@@ -47,6 +47,10 @@ pinned somewhere. Read a row across before searching for anything.
   translator emits.
 - `harness/transcript/builder.ts` — `TranscriptBuilder`, the one builder every
   harness folds its events through.
+- `harness/turn-timeline.ts` — `TurnTimeline`, the runtime's fold over that
+  builder's events into the `turn_phases` timing line every harness gets for
+  free: first visible token, model rounds, tool and sub-agent spans, the
+  longest silence.
 - `harness/capture.ts` — the file-review capture. The runtime owns all of it; an
   adapter supplies one fact, which CAS-owned paths its engine touched.
 - `harness/turn-context.ts` — the resolution phases that build the `TurnInput`
@@ -204,7 +208,6 @@ Every hit falls into one of three classes:
 | `sdk/react/src/workflow/inspector/forms/AgentCallForm.tsx`                                                                                                                     | Two radio buttons, placed by hand.                                                                                                                                                                                                                                                                                            |
 | `sdk/react/src/pricing-governance/BaselineEditor.tsx`                                                                                                                          | A select with one option per harness.                                                                                                                                                                                                                                                                                         |
 | `site/src/components/pages/pricing/ModelPricingTable.tsx`                                                                                                                      | Harness to display label.                                                                                                                                                                                                                                                                                                     |
-| `site/src/data/harness-cost-comparison.json`                                                                                                                                   | Per-harness cost rows.                                                                                                                                                                                                                                                                                                        |
 | `docs/concepts/harnesses.mdx`, `docs/concepts/sessions.mdx`, `docs/guides/runners/cursor-harness.mdx`, `docs/guides/workflows/task-types/agent-call.mdx`, `docs/vocabulary.md` | Hand-authored pages that name the harness set; each has an entry in `docs/_inventory/classification.yaml` to keep current.                                                                                                                                                                                                    |
 
 The cloud composition that serves api.stigmer.ai has sites of the same three

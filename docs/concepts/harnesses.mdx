@@ -12,7 +12,8 @@ In Stigmer, that engine is called a **Harness**.
 
 Stigmer supports two harnesses:
 
-- **Native** — Stigmer's built-in engine, powered by Python and LangGraph.
+- **Native** — Stigmer's built-in engine: the deepagents engine on LangGraph.js,
+  running in TypeScript inside the Stigmer runner.
 - **Cursor** — An alternate engine that uses the
   [Cursor SDK](https://docs.cursor.com/sdk) to run Agent activities.
 
@@ -49,9 +50,9 @@ widest model catalog and the deepest platform integration.
 
 ## Cursor harness
 
-The Cursor harness uses the Cursor SDK as the execution engine. Instead of
-Stigmer's Python runtime processing the Agent's turns, the Cursor Agent runtime
-handles them.
+The Cursor harness uses the Cursor SDK as the execution engine. Instead of the
+Stigmer runner's own engine processing the Agent's turns, the Cursor Agent
+runtime handles them.
 
 **What you get:**
 
@@ -75,18 +76,18 @@ handles them.
 
 The Harness you choose depends on what your Agent needs to do.
 
-|                         | Native                                                               | Cursor                                                     |
-| ----------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Default**             | Yes                                                                  | No — must be explicitly selected                           |
-| **Model availability**  | All supported providers                                              | Cursor-served models only                                  |
-| **Tool capabilities**   | MCP servers you configure + built-in web fetch                       | MCP servers + Cursor's built-in coding tools               |
-| **Checkpoints**         | Full Stigmer pause/resume                                            | Cursor-managed state                                       |
-| **Platform commission** | 10% over provider rates                                              | 10% over provider rates                                    |
-| **Cursor Token Rate**   | None                                                                 | Small per-token fee on non-Auto models                     |
-| **Per-call context**    | Your prompt only                                                     | Adds Cursor system + tooling context                       |
-| **Prompt caching**      | Full control (explicit breakpoints)                                  | Automatic and opaque                                       |
-| **Latency**             | Lower (direct API)                                                   | Higher (agent startup + tooling)                           |
-| **Best for**            | General-purpose agents, custom model selection, production workloads | Developer-facing agents, coding tasks, Cursor model access |
+|                             | Native                                                                | Cursor                                                                       |
+| --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Default**                 | Yes                                                                   | No — must be explicitly selected                                             |
+| **Model availability**      | All supported providers                                               | Cursor-served models only                                                    |
+| **Tool capabilities**       | MCP servers you configure + built-in web fetch                        | MCP servers + Cursor's built-in coding tools                                 |
+| **Checkpoints**             | Full Stigmer pause/resume                                             | Cursor-managed state                                                         |
+| **Platform commission**     | 10% over provider rates                                               | 10% over provider rates                                                      |
+| **Cursor Token Rate**       | None                                                                  | Small per-token fee on non-Auto models                                       |
+| **Engine context per call** | Stigmer's system prompt and tool schemas, cached after the first call | Cursor's own engine context, cached at Cursor's discretion                   |
+| **Prompt caching**          | Full control (explicit breakpoints)                                   | Automatic and opaque                                                         |
+| **Latency**                 | Lower on a fresh Session                                              | Higher on a fresh Session (agent start-up); close to native on a resumed one |
+| **Best for**                | General-purpose agents, custom model selection, production workloads  | Developer-facing agents, coding tasks, Cursor model access                   |
 
 <Callout type="info">
   A Session's Harness is immutable after the first execution runs. Choose the
@@ -169,17 +170,23 @@ a Cursor-served model implicitly sets the Harness to Cursor for that Session.
 ## Cost considerations
 
 Both harnesses apply the same 10% platform commission, so cost differences come
-from three places: the Cursor Token Rate, per-call context, and prompt caching.
+from three places: the Cursor Token Rate, engine context per call, and prompt
+caching.
 
 - **Cursor Token Rate** — most Cursor models add a small per-token fee (Cursor's
   own charge, folded into the price before commission). Native models never
   carry it, so the same underlying model is cheaper on native.
-- **Per-call context** — Cursor's runtime sends its own system and tooling
-  context with each call; native sends only your prompt.
+- **Engine context per call** — both harnesses send an engine preamble with
+  every call, and neither is your prompt alone. Native sends Stigmer's system
+  prompt and tool schemas; Cursor sends its own engine context, as the Cursor
+  SDK reports usage. The two are comparable in size, so the cost gap between
+  them is not token volume.
 - **Prompt caching** — native exposes explicit cache breakpoints, so a Session's
   stable prefix is re-read at about one-tenth the input rate (about 90% off
   those tokens) and the advantage compounds across turns. Cursor caches
-  automatically but opaquely.
+  automatically but opaquely: on a fresh Session it sometimes reads its engine
+  context from the cache and sometimes writes all of it again, so the same call
+  can cost several times more from one fresh Session to the next.
 
 For multi-turn Sessions, native's caching control usually wins on cost. For
 coding tasks that need Cursor's built-in tools, the extra context and token rate

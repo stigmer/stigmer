@@ -1,6 +1,8 @@
 // Vitest configuration for the harness's PURE unit arms: the inventory
-// library, the cloud-capability fixtures, the child-process discipline and the
-// submit-approval seam.
+// library, the cloud-capability fixtures, the child-process discipline, the
+// submit-approval seam and the benchmark library's readers and statistics
+// (the live benchmark itself is a script in no config; only its pure parts
+// are tested here).
 //
 // Deliberately separate from the suite configs: those boot a target in
 // globalSetup (the TS server build, or a pre-provisioned cloud environment),
@@ -21,6 +23,7 @@ export default defineConfig({
       "src/contract/__tests__/**/*.test.ts",
       "src/support/__tests__/**/*.test.ts",
       "src/targets/__tests__/**/*.test.ts",
+      "src/benchmark/__tests__/**/*.test.ts",
     ],
   },
 });

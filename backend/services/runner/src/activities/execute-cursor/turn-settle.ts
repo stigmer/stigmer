@@ -122,7 +122,10 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // `send_returned` covers the send() call itself, `first_delta` the wait
   // until the SDK's first delta. Primary send only — the recovery retries
   // below rebuild the agent and would skew the user-perceived turn start
-  // this measures. No delta (immediate pause/failure) → no line.
+  // this measures. No delta (immediate pause/failure) → no line. This line is
+  // the SDK's send window and nothing else: the cross-harness instants (first
+  // visible token, rounds, tool spans) are the runtime's `turn_phases` line
+  // (`harness/turn-timeline.ts`), written for every harness alike.
   const turnStartTiming = new TimingRecorder();
   let turnFirstEventEmitted = false;
   const primaryOnDelta = makeCursorTurnOnDelta(onDeltaDeps);

@@ -159,13 +159,22 @@ export interface RunnerOptions {
   // under test/conformance/.test-output/logs/ so a red CI run's uploaded
   // environment-logs artifact carries the runner's side of the story — the
   // in-memory logTail() only surfaces on SPAWN failure, which leaves an
-  // execution that failed mid-run undiagnosable after teardown.
+  // execution that failed mid-run undiagnosable after teardown. When neither
+  // this nor STIGMER_CONFORMANCE_LOG_DIR is given, the tee still runs, into
+  // `<homeDir>/runner.log`, removed with the home on stop: the runner's
+  // `stigmer_timing` lines (the `turn_phases` and `execution_setup`
+  // timelines) exist nowhere but its stdout, and the benchmark readers and
+  // their smoke read them from this file.
   logFile?: string;
 }
 
 export interface RunningRunner {
   // Last ~8KB of combined stdout/stderr, surfaced in failures for diagnosis.
   logTail(): string;
+  // The file the runner's whole combined output is tee'd to (see
+  // RunnerOptions.logFile): the one place a reader finds a `stigmer_timing`
+  // line for an execution that ran minutes ago.
+  logFile: string;
   // The runner's HOME for this run — where its `~/.stigmer/sessions/<id>/…`
   // tree lands (session checkpoints, the platform dir attachments materialize
   // into). A suite that reads what the runner wrote to disk reads under this,
@@ -266,7 +275,9 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
 
   // STIGMER_CONFORMANCE_LOG_DIR: the same teardown-surviving tee the
   // server harness offers, for diagnosing writer-ordering races that need
-  // the runner's cancellation/persist lines (see server-process.ts).
+  // the runner's cancellation/persist lines (see server-process.ts). With
+  // neither lever set the tee lands under the run's own HOME, so the timing
+  // lines are always readable and nothing outlives the run.
   const teeFile =
     opts.logFile ??
     (process.env.STIGMER_CONFORMANCE_LOG_DIR
@@ -274,7 +285,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
           process.env.STIGMER_CONFORMANCE_LOG_DIR,
           `runner-${Date.now()}.log`,
         )
-      : undefined);
+      : join(homeDir, "runner.log"));
   let ready = false;
   const output = teeChildOutput(child, {
     tailBytes: LOG_TAIL_BYTES,
@@ -327,6 +338,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
 
   return {
     logTail: () => output.tail(),
+    logFile: teeFile,
     homeDir,
     stop,
   };

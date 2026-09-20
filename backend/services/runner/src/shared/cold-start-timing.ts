@@ -31,7 +31,7 @@ export interface TimingSegment {
 }
 
 /**
- * Records a linear sequence of named segments.
+ * Records named segments on one timeline, two ways.
  *
  * `mark(name)` closes the span from the previous mark (or the origin) and
  * names it — so instrumentation reads as one line placed AFTER the work it
@@ -42,11 +42,22 @@ export interface TimingSegment {
  * const execution = await client.getExecution(executionId);
  * timing.mark("fetch_execution");
  * ```
+ *
+ * `span(name, startMs, endMs)` records a segment with explicit bounds, for a
+ * timeline whose phases OVERLAP (a tool call inside a model round, a
+ * sub-agent across two rounds) and so cannot be written as a chain of marks.
+ * A span never moves the mark cursor: a `mark` after a `span` still measures
+ * from the previous MARK, so the two idioms compose on one recorder without
+ * either changing what the other means. `totalMs()` is the latest end on the
+ * timeline, whichever way it was recorded — for a mark-only recorder that is
+ * the last mark, as it always was.
  */
 export class TimingRecorder {
   private readonly originMs: number;
   private readonly segments: TimingSegment[] = [];
   private lastMarkMs: number;
+  /** Absolute end of the segment that ends latest, by either idiom. */
+  private latestEndMs: number;
 
   /**
    * @param originMs absolute `performance.now()`-scale origin. Defaults to
@@ -57,6 +68,7 @@ export class TimingRecorder {
   constructor(originMs: number = performance.now()) {
     this.originMs = originMs;
     this.lastMarkMs = originMs;
+    this.latestEndMs = originMs;
   }
 
   /** Close the span since the previous mark (or origin) and name it. */
@@ -68,11 +80,25 @@ export class TimingRecorder {
       durationMs: round1(now - this.lastMarkMs),
     });
     this.lastMarkMs = now;
+    if (now > this.latestEndMs) this.latestEndMs = now;
   }
 
-  /** Total elapsed time from the origin to the latest mark (ms). */
+  /**
+   * Record a segment with explicit absolute bounds (`performance.now()`
+   * scale, like the origin). Leaves the mark cursor where it was.
+   */
+  span(name: string, startMs: number, endMs: number): void {
+    this.segments.push({
+      name,
+      startMs: round1(startMs - this.originMs),
+      durationMs: round1(endMs - startMs),
+    });
+    if (endMs > this.latestEndMs) this.latestEndMs = endMs;
+  }
+
+  /** Elapsed time from the origin to the latest end on the timeline (ms). */
   totalMs(): number {
-    return round1(this.lastMarkMs - this.originMs);
+    return round1(this.latestEndMs - this.originMs);
   }
 
   snapshot(): readonly TimingSegment[] {

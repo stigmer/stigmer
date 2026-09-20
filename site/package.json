@@ -14,7 +14,6 @@
     "generate-narration": "tsx scripts/generate-narration.ts",
     "copy-narration": "tsx scripts/copy-narration-to-public.ts",
     "validate-demos": "tsx scripts/validate-demos.ts",
-    "generate-harness-cost-comparison": "tsx scripts/generate-harness-cost-comparison.ts",
     "generate-docs-inventory": "tsx scripts/generate-docs-inventory/index.ts",
     "generate-react-sdk-docs": "tsx scripts/generate-react-sdk-docs/index.ts",
     "generate-ink-sdk-docs": "tsx scripts/generate-ink-sdk-docs/index.ts",
