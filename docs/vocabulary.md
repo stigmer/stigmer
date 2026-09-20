@@ -67,7 +67,6 @@ definitions, API names, and examples follow below.
 | **Harness**       | execution engine      | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
 | **Approval flow** | approval flow         | approval flow                          | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
 | **Organization**  | Organization          | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
-| **Project**       | Project               | Project                                | Project             | Project, `kind: project`               | Project        |
 | **Environment**   | Environment           | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
 | **Preference**    | preferences           | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
 
@@ -382,31 +381,31 @@ A process that connects to Stigmer and executes your Agents.
   when used generically ("start a runner").
 - **Not an API resource**: A Runner is a runtime process, not a declarative
   resource---there is no `kind: Runner`, no `apiVersion`, and no
-  `stigmer apply`. You start one with `stigmer up` (and stop it with
-  `stigmer down`); it self-registers and heartbeats. The control plane tracks
-  its live status, surfaced in the web console. (The Runner API resource that
-  once existed was removed from the OSS repo.)
-- **Lifecycle**: A runner moves through phases---Pending, Ready, Busy, Stopped,
-  Failed---driven by heartbeats. The control plane tracks each runner's status
-  (phase, current execution count, machine info); none of this is applied or
-  edited by the user. See the [Runners concept page](/docs/concepts/runners).
-- **Two types**: Local runners (user-started via CLI, persistent) and cloud
-  runners (platform-provisioned, ephemeral, labeled
-  `stigmer.ai/system-managed: "true"`).
-- **Related terms**: Sessions find a runner one of three ways---automatic
-  provisioning, explicit selection from the runner picker, or Session binding (a
-  Session reuses the runner that ran its first execution). Do not confuse with
-  "Agent Runner" (the TypeScript Temporal worker binary---architecture docs
-  only).
+  `stigmer apply`. The server keeps no record of which runners exist and the web
+  console has no runner page. You start one with `stigmer up` (and stop it with
+  `stigmer down`); the Docker Compose stack and the Helm chart each run one
+  beside the server. (The Runner API resource that once existed, with its
+  phases, heartbeats and runner picker, was removed from the OSS repo.)
+- **How work reaches it**: The server puts each execution on a Temporal task
+  queue (`stigmer_runner` by default) and whichever runner polls that queue
+  takes the work. Nothing selects a runner; the queue is the contract. A run
+  carries the Session's Harness and a credential minted for that run alone. See
+  the [Runners concept page](/docs/concepts/runners).
+- **Two postures**: One shared runner (the laptop, the all-in-one, Compose, the
+  chart) or a runner per Session started by the server's sandbox provisioner
+  (Stigmer Cloud; described, not taught, on the
+  [self-hosting runner page](/docs/guides/self-hosting/runners)).
+- **Related terms**: Do not confuse with "Agent Runner" (the TypeScript Temporal
+  worker binary---architecture docs only).
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Run Agents on your machine or let the platform handle it."                                                                                |
-| Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                       |
-| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                     |
-| Reference  | "`Runner`---a self-registering process the server tracks with a thin spec and rich status. Phases: PENDING, READY, BUSY, STOPPED, FAILED." |
+| Context    | Copy                                                                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Run Agents on your machine or let the platform handle it."                                                                                                                 |
+| Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                                                        |
+| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                                                      |
+| Reference  | "The runner polls the `stigmer_runner` task queue; set `STIGMER_TASK_QUEUE` on the runner and `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE` on the server to the same name." |
 
 **Bad examples**:
 
@@ -558,18 +557,6 @@ A Workspace that groups people, Agents, Workflows, and settings together.
   `is_personal`.
 - **Note**: Local mode has no Organization concept---it uses an implicit
   single-user context. Organizations appear in Stigmer Cloud.
-
----
-
-#### Project
-
-A container within an Organization that groups related Agents, Workflows, and
-resources together.
-
-- **Capitalize**: Yes, when referring to the Stigmer concept.
-- **API surface**: `kind: project`, prefix `prj`. proto:
-  `tenancy/project/v1/spec.proto`.
-- **Key fields**: `entry_point`, `members`.
 
 ---
 
@@ -1055,6 +1042,26 @@ everything else is a Plugin you install by name; see Plugin and Marketplace.
   content an older release installed, and the upgrade note in the marketplace
   how-to. A doc describing "the built-in Agents and servers" or "the curated
   library" is describing the retired bundle; point it at Plugin instead.
+
+---
+
+#### Project
+
+Retired term. A `kind: Project` was a manifest (`stigmer.yaml`) at the root of a
+directory that listed the Agents, Skills, MCP Servers and Workflows applied from
+it as members, reconciled by `stigmer apply`; a second flavour synthesised the
+members from a TypeScript, Go or Python program. Both were removed with the
+kind: a folder of resources that belong together is a Plugin, installed with
+`stigmer push plugin` or from the Marketplace, and upgraded or removed as one
+unit. The seven Project pages under the SDK reference and `examples/project`
+went with it.
+
+- **Capitalize**: Yes, when quoting historical docs or the CLI's refusal.
+- **Context rule**: Do not use in new writing. A reader still meets the word in
+  one place: the sentence `stigmer apply -f` and `stigmer validate -f` print for
+  a manifest that still carries `kind: Project`, which says what happened and
+  names `stigmer push plugin`. Lowercase "project" for an npm, Go, Python or
+  Maven project stays ordinary English.
 
 ---
 

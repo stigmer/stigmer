@@ -7,12 +7,18 @@ export {
   toKebabCase,
   toSnakeCase,
 } from "./aliases.js";
-export { CLI_RELEVANT_KINDS, type KindMeta, KIND_META } from "./metadata.js";
+export {
+  CLI_RELEVANT_KINDS,
+  type KindMeta,
+  KIND_META,
+  RETIRED_KINDS,
+} from "./metadata.js";
 export {
   defaultRegistry,
   type Registry,
   supportsVerb,
   type TypeInfo,
+  unknownKindError,
 } from "./registry.js";
 export {
   ALL_VERBS,

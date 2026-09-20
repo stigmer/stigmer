@@ -29,3 +29,16 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # The Project kind's removal (the tenancy/project package, the skill
+  # synthesis handover, and the two enum values reserved in their place) is a
+  # deliberate FILE-category break the CI gate would otherwise refuse. This
+  # block lets that one pull request through and nothing else; the pull
+  # request that follows the merge removes it, because main then has no
+  # project package for a deletion to be measured against.
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/tenancy/project
+      - ai/stigmer/agentic/skill/v1/synth.proto
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto

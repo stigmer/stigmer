@@ -5,8 +5,7 @@
  * historically returned UNIMPLEMENTED for activity), synchronous
  * index-on-write feeds search over the wire, the protovalidate
  * interceptor answers the two InvalidArgument arms, and BOOT-TIME
- * RebuildIndex makes pre-existing rows — including a project row on an
- * adopted database, whose domain is not yet ported (#16) — searchable
+ * RebuildIndex makes pre-existing rows on an adopted database searchable
  * with zero pipeline writes (DD-D/DD-F).
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -21,11 +20,11 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
@@ -146,9 +145,8 @@ describe("boot-time RebuildIndex (DD-D/DD-F)", () => {
     dir = mkdtempSync(path.join(tmpdir(), "query-rebuild-test-"));
     // Pre-seed the database DIRECTLY — resource rows only, no index
     // writes — the adopted-database shape: rows exist, the FTS index
-    // knows nothing about them. The project row's domain is not even
-    // ported yet (#16 in flight); only the boot rebuild through the
-    // 13-kind registry can make it searchable.
+    // knows nothing about them. Only the boot rebuild through the
+    // registry can make such a row searchable.
     const dbPath = path.join(dir, "stigmer.db");
     const seedStore = SqliteStore.open(dbPath);
     await seedStore.saveResource(
@@ -163,17 +161,17 @@ describe("boot-time RebuildIndex (DD-D/DD-F)", () => {
       }),
     );
     await seedStore.saveResource(
-      ApiResourceKind.project,
-      "prj_adopted",
-      ProjectSchema,
-      create(ProjectSchema, {
+      ApiResourceKind.skill,
+      "skl_adopted",
+      SkillSchema,
+      create(SkillSchema, {
         metadata: {
-          id: "prj_adopted",
-          name: "adopted-project",
-          slug: "adopted-project",
+          id: "skl_adopted",
+          name: "adopted-skill",
+          slug: "adopted-skill",
           org: "preboot",
         },
-        spec: { description: "a project from the Go era" },
+        spec: { description: "a skill from the Go era" },
         status: {
           audit: { specAudit: { createdAt: { seconds: 1_700_000_000n } } },
         },
@@ -201,11 +199,11 @@ describe("boot-time RebuildIndex (DD-D/DD-F)", () => {
     });
     expect(orgs.entries.map((entry) => entry.id)).toContain("preboot");
 
-    const projects = await search.search({
-      kinds: [ApiResourceKind.project],
+    const skills = await search.search({
+      kinds: [ApiResourceKind.skill],
       org: "preboot",
     });
-    expect(projects.entries.map((entry) => entry.id)).toEqual(["prj_adopted"]);
-    expect(projects.entries[0]?.description).toBe("a project from the Go era");
+    expect(skills.entries.map((entry) => entry.id)).toEqual(["skl_adopted"]);
+    expect(skills.entries[0]?.description).toBe("a skill from the Go era");
   });
 });

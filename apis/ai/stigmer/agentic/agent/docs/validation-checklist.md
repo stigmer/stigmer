@@ -16,7 +16,7 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 
 ### Organization and Visibility
 
-- [ ] `metadata.org` is set if applying outside a project (the CLI resolves it from context if omitted during `stigmer project apply`)
+- [ ] `metadata.org` is set, or the CLI has an active organization context to resolve it from
 - [ ] `metadata.visibility` is intentional — omit for private (default), set `visibility_public` only for marketplace publishing
 
 ### Resource References
@@ -235,9 +235,9 @@ tool_approval_overrides:
 
 Always verify tool names against the MCP server before writing overrides.
 
-### Missing `metadata.org` when applying outside a project
+### Missing `metadata.org`
 
-When applying a standalone YAML file (not as part of a `stigmer project apply`), set `metadata.org` explicitly or ensure the CLI has an active organization context.
+Set `metadata.org` explicitly, or ensure the CLI has an active organization context to resolve it from.
 
 ```yaml
 # Recommended — explicit org

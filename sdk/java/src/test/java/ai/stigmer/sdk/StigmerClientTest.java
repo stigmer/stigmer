@@ -72,7 +72,6 @@ class StigmerClientTest {
             assertNotNull(client.mcpServer);
             assertNotNull(client.oauthapp);
             assertNotNull(client.organization);
-            assertNotNull(client.project);
             assertNotNull(client.session);
             assertNotNull(client.skill);
             assertNotNull(client.workflow);

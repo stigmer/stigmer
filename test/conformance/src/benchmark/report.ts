@@ -3,7 +3,8 @@
 // readers: the CLI's own per-cell table, and the maintainers who keep a
 // run's report with the record of the work that prompted it. The benchmark
 // is an internal instrument; its numbers are never published on the docs
-// site (`docs/AGENTS.md` carries the rule and its reason), so a hunk here
+// site (the docs-writing skill's refusals carry the rule and its reason:
+// `.agents/skills/docs-writing/SKILL.md`), so a hunk here
 // is the review of what the maintainers will read differently.
 // Domain: conformance benchmark (the live instrument's output).
 //

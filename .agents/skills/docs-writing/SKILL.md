@@ -158,9 +158,10 @@ sections already say.
 - Filler ("it should be noted that", "it is important to understand").
 - Two Diátaxis types on one page.
 - A measured native-versus-Cursor comparison, in a table, in prose or through a
-  fixture. The harness benchmark (`make benchmark-harnesses`) is an internal
-  instrument: an Agent performs best in the harness and models built for it, so
-  a generic comparison on a handful of prompts tells a reader nothing about
-  their Agent, and the platform's own evaluation tooling is where they measure
-  it. A page explains how the harnesses differ and never quotes a measurement
-  between them.
+  fixture. The harness benchmark (`make benchmark-harnesses`,
+  `test/conformance`) is an internal instrument and this refusal is its rule's
+  home: an Agent performs best in the harness and models built for it, so a
+  generic comparison on a handful of prompts tells a reader nothing about their
+  Agent, and the platform's own evaluation tooling is where they measure it. A
+  page explains how the harnesses differ and never quotes a measurement between
+  them.

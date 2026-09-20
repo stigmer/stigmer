@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Plug,
   Rocket,
+  Server,
   SquareCode,
   SquareTerminal,
   Terminal,
@@ -85,7 +86,7 @@ import {
 
 ## Go deeper
 
-<Cards className="lg:grid-cols-3">
+<Cards className="lg:grid-cols-2">
   <Card
     icon={<Compass />}
     title="Core Concepts"
@@ -103,5 +104,11 @@ import {
     title="CLI Reference"
     description="Install and use the Stigmer CLI from the terminal."
     href="/docs/cli"
+  />
+  <Card
+    icon={<Server />}
+    title="Self-host Stigmer"
+    description="Run the platform on your laptop, one server, or Kubernetes."
+    href="/docs/guides/self-hosting/overview"
   />
 </Cards>

@@ -68,7 +68,7 @@ export enum ApiResourceGroup {
   iam = 2,
 
   /**
-   * Tenancy - Resource hierarchy: platform, organizations, and projects
+   * Tenancy - Resource hierarchy: platform and organizations
    *
    * @generated from enum value: tenancy = 3;
    */

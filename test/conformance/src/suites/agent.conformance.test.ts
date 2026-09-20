@@ -65,8 +65,8 @@ describe("Agent conformance — CRUD & identity", () => {
 
   it("creates an agent without a spec (spec is optional at the proto level)", async () => {
     const { org } = await target.provisionTenancy();
-    // Unlike Project, AgentSpec is not `required`; a spec-less agent is a valid
-    // (if minimal) blueprint. This documents that part of the contract.
+    // AgentSpec is not `required`; a spec-less agent is a valid (if minimal)
+    // blueprint. This documents that part of the contract.
     const created = await clients.agentCommand.create({
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
@@ -162,7 +162,7 @@ describe("Agent conformance — CRUD & identity", () => {
 
   it("getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
-      () => clients.agentQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.project }),
+      () => clients.agentQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.skill }),
       Code.InvalidArgument,
       "getByReference kind mismatch",
     ));

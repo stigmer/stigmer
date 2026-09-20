@@ -1,7 +1,7 @@
 Validate resource YAML files, or a plugin directory, without applying them.
 
 `stigmer validate` checks that your resource files contain valid YAML with a
-correct schema. It supports agents, workflows, MCP servers, and projects. The
+correct schema. It supports agents, workflows, and MCP servers. The
 resource type is auto-detected from the `kind` field in the YAML.
 
 It also validates a plugin directory: a folder with a `plugin.json`,
@@ -25,9 +25,6 @@ stigmer validate -f agent.yaml
 
 # Validate all YAML files in a directory
 stigmer validate -f ./manifests/
-
-# Validate a project configuration
-stigmer validate -f stigmer.yaml
 
 # Validate a plugin directory, in any dialect
 stigmer validate -f ./my-plugin/
@@ -96,7 +93,7 @@ stigmer validate -f agent.yaml && stigmer apply -f agent.yaml
 
 Run validation first, then apply only if it passes.
 
-### Validate a project directory
+### Validate a directory of resources
 
 ```bash
 stigmer validate -f ./manifests/

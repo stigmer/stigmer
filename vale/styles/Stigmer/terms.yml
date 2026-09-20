@@ -39,8 +39,6 @@ swap:
   identity provider: Identity Provider
   '\borganization\b': Organization
   '\borganizations\b': Organizations
-  '\bproject\b': Project
-  '\bprojects\b': Projects
   '\bseedpack\b': Seedpack
   '\bseedpacks\b': Seedpacks
   '\bworkspace\b': Workspace

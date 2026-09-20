@@ -8,7 +8,6 @@ describe("schemaForValidate", () => {
     expect(schemaForValidate(ApiResourceKind.agent)).toBeDefined();
     expect(schemaForValidate(ApiResourceKind.workflow)).toBeDefined();
     expect(schemaForValidate(ApiResourceKind.mcp_server)).toBeDefined();
-    expect(schemaForValidate(ApiResourceKind.project)).toBeDefined();
   });
 
   it("returns undefined for non-file-based kinds", () => {

@@ -12,11 +12,9 @@
  * (registry.go ValidateExpectedKinds; server.go:509): a missing extractor
  * degrades that kind to unsearchable, never refuses boot.
  *
- * The project extractor is registered here by THIS sub-project (#14)
- * although the project DOMAIN ports with #16 — boot RebuildIndex re-indexes
- * every registered kind from the resources table, and an adopted Go
- * database may already hold projects; without the extractor those rows
- * would silently vanish from search (D4 #14 DD-D, owner-ratified).
+ * Boot RebuildIndex re-indexes every registered kind from the resources
+ * table, so a kind with no extractor here is a kind whose rows vanish from
+ * search on the next boot; a domain and its extractor land together.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -28,7 +26,6 @@ import { executionContextSearchExtractor } from "../../domain/executioncontext/s
 import { mcpServerSearchExtractor } from "../../domain/mcpserver/search-extractor.js";
 import { organizationSearchExtractor } from "../../domain/organization/search-extractor.js";
 import { pluginSearchExtractor } from "../../domain/plugin/search-extractor.js";
-import { projectSearchExtractor } from "../../domain/project/search-extractor.js";
 import { sessionSearchExtractor } from "../../domain/session/search-extractor.js";
 import { skillSearchExtractor } from "../../domain/skill/search-extractor.js";
 import { workflowSearchExtractor } from "../../domain/workflow/search-extractor.js";
@@ -116,7 +113,6 @@ export function newSearchableResourceRegistry(): SearchableResourceRegistry {
     mcpServerSearchExtractor,
     organizationSearchExtractor,
     pluginSearchExtractor,
-    projectSearchExtractor,
     sessionSearchExtractor,
     skillSearchExtractor,
     workflowSearchExtractor,

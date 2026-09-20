@@ -30,7 +30,7 @@ task. See the project's `design-decisions/001-cloud-convergence-strategy.md`.
 
 Covered against the `local` target:
 
-- **Project** and **Organization** — flat tenancy resources.
+- **Organization** — the flat tenancy resource.
 - **Workflow** — the first **versioned** domain (CRUD, apply create/update
   branching, the version-history surface `listVersions` / `getVersion` /
   `getByReference` resolution by hash and apply-time tag, and the `validateSpec`
@@ -183,7 +183,8 @@ included; the run's first call per harness and served model is the cold call.
 The report's contract is `src/benchmark/report.ts`. The benchmark is an
 internal instrument: a run's report is kept by the maintainers with the record
 of the work it measured, and its numbers are never published on the docs site
-(`docs/AGENTS.md` carries the rule and its reason). The readers' wiring is
+(`.agents/skills/docs-writing/SKILL.md` carries the rule and its reason under
+"What to refuse"). The readers' wiring is
 proven hermetically by `benchmark-readers.harness.smoke.test.ts` on the
 execution lane, which asserts presence and shape and never a number.
 

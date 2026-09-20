@@ -6,29 +6,20 @@
 // lane. One definition, so a laptop, a container and the hosted platform
 // cannot drift in what "ready" means.
 //
-// Two phases, and the order matters (a third, `up`'s retire, follows them):
+// Two phases, and the order matters:
 //
 //   1. prepare: resolve the official marketplace (acquiring `@stigmer/plugins`
 //      at the CLI's version on a release's first run) and prepare every
 //      default. No backend is touched.
 //   2. run: ensure the system org, then push the prepared defaults, each
-//      skipped when the backend already holds it at the same digest.
+//      skipped when the backend already holds it at the same digest. The
+//      push adopts a system-content row it replaces in place (a default
+//      agent an earlier release seeded keeps its id, its instances and every
+//      conversation bound to them), so nothing here ever deletes a row.
 //
-// `stigmer up` adds a third phase after them: retiring the seedpack an
-// older release installed. That step deletes rows, so it runs only once
-// every default has LANDED, not merely been prepared: the plugin push adopts
-// the system-content rows it replaces in place (the seedpack's `assistant`
-// keeps its id, its instances and every conversation bound to them), and a
-// row that is now a plugin's member is never a candidate for the retire. A
-// user who upgrades offline and cannot fetch the new catalogue, or whose
-// backend refused a default, keeps the old rows for another day instead of
-// losing them and getting nothing back. The retire lives here and not in
-// `stigmer bootstrap` on purpose: a verb a scheduled lane runs against the
-// platform must never be able to delete rows.
-//
-// Inside `up` every phase is best-effort with its own warning naming the
-// retry, because the stack is already serving by the time any of them runs
-// and a seeding failure must never tear it down. Both `up` shapes (detached
+// Inside `up` both phases are best-effort with their own warning naming the
+// retry, because the stack is already serving by the time either runs and a
+// seeding failure must never tear it down. Both `up` shapes (detached
 // and foreground) call this one function, and both seed the local server
 // `up` just started, never the active backend context: a CLI pointed at
 // cloud still gets its local stack seeded, and never has system resources
@@ -44,7 +35,6 @@ import type {
   InstallingVerb,
   PreparedDefault,
 } from "./plugins/defaults.js";
-import { dataDir } from "./paths.js";
 import { type EnsureSystemOrgOutcome, SYSTEM_ORG } from "./system-org.js";
 
 export type Say = (line: string) => void;
@@ -116,7 +106,6 @@ export interface BootstrapDeps {
   readonly client?: BackendClient;
   readonly say?: Say;
   readonly prepare?: () => Promise<PreparedBootstrap>;
-  readonly retire?: (stigmer: Stigmer, home: string, say: Say) => Promise<void>;
   readonly run?: (
     stigmer: Stigmer,
     prepared: PreparedBootstrap,
@@ -130,7 +119,6 @@ const sayToStderr: Say = (line) => {
 
 /** What `stigmer up` does once the local server answers. Never throws past its own warnings. */
 export async function bootstrapLocalBackend(
-  home: string,
   deps: BootstrapDeps = {},
 ): Promise<void> {
   const client = deps.client ?? (await freshLocalClient());
@@ -142,7 +130,7 @@ export async function bootstrapLocalBackend(
   } catch (err) {
     log.warn("bootstrap preparation failed", { error: String(err) });
     say(
-      "Warning: could not prepare the default plugins, so the local backend was not bootstrapped and nothing was retired. Run 'stigmer up' again to retry.",
+      "Warning: could not prepare the default plugins, so the local backend was not bootstrapped. Run 'stigmer up' again to retry.",
     );
     return;
   }
@@ -157,7 +145,7 @@ export async function bootstrapLocalBackend(
   } catch (err) {
     log.warn("bootstrap failed", { error: String(err) });
     say(
-      "Warning: failed to bootstrap the local backend, so nothing was retired. Run 'stigmer up' again to retry.",
+      "Warning: failed to bootstrap the local backend. Run 'stigmer up' again to retry.",
     );
     return;
   }
@@ -165,24 +153,9 @@ export async function bootstrapLocalBackend(
     org: result.org,
     outcomes: result.plugins.outcomes,
   });
-  if (result.plugins.failed.length > 0) {
-    for (const name of result.plugins.failed) {
-      say(
-        `Warning: failed to install default plugin '${name}'. Run 'stigmer bootstrap' to retry.`,
-      );
-    }
+  for (const name of result.plugins.failed) {
     say(
-      "Nothing was retired: the resources an older release installed stay until every default plugin is in place.",
-    );
-    return;
-  }
-
-  try {
-    await (deps.retire ?? retireSeedpack)(client.stigmer, home, say);
-  } catch (err) {
-    log.warn("seedpack retire failed", { error: String(err) });
-    say(
-      "Warning: failed to retire the resources an older release installed. Run 'stigmer up' again to retry.",
+      `Warning: failed to install default plugin '${name}'. Run 'stigmer bootstrap' to retry.`,
     );
   }
 }
@@ -195,20 +168,6 @@ function runLocalBootstrap(
   say: Say,
 ): Promise<BootstrapResult> {
   return runBootstrap(stigmer, prepared, say, "stigmer up");
-}
-
-// The retire step in the shape the seam expects; the module is loaded only
-// inside `up`, the one place a retire may run.
-async function retireSeedpack(
-  stigmer: Stigmer,
-  home: string,
-  say: Say,
-): Promise<void> {
-  const { retireSeedpack: retire, renderRetireReport } = await import(
-    "./seedpack-retire.js"
-  );
-  const result = await retire(stigmer, { markerDir: dataDir(home) });
-  renderRetireReport(result, say);
 }
 
 async function freshLocalClient(): Promise<BackendClient> {

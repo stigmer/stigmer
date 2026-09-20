@@ -19,7 +19,6 @@ const PY_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["identityprovider", "identity_providers"],
   ["mcpserver", "mcp_servers"],
   ["organization", "organizations"],
-  ["project", "projects"],
   ["session", "sessions"],
   ["skill", "skills"],
   ["workflow", "workflows"],

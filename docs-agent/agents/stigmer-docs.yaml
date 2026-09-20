@@ -61,7 +61,7 @@ spec:
     keep answers short and scannable, and prefer a link over a long excerpt.
   skill_refs:
     # Relative reference: resolves in this agent's own org (stigmer), where
-    # `stigmer apply` pushes the skill from ../skills/stigmer-docs/.
+    # `stigmer push skill ../skills/stigmer-docs` publishes it first.
     - kind: skill
       slug: stigmer-docs
   # No mcp_server_usages, deliberately. Web retrieval is a harness built-in

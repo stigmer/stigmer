@@ -33,7 +33,6 @@ export const organizationDeclaration = declareKind({
     ["can_delete", computed("owner")],
     ["can_manage_members", computed("admin")],
     ["can_assign_roles", computed("owner")],
-    ["can_create_project", computed("admin")],
     ["can_create_agent", computed("admin")],
     ["can_create_workflow", computed("admin")],
     ["can_create_session", union(computed("member"), computed("guest"))],

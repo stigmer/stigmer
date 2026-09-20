@@ -47,8 +47,17 @@ Report both so the user sees what ships.
 The presence of a `feat` commit is not a minor bump. Judge the change:
 
 - **major**: a `BREAKING CHANGE:` footer or `!` after the type; a public
-  contract changes incompatibly; a proto field is removed or renamed; an SDK
-  export is removed or its signature changes.
+  contract changes incompatibly for consumers who never touched the part that
+  changed: a proto field or message is renamed, a wire value changes meaning, an
+  SDK export's signature changes, a Go import path moves. A Go major is itself a
+  migration for every Go consumer (the module path suffix and every import
+  change with it, section 5), so a major is graded on what it does to consumers
+  who did not use the removed surface.
+- **minor, with an Upgrading section**: a surface is removed outright (a kind, a
+  proto package, an SDK client or subpath, a CLI mode) and no known consumer
+  used it; the release notes name every removed surface under Upgrading so a
+  consumer who did use it learns at the release, not the build. The Project
+  kind's removal set the precedent.
 - **minor**: a new capability that expands what users or platform builders can
   do: a new API resource, a new CLI command, a new SDK domain, a product-level
   feature. The bar: would this earn a section in release notes that makes
@@ -63,13 +72,16 @@ the user's confirmation.
 
 ## 3. Bump the pins and commit them
 
-Four pins travel in the commit the tag is cut from, and `make release` refuses
-to tag until all four name the new version: the MCP server image version in
+Five pins travel in the commit the tag is cut from, and `make release` refuses
+to tag until all five name the new version: the MCP server image version in
 `mcp-server/Dockerfile` (the npm publish lane refuses a version that does not
 match it; production deploys the pin, not the tag), the compose stack's
 `STIGMER_VERSION` in `docker-compose.yml` and `.env.example` (the stack a fresh
-clone runs), and `version` and `appVersion` in `deploy/helm/stigmer/Chart.yaml`
-(the chart's image tags default to the app version).
+clone runs), `version` and `appVersion` in `deploy/helm/stigmer/Chart.yaml` (the
+chart's image tags default to the app version), and the two upgrade examples on
+`docs/guides/self-hosting/operations.mdx` (the version a reader copies into
+`.env` and into `helm upgrade --version`; the page went stale once when nothing
+owned it).
 
 ```bash
 make release-pins version=<X.Y.Z>

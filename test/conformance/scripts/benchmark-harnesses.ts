@@ -10,7 +10,8 @@
 // `npm test` cannot reach it. Its numbers are a new baseline for the machine,
 // the model versions and the runner they were taken on, never a comparison
 // with an earlier run. They are internal: the benchmark's numbers never
-// appear on the docs site (`docs/AGENTS.md` carries the rule).
+// appear on the docs site (`.agents/skills/docs-writing/SKILL.md` carries the
+// rule under "What to refuse").
 //
 // Needs: the `temporal` CLI on PATH (the dev server backs the stack);
 // ANTHROPIC_API_KEY for the native cells and the judge; CURSOR_API_KEY for

@@ -260,14 +260,6 @@ public enum ApiResourceKind
   plugin(58),
   /**
    * <pre>
-   * Aggregate root grouping related resources for lifecycle management.
-   * </pre>
-   *
-   * <code>project = 60 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  project(60),
-  /**
-   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -565,14 +557,6 @@ public enum ApiResourceKind
   public static final int plugin_VALUE = 58;
   /**
    * <pre>
-   * Aggregate root grouping related resources for lifecycle management.
-   * </pre>
-   *
-   * <code>project = 60 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int project_VALUE = 60;
-  /**
-   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -668,7 +652,6 @@ public enum ApiResourceKind
       case 56: return schedule;
       case 57: return memory;
       case 58: return plugin;
-      case 60: return project;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

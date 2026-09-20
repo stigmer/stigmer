@@ -1,0 +1,93 @@
+---
+title: Self-hosting
+description:
+  Three ways to run the open-source Stigmer platform on machines you control,
+  which one fits your team, and what every shape has in common.
+---
+
+Stigmer is open source under Apache 2.0, and the platform behind Stigmer Cloud
+runs on your own machines too. Your Agents, Workflows, Skills and MCP Servers,
+the CLI and the SDKs work the same way in both places. Whether to run it
+yourself is the question [Cloud vs self-hosted](./cloud-vs-self-hosted) answers;
+this page is for when you have decided to.
+
+Stigmer reaches a machine in three shapes. Each one has a guide you can follow
+from a clean machine to a running Agent.
+
+## Pick your shape
+
+|                       | Laptop                                                                             | One server                                                                                                                                                     | Kubernetes                                                              |
+| --------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **What you run**      | `stigmer up` with Node.js, or one `docker run` for evaluation                      | The Docker Compose stack on a VM                                                                                                                               | The Helm chart on your cluster                                          |
+| **What runs**         | The server with the web console, an embedded runner, SQLite, Temporal's dev-server | The server with the web console, one runner, Postgres, a real Temporal server                                                                                  | The same four parts as Pods; Postgres and Temporal bundled, or your own |
+| **Where state lives** | `~/.stigmer`, or one Docker volume                                                 | Docker volumes and your `.env`                                                                                                                                 | PersistentVolumeClaims and your Secret                                  |
+| **Sign-in**           | None: only you can reach the port                                                  | Off until you turn it on, then your OIDC provider and API keys                                                                                                 | Off until you turn it on, then your OIDC provider and API keys          |
+| **Best for**          | Building Agents, trying Stigmer, and anyone who never deploys                      | A team running Stigmer for real: a product adding an assistant, an internal-tools team keeping data in its own network, an agency handing a server to a client | Teams that already run a cluster                                        |
+
+## How to choose
+
+**You are building an Agent, or trying Stigmer for the first time.** Run it on
+your laptop. With Node.js installed, `stigmer up` starts the whole stack as a
+background daemon and prints the console's address; the local quickstart takes
+you from install to a first Agent. Without Node.js, the
+[all-in-one image](./all-in-one) does the same from one `docker run`. It is for
+evaluation only, and says so every time it starts.
+
+<Card href="/docs/getting-started/local" title="Local quickstart">
+  Install the CLI, start the local stack, and run your first Agent from the
+  terminal in a few minutes.
+</Card>
+
+**Your team will run Stigmer for real, on one machine.** Use the Docker Compose
+stack: Postgres, a real Temporal server, the server with the console, and one
+runner, with your keys in a `.env` file and a TLS proxy in front. This is the
+production path for a product team adding an assistant, an internal-tools team
+that keeps its data inside its own network, or an agency handing a server to a
+client.
+
+<Card
+  href="/docs/guides/self-hosting/docker-compose"
+  title="Self-host with Docker Compose"
+>
+  Run the complete stack on a machine you control, connect the CLI, and run your
+  first Agent on it.
+</Card>
+
+**You already run Kubernetes.** The Helm chart installs the same four parts on
+your cluster, with Postgres and Temporal bundled for one team or pointed at the
+ones you already operate.
+
+<Card
+  href="/docs/guides/self-hosting/kubernetes"
+  title="Self-host on Kubernetes with Helm"
+>
+  Create the Secrets, install the chart with one values file, reach the console,
+  and run your first Agent on the cluster.
+</Card>
+
+## What every shape shares
+
+- **A fresh install trusts every caller who can reach it.** On a laptop that is
+  the point: only you can reach the port. On a server or a cluster, keep the
+  stack on a private network until you
+  [turn authentication on](./authentication) with your own OIDC provider and API
+  keys.
+- **The runner is one trust domain.** MCP Servers that run as a local process
+  (stdio) start inside the runner. On your laptop that is a process on your
+  machine. In a container, they can reach that container's filesystem and
+  network, not your host's.
+- **One Organization, one team.** Self-hosting is built for a single
+  Organization. Everyone who signs in joins it.
+- **Your provider keys, your bill.** The runner calls your LLM provider with the
+  key you give it. There is no Stigmer billing when you self-host.
+- **Your backups.** State lives on disks you own.
+  [Back up and upgrade your stack](./operations) says what a complete backup is
+  for each shape and how to move to a new version.
+
+## Next step
+
+Every shape starts out trusting whoever can reach it, and every shape gets you
+to the same place: a first Organization, a first Agent, and a run you can watch
+in the console. Pick your shape and get that first run working. Then come back
+and [turn authentication on](./authentication) before anyone but you can reach
+the server.

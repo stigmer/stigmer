@@ -111,10 +111,12 @@ Stigmer treats Agents as **declarative resources**. You described what the Agent
 should do in a YAML file, applied it to the server, and ran it. The same pattern
 works for Skills, MCP Servers, and every other Stigmer resource.
 
-Everything on your machine is driven from the terminal and the SDKs; for a
-visual console, the cloud experience at
-[`app.stigmer.ai`](https://app.stigmer.ai) offers the same resource model as a
-managed service.
+The server also serves the web console. `stigmer up` printed its address,
+[`http://localhost:7234`](http://localhost:7234), the same origin as the API:
+everything you just did from the terminal, the console does from a browser. When
+you want a stack a team can rely on, the
+[self-hosting guides](/docs/guides/self-hosting/overview) lay out the three
+shapes Stigmer runs in.
 
 Right now your Agent gives generic answers. It doesn't know anything specific to
 your business. The next tutorial fixes that.

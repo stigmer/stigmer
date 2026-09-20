@@ -268,12 +268,24 @@ describe("file-mode apply — channel app (#353)", () => {
   });
 });
 
-describe("file-mode apply — project special case", () => {
-  it("refuses a Project manifest with a pointer to the stigmer.yaml flow", () => {
+describe("file-mode apply — kinds the registry does not know", () => {
+  it("refuses a retired kind with what happened and what to run instead", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(dir, "project.yaml", ["kind: Project", "metadata:", "  name: Demo", "  slug: demo", ""].join("\n"));
-      expect(() => resolveApplyItems(dir)).toThrow(/stigmer\.yaml/);
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'Project' in .*project\.yaml is no longer a Stigmer resource.*stigmer push plugin <dir>/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a kind that never existed with the plain unknown-kind sentence", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "thing.yaml", ["kind: Widget", "metadata:", "  name: Demo", ""].join("\n"));
+      expect(() => resolveApplyItems(dir)).toThrow(/^unknown resource kind 'Widget' in .*thing\.yaml$/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

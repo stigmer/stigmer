@@ -6,7 +6,7 @@
  * #439 newly-searchable-kind arm), plus the scope-filter matrix
  * (org strict / crossOrgPublic / excludePublic) and RebuildIndex —
  * including the DD-D proof: rebuilding over an ADOPTED Go-created
- * database re-indexes its project rows. The escaping and
+ * database re-indexes the rows it already holds. The escaping and
  * score-normalization tables moved with their code into the sqlite
  * driver (DD-009 seam redraw): see store/sqlite/__tests__/fts5.test.ts.
  * These tests still run the REAL driver through tempStore — the
@@ -18,9 +18,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
@@ -426,33 +426,33 @@ describe("rebuildIndex", () => {
     expect(after.results[0]?.id).toBe("ses-1");
   });
 
-  it("re-indexes project rows on an ADOPTED Go-created database (DD-D)", async () => {
+  it("re-indexes existing rows on an ADOPTED Go-created database (DD-D)", async () => {
     // The committed Go-v6 fixture, opened through the driver (migrates
-    // v6→v7 — real adoption), then given a project row the way a Go
+    // v6→current — real adoption), then given a skill row the way a Go
     // server would have written one: raw resource bytes.
     const fixture = materializeGoFixture();
     const adopted = SqliteStore.open(fixture.dbPath);
     try {
-      const project = create(ProjectSchema, {
+      const skill = create(SkillSchema, {
         metadata: {
-          id: "prj_1",
+          id: "skl_1",
           name: "billing",
           slug: "billing",
           org: "acme",
         },
-        spec: { description: "the billing project" },
+        spec: { description: "the billing skill" },
         status: {
           audit: { specAudit: { createdAt: { seconds: 1_700_000_000n } } },
         },
       });
       await adopted.saveResource(
-        ApiResourceKind.project,
-        "prj_1",
-        ProjectSchema,
-        project,
+        ApiResourceKind.skill,
+        "skl_1",
+        SkillSchema,
+        skill,
       );
-      // Boot state: the TS server wipes and rebuilds — a 12-kind registry
-      // would erase this row from search forever.
+      // Boot state: the TS server wipes and rebuilds — a registry without
+      // the kind would erase this row from search forever.
       const adoptedQueryStore = new SqliteSearchQueryStore(
         adopted,
         registry,
@@ -461,21 +461,21 @@ describe("rebuildIndex", () => {
       await adoptedQueryStore.rebuildIndex();
 
       const result = await adoptedQueryStore.search(
-        criteria({ kinds: [ApiResourceKind.project], org: "acme" }),
+        criteria({ kinds: [ApiResourceKind.skill], org: "acme" }),
       );
       expect(result.totalCount).toBe(1);
-      expect(result.results[0]?.id).toBe("prj_1");
-      expect(result.results[0]?.description).toBe("the billing project");
+      expect(result.results[0]?.id).toBe("skl_1");
+      expect(result.results[0]?.description).toBe("the billing skill");
 
       // toBinary sanity: the row loaded back is byte-equal to what a Go
       // server holds (protobuf wire format is shared).
       const raw = await adopted.getResource(
-        ApiResourceKind.project,
-        "prj_1",
-        ProjectSchema,
+        ApiResourceKind.skill,
+        "skl_1",
+        SkillSchema,
       );
-      expect(toBinary(ProjectSchema, raw)).toEqual(
-        toBinary(ProjectSchema, project),
+      expect(toBinary(SkillSchema, raw)).toEqual(
+        toBinary(SkillSchema, skill),
       );
     } finally {
       await adopted.close();

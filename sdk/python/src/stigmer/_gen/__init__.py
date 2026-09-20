@@ -24,7 +24,6 @@ from ._organization import OrganizationClient, OrganizationInput, OrganizationPr
 from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
-from ._project import ProjectClient, ProjectInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
@@ -136,8 +135,6 @@ __all__ = [
     "PluginClient",
     "PluginInput",
     "PluginAuthorInput",
-    "ProjectClient",
-    "ProjectInput",
     "ScheduleClient",
     "ScheduleInput",
     "AgentInvocationInput",

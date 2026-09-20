@@ -72,7 +72,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
 
   await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
 
-  await bootstrapLocalBackend(home);
+  await bootstrapLocalBackend();
 
   saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, daemonPid, options));
 }
@@ -83,8 +83,8 @@ export interface UpForegroundDeps {
   runDaemon?: (deps: InternalDaemonDeps) => Promise<number>;
   /** Resolves when the stack should shut down (default: the first SIGTERM/SIGINT). */
   waitForShutdown?: () => Promise<void>;
-  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`: prepare the defaults, retire an older release's seedpack, ensure the org, install). */
-  bootstrap?: (home: string) => Promise<void>;
+  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`: prepare the defaults, ensure the org, install). */
+  bootstrap?: () => Promise<void>;
   /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
   mirror?: OutputMirror;
   /** Invoked once the stack is serving and seeded — the moment a detached `up` would have returned. */
@@ -118,7 +118,7 @@ export async function upForeground(
     host: new NodeProcessHost({ mirror: deps.mirror ?? mirrorToStdout }),
     waitForShutdown: deps.waitForShutdown ?? waitForShutdownSignal,
     onStarted: async () => {
-      await bootstrap(home);
+      await bootstrap();
       saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, process.pid, options));
       await deps.onReady?.();
     },

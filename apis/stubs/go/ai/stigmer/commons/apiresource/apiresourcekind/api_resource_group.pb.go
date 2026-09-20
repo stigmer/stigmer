@@ -31,7 +31,7 @@ const (
 	ApiResourceGroup_agentic ApiResourceGroup = 1
 	// Identity and Access Management - IAM policies, identity accounts, and credentials
 	ApiResourceGroup_iam ApiResourceGroup = 2
-	// Tenancy - Resource hierarchy: platform, organizations, and projects
+	// Tenancy - Resource hierarchy: platform and organizations
 	ApiResourceGroup_tenancy ApiResourceGroup = 3
 	// Billing - What is sold: plans, the subscriptions and licenses that
 	// grant them. The entitlement vocabulary these kinds carry lives under

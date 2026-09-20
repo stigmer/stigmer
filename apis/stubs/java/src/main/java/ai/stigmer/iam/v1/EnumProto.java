@@ -36,39 +36,39 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\034ai/stigmer/iam/v1/enum.proto\022\021ai.stigm" +
-      "er.iam.v1*\226\010\n\rIamPermission\022\017\n\013unspecifi" +
+      "er.iam.v1*\230\010\n\rIamPermission\022\017\n\013unspecifi" +
       "ed\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_" +
       "delete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_vi" +
       "ew_access\020\005\022\024\n\020can_create_agent\020\006\022\027\n\023can" +
       "_create_workflow\020\007\022\026\n\022can_create_session" +
-      "\020\010\022\024\n\020can_create_skill\020\t\022\026\n\022can_create_p" +
-      "roject\020\n\022\022\n\016can_create_idp\020\013\022\032\n\026can_crea" +
-      "te_environment\020\014\022\037\n\033can_create_identity_" +
-      "account\020\025\022\030\n\024can_create_oauth_app\020\027\022\036\n\032c" +
-      "an_create_platform_client\020\030\022\033\n\027can_creat" +
-      "e_execution_in\020\r\022\027\n\023can_create_instance\020" +
-      "\016\022\017\n\013can_execute\020\017\022\024\n\020can_read_secrets\020\020" +
-      "\022\025\n\021can_bootstrap_iam\020\021\022 \n\034can_manage_id" +
-      "entity_accounts\020\022\022\030\n\024login_to_back_offic" +
-      "e\020\024\022\017\n\013can_connect\020\026\022\025\n\021can_create_runne" +
-      "r\020\031\022\032\n\022can_delete_session\020\032\032\002\010\001\022\024\n\020can_v" +
-      "iew_billing\020\033\022\026\n\022can_manage_billing\020\034\022\033\n" +
-      "\027can_execute_billing_ops\020\035\022\032\n\026can_create" +
-      "_agent_share\020\036\022\032\n\026can_create_channel_app" +
-      "\020\037\022\034\n\030can_manage_model_pricing\020 \022\036\n\032can_" +
-      "manage_cursor_accounts\020#\022\023\n\017can_particip" +
-      "ate\020$\022\035\n\031can_write_reserved_labels\020%\022\036\n\032" +
-      "can_view_provider_standing\020&\022\035\n\031can_set_" +
-      "public_visibility\020\'\022\025\n\021can_create_plugin" +
-      "\020(\022\024\n\020can_manage_plans\020)\022\025\n\021can_issue_li" +
-      "cense\020*\"\004\010!\020!\"\004\010\"\020\"*\017can_use_records*\024ca" +
-      "n_create_datastore*b\n\007IamRole\022\030\n\024iam_rol" +
-      "e_unspecified\020\000\022\t\n\005owner\020\001\022\t\n\005admin\020\002\022\n\n" +
-      "\006member\020\003\022\n\n\006viewer\020\004\022\017\n\013participant\020\005Br" +
-      "B\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312" +
-      "\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\" +
-      "GPBMetadata\352\002\024Ai::Stigmer::Iam::V1b\006prot" +
-      "o3"
+      "\020\010\022\024\n\020can_create_skill\020\t\022\022\n\016can_create_i" +
+      "dp\020\013\022\032\n\026can_create_environment\020\014\022\037\n\033can_" +
+      "create_identity_account\020\025\022\030\n\024can_create_" +
+      "oauth_app\020\027\022\036\n\032can_create_platform_clien" +
+      "t\020\030\022\033\n\027can_create_execution_in\020\r\022\027\n\023can_" +
+      "create_instance\020\016\022\017\n\013can_execute\020\017\022\024\n\020ca" +
+      "n_read_secrets\020\020\022\025\n\021can_bootstrap_iam\020\021\022" +
+      " \n\034can_manage_identity_accounts\020\022\022\030\n\024log" +
+      "in_to_back_office\020\024\022\017\n\013can_connect\020\026\022\025\n\021" +
+      "can_create_runner\020\031\022\032\n\022can_delete_sessio" +
+      "n\020\032\032\002\010\001\022\024\n\020can_view_billing\020\033\022\026\n\022can_man" +
+      "age_billing\020\034\022\033\n\027can_execute_billing_ops" +
+      "\020\035\022\032\n\026can_create_agent_share\020\036\022\032\n\026can_cr" +
+      "eate_channel_app\020\037\022\034\n\030can_manage_model_p" +
+      "ricing\020 \022\036\n\032can_manage_cursor_accounts\020#" +
+      "\022\023\n\017can_participate\020$\022\035\n\031can_write_reser" +
+      "ved_labels\020%\022\036\n\032can_view_provider_standi" +
+      "ng\020&\022\035\n\031can_set_public_visibility\020\'\022\025\n\021c" +
+      "an_create_plugin\020(\022\024\n\020can_manage_plans\020)" +
+      "\022\025\n\021can_issue_license\020*\"\004\010!\020!\"\004\010\"\020\"\"\004\010\n\020" +
+      "\n*\017can_use_records*\024can_create_datastore" +
+      "*\022can_create_project*b\n\007IamRole\022\030\n\024iam_r" +
+      "ole_unspecified\020\000\022\t\n\005owner\020\001\022\t\n\005admin\020\002\022" +
+      "\n\n\006member\020\003\022\n\n\006viewer\020\004\022\017\n\013participant\020\005" +
+      "BrB\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V" +
+      "1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V" +
+      "1\\GPBMetadata\352\002\024Ai::Stigmer::Iam::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

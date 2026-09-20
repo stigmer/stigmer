@@ -56,7 +56,6 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `identityProvider`   | IdentityProvider   |
 | `mcpServer`          | McpServer          |
 | `organization`       | Organization       |
-| `project`            | Project            |
 | `session`            | Session            |
 | `skill`              | Skill              |
 | `workflow`           | Workflow           |

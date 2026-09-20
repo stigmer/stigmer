@@ -7,14 +7,19 @@
  *   - a compose value written `${X:?…}` (a required input) is a secretKeyRef
  *     with key X in the chart;
  *   - a compose value written `${X:-}` (an optional input) may be absent in a
- *     profile that names no Secret for it, or a secretKeyRef;
+ *     profile that names no Secret for it, or a secretKeyRef, or a value;
+ *   - a compose value written `${X:-default}` (an optional input with a
+ *     default) equals the chart's after the address table, the default
+ *     standing in for the unset input, so a `.env` line and a chart value
+ *     are two spellings of one setting;
  *   - a plain compose value equals the chart's after the address table for
  *     the profile (one host became one pod; the artifact path moved out of
  *     `/data`, F11; a bring-your-own profile names its own addresses; the
  *     public URLs follow the Ingress hosts when there are any);
  *   - the chart may add exactly the names listed in CHART_ONLY (the
  *     `$(POSTGRES_PASSWORD)` expansion source) and, per profile, the names the
- *     profile's own values introduce (OIDC, the runner token).
+ *     profile's own values introduce beyond compose (none today: compose
+ *     carries OIDC and the runner token as optional inputs).
  *
  * A variable added to compose without the chart, or the reverse, is red here.
  * The compose file stays the canonical statement; this test makes it binding.
@@ -36,15 +41,37 @@ import {
   renderProfile,
 } from "./helpers.mjs";
 
+const REQUIRED = /^\$\{([A-Z_]+):\?/;
+const OPTIONAL = /^\$\{([A-Z_]+):-\}$/;
+// Checked after OPTIONAL, so the empty default never reaches it.
+const DEFAULTED = /^\$\{([A-Z_]+):-(.+)\}$/;
+const EMBEDDED = /\$\{([A-Z_]+):\?[^}]*\}/g;
+
+/**
+ * The default of a `${X:-default}` compose value, read from the file rather
+ * than restated here: where the address table says "compose's default", it
+ * must mean the literal compose carries, or two copies of one URL would
+ * agree by luck, the drift this test exists to catch.
+ */
+function composeDefault(composeValue) {
+  const defaulted = String(composeValue).match(DEFAULTED);
+  assert.ok(
+    defaulted,
+    `expected a \${X:-default} compose value, got ${composeValue}`,
+  );
+  return defaulted[2];
+}
+
 /**
  * Compose addresses and paths, and what they become for a profile: the
  * bundled dependencies take the release's Service names; a bring-your-own
  * profile takes the addresses its values name; the two public URLs follow
- * the Ingress hosts when there are any, and stay compose's localhost
- * defaults (the port-forward posture) when there are none.
+ * the Ingress hosts when there are any, and stay compose's own defaults
+ * (the port-forward posture) when there are none.
  */
 function addressTable(profile) {
   const values = parse(readFileSync(profileValuesPath(profile), "utf8")) ?? {};
+  const compose = readCompose();
   const dbHost = values.externalDatabase?.host ?? `${RELEASE}-postgres`;
   const dbPort = values.externalDatabase?.port ?? 5432;
   const temporal =
@@ -54,12 +81,15 @@ function addressTable(profile) {
     values.server?.publicUrl ??
     (values.ingress?.enabled
       ? `${scheme(values.ingress.api)}://${values.ingress.api.host}`
-      : "http://localhost:7234");
+      : composeDefault(
+          compose.services["stigmer-server"].environment
+            .SKILL_TRANSFER_BASE_URL,
+        ));
   const artifactPublicUrl =
     values.server?.artifactPublicUrl ??
     (values.ingress?.enabled
       ? `${scheme(values.ingress.artifacts)}://${values.ingress.artifacts.host}`
-      : "http://localhost:7235");
+      : composeDefault(compose["x-artifact-serve-url"]));
   return {
     strings: new Map([
       ["postgres:5432", `${dbHost}:${dbPort}`],
@@ -81,23 +111,16 @@ const CHART_ONLY = {
   runner: new Set(),
 };
 
-/** Names a profile's own values introduce, beyond compose. */
+/**
+ * Names a profile's own values introduce, beyond compose. Empty for every
+ * profile today; the shape stays so the next chart-only value has a place
+ * to be declared and explained rather than a rule to be bent.
+ */
 const PROFILE_EXTRAS = {
   bundled: { server: new Set(), runner: new Set() },
   byo: { server: new Set(), runner: new Set() },
-  "ingress-oidc": {
-    server: new Set([
-      "STIGMER_OIDC_ISSUER",
-      "STIGMER_OIDC_AUDIENCE",
-      "STIGMER_OIDC_CONSOLE_CLIENT_ID",
-    ]),
-    runner: new Set(["STIGMER_TOKEN"]),
-  },
+  "ingress-oidc": { server: new Set(), runner: new Set() },
 };
-
-const REQUIRED = /^\$\{([A-Z_]+):\?/;
-const OPTIONAL = /^\$\{([A-Z_]+):-\}$/;
-const EMBEDDED = /\$\{([A-Z_]+):\?[^}]*\}/g;
 
 function translate(table, name, composeValue) {
   if (table.byName.has(name)) {
@@ -154,10 +177,12 @@ function assertParity(profile, composeService, chartContainer, role) {
       }
       continue;
     }
+    const defaulted = raw.match(DEFAULTED);
+    const composeLiteral = defaulted ? defaulted[2] : raw;
     assert.ok(entry, `${role}: compose sets ${name}; the chart does not`);
     assert.equal(
       entry.value,
-      translate(table, name, raw),
+      translate(table, name, composeLiteral),
       `${role}: ${name} differs from docker-compose.yml after the address table`,
     );
   }

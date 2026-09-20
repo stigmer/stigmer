@@ -8,13 +8,12 @@ Publishing a skill means pushing a packaged artifact to the platform so agents c
 
 The artifact ZIP must carry `SKILL.md` at the **archive root** — zip the skill folder's *contents*, not the folder itself. Both editions reject a nested `SKILL.md` (e.g. `my-skill/SKILL.md`) at push time, because the runner extracts entry paths verbatim when materializing the skill: a nested layout would place `references/` and `scripts/` files where the skill's own instructions can never find them. The CLI and SDK packaging paths below produce the correct layout automatically; this only matters when building artifact bytes yourself and calling `push` directly.
 
-There are three paths to publishing a skill:
+There are two paths to publishing a skill:
 
 | Path | Use When |
 |---|---|
 | **CLI local push** | Working directly on a skill directory on your machine |
 | **CLI remote push** | Sourcing a skill from a git repository (no local clone required) |
-| **SDK handover** | Declaring skills as code in a Stigmer project; the SDK writes a `SkillSynth` protobuf that the CLI processes |
 
 ## CLI Local Push
 
@@ -124,93 +123,6 @@ stigmer push skill --git-url https://github.com/acme/skills.git --subdir skills/
 # SSH URL (uses locally configured git credentials)
 stigmer push skill --git-url git@github.com:acme-corp/skills.git --git-ref main
 ```
-
-## SDK Handover (Go SDK)
-
-When a Stigmer project is authored in Go, skill publishing is declared in code using the SDK. The SDK writes a `SkillSynth` protobuf file that the CLI reads and processes.
-
-### Flow
-
-```
-SDK code  ──►  skill.FromDir() or skill.FromGit()  ──►  Writes .stigmer/skill-N.pb
-                                                              │
-CLI reads  ──────────────────────────────────────────────────┘
-  .stigmer/skill-N.pb
-  │
-  └──►  Follows source (local or git)  ──►  Packages artifact  ──►  PushSkillRequest
-```
-
-The SDK does not push the skill directly. It declares the skill's source and registers it with the Stigmer context. The CLI reads the registered skills when the project is built and handles the actual push.
-
-### Declaring a Local Directory Skill
-
-```go
-import (
-    "github.com/stigmer/stigmer/sdk/go/v3/skill"
-    stigmer "github.com/stigmer/stigmer/sdk/go/v3"
-)
-
-stigmer.Run(func(ctx *stigmer.Context) error {
-    // From a path relative to the project root
-    calc, err := skill.FromDir(ctx, "./skills/calculator")
-    if err != nil {
-        return err
-    }
-    _ = calc  // calc is registered with ctx automatically
-
-    // With an explicit version tag
-    webSearch, err := skill.FromDir(ctx, "./skills/web-search",
-        skill.WithTag("stable"))
-    if err != nil {
-        return err
-    }
-    _ = webSearch
-
-    return nil
-})
-```
-
-### Declaring a Remote Git Skill
-
-```go
-stigmer.Run(func(ctx *stigmer.Context) error {
-    // From a git repository root
-    calc, err := skill.FromGit(ctx, "https://github.com/acme-corp/skills.git",
-        skill.WithRef("v1.0.0"),
-        skill.WithSubdir("skills/calculator"),
-        skill.WithGitTag("stable"))
-    if err != nil {
-        return err
-    }
-    _ = calc
-
-    // From default branch (no ref specified)
-    shared, err := skill.FromGit(ctx, "https://github.com/stigmer/platform-skills.git",
-        skill.WithSubdir("formatting"))
-    if err != nil {
-        return err
-    }
-    _ = shared
-
-    return nil
-})
-```
-
-### SDK Options Reference
-
-**`skill.FromDir(ctx, path, opts...)`** options:
-
-| Option | Description |
-|---|---|
-| `skill.WithTag(tag string)` | Version tag to assign. Defaults to `latest` if not specified. |
-
-**`skill.FromGit(ctx, url, opts...)`** options:
-
-| Option | Description |
-|---|---|
-| `skill.WithRef(ref string)` | Git tag, branch, or commit SHA. Defaults to the repository's default branch. |
-| `skill.WithSubdir(subdir string)` | Subdirectory within the repository containing `SKILL.md`. |
-| `skill.WithGitTag(tag string)` | Version tag to assign to the resulting skill version. |
 
 ## Backend Processing
 
