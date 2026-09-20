@@ -1,18 +1,17 @@
-// The benchmark's cell matrix: the scenarios the docs comparison publishes,
+// The benchmark's cell matrix: the scenarios every run measures,
 // the models the parity cells are pinned to, the judge, and the pure planner
 // that decides — before anything boots — which cells the environment and the
 // flags allow and which are refused by name.
 // Domain: conformance benchmark (what is measured).
 //
-// The six published scenarios and their prompts are the July cost benchmark's,
-// verbatim, so the page's categories keep their meaning:
+// The six first-turn scenarios and their prompts are the July cost benchmark's,
+// verbatim, so a category keeps its meaning from one run to the next:
 //   git show 4c968690b^:test/integration/cost_benchmark_test.go (L269, L295-325)
 // The `default` cells let each harness pick its model; the `parity` twins pin
 // both to the same served model so the difference is harness overhead. The
 // turn-2 scenario is that suite's multi-turn cell (L103-135), three turns in
 // one session with the SECOND turn sampled: the warm-session experience no
-// first-turn cell can show. It is report-only; the page publishes nothing of
-// it until its column is decided.
+// first-turn cell can show.
 //
 // The bare agent under measurement is the one the request-shape goldens
 // photograph (support/agents.ts BARE_AGENT_INSTRUCTIONS), by import, so a
@@ -20,8 +19,8 @@
 //
 // Refusals are by name and never silent: a cell the environment cannot run
 // (no key for its provider, no key for the judge) or the flags exclude is a
-// `RefusedCell` in the report, so the site script has one question to ask
-// ("is the side present") and the reader one place to see why not.
+// `RefusedCell` in the report, so a reader has one question to ask ("is the
+// side present") and one place to see why not.
 import type { BenchmarkHarness, ComparisonMode, RefusedCell, SessionShape } from "./report";
 
 /** The registry ids the parity cells pin, per harness: one served model, two registry rows. */

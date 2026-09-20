@@ -1,16 +1,16 @@
 // The harness benchmark report: the one contract between the producer
 // (`scripts/benchmark-harnesses.ts`, over `src/benchmark/run.ts`) and its
-// consumer (`site/scripts/generate-harness-cost-comparison.ts`, which curates
-// a report into the docs fixture). The site script imports these types by
-// relative path, so the contract has one home and a hunk here is the review
-// of what the page will read differently.
+// readers: the CLI's own per-cell table, and the maintainers who keep a
+// run's report with the record of the work that prompted it. The benchmark
+// is an internal instrument; its numbers are never published on the docs
+// site (`docs/AGENTS.md` carries the rule and its reason), so a hunk here
+// is the review of what the maintainers will read differently.
 // Domain: conformance benchmark (the live instrument's output).
 //
-// This module is a LEAF by rule: it compiles under two tsconfigs (this
-// workspace's, with node types and noUncheckedIndexedAccess; the site's,
-// ES2017 + dom, isolatedModules, no node types), so it imports no `node:`
-// builtin, no proto stub and no schema library, carries `number` never
-// `bigint`, and hand-writes its reader over `unknown`.
+// This module is a LEAF by rule: a report is JSON read by tools outside this
+// workspace under tsconfigs this workspace does not control, so it imports
+// no `node:` builtin, no proto stub and no schema library, carries `number`
+// never `bigint`, and hand-writes its reader over `unknown`.
 //
 // What the shape embodies, and why:
 // - Every sample is kept whole (`samples`), failed attempts included with
@@ -32,8 +32,9 @@
 //   `warmup`; `cold_first_call` is present on the one cell that paid the
 //   cache write and `null` elsewhere.
 // - Two SHAs: the repository squash-merges, so a branch HEAD alone resolves
-//   on nothing after the merge. `main_sha` (the merge base with main) is what
-//   the page shows; `head_sha` and the PR locate the instrument's exact bytes.
+//   on nothing after the merge. `main_sha` (the merge base with main) is the
+//   SHA a readout cites; `head_sha` and the PR locate the instrument's exact
+//   bytes.
 // - Every latency axis names its clock in the type's comment. The client
 //   axes start at the create call; the Temporal axes are on Temporal's clock;
 //   the runner axes are on the runner's own origin (the activity's start).
@@ -114,7 +115,7 @@ export interface TokenCounts {
   total: number;
 }
 
-/** What a median is taken over: the axes plus the cost and token figures the page reads. */
+/** What a median is taken over: the axes plus the cost and token figures a readout reads. */
 export interface BenchmarkMeasures extends BenchmarkAxes {
   estimated_cost_micros: number;
   tokens: TokenCounts;
@@ -209,7 +210,7 @@ export interface BenchmarkReport {
   git: {
     /** The measuring checkout's HEAD, `-dirty` when the tree had changes. */
     head_sha: string;
-    /** The merge base with main: the SHA the page shows. */
+    /** The merge base with main: the SHA a readout cites. */
     main_sha: string;
     pr?: number;
   };

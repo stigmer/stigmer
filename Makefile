@@ -447,7 +447,7 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 # child is ever spawned. Flags pass through BENCHMARK_ARGS
 # (e.g. BENCHMARK_ARGS="--reps 3 --only native").
 .PHONY: benchmark-harnesses
-benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on real providers and write the docs comparison report (needs the `temporal` CLI, ANTHROPIC_API_KEY, CURSOR_API_KEY; spends money)
+benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on real providers and write the internal benchmark report (needs the `temporal` CLI, ANTHROPIC_API_KEY, CURSOR_API_KEY; spends money)
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the benchmark stack"; \
 		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \

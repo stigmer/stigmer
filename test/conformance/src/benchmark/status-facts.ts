@@ -10,7 +10,7 @@
 // cache-inclusive on both harnesses; the report's ratio divides by it.
 // Token counts arrive as int64 (`bigint` in the stubs) and become `number`
 // here, the one place that conversion happens, because the report contract
-// is a leaf shared with the site and carries no `bigint`.
+// is a leaf read outside this workspace and carries no `bigint`.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

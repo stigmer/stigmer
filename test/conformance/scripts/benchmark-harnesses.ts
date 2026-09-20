@@ -1,5 +1,5 @@
 // Measures the native and Cursor harnesses against REAL providers and writes
-// the report the docs comparison page is generated from
+// the report the harness work is judged on
 // (`make benchmark-harnesses`; `npm run benchmark:harnesses -- <flags>`).
 // Domain: conformance benchmark (the live instrument's entrypoint).
 //
@@ -9,7 +9,8 @@
 // 108 executions — plus any quality tasks. It is in no vitest config and
 // `npm test` cannot reach it. Its numbers are a new baseline for the machine,
 // the model versions and the runner they were taken on, never a comparison
-// with an earlier page.
+// with an earlier run. They are internal: the benchmark's numbers never
+// appear on the docs site (`docs/AGENTS.md` carries the rule).
 //
 // Needs: the `temporal` CLI on PATH (the dev server backs the stack);
 // ANTHROPIC_API_KEY for the native cells and the judge; CURSOR_API_KEY for

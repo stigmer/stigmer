@@ -159,7 +159,7 @@ their failure message, so a reproduced failure says what the runner published
 
 `make benchmark-harnesses` (or `npm run benchmark:harnesses -w @stigmer/conformance -- <flags>`)
 drives the native and Cursor harnesses against **real providers** and writes
-the report the docs comparison page is generated from. It boots the same
+the report the harness work is judged on. It boots the same
 Temporal + server + runner stack the execution suites use, but with the runner
 in **direct mode** (no mock proxy) reading `ANTHROPIC_API_KEY` and
 `CURSOR_API_KEY` from the environment; a missing key refuses the cells that
@@ -180,10 +180,10 @@ task, the `eval` judge's verdict off a graded `agent_call` workflow
 (`scripts/benchmark-harnesses/quality-tasks.yaml`; placeholder tasks run only
 under `--include-placeholders`). Every sample is kept whole, failed attempts
 included; the run's first call per harness and served model is the cold call.
-The report's contract is `src/benchmark/report.ts`, which the site's
-`generate-harness-cost-comparison` script imports; the refresh path is run the
-benchmark, copy the report to `site/src/data/harness-benchmark-report.json`,
-`yarn generate-harness-cost-comparison` in `site/`. The readers' wiring is
+The report's contract is `src/benchmark/report.ts`. The benchmark is an
+internal instrument: a run's report is kept by the maintainers with the record
+of the work it measured, and its numbers are never published on the docs site
+(`docs/AGENTS.md` carries the rule and its reason). The readers' wiring is
 proven hermetically by `benchmark-readers.harness.smoke.test.ts` on the
 execution lane, which asserts presence and shape and never a number.
 

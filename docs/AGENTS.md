@@ -48,6 +48,9 @@ The site that renders it lives in `site/`; the tours the pages embed live in
   closes on a gap the reader can feel, not a navigational "continue".
 - Generated pages under `sdk/` and `cli/commands/` are never hand-edited; fix
   the proto comment, the TSDoc or the generator and re-run `make codegen`.
+- The harness benchmark is internal: its numbers never reach a docs page as a
+  table, prose or a fixture. A page explains how the harnesses differ and never
+  quotes a measurement between them (the docs-writing skill says why).
 
 ## Skills
 
