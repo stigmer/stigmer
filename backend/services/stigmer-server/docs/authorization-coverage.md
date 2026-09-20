@@ -13,10 +13,10 @@ Verification notes: every registration map in `src/boot/compose.ts`'s routes clo
 
 ## Totals
 
-- Registered services: 31 (30 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06; Plugin command + query with the Plugin kind).
-- Registered RPC methods: 242.
-- Handler classes: 187 `chain-with-Authorize`, 55 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
-- Annotation classes: 145 `config`, 77 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
+- Registered services: 29 (28 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06; Plugin command + query with the Plugin kind; Project command + query removed with the Project kind).
+- Registered RPC methods: 236.
+- Handler classes: 181 `chain-with-Authorize`, 55 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
+- Annotation classes: 141 `config`, 76 `is_skip_authorization`, 2 `is_public`, 17 `none` (14 apply RPCs + 3 health methods).
 - What the classes mean under each open-source posture: on a trusted-local server (no authentication) the composed Authorizer is the permissive single-team default and no list scope is composed, so every class admits every caller. Under an authentication posture with no unit Authorizer (`STIGMER_OIDC_ISSUER` set; `src/authorization/posture.ts`) the server composes its BUILT-IN Authorizer and ListReadScope — the cloud's OpenFGA model evaluated over tuples derived from the row — so every `config` lane enforces the model and every list lane marked "a composed ListReadScope narrows" below narrows to the caller's rows. `is_skip_authorization` lanes reach neither Authorizer in either posture: what guards each is the mid-chain step or driver its Handler column names, and a skip lane whose column names nothing is open to every authenticated caller in every edition.
 - Config-annotated methods served by direct handlers: 30, dispositioned at the C2 Stage-4 gate (17 `authorizeDirect`, 9 on the composed channel runtime, 1 deliberate skip, 3 recorded-gap stubs) — the full table before the notes section.
 
@@ -380,37 +380,26 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ArtifactQueryController.getDownloadUrl | config: can_view on artifact (field value), error_msg yes | direct: time-limited URL mint against the blob store; authorizeDirect AFTER the load (#224) |
 | ArtifactQueryController.getContent | config: can_view on artifact (field artifact_id), error_msg yes | direct: truncated bytes in the response (512KB default cap); authorizeDirect AFTER the load (#224) |
 
-## 23. Project (`src/domain/project/controller.ts`)
-
-| Method | Annotation | Handler |
-|---|---|---|
-| ProjectCommandController.apply | none | chain-with-Authorize |
-| ProjectCommandController.create | config: can_create_project on organization (field metadata.org), error_msg yes | chain-with-Authorize |
-| ProjectCommandController.update | config: can_edit on project (field metadata.id), error_msg yes | chain-with-Authorize |
-| ProjectCommandController.delete | config: can_delete on project (field value), error_msg yes | chain-with-Authorize |
-| ProjectQueryController.get | config: can_view on project (field value), error_msg yes | chain-with-Authorize |
-| ProjectQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-
-## 24. Search (`src/query/search/controller.ts`)
+## 23. Search (`src/query/search/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | SearchService.search | is_skip_authorization | direct: CQRS read over the search query store (cross-aggregate; carries no api_resource_kind option; a composed ListReadScope feeds a per-effective-kind authorized-id allowlist into the engine query, crossOrgPublic bypassing FGA verbatim — 20260830.01) |
 
-## 25. Activity (`src/query/activity/controller.ts`)
+## 24. Activity (`src/query/activity/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | ActivityQueryController.listRecentActivity | is_skip_authorization | direct: CQRS recents read over listResources (the request's org merely narrows the result; a composed ListReadScope narrows both kinds to the caller's authorized ids — 20260830.01) |
 
-## 26. GitHub (`src/domain/github/controller.ts`)
+## 25. GitHub (`src/domain/github/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | GitHubService.getOAuthAuthorizeUrl | is_skip_authorization | direct: stateless OAuth broker — authorize-URL mint from config, nothing persisted |
 | GitHubService.exchangeOAuthCode | is_skip_authorization | direct: stateless OAuth broker — code-for-token exchange, token returned to the caller, never stored |
 
-## 27. Platform (`src/domain/platform/controller.ts`)
+## 26. Platform (`src/domain/platform/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|

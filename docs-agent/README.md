@@ -26,7 +26,6 @@ the agent's knowledge cannot drift.
 | [`agents/stigmer-docs.yaml`](agents/stigmer-docs.yaml) | The Agent: instructions and the skill — web retrieval is a harness built-in, so no tool wiring |
 | [`skills/stigmer-docs/SKILL.md`](skills/stigmer-docs/SKILL.md) | The methodology + documentation map (no content snapshot) |
 | [`shares/stigmer-docs.yaml`](shares/stigmer-docs.yaml) | The public AgentShare that powers the hosted chat + docs-site embed |
-| [`stigmer.yaml`](stigmer.yaml) | Project manifest, pinned to the `stigmer` org |
 
 Three deliberate postures, chosen once and worth preserving:
 
@@ -52,9 +51,12 @@ identity that can write to the `stigmer` org (the platform operator). From
 this directory:
 
 ```bash
-# Push the skill and apply the agent + project (dry-run first to preview):
-stigmer apply --org stigmer --dry-run
-stigmer apply --org stigmer
+# The skill first: the agent references it by slug in the stigmer org.
+stigmer push skill skills/stigmer-docs --org stigmer
+
+# Then the agent (dry-run first to preview):
+stigmer apply --org stigmer -f agents/stigmer-docs.yaml --dry-run
+stigmer apply --org stigmer -f agents/stigmer-docs.yaml
 
 # The share is its own resource — applying the agent never touches it:
 stigmer apply --org stigmer -f shares/stigmer-docs.yaml

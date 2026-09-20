@@ -2,7 +2,7 @@
  * Spike SP-B (D2 spike register): `createRouterTransport` traverses the
  * FULL interceptor chain on in-process calls.
  *
- * Why this matters: Go serves internal calls (project reconcile deletes,
+ * Why this matters: Go serves internal calls (plugin member deletes,
  * cascades, schedule RunStarter creates) through the same *grpc.Server over
  * an in-memory bufconn precisely so validation parity holds — an internal
  * call is validated exactly like an external one. The TS equivalent is

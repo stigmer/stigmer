@@ -208,7 +208,6 @@ describe("onResourceCreated: the creator owns the organization", () => {
     ApiResourceKind.workflow,
     ApiResourceKind.session,
     ApiResourceKind.identity_account,
-    ApiResourceKind.project,
   ])(
     "writes nothing for kind %s even under DIRECT attribution — a per-resource owner row is the grant the scope keeps Enterprise",
     async (kind) => {

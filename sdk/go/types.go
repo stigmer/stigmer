@@ -27,7 +27,6 @@ type OrganizationClient = gen.OrganizationClient
 type PlanClient = gen.PlanClient
 type PlatformClientClient = gen.PlatformClientClient
 type PluginClient = gen.PluginClient
-type ProjectClient = gen.ProjectClient
 type ScheduleClient = gen.ScheduleClient
 type SessionClient = gen.SessionClient
 
@@ -100,7 +99,6 @@ type PlanTermsInput = gen.PlanTermsInput
 type PlatformClientInput = gen.PlatformClientInput
 type PluginInput = gen.PluginInput
 type PluginAuthorInput = gen.PluginAuthorInput
-type ProjectInput = gen.ProjectInput
 type ScheduleInput = gen.ScheduleInput
 type AgentInvocationInput = gen.AgentInvocationInput
 type SessionInput = gen.SessionInput

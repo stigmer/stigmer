@@ -70,7 +70,6 @@ Every resource type has a typed client accessible as a method on `StigmerClient`
 | `identityProviders()`    | IdentityProvider   |
 | `mcpServers()`           | McpServer          |
 | `organizations()`        | Organization       |
-| `projects()`             | Project            |
 | `sessions()`             | Session            |
 | `skills()`               | Skill              |
 | `workflows()`            | Workflow           |

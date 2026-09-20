@@ -10,7 +10,6 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { type Workflow, WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 import { decodeWorkflowTaskConfigs } from "./task-configs.js";
 
 // Exported for the verb/dispatch conformance suite (registry/registry.test.ts),
@@ -21,7 +20,6 @@ export const VALIDATE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.agent, AgentSchema],
   [ApiResourceKind.workflow, WorkflowSchema],
   [ApiResourceKind.mcp_server, McpServerSchema],
-  [ApiResourceKind.project, ProjectSchema],
 ]);
 
 export function schemaForValidate(kind: ApiResourceKind): DescMessage | undefined {

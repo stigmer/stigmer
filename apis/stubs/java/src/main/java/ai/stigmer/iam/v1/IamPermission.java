@@ -77,10 +77,6 @@ public enum IamPermission
    */
   can_create_skill(9),
   /**
-   * <code>can_create_project = 10;</code>
-   */
-  can_create_project(10),
-  /**
    * <code>can_create_idp = 11;</code>
    */
   can_create_idp(11),
@@ -407,10 +403,6 @@ public enum IamPermission
    */
   public static final int can_create_skill_VALUE = 9;
   /**
-   * <code>can_create_project = 10;</code>
-   */
-  public static final int can_create_project_VALUE = 10;
-  /**
    * <code>can_create_idp = 11;</code>
    */
   public static final int can_create_idp_VALUE = 11;
@@ -707,7 +699,6 @@ public enum IamPermission
       case 7: return can_create_workflow;
       case 8: return can_create_session;
       case 9: return can_create_skill;
-      case 10: return can_create_project;
       case 11: return can_create_idp;
       case 12: return can_create_environment;
       case 21: return can_create_identity_account;

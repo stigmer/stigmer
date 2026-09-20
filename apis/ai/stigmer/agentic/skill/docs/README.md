@@ -59,7 +59,7 @@ This documentation serves two distinct audiences:
 |---|---|
 | [skill-resource-guide.md](skill-resource-guide.md) | API schema reference — metadata, spec, status, state lifecycle, CLI commands |
 | [skill-md-format.md](skill-md-format.md) | `SKILL.md` authoring guide — frontmatter schema, body guidelines, package structure |
-| [publishing-skills.md](publishing-skills.md) | Push workflow — CLI local push, remote git push, SDK handover, git provenance, tags |
+| [publishing-skills.md](publishing-skills.md) | Push workflow — CLI local push, remote git push, git provenance, tags |
 | [versioning.md](versioning.md) | Versioning model — content hashes, mutable tags, version resolution, pinning strategy |
 | [examples.md](examples.md) | Complete examples from minimal skill to full-featured multi-file packages |
 | [validation-checklist.md](validation-checklist.md) | Pre-push checklist and common pitfalls |

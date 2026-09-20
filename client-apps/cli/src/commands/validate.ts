@@ -23,7 +23,7 @@ import {
   type OutputFlags,
   renderResult,
 } from "../output/index.js";
-import { defaultRegistry, Verb } from "../registry/index.js";
+import { defaultRegistry, unknownKindError, Verb } from "../registry/index.js";
 import { loadDocuments, resolveYamlFiles } from "../resources/documents.js";
 import { addResultFlags, resultFormat } from "./shared.js";
 
@@ -70,9 +70,7 @@ async function runValidate(options: ValidateFlags): Promise<CommandResult> {
     // Validate stays lenient (default) — strict parsing is reserved for apply.
     for (const { kind, document } of loadDocuments(file)) {
       const info = registry.getByYamlKind(kind);
-      if (info === undefined) {
-        throw new UsageError(`unknown resource kind '${kind}' in ${file}`);
-      }
+      if (info === undefined) throw unknownKindError(kind, file);
       if (!info.supportedVerbs.has(Verb.Validate)) {
         throw new UsageError(
           `${info.displayName} does not support validation (in ${file})`,

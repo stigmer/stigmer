@@ -302,11 +302,6 @@ export {
   type LicenseCustomerInput,
 } from "./gen/license.js";
 export {
-  ProjectClient,
-  toProjectUpdateInput,
-  type ProjectInput,
-} from "./gen/project.js";
-export {
   ScheduleClient,
   buildScheduleProto,
   toScheduleUpdateInput,

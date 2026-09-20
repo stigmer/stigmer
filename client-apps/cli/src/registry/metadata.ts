@@ -47,10 +47,6 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "McpServer", displayName: "MCP Server", idPrefix: "mcp" },
   ],
   [
-    ApiResourceKind.project,
-    { name: "Project", displayName: "Project", idPrefix: "prj" },
-  ],
-  [
     ApiResourceKind.api_key,
     { name: "ApiKey", displayName: "API Key", idPrefix: "key" },
   ],
@@ -122,7 +118,6 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.skill,
   ApiResourceKind.plugin,
   ApiResourceKind.mcp_server,
-  ApiResourceKind.project,
   ApiResourceKind.api_key,
   ApiResourceKind.identity_provider,
   ApiResourceKind.oauth_app,
@@ -135,3 +130,18 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.workflow_instance,
   ApiResourceKind.session,
 ];
+
+/**
+ * YAML kinds the platform once served and no longer does. A manifest that
+ * still carries one is an old file, not a typo, so the refusal it meets
+ * says what happened and what to do instead of "unknown kind"; the
+ * registry's `unknownKindError` reads this table before falling back to the
+ * generic sentence. The key is the YAML `kind` value as the retired proto
+ * declared it; the value is the sentence that follows the kind's name.
+ */
+export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
+  [
+    "Project",
+    "is no longer a Stigmer resource. A folder of resources that belong together is a plugin: run `stigmer push plugin <dir>` to install it as one, or apply each resource file with `stigmer apply -f <file>`.",
+  ],
+]);

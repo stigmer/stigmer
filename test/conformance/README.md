@@ -30,7 +30,7 @@ task. See the project's `design-decisions/001-cloud-convergence-strategy.md`.
 
 Covered against the `local` target:
 
-- **Project** and **Organization** — flat tenancy resources.
+- **Organization** — the flat tenancy resource.
 - **Workflow** — the first **versioned** domain (CRUD, apply create/update
   branching, the version-history surface `listVersions` / `getVersion` /
   `getByReference` resolution by hash and apply-time tag, and the `validateSpec`

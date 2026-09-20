@@ -346,7 +346,7 @@ export function encodeInProcessCaller(caller: CallerIdentity): string {
  *     while transport-trust arms (the reserved-label guard) still see
  *     the server-composed origin.
  *   - MINTED: no propagated identity — the daemon-origin default (the
- *     schedule clock, the project reconciler): the internal caller class
+ *     schedule clock): the internal caller class
  *     carrying the operator's identity fields, so audit stamps on
  *     daemon writes stay byte-identical to the pre-R5 posture. The
  *     Authorize step treats the internal class as the in-process

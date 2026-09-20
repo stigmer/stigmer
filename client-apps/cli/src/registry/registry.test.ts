@@ -241,13 +241,7 @@ describe("registry — verb/dispatch conformance", () => {
       label: "apply",
       verb: Verb.Apply,
       wired: new Set(APPLY_HANDLERS.keys()),
-      specialCases: new Map([
-        [
-          ApiResourceKind.project,
-          "the stigmer.yaml declarative/synthesis track (resources/apply/declarative.ts); " +
-            "file mode refuses with a pointer there (resolveHandlerForKind)",
-        ],
-      ]),
+      specialCases: new Map(),
     },
     {
       label: "get",

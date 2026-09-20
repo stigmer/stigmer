@@ -29,7 +29,6 @@ enum IamPermission {
   can_create_workflow = 7;
   can_create_session = 8;
   can_create_skill = 9;
-  can_create_project = 10;
   can_create_idp = 11;
   can_create_environment = 12;
   can_create_identity_account = 21;
@@ -99,6 +98,11 @@ enum IamPermission {
   // numbers are never reused for different permissions.
   reserved 33, 34;
   reserved "can_use_records", "can_create_datastore";
+  // Value 10 held can_create_project until the Project kind was removed
+  // platform-wide. Reserved so the number is never reused for a different
+  // permission.
+  reserved 10;
+  reserved "can_create_project";
 
   // Platform-level permission to manage Cursor accounts: the managed
   // Cursor teams (admin keys, member execution keys, org assignments)

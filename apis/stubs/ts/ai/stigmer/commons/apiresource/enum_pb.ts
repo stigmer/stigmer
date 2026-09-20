@@ -162,7 +162,7 @@ export enum ApiResourceVisibility {
    * This is the default for instances and personal resources.
    *
    * Org admins count as owners of blueprint kinds (agent, agent_share,
-   * skill, workflow, project, mcp_server), so a private blueprint stays
+   * skill, workflow, mcp_server), so a private blueprint stays
    * manageable — and visible — to its org's admins. Personal kinds
    * (instances, environments, sessions) stay creator-only.
    *

@@ -37,7 +37,7 @@ public enum ApiResourceGroup
   iam(2),
   /**
    * <pre>
-   * Tenancy - Resource hierarchy: platform, organizations, and projects
+   * Tenancy - Resource hierarchy: platform and organizations
    * </pre>
    *
    * <code>tenancy = 3 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>
@@ -90,7 +90,7 @@ public enum ApiResourceGroup
   public static final int iam_VALUE = 2;
   /**
    * <pre>
-   * Tenancy - Resource hierarchy: platform, organizations, and projects
+   * Tenancy - Resource hierarchy: platform and organizations
    * </pre>
    *
    * <code>tenancy = 3 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>

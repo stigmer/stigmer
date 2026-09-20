@@ -91,23 +91,42 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       }
     });
 
-    it("a v1 database resumes the chain on reopen: the v2/v3 indexes arrive", async () => {
+    it("a v1 database resumes the chain on reopen: the v2/v3 indexes arrive and v4 removes the Project rows", async () => {
       const store = await PostgresStore.open(db.databaseUrl);
       await store.close();
 
-      // Rewind to a v1 database: drop exactly what v2+v3 created and their
-      // version rows — the state any pre-v2 deployment is actually in.
+      // Rewind to a v1 database: drop exactly what v2+v4 created and their
+      // version rows — the state any pre-v2 deployment is actually in —
+      // and seed one row of the Project kind an earlier release wrote
+      // (the kind column holds the enum NAME) beside a row v4 must keep.
       const client = new pg.Client({ connectionString: db.databaseUrl });
       await client.connect();
       try {
         await client.query(`DROP INDEX idx_wfee_created_at`);
         await client.query(`DROP INDEX idx_oauth_grant_resource`);
         await client.query(
-          `DELETE FROM schema_version WHERE version IN (2, 3)`,
+          `DELETE FROM schema_version WHERE version IN (2, 3, 4)`,
+        );
+        await client.query(
+          `INSERT INTO resources (kind, id, data) VALUES ('project', 'prj_seeded', '\\x00'), ('organization', 'acme', '\\x00')`,
+        );
+        await client.query(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('project', 'prj_seeded', '\\x00', '', '')`,
         );
 
         const reopened = await PostgresStore.open(db.databaseUrl);
         await reopened.close();
+
+        const remaining = await client.query(
+          `SELECT kind, id FROM resources ORDER BY kind`,
+        );
+        expect(remaining.rows, "v4 removed the Project row and kept the rest").toEqual([
+          { kind: "organization", id: "acme" },
+        ]);
+        const projectAudit = await client.query(
+          `SELECT count(*)::int AS n FROM resource_audit WHERE kind = 'project'`,
+        );
+        expect((projectAudit.rows[0] as { n: number }).n).toBe(0);
 
         const sweepIndex = await client.query(
           `SELECT indexname FROM pg_indexes

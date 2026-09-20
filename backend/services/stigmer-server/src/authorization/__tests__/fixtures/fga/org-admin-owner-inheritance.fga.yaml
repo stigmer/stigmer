@@ -1,11 +1,11 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/org-admin-owner-inheritance.fga.yaml
-# at commit 2ec420161 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#757 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for org-admin owner inheritance (T08).
 #
 # Blueprint kinds — agent, agent_share, agent_channel, channel_app,
-# schedule, skill, workflow, project — compose org admins into `owner`:
+# schedule, skill, workflow, plugin — compose org admins into `owner`:
 #
 #   define owner: [identity_account] or admin from organization
 #
@@ -94,10 +94,10 @@ tuples:
     object: workflow:carols-flow
   - user: organization:acme
     relation: organization
-    object: project:carols-project
+    object: plugin:carols-plugin
   - user: identity_account:carol
     relation: owner
-    object: project:carols-project
+    object: plugin:carols-plugin
 
   # --- carol's personal resources (organization tuple present, so a
   #     wrongly-added inheritance WOULD resolve — these must stay denied) ---
@@ -186,7 +186,7 @@ tests:
           can_delete: true
           can_grant_access: true
       - user: identity_account:ana
-        object: project:carols-project
+        object: plugin:carols-plugin
         assertions:
           can_view: true
           can_edit: true
@@ -257,7 +257,7 @@ tests:
           can_edit: false
           can_delete: false
       - user: identity_account:zara
-        object: project:carols-project
+        object: plugin:carols-plugin
         assertions:
           can_view: false
           can_edit: false

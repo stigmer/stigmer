@@ -33,5 +33,4 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.artifact, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.schedule, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.owner, IamRole.viewer]],
-  [ApiResourceKind.project, [IamRole.owner, IamRole.viewer]],
 ]);

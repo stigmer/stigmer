@@ -67,7 +67,6 @@ definitions, API names, and examples follow below.
 | **Harness**       | execution engine      | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
 | **Approval flow** | approval flow         | approval flow                          | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
 | **Organization**  | Organization          | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
-| **Project**       | Project               | Project                                | Project             | Project, `kind: project`               | Project        |
 | **Environment**   | Environment           | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
 | **Preference**    | preferences           | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
 
@@ -561,18 +560,6 @@ A Workspace that groups people, Agents, Workflows, and settings together.
 
 ---
 
-#### Project
-
-A container within an Organization that groups related Agents, Workflows, and
-resources together.
-
-- **Capitalize**: Yes, when referring to the Stigmer concept.
-- **API surface**: `kind: project`, prefix `prj`. proto:
-  `tenancy/project/v1/spec.proto`.
-- **Key fields**: `entry_point`, `members`.
-
----
-
 #### Environment
 
 A named space (like "testing" or "production") where the same Agent can run with
@@ -1055,6 +1042,26 @@ everything else is a Plugin you install by name; see Plugin and Marketplace.
   content an older release installed, and the upgrade note in the marketplace
   how-to. A doc describing "the built-in Agents and servers" or "the curated
   library" is describing the retired bundle; point it at Plugin instead.
+
+---
+
+#### Project
+
+Retired term. A `kind: Project` was a manifest (`stigmer.yaml`) at the root of a
+directory that listed the Agents, Skills, MCP Servers and Workflows applied from
+it as members, reconciled by `stigmer apply`; a second flavour synthesised the
+members from a TypeScript, Go or Python program. Both were removed with the
+kind: a folder of resources that belong together is a Plugin, installed with
+`stigmer push plugin` or from the Marketplace, and upgraded or removed as one
+unit. The seven Project pages under the SDK reference and `examples/project`
+went with it.
+
+- **Capitalize**: Yes, when quoting historical docs or the CLI's refusal.
+- **Context rule**: Do not use in new writing. A reader still meets the word in
+  one place: the sentence `stigmer apply -f` and `stigmer validate -f` print for
+  a manifest that still carries `kind: Project`, which says what happened and
+  names `stigmer push plugin`. Lowercase "project" for an npm, Go, Python or
+  Maven project stays ordinary English.
 
 ---
 

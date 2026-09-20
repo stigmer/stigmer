@@ -53,8 +53,6 @@ import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organ
 import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
-import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
-import { ProjectSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/spec_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -93,7 +91,6 @@ import { buildMcpServerProto, toMcpServerUpdateInput } from "../gen/mcpserver";
 import { buildOAuthAppProto, toOAuthAppUpdateInput } from "../gen/oauthapp";
 import { buildOrganizationProto, toOrganizationUpdateInput } from "../gen/organization";
 import { buildPlatformClientProto, toPlatformClientUpdateInput } from "../gen/platformclient";
-import { buildProjectProto, toProjectUpdateInput } from "../gen/project";
 import { buildScheduleProto, toScheduleUpdateInput } from "../gen/schedule";
 import { buildSessionProto, toSessionUpdateInput } from "../gen/session";
 import { buildWorkflowProto, toWorkflowUpdateInput } from "../gen/workflow";
@@ -801,31 +798,6 @@ describe("toPlatformClientUpdateInput", () => {
     });
     expect(rebuilt.spec?.environmentRefs.map((r) => r.slug)).toEqual(["prod"]);
     expect(rebuilt.spec?.allowedOrigins).toEqual(["https://other.acme.example"]);
-  });
-});
-
-describe("toProjectUpdateInput", () => {
-  const fixture = () =>
-    create(ProjectSchema, {
-      metadata: META,
-      spec: {
-        entryPoint: "apps/web",
-        description: "Customer portal.",
-        members: [{ org: "acme", slug: "ada" }],
-      },
-    });
-
-  it("fixture covers every ProjectSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(ProjectSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the full spec and metadata through the builder", () => {
-    const original = fixture();
-    assertSpecRoundTrip(
-      ProjectSpecSchema,
-      original,
-      buildProjectProto(toProjectUpdateInput(original)),
-    );
   });
 });
 

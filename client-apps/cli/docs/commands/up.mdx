@@ -8,12 +8,9 @@ development: no cloud account needed.
 On first run the CLI acquires the `stigmer-server` and runner packages at the
 matching version, then bootstraps the backend: it creates the `stigmer`
 organization and installs the official marketplace's default plugins into it,
-so a default agent is available immediately. An install that still carries the
-system content an older release seeded is retired on this run, once the
-default plugins are in place: the default agent is taken over by its plugin in
-place, so its ID, your personal instance of it and every conversation with it
-continue; the rest is removed, and the CLI reports what was removed and what was
-kept because one of your agents still references it.
+so a default agent is available immediately. On an install seeded by an
+earlier release, the default agent is taken over by its plugin in place, so its
+ID, your personal instance of it and every conversation with it continue.
 
 Use `stigmer up server` to start only the control plane (Temporal and
 `stigmer-server`) when you manage your own runners — for example, the desktop

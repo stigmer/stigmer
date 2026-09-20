@@ -55,7 +55,6 @@ export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> =
     ApiResourceKind.agent,
     ApiResourceKind.workflow,
     ApiResourceKind.mcp_server,
-    ApiResourceKind.project,
     ApiResourceKind.skill,
     ApiResourceKind.plugin,
     ApiResourceKind.environment,

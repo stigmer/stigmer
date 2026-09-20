@@ -5,8 +5,9 @@
 // removed in the TypeScript migration — stigmer/stigmer#203.)
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { UsageError } from "../errors/index.js";
 import { generateAliases, normalizeAlias } from "./aliases.js";
-import { CLI_RELEVANT_KINDS, KIND_META } from "./metadata.js";
+import { CLI_RELEVANT_KINDS, KIND_META, RETIRED_KINDS } from "./metadata.js";
 import { Verb } from "./verbs.js";
 import { verbsForKind } from "./verb-support.js";
 
@@ -32,6 +33,21 @@ export interface TypeInfo {
 
 export function supportsVerb(info: TypeInfo, verb: Verb): boolean {
   return info.supportedVerbs.has(verb);
+}
+
+/**
+ * The one refusal for a YAML `kind` the registry does not know, shared by
+ * every path that reads a kind from a file (`apply -f`, `validate -f`) so
+ * the wording lives in one place. A kind the platform retired gets its own
+ * sentence (RETIRED_KINDS): the file is old, not wrong, and the user
+ * deserves the reason and the way. `where` names the file for the message.
+ */
+export function unknownKindError(yamlKind: string, where: string): UsageError {
+  const retired = RETIRED_KINDS.get(yamlKind);
+  if (retired !== undefined) {
+    return new UsageError(`kind '${yamlKind}' in ${where} ${retired}`);
+  }
+  return new UsageError(`unknown resource kind '${yamlKind}' in ${where}`);
 }
 
 export interface Registry {

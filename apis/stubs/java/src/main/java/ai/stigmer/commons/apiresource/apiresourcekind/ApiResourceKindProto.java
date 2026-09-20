@@ -79,7 +79,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "ier_unspecified\020\000\022\017\n\013open_source\020\001\022\016\n\ncl" +
       "oud_only\020\002\022\016\n\nenterprise\020\003*A\n\017PlatformId" +
       "Value\022!\n\035platform_id_value_unspecified\020\000" +
-      "\022\013\n\007stigmer\020\001*\364\023\n\017ApiResourceKind\022\035\n\031api" +
+      "\022\013\n\007stigmer\020\001*\311\023\n\017ApiResourceKind\022\035\n\031api" +
       "_resource_kind_unknown\020\000\022[\n\024api_resource" +
       "_version\020\001\032A\252\377+=\010\001\020\001\032\022ApiResourceVersion" +
       "\"\024API Resource Version*\003ver8\001@\002J\004\010\005\020\004\022?\n" +
@@ -136,23 +136,22 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "\006Memory\"\006Memory*\003mem8\001@\001J>\010\002\020\004\"8\n\020identi" +
       "ty_account\022\007subject\032\033subject_identity_ac" +
       "count_id\022A\n\006plugin\020:\0325\252\377+1\010\001\020\001\032\006Plugin\"\006" +
-      "Plugin*\003plg0\001@\001J\022\010\002\020\001*\010\010\001\020\001\030\001 \001:\002\001\004\0228\n\007p" +
-      "roject\020<\032+\252\377+\'\010\003\020\001\032\007Project\"\007Project*\003pr" +
-      "j@\001J\010\010\002\020\001:\002\001\004\022-\n\004plan\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"" +
-      "\004Plan*\003pln8\001@\002J\004\010\005\020\004\022E\n\014subscription\020G\0323" +
-      "\252\377+/\010\004\020\001\032\014Subscription\"\014Subscription*\003su" +
-      "b8\001@\002J\004\010\002\020\004\0226\n\007license\020H\032)\252\377+%\010\004\020\001\032\007Lice" +
-      "nse\"\007License*\003lic8\001@\002J\004\010\005\020\004\"\004\0101\0201*\tdatas" +
-      "tore:\205\001\n\tkind_meta\022!.google.protobuf.Enu" +
-      "mValueOptions\030\365\277\005 \001(\0132C.ai.stigmer.commo" +
-      "ns.apiresource.apiresourcekind.ApiResour" +
-      "ceKindMetaR\010kindMetaB\364\001B\024ApiResourceKind" +
-      "ProtoP\001\242\002\005ASCAA\252\002.Ai.Stigmer.Commons.Api" +
-      "resource.Apiresourcekind\312\002.Ai\\Stigmer\\Co" +
-      "mmons\\Apiresource\\Apiresourcekind\342\002:Ai\\S" +
-      "tigmer\\Commons\\Apiresource\\Apiresourceki" +
-      "nd\\GPBMetadata\352\0022Ai::Stigmer::Commons::A" +
-      "piresource::Apiresourcekindb\006proto3"
+      "Plugin*\003plg0\001@\001J\022\010\002\020\001*\010\010\001\020\001\030\001 \001:\002\001\004\022-\n\004p" +
+      "lan\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"\004Plan*\003pln8\001@\002J\004\010\005" +
+      "\020\004\022E\n\014subscription\020G\0323\252\377+/\010\004\020\001\032\014Subscrip" +
+      "tion\"\014Subscription*\003sub8\001@\002J\004\010\002\020\004\0226\n\007lic" +
+      "ense\020H\032)\252\377+%\010\004\020\001\032\007License\"\007License*\003lic8" +
+      "\001@\002J\004\010\005\020\004\"\004\0101\0201\"\004\010<\020<*\tdatastore*\007projec" +
+      "t:\205\001\n\tkind_meta\022!.google.protobuf.EnumVa" +
+      "lueOptions\030\365\277\005 \001(\0132C.ai.stigmer.commons." +
+      "apiresource.apiresourcekind.ApiResourceK" +
+      "indMetaR\010kindMetaB\364\001B\024ApiResourceKindPro" +
+      "toP\001\242\002\005ASCAA\252\002.Ai.Stigmer.Commons.Apires" +
+      "ource.Apiresourcekind\312\002.Ai\\Stigmer\\Commo" +
+      "ns\\Apiresource\\Apiresourcekind\342\002:Ai\\Stig" +
+      "mer\\Commons\\Apiresource\\Apiresourcekind\\" +
+      "GPBMetadata\352\0022Ai::Stigmer::Commons::Apir" +
+      "esource::Apiresourcekindb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

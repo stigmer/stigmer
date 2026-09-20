@@ -17,7 +17,6 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import type { ParsedReference } from "./reference.js";
@@ -63,10 +62,6 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [
     ApiResourceKind.mcp_server,
     refGetter(ApiResourceKind.mcp_server, McpServerSchema, (c) => c.mcpServer),
-  ],
-  [
-    ApiResourceKind.project,
-    refGetter(ApiResourceKind.project, ProjectSchema, (c) => c.project),
   ],
   [
     ApiResourceKind.environment,

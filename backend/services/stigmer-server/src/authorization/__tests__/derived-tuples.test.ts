@@ -189,7 +189,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
   });
 
   it("kinds with no visibility axis derive no viewer tuple at any level — their audience is the model's own line", () => {
-    for (const type of ["artifact", "schedule", "project", "session"]) {
+    for (const type of ["artifact", "schedule", "session"]) {
       expect(
         derivedFor(type, {
           visibility: ApiResourceVisibility.visibility_org,

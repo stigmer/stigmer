@@ -74,7 +74,6 @@ import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { OrphanDeleter } from "../domain/project/reconcile.js";
 import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
@@ -127,15 +126,6 @@ export interface InProcessClients {
   readonly workflowExecutionApprovalForwarder: AgentExecutionApprovalForwarder;
   readonly workflowExecutionFileDecisionForwarder: AgentExecutionFileDecisionForwarder;
   /**
-   * The project reconciler's orphan-delete edge (server.go 635-648: Go's
-   * DownstreamClients + ResourceDeleterAdapter). Go retains the four full
-   * CRUD client interfaces; the reconciler uses ONLY Delete, so this
-   * surface exposes only the delete routing — every orphan delete runs the
-   * owning domain's FULL pipeline (referential blocks included) through
-   * the same interceptor chain as an external delete.
-   */
-  readonly projectOrphanDeleter: OrphanDeleter;
-  /**
    * The schedule clock's fire edge (server.go 581: the RunStarter's
    * in-process agentexecution client): every fire — cron tick or manual
    * trigger — enters the FULL execution create pipeline, so session
@@ -153,7 +143,7 @@ export interface InProcessClients {
    * broadcast) and carry the internal caller class this transport's
    * position 1 stamps. The worker builds no identity of its own: server
    * code acting on its own behalf rides this lane, where the class is
-   * minted — exactly like the schedule clock and the reconciler above.
+   * minted — exactly like the schedule clock above.
    */
   readonly executionStatusWriter: ExecutionStatusWriter;
   /**
@@ -163,8 +153,7 @@ export interface InProcessClients {
    * delete) AS THE INSTALLING CALLER (the asCaller call options), so a
    * materialised skill is attributed to the user who installed it and
    * carries the plugin's reserved labels by the in-process origin the
-   * guards pass structurally. The delete routing is the reconciler's
-   * switch, shared.
+   * guards pass structurally.
    */
   readonly pluginMaterializer: PluginMaterializer;
 }
@@ -391,15 +380,6 @@ export function createInProcessClients(
     executionStatusWriter: {
       updateStatus: (input) => agentExecutionCommand.updateStatus(input),
     },
-    // The project reconciler's delete routing — Go's
-    // ResourceDeleterAdapter.Delete switch (execution_engine.go:75-92).
-    // The unsupported-kind default is defense-in-depth kept for Go parity:
-    // the reconciler's slug resolver rejects unsupported kinds before any
-    // delete is attempted, in both editions. Log-only surface: reconcile
-    // failures never reach the wire.
-    projectOrphanDeleter: {
-      delete: (kind, resourceId) => deleteByKind(kind, resourceId),
-    },
     pluginMaterializer: {
       pushSkill: (request, caller) =>
         skillCommand.push(request, asCaller(caller)),
@@ -417,13 +397,12 @@ export function createInProcessClients(
   };
 
   /**
-   * Delete routing for the four reconciled kinds — Go's
-   * ResourceDeleterAdapter.Delete switch (execution_engine.go:75-92),
-   * shared by the project reconciler (internal class, no caller) and the
-   * plugin controller (as the installing caller). Every orphan or member
-   * delete runs the owning domain's FULL pipeline. The unsupported-kind
-   * default is defense-in-depth: both callers refuse unsupported kinds
-   * before any delete is attempted.
+   * Delete routing for the four member kinds a plugin materialises, used
+   * by the plugin controller as the installing caller. Every member delete
+   * runs the owning domain's FULL pipeline (referential blocks included)
+   * through the same interceptor chain as an external delete. The
+   * unsupported-kind default is defense-in-depth: the plugin's member
+   * reader refuses unsupported kinds before any delete is attempted.
    */
   async function deleteByKind(
     kind: ApiResourceKind,

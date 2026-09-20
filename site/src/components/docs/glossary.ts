@@ -32,8 +32,6 @@ export const glossary: Record<string, string> = {
     "A workspace that keeps one team's Agents, Workflows, and settings separate from another's.",
   Environment:
     "A separate space (like testing or production) where the same Agent can run with different settings.",
-  Project:
-    "A container within an Organization that groups related Agents, Workflows, and resources together.",
   "Agent Channel":
     "A connection that puts an Agent into an external messaging platform — Slack or WhatsApp — so people can chat with it where they already work.",
   "Channel App":
