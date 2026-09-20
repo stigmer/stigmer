@@ -16,13 +16,12 @@ resources and controls who can access them.
 <Mermaid
   chart={`
 graph TD
-  O["Organization<br/>(acme)"] --> P1["Project<br/>(customer-support)"]
-  O --> P2["Project<br/>(internal-tools)"]
+  O["Organization<br/>(acme)"] --> P1["Plugin<br/>(customer-support)"]
+  O --> A2["Agent: ops-assistant"]
+  O --> S2["Skill: runbook"]
   P1 --> A1["Agent: support-agent"]
   P1 --> S1["Skill: return-policy"]
   P1 --> M1["MCP Server: order-service"]
-  P2 --> A2["Agent: ops-assistant"]
-  P2 --> S2["Skill: runbook"]
 `}
 />
 
@@ -49,25 +48,31 @@ Key properties:
 | `slug`            | URL-friendly identifier, unique across the platform                                                                                              |
 | `management_mode` | `self_managed` (you operate the org directly) or `platform_managed` (an external platform creates and operates the org via an Identity Provider) |
 
-### Projects
+### Plugins
 
-A Project groups related resources within an Organization. It maps to a
-directory on disk that contains YAML definitions:
+A Plugin groups the resources that belong together within an Organization: the
+Agent, Skills, MCP Servers and Workflows one folder installs. It is the unit of
+install, upgrade and removal: `stigmer push plugin <dir>` installs the folder as
+one Plugin, the Marketplace installs one from a catalogue, and removing the
+Plugin removes every resource it brought. A Plugin is not written as YAML; it is
+read from a folder in the open Agent Plugins format (or the Cursor, Claude Code
+or Codex dialect), and the resource the server keeps records what landed:
 
 ```yaml
-apiVersion: tenancy.stigmer.ai/v1
-kind: Project
+apiVersion: agentic.stigmer.ai/v1
+kind: Plugin
 metadata:
   name: customer-support
   org: acme
 spec:
-  description: >
-    Customer support agents, skills, and tool connections.
+  name: customer-support
+  version: "1.0.0"
+  description: "Customer support agents, skills, and tool connections."
 ```
 
-When you run `stigmer apply`, the CLI scans the Project directory and applies
-all resource definitions it finds. This makes Projects the unit of deployment —
-everything in a Project directory deploys together.
+A resource you author on its own (`stigmer apply -f agent.yaml`) belongs to the
+Organization directly and is managed one at a time. See
+[Install a plugin](/docs/guides/plugins/install-a-plugin).
 
 ## Management modes
 

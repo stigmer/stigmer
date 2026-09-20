@@ -41,9 +41,11 @@ import type { PoolClient } from "pg";
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
 export const SCHEMA_VERSION_3 = 3;
+/** v4: the rows of the removed Project kind deleted. */
+export const SCHEMA_VERSION_4 = 4;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_3;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_4;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -76,6 +78,7 @@ export async function runMigrations(client: PoolClient): Promise<void> {
       [SCHEMA_VERSION_1, migrateToV1],
       [SCHEMA_VERSION_2, migrateToV2],
       [SCHEMA_VERSION_3, migrateToV3],
+      [SCHEMA_VERSION_4, migrateToV4],
     ];
 
     for (const [version, migrate] of chain) {
@@ -295,4 +298,20 @@ async function migrateToV3(client: PoolClient): Promise<void> {
   await client.query(`
     CREATE INDEX idx_oauth_grant_resource ON oauth_grant (resource_id, org_id);
   `);
+}
+
+/**
+ * v4: the Project kind (kind 60, id prefix "prj") was removed from the
+ * contract, so a database seeded by an earlier release may hold rows no
+ * code can read, list or delete any more. The chain's first data
+ * migration, and the same shape as the sqlite driver's v9: rows deleted,
+ * not archived (the audit table is the version history of kinds the
+ * server serves), keyed on the enum NAME the kind column holds
+ * (proto-fields.ts apiResourceKindName), the search index left to boot's
+ * RebuildIndex. Member rows the Project once listed are ordinary
+ * resources of their own kinds and stay.
+ */
+async function migrateToV4(client: PoolClient): Promise<void> {
+  await client.query(`DELETE FROM resources WHERE kind = 'project'`);
+  await client.query(`DELETE FROM resource_audit WHERE kind = 'project'`);
 }

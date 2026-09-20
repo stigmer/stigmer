@@ -66,7 +66,6 @@ from ._gen._mcpserver import (
 )
 from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
-from ._gen._project import ProjectClient, ProjectInput
 from ._gen._session import (
     GitRepoSourceInput,
     LocalPathSourceInput,
@@ -161,7 +160,6 @@ __all__ = [
     "McpServerClient",
     "OAuthAppClient",
     "OrganizationClient",
-    "ProjectClient",
     "SessionClient",
     "SkillClient",
     "RoutedSkillClient",
@@ -196,7 +194,6 @@ __all__ = [
     "McpServerUsageInput",
     "OAuthAppInput",
     "OrganizationInput",
-    "ProjectInput",
     "SessionInput",
     "SkillInput",
     "StdioServerConfigInput",

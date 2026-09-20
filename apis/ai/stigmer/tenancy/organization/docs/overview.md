@@ -1,5 +1,5 @@
 An Organization is the top-level container for all Stigmer resources. Every
-agent, workflow, session, and project belongs to exactly one organization,
+agent, workflow, session, and plugin belongs to exactly one organization,
 providing multi-tenant isolation and access control.
 
 ```yaml

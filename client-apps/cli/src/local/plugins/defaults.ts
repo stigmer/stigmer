@@ -10,8 +10,8 @@
 // release defect, not a condition to install around. Installing pushes the
 // prepared archives and is best-effort per entry: one default failing to
 // land does not stop the next, and the caller decides how to surface the
-// failures. The split lets `stigmer up` hold every replacement in hand
-// before it retires what the replacement supersedes (local/bootstrap.ts).
+// failures. The split keeps every network read (the catalogue, the
+// archives) ahead of the first write to the backend (local/bootstrap.ts).
 //
 // Idempotent by the server's own identity, not a marker file: before each
 // push the org's plugin of that name is read back; when its digest equals the

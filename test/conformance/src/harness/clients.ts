@@ -68,8 +68,6 @@ import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/i
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
-import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
-import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/query_pb";
 
 export interface ConformanceClients {
   activityQuery: Client<typeof ActivityQueryController>;
@@ -95,8 +93,6 @@ export interface ConformanceClients {
   channelMessageCommand: Client<typeof ChannelMessageCommandController>;
   channelMessageQuery: Client<typeof ChannelMessageQueryController>;
   search: Client<typeof SearchService>;
-  projectCommand: Client<typeof ProjectCommandController>;
-  projectQuery: Client<typeof ProjectQueryController>;
   identityAccountCommand: Client<typeof IdentityAccountCommandController>;
   identityAccountQuery: Client<typeof IdentityAccountQueryController>;
   iamPolicyCommand: Client<typeof IamPolicyCommandController>;
@@ -209,8 +205,6 @@ export function makeClients(transport: Transport): ConformanceClients {
     billingCommand: createClient(BillingCommandController, transport),
     billingQuery: createClient(BillingQueryController, transport),
     apiKeyQuery: createClient(ApiKeyQueryController, transport),
-    projectCommand: createClient(ProjectCommandController, transport),
-    projectQuery: createClient(ProjectQueryController, transport),
     identityAccountCommand: createClient(
       IdentityAccountCommandController,
       transport,

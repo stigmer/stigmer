@@ -1,18 +1,23 @@
 // `stigmer apply` — deploy resources to the backend.
 //
 //   File mode (-f):     apply individual YAML resource files (or a directory)
-//   Declarative mode:   a stigmer.yaml project directory (scan + reconcile)
-//   Plugin track:       a directory holding a plugin manifest (either flag,
+//   Plugin track:       a directory holding a plugin manifest (the -f path,
 //                       or the working directory) installs as a plugin — the
 //                       same read, zip and push as `push plugin <dir>`, so the
 //                       two verbs are one code path
 //
+// A bare `stigmer apply` in a directory that is neither prints what the
+// command can do. A `stigmer.yaml` there is the retired Project format, and
+// the guidance says so: a folder of resources that belong together is a
+// plugin.
+//
 // Resources marshal strictly from YAML to full protos and apply through the raw
 // command controllers (preserving metadata.id so updates aren't misrouted as
 // creates). Heavy modules are lazy-imported so `--help` stays fast (DD-001).
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
-import { UsageError } from "../errors/index.js";
 import {
   CommandResult,
   type OutputFlags,
@@ -21,23 +26,22 @@ import {
 } from "../output/index.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
+/**
+ * The manifest file the retired Project format kept at a directory's root.
+ * Read only to recognise an old repository and say what happened to it.
+ */
+const RETIRED_PROJECT_FILE = "stigmer.yaml";
+
 interface ApplyFlags extends OutputFlags {
   file?: string;
-  config?: string;
-  prune?: boolean;
   dryRun?: boolean;
 }
 
 export function registerApply(program: Command): void {
   const apply = program
     .command("apply")
-    .description("apply resources from files or a project directory")
-    .option("-f, --file <path>", "path to a YAML file or directory")
-    .option("--config <path>", "path to a project directory (declarative mode)")
-    // S1: Go plumbs --prune but never sends it — the server always reconciles
-    // orphans by member set-difference. We reproduce the flag (default on) for
-    // parity; it is intentionally a no-op client-side. Tracked as a Go follow-up.
-    .option("--prune", "delete orphaned resources (declarative mode)", true)
+    .description("apply resources from files or a plugin directory")
+    .option("-f, --file <path>", "path to a YAML file, a directory of YAML files, or a plugin directory")
     .option("--dry-run", "validate without applying")
     .action((options: ApplyFlags, command: Command) =>
       runApply(options, command),
@@ -56,9 +60,7 @@ async function runApply(options: ApplyFlags, command: Command): Promise<void> {
   const target =
     options.file !== undefined && options.file !== ""
       ? options.file
-      : options.config !== undefined && options.config !== ""
-        ? options.config
-        : process.cwd();
+      : process.cwd();
   const { isPluginDirectory } = await import("../resources/plugin.js");
   if (isPluginDirectory(target)) {
     await runPluginApply(target, orgOverride, options.dryRun === true, format);
@@ -75,7 +77,7 @@ async function runApply(options: ApplyFlags, command: Command): Promise<void> {
     return;
   }
 
-  await runDeclarativeApply(options, orgOverride, format);
+  renderResult(buildGuidance(target), format);
 }
 
 // Plugin track: install or upgrade the plugin folder as one unit through the
@@ -130,123 +132,6 @@ async function runPluginApply(
   );
 }
 
-// Declarative mode: detect stigmer.yaml (walk up). Absent → atomic guidance.
-// entry_point set → SDK/project synthesis track. Otherwise scan the project and
-// reconcile membership. Both project tracks converge on the shared reconciler.
-async function runDeclarativeApply(
-  options: ApplyFlags,
-  orgOverride: string | undefined,
-  format: OutputFormat,
-): Promise<void> {
-  const { detectTrack, applyDeclarative, previewDeclarative } =
-    await import("../resources/apply/declarative.js");
-
-  const startDir =
-    options.config !== undefined && options.config !== ""
-      ? options.config
-      : process.cwd();
-  const detect = detectTrack(startDir);
-
-  if (detect.track === "atomic") {
-    renderResult(buildAtomicGuidance(), format);
-    return;
-  }
-
-  if (detect.track === "project") {
-    await runProjectApply(detect, orgOverride, format, options.dryRun === true);
-    return;
-  }
-
-  if (options.dryRun === true) {
-    const { results, summary } = previewDeclarative(detect, {
-      controller: throwingController,
-      warn: (line) => emitWarning(line),
-    });
-    for (const result of results) renderResult(result, format);
-    renderResult(summary, format);
-    return;
-  }
-
-  const { connectBackend } = await import("../backend.js");
-  const client = connectBackend();
-  ensureAuthenticated(client.config);
-  const org = resolveDeclarativeOrg(
-    client.config,
-    detect.project?.metadata?.org,
-    orgOverride,
-  );
-
-  const result = await applyDeclarative(detect, {
-    controller: client.controller,
-    stigmer: client.stigmer,
-    org,
-    info: (line) => process.stderr.write(`${line}\n`),
-    warn: (line) => emitWarning(line),
-  });
-  renderResult(result, format);
-}
-
-// Project (SDK synthesis) track: run the user's entry_point, read the `.pb`
-// output, and reconcile membership through the same reconciler the declarative
-// track uses. Lazy-imported to preserve the DD-001 boundary (`--help` stays
-// fast).
-async function runProjectApply(
-  detect: import("../resources/apply/declarative.js").DetectResult,
-  orgOverride: string | undefined,
-  format: OutputFormat,
-  dryRun: boolean,
-): Promise<void> {
-  const { applyProjectTrack, previewProjectTrack } =
-    await import("../resources/apply/synth/project-track.js");
-
-  if (dryRun) {
-    renderResult(previewProjectTrack(detect), format);
-    return;
-  }
-
-  const { connectBackend } = await import("../backend.js");
-  const client = connectBackend();
-  ensureAuthenticated(client.config);
-  const org = resolveDeclarativeOrg(
-    client.config,
-    detect.project?.metadata?.org,
-    orgOverride,
-  );
-
-  const result = await applyProjectTrack(detect, {
-    controller: client.controller,
-    stigmer: client.stigmer,
-    org,
-    info: (line) => process.stderr.write(`${line}\n`),
-    warn: (line) => emitWarning(line),
-  });
-  renderResult(result, format);
-}
-
-// Org precedence mirrors Go's resolveApplyOrganization: --org flag, then
-// metadata.org in stigmer.yaml, then the configured context. Empty → a clear
-// "set your org" usage error.
-function resolveDeclarativeOrg(
-  config: import("../config/index.js").Config,
-  projectOrg: string | undefined,
-  override: string | undefined,
-): string {
-  const resolved = resolveOrganization(
-    config,
-    override ?? (projectOrg !== "" ? projectOrg : undefined),
-  );
-  if (resolved === "") {
-    throw new UsageError(
-      "organization not set\n\n" +
-        "Specify organization in one of these ways:\n" +
-        "  1. Set metadata.org in stigmer.yaml\n" +
-        "  2. Use --org flag: stigmer apply --org <org>\n" +
-        "  3. Set context: stigmer context set --org <org>",
-    );
-  }
-  return resolved;
-}
-
 async function runFileApply(
   path: string,
   orgOverride: string | undefined,
@@ -298,24 +183,24 @@ async function runFileApply(
   );
 }
 
-function buildAtomicGuidance(): CommandResult {
-  const result = CommandResult.warning(
-    "No stigmer.yaml found in current directory or parents",
-  );
+// What a bare `stigmer apply` says when the target holds no plugin manifest:
+// the two things the command does, and, when a `stigmer.yaml` sits there,
+// what that file was and where its resources go now.
+function buildGuidance(target: string): CommandResult {
+  const result = CommandResult.warning(`No plugin manifest in ${target}`);
   result
-    .addSection("")
-    .item(
-      "The 'stigmer apply' command (without -f) requires a project with stigmer.yaml",
-    )
-    .item("This enables resource discovery and project-based reconciliation");
-  result
-    .addSection("For single-resource deployment, use file mode")
-    .item("stigmer apply -f agent.yaml")
-    .item("stigmer apply -f workflow.yaml")
-    .item("stigmer apply -f mcpserver.yaml");
-  result.hint(
-    "To create a project: add a stigmer.yaml with your project name, then run 'stigmer apply'",
-  );
+    .addSection("What 'stigmer apply' does")
+    .item("stigmer apply -f <file>        apply a resource file (agent, workflow, MCP server, ...)")
+    .item("stigmer apply -f <dir>         apply every YAML file in a directory")
+    .item("stigmer push skill <dir>       publish a skill folder")
+    .item("stigmer push plugin <dir>      install a folder of resources as one plugin");
+  if (existsSync(join(target, RETIRED_PROJECT_FILE))) {
+    result
+      .addSection(`About the ${RETIRED_PROJECT_FILE} here`)
+      .item(
+        "It is the Project format, which Stigmer no longer has. A folder of resources that belong together is a plugin: run `stigmer push plugin <dir>`, or apply each resource file with `stigmer apply -f`.",
+      );
+  }
   return result;
 }
 

@@ -42,9 +42,11 @@ export const SCHEMA_VERSION_6 = 6;
 export const SCHEMA_VERSION_7 = 7;
 /** v8: the by-resource grant-teardown index (the C3 channel installer). */
 export const SCHEMA_VERSION_8 = 8;
+/** v9: the rows of the removed Project kind deleted. */
+export const SCHEMA_VERSION_9 = 9;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_8;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_9;
 
 /** Applies all pending migrations in order. */
 export function runMigrations(db: DatabaseSync): void {
@@ -66,6 +68,7 @@ export function runMigrations(db: DatabaseSync): void {
     [SCHEMA_VERSION_6, migrateToV6],
     [SCHEMA_VERSION_7, migrateToV7],
     [SCHEMA_VERSION_8, migrateToV8],
+    [SCHEMA_VERSION_9, migrateToV9],
   ];
 
   for (const [version, migrate] of chain) {
@@ -355,5 +358,24 @@ function migrateToV7(db: DatabaseSync): void {
 function migrateToV8(db: DatabaseSync): void {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_oauth_grant_resource ON oauth_grant(resource_id, org_id);
+  `);
+}
+
+/**
+ * v9: the Project kind (kind 60, id prefix "prj") was removed from the
+ * contract, so a database seeded by an earlier release may hold rows no
+ * code can read, list or delete any more. Rows are deleted, not archived:
+ * the audit table is the version history of kinds the server serves, and
+ * bytes of a kind nothing will ever decode are not history. The kind
+ * column holds the enum NAME (proto-fields.ts apiResourceKindName), which
+ * is why the literal string works after the enum value is gone. The search
+ * index is not touched here: boot's RebuildIndex clears it and re-indexes
+ * only the registered kinds. Member rows the Project once listed are
+ * ordinary resources of their own kinds and stay.
+ */
+function migrateToV9(db: DatabaseSync): void {
+  db.exec(`
+    DELETE FROM resources WHERE kind = 'project';
+    DELETE FROM resource_audit WHERE kind = 'project';
   `);
 }

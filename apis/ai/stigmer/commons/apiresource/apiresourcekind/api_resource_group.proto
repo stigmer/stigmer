@@ -33,7 +33,7 @@ enum ApiResourceGroup {
     display_name: "IAM"
   }];
 
-  // Tenancy - Resource hierarchy: platform, organizations, and projects
+  // Tenancy - Resource hierarchy: platform and organizations
   tenancy = 3 [(group_meta) = {
     domain: "tenancy.stigmer.ai"
     display_name: "Tenancy"

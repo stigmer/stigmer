@@ -47,7 +47,6 @@ const (
 	IamPermission_can_create_workflow         IamPermission = 7
 	IamPermission_can_create_session          IamPermission = 8
 	IamPermission_can_create_skill            IamPermission = 9
-	IamPermission_can_create_project          IamPermission = 10
 	IamPermission_can_create_idp              IamPermission = 11
 	IamPermission_can_create_environment      IamPermission = 12
 	IamPermission_can_create_identity_account IamPermission = 21
@@ -170,7 +169,6 @@ var (
 		7:  "can_create_workflow",
 		8:  "can_create_session",
 		9:  "can_create_skill",
-		10: "can_create_project",
 		11: "can_create_idp",
 		12: "can_create_environment",
 		21: "can_create_identity_account",
@@ -212,7 +210,6 @@ var (
 		"can_create_workflow":          7,
 		"can_create_session":           8,
 		"can_create_skill":             9,
-		"can_create_project":           10,
 		"can_create_idp":               11,
 		"can_create_environment":       12,
 		"can_create_identity_account":  21,
@@ -351,7 +348,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x96\b\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x98\b\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -363,9 +360,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x10can_create_agent\x10\x06\x12\x17\n" +
 	"\x13can_create_workflow\x10\a\x12\x16\n" +
 	"\x12can_create_session\x10\b\x12\x14\n" +
-	"\x10can_create_skill\x10\t\x12\x16\n" +
-	"\x12can_create_project\x10\n" +
-	"\x12\x12\n" +
+	"\x10can_create_skill\x10\t\x12\x12\n" +
 	"\x0ecan_create_idp\x10\v\x12\x1a\n" +
 	"\x16can_create_environment\x10\f\x12\x1f\n" +
 	"\x1bcan_create_identity_account\x10\x15\x12\x18\n" +
@@ -394,7 +389,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x19can_set_public_visibility\x10'\x12\x15\n" +
 	"\x11can_create_plugin\x10(\x12\x14\n" +
 	"\x10can_manage_plans\x10)\x12\x15\n" +
-	"\x11can_issue_license\x10*\"\x04\b!\x10!\"\x04\b\"\x10\"*\x0fcan_use_records*\x14can_create_datastore*b\n" +
+	"\x11can_issue_license\x10*\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x10\n" +
+	"*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*b\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

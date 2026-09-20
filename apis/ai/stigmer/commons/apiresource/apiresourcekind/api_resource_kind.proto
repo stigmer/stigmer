@@ -823,27 +823,13 @@ enum ApiResourceKind {
     }
   }];
 
-  // Tenancy - Project management
-
-  // Aggregate root grouping related resources for lifecycle management.
-  project = 60 [(kind_meta) = {
-    group: tenancy
-    version: v1
-    name: "Project"
-    display_name: "Project"
-    id_prefix: "prj"
-    is_versioned: false
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [
-        owner,
-        viewer
-      ]
-    }
-  }];
+  // Value 60 held the Project kind (id prefix "prj": an aggregate of member
+  // references reconciled from a stigmer.yaml by the CLI) until plugins
+  // became the one way resources are grouped and it was removed
+  // platform-wide. Reserved so the number is never reused for a different
+  // kind.
+  reserved 60;
+  reserved "project";
 
   // Billing - Plans, and the subscriptions and licenses that grant them.
   //

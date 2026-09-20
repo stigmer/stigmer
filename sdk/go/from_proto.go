@@ -33,7 +33,6 @@ import (
 	oauthappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
 	platformclientv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1"
-	projectv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/project/v1"
 )
 
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.
@@ -144,11 +143,6 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 // PluginInputFromProto creates a PluginInput from a proto Plugin resource.
 func PluginInputFromProto(p *pluginv1.Plugin) *PluginInput {
 	return gen.PluginInputFromProto(p)
-}
-
-// ProjectInputFromProto creates a ProjectInput from a proto Project resource.
-func ProjectInputFromProto(p *projectv1.Project) *ProjectInput {
-	return gen.ProjectInputFromProto(p)
 }
 
 // ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.

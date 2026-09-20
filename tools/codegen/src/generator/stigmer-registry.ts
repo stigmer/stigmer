@@ -61,7 +61,6 @@ import { file_ai_stigmer_iam_invitation_v1_api } from "@stigmer/protos/ai/stigme
 import { file_ai_stigmer_iam_oauthapp_v1_api } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { file_ai_stigmer_iam_platformclient_v1_api } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { file_ai_stigmer_tenancy_project_v1_api } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 
 const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_agent_v1_api,
@@ -116,7 +115,6 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_iam_oauthapp_v1_api,
   file_ai_stigmer_iam_platformclient_v1_api,
   file_ai_stigmer_tenancy_organization_v1_api,
-  file_ai_stigmer_tenancy_project_v1_api,
 ];
 
 /** Transitive closure of the root files, dependency-first, deduplicated. */

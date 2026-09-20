@@ -18,7 +18,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
-import { defaultRegistry, Verb } from "../../registry/index.js";
+import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";
 import { loadDocuments, resolveYamlFiles } from "../documents.js";
 import { decodeWorkflowTaskConfigs } from "../task-configs.js";
 import { type ApplyHandler, APPLY_HANDLERS, type ControllerFn } from "./handlers.js";
@@ -36,9 +36,9 @@ export interface ApplyOutcome {
   /** Optional org-mismatch warning to surface on stderr. */
   readonly warning?: string;
   /**
-   * The applied resource message (absent in dry-run). Carries the server's
-   * authoritative metadata (id/slug) — the reconciler reads this to register
-   * project membership, so membership matches what the backend stored.
+   * The applied resource message (absent in dry-run), as the server stored
+   * it: authoritative metadata (id, slug, visibility) for anything that
+   * runs after the apply.
    */
   readonly applied?: Message;
 }
@@ -60,22 +60,14 @@ export function resolveApplyItems(path: string): ApplyItem[] {
 
 /**
  * Resolve a YAML `kind` to its apply handler, enforcing the verb-support gate.
- * Shared by file mode and declarative mode so the lookup + error wording lives
- * in exactly one place. `where` is woven into errors for a precise location.
+ * The unknown-kind wording is the registry's (`unknownKindError`), shared
+ * with `validate -f`, so a retired kind is refused with the same sentence on
+ * both paths. `where` is woven into errors for a precise location.
  */
 export function resolveHandlerForKind(kind: string, where: string): ApplyHandler {
   const info = defaultRegistry().getByYamlKind(kind);
-  if (info === undefined) throw new UsageError(`unknown resource kind '${kind}' in ${where}`);
+  if (info === undefined) throw unknownKindError(kind, where);
   if (!info.supportedVerbs.has(Verb.Apply)) throw new UsageError(`${info.displayName} does not support 'apply'`);
-  if (info.kind === ApiResourceKind.project) {
-    // Project's Apply verb is the stigmer.yaml track, deliberately not a
-    // manifest handler: a file-mode apply would create a second, member-less
-    // way to apply a project, bypassing the membership reconciler.
-    throw new UsageError(
-      `a Project is not applied from a resource manifest (${where}): ` +
-        "run `stigmer apply` in the directory containing stigmer.yaml and the project is reconciled from its members",
-    );
-  }
   const handler = APPLY_HANDLERS.get(info.kind);
   if (handler === undefined) throw new UsageError(`apply not implemented for ${info.displayName}`);
   return handler;
@@ -109,16 +101,15 @@ export async function applyItem(
 
 /**
  * Strict YAML→proto marshal for one item, with a precise location in the error.
- * Split out from {@link applyItem} so the declarative reconciler can marshal
- * without immediately applying (it batches messages, then reconciles).
+ * Split out from {@link applyItem} so marshalling can be exercised and reused
+ * apart from the apply it feeds.
  */
 export function marshalItem(item: ApplyItem): Message {
   try {
     const message = fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
     // Workflow task_config blocks live inside an open Struct the top-level
-    // decode cannot see into; decode them per kind so a dry-run (and the
-    // reconciler's marshal) rejects exactly what a real apply rejects
-    // (stigmer/stigmer#778).
+    // decode cannot see into; decode them per kind so a dry-run rejects
+    // exactly what a real apply rejects (stigmer/stigmer#778).
     if (item.handler.kind === ApiResourceKind.workflow) {
       decodeWorkflowTaskConfigs(message as Workflow);
     }
@@ -130,11 +121,9 @@ export function marshalItem(item: ApplyItem): Message {
 
 /**
  * Apply a fully-marshalled resource message: inject org, then dry-run preview or
- * drive the controller's `apply` RPC. This is the single apply core shared by
- * both tracks — the declarative/file track feeds messages marshalled from YAML
- * (`marshalItem`), the synthesis track feeds messages decoded from `.pb`
- * (`fromBinary`). One core means one place where org injection, create/update
- * detection, and result shaping live (DD-009 §6).
+ * drive the controller's `apply` RPC. The single apply core behind file mode,
+ * taking the message rather than the YAML so org injection, create/update
+ * detection and result shaping live in one place whatever produced the message.
  */
 export async function applyMessage(
   controller: ControllerFn,

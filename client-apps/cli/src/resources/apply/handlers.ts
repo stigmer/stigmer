@@ -1,6 +1,6 @@
-// Apply-handler registry for `apply -f` (file mode) and the synthesis track.
+// Apply-handler registry for `apply -f` (file mode).
 //
-// The declarative manifest kinds come from the SDK's manifest registry
+// The manifest kinds come from the SDK's manifest registry
 // (`manifestKinds()` in @stigmer/sdk) — the one table binding a kind to its
 // proto schema, its raw command-controller `apply` RPC, and its dependency
 // apply order. The CLI consumes that table instead of keeping a copy: the

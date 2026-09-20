@@ -81,7 +81,7 @@ describe("fresh database", () => {
     const rows = db
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
-    expect(rows.map((row) => row.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(rows.map((row) => row.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it("re-opening an already-migrated database is a no-op", async () => {
@@ -106,8 +106,21 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     cleanups.push(() => fixture.cleanup());
 
     // Preconditions: the fixture really is a v6 database with live data.
+    // Beside the fixture's rows, one row of the Project kind an earlier
+    // release seeded (the kind column holds the enum NAME): v9 must
+    // remove exactly it, from both tables, and nothing else.
     const before = new DatabaseSync(fixture.dbPath);
     expect(getSchemaVersion(before)).toBe(6);
+    before
+      .prepare(
+        `INSERT INTO resources (kind, id, data, updated_at) VALUES ('project', 'prj_seeded', X'00', '2026-08-23 11:43:54')`,
+      )
+      .run();
+    before
+      .prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, archived_at, version_hash, tag) VALUES ('project', 'prj_seeded', X'00', '2026-08-23 11:43:54', '', '')`,
+      )
+      .run();
     before.close();
 
     const store = SqliteStore.open(fixture.dbPath);
@@ -125,9 +138,19 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     expect(org.id).toBe("acme");
 
     const audit = db
-      .prepare(`SELECT version_hash, tag FROM resource_audit`)
+      .prepare(`SELECT version_hash, tag FROM resource_audit WHERE kind = 'organization'`)
       .get() as { version_hash: string; tag: string };
     expect(audit).toEqual({ version_hash: "hash-v1", tag: "stable" });
+
+    // v9 removed the Project rows and nothing else.
+    const projectRows = db
+      .prepare(
+        `SELECT (SELECT count(*) FROM resources WHERE kind = 'project') AS resources,
+                (SELECT count(*) FROM resource_audit WHERE kind = 'project') AS audit,
+                (SELECT count(*) FROM resources) AS total`,
+      )
+      .get() as { resources: number; audit: number; total: number };
+    expect(projectRows).toEqual({ resources: 0, audit: 0, total: 1 });
 
     const bootstrap = db
       .prepare(
@@ -214,6 +237,7 @@ describe("v7 column reconciliation", () => {
       CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')));
       INSERT INTO schema_version (version) VALUES (1),(2),(3),(4),(5),(6);
       CREATE TABLE resources (kind TEXT NOT NULL, id TEXT NOT NULL, data BLOB NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (kind, id)) WITHOUT ROWID;
+      CREATE TABLE resource_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, resource_id TEXT NOT NULL, data BLOB NOT NULL, archived_at TEXT NOT NULL DEFAULT (datetime('now')), version_hash TEXT, tag TEXT);
       CREATE TABLE pending_oauth_state (
         state               TEXT PRIMARY KEY,
         code_verifier       TEXT NOT NULL,

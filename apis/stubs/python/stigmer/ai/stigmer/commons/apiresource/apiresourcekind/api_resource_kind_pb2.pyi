@@ -57,7 +57,6 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     schedule: _ClassVar[ApiResourceKind]
     memory: _ClassVar[ApiResourceKind]
     plugin: _ClassVar[ApiResourceKind]
-    project: _ClassVar[ApiResourceKind]
     plan: _ClassVar[ApiResourceKind]
     subscription: _ClassVar[ApiResourceKind]
     license: _ClassVar[ApiResourceKind]
@@ -98,7 +97,6 @@ execution_context: ApiResourceKind
 schedule: ApiResourceKind
 memory: ApiResourceKind
 plugin: ApiResourceKind
-project: ApiResourceKind
 plan: ApiResourceKind
 subscription: ApiResourceKind
 license: ApiResourceKind

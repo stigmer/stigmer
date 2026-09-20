@@ -66,19 +66,6 @@ export const VERB_SUPPORT: ReadonlyMap<
       Verb.Delete,
     ]),
   ],
-  // Project apply is the stigmer.yaml declarative/synthesis track, not
-  // `apply -f project.yaml` — resolveHandlerForKind carries the teaching
-  // refusal, and the conformance test documents it as a special case.
-  [
-    ApiResourceKind.project,
-    new Set<Verb>([
-      Verb.Apply,
-      Verb.Validate,
-      Verb.Get,
-      Verb.List,
-      Verb.Delete,
-    ]),
-  ],
   [ApiResourceKind.api_key, new Set<Verb>([Verb.Get, Verb.List, Verb.Delete])],
   // agent_execution is special — uses dedicated AgentExecutionQueryController
   // RPCs, not the unified SearchService. delete maps to cancel.
