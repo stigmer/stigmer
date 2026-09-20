@@ -2,12 +2,20 @@
  * An agent whose MCP server authenticates by OAuth is not ready until the
  * organization holds a grant for it. Pinned: resolving such an agent lands
  * in `needsEnvVars` with the server under `pendingSignIns` and no variable
- * asked for the token (the composed agent never declares it); a server with
- * a connected grant is not pending; a grant read that fails leaves the
- * server pending (fail-closed, the composer's own MCP rule); a server that
- * cannot be read is the resolution's error; `signInCompleted` for the last
- * pending server resolves the agent again and lands in `ready`; the pool
- * covering every variable does not skip a pending sign-in.
+ * asked for the token; a server with a connected grant is not pending; a
+ * grant read that fails leaves the server pending (fail-closed, the
+ * composer's own MCP rule); a server that cannot be read is the resolution's
+ * error; `signInCompleted` for the last pending server resolves the agent
+ * again and lands in `ready`; the pool covering every variable does not skip
+ * a pending sign-in.
+ *
+ * The token variable IS on the agent: the server's MergeMcpServerEnvSpecs
+ * step copies every referenced server's `env` onto the agent at save, so a
+ * saved agent declares `<SLUG>_ACCESS_TOKEN` beside its own variables. Pinned
+ * for that shape: a connected grant satisfies the declaration and the agent
+ * resolves `ready` in direct mode; without the grant the variable is the Sign
+ * in row and never a form field; a variable of the agent's own beside it is
+ * still asked for.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -141,6 +149,56 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
       await expect(broken.result.current.resolveAgent(REF)).rejects.toThrow(/no server 'ghost'/);
     });
     expect(broken.result.current.state.error?.message).toMatch(/no server 'ghost'/);
+  });
+
+  it("treats a connected grant as satisfying the agent's declaration of the token variable", async () => {
+    // The shape a saved agent has: the server merged the OAuth server's
+    // `LINEAR_ACCESS_TOKEN` declaration onto it; the organization signed in.
+    const { result } = renderHook(() => useAgentSetup(ORG), {
+      wrapper: wrapper(client({ grants: { linear: true } }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+    });
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.resolveAgent(REF);
+    });
+    expect(outcome).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+  });
+
+  it("offers the token variable as a Sign in row and never as a form field while the grant is missing", async () => {
+    const world: { grants: Record<string, boolean | "unreadable" | "missing"> } = { grants: { linear: false } };
+    const { result } = renderHook(() => useAgentSetup(ORG), {
+      wrapper: wrapper(client(world, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+    });
+    await act(async () => {
+      await result.current.resolveAgent(REF);
+    });
+    expect(result.current.state).toMatchObject({
+      status: "needsEnvVars",
+      missingVariables: [],
+      pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })],
+    });
+
+    world.grants.linear = true;
+    await act(async () => {
+      await result.current.signInCompleted("mcp_linear");
+    });
+    await waitFor(() => expect(result.current.state.status).toBe("ready"));
+    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+  });
+
+  it("still asks for the agent's own variables beside a satisfied token variable", async () => {
+    const { result } = renderHook(() => useAgentSetup(ORG), {
+      wrapper: wrapper(client({ grants: { linear: true } }, { LINEAR_ACCESS_TOKEN: { isSecret: true }, API_TOKEN: { isSecret: true } })),
+    });
+    await act(async () => {
+      await result.current.resolveAgent(REF);
+    });
+    expect(result.current.state).toMatchObject({
+      status: "needsEnvVars",
+      missingVariables: [expect.objectContaining({ key: "API_TOKEN" })],
+      pendingSignIns: [],
+    });
   });
 
   it("keeps a pending sign-in even when the pool covers every variable, and refuses submitEnvVars meanwhile", async () => {
