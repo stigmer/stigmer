@@ -48,6 +48,9 @@ The site that renders it lives in `site/`; the tours the pages embed live in
   closes on a gap the reader can feel, not a navigational "continue".
 - Generated pages under `sdk/` and `cli/commands/` are never hand-edited; fix
   the proto comment, the TSDoc or the generator and re-run `make codegen`.
+- A version literal has one owner: a copied version (a pin, a `--version`) is
+  `make release-pins`'; a fact true at the current release names its issue, not
+  a release; a shipped change's version ("before 3.16.0") is history.
 
 ## Skills
 

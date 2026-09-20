@@ -1,121 +1,314 @@
 ---
 title: Enable authentication
 description:
-  Turn on authentication for a self-hosted Stigmer server with your own OIDC
-  identity provider and API keys, and let the web console sign in through it.
+  Turn on authentication for the Docker Compose stack or the Helm chart. People
+  sign in through your OIDC provider, machines use API keys, and the web console
+  signs in through the same provider.
 ---
 
 By default, a self-hosted Stigmer server trusts every request. That is the right
 posture for a single-user machine, and the wrong one the moment the port is
-reachable by anyone else. This guide turns authentication on: people sign in
-through your identity provider, and machines (CI jobs, the runner, scripts) use
-API keys.
+reachable by anyone else. This guide turns authentication on for the two shapes
+you serve to a team, the [Docker Compose stack](./docker-compose) and the
+[Helm chart](./kubernetes): people sign in through your OIDC provider, and
+machines (CI jobs, the runner, scripts) use API keys. The
+[laptop install](/docs/getting-started/local) and the
+[all-in-one container](./all-in-one) are single-user shapes and have no sign-in.
 
 ## What you need
 
-- A running self-hosted stack
-  ([Docker Compose](/docs/guides/self-hosting/docker-compose)).
-- An OIDC identity provider you control — Keycloak, Okta, Auth0, Dex, or any
-  server that supports OIDC discovery. You need two values from it:
-  - the **issuer URL** (for example `https://auth.example.com/realms/main`)
-  - the **audience** your provider stamps on access tokens minted for Stigmer
-    (you usually configure this in the provider as an "API" or "resource server"
-    entry)
+- A running stack, reached over TLS on port 443 the way its page's "Reach it
+  from outside" section set up. The console's redirect URI and the CLI's TLS
+  rule both assume it. For an evaluation on one machine over plain HTTP,
+  `http://localhost:7234` works too.
+- A stack you have bootstrapped: your shape's page ran `stigmer bootstrap`
+  before it sent you here. A server with authentication on refuses the
+  platform-managed labels and the Public visibility the default Plugins carry,
+  so the bootstrap can't be run afterwards
+  ([stigmer#1192](https://github.com/stigmer/stigmer/issues/1192)).
+- An OIDC provider you control: Keycloak, Okta, Auth0, Dex, or any server that
+  supports OIDC discovery. You need three values from it: the **issuer URL**
+  (for example `https://auth.example.com/realms/main`), the **audience** your
+  provider stamps on access tokens minted for Stigmer (usually configured in the
+  provider as an "API" or "resource server" entry), and the **client ID** of the
+  console client you register in the first step.
 
-## Mint your API keys first
+Every setting on this page is one line in the file your shape already uses,
+`.env` for Compose and your values file for the chart:
 
-API keys are created through the server itself, so mint the keys you know you
-will need — one for the runner, one for CI — **before** turning authentication
-on, while the server still trusts you:
+| Setting              | Docker Compose (`.env`)          | Kubernetes (values file)             |
+| -------------------- | -------------------------------- | ------------------------------------ |
+| Issuer               | `STIGMER_OIDC_ISSUER`            | `server.oidc.issuer`                 |
+| Audience             | `STIGMER_OIDC_AUDIENCE`          | `server.oidc.audience`               |
+| Console client ID    | `STIGMER_OIDC_CONSOLE_CLIENT_ID` | `server.oidc.consoleClientId`        |
+| The runner's API key | `STIGMER_TOKEN`                  | `runner.stigmerToken.existingSecret` |
+| Operator email       | `STIGMER_OPERATOR_EMAIL`         | `server.operator.email`              |
 
-```bash
-stigmer apikey create --name runner
-stigmer apikey create --name ci
-```
-
-Each command prints the key exactly once. Save them somewhere safe — the server
-stores only a hash and cannot show them again.
-
-You can also mint keys later with an access token from your identity provider:
-
-```bash
-STIGMER_API_KEY=<oidc-access-token> stigmer apikey create --name another
-```
+On Kubernetes the runner's key lives in a Secret whose key is `STIGMER_TOKEN`,
+and the value names that Secret.
 
 ## Turn authentication on
 
-Set two environment variables on the server and restart it. In the Docker
-Compose stack, add them to the `server` service:
+<Steps>
 
-```yaml no-validate="docker-compose service fragment, not a Stigmer resource"
-services:
-  server:
-    environment:
-      STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main"
-      STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com/"
+### Register the console with your OIDC provider
+
+Create a client (an "app") for the web console. Every provider names these
+settings a little differently; this is what each one must be:
+
+- **Client type: public, using PKCE, with no client secret.** The console runs
+  in the browser and cannot keep a secret. In Keycloak this is a client with
+  "Client authentication" off; in Auth0 a "Single Page Application"; in Okta a
+  "Single-Page App"; in Dex a public client.
+- **Redirect URI**: `https://stigmer.example.com/auth/callback`, your console's
+  address plus `/auth/callback`. For an evaluation over plain HTTP,
+  `http://localhost:7234/auth/callback`.
+- **Post-logout redirect URI**: `https://stigmer.example.com/login`.
+- **Allowed web origins**: `https://stigmer.example.com`. The browser calls your
+  provider's token endpoint directly, so your provider must allow that origin.
+  Keycloak calls this "Web origins"; Auth0 "Allowed Web Origins"; Okta "Trusted
+  Origins"; Dex `allowedOrigins`.
+- **Refresh tokens allowed**: the console asks for `offline_access` so it can
+  renew your sign-in without asking you again. Without a refresh token the
+  console signs you in again when the token expires.
+- **The access token carries your audience**: the server checks that the token
+  it receives names your audience. Auth0 and Okta do this when you request the
+  API you configured; Keycloak needs an **Audience mapper** on the console
+  client that adds the audience to the access token. Dex has no audience mapper
+  and stamps the token with the client ID, so on a Dex install the audience
+  **is** the client ID.
+
+The issuer URL must be one address that both the browser and the server
+container resolve. `localhost` is a different machine to each of them, so a
+provider on the same host as the stack needs a hostname or the host's address in
+its issuer, never `localhost`.
+
+Copy the client ID your provider shows you. It is a public identifier, not a
+secret.
+
+### Set the issuer
+
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+Three lines in `.env`:
+
+```bash
+# .env
+STIGMER_OIDC_ISSUER=https://auth.example.com/realms/main
+STIGMER_OIDC_AUDIENCE=https://stigmer.example.com
+STIGMER_OIDC_CONSOLE_CLIENT_ID=stigmer-console
 ```
 
-Both must be set together — the server refuses to boot on a half configuration
-rather than silently serving unauthenticated.
-
-Give the runner its API key in the same file:
-
-```yaml no-validate="docker-compose service fragment, not a Stigmer resource"
-services:
-  runner:
-    environment:
-      STIGMER_TOKEN: "stk_..." # the key you minted for the runner
+```bash
+docker compose up -d
 ```
+
+Compose recreates the services whose settings changed.
+
+</Tab>
+<Tab value="Kubernetes">
+
+The chart asks for the runner's API key in the same upgrade that sets the
+issuer, and refuses the issuer without it. So on Kubernetes the runner's key
+comes first. While the server still trusts every caller, create it and put it in
+a Secret:
+
+```bash
+stigmer apikey create --name runner --never-expires
+kubectl -n stigmer create secret generic stigmer-runner-token \
+  --from-literal=STIGMER_TOKEN=stk_...
+```
+
+Then add the four values to your values file and upgrade:
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+server:
+  oidc:
+    issuer: https://auth.example.com/realms/main
+    audience: https://stigmer.example.com
+    consoleClientId: stigmer-console
+runner:
+  stigmerToken:
+    existingSecret: stigmer-runner-token
+```
+
+```bash
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
+  --namespace stigmer \
+  -f values.yaml \
+  --wait
+```
+
+The pod is recreated; start your port-forward again afterwards.
+
+</Tab>
+</Tabs>
+
+The issuer and the audience go together: the server refuses to boot on one
+without the other rather than serve unauthenticated. The client ID is the one
+value it tolerates missing: the server boots, logs a warning, and the console
+tells anyone who opens it which variable to set.
+
+### Check the server's answer
+
+Before you open a browser, ask the server what the console will read. It
+publishes its sign-in settings at `/config.json`, the one file the console
+fetches before it renders anything:
+
+```bash
+curl -s https://stigmer.example.com/config.json
+```
+
+Through a port-forward, the address is `http://localhost:7234/config.json`. With
+authentication on, the answer names your provider:
+
+```json
+{
+  "authMode": "oidc",
+  "oidcIssuer": "https://auth.example.com/realms/main",
+  "oidcClientId": "stigmer-console",
+  "oidcAudience": "https://stigmer.example.com"
+}
+```
+
+`"authMode": "disabled"` means the values never reached the server: check the
+file you edited and that the service was recreated.
+
+### Sign in
+
+Open the console. It sends you to your provider to sign in and brings you back.
+The first time, the server creates your Identity Account from the profile your
+provider publishes. If your email matches the operator email you set, you become
+an administrator of every Organization; the server trusts that email exactly as
+your provider asserts it, so use a provider that verifies email addresses. If
+the stack has no Organization yet, the console asks you to create one. The
+person who creates an Organization is recorded as its owner; people who sign in
+afterwards join it as members.
+
+### Create the keys
+
+Open **Settings → API Keys** and choose **New API key**. Create one named
+`runner` with expiration **Never**: it is a long-lived credential, and a key
+that expires stops authenticating on that day. Create a second one for your own
+CLI. Each key is shown exactly once; the server stores only a hash and cannot
+show it again.
+
+Create keys after you sign in: until
+[stigmer#1169](https://github.com/stigmer/stigmer/issues/1169) is fixed, a key
+created while the server still trusted everyone does not work once
+authentication is on.
+
+### Give the runner its key
+
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+One line in `.env`:
+
+```bash
+# .env
+STIGMER_TOKEN=stk_...
+```
+
+```bash
+docker compose up -d
+```
+
+Compose recreates the services whose settings changed.
+
+</Tab>
+<Tab value="Kubernetes">
+
+<Callout type="warn">
+  **A key created before authentication was on stops working when it turns on**
+  ([stigmer#1169](https://github.com/stigmer/stigmer/issues/1169)). Give the
+  runner the `runner` key you just created instead: write it into the Secret and
+  restart the pod so the runner reads it.
+</Callout>
+
+```bash
+kubectl -n stigmer create secret generic stigmer-runner-token \
+  --from-literal=STIGMER_TOKEN=stk_... \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n stigmer rollout restart deployment/stigmer
+```
+
+Start your port-forward again afterwards; it stops with the pod.
+
+</Tab>
+</Tabs>
+
+The runner's key is its own credential. It does not decide whose runs the runner
+serves or who is recorded as running them; the next section says how a run is
+attributed.
+
+### Point the CLI at the stack
+
+Add the stack as a named backend with your own key, and switch to it:
+
+```bash
+stigmer config backend add prod --endpoint stigmer.example.com:443 --api-key stk_...
+stigmer config backend use prod
+```
+
+Port 443 is the one port the CLI dials with TLS. A named backend keeps its key,
+so switching between this stack, your laptop and Stigmer Cloud stays one
+command.
+
+</Steps>
 
 ## What changes
 
-From the next boot, every request needs a credential:
+From the boot that read the issuer, every request needs a credential:
 
-- **People** send an access token from your identity provider. The server
-  verifies it against the issuer's published keys and checks the audience, then
-  resolves the token to that person's Identity Account. The account is created
-  the first time that person runs
+- **People** send an access token from your OIDC provider. The server verifies
+  it against the issuer's published keys and checks the audience, then resolves
+  the token to that person's Identity Account. The account is created at their
+  first sign-in through the console, or the first time they run
   `STIGMER_API_KEY=<oidc-access-token> stigmer auth whoami`; the command says
   when it did.
-- **Machines** send an API key (`stk_...`) the same way — as a bearer token.
-  `stigmer apikey create` mints them; deleting a key revokes it immediately.
+- **Machines** send an API key (`stk_...`) the same way, as a bearer token.
+  Settings → API Keys and `stigmer apikey create` mint them; deleting a key
+  revokes it immediately, and a key with an expiration stops working on that
+  date.
 - **Roles decide what a signed-in person may do.** Every Organization has four
   roles: owner, admin, member and viewer. Owners and admins manage the
-  organization's Agents, Workflows, Skills and MCP servers and its members.
-  Members use what is shared with the organization and create their own
+  Organization's Agents, Workflows, Skills and MCP Servers and its members.
+  Members use what is shared with the Organization and create their own
   Sessions, Environments and API keys. Viewers only read what is shared. An
   Agent, Workflow or Skill marked Private shows up in the library and opens on
-  its page only for the person who created it and the organization's admins.
-  Nobody reads another person's conversations, API keys or Environments — admins
+  its page only for the person who created it and the Organization's admins.
+  Nobody reads another person's conversations, API keys or Environments, admins
   included. These are the same rules Stigmer Cloud enforces, so an Agent behaves
   the same way wherever it runs.
-- **If authentication was already on before this release, roles are assigned at
-  the first start.** People who signed in under an earlier release keep what
-  they had: whoever created an Organization owns it, whoever created an Agent,
-  Workflow, Skill, MCP server, Environment or Schedule in it is an admin there,
-  the `STIGMER_OPERATOR_EMAIL` holder is an admin everywhere, and everyone else
-  is a member. This happens once; from then on roles change only when an owner
-  or admin changes them.
-- **Anything marked Public before this release stays readable by every signed-in
+- **If authentication was already on before 3.16.0, roles were assigned at the
+  first start of that release.** People who signed in under an earlier release
+  keep what they had: whoever created an Organization owns it, whoever created
+  an Agent, Workflow, Skill, MCP Server, Environment or Schedule in it is an
+  admin there, the operator email's holder is an admin everywhere, and everyone
+  else is a member. This happens once; from then on roles change only when an
+  owner or admin changes them.
+- **Anything marked Public before 3.16.0 stays readable by every signed-in
   person**, including people outside its Organization. New Public marks are
   refused on a self-hosted server; an admin can set an existing one back to
   Organization from its page.
 - **Runs belong to the person who started them, whoever's key the runner
-  holds.** The runner's API key is its own credential. For each run, the server
-  gives the runner a credential for that run alone, and everything the runner
-  does for it, including the Sessions and executions it creates, the status it
-  reports and the memories its agent proposes with `remember`, is recorded as
-  that person. Connecting an MCP server that declares credentials works the same
-  way: the runner reads those credentials as the person who asked for the
-  connect. A workflow shared with the organization runs the agents it calls as
-  the person who ran the workflow, so that person must be able to view them; a
-  call to a private agent fails at the agent's read. A run that was already in
-  flight when you turned authentication on belongs to no signed-in person and
-  stops with a message saying so; start it again while signed in. A run's
-  credential is written into the run's Temporal history and stays valid for ten
-  minutes after the run ends, so protect Temporal the way you protect the
-  database. To end a run's credential, end the run: cancel it and the credential
-  is dead ten minutes later. To end every run's credential at once, rotate
+  holds.** For each run, the server gives the runner a credential for that run
+  alone, and everything the runner does for it, including the Sessions and
+  executions it creates, the status it reports and the memories its Agent
+  proposes with `remember`, is recorded as that person. Connecting an MCP Server
+  that declares credentials works the same way: the runner reads those
+  credentials as the person who asked for the connect. A Workflow shared with
+  the Organization runs the Agents it calls as the person who ran the Workflow,
+  so that person must be able to view them; a call to a private Agent fails at
+  the Agent's read. A run that was already in flight when you turned
+  authentication on belongs to no signed-in person and stops with a message
+  saying so; start it again while signed in. A run's credential is written into
+  the run's Temporal history and stays valid for ten minutes after the run ends,
+  so protect Temporal the way you protect the database. To end a run's
+  credential, end the run: cancel it and the credential is dead ten minutes
+  later. To end every run's credential at once, rotate
   `STIGMER_RUNNER_TOKEN_KEY`; every run in flight stops and must be started
   again.
 - Requests without a credential are rejected with
@@ -126,85 +319,11 @@ From the next boot, every request needs a credential:
   `getServerInfo` read your console and CLI use before login, and the standard
   gRPC health service (`grpc.health.v1.Health`), so Kubernetes `grpc:` readiness
   and liveness probes keep working exactly as before.
-- **The web console signs in through your provider.** Register it as a client
-  and tell the server its ID; see
-  [Sign in to the console](#sign-in-to-the-console).
 
-Point your CLI at the stack as a named backend with its key:
-
-```bash
-stigmer config backend add prod --endpoint stigmer.example.com:7234 --api-key stk_...
-stigmer config backend use prod
-```
-
-## Sign in to the console
-
-The web console the server serves signs in through your identity provider, with
-the browser's standard Authorization Code flow (PKCE). Two steps: register the
-console with your provider, then tell the server which client you registered.
-
-### Register the console with your identity provider
-
-Create a client (an "application") for the console. Every provider names these
-settings a little differently; this is what each one must be:
-
-- **Client type: public, using PKCE, with no client secret.** The console runs
-  in the browser and cannot keep a secret. In Keycloak this is a client with
-  "Client authentication" off; in Auth0 a "Single Page Application"; in Okta a
-  "Single-Page App".
-- **Redirect URI**: `https://stigmer.example.com/auth/callback` — your console's
-  address plus `/auth/callback`. For a laptop evaluation over plain HTTP,
-  `http://localhost:7234/auth/callback`.
-- **Post-logout redirect URI**: `https://stigmer.example.com/login`.
-- **Allowed web origins**: `https://stigmer.example.com`. The browser calls your
-  provider's token endpoint directly, so your provider must allow that origin.
-  Keycloak calls this "Web origins"; Auth0 "Allowed Web Origins"; Okta "Trusted
-  Origins".
-- **Refresh tokens allowed**: the console asks for `offline_access` so it can
-  renew your sign-in without asking you again. Without a refresh token the
-  console signs you in again when the token expires.
-- **The access token carries your audience**: the server checks that the token
-  it receives names `STIGMER_OIDC_AUDIENCE`. Auth0 and Okta do this when you
-  request the API you configured; Keycloak needs an **Audience mapper** on the
-  console client that adds the audience to the access token.
-
-Copy the client ID your provider shows you. It is a public identifier, not a
-secret.
-
-### Tell the server
-
-Add the client ID beside the two variables you already set:
-
-```yaml no-validate="docker-compose service fragment, not a Stigmer resource"
-services:
-  server:
-    environment:
-      STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main"
-      STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com/"
-      STIGMER_OIDC_CONSOLE_CLIENT_ID: "stigmer-console"
-```
-
-Restart the server. The variable is optional: a server with the issuer set but
-no console client still boots, logs a warning, and the console tells anyone who
-opens it which variable to set.
-
-### What you see
-
-Open the console. It sends you to your provider to sign in and brings you back.
-The first time, the server creates your Identity Account from the profile your
-provider publishes, and the console asks you to create your first Organization.
-The person who creates an organization is recorded as its owner; people who sign
-in afterwards join it as members. Owners and admins change roles under Settings
-→ Members. If you set `STIGMER_OPERATOR_EMAIL`, the person whose provider email
-matches it becomes an administrator of every Organization the first time they
-sign in. The server trusts that email exactly as your provider asserts it, so
-use a provider that verifies email addresses. Sign out from the console's
-account menu; you land on the console's sign-in page.
-
-What the roles mean day to day:
+### What the roles mean day to day
 
 - A member cannot create an Agent, Workflow or Skill until an owner or admin
-  promotes them under Settings → Members. New arrivals are members.
+  promotes them under **Settings → Members**. New arrivals are members.
 - The server does not stop a signed-in person from creating another
   Organization; whoever creates one owns it.
 - A script that presents an access token but has never signed in through the
@@ -214,28 +333,32 @@ What the roles mean day to day:
   person. Each pauses at its next run and says why; recreate it while signed in.
 - Memories recorded before you turned authentication on belong to no signed-in
   person either, and stay hidden.
-- An admin's lists show the organization's Agents, Workflows and Skills, not
+- An admin's lists show the Organization's Agents, Workflows and Skills, not
   other members' Sessions, Environments or API keys.
 
-### What still needs an API key
+## What still needs an API key
 
 The `stigmer` CLI and the desktop app cannot sign in to a self-hosted server
-through your identity provider yet. Point the CLI at the stack with an API key
-as shown above, or pass an access token from your provider as `STIGMER_API_KEY`.
-Console-style sign-in for the CLI and the desktop app is tracked as
+through your OIDC provider yet. Point the CLI at the stack with an API key, as
+the last step shows. If you hold an access token from your provider, the CLI
+accepts it in place of a key: `STIGMER_API_KEY=<oidc-access-token>` in front of
+`stigmer auth whoami` creates your Identity Account if you have never signed in,
+and in front of `stigmer apikey create --name ci` mints a key without the
+console. How you obtain that token is your provider's business. Console-style
+sign-in for the CLI and the desktop app is tracked as
 [stigmer#1077](https://github.com/stigmer/stigmer/issues/1077) and
 [stigmer#1080](https://github.com/stigmer/stigmer/issues/1080).
 
 ## Next step
 
-With authentication on, your stack's state is worth protecting properly.
+With authentication on, your stack's state is worth protecting.
 
 <Cards>
   <Card
     title="Back up and upgrade your stack"
     href="/docs/guides/self-hosting/operations"
   >
-    The complete backup story — three volumes plus your `.env` — and the
-    version-pin upgrade path.
+    The complete backup story, the volumes or claims that hold state and the
+    file every setting lives in, and the version-pin upgrade path.
   </Card>
 </Cards>

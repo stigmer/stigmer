@@ -1,11 +1,13 @@
 {
   "title": "Self-hosting",
   "pages": [
+    "overview",
     "cloud-vs-self-hosted",
     "all-in-one",
     "docker-compose",
     "kubernetes",
     "authentication",
-    "operations"
+    "operations",
+    "runners"
   ]
 }

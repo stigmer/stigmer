@@ -39,9 +39,11 @@ x-artifacts-path: &artifacts-path "/data/.stigmer/data/artifacts"
 
 # Where artifact download URLs point. These URLs are minted for HOST-side
 # consumers (your browser, the CLI), so they use the host-published port —
-# NOT the in-network address. Serving this stack to other machines? Change
-# this to an address they can reach.
-x-artifact-serve-url: &artifact-serve-url "http://localhost:7235"
+# NOT the in-network address. Serving this stack to other machines? Set
+# STIGMER_ARTIFACT_PUBLIC_URL in .env to the address they reach the artifact
+# lane on (the chart's server.artifactPublicUrl); the default is the
+# single-machine posture.
+x-artifact-serve-url: &artifact-serve-url "${STIGMER_ARTIFACT_PUBLIC_URL:-http://localhost:7235}"
 
 services:
   postgres:
@@ -119,8 +121,10 @@ services:
       ARTIFACT_LOCAL_BASE_PATH: *artifacts-path
       ARTIFACT_LOCAL_SERVE_URL: *artifact-serve-url
       # Skill push/download capability URLs are host-consumed too (the CLI
-      # and SDKs); same reasoning as the artifact serve URL.
-      SKILL_TRANSFER_BASE_URL: "http://localhost:7234"
+      # and SDKs); same reasoning as the artifact serve URL. Behind a TLS
+      # proxy, STIGMER_PUBLIC_URL in .env is the address clients reach the
+      # API on (the chart's server.publicUrl).
+      SKILL_TRANSFER_BASE_URL: "${STIGMER_PUBLIC_URL:-http://localhost:7234}"
       # Explicit keys, loud fail (DD-013): the server would otherwise
       # auto-generate keys into the volume, making the backup/rotation
       # story invisible exactly where self-hosters need it explicit.
@@ -129,6 +133,14 @@ services:
       # Optional operator identity for audit attribution (see .env.example).
       STIGMER_OPERATOR_EMAIL: ${STIGMER_OPERATOR_EMAIL:-}
       STIGMER_OPERATOR_NAME: ${STIGMER_OPERATOR_NAME:-}
+      # Authentication, off until .env sets it (see .env.example). The
+      # issuer is THE switch: the server treats an empty value as unset,
+      # refuses an issuer without an audience at boot, and warns when the
+      # console client id is missing. The same three as the chart's
+      # server.oidc.{issuer,audience,consoleClientId}.
+      STIGMER_OIDC_ISSUER: ${STIGMER_OIDC_ISSUER:-}
+      STIGMER_OIDC_AUDIENCE: ${STIGMER_OIDC_AUDIENCE:-}
+      STIGMER_OIDC_CONSOLE_CLIENT_ID: ${STIGMER_OIDC_CONSOLE_CLIENT_ID:-}
     volumes:
       # Server state beyond Postgres: the skill content store
       # (~/.stigmer/storage) and anything else under the image's HOME=/data.
@@ -169,6 +181,11 @@ services:
       # key-free.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CURSOR_API_KEY: ${CURSOR_API_KEY:-}
+      # The runner's own API key (the chart's runner.stigmerToken); an empty
+      # value reads as unset, and the authentication guide says when to set
+      # it. Each run the runner serves is attributed to the member who
+      # started it, not to this key's holder.
+      STIGMER_TOKEN: ${STIGMER_TOKEN:-}
     volumes:
       # Runner state (HITL/pause checkpoints, session dirs, workspaces)
       # lives under HOME=/data — on a volume so in-flight paused sessions

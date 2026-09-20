@@ -36,8 +36,8 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Stigmer's one-line pitch and which of nine entry points matches the
-      reader's goal.
+      Stigmer's one-line pitch and which entry point matches the reader's goal,
+      from a first run to self-hosting.
     medium: animated-tour
     why:
       The hero exists to show the product working; motion is the pitch. The
@@ -503,12 +503,13 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      A Runner is the self-registering compute process that executes work —
-      three modes, five lifecycle phases, three selection paths.
+      A Runner is the process that executes work, not a resource; where one
+      comes from in each way of running Stigmer; how work reaches it through a
+      task queue and what happens when none is polling.
     medium: diagram
     why:
-      The lifecycle is literally a state machine and the page already renders it
-      as one.
+      The runner's place at the end of the Agent, Instance, Session, Execution
+      chain is structure; the existing mermaid carries it.
 
   guides/runners/overview:
     fate: keep
@@ -709,6 +710,16 @@ pages:
       pricing and spend-reduction mechanics that belong nearer the billing
       guides; the concept survives, the operational halves move out.
 
+  guides/self-hosting/overview:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Which of the three self-hosting shapes (laptop, one server, Kubernetes)
+      fits the reader's team, where each shape's guide is, and what every shape
+      shares — sign-in off until turned on, the runner as one trust domain, one
+      Organization, the reader's own provider keys and backups.
+    medium: none
+
   guides/self-hosting/cloud-vs-self-hosted:
     fate: keep
     diataxis: explanation
@@ -717,7 +728,8 @@ pages:
       includes (the full contract, Postgres, OIDC + API keys, isolation
       drivers), what Stigmer Cloud adds (tenancy, SSO, fine-grained
       permissions, channels, metered billing, managed ops), and the honest
-      limitation of self-hosting today (Compose is the packaging).
+      limitation of self-hosting today (two production packagings, no
+      operator).
     medium: none
 
   guides/self-hosting/all-in-one:
@@ -725,18 +737,22 @@ pages:
     diataxis: how-to
     teaches:
       Run the whole stack from one Docker image for evaluation — the run
-      command and what each flag means, stopping and upgrading, looking inside
-      with the CLI, what runs where — with the evaluation-only label and the
-      no-auth trust model stated up front.
+      command and what each flag means, a first message to the default Agent
+      from the console, stopping and upgrading, looking inside with the CLI,
+      what runs where — with the evaluation-only label, the no-auth trust model
+      and the laptop sibling (`stigmer up`) named up front.
     medium: none
 
   guides/self-hosting/docker-compose:
     fate: keep
     diataxis: how-to
     teaches:
-      Run the complete stack (server, Postgres, Temporal, runner) on your own
-      machine with Docker Compose, bootstrap it with the CLI, and run a first
-      Agent — with the no-auth trust model stated up front.
+      Run the production one-server stack (server, Postgres, Temporal, runner)
+      with Docker Compose, every setting a line in .env; connect the CLI as a
+      named backend, bootstrap the backend (the stigmer Organization and the
+      default Plugins, before authentication is on) and run a first Agent; then
+      put a TLS proxy in front and turn authentication on from .env — with
+      sign-in off-by-default stated up front.
     medium: diagram
     why:
       The four-service topology and which volume holds what state is
@@ -747,34 +763,57 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install the complete stack on a Kubernetes cluster with the Helm chart —
-      create the Secret, install, reach the console, give the runner a key, add
-      an Ingress, turn authentication on in two steps, bring your own Postgres
-      and Temporal, back up and upgrade — with the no-auth trust model stated
-      up front.
+      Install the complete stack on a Kubernetes cluster with the Helm chart on
+      one rule, every setting is a line in your values file — create the
+      Secrets, write the values file and install, reach the console through a
+      port-forward, connect the CLI as a named backend, bootstrap the backend
+      (the stigmer Organization and the default Plugins, before authentication
+      is on) and run a first Agent, add the two-host Ingress, turn
+      authentication on, bring your own Postgres and Temporal, back up and
+      upgrade — with the no-auth trust model stated up front.
     medium: none
 
   guides/self-hosting/authentication:
     fate: keep
     diataxis: how-to
     teaches:
-      Turn on authentication for a self-hosted server with your own OIDC
-      identity provider (issuer + audience) and API keys — including minting
-      keys before enabling, the runner's key (its own credential; runs stay
-      attributed to the person who started them), pointing the CLI at the
-      authenticated stack as a named backend, and registering the web console
-      as a public PKCE client so it signs in through the provider (redirect
-      and post-logout URIs, web origins, refresh tokens, the audience on the
-      token, STIGMER_OIDC_CONSOLE_CLIENT_ID).
+      Turn on authentication for the Compose stack or the Helm chart with your
+      own OIDC provider and API keys, in order — register the console as a
+      public PKCE client (redirect and post-logout URIs, web origins, refresh
+      tokens, the audience on the token, Dex's audience-is-the-client-ID rule),
+      set issuer, audience and console client ID as .env lines or values-file
+      lines, read the server's /config.json to confirm, sign in, create the
+      runner's never-expiring key and your own under Settings → API Keys, give
+      the runner its key (the chart's Secret and the order it forces), point
+      the CLI at the stack on 443 — then what changes (roles, run attribution,
+      what stays open) and what still needs an API key.
     medium: none
 
   guides/self-hosting/operations:
     fate: keep
     diataxis: how-to
     teaches:
-      What a complete backup of a self-hosted stack is (three volumes plus
-      .env), how to restore one, and the version-pin upgrade path.
+      One backup format for both team shapes (a dump of the three databases, a
+      tarball per file store, the keys as a flat file); back up, restore, move
+      between Compose and Kubernetes, upgrade by version pin, change a setting
+      or rotate the runner's key, uninstall, each per shape.
     medium: none
+
+  guides/self-hosting/runners:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      What executes Agents and Workflows on a self-hosted stack and how a run
+      reaches it through the one task queue; what an Agent run and a Workflow
+      run each do when no runner is polling; where the LLM key, the shared
+      artifact disk and the runner's own API key come from per shape; why the
+      runner is one trust domain; the per-Session sandbox provisioner as a
+      mechanism and its limit at the current release.
+    medium: diagram
+    why:
+      The path one run takes (you, the server, the queue, the runner, your LLM
+      provider, and back) is a sequence; the shape pages carry topology, this
+      page carries the flow.
 
   # ── CLI ────────────────────────────────────────────────────────────────
   cli:

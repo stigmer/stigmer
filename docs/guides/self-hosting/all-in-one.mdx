@@ -10,6 +10,11 @@ the web console, an embedded Temporal dev-server, an embedded runner that
 executes your Agents and Workflows, and SQLite. One `docker run`, one volume, no
 Node.js on your machine.
 
+It is the laptop shape from [Self-hosting](./overview) for a machine without
+Node.js. With Node.js installed, `stigmer up` runs the same stack as a daemon on
+your machine, and the [local quickstart](/docs/getting-started/local) takes you
+from install to a first Agent in the terminal.
+
 <Callout type="warn">
   **Evaluation only — not for production.** One container is right for a
   thirty-second try and wrong for running it for real: there are no separate
@@ -39,6 +44,10 @@ Open the console at [http://localhost:7234](http://localhost:7234). The first
 start takes a moment: the container starts Temporal, the server, and the runner,
 then creates the `stigmer` Organization and installs the default Plugins into
 it. Watch it with `docker logs -f stigmer`.
+
+Once it is up, the console opens on the workbench with the default Agent
+selected. Send it a message: the answer comes back through the runner inside the
+container, using the key you passed.
 
 Both amd64 and arm64 are supported — every release is smoke-tested on both
 architectures before the image publishes.
@@ -75,7 +84,7 @@ The container carries the `stigmer` CLI, already pointed at the stack:
 
 ```bash
 docker exec stigmer stigmer status
-docker exec stigmer stigmer get agents
+docker exec stigmer stigmer list agents
 ```
 
 The component logs live on the volume under `/data/.stigmer/data/logs/`.
@@ -95,8 +104,12 @@ is not part of the evaluation surface.
 
 ## Next step
 
-You have the whole platform on your machine and an Agent that runs. The
-container is a demo, not a deployment: it has one process tree, one volume, and
-a Temporal that forgets. When you want a stack a team can rely on — Postgres, a
+You have the whole platform on your machine, the console open, and an Agent that
+answers. The container is a demo: one process tree, one volume, and a Temporal
+that forgets. To build Agents of your own, install Node.js and the CLI.
+`stigmer up` runs the same stack as a daemon on your machine, and the
+[local quickstart](/docs/getting-started/local) takes you from your first
+`agent.yaml` to a run; everything you saw under `/data/.stigmer` is what
+`~/.stigmer` holds there. When you want a stack a team can rely on — Postgres, a
 real Temporal server, separate backups, an upgrade path — move to
 [Self-host with Docker Compose](./docker-compose).

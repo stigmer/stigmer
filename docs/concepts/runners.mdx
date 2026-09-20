@@ -1,9 +1,9 @@
 ---
 title: Runners
 description:
-  A Runner is a process that connects to Stigmer and executes your Agents. Learn
-  about the three execution modes, the runner lifecycle, and how Sessions
-  connect to runners.
+  A Runner is the process that executes your Agents and Workflows. Learn where
+  it sits in the resource model, where one comes from in each way of running
+  Stigmer, and how work reaches it.
 ---
 
 Every [Agent](/docs/concepts/agents) needs somewhere to run. An Agent definition
@@ -18,10 +18,10 @@ requests.
 
 Runners sit at the execution layer of the resource model. When you send a
 message to a [Session](/docs/concepts/sessions), Stigmer creates an
-[Agent Execution](/docs/concepts/agents#blueprint-vs-runtime) and dispatches it
-to a runner. The runner processes the execution — calling the LLM, running
-tools, pausing for [approval](/docs/concepts/approval-flows) — and streams the
-result back.
+[Agent Execution](/docs/concepts/agents#blueprint-vs-runtime) and hands it to a
+runner. The runner processes the execution — calling the LLM, running tools,
+pausing for [approval](/docs/concepts/approval-flows) — and streams the result
+back.
 
 {/* prettier-ignore */}
 <Mermaid
@@ -42,120 +42,58 @@ graph LR
 | **Agent Execution** | One request-response cycle     | Preparing one dish               |
 | **Runner**          | The process that does the work | The cook                         |
 
-Unlike Agents and Skills, you don't write a Runner definition in YAML. Runners
-register themselves. You start a runner process, it connects to the server,
-heartbeats to stay alive, and picks up executions. The server tracks each runner
-as a resource with a thin spec and rich status — similar to how Kubernetes
-tracks Nodes.
+Unlike Agents and Skills, a Runner is not a resource. You don't write one in
+YAML, you can't `apply` one, and the server keeps no record of which runners
+exist. A runner is a process that connects to the server and to Temporal and
+does the work that appears on its queue.
 
-A single runner can host workers for multiple
-[Harnesses](/docs/concepts/harnesses). When you start a runner with
-`stigmer up`, it runs the native worker by default. If a Cursor API key is
-configured, it also starts a Cursor worker on a dedicated task queue. Both
-workers share the same runner identity — you don't need separate runner
-processes for each Harness.
+A single runner serves both [Harnesses](/docs/concepts/harnesses). The Harness
+is a property of the Session, and it travels with each execution to whichever
+runner takes it; there is no separate runner, process, or queue per Harness.
 
-## Three execution modes
+## Where a runner comes from
 
-Runners operate in one of three modes. The mode determines where Agent commands
-run and who manages the infrastructure.
+Every way of running Stigmer starts exactly one runner beside the server, and
+the two never meet directly.
 
-|                   | Local                                    | Sandbox                                         | Cloud (auto)                                        |
-| ----------------- | ---------------------------------------- | ----------------------------------------------- | --------------------------------------------------- |
-| **Who starts it** | You — via `stigmer up`                   | You — via `stigmer up --execution-mode sandbox` | The platform — automatically                        |
-| **Where it runs** | Your machine (laptop, server, CI)        | Docker container on your machine                | Stigmer-managed infrastructure                      |
-| **Isolation**     | None — full host access                  | Container-level                                 | Platform-managed                                    |
-| **Lifecycle**     | Persistent — stays until you stop it     | Persistent — stays until you stop it            | Ephemeral — created per execution, cleaned up after |
-| **Good for**      | Development, on-premises, data-sensitive | Untrusted workloads, consistent runtimes        | Zero-setup production, burst capacity               |
+- **Your laptop.** `stigmer up` starts the server, a managed Temporal, and a
+  runner as its own process. `stigmer up server` starts the server alone,
+  without one.
+- **The all-in-one container.** The same composition as `stigmer up`, inside one
+  container.
+- **The Docker Compose stack and the Helm chart.** One runner service beside the
+  server, or one runner container in the server's pod. The
+  [self-hosting runner page](/docs/guides/self-hosting/runners) explains what it
+  is given, what happens when it is gone, and why it is one trust domain.
+- **Stigmer Cloud.** The platform provides the runner, in a sandbox it starts
+  and cleans up for you. You never see it. The mechanism behind it exists in the
+  open source server as a sandbox provisioner that starts a runner per Session;
+  the self-hosting runner page says what it does and does not do today.
 
-**Local** is the default. Start a runner with `stigmer up` and Agent commands
-execute directly on the host machine. The Agent has full access to the local
-file system.
+## How work reaches a runner
 
-**Sandbox** adds isolation. Start a runner with
-`stigmer up --execution-mode sandbox`. Agent commands run inside a Docker
-container, keeping untrusted operations away from the host.
+The server never picks a runner. It puts each execution on a Temporal task
+queue, `stigmer_runner` by default, and whichever runner polls that queue takes
+the work. A run carries two things with it: the Session's Harness, and a
+credential the server mints for that run alone, so that everything the runner
+does for the run is recorded as the person who started it.
 
-**Cloud (auto)** requires no setup. When a Session needs compute and no runner
-is specified, the platform provisions an ephemeral runner on demand. Cloud
-runners are labeled `stigmer.ai/system-managed` and cleaned up automatically.
-
-## Runner lifecycle
-
-Every runner moves through a set of phases. These phases appear as status badges
-in the web console and reflect what the runner is doing right now.
-
-{/* prettier-ignore */}
-<Mermaid
-  chart={[
-    "stateDiagram-v2",
-    "  [*] --> Pending",
-    "  Pending --> Ready: first heartbeat",
-    "  Ready --> Busy: at max capacity",
-    "  Busy --> Ready: capacity freed",
-    "  Ready --> Stopped: timeout or explicit stop",
-    "  Busy --> Stopped: timeout or explicit stop",
-    "  Stopped --> Ready: process restarts",
-    "  Pending --> Failed: unrecoverable error",
-    "  Ready --> Failed: unrecoverable error",
-    "  Busy --> Failed: unrecoverable error",
-    "  Stopped --> Failed: unrecoverable error",
-  ].join("\n")}
-/>
-
-| Phase       | What it means                                        | What triggers it                              |
-| ----------- | ---------------------------------------------------- | --------------------------------------------- |
-| **Pending** | Resource exists, runner process hasn't connected yet | Runner created but not yet sending heartbeats |
-| **Ready**   | Connected and accepting new executions               | First heartbeat received (or restart)         |
-| **Busy**    | Connected but at maximum concurrent capacity         | Runner reports it cannot take more work       |
-| **Stopped** | No longer sending heartbeats, resource retained      | Heartbeat timeout, explicit stop, or shutdown |
-| **Failed**  | Unrecoverable error                                  | Fatal condition reported by runner or server  |
-
-Two things drive phase transitions:
-
-1. **The runner process** sends a heartbeat every 30 seconds. Each heartbeat
-   reports the runner's phase, current execution count, and machine information.
-   The first heartbeat moves a runner from Pending to Ready.
-
-2. **The server** monitors heartbeats. If a runner misses its heartbeat window,
-   the server marks it Stopped. You can also stop a runner explicitly from the
-   web console, the CLI, or the SDK.
-
-A Stopped runner is not gone. If the same runner process restarts and sends
-heartbeats again, it transitions back to Ready. The runner's identity persists
-across restarts — the CLI stores the runner ID locally and reactivates the same
-resource.
-
-## How Sessions find runners
-
-When you start a conversation, Stigmer needs to decide which runner handles the
-executions. There are three modes:
-
-**Auto (default)** — You don't pick a runner. Stigmer chooses for you. In cloud
-mode, it provisions an ephemeral runner on demand. In local/OSS mode, it routes
-to the runner embedded in `stigmer up server`.
-
-**Explicit selection** — You pick a runner from the runner picker in the Session
-composer. Only runners in the Ready or Busy phase appear as selectable options.
-This is how you direct work to a specific machine — your laptop, a GPU server,
-or a build Agent.
-
-**Session binding** — A Session remembers its runner. Once an execution runs on
-a runner, subsequent messages in that Session route to the same runner. If the
-bound runner is unavailable, the Session falls back to automatic provisioning.
-
-## Runners in the web console
-
-In Settings > Runners, you see every runner in your Organization — local runners
-you started, sandboxed runners, and optionally the system-managed ones the
-platform created. Each row shows the runner's name, phase badge, machine info,
-and an action menu for stop and delete operations.
+A runner that is absent is noticed only when a run has nobody to take it. An
+Agent execution waits five minutes for a runner and then fails with a message
+that names the runner as the likely cause; a Workflow execution waits until a
+runner returns. A runner that stops in the middle of an Agent turn is detected
+through the heartbeat it sends Temporal every 30 seconds, and the turn resumes
+from the runner's checkpoint once a runner is back.
 
 ## What's next
 
 You understand what runners are and how they fit the platform. The next step
 depends on what you want to do:
 
+- **Run Stigmer for a team** — the
+  [self-hosting runner page](/docs/guides/self-hosting/runners) covers the
+  runner on the Docker Compose stack and the Helm chart: its keys and addresses,
+  its failure modes, and the per-Session sandbox mechanism.
 - **Embed the runner in your app** — The
   [embedding guide](/docs/guides/runners/embedding) covers hosting the runner in
   a desktop or web app: local versus cloud execution, the `RunnerAdapter`, and

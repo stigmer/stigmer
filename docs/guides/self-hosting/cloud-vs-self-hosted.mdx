@@ -87,8 +87,8 @@ service requires:
   — trust relationships and token minting that let your platform's users reach
   Stigmer without managing credentials themselves.
 - **Channels.** Agents that talk to your users
-  [in Slack and WhatsApp](/docs/guides/channels) — webhook delivery, provider
-  apps, and outbound messaging are cloud infrastructure.
+  [in Slack and WhatsApp](/docs/guides/channels/connect-slack) — webhook
+  delivery, provider apps, and outbound messaging are cloud infrastructure.
 - **Metered LLM billing.** LLM calls route through the managed proxy with
   per-call metering, budget reservations, and cost caps — prepaid credits
   instead of juggling provider keys. See [Billing](/docs/concepts/billing).
@@ -103,21 +103,20 @@ exist because Stigmer runs the platform as a service for many teams.
 
 One honest caveat before you commit to self-hosting today:
 
-- **Two packagings, no operator.** Docker Compose for one server and a
-  [Helm chart](./kubernetes) for Kubernetes; there is no operator for the stack
-  itself, and nothing in it needs one.
+- **Two production packagings, no operator.** [Docker Compose](./docker-compose)
+  for one server and a [Helm chart](./kubernetes) for Kubernetes run Stigmer for
+  real; `stigmer up` and the [all-in-one image](./all-in-one) are for building
+  and trying it on a laptop. There is no operator for the stack itself, and
+  nothing in it needs one.
 
 ## Next step
 
-Self-hosting starts with one compose file and a `.env`.
+Self-hosting starts with choosing the shape that fits your team.
 
 <Cards>
-  <Card
-    title="Self-host with Docker Compose"
-    href="/docs/guides/self-hosting/docker-compose"
-  >
-    Run the complete stack — server, Postgres, Temporal, and runner — on a
-    machine you control, and run your first Agent on it.
+  <Card title="Self-host Stigmer" href="/docs/guides/self-hosting/overview">
+    Pick a shape — your laptop, one server with Docker Compose, or Kubernetes
+    with the Helm chart — and run your first Agent on it.
   </Card>
   <Card title="Start on Stigmer Cloud" href="https://app.stigmer.ai">
     Skip the infrastructure. Sign in and run your first Agent in minutes.

@@ -1,45 +1,74 @@
 ---
 title: Back up and upgrade your stack
 description:
-  What a complete backup of a self-hosted Stigmer stack is, how to restore one,
-  and how to move between released versions.
+  What a complete backup of a self-hosted Stigmer stack is, how to take one and
+  restore it on Docker Compose or Kubernetes, how to move between released
+  versions, how to change a setting or rotate a key, and how to uninstall.
 ---
 
-This guide assumes a running stack from
-[Self-host with Docker Compose](/docs/guides/self-hosting/docker-compose).
+This page is for the two shapes a team is served from: the
+[Docker Compose stack](./docker-compose) and the [Helm chart](./kubernetes). The
+laptop stack and the [all-in-one container](./all-in-one) are single-user
+shapes; their own pages say how to stop, start, and upgrade them.
+
+One idea holds for the whole page: a backup is the same three things whichever
+shape you run, so a backup taken on one shape restores onto the other.
 
 ## What a complete backup is
 
-The complete durable state of the stack is four things:
+The stack keeps its durable state in three places, plus the keys that unlock it:
 
-| What                   | Holds                                                            |
-| ---------------------- | ---------------------------------------------------------------- |
-| `postgres-data` volume | Every resource, execution record, and Temporal's own state       |
-| `artifacts` volume     | Artifact files produced by executions                            |
-| `server-data` volume   | The Skill content store and other server-side file state         |
-| Your `.env` file       | The encryption keys that unlock encrypted values in the database |
+| What                                                                         | On Docker Compose      | On Kubernetes                                         |
+| ---------------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------- |
+| The database: every resource and execution record, and Temporal's own tables | `postgres-data` volume | `data-stigmer-postgres-0` claim, or your own database |
+| Artifacts: files produced by executions                                      | `artifacts` volume     | `stigmer-artifacts` claim                             |
+| The Skill content store                                                      | `server-data` volume   | `stigmer-server-data` claim                           |
+| The keys that unlock encrypted values                                        | your `.env` file       | the `stigmer-secrets` Secret and your `values.yaml`   |
+
+The database is one Postgres instance holding three databases: `stigmer`, the
+platform's own, and `temporal` and `temporal_visibility`, which hold Temporal's
+schedules and in-flight histories. A backup that leaves the two Temporal
+databases out loses every scheduled run.
 
 <Callout type="error">
-  The `.env` file is part of the backup, not just configuration. Losing
-  `STIGMER_ENCRYPTION_KEY` strands every encrypted value — Environment
-  variables, OAuth tokens — in the database with no recovery path. Store it like
-  a key file.
+  The keys are part of the backup, not just configuration. Losing
+  `STIGMER_ENCRYPTION_KEY` strands every encrypted value—Environment variables,
+  OAuth tokens—in the database with no recovery path. Store `.env` or the
+  exported Secret like a key file.
 </Callout>
 
-The fourth volume, `runner-data`, is lifecycle state, not backup state: it holds
-in-flight Session checkpoints and Agent working directories so paused runs
-survive a container restart. Losing it abandons in-flight runs but loses no
-durable data.
+The fourth volume or claim, `runner-data`, is lifecycle state, not backup state:
+it holds in-flight Session checkpoints and Agent working directories so a paused
+run survives a restart. Losing it abandons runs in flight but loses no durable
+data.
 
 ## Back up
 
-Stop the stack first so Postgres isn't writing while you copy, then archive each
-volume:
+The backup is a SQL dump of the three databases, a tarball of each file store,
+and the keys as a flat file. Postgres's own dump format restores into a newer
+Postgres and onto either shape; a copied data directory does neither.
+
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+Stop the two Stigmer services first, so nothing writes to the file stores while
+you copy them. Postgres and Temporal keep running; `pg_dump` takes a consistent
+snapshot of each database on its own.
 
 ```bash
-docker compose down
+mkdir -p backup
+docker compose stop stigmer-server stigmer-runner
 
-for v in postgres-data artifacts server-data; do
+for db in stigmer temporal temporal_visibility; do
+  docker compose exec -T postgres \
+    pg_dump -U postgres --create --clean --if-exists "$db"
+done > backup/stigmer-db.sql
+```
+
+Then copy the two file stores and `.env`, and start the services again:
+
+```bash
+for v in artifacts server-data; do
   docker run --rm \
     -v "stigmer_${v}:/source:ro" \
     -v "$PWD/backup:/backup" \
@@ -47,20 +76,88 @@ for v in postgres-data artifacts server-data; do
 done
 
 cp .env backup/
-
-docker compose up -d
+docker compose start stigmer-server stigmer-runner
 ```
 
-Docker Compose prefixes the volume names — `stigmer_` when you run from the
-cloned `stigmer` directory. Check yours with `docker volume ls`.
+Docker Compose prefixes the volume names—`stigmer_` when you run from the cloned
+`stigmer` directory. Check yours with `docker volume ls`.
+
+</Tab>
+<Tab value="Kubernetes">
+
+Dump the three databases through the Postgres pod. `pg_dump` takes a consistent
+snapshot of each database on its own, so the stack keeps running:
+
+```bash
+mkdir -p backup
+for db in stigmer temporal temporal_visibility; do
+  kubectl -n stigmer exec stigmer-postgres-0 -- \
+    pg_dump -U postgres --create --clean --if-exists "$db"
+done > backup/stigmer-db.sql
+```
+
+Copy the two file stores through the server container. On Kubernetes a disk is
+readable only through a pod that mounts it, so this copies a running stack: do
+it in a quiet moment, when no run is in flight. Your storage class's volume
+snapshots of the four claims are the same backup taken below the pod; the chart
+has no opinion on them.
+
+```bash
+kubectl -n stigmer exec deploy/stigmer -c server -- \
+  tar czf - --exclude=lost+found -C /data . > backup/server-data.tgz
+kubectl -n stigmer exec deploy/stigmer -c server -- \
+  tar czf - --exclude=lost+found -C /artifacts . > backup/artifacts.tgz
+```
+
+`lost+found` is the root-owned directory an ext4 disk carries at its root; the
+server can't read it and doesn't need it.
+
+Export the Secret's values as a flat file, and keep `values.yaml` beside it. You
+never saw these values: the Kubernetes page generated them straight into the
+Secret.
+
+```bash
+kubectl -n stigmer get secret stigmer-secrets \
+  -o go-template='{{range $k, $v := .data}}{{$k}}={{$v | base64decode}}{{"\n"}}{{end}}' \
+  > backup/stigmer-secrets.env
+cp values.yaml backup/
+```
+
+If your values file names other Secrets—`stigmer-llm-keys`,
+`stigmer-runner-token`—export each the same way with its name in place of
+`stigmer-secrets`, or plan to create new keys when you restore.
+
+</Tab>
+</Tabs>
 
 ## Restore
 
-On a fresh machine: clone the repository, put the backed-up `.env` at the root —
-the same keys, not new ones — then seed the volumes before first boot:
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+On a fresh machine, clone the repository and put your `backup` directory at its
+root. The same `.env` goes back, with the same keys, not new ones. Start
+Postgres alone and load the dump before anything else runs:
 
 ```bash
-for v in postgres-data artifacts server-data; do
+git clone https://github.com/stigmer/stigmer.git
+cd stigmer
+cp backup/.env .env
+
+docker compose up -d --wait postgres
+docker compose exec -T postgres \
+  psql -U postgres -v ON_ERROR_STOP=1 -f - < backup/stigmer-db.sql
+```
+
+Postgres creates an empty `stigmer` database on its first start; the dump drops
+it and recreates it with your data. `ON_ERROR_STOP` makes a failed restore stop
+and say so instead of continuing past the error.
+
+Seed the two file stores, then start the rest of the stack. It boots on your
+restored data:
+
+```bash
+for v in artifacts server-data; do
   docker volume create "stigmer_${v}"
   docker run --rm \
     -v "stigmer_${v}:/target" \
@@ -71,29 +168,269 @@ done
 docker compose up -d
 ```
 
+</Tab>
+<Tab value="Kubernetes">
+
+Recreate the Secret from the exported file and install with your values file,
+exactly as the [Kubernetes page](./kubernetes) did. If the values file names
+other Secrets, recreate those first, the same way.
+
+```bash
+kubectl create namespace stigmer
+kubectl -n stigmer create secret generic stigmer-secrets \
+  --from-env-file=backup/stigmer-secrets.env
+
+helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
+  --namespace stigmer \
+  -f backup/values.yaml \
+  --wait
+```
+
+The fresh install created empty databases. Stop their users, load the dump over
+them, then start the users again:
+
+```bash
+kubectl -n stigmer scale deploy/stigmer deploy/stigmer-temporal --replicas=0
+kubectl -n stigmer wait --for=delete pod \
+  -l 'app.kubernetes.io/instance=stigmer,app.kubernetes.io/component in (stigmer,temporal)' \
+  --timeout=120s
+
+kubectl -n stigmer exec -i stigmer-postgres-0 -- \
+  psql -U postgres -v ON_ERROR_STOP=1 -f - < backup/stigmer-db.sql
+
+kubectl -n stigmer scale deploy/stigmer deploy/stigmer-temporal --replicas=1
+kubectl -n stigmer rollout status deploy/stigmer
+```
+
+A database can't be dropped while something is connected to it, which is why the
+two Deployments go to zero first. `ON_ERROR_STOP` makes a failed restore stop
+and say so.
+
+Fill the two file stores through the running server container, then restart the
+pod so the server reads them fresh:
+
+```bash
+kubectl -n stigmer exec -i deploy/stigmer -c server -- \
+  tar xzf - --strip-components=1 -C /data < backup/server-data.tgz
+kubectl -n stigmer exec -i deploy/stigmer -c server -- \
+  tar xzf - --strip-components=1 -C /artifacts < backup/artifacts.tgz
+
+kubectl -n stigmer rollout restart deploy/stigmer
+```
+
+`--strip-components=1` drops the archive's own root entry, which names the mount
+point: the server's user can't change the mount point's mode or time, and
+without the flag `tar` writes every file and still exits with an error. The
+files land owned by the server's user; the runner, which runs as root, reads and
+writes them all the same. Start your port-forward again afterwards; it stops
+with the pod.
+
+</Tab>
+</Tabs>
+
+## Move a stack between shapes
+
+A backup taken on Docker Compose restores onto Kubernetes with the Kubernetes
+steps under [Restore](#restore), and the other way round. The dump is Postgres's
+own format, and each tarball is a directory's contents rather than a path: the
+compose stack keeps artifacts at `/data/.stigmer/data/artifacts` and the chart
+at `/artifacts`, and the restore step names the target. The database stores an
+artifact's key, never its path, so downloads keep working after the move.
+
 ## Upgrade
 
-The compose file pins a released version and the two Stigmer images always move
-together. To upgrade, set the version in `.env`:
+The two Stigmer images always move together, and the chart version is the
+Stigmer version. Take a [backup](#back-up) first: the server migrates its
+database schema forward on start, and there is no migration back.
+
+The default Plugins don't move with the images. They are what the CLI that ran
+`stigmer bootstrap` installed, at that CLI's version; and until
+[stigmer#1192](https://github.com/stigmer/stigmer/issues/1192) is fixed, a
+self-hosted server with authentication on refuses a bootstrap that would change
+them.
+
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+Set the version in `.env`, then pull and restart:
 
 ```bash
 # .env
-STIGMER_VERSION=v3.14.0
+STIGMER_VERSION=v3.19.0
 ```
-
-Then pull and restart:
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-The server migrates its database schema forward automatically on boot. Because
-migrations only run forward, take a [backup](#back-up) before upgrading —
-rolling back to an older version against an already-migrated database isn't
-supported. Restore the pre-upgrade backup instead.
+The compose file's own default moves with each release, so `git pull` gives you
+the release's file; your `.env` line wins over its default either way.
 
-Releases are published on the
-[GitHub releases page](https://github.com/stigmer/stigmer/releases). The default
-pin in `docker-compose.yml` is managed by the release pipeline, so pulling the
-latest repository state also moves you forward.
+</Tab>
+<Tab value="Kubernetes">
+
+Upgrade to the chart version you're moving to, with the same values file:
+
+```bash
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
+  --namespace stigmer \
+  --version 3.19.0 \
+  -f values.yaml \
+  --wait
+```
+
+The pod is recreated, so there is a short interruption; in-flight Agent turns
+resume from their Temporal checkpoints. Start your port-forward again
+afterwards.
+
+</Tab>
+</Tabs>
+
+Going back is a restore, not a downgrade: an older server does not refuse to
+start against a database a newer one migrated, and nothing warns you. Restore
+the pre-upgrade backup instead. Releases are listed on the
+[GitHub releases page](https://github.com/stigmer/stigmer/releases).
+
+## Change a setting or a secret
+
+The rule from the shape pages holds here: a setting is a line in `.env` or in
+`values.yaml`, never an edit to the compose file or the chart.
+
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+Change the line, then `docker compose up -d`. Compose recreates the services
+whose settings changed and leaves the others running.
+
+The one line that doesn't work this way is `POSTGRES_PASSWORD`. Postgres reads
+it once, when it initialises an empty data directory; changing the line later
+doesn't change the database's password, and the server can no longer connect.
+Leave it as it is.
+
+</Tab>
+<Tab value="Kubernetes">
+
+A value is a line in `values.yaml` followed by `helm upgrade -f values.yaml`,
+the command shown under [Upgrade](#upgrade) without `--version`. The pod is
+recreated with the new value.
+
+A Secret's contents is different: the pod reads its Secrets when it starts, and
+the chart doesn't restart it for you. Replace the Secret, then restart the pod:
+
+```bash
+kubectl -n stigmer create secret generic stigmer-llm-keys \
+  --from-literal=ANTHROPIC_API_KEY=sk-ant-... \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n stigmer rollout restart deploy/stigmer
+```
+
+</Tab>
+</Tabs>
+
+### Rotate the runner's key
+
+The runner's API key is the one credential you'll rotate on purpose. Create the
+new key before you retire the old one, so the runner is never without one.
+
+<Steps>
+
+### Create the new key
+
+Sign in to the console and open **Settings → API Keys**. Create a key named for
+the runner with expiration **Never**, the way the
+[authentication guide](./authentication) did. It's shown once.
+
+### Give it to the runner
+
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+Replace the line in `.env`, then recreate the runner:
+
+```bash
+# .env
+STIGMER_TOKEN=stk_...
+```
+
+```bash
+docker compose up -d
+```
+
+</Tab>
+<Tab value="Kubernetes">
+
+Replace the Secret and restart the pod:
+
+```bash
+kubectl -n stigmer create secret generic stigmer-runner-token \
+  --from-literal=STIGMER_TOKEN=stk_... \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n stigmer rollout restart deploy/stigmer
+```
+
+</Tab>
+</Tabs>
+
+### Delete the old key
+
+List your keys and delete the one the runner no longer holds:
+
+```bash
+stigmer list apikey
+stigmer delete apikey key_...
+```
+
+</Steps>
+
+Your LLM provider key follows the same path: a new line in `.env`, or a replaced
+Secret and a restart.
+
+Two keys are never rotated. `STIGMER_ENCRYPTION_KEY` is the one key every
+encrypted value was written under; a different key can't read them, so the key
+you generated at install is the key for the life of the stack.
+`STIGMER_RUNNER_TOKEN_KEY` signs the short-lived credentials the runner
+authenticates each run with; leave it alone too.
+
+## Uninstall
+
+<Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
+<Tab value="Docker Compose">
+
+`docker compose down` stops and removes the containers and keeps every volume;
+`docker compose up -d` brings the same data back. To delete the data too:
+
+```bash
+docker compose down -v
+```
+
+</Tab>
+<Tab value="Kubernetes">
+
+`helm uninstall stigmer -n stigmer` removes the workload and leaves all four
+claims in place; a later `helm install` with the same release name adopts them
+and the data is back. To delete the data too, delete the claims yourself:
+
+```bash
+kubectl -n stigmer delete pvc \
+  data-stigmer-postgres-0 stigmer-artifacts stigmer-server-data stigmer-runner-data
+```
+
+</Tab>
+</Tabs>
+
+## Next step
+
+You can keep the stack: back it up, restore it, move it, upgrade it, and change
+what it runs with. What you haven't looked at is the part that executes your
+Agents: one runner, shared by the team, holding your LLM key. Where a Session
+finds it, what happens when it's gone, and where each key and address goes when
+you self-host is the runner page.
+
+<Cards>
+  <Card
+    title="The runner when you self-host"
+    href="/docs/guides/self-hosting/runners"
+    description="What executes your Agents, how a Session reaches it, and where the keys go."
+  />
+</Cards>
