@@ -51,7 +51,6 @@ import type {
   ApiResourceReference,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
 import { MAX_ZIP_SIZE } from "../../archive/limits.js";
@@ -74,10 +73,7 @@ import {
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import {
-  authorizeResolvedResource,
-  newAuthorizeStep,
-} from "../../pipeline/steps/authorize.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import {
   newDeleteResourceStep,
@@ -96,12 +92,16 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityUpdateStep } from "../../pipeline/steps/validate-visibility.js";
 import { newDeleteVersionArchivesStep } from "../../pipeline/steps/version-archive.js";
 import {
-  LIST_VERSIONS_RESOURCE_ID_KEY,
   LIST_VERSIONS_RESPONSE_KEY,
   newLoadAndMapVersionsStep,
   newLoadByReferenceWithVersionStep,
   newResolveBySlugForVersionsStep,
+  versionHistoryTarget,
 } from "../../pipeline/steps/version-history.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import type { VersionHistoryBinding } from "../../pipeline/steps/version-history.js";
 import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
@@ -718,22 +718,13 @@ async function getByReference(
         "LoadPluginByReference",
       ),
     )
-    .addStep({
-      name: "AuthorizeResolvedPlugin",
-      async execute(stepCtx): Promise<void> {
-        const resolved = stepCtx.get(TARGET_RESOURCE_KEY) as Plugin;
-        await authorizeResolvedResource(
-          deps.authorizer,
-          stepCtx.callerIdentity,
-          {
-            permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.plugin,
-            resourceId: resolved.metadata?.id ?? "",
-          },
-          "unauthorized to get plugin",
-        );
-      },
-    })
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(PluginQueryController.method.get),
+        "AuthorizeResolvedPlugin",
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Plugin;
@@ -817,21 +808,16 @@ async function listVersions(
         "ResolvePluginBySlug",
       ),
     )
-    .addStep({
-      name: "AuthorizeResolvedPlugin",
-      async execute(stepCtx): Promise<void> {
-        await authorizeResolvedResource(
-          deps.authorizer,
-          stepCtx.callerIdentity,
-          {
-            permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.plugin,
-            resourceId: stepCtx.get(LIST_VERSIONS_RESOURCE_ID_KEY) as string,
-          },
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        versionHistoryTarget(
+          ApiResourceKind.plugin,
           "unauthorized to view plugin version history",
-        );
-      },
-    })
+        ),
+        "AuthorizeResolvedPlugin",
+      ),
+    )
     .addStep(
       newLoadAndMapVersionsStep(
         deps.store,

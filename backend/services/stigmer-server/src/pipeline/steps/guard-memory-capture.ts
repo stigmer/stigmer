@@ -37,6 +37,7 @@
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { isServerComposedRequest } from "../../extensions/identity.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
@@ -61,7 +62,7 @@ export function newGuardMemoryCaptureStep<Desc extends DescMessage>(
     name: "GuardMemoryCapture",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const caller = ctx.callerIdentity;
-      if (caller.callerClass === "internal" || caller.origin === "in-process") {
+      if (isServerComposedRequest(caller)) {
         // Server-composed traversals are not capture requests from a
         // credential; the entry-point request already passed the gate.
         return;

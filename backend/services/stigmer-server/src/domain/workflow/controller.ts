@@ -45,7 +45,6 @@ import {
   ApiResourceKind,
   ApiResourceKindSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   ApiResourceReference,
   UpdateVisibilityInput,
@@ -71,9 +70,10 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
   authorizeDirect,
-  authorizeResolvedResource,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
+import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newAuthorizeVisibilityTransitionStep,
@@ -996,28 +996,23 @@ async function listVersions(
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveWorkflowBySlugStep(deps.store))
-    .addStep({
-      name: "AuthorizeResolvedWorkflow",
-      async execute(stepCtx): Promise<void> {
-        // The Java WorkflowListVersionsHandler's mid-chain can_view on the
-        // RESOLVED workflow id (20260830.01 ruling Q8 — the DD-007 pattern
-        // "the two traced ListVersions handlers port onto"; the skip
-        // annotation exists because the target resolves from org+slug, not
-        // a request field). Deny copy is the Java handler's byte-pinned
-        // error_msg. The resolve step above already answered NOT_FOUND for
-        // an unknown slug, the load-first order both editions share.
-        await authorizeResolvedResource(
-          deps.authorizer,
-          stepCtx.callerIdentity,
-          {
-            permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.workflow,
-            resourceId: stepCtx.get(LIST_VERSIONS_WORKFLOW_ID_KEY) as string,
-          },
+    // The Java WorkflowListVersionsHandler's mid-chain can_view on the
+    // RESOLVED workflow id (the skip annotation exists because the target
+    // resolves from org+slug, not a request field); the copy is the Java
+    // handler's byte-pinned error_msg, and the resolve step above already
+    // answered NOT_FOUND for an unknown slug, the load-first order both
+    // editions share.
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        versionHistoryTarget(
+          ApiResourceKind.workflow,
           "unauthorized to view workflow version history",
-        );
-      },
-    })
+          LIST_VERSIONS_WORKFLOW_ID_KEY,
+        ),
+        "AuthorizeResolvedWorkflow",
+      ),
+    )
     .addStep(newLoadAndMapWorkflowVersionsStep(deps.store))
     .build()
     .execute(reqCtx);
