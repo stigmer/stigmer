@@ -13,7 +13,7 @@ there is a re-sync at a new commit (`npm run sync -w @stigmer/plugins`),
 which rewrites this notice from vendor.json.
 
 Source:  https://github.com/cursor/plugins
-Commit:  1f84288b2c047b6d39952da23f51cf486f3b2f7a
+Commit:  6ed0f7a9504f577d7529064103cecce9be7dfc5e
 License: each folder carries its own licence file, vendored unchanged.
 
 Directories and their paths in the source repository:
