@@ -154,6 +154,12 @@ const (
 	// can_manage_plans because issuing a license to a named customer is a
 	// different act, and a different audit line, from editing the catalog.
 	IamPermission_can_issue_license IamPermission = 42
+	// Organization-level permission to create an MCP server in the
+	// organization.
+	IamPermission_can_create_mcp_server IamPermission = 43
+	// Organization-level permission to create an agent instance in the
+	// organization.
+	IamPermission_can_create_agent_instance IamPermission = 44
 )
 
 // Enum value maps for IamPermission.
@@ -198,6 +204,8 @@ var (
 		40: "can_create_plugin",
 		41: "can_manage_plans",
 		42: "can_issue_license",
+		43: "can_create_mcp_server",
+		44: "can_create_agent_instance",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -239,6 +247,8 @@ var (
 		"can_create_plugin":            40,
 		"can_manage_plans":             41,
 		"can_issue_license":            42,
+		"can_create_mcp_server":        43,
+		"can_create_agent_instance":    44,
 	}
 )
 
@@ -348,7 +358,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x98\b\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xd2\b\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -389,7 +399,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x19can_set_public_visibility\x10'\x12\x15\n" +
 	"\x11can_create_plugin\x10(\x12\x14\n" +
 	"\x10can_manage_plans\x10)\x12\x15\n" +
-	"\x11can_issue_license\x10*\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x11can_issue_license\x10*\x12\x19\n" +
+	"\x15can_create_mcp_server\x10+\x12\x1d\n" +
+	"\x19can_create_agent_instance\x10,\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
 	"*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*b\n" +
 	"\aIamRole\x12\x18\n" +
