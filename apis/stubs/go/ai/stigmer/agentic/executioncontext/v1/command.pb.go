@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_executioncontext_v1_command_proto protoreflect.FileD
 
 const file_ai_stigmer_agentic_executioncontext_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"4ai/stigmer/agentic/executioncontext/v1/command.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xae\x03\n" +
+	"4ai/stigmer/agentic/executioncontext/v1/command.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe9\x03\n" +
 	"!ExecutionContextCommandController\x12{\n" +
 	"\x05apply\x128.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\x12\x82\x01\n" +
-	"\x06create\x128.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x12\x80\x01\n" +
-	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x1a\x04\xa0\xff+6B\xdb\x02\n" +
+	"\x06create\x128.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x12\xbb\x01\n" +
+	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"?¸\x18;\b\x02\x106\"\vresource_id*(unauthorized to delete execution context\x1a\x04\xa0\xff+6B\xdb\x02\n" +
 	"*com.ai.stigmer.agentic.executioncontext.v1B\fCommandProtoP\x01Zbgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_executioncontext_v1_command_proto_goTypes = []any{

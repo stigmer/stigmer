@@ -277,6 +277,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
           () =>
             ts.query.getByReference({
               kind: ApiResourceKind.execution_context,
+              org: created.metadata!.org,
               slug: created.metadata!.slug,
             }),
         ],

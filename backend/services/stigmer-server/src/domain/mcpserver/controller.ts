@@ -53,6 +53,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newAuthorizeVisibilityTransitionStep,
@@ -207,7 +211,9 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /** The endpoint-auth step's slice of the deps: the guarded fetch the connect slice holds. */
-function endpointAuthDeps(deps: McpServerControllerDeps): CompleteEndpointAuthDeps {
+function endpointAuthDeps(
+  deps: McpServerControllerDeps,
+): CompleteEndpointAuthDeps {
   return { outboundFetch: deps.connect.outboundFetch, logger: deps.logger };
 }
 
@@ -629,6 +635,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, McpServerSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(McpServerQueryController.method.get),
+      ),
+    )
     .addStep(newEnrichOAuthStatusStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

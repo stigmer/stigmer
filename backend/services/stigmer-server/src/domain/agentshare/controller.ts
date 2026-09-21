@@ -60,6 +60,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newBuildNewStateStep,
@@ -491,6 +495,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentShareSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(AgentShareQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as AgentShare;

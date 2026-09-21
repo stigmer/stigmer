@@ -8,7 +8,6 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 
 import type { Store } from "../../store/interface.js";
 import { getKindMeta } from "../apiresource-meta.js";
@@ -85,11 +84,15 @@ export async function findResourceByLabelAndOrg<Desc extends DescMessage>(
 }
 
 /**
- * Rejects a getByReference lookup that omits org for an org-scoped kind —
- * Go RequireOrgForReference. For AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
- * kinds a slug is unique only WITHIN an org; resolving an org-less
- * reference globally would cross tenant boundaries. The message matches
- * the cloud edition verbatim (cross-edition error contract).
+ * Rejects a getByReference lookup that omits org — Go RequireOrgForReference,
+ * widened to every kind that has a reference lane. A slug is unique only
+ * WITHIN an org, so an org-less reference resolves globally and the first
+ * match wins: for an org-scoped kind that crosses tenant boundaries, and
+ * for an owner-only kind (the execution context) it let a caller name a
+ * slug and receive whichever organization's row matched first. Every kind
+ * with a reference lane is served per organization, so the rule is the
+ * same for all of them. The message matches the cloud edition verbatim
+ * (cross-edition error contract); the kind name comes from kind_meta.
  *
  * Belongs at the getByReference boundary only — the low-level slug finders
  * are legitimately called with a relative (possibly empty) org by internal
@@ -102,23 +105,16 @@ export function requireOrgForReference(
   if (org !== "") {
     return;
   }
-  let scopeType: AuthorizationScopeType | undefined;
   let kindName: string;
   try {
-    const meta = getKindMeta(kind);
-    scopeType = meta.authorization?.scopeType;
-    kindName = meta.name;
+    kindName = getKindMeta(kind).name;
   } catch (error) {
     throw internalError(
       error,
       "failed to resolve kind metadata for reference org check",
     );
   }
-  // protobuf-es strips the shared enum prefix: proto
-  // AUTHORIZATION_SCOPE_TYPE_ORGANIZATION generates as ORGANIZATION.
-  if (scopeType === AuthorizationScopeType.ORGANIZATION) {
-    throw invalidArgumentError(`org is required for ${kindName} lookup`);
-  }
+  throw invalidArgumentError(`org is required for ${kindName} lookup`);
 }
 
 // The two list-step helpers below are duplicated per package in Go (each

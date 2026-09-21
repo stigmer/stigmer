@@ -52,6 +52,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
@@ -362,6 +366,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, OAuthAppSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(OAuthAppQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   const app = reqCtx.get(TARGET_RESOURCE_KEY) as OAuthApp;

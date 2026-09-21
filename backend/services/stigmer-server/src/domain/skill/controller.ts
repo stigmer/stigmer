@@ -70,7 +70,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
-import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
 import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
@@ -675,6 +678,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSkillByReferenceStep(deps.store))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(SkillQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Skill;

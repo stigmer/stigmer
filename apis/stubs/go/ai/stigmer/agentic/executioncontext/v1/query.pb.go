@@ -26,9 +26,9 @@ var File_ai_stigmer_agentic_executioncontext_v1_query_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_executioncontext_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/executioncontext/v1/query.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a/ai/stigmer/agentic/executioncontext/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd3\x03\n" +
-	"\x1fExecutionContextQueryController\x12\x81\x01\n" +
-	"\x03get\x12:.ai.stigmer.agentic.executioncontext.v1.ExecutionContextId\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x12\x86\x01\n" +
+	"2ai/stigmer/agentic/executioncontext/v1/query.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a/ai/stigmer/agentic/executioncontext/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x85\x04\n" +
+	"\x1fExecutionContextQueryController\x12\xb3\x01\n" +
+	"\x03get\x12:.ai.stigmer.agentic.executioncontext.v1.ExecutionContextId\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"6¸\x182\b\x01\x106\"\x05value*%unauthorized to get execution context\x12\x86\x01\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x12\x9c\x01\n" +
 	"\x10getByExecutionId\x12H.ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x1a\x04\xa0\xff+6B\xd9\x02\n" +
 	"*com.ai.stigmer.agentic.executioncontext.v1B\n" +

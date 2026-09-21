@@ -66,6 +66,10 @@ import {
   authorizeDirect,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -499,6 +503,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentChannelSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(AgentChannelQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as AgentChannel;
