@@ -126,7 +126,7 @@
     "@stigmer/plugin-package#test": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/plugins/assistant/**"]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/plugins/linear/**"]
     },
     // The browser-mode suite (vitest.a11y.config.ts: a11y audits, layout
     // contracts, pixel work in a real Chromium). It renders against react's

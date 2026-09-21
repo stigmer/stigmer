@@ -42,6 +42,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { resolveDeclaredFromPersonalEnvironment } from "../environment/personal.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
@@ -149,9 +150,6 @@ export const ASYNC_CONNECT_TIMEOUT: ConnectBudget = {
  * bestEffortConnectGetBuffer).
  */
 export const BEST_EFFORT_CONNECT_GET_BUFFER_MS = 15_000;
-
-/** The label selecting the user's personal environment (connect.go:74). */
-export const PERSONAL_ENV_LABEL = "stigmer.ai/personal";
 
 /**
  * The narrow environment read surface the connect lanes consume for
@@ -687,34 +685,29 @@ async function resolveOAuthVarsFromManagedEnv(
 }
 
 /**
- * Reads environment variables from the user's personal environment
- * (labeled stigmer.ai/personal=true; Go resolveFromPersonalEnvironment).
- * Required variables (optional=false, the default) must be present;
- * optional variables are included when available but silently skipped
- * when missing.
+ * Reads a server's declared variables from the user's personal environment
+ * (Go resolveFromPersonalEnvironment) through the shared lookup in
+ * domain/environment/personal.ts, and gives its outcomes the connect
+ * lane's meaning: a person asked to connect a server and cannot without
+ * the credential, so a missing personal environment and a missing required
+ * key both refuse with FailedPrecondition. Optional variables are included
+ * when available and silently skipped when missing.
  */
 async function resolveFromPersonalEnvironment(
   deps: McpServerConnectDeps,
   org: string,
   envDecls: { [key: string]: EnvVarDeclaration },
 ): Promise<{ [key: string]: ExecutionValue }> {
-  const requiredKeys: string[] = [];
-  for (const [k, decl] of Object.entries(envDecls)) {
-    if (!decl.optional) {
-      requiredKeys.push(k);
-    }
-  }
-
-  let listResponse: EnvironmentList;
-  try {
-    listResponse = await deps.environmentReader.list({
-      org,
-      labels: { [PERSONAL_ENV_LABEL]: "true" },
-    });
-  } catch (error) {
-    throw internalError(error, "failed to list personal environments");
-  }
-  if (listResponse.totalCount === 0 || listResponse.items.length === 0) {
+  const resolution = await resolveDeclaredFromPersonalEnvironment(
+    deps.environmentReader,
+    deps.logger,
+    org,
+    envDecls,
+  );
+  if (resolution.kind === "no-personal-environment") {
+    const requiredKeys = Object.entries(envDecls)
+      .filter(([, decl]) => !decl.optional)
+      .map(([key]) => key);
     if (requiredKeys.length === 0) {
       return {};
     }
@@ -723,66 +716,12 @@ async function resolveFromPersonalEnvironment(
       `personal environment not found for org '${org}'; save required credentials first: [${requiredKeys.join(" ")}]`,
     );
   }
-
-  const personalEnv = listResponse.items[0];
-  const personalEnvId = personalEnv?.metadata?.id ?? "";
-  const storedKeys = new Set(Object.keys(personalEnv?.spec?.data ?? {}));
-
-  const result: { [key: string]: ExecutionValue } = {};
-  const missing: string[] = [];
-
-  for (const [key, decl] of Object.entries(envDecls)) {
-    if (!storedKeys.has(key)) {
-      if (decl.optional) {
-        deps.logger.debug(
-          "Optional env var not in personal environment — skipping",
-          { key },
-        );
-        continue;
-      }
-      missing.push(key);
-      continue;
-    }
-
-    let secretValue: EnvironmentSpecValue;
-    try {
-      secretValue = await deps.environmentReader.getSecretValue({
-        environmentId: personalEnvId,
-        key,
-      });
-    } catch (error) {
-      deps.logger.warn("Failed to get secret value from personal environment", {
-        key,
-        personal_env_id: personalEnvId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      if (decl.optional) {
-        continue;
-      }
-      missing.push(key);
-      continue;
-    }
-    if (secretValue.value === "") {
-      if (decl.optional) {
-        continue;
-      }
-      missing.push(key);
-      continue;
-    }
-
-    result[key] = create(ExecutionValueSchema, {
-      value: secretValue.value,
-      isSecret: decl.isSecret,
-    });
-  }
-
-  if (missing.length > 0) {
+  if (resolution.missing.length > 0) {
     throw failedPreconditionError(
-      `missing required credentials in personal environment: [${missing.join(" ")}]`,
+      `missing required credentials in personal environment: [${resolution.missing.join(" ")}]`,
     );
   }
-
-  return result;
+  return { ...resolution.values };
 }
 
 /**

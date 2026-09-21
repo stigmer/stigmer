@@ -6,22 +6,22 @@
  * record_harness_state_history.go) and its steps/ package
  * (filter_by_agent_instance.go, filter_by_channel.go). Shared steps stay
  * in src/pipeline/steps/; these exist because they embody
- * session-specific contracts: the default-agent-instance resolution, the
- * harness/execution-target immutability sentinels, the server-owned
- * harness-state history, the active-execution delete guard with its
- * execution cascade, and the list filters.
+ * session-specific contracts: the harness/execution-target immutability
+ * sentinels, the server-owned harness-state history, the active-execution
+ * delete guard with its execution cascade, and the list filters.
+ *
+ * An empty spec.agent_instance_id is a legal shape and stays empty: the
+ * session runs the built-in assistant (session/v1/spec.proto). No step here
+ * resolves it into an instance, and no step guards it on update, because
+ * a conversation may gain an agent or drop back to the assistant; the
+ * immutable fields are the harness and the execution target below.
  */
-import { Code, ConnectError } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
@@ -30,7 +30,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionListSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -38,29 +37,19 @@ import type { Logger } from "../../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
 import {
   failedPreconditionError,
-  goWrappedStatusError,
   internalError,
   invalidArgumentError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
-import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
-import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
-import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
-import {
-  DefaultAgentNotConfiguredError,
-  DefaultAgentNotPublicError,
-  findDefaultAgent,
-} from "../agent/defaultagent.js";
 
 type SessionDesc = typeof SessionSchema;
 
@@ -73,221 +62,6 @@ export const LIST_RESULT_KEY = "listResult";
  * ChannelRuntimeConstants.CHANNEL_ID_METADATA_KEY in Stigmer Cloud.
  */
 const CHANNEL_ID_LABEL_KEY = "stigmer.ai/channel-id";
-
-/**
- * The narrow in-process surface the session domain needs from
- * agentinstance — consumer-defined so the dependency reads at the domain
- * boundary (the Go twin is pkg/downstream/agentinstance.Client). This is
- * the CREATE RPC (Go CreateAsSystem), not apply: the resolve step only
- * reaches it when the default instance is known to be missing, and a
- * duplicate-slug collision must surface as AlreadyExists, not silently
- * update. Calls ride the in-process router transport, traversing the full
- * interceptor chain (DD-002).
- */
-export interface AgentInstanceCreator {
-  /**
-   * Creates AS THE ORIGINAL CALLER (C2 Stage 3, ruling R5 — the Java
-   * createAsCaller posture): the propagated identity gives the created
-   * instance real owner attribution under an enforcing Authorizer.
-   */
-  createAsCaller(
-    instance: AgentInstance,
-    caller: CallerIdentity,
-  ): Promise<AgentInstance>;
-}
-
-/**
- * Lazy provider for the in-process agentinstance edge — resolved at call
- * time, never at construction (the ratified DI story, D2 §2).
- */
-export type AgentInstanceCreatorProvider = () => AgentInstanceCreator;
-
-// ---------------------------------------------------------------------------
-// ResolveDefaultAgentInstance — create.go:62-182: when agent_instance_id is
-// not provided, resolve the platform default agent (shared defaultagent
-// implementation: label stigmer.ai/default-agent=true, visibility_public,
-// deterministic incumbent-wins tie-break), get or create its default
-// instance, and set agent_instance_id on the session spec. This enables the
-// session-first UX where users create a session (with workspace entries)
-// without knowing the agent instance — the backend resolves it
-// automatically.
-//
-// Runs FIRST in the create chain, before ValidateProto — resolution must
-// fill agent_instance_id before validation sees the spec.
-//
-// The id lands on ctx.newState.spec, NEVER on input: the pipeline cloned
-// input into newState at construction and Persist saves newState, so
-// mutating input does not propagate (Go's documented clone gotcha,
-// create.go:168-170).
-// ---------------------------------------------------------------------------
-
-export function newResolveDefaultAgentInstanceStep(
-  store: Store,
-  creator: AgentInstanceCreatorProvider,
-  logger: Logger,
-  authorizationLifecycle?: ResourceAuthorizationLifecycle,
-): PipelineStep<SessionDesc> {
-  return {
-    name: "ResolveDefaultAgentInstance",
-    async execute(ctx: RequestContext<SessionDesc>): Promise<void> {
-      if ((ctx.input.spec?.agentInstanceId ?? "") !== "") {
-        return;
-      }
-
-      logger.info(
-        "agent_instance_id not provided on session, resolving platform default agent",
-      );
-
-      // 1. Resolve the default agent. The error copy is Go WrapError's
-      // "%s: %v" — the sentinel's text RIDES the wire message, and the
-      // NotFound arm carries Go's DOUBLE wrap (fmt.Errorf("no default
-      // agent available on this platform: %w", err) inside WrapError).
-      // Byte-pinned.
-      let defaultAgent: Agent;
-      try {
-        defaultAgent = await findDefaultAgent(store, logger);
-      } catch (error) {
-        if (error instanceof DefaultAgentNotConfiguredError) {
-          logger.error("No platform default agent configured", {
-            error: error.message,
-          });
-          throw new ConnectError(
-            `No default agent available. Ensure an agent with label stigmer.ai/default-agent=true and visibility_public exists: no default agent available on this platform: ${error.message}`,
-            Code.NotFound,
-          );
-        }
-        if (error instanceof DefaultAgentNotPublicError) {
-          logger.error("Default agent is not visibility_public", {
-            error: error.message,
-          });
-          throw new ConnectError(
-            `Default agent exists but is not visibility_public: ${error.message}`,
-            Code.FailedPrecondition,
-          );
-        }
-        // Store/decode failure — an internal fault, not "no default
-        // agent". InternalError keeps the cause off the wire
-        // (stigmer/stigmer#478).
-        logger.error("Failed to resolve platform default agent", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw internalError(
-          error,
-          "failed to resolve the platform default agent",
-        );
-      }
-
-      const metadata = defaultAgent.metadata;
-      if (metadata === undefined) {
-        // Unreachable: findDefaultAgent only returns public-visibility
-        // candidates, whose metadata is necessarily set.
-        throw internalError(
-          new Error("default agent metadata is nil"),
-          "failed to resolve the platform default agent",
-        );
-      }
-      const agentId = metadata.id;
-      logger.info("Resolved platform default agent", {
-        agentId,
-        agentName: metadata.name,
-      });
-
-      // 2. Get or create the default instance.
-      let defaultInstanceId = defaultAgent.status?.defaultInstanceId ?? "";
-      if (defaultInstanceId === "") {
-        logger.info("Default instance missing, creating one", { agentId });
-
-        const instanceRequest = buildDefaultInstanceRequest(metadata);
-
-        // Go create.go:144-148 wraps the downstream error with fmt.Errorf
-        // ("failed to create default instance for default agent: %w") and
-        // PipelineError.GRPCStatus's errors.As branch keeps the inner
-        // CODE but rewrites the wire MESSAGE to the wrapped text —
-        // transport formatting (`rpc error: code = X desc = ...`)
-        // included. Mirrored byte-for-byte via goWrappedStatusError; the
-        // leak is stigmer/stigmer#852 (both-editions post-cutover fix).
-        // Unstatused failures fall to the pipeline's Internal fallback,
-        // exactly Go's plain-error path.
-        let createdInstance: AgentInstance;
-        try {
-          createdInstance = await creator().createAsCaller(
-            instanceRequest,
-            ctx.callerIdentity,
-          );
-        } catch (error) {
-          logger.error("Failed to create default instance", {
-            agentId,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          if (error instanceof ConnectError) {
-            throw goWrappedStatusError(
-              "failed to create default instance for default agent",
-              error,
-            );
-          }
-          throw new Error(
-            `failed to create default instance for default agent: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-
-        defaultInstanceId = createdInstance.metadata?.id ?? "";
-
-        // Persist default_instance_id on the agent — EXPLICITLY the agent
-        // kind: this pipeline's ctx kind is session (Go hardcodes
-        // ApiResourceKind_agent here too).
-        if (defaultAgent.status === undefined) {
-          defaultAgent.status = create(AgentStatusSchema, {});
-        }
-        defaultAgent.status.defaultInstanceId = defaultInstanceId;
-        try {
-          await store.saveResource(
-            ApiResourceKind.agent,
-            agentId,
-            AgentSchema,
-            defaultAgent,
-          );
-        } catch (error) {
-          logger.error("Failed to persist agent with default_instance_id", {
-            agentId,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          // Go wraps as a plain error → the pipeline's Internal fallback.
-          throw new Error(
-            `failed to persist agent with default instance: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-
-        // The default_of invariant rides the pointer persist (C2 Stage 3).
-        await notifyDefaultInstanceLinked(authorizationLifecycle, {
-          instanceKind: ApiResourceKind.agent_instance,
-          instanceId: defaultInstanceId,
-          blueprintKind: ApiResourceKind.agent,
-          blueprintId: agentId,
-        });
-
-        logger.info("Created default instance for default agent", {
-          instanceId: defaultInstanceId,
-          agentId,
-        });
-      }
-
-      // 3. Set agent_instance_id on the session's newState (not input) —
-      // see the module-level clone gotcha note.
-      const newState = ctx.newState;
-      if (newState.spec === undefined) {
-        newState.spec = create(SessionSpecSchema, {});
-      }
-      newState.spec.agentInstanceId = defaultInstanceId;
-
-      logger.info(
-        "Set agent_instance_id on session from platform default agent",
-        {
-          agentInstanceId: defaultInstanceId,
-        },
-      );
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 // ValidateHarnessImmutability — validate_harness_immutability.go: rejects

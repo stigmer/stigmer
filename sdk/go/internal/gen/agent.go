@@ -77,11 +77,6 @@ func (a *AgentClient) GetByReference(ctx context.Context, ref ResourceRef) (*age
 	return resp, wrapErr(err)
 }
 
-func (a *AgentClient) GetDefault(ctx context.Context, input *agentv1.GetDefaultAgentRequest) (*agentv1.Agent, error) {
-	resp, err := a.query.GetDefault(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
 	req := &searchv1.SearchRequest{
 		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},

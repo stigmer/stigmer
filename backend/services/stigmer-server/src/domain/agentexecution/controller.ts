@@ -94,9 +94,7 @@ import {
   newComposeRecalledMemoriesStep,
   newCreateDefaultInstanceIfNeededStep,
   newCreateSessionIfNeededStep,
-  newEnsureSessionOrAgentResolvedStep,
   newProcessAttachmentsStep,
-  newResolveDefaultAgentStep,
   newSetInitialPhaseStep,
   newStartWorkflowStep,
 } from "./create-steps.js";
@@ -280,12 +278,12 @@ export function registerAgentExecutionServices(
 
 /**
  * Create — create.go buildCreatePipeline, step-for-step: validation
- * (proto → visibility → tier #357 → thinking #772) → target resolution
- * (default agent → invariant guard) → the run gate (AuthorizeRunTarget,
- * P1 sp.run-gate: the first step after the target is guaranteed, asking
- * the target's own permission by request shape — session, instance or
- * blueprint — before the engine gate so a denied caller learns nothing
- * about engine state, and before every side effect) → the standard build
+ * (proto → visibility → tier #357 → thinking #772) → the run gate
+ * (AuthorizeRunTarget, P1 sp.run-gate: asking the target's own permission
+ * by request shape — session, instance or blueprint; the all-empty shape
+ * is the built-in assistant, admitted by Authorize's organization check
+ * and gated on nothing further — before the engine gate so a denied caller
+ * learns nothing about engine state, and before every side effect) → the standard build
  * → the engine gate (fail fast BEFORE the first side effect, so a down
  * engine orphans nothing) → the pre-side-effect gate slot (O4; empty in OSS) → the
  * side-effecting steps (default instance, session bootstrap,
@@ -319,8 +317,6 @@ async function createExecution(
     .addStep(newValidateVisibilityStep())
     .addStep(newValidateServiceTierStep(deps.modelRegistry))
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
-    .addStep(newResolveDefaultAgentStep(deps.store, deps.logger))
-    .addStep(newEnsureSessionOrAgentResolvedStep(deps.logger))
     .addStep(
       newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget),
     )

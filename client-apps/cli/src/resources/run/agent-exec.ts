@@ -2,9 +2,12 @@
 // run_agent_exec.go): create the agent execution (one call — a workspace rides
 // the embedded session_spec and the backend bootstraps the session), then
 // either detach (print header + re-attach hint) or stream and optionally
-// download artifacts, for `run`.
+// download artifacts, for `run`. With no agent the same flow runs the
+// built-in assistant: the execution names no agent, the backend creates a
+// session with no instance, and the header shows the assistant's name.
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/sdk";
 import type { BackendClient } from "../../client/index.js";
 import { downloadExecutionArtifacts } from "../download.js";
 import { createAgentExecution } from "./create.js";
@@ -13,7 +16,8 @@ import type { PreparedRun } from "./prepare.js";
 import { streamAgentExecution, type RunOutputMode } from "./stream.js";
 
 export interface ResolvedAgentExecInput {
-  readonly agent: Agent;
+  /** The agent to run; undefined is the built-in assistant. */
+  readonly agent: Agent | undefined;
   readonly prepared: PreparedRun;
   readonly org: string;
   /** Artifact download directory; "" skips download. */
@@ -31,9 +35,10 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
   // One call: workspace entries ride the embedded session_spec
   // (stigmer/stigmer#249), so the backend bootstraps the session — resolving
   // the agent's default instance server-side (auto-creating it if missing,
-  // which a client-side lookup could not) — and dispatches the message.
+  // which a client-side lookup could not), or binding no agent at all for
+  // the built-in assistant — and dispatches the message.
   const execution = await createAgentExecution(controller, {
-    agentId: input.agent.metadata?.id,
+    agentId: input.agent?.metadata?.id,
     orgId: org,
     message: prepared.message,
     runtimeEnv: prepared.runtimeEnv,
@@ -53,7 +58,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
   const sessionId = execution.spec?.sessionId ?? "";
 
   const header: SessionHeaderInfo = {
-    agentName: input.agent.metadata?.name ?? "",
+    agentName: input.agent?.metadata?.name ?? BUILT_IN_ASSISTANT_NAME,
     sessionId,
     model: prepared.model,
     mode: prepared.mode,

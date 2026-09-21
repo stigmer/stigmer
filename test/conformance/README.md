@@ -507,8 +507,8 @@ agent analogue of the `wait` timer). It asserts the engine-present contract and
 encodes AgentExecution's divergences from WorkflowExecution — **no `AlreadyExists`
 on create** (repeated identical creates yield distinct `aex_` ids), the query
 analogue is **`listBySession`**, and a create with **neither `session_id` nor
-`agent_id`** returns `NotFound` (the default-agent resolution step runs first and
-the OSS target seeds no default agent), not `InvalidArgument`. See the project's
+`agent_id`** is the **built-in assistant**: the server creates a session with no
+agent and the run completes on the runner's one built-in prompt. See the project's
 `design-decisions/009-agentexecution-domain-and-ts-mock-llm-proxy.md`. The two
 execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
 

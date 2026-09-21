@@ -161,7 +161,9 @@ export {
   groupSessionsByTime,
   groupSearchResultsByTime,
   useSessionSearch,
+  BUILT_IN_ASSISTANT_NAME,
   PENDING_SUBJECT,
+  isBuiltInAssistant,
   resolvedSubject,
   CHANNEL_SESSION_LABELS,
   isChannelOriginSession,
@@ -837,7 +839,7 @@ export type {
   ParsedGitRepo,
 } from "./github/index.js";
 
-// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard, update
+// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, creation wizard, update
 export {
   useAgent,
   useAgentCount,
@@ -848,7 +850,6 @@ export {
   AgentEnvForm,
   diffEnv,
   useAgentSetup,
-  useDefaultAgent,
   useCreateAgent,
   useUpdateAgent,
   AgentCreationWizard,
@@ -874,7 +875,6 @@ export type {
   AgentResolution,
   SubmitEnvVarsOptions,
   UseAgentSetupReturn,
-  UseDefaultAgentReturn,
   UseCreateAgentReturn,
   UseUpdateAgentReturn,
   AgentCreationWizardProps,

@@ -100,8 +100,8 @@ export function grpcCodeName(code: Code): string {
  * errors.As branch keeps the INNER code but rewrites the message to the
  * full wrapped text — and the inner client error's Error() renders as
  * `rpc error: code = <CodeName> desc = <message>`. Byte-parity with Go on
- * the two arms that hit this (agent create's CreateDefaultInstance,
- * session create's ResolveDefaultAgentInstance). The transport-formatting
+ * the arms that hit this (agent create's CreateDefaultInstance, agent
+ * execution create's default-instance and session bootstrap). The transport-formatting
  * leak is filed as stigmer/stigmer#852 for a both-editions post-cutover
  * fix; until then this shim IS the wire contract.
  *

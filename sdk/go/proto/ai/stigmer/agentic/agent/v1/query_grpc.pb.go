@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AgentQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.agent.v1.AgentQueryController/get"
 	AgentQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference"
-	AgentQueryController_GetDefault_FullMethodName     = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getDefault"
 )
 
 // AgentQueryControllerClient is the client API for AgentQueryController service.
@@ -36,14 +35,6 @@ type AgentQueryControllerClient interface {
 	// Get an agent by its organization-scoped reference (org/slug).
 	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Agent, error)
-	// Get the platform default agent.
-	//
-	// Returns the default agent for the platform, including
-	// status.default_instance_id for creating a session. Use this
-	// to start a conversation without selecting an agent first.
-	//
-	// Returns NOT_FOUND if no default agent is configured.
-	GetDefault(ctx context.Context, in *GetDefaultAgentRequest, opts ...grpc.CallOption) (*Agent, error)
 }
 
 type agentQueryControllerClient struct {
@@ -74,16 +65,6 @@ func (c *agentQueryControllerClient) GetByReference(ctx context.Context, in *api
 	return out, nil
 }
 
-func (c *agentQueryControllerClient) GetDefault(ctx context.Context, in *GetDefaultAgentRequest, opts ...grpc.CallOption) (*Agent, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Agent)
-	err := c.cc.Invoke(ctx, AgentQueryController_GetDefault_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AgentQueryControllerServer is the server API for AgentQueryController service.
 // All implementations should embed UnimplementedAgentQueryControllerServer
 // for forward compatibility.
@@ -95,14 +76,6 @@ type AgentQueryControllerServer interface {
 	// Get an agent by its organization-scoped reference (org/slug).
 	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error)
-	// Get the platform default agent.
-	//
-	// Returns the default agent for the platform, including
-	// status.default_instance_id for creating a session. Use this
-	// to start a conversation without selecting an agent first.
-	//
-	// Returns NOT_FOUND if no default agent is configured.
-	GetDefault(context.Context, *GetDefaultAgentRequest) (*Agent, error)
 }
 
 // UnimplementedAgentQueryControllerServer should be embedded to have
@@ -117,9 +90,6 @@ func (UnimplementedAgentQueryControllerServer) Get(context.Context, *AgentId) (*
 }
 func (UnimplementedAgentQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
-}
-func (UnimplementedAgentQueryControllerServer) GetDefault(context.Context, *GetDefaultAgentRequest) (*Agent, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetDefault not implemented")
 }
 func (UnimplementedAgentQueryControllerServer) testEmbeddedByValue() {}
 
@@ -177,24 +147,6 @@ func _AgentQueryController_GetByReference_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentQueryController_GetDefault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDefaultAgentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentQueryControllerServer).GetDefault(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AgentQueryController_GetDefault_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentQueryControllerServer).GetDefault(ctx, req.(*GetDefaultAgentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AgentQueryController_ServiceDesc is the grpc.ServiceDesc for AgentQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -209,10 +161,6 @@ var AgentQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _AgentQueryController_GetByReference_Handler,
-		},
-		{
-			MethodName: "getDefault",
-			Handler:    _AgentQueryController_GetDefault_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

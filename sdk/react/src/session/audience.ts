@@ -17,9 +17,9 @@
  *   `"endUser"` hides plus the model, harness, and Agent/Plan pickers,
  *   attachments, the workspace picker, and the session panel. Guest is
  *   behavioral, not just cosmetic — the organisms also skip the
- *   org-level reads a guest principal cannot make (default-agent
- *   resolution, session→agent derivation, personal environments) and
- *   never fall back to the org's default agent. Approval mechanics are
+ *   org-level reads a guest principal cannot make (session→agent
+ *   derivation, personal environments) and never fall back to the
+ *   built-in assistant. Approval mechanics are
  *   also withheld (DD-014): the HITL gate protects the ORG's tools and
  *   an anonymous visitor is not its trustee — guest executions run in
  *   unattended approval mode server-side (gated tools auto-skip and the

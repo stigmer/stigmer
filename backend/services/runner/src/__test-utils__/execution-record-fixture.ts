@@ -75,6 +75,13 @@ export interface ExecutionRecordOptions {
   readonly structuredOutputSchema?: JsonObject;
   /** The agent's declared sub-agents (`AgentSpec.sub_agents`). */
   readonly subAgents?: SubAgent[];
+  /**
+   * The built-in assistant: the session names NO agent instance, so the
+   * record carries no instance and no agent and the activity must run on
+   * the one built-in prompt with the session's own tools. `instructions`
+   * and `subAgents` are ignored (there is no agent to declare them).
+   */
+  readonly builtInAssistant?: boolean;
   /** The control plane's STOP lever; see `ExecutionRecordInput.controlSignal`. */
   readonly controlSignal?: ExecutionRecordInput["controlSignal"];
   readonly ids?: ExecutionRecordIds;
@@ -100,10 +107,19 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
   const session: Session = create(SessionSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: ids.sessionId, org: ids.org, name: ids.sessionId }),
     spec: create(SessionSpecSchema, {
-      agentInstanceId: ids.agentInstanceId,
+      agentInstanceId: options.builtInAssistant === true ? "" : ids.agentInstanceId,
       workspaceEntries: options.workspaceEntries ?? [],
     }),
   });
+  if (options.builtInAssistant === true) {
+    return new ExecutionRecord({
+      execution,
+      session,
+      agentInstance: undefined,
+      agent: undefined,
+      controlSignal: options.controlSignal,
+    });
+  }
   const agentInstance: AgentInstance = create(AgentInstanceSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: ids.agentInstanceId, org: ids.org, name: ids.agentInstanceId }),
     spec: create(AgentInstanceSpecSchema, { agentId: ids.agentId }),

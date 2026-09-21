@@ -3,11 +3,12 @@
  * `stigmer.ai/*` label namespace (the Java GuardReservedLabelsStep port,
  * cloud#320/#386; C2 Stage 3, 20260827.10).
  *
- * Reserved labels carry platform semantics — the motivating one is
- * `stigmer.ai/default-agent`, which the default-agent resolution reads
- * GLOBALLY (label + visibility_public), so a tenant labeling its own
- * public agent would enter every organization's default-agent candidate
- * set. Only rejecting the write closes that.
+ * Reserved labels carry platform semantics the server reads and acts on
+ * (the personal-environment marker, the default-instance marker, the
+ * membership and lineage labels): a client that could write one would be
+ * writing a platform decision, and any reader trusting the label would be
+ * trusting the client. Only rejecting the write closes that; the label is
+ * not authorization, the server is.
  *
  * Behavior (the Java matrix verbatim):
  *   - ECHOES pass — clients read-modify-write whole resources, so a

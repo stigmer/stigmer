@@ -24,7 +24,6 @@ import type { SetupTabProps } from "../facets/SetupTab";
 
 const sessionConfig = {
   agentRef: null,
-  isDefaultAgent: true,
   mcpServerUsages: [],
   skillRefs: [],
   sessionVariables: null,

@@ -1,9 +1,12 @@
 // Command-level contract for `stigmer bootstrap`: against the configured
-// backend it ensures the system org and installs the official defaults
-// (the repo tree's catalogue in dev), renders both outcomes, exits 0 when
-// every default landed and non-zero, after rendering, when one did not; a
-// second run over a converged backend reports `up-to-date` and pushes
-// nothing. A real Connect backend over h2c serves the org and plugin
+// backend it ensures the system org and installs the official defaults (the
+// repo tree's catalogue in dev), whose list is EMPTY — a fresh install needs
+// no default content because a session with no agent runs the built-in
+// assistant — so the command creates the organization, pushes nothing, and
+// renders both outcomes; a second run over a converged backend reports the
+// org present and still pushes nothing. The failing-default arm is pinned at
+// the function level (local/bootstrap.test.ts), where a synthetic list can
+// stage it. A real Connect backend over h2c serves the org and plugin
 // controllers; the config file (HOME redirected) points a selfhost backend
 // at it.
 
@@ -57,7 +60,6 @@ const openSessions = new Set<ServerHttp2Session>();
 let orgs: Map<string, Organization>;
 let plugins: Map<string, Plugin>;
 let pushes: number;
-let refusePush: boolean;
 
 let home: string;
 let originalHome: string | undefined;
@@ -85,9 +87,6 @@ beforeAll(async () => {
     router.service(PluginCommandController, {
       push: (req) => {
         pushes += 1;
-        if (refusePush) {
-          throw new ConnectError("catalogue is read-only", Code.PermissionDenied);
-        }
         const digest = createHash("sha256").update(req.artifact).digest("hex");
         const slug = nameByDigest.get(digest);
         if (slug === undefined) {
@@ -132,7 +131,6 @@ beforeEach(() => {
   orgs = new Map();
   plugins = new Map();
   pushes = 0;
-  refusePush = false;
   originalHome = process.env.HOME;
   home = mkdtempSync(join(tmpdir(), "stigmer-bootstrap-cmd-"));
   process.env.HOME = home;
@@ -200,11 +198,11 @@ function section(payload: { sections?: JsonSection[] }, title: string) {
 }
 
 describe("bootstrap", () => {
-  it("creates the system org, installs every default public, and reports both", async () => {
+  it("creates the system org, installs nothing (the catalogue has no defaults), and reports both", async () => {
     const outcome = await run("--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     expect(orgs.has(SYSTEM_ORG)).toBe(true);
-    expect(pushes).toBeGreaterThan(0);
+    expect(pushes).toBe(0);
 
     const payload = JSON.parse(outcome.stdout);
     expect(payload.status).toBe("success");
@@ -213,12 +211,10 @@ describe("bootstrap", () => {
       { key: "Slug", value: SYSTEM_ORG },
       { key: "State", value: "created" },
     ]);
-    const defaults = section(payload, "Default plugins")?.fields ?? [];
-    expect(defaults.length).toBe(pushes);
-    expect(defaults.every((f) => f.value === "installed")).toBe(true);
+    expect(section(payload, "Default plugins")?.fields ?? []).toEqual([]);
   });
 
-  it("is a no-op the second time: org present, every default up-to-date, nothing pushed", async () => {
+  it("is a no-op the second time: org present, nothing pushed", async () => {
     await run("--json");
     const pushedFirst = pushes;
     const outcome = await run("--json");
@@ -234,20 +230,5 @@ describe("bootstrap", () => {
         (f) => f.value === "up-to-date",
       ),
     ).toBe(true);
-  });
-
-  it("renders the outcomes and then exits non-zero when a default did not land", async () => {
-    refusePush = true;
-    const outcome = await run("--json");
-    expect(outcome.exitCode).toBe(ExitCode.General);
-    expect(outcome.message).toMatch(/^default plugins? not installed: /);
-    const payload = JSON.parse(outcome.stdout);
-    expect(payload.status).toBe("warning");
-    const defaults = section(payload, "Default plugins")?.fields ?? [];
-    expect(defaults.length).toBeGreaterThan(0);
-    expect(defaults.every((f) => f.value.startsWith("failed: "))).toBe(true);
-    expect(payload.hints).toEqual([
-      "Fix the cause named above and run 'stigmer bootstrap' again.",
-    ]);
   });
 });

@@ -39,9 +39,10 @@ const API_VERSION = "agentic.stigmer.ai/v1";
 export type ControllerFn = <Desc extends DescService>(service: Desc) => Client<Desc>;
 
 /**
- * Inputs for creating an agent execution. At least one of agentId/sessionId
- * must be set: agentId-only starts a new backend-managed session, sessionId
- * threads a follow-up, both pins the agent within an existing session.
+ * Inputs for creating an agent execution. agentId-only starts a new
+ * backend-managed session, sessionId threads a follow-up, both pins the agent
+ * within an existing session, and neither starts a new session with no agent:
+ * the built-in assistant.
  *
  * workspaceEntries ride the one-call bootstrap (spec.session_spec,
  * stigmer/stigmer#249) and shape the auto-created session; they are mutually

@@ -148,8 +148,8 @@ Notes on the contract:
 - `sessionSpec` and `sessionId` are mutually exclusive: define a new session or
   reference an existing one, never both.
 - When `sessionSpec.agentInstanceId` is empty, the server resolves the agent's
-  default instance from `agentId` (creating the instance if missing), or falls
-  back to the platform default agent.
+  default instance from `agentId` (creating the instance if missing); with no
+  `agentId` either, the session runs the built-in assistant.
 - For the **local** target, attach the runner right after the call returns, as
   shown. The order is safe: the execution's first activity waits on the
   session's task queue for a worker (a 5-minute window), so the worker you

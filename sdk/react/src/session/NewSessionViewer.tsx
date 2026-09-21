@@ -368,7 +368,6 @@ export function NewSessionViewer({
   const sessionConfig: SetupTabProps = useMemo(
     () => ({
       agentRef: flow.agentRef,
-      isDefaultAgent: false,
       mcpServerUsages: flow.mcpServerUsages,
       skillRefs: flow.skillRefs,
       sessionVariables: flow.sessionVariables,

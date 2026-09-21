@@ -29,7 +29,13 @@ export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
  */
 export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> & {
   /**
-   * Agent instance this session runs against.
+   * Agent instance this session runs against; empty means no agent, and the
+   * built-in assistant answers with the MCP servers and skills this session
+   * itself declares.
+   *
+   * A session may gain an agent or drop back to the built-in assistant on
+   * update; the harness and execution target are the immutable fields, not
+   * this one.
    *
    * @generated from field: string agent_instance_id = 1;
    */

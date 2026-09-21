@@ -73,8 +73,10 @@ session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
   </Tab>
 </Tabs>
 
-If you don't specify an `agentInstanceId`, Stigmer uses the default Agent — the
-same `assistant` from the [Quickstart](/docs/getting-started/quickstart).
+If you don't specify an `agentInstanceId`, the Session runs the
+[built-in assistant](/docs/concepts/agents#the-built-in-assistant) — the same
+one the [Quickstart](/docs/getting-started/quickstart) talks to. A Session can
+later be bound to an Agent, or have its Agent removed, through an update.
 
 ## Harness
 

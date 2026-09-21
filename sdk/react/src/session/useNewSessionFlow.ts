@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { AgentResolution } from "../agent/index.js";
-import { useDefaultAgent } from "../agent/index.js";
 import { useModelRegistry } from "../models/index.js";
 import { parseModelKey } from "../models/registry.js";
 import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
@@ -12,7 +11,6 @@ import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspac
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
 import type { SessionComposerSubmitContext } from "../composer/index.js";
 import { useStigmer } from "../hooks.js";
-import { withTimeout } from "../internal/withTimeout.js";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
 import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
@@ -21,8 +19,6 @@ import { useRunnerAdapter } from "../runner-adapter.js";
 import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
-
-const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 
@@ -128,11 +124,10 @@ export interface UseNewSessionFlowOptions {
   readonly accountDefaults?: AccountExecutionDefaults;
   /**
    * Who this flow serves. `"guest"` adapts the orchestration to the
-   * guest principal's permission model: the org default-agent lookup
-   * (which a guest token cannot read) is skipped, and submission
-   * requires an explicit agent resolution instead of falling back to
-   * the org's default agent — a shared-agent page must never run
-   * anything but the pinned shared agent. See {@link SessionAudience}.
+   * guest principal's permission model: submission requires an explicit
+   * agent resolution instead of falling back to the built-in assistant
+   * — a shared-agent page must never run anything but the pinned shared
+   * agent. See {@link SessionAudience}.
    *
    * @default "integrator"
    */
@@ -196,7 +191,7 @@ export interface UseNewSessionFlowReturn {
   /** Update the selected model. Automatically persists to localStorage. */
   readonly setModelId: (id: string) => void;
 
-  /** Currently selected agent reference, or `null` for the default agent. */
+  /** Currently selected agent reference, or `null` for the built-in assistant. */
   readonly agentRef: ResourceRef | null;
   /** Update the selected agent reference. */
   readonly setAgentRef: (ref: ResourceRef | null) => void;
@@ -384,15 +379,6 @@ export function useNewSessionFlow(
   const stigmer = useStigmer();
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
   const { create: createExecution } = useCreateAgentExecution();
-  // Guests cannot read the org default agent (and must never run it) —
-  // `null` puts the hook in its stable no-op mode, and the submit path
-  // below fails closed instead of falling back.
-  const {
-    agent: defaultAgent,
-    isLoading: isDefaultAgentLoading,
-    error: defaultAgentError,
-    waitForResolution: waitForDefaultAgent,
-  } = useDefaultAgent(isGuest ? null : org);
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
 
@@ -533,9 +519,10 @@ export function useNewSessionFlow(
           autoApproveAll: autoApproveAll || undefined,
         };
 
-        // Resolve which agent the bootstrapped session runs against: an
-        // explicit instance when one is known, otherwise an agent ID the
-        // server resolves to its default instance (creating it if missing).
+        // Resolve what the bootstrapped session runs against: an explicit
+        // instance when one is known, an agent ID the server resolves to
+        // its default instance (creating it if missing), or nothing at all
+        // — the built-in assistant, which needs no lookup and no wait.
         let agentInstanceId: string | undefined;
         let agentId: string | undefined;
 
@@ -552,33 +539,11 @@ export function useNewSessionFlow(
         } else if (isGuest) {
           // Fail closed: a guest session is only ever created against the
           // pinned shared agent's resolution. Reaching here means the pin
-          // has not been applied yet (or was cleared) — never substitute
-          // the org default agent for an anonymous visitor.
+          // has not been applied yet (or was cleared) — an anonymous
+          // visitor never gets the built-in assistant either.
           throw new Error(
             "This agent is still loading. Please try again in a moment.",
           );
-        } else {
-          let resolvedInstanceId = defaultAgent?.status?.defaultInstanceId;
-          if (!resolvedInstanceId) {
-            if (isDefaultAgentLoading) {
-              const resolved = await withTimeout(
-                waitForDefaultAgent(),
-                DEFAULT_AGENT_TIMEOUT_MS,
-                "Default agent did not load in time. Please try again.",
-              );
-              resolvedInstanceId = resolved?.status?.defaultInstanceId;
-            } else if (defaultAgentError) {
-              throw new Error(
-                "Failed to load default agent. Please try again.",
-              );
-            }
-            if (!resolvedInstanceId) {
-              throw new Error(
-                "No default agent available. Select an agent to start a session.",
-              );
-            }
-          }
-          agentInstanceId = resolvedInstanceId;
         }
 
         // One-call bootstrap: the embedded session spec and the first
@@ -631,10 +596,6 @@ export function useNewSessionFlow(
       sessionContext,
       agentRef,
       resolution,
-      defaultAgent,
-      isDefaultAgentLoading,
-      defaultAgentError,
-      waitForDefaultAgent,
       stigmer.agent,
       createExecution,
       sessionVariables,

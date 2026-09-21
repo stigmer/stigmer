@@ -110,8 +110,8 @@ export interface AgentOptions extends AgentSpecOptions {
   org: string;
   name: string;
   // Metadata labels, passed through verbatim — label semantics live server-side.
-  // The suite's one consumer today is the platform default-agent label
-  // (stigmer.ai/default-agent) behind the getDefault determinism pin.
+  // The suite's one consumer today is the reserved-label guard pin, which
+  // introduces a stigmer.ai/* key as an ordinary caller to see it refused.
   labels?: Record<string, string>;
 }
 

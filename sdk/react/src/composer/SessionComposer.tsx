@@ -412,18 +412,6 @@ export interface SessionComposerProps {
   readonly initialInstanceId?: string;
 
   /**
-   * When `true`, the agent chip renders without an X (remove) button.
-   *
-   * Used on the session page to indicate the session's default agent,
-   * where removing it would just re-select the same agent (a
-   * confusing no-op). The user can still switch agents via the
-   * Configure menu.
-   *
-   * @default false
-   */
-  readonly isDefaultAgent?: boolean;
-
-  /**
    * Lock the current agent: the Agent entry is removed from the
    * Configure menu so the user cannot swap or deselect it.
    *
@@ -631,7 +619,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onAgentSetupErrorChange,
   initialAgentRef,
   initialInstanceId,
-  isDefaultAgent = false,
   lockAgent = false,
   mcpServerUsages,
   onMcpServerUsagesChange,

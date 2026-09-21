@@ -103,7 +103,6 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
   const workspaceDir = overrides.workspaceDir ?? join(tmpdir(), "stigmer-runner-turn-input-fixture");
   const blueprint: ResolvedBlueprint = {
     agent,
-    agentSpec: agent.spec!,
     session,
     sessionSpec: session.spec!,
     instructions: agent.spec!.instructions,

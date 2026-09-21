@@ -42,11 +42,10 @@ docker run -d --name stigmer \
 
 Open the console at [http://localhost:7234](http://localhost:7234). The first
 start takes a moment: the container starts Temporal, the server, and the runner,
-then creates the `stigmer` Organization and installs the default Plugins into
-it. Watch it with `docker logs -f stigmer`.
+then creates the `stigmer` Organization. Watch it with `docker logs -f stigmer`.
 
-Once it is up, the console opens on the workbench with the default Agent
-selected. Send it a message: the answer comes back through the runner inside the
+Once it is up, the console opens on the workbench. Send a message without
+picking an Agent: the built-in assistant answers through the runner inside the
 container, using the key you passed.
 
 Both amd64 and arm64 are supported — every release is smoke-tested on both

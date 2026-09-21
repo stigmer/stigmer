@@ -14,13 +14,11 @@
 // Contract divergences from WorkflowExecution, encoded as assertions below:
 // - No AlreadyExists on create: repeated identical creates yield distinct aex_
 //   ids (there is no CheckDuplicateStep in the agent-execution pipeline).
-// - "Neither session_id nor agent_id" is NOT an InvalidArgument: it is a valid
-//   request shape (session-first UX). resolveDefaultAgentStep runs first and tries
-//   to resolve the platform default agent, which the single-tenant OSS target does
-//   not seed — so the reachable contract is NotFound (with a clear, caller-actionable
-//   "no default agent" message). The downstream ensureSessionOrAgentResolvedStep is a
-//   post-resolution invariant guard (returns Internal if a reference is somehow still
-//   unresolved), not input validation — so it is unreachable by black-box input here.
+// - "Neither session_id nor agent_id nor session_spec instance" is a VALID
+//   request shape: the built-in assistant. The server creates a session with no
+//   agent and the runner answers on its one built-in prompt with the tools the
+//   session itself carries, so the run reaches COMPLETED like any other — the
+//   arm pinned below and in the CRUD suite's session create.
 // - The query analogue of listByWorkflow is listBySession (filter by spec.session_id).
 //
 // One-call session bootstrap (stigmer/stigmer#249): create may carry
@@ -621,24 +619,29 @@ describe("AgentExecution conformance — create negative paths", () => {
     );
   });
 
-  it("rejects a create with neither session nor agent (NotFound — no platform default agent)", async () => {
+  it("runs the built-in assistant to completion when neither session nor agent is named", async () => {
     const { org } = await target.provisionTenancy();
-    // "Neither provided" is a valid session-first request shape: resolveDefaultAgentStep
-    // runs first and tries to resolve the platform default agent (label
-    // stigmer.ai/default-agent), which the single-tenant OSS target does not seed — so
-    // the reachable contract is NotFound. The downstream ensureSessionOrAgentResolvedStep
-    // is an invariant guard (Internal), not input validation, so it is unreachable here.
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create({
-          apiVersion: AGENT_EXECUTION_API_VERSION,
-          kind: AGENT_EXECUTION_KIND,
-          metadata: { name: uniqueName("aex"), org },
-          spec: { message: "hi" },
-        }),
-      Code.NotFound,
-      "create with neither session nor agent",
-    );
+    // The all-empty target: no session, no agent, no session_spec instance.
+    // The server creates a session with NO agent and the runner answers on
+    // the built-in prompt; the mock's one text turn is that answer.
+    mock.enqueue(anthropicText("Hello from the assistant."));
+    const created = await clients.agentExecutionCommand.create({
+      apiVersion: AGENT_EXECUTION_API_VERSION,
+      kind: AGENT_EXECUTION_KIND,
+      metadata: { name: uniqueName("aex-assistant"), org },
+      spec: { message: "hi" },
+    });
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
+    expect(created.spec?.agentId, "no agent is stamped").toBe("");
+    const sessionId = created.spec?.sessionId;
+    expect(sessionId, "a session is created for the assistant").toBeTruthy();
+    fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId! }));
+
+    const session = await clients.sessionQuery.get({ value: sessionId! });
+    expect(session.spec?.agentInstanceId ?? "", "the session names no instance").toBe("");
+
+    const settled = await awaitTerminal(clients, created.metadata!.id);
+    expect(settled.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 });
 
@@ -665,9 +668,7 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
 
     mock.enqueue(anthropicText("Done."));
     // No agent_id: an instance-carrying session_spec is a complete session
-    // target on its own. This also proves the default-agent lookup is skipped —
-    // this target seeds no platform default agent, so a reached lookup would
-    // fail the create with NotFound.
+    // target on its own.
     const created = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,

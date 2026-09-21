@@ -147,9 +147,6 @@ export interface CapabilityFlags {
   // boundary (stigmer-cloud#320 for agents, platform-wide since
   // stigmer-cloud#386). Where false, the suite pins the guard itself: an
   // ordinary caller introducing a reserved label gets INVALID_ARGUMENT.
-  // The getDefault determinism pin no longer rides this flag — it creates
-  // its labeled candidates through provisionPrivilegedScope (stigmer#547),
-  // so it runs on cloud again.
   clientReservedLabelWrites: boolean;
 // NOTE: there is deliberately no shared-runner-artifact-store capability.
   // Every execution target's runner resolves storage-key attachments the

@@ -10,21 +10,17 @@ description:
 
 Make the configured backend a ready Stigmer.
 
-A backend is ready when the `stigmer` organization exists and the official
-marketplace's default plugins are installed into it as public resources. That is
-what gives every install its default agent and lets any organization reference
-the platform's shared skills and MCP servers. `stigmer up` does this for the
-local stack on its own; `stigmer bootstrap` is for every other shape: a
-self-hosted server behind Docker Compose or Helm, or an operator provisioning
-the hosted platform.
+A backend is ready when the `stigmer` organization exists. No default content is
+installed: a conversation started with no agent runs the built-in assistant, so
+a ready backend answers its first message without a single plugin. The official
+marketplace's `defaults` list, which this command would install, is empty.
+`stigmer up` does this for the local stack on its own; `stigmer bootstrap` is
+for every other shape: a self-hosted server behind Docker Compose or Helm, or an
+operator provisioning the hosted platform.
 
-The command is idempotent. The organization is created only when it is missing,
-and each default plugin is pushed only when the backend does not already hold it
-at the same content digest. A second run over a ready backend changes nothing
-and reports every default as `up-to-date`. The command never deletes anything.
-
-The exit status is non-zero when any default plugin failed to install, after the
-outcomes are printed, so a scheduled run is red for the right reason.
+The command is idempotent. The organization is created only when it is missing;
+a second run over a ready backend changes nothing. The command never deletes
+anything.
 
 ## Usage
 
@@ -55,9 +51,8 @@ stigmer bootstrap
 stigmer bootstrap --json
 ```
 
-The JSON carries a `System organization` section (`created` or `present`) and a
-`Default plugins` section with one entry per default (`installed`, `up-to-date`,
-or `failed: <reason>`).
+The JSON carries a `System organization` section (`created` or `present`) and an
+empty `Default plugins` section (the catalogue installs nothing by default).
 
 ## Global Flags
 

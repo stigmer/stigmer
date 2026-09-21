@@ -19,7 +19,6 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   AgentExecutionSchema,
@@ -32,6 +31,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import {
@@ -42,7 +43,6 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -59,8 +59,6 @@ import {
   newComposeRecalledMemoriesStep,
   newCreateDefaultInstanceIfNeededStep,
   newCreateSessionIfNeededStep,
-  newEnsureSessionOrAgentResolvedStep,
-  newResolveDefaultAgentStep,
   newStartWorkflowStep,
 } from "../create-steps.js";
 import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
@@ -105,28 +103,6 @@ function newContext(
   );
 }
 
-async function seedDefaultAgent(
-  id: string,
-  visibility: ApiResourceVisibility,
-): Promise<void> {
-  await store.saveResource(
-    ApiResourceKind.agent,
-    id,
-    AgentSchema,
-    create(AgentSchema, {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Agent",
-      metadata: {
-        id,
-        name: "assistant",
-        org: "stigmer",
-        visibility,
-        labels: { "stigmer.ai/default-agent": "true" },
-      },
-    }),
-  );
-}
-
 async function expectCode(
   fn: () => Promise<unknown> | unknown,
   code: Code,
@@ -141,140 +117,89 @@ async function expectCode(
   throw new Error(`expected code ${Code[code]}, call succeeded`);
 }
 
-// The post-resolution invariant guard: a resolved reference passes; an
-// unresolved one is an Internal invariant violation (never
-// InvalidArgument — issue #196).
-describe("newEnsureSessionOrAgentResolvedStep", () => {
-  const step = newEnsureSessionOrAgentResolvedStep(silentLogger);
-
-  const cases: Array<{
-    name: string;
-    sessionId?: string;
-    agentId?: string;
-    specInstanceId?: string;
-    wantCode?: Code;
-  }> = [
-    { name: "session_id resolved -> pass", sessionId: "ses_1" },
-    { name: "agent_id resolved -> pass", agentId: "agt_1" },
-    {
-      name: "both resolved -> pass",
-      sessionId: "ses_1",
-      agentId: "agt_1",
-    },
-    {
-      name: "session_spec instance resolved -> pass",
-      specInstanceId: "inst_1",
-    },
-    {
-      name: "none resolved -> Internal invariant violation",
-      wantCode: Code.Internal,
-    },
-  ];
-
-  for (const tt of cases) {
-    it(tt.name, async () => {
-      const execution = newExecution(tt.sessionId ?? "", tt.agentId ?? "");
-      if (tt.specInstanceId !== undefined) {
-        execution.spec!.sessionSpec = create(SessionSpecSchema, {
-          agentInstanceId: tt.specInstanceId,
-        });
-      }
-      const ctx = newContext(execution);
-      if (tt.wantCode === undefined) {
-        await step.execute(ctx);
-      } else {
-        await expectCode(() => step.execute(ctx), tt.wantCode);
-      }
+// The built-in assistant's shape through the two side-effecting steps: an
+// execution naming no session, no agent and no session_spec instance is
+// legal (agentexecution/v1/spec.proto), so CreateDefaultInstanceIfNeeded
+// has nothing to load or mint and CreateSessionIfNeeded creates the
+// session with an EMPTY agent_instance_id. The throwing providers prove
+// the first step never reaches a client (Go's nil clients would panic).
+describe("the built-in assistant (no session, agent or instance named)", () => {
+  it("createDefaultInstanceIfNeeded skips without touching the agent lane", async () => {
+    const step = newCreateDefaultInstanceIfNeededStep({
+      store,
+      logger: silentLogger,
+      agentLoader: () => {
+        throw new Error("agent loader must not be reached");
+      },
+      agentInstanceCreator: () => {
+        throw new Error("instance creator must not be reached");
+      },
     });
-  }
-});
-
-// The reachable contract of default-agent resolution: NotFound when
-// unseeded, resolution onto newState when a public default exists, and
-// FailedPrecondition when the default is not visibility_public.
-describe("newResolveDefaultAgentStep", () => {
-  it("no default agent seeded -> NotFound", async () => {
-    const step = newResolveDefaultAgentStep(store, silentLogger);
-    await expectCode(
-      () => step.execute(newContext(newExecution("", ""))),
-      Code.NotFound,
-    );
-  });
-
-  it("public default agent -> resolves agent_id onto newState", async () => {
-    await seedDefaultAgent(
-      "agt_default",
-      ApiResourceVisibility.visibility_public,
-    );
-    const step = newResolveDefaultAgentStep(store, silentLogger);
     const ctx = newContext(newExecution("", ""));
-
     await step.execute(ctx);
-
-    expect(ctx.newState.spec?.agentId).toBe("agt_default");
-    // The original request must remain immutable.
-    expect(ctx.input.spec?.agentId).toBe("");
+    expect(ctx.get(DEFAULT_INSTANCE_ID_KEY)).toBeUndefined();
   });
 
-  it("non-public default agent -> FailedPrecondition", async () => {
-    await seedDefaultAgent(
-      "agt_private",
-      ApiResourceVisibility.visibility_private,
-    );
-    const step = newResolveDefaultAgentStep(store, silentLogger);
-    await expectCode(
-      () => step.execute(newContext(newExecution("", ""))),
-      Code.FailedPrecondition,
-    );
-  });
-
-  // The oss#356 defect through this step's lens: a first-match lookup
-  // could land on the non-public labeled agent and fail even though a
-  // valid public default existed. Both insertion orders must resolve the
-  // public agent.
-  for (const [name, ids] of Object.entries({
-    "private inserted first": ["agt_0private", "agt_1public"],
-    "public inserted first": ["agt_1public", "agt_0private"],
-  })) {
-    it(`non-public labeled agent alongside a public one -> public wins (${name})`, async () => {
-      for (const id of ids) {
-        await seedDefaultAgent(
-          id,
-          id === "agt_1public"
-            ? ApiResourceVisibility.visibility_public
-            : ApiResourceVisibility.visibility_private,
-        );
-      }
-      const step = newResolveDefaultAgentStep(store, silentLogger);
-      const ctx = newContext(newExecution("", ""));
-      await step.execute(ctx);
-      expect(ctx.newState.spec?.agentId).toBe("agt_1public");
+  it("createSessionIfNeeded creates the session with no instance and no context key", async () => {
+    let created: Session | undefined;
+    const step = newCreateSessionIfNeededStep({
+      logger: silentLogger,
+      sessionCreator: () => ({
+        createAsCaller: async (session) => {
+          created = clone(SessionSchema, session);
+          created.metadata!.id = "ses_assistant";
+          return created;
+        },
+      }),
     });
-  }
+    const execution = newExecution("", "");
+    execution.metadata!.org = "acme";
+    const ctx = newContext(execution);
 
-  it("reference already provided -> no-op", async () => {
-    const step = newResolveDefaultAgentStep(store, silentLogger);
-    const ctx = newContext(newExecution("", "agt_explicit"));
     await step.execute(ctx);
-    expect(ctx.newState.spec?.agentId).toBe("agt_explicit");
+
+    expect(created?.spec?.agentInstanceId).toBe("");
+    expect(created?.spec?.subject).toBe(AUTO_CREATED_SESSION_SUBJECT);
+    expect(created?.metadata?.org).toBe("acme");
+    expect(ctx.newState.spec?.sessionId).toBe("ses_assistant");
+    expect(ctx.newState.spec?.sessionSpec).toBeUndefined();
   });
 
-  it("session_spec instance provided -> no-op even with a seeded default agent", async () => {
-    // A one-call bootstrap naming an explicit instance must NOT resolve
-    // the platform default agent: doing so would stamp misleading
-    // metadata pointing at an agent the session does not run against.
-    await seedDefaultAgent(
-      "agt_default",
-      ApiResourceVisibility.visibility_public,
-    );
-    const step = newResolveDefaultAgentStep(store, silentLogger);
+  it("createSessionIfNeeded forwards a caller session_spec that names no instance", async () => {
+    let created: Session | undefined;
+    const step = newCreateSessionIfNeededStep({
+      logger: silentLogger,
+      sessionCreator: () => ({
+        createAsCaller: async (session) => {
+          created = clone(SessionSchema, session);
+          created.metadata!.id = "ses_assistant_tools";
+          return created;
+        },
+      }),
+    });
     const execution = newExecution("", "");
     execution.spec!.sessionSpec = create(SessionSpecSchema, {
-      agentInstanceId: "inst_explicit",
+      mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
     });
     const ctx = newContext(execution);
+
     await step.execute(ctx);
-    expect(ctx.newState.spec?.agentId).toBe("");
+
+    expect(created?.spec?.agentInstanceId).toBe("");
+    expect(created?.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["github"]);
+  });
+
+  // An agent WAS named but the previous step left no key: the invariant
+  // guard stays Internal, unchanged — only the all-empty shape is legal.
+  it("createSessionIfNeeded still refuses a named agent whose instance was never resolved", async () => {
+    const step = newCreateSessionIfNeededStep({
+      logger: silentLogger,
+      sessionCreator: () => {
+        throw new Error("session creator must not be reached");
+      },
+    });
+    const ctx = newContext(newExecution("", "agt_named"));
+    await expectCode(() => step.execute(ctx), Code.Internal);
   });
 });
 

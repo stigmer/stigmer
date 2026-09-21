@@ -1269,7 +1269,6 @@ export async function composeServer(
       logger,
       authorizer,
       temporalConfig,
-      agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
       gateSteps: extensions.gateSteps,
       sandboxLane,
       authorizationLifecycle,

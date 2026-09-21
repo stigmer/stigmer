@@ -16,9 +16,13 @@
  *      questions have one answer; asking the blueprint's is what lets the
  *      gate precede the side effect).
  *
- * None of the three set is EnsureSessionOrAgentResolved's invariant arm
- * (ResolveDefaultAgent guarantees one), never a check. Pure over the record
- * being built, where ResolveDefaultAgent writes the resolved agent_id.
+ * None of the three set is the built-in assistant
+ * (agentexecution/v1/spec.proto): a new conversation with no agent, for
+ * which there is no blueprint to spend and so no target to check. The
+ * Authorize step ahead of the gate admitted it with the organization's
+ * can_create_execution_in; CreateSessionIfNeeded then creates the session
+ * with no instance, and every later turn arrives in shape 1. Pure over the
+ * record being built.
  */
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 

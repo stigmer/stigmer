@@ -118,12 +118,15 @@ import { mockStigmerClient } from "./mock-client.js";
  * The four resources the activity's blueprint chain reads
  * (`execution.spec.sessionId -> session.spec.agentInstanceId ->
  * agentInstance.spec.agentId -> agent`) plus the status the server would hold.
+ * A record for the built-in assistant (the session names no instance) has
+ * no instance and no agent: the chain must stop at the session, so the
+ * client REFUSES those two reads instead of answering an empty message.
  */
 export interface ExecutionRecordInput {
   readonly execution: AgentExecution;
   readonly session: Session;
-  readonly agentInstance: AgentInstance;
-  readonly agent: Agent;
+  readonly agentInstance: AgentInstance | undefined;
+  readonly agent: Agent | undefined;
   /**
    * What `UpdateStatus` answers for each FULL status write — the platform's
    * STOP lever (`ExecutionControlSignal`), decided by the control plane per
@@ -157,8 +160,8 @@ export interface ExecutionRecordInput {
 export class ExecutionRecord {
   readonly execution: AgentExecution;
   readonly session: Session;
-  readonly agentInstance: AgentInstance;
-  readonly agent: Agent;
+  readonly agentInstance: AgentInstance | undefined;
+  readonly agent: Agent | undefined;
   private readonly controlSignal: (status: AgentExecutionStatus) => ExecutionControlSignal;
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
   readonly persisted: AgentExecutionStatus[] = [];
@@ -355,8 +358,18 @@ export class ExecutionRecord {
     return mockStigmerClient({
       getExecution: vi.fn(async () => clone(AgentExecutionSchema, this.execution)),
       getSession: vi.fn(async () => this.session),
-      getAgentInstance: vi.fn(async () => this.agentInstance),
-      getAgent: vi.fn(async () => this.agent),
+      getAgentInstance: vi.fn(async () => {
+        if (this.agentInstance === undefined) {
+          throw new Error("the built-in assistant's record has no agent instance to read");
+        }
+        return this.agentInstance;
+      }),
+      getAgent: vi.fn(async () => {
+        if (this.agent === undefined) {
+          throw new Error("the built-in assistant's record has no agent to read");
+        }
+        return this.agent;
+      }),
       updateStatus: vi.fn(async (_id: string, status: AgentExecutionStatus) => {
         // The activity reads only `.signal`; UNSPECIFIED means "keep going".
         return create(UpdateStatusResponseSchema, { signal: this.applyStatusUpdate(status) });

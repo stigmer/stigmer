@@ -27,11 +27,6 @@ class AgentQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
                 _registered_method=True)
-        self.getDefault = channel.unary_unary(
-                '/ai.stigmer.agentic.agent.v1.AgentQueryController/getDefault',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetDefaultAgentRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
-                _registered_method=True)
 
 
 class AgentQueryControllerServicer(object):
@@ -53,19 +48,6 @@ class AgentQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getDefault(self, request, context):
-        """Get the platform default agent.
-
-        Returns the default agent for the platform, including
-        status.default_instance_id for creating a session. Use this
-        to start a conversation without selecting an agent first.
-
-        Returns NOT_FOUND if no default agent is configured.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_AgentQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -77,11 +59,6 @@ def add_AgentQueryControllerServicer_to_server(servicer, server):
             'getByReference': grpc.unary_unary_rpc_method_handler(
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
-            ),
-            'getDefault': grpc.unary_unary_rpc_method_handler(
-                    servicer.getDefault,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetDefaultAgentRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
             ),
     }
@@ -139,33 +116,6 @@ class AgentQueryController(object):
             target,
             '/ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getDefault(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.agent.v1.AgentQueryController/getDefault',
-            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetDefaultAgentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
             options,
             channel_credentials,

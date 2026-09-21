@@ -326,53 +326,6 @@ const agent = await create({
 ```
 
 
-### useDefaultAgent
-
-Data hook that fetches the platform's default agent.
-
-The default agent is the one labeled `stigmer.ai/default-agent: "true"`
-with `visibility_public`. It enables session-first UX where users
-start a conversation without choosing an agent.
-
-Pass `null` for `org` to skip fetching (stable no-op). The hook
-fetches once on mount and caches the result, then automatically
-refetches when the document becomes visible after being hidden for
-longer than `STALE_THRESHOLD_MS`. Transient failures are
-retried once before surfacing an error.
-
-**Signature**
-
-```tsx
-function useDefaultAgent(org: string | null): UseDefaultAgentReturn
-```
-
-<TypeTable
-  type={{
-    org: { type: "string | null", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseDefaultAgentReturn`
-
-<TypeTable
-  type={{
-    agent: { type: "Agent | null", description: "The platform default Agent, or `null` while loading or on error." },
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the default agent from the server." },
-    waitForResolution: { type: "() => Promise<Agent>", description: "Returns a promise that resolves with the Agent once the in-flight fetch settles. If the agent is already loaded, resolves immediately. If the fetch has already failed, rejects immediately.  Use this to await the default agent in async flows (e.g. submit) instead of failing when `isLoading` is still true." },
-  }}
-/>
-
-```tsx
-const { agent: defaultAgent, isLoading } = useDefaultAgent("acme");
-
-// Use defaultAgent.status.defaultInstanceId for session creation
-// when the user hasn't explicitly selected an agent.
-```
-
-
 ### useUpdateAgent
 
 Mutation hook that updates an existing Agent resource.

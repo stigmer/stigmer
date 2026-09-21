@@ -3,6 +3,12 @@
 // reference (smart 0/1/2-arg dispatch mirroring Go's run.go + run_picker.go),
 // then delegate to the shared run stack. Heavy modules (backend client, Ink,
 // the differ) load lazily inside the action so `--help` stays fast (DD-001).
+//
+// No reference at all is the built-in assistant: `stigmer run -m "..."` runs
+// it at once (the person said what to say, so there is nothing to pick), and
+// a bare `stigmer run` on a terminal opens the agent picker with the
+// assistant as its first row. Off a terminal with no message there is
+// nothing to run and the guidance names both forms.
 
 import type { Command } from "commander";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -58,8 +64,13 @@ async function runRun(
 
   const outputMode = options.json === true ? "json" : "inline";
 
-  // 0 args → interactive agent picker on a TTY; otherwise actionable guidance.
+  // 0 args → the built-in assistant when a message was given; else the
+  // interactive agent picker on a TTY; otherwise actionable guidance.
   if (type === undefined) {
+    if ((options.message ?? "") !== "") {
+      await runResolvedAgent(undefined, options, org, outputMode, client);
+      return;
+    }
     if (interactiveBrowseEnabled(outputMode)) {
       await browseAndRunAgent("", options, org, outputMode, client);
       return;
@@ -171,8 +182,10 @@ async function runAgent(
   await runResolvedAgent(agent, options, org, outputMode, client);
 }
 
+// `agent` undefined is the built-in assistant: the execution names no agent
+// and the backend creates a session with no instance.
 async function runResolvedAgent(
-  agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent,
+  agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent | undefined,
   options: RunFlags,
   org: string,
   outputMode: "inline" | "json",
@@ -301,7 +314,11 @@ async function browseAndRunAgent(
     initialQuery,
   });
   if (selected === undefined) return;
-  await runAgent(selected.id, options, org, outputMode, client);
+  if (selected.kind === "built-in-assistant") {
+    await runResolvedAgent(undefined, options, org, outputMode, client);
+    return;
+  }
+  await runAgent(selected.agent.id, options, org, outputMode, client);
 }
 
 // Off a TTY (pipes, CI, --json), the interactive picker can't run, so 0-arg and
@@ -311,10 +328,13 @@ function browseUnavailableError(query: string): UsageError {
     query === ""
       ? "Interactive agent browsing requires an interactive terminal"
       : `No agent found for "${query}"`;
+  const assistantHint =
+    query === "" ? "  stigmer run -m <message>      (the built-in assistant, no agent)\n" : "";
   return new UsageError(
     `${head}\n\n` +
       "Specify a full agent reference:\n" +
       "  stigmer run <org/slug>\n" +
-      "  stigmer run <agent-id>",
+      "  stigmer run <agent-id>\n" +
+      assistantHint,
   );
 }

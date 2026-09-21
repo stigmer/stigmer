@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentId, GetDefaultAgentRequest } from "./io_pbjs";
+import { AgentId } from "./io_pbjs";
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -36,23 +36,6 @@ export const AgentQueryController = {
     getByReference: {
       name: "getByReference",
       I: ApiResourceReference,
-      O: Agent,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Get the platform default agent.
-     *
-     * Returns the default agent for the platform, including
-     * status.default_instance_id for creating a session. Use this
-     * to start a conversation without selecting an agent first.
-     *
-     * Returns NOT_FOUND if no default agent is configured.
-     *
-     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault
-     */
-    getDefault: {
-      name: "getDefault",
-      I: GetDefaultAgentRequest,
       O: Agent,
       kind: MethodKind.Unary,
     },

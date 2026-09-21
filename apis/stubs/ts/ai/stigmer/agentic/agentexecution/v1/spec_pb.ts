@@ -35,8 +35,8 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    *   1. session_id provided     -> use existing session
    *   2. session_spec provided   -> auto-create session from the embedded spec
    *   3. agent_id provided       -> auto-create session using agent's default instance
-   *   4. neither provided        -> resolve platform default agent (label
-   *      stigmer.ai/default-agent + visibility_public), then auto-create session
+   *   4. none provided           -> auto-create a session with no agent; the
+   *      built-in assistant answers
    *
    * session_id and agent_id may both be set — when both are present, session_id
    * is used for session resolution and agent_id is preserved as metadata for
@@ -50,10 +50,9 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
   /**
    * Agent ID (optional).
    *
-   * When absent along with session_id, the backend resolves the platform's
-   * public default agent — the agent labeled stigmer.ai/default-agent: "true"
-   * with visibility_public. This enables session-first UX where users start
-   * a conversation without choosing an agent.
+   * When absent along with session_id and session_spec, the execution runs
+   * the built-in assistant in a new session with no agent: a person starts a
+   * conversation without choosing an agent.
    *
    * Both may be set — agent_id is preserved on the execution record even when
    * session_id is present, so downstream consumers can access the agent
@@ -81,8 +80,8 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    *
    * When session_spec.agent_instance_id is set, the session runs against that
    * instance and agent_id must not also be resolved from it. When empty, the
-   * normal resolution applies: agent_id's default instance, or the platform
-   * default agent when agent_id is also empty.
+   * normal resolution applies: agent_id's default instance, or no agent (the
+   * built-in assistant) when agent_id is also empty.
    *
    * Mutually exclusive with session_id. session_spec.harness_state_id must be
    * empty — it is server-owned harness continuity state, created by the runner

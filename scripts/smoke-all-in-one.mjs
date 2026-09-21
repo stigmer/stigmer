@@ -17,9 +17,9 @@
  *      the no-key warning — the words a first-time user reads;
  *   3. the real health service answers SERVING and the console lane serves
  *      its contract (/config.json, / as HTML);
- *   4. the backend was bootstrapped on first boot: the default plugin was
- *      installed from the baked official marketplace (the `assistant` plugin
- *      READY and public in the system org the bootstrap created);
+ *   4. the backend was bootstrapped on first boot: the `stigmer` organization
+ *      exists (the bootstrap's one act; a fresh install needs no default
+ *      content because a session with no agent runs the built-in assistant);
  *   5. one end-to-end run — an LLM-free set_vars workflow — reaches
  *      EXECUTION_COMPLETED: only possible if the embedded Temporal, the
  *      server's workers AND the embedded runner all work inside the one
@@ -59,7 +59,7 @@ import {
   pollUntil,
   runSetVarsWorkflow,
   sleep,
-  waitForDefaultPlugin,
+  waitForSystemOrganization,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 
@@ -202,12 +202,10 @@ async function main() {
     log("health service SERVING; console lane answers");
 
     // 4. The bootstrap. `healthy` is the server's SERVING; the bootstrap runs
-    // a few seconds later, from the daemon's onStarted: it creates the system
-    // org and installs the official marketplace's default plugin from the
-    // baked @stigmer/plugins. A READY, public default plugin proves both, and
-    // it is what gives a fresh install its default agent.
-    const digest = await waitForDefaultPlugin(baseUrl, HEALTHY_TIMEOUT_MS);
-    log(`default plugin 'assistant' installed on first boot (${digest.slice(0, 12)})`);
+    // a few seconds later, from the daemon's onStarted, and creates the
+    // `stigmer` organization. Its presence proves the bootstrap ran.
+    const orgId = await waitForSystemOrganization(baseUrl, HEALTHY_TIMEOUT_MS);
+    log(`organization 'stigmer' present after first boot (${orgId})`);
 
     // 5. The end-to-end run through Temporal, the server's workers and the runner.
     const executionId = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);

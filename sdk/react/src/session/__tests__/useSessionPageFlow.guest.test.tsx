@@ -4,11 +4,10 @@ import { renderHook, act } from "@testing-library/react";
 // ---------------------------------------------------------------------------
 // Guest-audience gating for useSessionPageFlow.
 //
-// A guest token cannot read the org default agent or derive the session's
-// agent (`agentInstance.get` → `agent.get` are FGA-denied — sharing writes
-// no tuples). The flow must put both lookups into their `null` no-op mode
-// and send follow-ups without an agent override, continuing on the
-// session's server-bound instance.
+// A guest token cannot derive the session's agent (`agentInstance.get` →
+// `agent.get` are FGA-denied — sharing writes no tuples). The flow must put
+// the lookup into its `null` no-op mode and send follow-ups without an
+// agent override, continuing on the session's server-bound instance.
 // ---------------------------------------------------------------------------
 
 const mockSendFollowUp = vi.fn();
@@ -28,15 +27,6 @@ vi.mock("../useSessionConversation", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({ agent: { getByReference: vi.fn() } }),
-}));
-
-const useDefaultAgentSpy = vi.fn((_org: string | null) => ({
-  agent: null,
-  isLoading: false,
-  error: null,
-}));
-vi.mock("../../agent", () => ({
-  useDefaultAgent: (org: string | null) => useDefaultAgentSpy(org),
 }));
 
 const mockWorkspace = {
@@ -91,18 +81,16 @@ describe("useSessionPageFlow — guest audience", () => {
     vi.clearAllMocks();
   });
 
-  it("disables the session→agent derivation and default-agent lookup", () => {
+  it("disables the session→agent derivation", () => {
     renderHook(() => useSessionPageFlow({ ...OPTS, audience: "guest" }));
 
     expect(useAgentRefFromSessionSpy).toHaveBeenCalledWith(null);
-    expect(useDefaultAgentSpy).toHaveBeenCalledWith(null);
   });
 
-  it("keeps both lookups active for other audiences", () => {
+  it("keeps the lookup active for other audiences", () => {
     renderHook(() => useSessionPageFlow(OPTS));
 
     expect(useAgentRefFromSessionSpy).toHaveBeenCalledWith("inst_bound");
-    expect(useDefaultAgentSpy).toHaveBeenCalledWith("acme");
   });
 
   it("sends follow-ups without an agent override", async () => {

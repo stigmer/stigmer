@@ -48,6 +48,7 @@ import {
   type StandingSectionKind,
   type VisionPromptInfo,
 } from "../../shared/prompt-sections.js";
+import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { formatTurnRecoveryText } from "./turn-recovery.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import type { AgentResolution, AgentResolutionReason } from "./session-lifecycle.js";
@@ -201,9 +202,10 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(implementPlan);
   }
 
-  if (options.instructions) {
-    sections.push(formatInstructions(options.instructions));
-  }
+  // The blueprint's instructions, or the built-in assistant's when it
+  // carries none (a session with no agent, or an agent that left them
+  // empty) — the one text both harnesses read on this arm.
+  sections.push(formatInstructions(effectiveInstructions(options.instructions)));
 
   if (options.skills.length > 0) {
     sections.push(formatSkillsSection(options.skills));
@@ -241,6 +243,9 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(formatReferencedFiles(options.workspaceFileRefs));
   }
 
+  // The engine-facing house rules ride along when the blueprint itself
+  // said nothing about how to respond; an author's instructions are taken
+  // to have covered them.
   if (!options.instructions) {
     sections.push(formatResponseRules());
   }

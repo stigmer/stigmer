@@ -9,10 +9,7 @@ import {
   enqueueCannedTextTurns,
   getMockControlUrl,
 } from "../../helpers/mock-llm-control";
-import {
-  ensureDefaultAgent,
-  ensureDefaultOrg,
-} from "../../fixtures/seed-helpers";
+import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 const HAS_LLM_KEY = !!(
@@ -20,11 +17,10 @@ const HAS_LLM_KEY = !!(
 );
 
 test.describe("Session chat flow (canary)", () => {
-  // The launcher's send path resolves the platform default agent; a raw
-  // e2e stack has neither the org nor that agent seeded. Idempotent.
+  // The launcher sends with no agent picked and the built-in assistant
+  // answers; a raw e2e stack has no org seeded. Idempotent.
   test.beforeAll(async ({ stigmerClient }) => {
     await ensureDefaultOrg(stigmerClient);
-    await ensureDefaultAgent(stigmerClient);
   });
 
   // Runnable two ways: against a real provider key, or with zero secrets

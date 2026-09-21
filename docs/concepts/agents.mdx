@@ -150,39 +150,25 @@ user sends a message, Stigmer creates an Execution that:
 Executions are **durable** — if the process crashes mid-execution, Stigmer
 recovers and resumes from where it left off.
 
-## The default Agent
+## The built-in assistant
 
-Every Stigmer installation includes a default Agent called `assistant`. This is
-the Agent that handles requests when no specific Agent is specified — it's what
-the [Cloud Quickstart](/docs/getting-started/quickstart) uses.
+A Session that names no Agent runs the **built-in assistant**. It is what the
+[Quickstart](/docs/getting-started/quickstart) talks to, and what the console
+and `stigmer run -m "..."` use when you pick no Agent: a general-purpose
+assistant whose instructions are part of Stigmer itself, not a stored Agent.
+There is no row to find, no label to configure and nothing to install — a fresh
+installation answers its first message at once.
 
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: assistant
-  labels:
-    stigmer.ai/default-agent: "true"
-spec:
-  description: General-purpose AI assistant.
-  instructions: |
-    You are a general-purpose AI assistant. Help users accomplish
-    whatever they need using the tools available to you.
+The assistant works with whatever the Session carries: the MCP Servers and
+Skills you attach to the conversation are its tools, and the variables those
+servers declare are asked for the same way an Agent's are. What it does not have
+is anything of its own — no Skills, no MCP Servers, no Sub-Agents. The value of
+Stigmer appears when you create Agents tailored to your domain, and a
+conversation can pick one up at any point: choosing an Agent binds the Session
+to it, and removing the Agent returns the Session to the assistant.
 
-    Be direct and concise. Act on requests rather than explaining
-    steps. When you do not know something, say so.
-```
-
-The assistant is minimal by design. It has no Skills and no MCP server
-references — it's a blank slate. The value of Stigmer appears when you create
-Agents tailored to your domain.
-
-The `stigmer.ai/default-agent: "true"` label is what marks the default, and the
-Agent must be publicly visible to serve as one. To replace the default, apply
-the new labeled Agent first, then remove the label from the old one — that
-removal is the cutover. While both carry the label, the original keeps serving:
-among labeled public Agents, the longest-standing one (lowest ID) wins, so the
-default never changes as a side effect of another Agent gaining the label.
+Schedules, channels, and shares always name an Agent. The built-in assistant is
+for a person opening a conversation.
 
 ## Instructions matter
 

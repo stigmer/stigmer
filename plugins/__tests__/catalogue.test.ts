@@ -15,8 +15,9 @@
  * no errors and only the warnings a copy cannot avoid) and authored plugins (the open format, Stigmer's name, a
  * display name, no warnings at all); a struck entry has no folder;
  * `NOTICE` and `marketplace.json` are exactly what the sync derives from
- * the pins and the tree; exactly one plugin carries the default-agent
- * label, and it is public; every agent overlay names its own plugin. There
+ * the pins and the tree; the defaults list is empty and no plugin carries
+ * the retired default-agent label; every agent overlay names its own
+ * plugin. There
  * are no snapshot files: a change in what the catalogue offers is a change
  * someone wrote down here.
  */
@@ -37,6 +38,7 @@ import { renderNotice } from "../scripts/sync/notice.js";
 import { marketplaceOrder } from "../scripts/sync/plan.js";
 import { listTree } from "../scripts/sync/tree.js";
 
+/** The label the retired default-agent lookup read; a plugin that carries it is a stale copy of that era. */
 const DEFAULT_AGENT_LABEL = "stigmer.ai/default-agent";
 const AUTHOR = "Stigmer";
 /** Guide files a vendored tree must not carry: the repository's guidance gate would read one as law. */
@@ -92,10 +94,10 @@ describe("marketplace.json", () => {
     expect(listed).toEqual(marketplaceOrder(new Set(folders), marketplace.defaults));
   });
 
-  it("names its defaults in install order, and every default is an offered entry", () => {
+  it("installs nothing by default: a fresh Stigmer answers with the built-in assistant, not a plugin", () => {
     const file = JSON.parse(readFileSync(join(CATALOGUE_ROOT, "marketplace.json"), "utf8")) as { defaults: string[] };
     expect(marketplace.defaults).toEqual(file.defaults);
-    expect(marketplace.defaults).toEqual(["assistant"]);
+    expect(marketplace.defaults).toEqual([]);
     for (const name of marketplace.defaults) {
       expect(marketplace.plugins.map((entry) => entry.name)).toContain(name);
     }
@@ -179,10 +181,8 @@ describe("the agent overlays", () => {
     }
   });
 
-  it("exactly one carries the default-agent label, and it is public", () => {
-    const defaults = overlays.filter((overlay) => overlay.metadata.labels?.[DEFAULT_AGENT_LABEL] === "true");
-    expect(defaults.map((overlay) => overlay.dir)).toEqual(["assistant"]);
-    expect(defaults[0]?.metadata.visibility).toBe("visibility_public");
-    expect(marketplace.defaults).toContain("assistant");
+  it("none carries the retired default-agent label: no plugin is a platform default", () => {
+    const labeled = overlays.filter((overlay) => overlay.metadata.labels?.[DEFAULT_AGENT_LABEL] === "true");
+    expect(labeled.map((overlay) => overlay.dir)).toEqual([]);
   });
 });

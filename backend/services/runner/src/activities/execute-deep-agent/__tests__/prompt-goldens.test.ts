@@ -20,7 +20,7 @@
  * the filter fires, channel templates, referenced files, three input files
  * with a rename and a download URL, the vision disclosure, all five standing
  * sections); the below-threshold skills branch; plan mode; build-from-plan;
- * and the minimal prompt (no instructions, so `DEFAULT_INSTRUCTIONS`). Plan
+ * and the minimal prompt (no instructions, so the built-in assistant's). Plan
  * mode and build-from-plan are mutually exclusive in production, so each has
  * its own golden.
  *

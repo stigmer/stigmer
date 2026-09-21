@@ -6,7 +6,7 @@
  * embody agent-specific contracts: the default-instance choreography, the
  * cascade rules, MCP env merging, and enabled-tools validation.
  */
-import { Code, ConnectError } from "@connectrpc/connect";
+import { ConnectError } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -43,15 +43,9 @@ import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
-import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import type { Store } from "../../store/interface.js";
 import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
-import {
-  DefaultAgentNotConfiguredError,
-  DefaultAgentNotPublicError,
-  findDefaultAgent,
-} from "./defaultagent.js";
 
 /** Context key carrying the applied default instance's id (Go DefaultInstanceIDKey). */
 const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
@@ -633,59 +627,6 @@ export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
           agent: `${agentOrg}/${agentSlug}`,
         });
       }
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// LoadDefaultAgent — get_default.go's step: resolve via defaultagent and
-// map its sentinels to the wire contract. Go builds the wire message with
-// WrapError ("%s: %v"), so the sentinel's text RIDES the message — both
-// strings are cross-edition conformance surface.
-// ---------------------------------------------------------------------------
-
-export function newLoadDefaultAgentStep<Desc extends DescMessage>(
-  store: Store,
-  logger: Logger,
-): PipelineStep<Desc> {
-  return {
-    name: "LoadDefaultAgent",
-    async execute(ctx: RequestContext<Desc>): Promise<void> {
-      logger.info("Resolving platform default agent");
-
-      let agent: Agent;
-      try {
-        agent = await findDefaultAgent(store, logger);
-      } catch (error) {
-        if (error instanceof DefaultAgentNotConfiguredError) {
-          throw new ConnectError(
-            `No default agent available. Ensure an agent with label stigmer.ai/default-agent=true and visibility_public exists: ${error.message}`,
-            Code.NotFound,
-          );
-        }
-        if (error instanceof DefaultAgentNotPublicError) {
-          throw new ConnectError(
-            `Default agent exists but is not visibility_public: ${error.message}`,
-            Code.FailedPrecondition,
-          );
-        }
-        // Store/decode failure — an internal fault, not "no default agent".
-        // InternalError keeps the cause off the wire (stigmer/stigmer#478).
-        logger.error("Failed to resolve platform default agent", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw internalError(
-          error,
-          "failed to resolve the platform default agent",
-        );
-      }
-
-      logger.info("Resolved platform default agent", {
-        agentId: agent.metadata?.id ?? "",
-        agentName: agent.metadata?.name ?? "",
-      });
-
-      ctx.set(TARGET_RESOURCE_KEY, agent);
     },
   };
 }

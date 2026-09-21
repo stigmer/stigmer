@@ -6,6 +6,14 @@
  * mcp_server_usages. Also merges agent-level and session-level MCP usages
  * and skill refs following the same merge semantics.
  *
+ * A session with an EMPTY agent_instance_id is the built-in assistant
+ * (session/v1/spec.proto): the chain stops at the session, `agent` is
+ * undefined, the instructions are empty (each harness's prompt builder
+ * substitutes the one built-in prompt, shared/builtin-assistant-prompt.ts),
+ * there are no sub-agents, and the session's own MCP usages and skill refs
+ * are the whole tool set — the same merge with an empty agent side, so no
+ * consumer downstream needs an agent-less arm of its own.
+ *
  * Workspace isolation: resolved workspace directories are validated to
  * ensure they never point at the runner's own app directory. Paths
  * containing runner-internal markers are rejected with a warning.
@@ -32,8 +40,8 @@ export interface CloudRepo {
 }
 
 export interface ResolvedBlueprint {
-  agent: Agent;
-  agentSpec: AgentSpec;
+  /** The agent the session is bound to; undefined for the built-in assistant. */
+  agent: Agent | undefined;
   session: Session;
   sessionSpec: SessionSpec;
   instructions: string;
@@ -47,7 +55,9 @@ export interface ResolvedBlueprint {
  * Resolve the full agent blueprint from the execution chain.
  *
  * Chain: execution.spec.sessionId -> session.spec.agentInstanceId ->
- *        agentInstance.spec.agentId -> agent (with full spec)
+ *        agentInstance.spec.agentId -> agent (with full spec); an empty
+ *        agent_instance_id ends the chain at the session (the built-in
+ *        assistant).
  */
 export async function resolveBlueprint(
   client: StigmerClient,
@@ -55,18 +65,22 @@ export async function resolveBlueprint(
 ): Promise<ResolvedBlueprint> {
   const sessionSpec = session.spec!;
 
-  const agentInstance = await client.getAgentInstance(sessionSpec.agentInstanceId);
-  const agentId = agentInstance.spec!.agentId;
-  const agent = await client.getAgent(agentId);
-  const agentSpec = agent.spec!;
+  let agent: Agent | undefined;
+  let agentSpec: AgentSpec | undefined;
+  if (sessionSpec.agentInstanceId !== "") {
+    const agentInstance = await client.getAgentInstance(sessionSpec.agentInstanceId);
+    const agentId = agentInstance.spec!.agentId;
+    agent = await client.getAgent(agentId);
+    agentSpec = agent.spec!;
+  }
 
   const mergedMcpServerUsages = mergeMcpServerUsages(
-    agentSpec.mcpServerUsages,
+    agentSpec?.mcpServerUsages ?? [],
     sessionSpec.mcpServerUsages,
   );
 
   const mergedSkillRefs = mergeSkillRefs(
-    agentSpec.skillRefs,
+    agentSpec?.skillRefs ?? [],
     sessionSpec.skillRefs,
   );
 
@@ -74,11 +88,10 @@ export async function resolveBlueprint(
 
   return {
     agent,
-    agentSpec,
     session,
     sessionSpec,
-    instructions: agentSpec.instructions,
-    subAgents: agentSpec.subAgents,
+    instructions: agentSpec?.instructions ?? "",
+    subAgents: agentSpec?.subAgents ?? [],
     mergedMcpServerUsages,
     mergedSkillRefs,
     cloudRepos,

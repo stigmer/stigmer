@@ -161,4 +161,9 @@ export type {
 } from "./facets/index.js";
 
 // Session utilities (re-exported from @stigmer/sdk)
-export { PENDING_SUBJECT, resolvedSubject } from "@stigmer/sdk";
+export {
+  BUILT_IN_ASSISTANT_NAME,
+  PENDING_SUBJECT,
+  isBuiltInAssistant,
+  resolvedSubject,
+} from "@stigmer/sdk";
