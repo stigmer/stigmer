@@ -17,6 +17,8 @@
  */
 
 import { ApplicationFailure } from "@temporalio/activity";
+import { StigmerClient } from "../client/stigmer-client.js";
+import type { Config } from "../config.js";
 import { callLlmAction, type LlmCallConfig } from "./call-llm.js";
 import { callEvalAction, type EvalConfig } from "./call-eval.js";
 import { emitEventAction, type EmitEventConfig } from "./emit-event.js";
@@ -30,6 +32,7 @@ export async function callFunctionAction(
   config: Record<string, unknown>,
   runtimeEnv: Record<string, unknown>,
   executionId: string,
+  client: StigmerClient,
 ): Promise<unknown> {
   const resolved = resolveObjectPlaceholders(config, runtimeEnv) as Record<string, unknown>;
 
@@ -39,7 +42,7 @@ export async function callFunctionAction(
     case "eval":
       return callEvalAction(resolved as unknown as EvalConfig, runtimeEnv, executionId);
     case "emit_event":
-      return emitEventAction(resolved as unknown as EmitEventConfig, executionId, runtimeEnv);
+      return emitEventAction(resolved as unknown as EmitEventConfig, executionId, runtimeEnv, client);
     case "notification":
       return notificationAction(resolved as unknown as NotificationConfig, runtimeEnv);
     case "transform":
@@ -59,7 +62,16 @@ export async function callFunctionAction(
   }
 }
 
-export function createCallFunctionActivities() {
+export function createCallFunctionActivities(runnerConfig: Config) {
+  // The signal-delivery client for emit_event, one per factory from the
+  // runner's injected Config: it reads the live credential ref per request
+  // (config.ts header), so a rotation reaches every signal it sends.
+  const client = new StigmerClient({
+    endpoint: runnerConfig.stigmerBackendEndpoint,
+    tokenRef: runnerConfig.stigmerTokenRef,
+    runnerTokenRef: runnerConfig.stigmerRunnerTokenRef,
+  });
+
   return {
     CallFunction: async (
       call: string,
@@ -67,7 +79,7 @@ export function createCallFunctionActivities() {
       runtimeEnv: Record<string, unknown>,
       executionId: string,
     ): Promise<unknown> => {
-      return callFunctionAction(call, config, runtimeEnv, executionId);
+      return callFunctionAction(call, config, runtimeEnv, executionId, client);
     },
   };
 }

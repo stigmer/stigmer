@@ -61,18 +61,14 @@ vi.mock("../../client/stigmer-client.js", () => ({
   })),
 }));
 
-vi.mock("../../config.js", () => ({
-  loadConfig: () => ({
-    stigmerBackendEndpoint: "http://localhost:7234",
-    stigmerToken: "test-token",
-  }),
-}));
-
 vi.mock("../../shared/heartbeat.js", () => ({
   startHeartbeat: () => ({ stop: vi.fn() }),
 }));
 
 import { callAgentAction } from "../call-agent.js";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+const appConfig = testConfig({ stigmerTokenRef: { current: "test-token" } });
 
 describe("CallAgent server contract compliance", () => {
   beforeEach(() => {
@@ -93,6 +89,7 @@ describe("CallAgent server contract compliance", () => {
         { agent: "notification-analyst", message: "Analyze cohort data", ...config },
         { __stigmer_org_id: "tt-demo", ...env },
         "wfl_parent_123",
+        appConfig,
       );
     } catch (e: any) {
       if (e.name !== "CompleteAsyncError") throw e;

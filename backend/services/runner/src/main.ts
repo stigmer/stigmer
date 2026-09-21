@@ -81,7 +81,7 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
       temporalAddress: config.temporalAddress,
       temporalNamespace: config.temporalNamespace,
       stigmerEndpoint: config.stigmerBackendEndpoint,
-      stigmerToken: config.stigmerToken ?? undefined,
+      stigmerToken: config.stigmerTokenRef.current ?? undefined,
       cursorApiKey: config.cursorApiKey || undefined,
       workspaceRootDir: config.workspaceRootDir,
       maxConcurrentActivitiesPerSession: config.maxConcurrentActivities,
@@ -197,7 +197,14 @@ async function runPoolMode(
   // process serves (the control plane rewrites the Secret at claim time, and
   // secretKeyRef env is read only at pod start — so a restart lands here with
   // the post-claim identity). Decide before any expensive boot work.
-  const intent = decidePoolBoot(config.stigmerToken);
+  //
+  // Read by value on purpose — the one place the runner may: the credential
+  // the pod BOOTED with is the fact here. Its class decides the mode, and the
+  // attach exchange must authenticate with the pool credential after the
+  // claim has rotated the live ref to the session's (pool-member.ts,
+  // PoolMemberContext.poolToken). Everything after this line reads the ref.
+  const bootToken = config.stigmerTokenRef.current;
+  const intent = decidePoolBoot(bootToken);
   if (intent.kind === "invalid") {
     throw new Error(`Pool member ${memberId} cannot boot: ${intent.reason}`);
   }
@@ -206,7 +213,7 @@ async function runPoolMode(
     temporalAddress: config.temporalAddress,
     temporalNamespace: config.temporalNamespace,
     stigmerEndpoint: config.stigmerBackendEndpoint,
-    stigmerToken: config.stigmerToken ?? undefined,
+    stigmerToken: config.stigmerTokenRef.current ?? undefined,
     cursorApiKey: config.cursorApiKey || undefined,
     workspaceRootDir: config.workspaceRootDir,
     maxConcurrentActivitiesPerSession: config.maxConcurrentActivities,
@@ -243,7 +250,7 @@ async function runPoolMode(
   if (intent.kind === "pool-control") {
     registerPoolMemberContext({
       memberId,
-      poolToken: config.stigmerToken!,
+      poolToken: bootToken!,
       manager,
     });
     await manager.addPoolControl(memberId);
@@ -332,7 +339,7 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     temporalAddress: config.temporalAddress,
     temporalNamespace: config.temporalNamespace,
     stigmerEndpoint: config.stigmerBackendEndpoint,
-    stigmerToken: config.stigmerToken ?? undefined,
+    stigmerToken: config.stigmerTokenRef.current ?? undefined,
     cursorApiKey: config.cursorApiKey || undefined,
     workspaceRootDir: config.workspaceRootDir,
     maxConcurrentActivities: config.maxConcurrentActivities,
@@ -495,7 +502,7 @@ async function main(): Promise<void> {
     : "static";
   console.warn(
     `[runner] mode=${runnerMode}, proxy=${config.proxyEndpoint ?? "none"}, ` +
-    `hasToken=${!!config.stigmerToken}, workspace=${config.workspaceRootDir}, ` +
+    `hasToken=${!!config.stigmerTokenRef.current}, workspace=${config.workspaceRootDir}, ` +
     `taskQueue=${config.taskQueue}`,
   );
 

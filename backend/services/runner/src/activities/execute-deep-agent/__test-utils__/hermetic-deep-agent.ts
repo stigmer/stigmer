@@ -145,7 +145,7 @@ export function hermeticDeepAgentConfig(env: HermeticEnvironment, checkpointerTy
     temporalNamespace: "default",
     stigmerBackendEndpoint: "http://localhost:7234",
     mcpBridgeEndpoint: null,
-    stigmerToken: null,
+    stigmerTokenRef: { current: null },
     cursorApiKey: "",
     workspaceRootDir: env.workspaceRootDir,
     mode: "local",

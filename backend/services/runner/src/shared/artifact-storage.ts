@@ -24,7 +24,7 @@
 import { mkdir, writeFile, readFile, access, rm } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import { homedir } from "node:os";
-import type { Config } from "../config.js";
+import type { Config, TokenRef } from "../config.js";
 import type { RetryOptions } from "./grpc-retry.js";
 import { fetchWithRetry, type FetchRetryPolicy } from "./http-retry.js";
 
@@ -212,9 +212,7 @@ export class ProxyArtifactStorage implements ArtifactStorage {
    * life — a captured string would silently 401 after the first rotation.
    */
   private get authToken(): string {
-    return typeof this.authTokenSource === "string"
-      ? this.authTokenSource
-      : (this.authTokenSource.current ?? "");
+    return this.authTokenSource.current ?? "";
   }
 
   async upload(key: string, content: Buffer, contentType?: string): Promise<string> {
@@ -343,10 +341,12 @@ export class ProxyArtifactStorage implements ArtifactStorage {
 // ── Factory ──────────────────────────────────────────────────────────
 
 /**
- * The proxy credential, either fixed (a caller-supplied string) or live (a
- * shared mutable ref, read per call — the sandbox token-renewal posture).
+ * The proxy credential: the runner's shared ref, read per call (the
+ * sandbox token-renewal posture; config.ts header). Never a string — a
+ * captured value would present the boot credential after the first
+ * rotation.
  */
-export type ProxyAuthTokenSource = string | { readonly current: string | null };
+export type ProxyAuthTokenSource = Readonly<TokenRef>;
 
 export interface ArtifactStorageConfig {
   readonly type: ArtifactStorageType;
@@ -392,11 +392,9 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
     localPath: process.env.LOCAL_ARTIFACT_PATH ?? defaultLocalArtifactPath(),
     localServeUrl: process.env.LOCAL_ARTIFACT_SERVE_URL ?? "http://localhost:7235",
     proxyEndpoint: type === "proxy" ? (config.artifactProxyEndpoint ?? null) : null,
-    // Prefer the live ref: renewal rotates the token in place and uploads
-    // must present the current credential, not the boot one.
-    proxyAuthToken: type === "proxy"
-      ? (config.stigmerTokenRef ?? config.stigmerToken ?? null)
-      : null,
+    // The live ref: renewal rotates the token in place and uploads must
+    // present the current credential, not the boot one.
+    proxyAuthToken: type === "proxy" ? config.stigmerTokenRef : null,
   };
 }
 
@@ -415,13 +413,10 @@ export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStora
         "Proxy artifact storage requires STIGMER_ARTIFACT_PROXY_ENDPOINT or STIGMER_PROXY_ENDPOINT",
       );
     }
-    const tokenAtBoot = typeof cfg.proxyAuthToken === "string"
-      ? cfg.proxyAuthToken
-      : cfg.proxyAuthToken?.current;
-    if (!tokenAtBoot) {
+    if (!cfg.proxyAuthToken?.current) {
       throw new Error("Proxy artifact storage requires STIGMER_TOKEN");
     }
-    return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken!);
+    return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken);
   }
 
   return new LocalArtifactStorage(cfg.localPath, cfg.localServeUrl);

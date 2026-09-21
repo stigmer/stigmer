@@ -37,7 +37,6 @@ import { TimingRecorder, emitTimingLog } from "../shared/cold-start-timing.js";
 export function createAttachSessionActivities(config: Config) {
   const client = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
     runnerTokenRef: config.stigmerRunnerTokenRef,
   });

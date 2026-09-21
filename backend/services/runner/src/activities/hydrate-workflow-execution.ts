@@ -31,7 +31,6 @@ export interface HydrateInput {
 export function createHydrateWorkflowActivities(config: Config) {
   const client = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
     runnerTokenRef: config.stigmerRunnerTokenRef,
   });

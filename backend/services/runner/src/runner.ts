@@ -16,7 +16,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
-import type { Config } from "./config.js";
+import type { Config, TokenRef } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
@@ -127,17 +127,19 @@ export interface StigmerRunner {
  * Wire up self-renewal for a static cloud sandbox's control-plane credential
  * (see sandbox-token-renewal.ts for the model). The applied token reaches
  * every consumer through the ONE ref: activity gRPC clients read
- * {@code tokenRef} per request, per-call sites (call-llm, registry-endpoint
- * headers) resolve it through the runner credential store (which replaced
- * the process.env.STIGMER_TOKEN channel, #508), artifact storage resolves
- * the ref per call, and the two Cursor SDK interceptors read the same ref per
- * request as {@code Config.proxyTokenRef} — a static runner has no
+ * {@code tokenRef} per request, the artifact store and the checkpoint saver
+ * read it per request, the per-turn model clients read it at build, per-call
+ * sites (call-llm, registry-endpoint headers) resolve it through the runner
+ * credential store (which replaced the process.env.STIGMER_TOKEN channel,
+ * #508), and the two Cursor SDK interceptors read the same ref per request
+ * as {@code Config.proxyTokenRef} — a static runner has no
  * {@code RunnerTokenCoordinator} minting a separate proxy credential, so its
  * x-stigmer-auth IS this token and one write here rotates it everywhere.
+ * Nothing holds the value: `Config` carries the ref alone (config.ts header).
  */
 async function startStaticSandboxTokenRenewal(
   config: Config,
-  tokenRef: { current: string | null },
+  tokenRef: TokenRef,
 ): Promise<{ stop(): void } | null> {
   const { isRenewableSandboxToken, startSandboxTokenRenewal } = await import(
     "./sandbox-token-renewal.js"
@@ -201,20 +203,19 @@ export async function createStigmerRunner(
   // for in-process embedders.
   captureRunnerSecrets();
 
-  const baseConfig = mapOptionsToConfig(options);
-
-  assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
-
   // The control-plane credential lives in a shared mutable ref (as in manager
   // mode) so the sandbox-token renewal below can rotate it in-process:
   // activity clients read the ref per request instead of pinning the boot
-  // token for the pod's whole life. It is ALSO this root's proxy credential
-  // (Config.proxyTokenRef): a static host provides the proxy token itself and
-  // mints no separate one, so the interceptors read this same ref per request.
-  const tokenRef = { current: baseConfig.stigmerToken };
+  // token for the pod's whole life. This root owns the writable object; the
+  // config carries it read-only (mapOptionsToConfig binds it as both the
+  // control-plane and the proxy credential — see there).
+  const tokenRef: TokenRef = { current: options.stigmerToken ?? null };
   // The runner-class credential the bootstrap below may mint (see there); the
   // ref exists from here so the boot config can carry it.
-  const runnerTokenRef: { current: string | null } = { current: null };
+  const runnerTokenRef: TokenRef = { current: null };
+  const bootConfig = mapOptionsToConfig(options, tokenRef, runnerTokenRef);
+
+  assertLlmBackendsPreflight(bootConfig.proxyEndpoint);
 
   // Boot the harnesses BEFORE resolving Temporal coordinates. Coordinate
   // discovery dials the control plane through connect-node, which snapshots
@@ -225,12 +226,6 @@ export async function createStigmerRunner(
   // coordinates, so `bootConfig` carries none yet. The two modules imported
   // here are connect-free by construction (`harness-adapters.ts`,
   // `harness/registry.ts`; `__tests__/harness-boot-order.test.ts`).
-  const bootConfig: Config = {
-    ...baseConfig,
-    stigmerTokenRef: tokenRef,
-    stigmerRunnerTokenRef: runnerTokenRef,
-    proxyTokenRef: tokenRef,
-  };
   const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }] = await Promise.all([
     import("./harness-adapters.js"),
     import("./harness/registry.js"),
@@ -248,7 +243,7 @@ export async function createStigmerRunner(
     explicitAddress: options.temporalAddress,
     explicitNamespace: options.temporalNamespace,
     token: options.stigmerToken,
-    stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
+    stigmerEndpoint: bootConfig.stigmerBackendEndpoint,
   });
 
   // Adopt the bootstrap-minted embedded_runner credential for gRPC runner-class
@@ -271,7 +266,7 @@ export async function createStigmerRunner(
     reMint: () =>
       refreshRunnerAccessToken({
         token: tokenRef.current,
-        stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
+        stigmerEndpoint: bootConfig.stigmerBackendEndpoint,
       }),
   });
   if (coordinates.runnerAccessToken) {
@@ -397,7 +392,19 @@ function validateOptions(options: StigmerRunnerOptions): void {
   // localhost when no token is present.
 }
 
-export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
+/**
+ * The runtime `Config` for the static root. The refs are the root's: it
+ * creates them before mapping and writes them on every rotation (the
+ * sandbox-token renewal), so a `Config` never carries a credential by value
+ * (config.ts header). `tokenRef` is bound as BOTH the control-plane and the
+ * proxy credential — a static host provides the proxy token itself and mints
+ * no separate one, so the interceptors read this same ref per request.
+ */
+export function mapOptionsToConfig(
+  options: StigmerRunnerOptions,
+  tokenRef: TokenRef,
+  runnerTokenRef: TokenRef,
+): Config {
   const proxyActive = !!options.proxyEndpoint;
 
   // Execution location is independent of proxy transport. An explicit
@@ -413,7 +420,9 @@ export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
     temporalAddress: options.temporalAddress ?? "",
     temporalNamespace: options.temporalNamespace ?? "default",
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
-    stigmerToken: options.stigmerToken ?? null,
+    stigmerTokenRef: tokenRef,
+    stigmerRunnerTokenRef: runnerTokenRef,
+    proxyTokenRef: tokenRef,
     // Env-only like the env-loaded path (loadConfig): the bridge endpoint
     // is deployment topology, not per-session state.
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
@@ -503,14 +512,14 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createEvaluateExpressionsActivities(),
     ...createCallHttpActivities(),
     ...createCallGrpcActivities(),
-    ...createCallFunctionActivities(),
+    ...createCallFunctionActivities(config),
     ...createCallLlmActivities(),
     ...createCallAgentActivities(config),
-    ...createCallAgentStatusActivities(),
+    ...createCallAgentStatusActivities(config),
     ...createRunCommandActivities(),
     ...createHydrateWorkflowActivities(config),
-    ...createWorkflowEventActivities(),
-    ...createPromoteTaskOutputActivities(),
+    ...createWorkflowEventActivities(config),
+    ...createPromoteTaskOutputActivities(config),
     ...createAttachSessionActivities(config),
   };
 }

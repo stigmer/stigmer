@@ -85,7 +85,7 @@ import { modelHasNativeThinking, transformAndCompileSubagents } from "./subagent
  */
 export type DeepAgentAdapterConfig = Pick<
   Config,
-  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerToken" | "proxyEndpoint" | "mode"
+  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode"
 >;
 
 /** The deepagents graph as this module holds it; deepagents exports no stable type for the compiled agent. */
@@ -164,7 +164,7 @@ export async function openCheckpointer(input: TurnInput, sink: TurnSink, config:
   const checkpointer = await createCheckpointer({
     type: config.checkpointerType,
     proxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
-    authToken: config.stigmerToken ?? undefined,
+    authToken: config.stigmerTokenRef,
     sqlitePath: config.checkpointerType === "sqlite" ? await ensureCheckpointDbPath(input.sessionId) : undefined,
   });
   sink.setupTiming.mark("create_checkpointer");
@@ -340,12 +340,14 @@ export async function buildEngine(
 
   // The model. Resolution to the provider API id happens inside
   // buildChatModel; modelName stays the registry id for pricing, the
-  // native-thinking heuristic, and sub-agent inheritance.
+  // native-thinking heuristic, and sub-agent inheritance. The credential is
+  // read from the ref at build, once per turn: a LangChain client carries
+  // its headers for its life, so this is the freshest a turn's model can be.
   const buildModelFor = async (name: string) =>
     (await buildChatModel({
       modelName: name,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
-      stigmerToken: config.stigmerToken ?? undefined,
+      stigmerToken: config.stigmerTokenRef.current ?? undefined,
       headerScope: { executionId },
       serviceTier: input.model.serviceTier,
     })).model;

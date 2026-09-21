@@ -24,7 +24,7 @@ const SCHEMA = { type: "object", properties: { answer: { type: "string" } } };
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     proxyEndpoint: null,
-    stigmerToken: null,
+    stigmerTokenRef: { current: null },
     ...overrides,
   } as Config;
 }
@@ -78,7 +78,7 @@ describe("extractStructuredOutput", () => {
 
     const result = await extractStructuredOutput(
       "text", SCHEMA,
-      makeConfig({ proxyEndpoint: "https://api.stigmer.ai", stigmerToken: "tok" }),
+      makeConfig({ proxyEndpoint: "https://api.stigmer.ai", stigmerTokenRef: { current: "tok" } }),
       "gpt-4.1",
     );
 

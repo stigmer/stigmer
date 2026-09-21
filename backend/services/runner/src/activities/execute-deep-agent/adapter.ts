@@ -44,7 +44,7 @@ export function resolveDeepAgentConfig(config: Config): DeepAgentAdapterConfig {
   return {
     checkpointerType: config.checkpointerType,
     checkpointerProxyEndpoint: config.checkpointerProxyEndpoint,
-    stigmerToken: config.stigmerToken,
+    stigmerTokenRef: config.stigmerTokenRef,
     proxyEndpoint: config.proxyEndpoint,
     mode: config.mode,
   };

@@ -1,9 +1,19 @@
+/**
+ * HttpCheckpointSaver: the proxy wire shape ($binary transport, the routes,
+ * the header), the bounded retry loop and its classification, and the one
+ * thing that must never regress silently — the bearer credential is read
+ * from the shared ref on every request, so a rotation between two requests
+ * of one saver reaches the second (a pool member claimed for a session; a
+ * sandbox token renewed in place).
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpCheckpointSaver } from "../http-saver.js";
+import type { TokenRef } from "../../../config.js";
 import type { Checkpoint, CheckpointMetadata } from "@langchain/langgraph-checkpoint";
 
 const PROXY = "https://proxy.test";
-const TOKEN = "test-token";
+const TOKEN: TokenRef = { current: "test-token" };
 
 function makeConfig(overrides: Record<string, string> = {}) {
   return {
@@ -70,6 +80,19 @@ describe("HttpCheckpointSaver", () => {
       const [url, opts] = fetchSpy.mock.calls[0];
       expect(opts.headers.Authorization).toBe("Bearer test-token");
       expect(url).toContain("/v1/proxy/checkpoints/checkpoint");
+    });
+
+    it("presents the credential the ref holds NOW: a rotation between two requests reaches the second", async () => {
+      const ref: TokenRef = { current: "boot-credential" };
+      const rotating = new HttpCheckpointSaver(PROXY, ref);
+      fetchSpy.mockResolvedValue({ status: 404, ok: false });
+
+      await rotating.getTuple(makeConfig());
+      ref.current = "session-credential";
+      await rotating.getTuple(makeConfig());
+
+      expect(fetchSpy.mock.calls[0][1].headers.Authorization).toBe("Bearer boot-credential");
+      expect(fetchSpy.mock.calls[1][1].headers.Authorization).toBe("Bearer session-credential");
     });
   });
 
@@ -360,7 +383,7 @@ describe("HttpCheckpointSaver", () => {
 
   describe("URL construction", () => {
     it("strips trailing slashes from proxy endpoint", () => {
-      const s = new HttpCheckpointSaver("https://proxy.test///", "tok");
+      const s = new HttpCheckpointSaver("https://proxy.test///", { current: "tok" });
       fetchSpy.mockResolvedValue({ status: 404, ok: false });
       s.getTuple(makeConfig());
       const [url] = fetchSpy.mock.calls[0];

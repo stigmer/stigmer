@@ -81,7 +81,7 @@ import { installHitlGate, removeHitlGate, type HitlGateHandle } from "./workspac
  */
 export type CursorAdapterConfig = Pick<
   Config,
-  "proxyEndpoint" | "cursorApiKey" | "stigmerToken" | "stigmerTokenRef" | "workspaceRootDir" | "cloudModeEnabled" | "agentResolveTimeoutMs"
+  "proxyEndpoint" | "cursorApiKey" | "stigmerTokenRef" | "workspaceRootDir" | "cloudModeEnabled" | "agentResolveTimeoutMs"
 >;
 
 export type CursorAgentMode = "cloud" | "local";
@@ -309,19 +309,18 @@ export async function resolveEngine(input: TurnInput, sink: TurnSink, config: Cu
 
   await sink.reportProgress("Initializing Cursor agent");
 
-  // In proxy mode, use the stigmer token as the API key — the proxy
-  // validates it and injects the real Cursor API key server-side.
-  // In direct mode, use the user's own CURSOR_API_KEY.
+  // In proxy mode, the SDK's API key is the control-plane credential, read
+  // from the ref now (per turn) — the proxy validates it and injects the real
+  // Cursor API key server-side. In direct mode, the user's own CURSOR_API_KEY.
   const effectiveApiKey = config.proxyEndpoint
-    ? (config.stigmerTokenRef?.current ?? config.stigmerToken ?? config.cursorApiKey)
+    ? config.stigmerTokenRef.current
     : config.cursorApiKey;
   if (!effectiveApiKey || effectiveApiKey === "proxy-managed") {
     const source = config.proxyEndpoint ? "proxy (STIGMER_TOKEN)" : "direct (CURSOR_API_KEY)";
     throw new Error(
       `No Cursor API credential available. Mode=${source}, ` +
         `proxyEndpoint=${config.proxyEndpoint ?? "unset"}, ` +
-        `hasStigmerToken=${!!config.stigmerToken}, ` +
-        `hasTokenRef=${!!config.stigmerTokenRef?.current}`,
+        `hasStigmerToken=${!!config.stigmerTokenRef.current}`,
     );
   }
 

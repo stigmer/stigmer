@@ -21,7 +21,7 @@ import {
 
 const config = {
   stigmerBackendEndpoint: "http://localhost:7234",
-  stigmerToken: "pool-tok",
+  stigmerTokenRef: { current: "pool-tok" },
 } as unknown as Config;
 
 function fakeManager(): PoolAttachTarget & {

@@ -109,7 +109,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("calls presigned-upload-url endpoint on upload", async () => {
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce({
@@ -129,7 +129,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("throws on presign failure", async () => {
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     globalThis.fetch = vi.fn().mockResolvedValueOnce({
       ok: false,
@@ -143,7 +143,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("calls presigned-download-url for getDownloadUrl", async () => {
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     globalThis.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
@@ -155,7 +155,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("download resolves a presigned URL then fetches the bytes", async () => {
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce({
@@ -172,7 +172,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("download throws with HTTP status and key on a failed fetch", async () => {
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce({
@@ -191,7 +191,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("exists returns true when the object is present (presign + ranged GET)", async () => {
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     // Two-step probe: presign mints the URL, then a ranged GET hits the object.
     // Presign success alone is NOT existence — the object fetch is authoritative.
@@ -207,7 +207,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("exists returns false when the presign endpoint fails", async () => {
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     globalThis.fetch = vi.fn(async () => new Response("nope", { status: 404 })) as typeof fetch;
 
@@ -233,7 +233,7 @@ describe("createArtifactStorage", () => {
       localPath: "/var/artifacts",
       localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
-      proxyAuthToken: "token",
+      proxyAuthToken: { current: "token" },
     });
     expect(storage).toBeInstanceOf(ProxyArtifactStorage);
   });
@@ -244,7 +244,7 @@ describe("createArtifactStorage", () => {
       localPath: "/var/artifacts",
       localServeUrl: "http://localhost:7235",
       proxyEndpoint: null,
-      proxyAuthToken: "token",
+      proxyAuthToken: { current: "token" },
     })).toThrow("STIGMER_PROXY_ENDPOINT");
   });
 

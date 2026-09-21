@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { createCallFunctionActivities } from "../call-function.js";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
 
 describe("createCallFunctionActivities", () => {
   it("creates activities object with CallFunction method", () => {
-    const activities = createCallFunctionActivities();
+    const activities = createCallFunctionActivities(testConfig());
     expect(typeof activities.CallFunction).toBe("function");
   });
 
   it("throws non-retryable error for unknown call type", async () => {
-    const activities = createCallFunctionActivities();
+    const activities = createCallFunctionActivities(testConfig());
 
     try {
       await activities.CallFunction("unknown_function", {}, {}, "exec-1");
@@ -20,7 +21,7 @@ describe("createCallFunctionActivities", () => {
   });
 
   it("throws non-retryable error for call:agent (not yet implemented)", async () => {
-    const activities = createCallFunctionActivities();
+    const activities = createCallFunctionActivities(testConfig());
 
     try {
       await activities.CallFunction("agent", { agent: "code-reviewer" }, {}, "exec-1");
@@ -31,7 +32,7 @@ describe("createCallFunctionActivities", () => {
   });
 
   it("resolves runtime placeholders in config before dispatching", async () => {
-    const activities = createCallFunctionActivities();
+    const activities = createCallFunctionActivities(testConfig());
 
     try {
       await activities.CallFunction(

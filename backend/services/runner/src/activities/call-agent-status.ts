@@ -10,21 +10,18 @@
  *   WorkflowExecution when a child agent enters a tool-approval gate.
  * - ClearWorkflowApprovalStatus: clears pending_approvals when the
  *   child agent activity completes (approvals resolved).
+ *
+ * The client is the factory's, built once from the runner's injected
+ * `Config` so it reads the live credential ref per request (config.ts
+ * header); the functions take it as an argument, which is also what a test
+ * hands them.
  */
 
 import { StigmerClient } from "../client/stigmer-client.js";
-import { loadConfig } from "../config.js";
+import type { Config } from "../config.js";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowExecutionStatusSchema, WorkflowPendingApprovalSchema, WorkflowPendingFileReviewSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ToolCallStatus, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-
-function buildClient(): StigmerClient {
-  const config = loadConfig();
-  return new StigmerClient({
-    endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
-  });
-}
 
 /**
  * Derives the child's approval gate onto the parent (DD-012: identity-only
@@ -40,13 +37,13 @@ function buildClient(): StigmerClient {
  * retry: surfacing a resolved gate would show users a stale approval card.
  */
 export async function updateWorkflowTaskApprovalStatus(
+  client: StigmerClient,
   executionId: string,
   _taskName: string,
   childExecutionId: string,
 ): Promise<boolean> {
   if (!executionId || !childExecutionId) return false;
 
-  const client = buildClient();
   const child = await client.getExecution(childExecutionId);
   const pendingApprovals = (child?.status?.pendingApprovals ?? []).map(
     (approval) =>
@@ -74,12 +71,12 @@ export async function updateWorkflowTaskApprovalStatus(
 }
 
 export async function clearWorkflowApprovalStatus(
+  client: StigmerClient,
   executionId: string,
   childExecutionId: string,
 ): Promise<void> {
   if (!executionId || !childExecutionId) return;
 
-  const client = buildClient();
   const status = create(WorkflowExecutionStatusSchema, {
     pendingApprovals: [],
   });
@@ -101,13 +98,13 @@ export async function clearWorkflowApprovalStatus(
  * child's entry (per-child merge, so parallel siblings are never disturbed).
  */
 export async function updateWorkflowFileReviewStatus(
+  client: StigmerClient,
   executionId: string,
   childExecutionId: string,
   changeSetIds: string[],
 ): Promise<void> {
   if (!executionId || !childExecutionId) return;
 
-  const client = buildClient();
   const pendingFileReviews =
     changeSetIds.length > 0
       ? [
@@ -135,12 +132,12 @@ export async function updateWorkflowFileReviewStatus(
  * (the same reason getAgentExecutionProgress reads status.messages).
  */
 export async function getAwaitingFileReviewChangeSetIds(
+  client: StigmerClient,
   childExecutionId: string,
 ): Promise<string[]> {
   if (!childExecutionId) return [];
 
   try {
-    const client = buildClient();
     const execution = await client.getExecution(childExecutionId);
     const changeSets = execution?.status?.fileChangeSets ?? [];
     return changeSets
@@ -169,12 +166,12 @@ export interface AgentProgressSummary {
 }
 
 export async function getAgentExecutionProgress(
+  client: StigmerClient,
   childExecutionId: string,
 ): Promise<AgentProgressSummary | null> {
   if (!childExecutionId) return null;
 
   try {
-    const client = buildClient();
     const execution = await client.getExecution(childExecutionId);
     const status = execution?.status;
     if (!status) return null;
@@ -206,12 +203,23 @@ export async function getAgentExecutionProgress(
   }
 }
 
-export function createCallAgentStatusActivities() {
+export function createCallAgentStatusActivities(config: Config) {
+  const client = new StigmerClient({
+    endpoint: config.stigmerBackendEndpoint,
+    tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
+  });
+
   return {
-    UpdateWorkflowTaskApprovalStatus: updateWorkflowTaskApprovalStatus,
-    ClearWorkflowApprovalStatus: clearWorkflowApprovalStatus,
-    UpdateWorkflowFileReviewStatus: updateWorkflowFileReviewStatus,
-    GetAwaitingFileReviewChangeSetIds: getAwaitingFileReviewChangeSetIds,
-    GetAgentExecutionProgress: getAgentExecutionProgress,
+    UpdateWorkflowTaskApprovalStatus: (executionId: string, taskName: string, childExecutionId: string) =>
+      updateWorkflowTaskApprovalStatus(client, executionId, taskName, childExecutionId),
+    ClearWorkflowApprovalStatus: (executionId: string, childExecutionId: string) =>
+      clearWorkflowApprovalStatus(client, executionId, childExecutionId),
+    UpdateWorkflowFileReviewStatus: (executionId: string, childExecutionId: string, changeSetIds: string[]) =>
+      updateWorkflowFileReviewStatus(client, executionId, childExecutionId, changeSetIds),
+    GetAwaitingFileReviewChangeSetIds: (childExecutionId: string) =>
+      getAwaitingFileReviewChangeSetIds(client, childExecutionId),
+    GetAgentExecutionProgress: (childExecutionId: string) =>
+      getAgentExecutionProgress(client, childExecutionId),
   };
 }

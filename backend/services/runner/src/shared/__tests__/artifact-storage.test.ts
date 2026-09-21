@@ -172,7 +172,7 @@ describe("ProxyArtifactStorage", () => {
   });
 
   it("self-describes its URLs as presigned (time-limited, remotely fetchable — issue #532)", () => {
-    const s = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const s = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     expect(s.downloadUrlKind).toBe("presigned");
   });
 
@@ -195,7 +195,7 @@ describe("ProxyArtifactStorage", () => {
       return new Response("not found", { status: 404 });
     }) as typeof fetch;
 
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "token-123");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "token-123" });
     const key = await storage.upload("artifacts/exec-1/f.txt", Buffer.from("data"), "text/plain");
 
     expect(key).toBe("artifacts/exec-1/f.txt");
@@ -237,7 +237,7 @@ describe("ProxyArtifactStorage", () => {
       "content-type": "text/markdown",
       "host": "test-bucket.localhost:9000",
     });
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     await storage.upload("artifacts/exec-1/plan.md", Buffer.from("# Plan"), "text/markdown");
 
     const sent = await headersPromise;
@@ -249,7 +249,7 @@ describe("ProxyArtifactStorage", () => {
       "content-type": "text/markdown",
       "host": "test-bucket.localhost:9000",
     });
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     await storage.upload("artifacts/exec-1/plan.md", Buffer.from("# Plan"), "text/markdown");
 
     const sent = await headersPromise;
@@ -262,7 +262,7 @@ describe("ProxyArtifactStorage", () => {
       "content-type": ["text/markdown"],
       "host": ["test-bucket.localhost:9000"],
     });
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     await storage.upload("artifacts/exec-1/plan.md", Buffer.from("# Plan"), "text/markdown");
 
     const sent = await headersPromise;
@@ -273,7 +273,7 @@ describe("ProxyArtifactStorage", () => {
     const headersPromise = captureUploadHeaders({
       "host": "test-bucket.localhost:9000",
     });
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     await storage.upload("artifacts/exec-1/f.bin", Buffer.from("x"), "application/octet-stream");
 
     const sent = await headersPromise;
@@ -285,7 +285,7 @@ describe("ProxyArtifactStorage", () => {
       new Response("forbidden", { status: 403 }),
     ) as typeof fetch;
 
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "bad-token");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "bad-token" });
     await expect(
       storage.upload("key", Buffer.from("x")),
     ).rejects.toThrow("Failed to get presigned upload URL (HTTP 403)");
@@ -307,7 +307,7 @@ describe("ProxyArtifactStorage", () => {
     // delayFn injected to skip the real ~7.75 s of backoff (#468). The
     // degrade contract under test (budget exhaustion still throws the
     // caller-visible error) is unchanged.
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" }, {
       delayFn: async () => {},
     });
     await expect(
@@ -320,7 +320,7 @@ describe("ProxyArtifactStorage", () => {
       new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 }),
     ) as typeof fetch;
 
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     const url = await storage.getDownloadUrl("key");
     expect(url).toBe("https://r2.example.com/dl");
   });
@@ -337,7 +337,7 @@ describe("ProxyArtifactStorage", () => {
       return new Response("not found", { status: 404 });
     }) as typeof fetch;
 
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     const got = await storage.download("artifacts/exec-1/f.txt");
     expect(got.toString()).toBe("payload-bytes");
   });
@@ -351,7 +351,7 @@ describe("ProxyArtifactStorage", () => {
       return new Response("gone", { status: 404 });
     }) as typeof fetch;
 
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     await expect(storage.download("artifacts/exec-1/missing.txt")).rejects.toThrow(
       /Artifact download failed \(HTTP 404\) for key 'artifacts\/exec-1\/missing\.txt'/,
     );
@@ -372,19 +372,19 @@ describe("ProxyArtifactStorage", () => {
 
   it("exists returns true when the object GET is 200", async () => {
     mockProxyFetch(() => new Response(Buffer.from("x"), { status: 200 }));
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     expect(await storage.exists("key")).toBe(true);
   });
 
   it("exists returns true when the object GET is 206 (ranged)", async () => {
     mockProxyFetch(() => new Response(Buffer.from("x"), { status: 206 }));
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     expect(await storage.exists("key")).toBe(true);
   });
 
   it("exists returns true on 416 (0-byte object, range unsatisfiable but present)", async () => {
     mockProxyFetch(() => new Response("", { status: 416 }));
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     expect(await storage.exists("key")).toBe(true);
   });
 
@@ -393,7 +393,7 @@ describe("ProxyArtifactStorage", () => {
     // only the object fetch reveals it is absent. The old exists() returned true
     // here (presign.ok), which crashed the file-review reconcile on the R2 404.
     mockProxyFetch(() => new Response("<Error><Code>NoSuchKey</Code></Error>", { status: 404 }));
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     expect(await storage.exists("key")).toBe(false);
   });
 
@@ -411,7 +411,7 @@ describe("ProxyArtifactStorage", () => {
       });
       return new Response(Buffer.from("x"), { status: 206 });
     }) as typeof fetch;
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     await storage.exists("key");
     expect(seen).toEqual([{ url: "https://r2.example.com/obj", range: "bytes=0-0", method: "GET" }]);
   });
@@ -420,7 +420,7 @@ describe("ProxyArtifactStorage", () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("network unreachable");
     }) as typeof fetch;
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
     expect(await storage.exists("key")).toBe(false);
   });
 
@@ -428,7 +428,7 @@ describe("ProxyArtifactStorage", () => {
     mockProxyFetch(() => new Response("boom", { status: 500 }));
     // Persistent 500 exhausts the retry budget; delayFn skips the real
     // backoff (#468). The fault-not-an-answer contract is unchanged.
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" }, {
       delayFn: async () => {},
     });
     await expect(storage.exists("key")).rejects.toThrow(
@@ -450,7 +450,7 @@ describe("ProxyArtifactStorage", () => {
     });
 
     function makeStorage() {
-      return new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+      return new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" }, {
         delayFn: async (ms) => {
           recordedDelays.push(ms);
         },
@@ -554,7 +554,7 @@ describe("ProxyArtifactStorage", () => {
         );
       }) as typeof fetch;
 
-      const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+      const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" }, {
         requestTimeoutMs: 20,
         delayFn: async (ms) => {
           recordedDelays.push(ms);
@@ -591,7 +591,7 @@ describe("createArtifactStorage", () => {
       localPath: "/tmp/artifacts",
       localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
-      proxyAuthToken: "token-123",
+      proxyAuthToken: { current: "token-123" },
     };
     const storage = createArtifactStorage(cfg);
     expect(storage).toBeInstanceOf(ProxyArtifactStorage);
@@ -603,7 +603,7 @@ describe("createArtifactStorage", () => {
       localPath: "/tmp/artifacts",
       localServeUrl: "http://localhost:7235",
       proxyEndpoint: null,
-      proxyAuthToken: "token",
+      proxyAuthToken: { current: "token" },
     };
     expect(() => createArtifactStorage(cfg)).toThrow("STIGMER_PROXY_ENDPOINT");
   });
@@ -640,7 +640,7 @@ describe("loadArtifactStorageConfig", () => {
   const baseConfig = {
     mode: "local" as const,
     proxyEndpoint: null,
-    stigmerToken: null,
+    stigmerTokenRef: { current: null },
     taskQueue: "q",
     temporalAddress: "localhost:7233",
     temporalNamespace: "default",
@@ -681,7 +681,7 @@ describe("loadArtifactStorageConfig", () => {
       mode: "cloud",
       proxyEndpoint: "https://proxy.example.com",
       artifactProxyEndpoint: "https://proxy.example.com",
-      stigmerToken: "tok",
+      stigmerTokenRef: { current: "tok" },
     });
     expect(cfg.type).toBe("proxy");
     expect(cfg.proxyEndpoint).toBe("https://proxy.example.com");
@@ -690,16 +690,19 @@ describe("loadArtifactStorageConfig", () => {
   it("uses proxy in local mode when a proxy endpoint is set (desktop case)", () => {
     // The desktop runner executes locally yet proxies its artifacts: storage
     // follows transport (proxyEndpoint), not execution location (mode).
+    const ref = { current: "tok" };
     const cfg = loadArtifactStorageConfig({
       ...baseConfig,
       mode: "local",
       proxyEndpoint: "https://localhost:9090",
       artifactProxyEndpoint: "https://localhost:9090",
-      stigmerToken: "tok",
+      stigmerTokenRef: ref,
     });
     expect(cfg.type).toBe("proxy");
     expect(cfg.proxyEndpoint).toBe("https://localhost:9090");
-    expect(cfg.proxyAuthToken).toBe("tok");
+    // The runner's ref itself, never a copy of its value: a rotation reaches
+    // the store through this same object.
+    expect(cfg.proxyAuthToken).toBe(ref);
   });
 
   it("presigns against the artifact override when split from the LLM proxy endpoint (stigmer#803)", () => {
@@ -711,7 +714,7 @@ describe("loadArtifactStorageConfig", () => {
       ...baseConfig,
       proxyEndpoint: "https://mock-llm.example.com",
       artifactProxyEndpoint: "https://service.example.com",
-      stigmerToken: "tok",
+      stigmerTokenRef: { current: "tok" },
     });
     expect(cfg.type).toBe("proxy");
     expect(cfg.proxyEndpoint).toBe("https://service.example.com");
@@ -724,7 +727,7 @@ describe("loadArtifactStorageConfig", () => {
     const cfg = loadArtifactStorageConfig({
       ...baseConfig,
       proxyEndpoint: "https://proxy.example.com",
-      stigmerToken: "tok",
+      stigmerTokenRef: { current: "tok" },
     });
     expect(cfg.type).toBe("none");
   });
@@ -734,7 +737,7 @@ describe("loadArtifactStorageConfig", () => {
     const cfg = loadArtifactStorageConfig({
       ...baseConfig,
       proxyEndpoint: "https://proxy.example.com",
-      stigmerToken: "tok",
+      stigmerTokenRef: { current: "tok" },
     });
     expect(cfg.type).toBe("proxy");
   });
@@ -838,7 +841,7 @@ describe("resolveUsableArtifactStorage", () => {
       localPath: "/tmp/artifacts",
       localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
-      proxyAuthToken: "token-123",
+      proxyAuthToken: { current: "token-123" },
     };
 
     const storage = await resolveUsableArtifactStorage(cfg, ctx);

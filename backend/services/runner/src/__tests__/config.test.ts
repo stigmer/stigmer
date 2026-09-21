@@ -28,7 +28,7 @@ describe("loadConfig", () => {
     expect(config.temporalAddress).toBe("");
     expect(config.temporalNamespace).toBe("default");
     expect(config.stigmerBackendEndpoint).toBe("http://localhost:7234");
-    expect(config.stigmerToken).toBeNull();
+    expect(config.stigmerTokenRef.current).toBeNull();
     expect(config.cursorApiKey).toBe("test-key");
     expect(config.proxyEndpoint).toBeNull();
     expect(config.maxConcurrentActivities).toBe(5);
@@ -85,7 +85,7 @@ describe("loadConfig", () => {
 
     const config = loadConfig();
     expect(config.temporalAddress).toBe("");
-    expect(config.stigmerToken).toBe("token");
+    expect(config.stigmerTokenRef.current).toBe("token");
   });
 
   it("requires STIGMER_TOKEN in cloud mode", () => {
@@ -102,34 +102,25 @@ describe("loadConfig", () => {
     const config = loadConfig();
 
     expect(config.proxyEndpoint).toBe("https://proxy.example.com");
-    expect(config.stigmerToken).toBe("token");
+    expect(config.stigmerTokenRef.current).toBe("token");
   });
 
-  it("uses STIGMER_TOKEN as cursorApiKey in proxy mode for BiDi proxy auth", () => {
+  it("never copies STIGMER_TOKEN into cursorApiKey in proxy mode: the placeholder the option mappers use, the credential only in the ref", () => {
     process.env.STIGMER_PROXY_ENDPOINT = "https://api.stigmer.ai";
     process.env.STIGMER_TOKEN = "eyJhbGciOiJSUzI1NiJ9.test-jwt-token";
     const config = loadConfig();
 
-    expect(config.cursorApiKey).toBe("eyJhbGciOiJSUzI1NiJ9.test-jwt-token");
+    expect(config.cursorApiKey).toBe("proxy-managed");
+    expect(config.stigmerTokenRef.current).toBe("eyJhbGciOiJSUzI1NiJ9.test-jwt-token");
   });
 
-  it("prefers explicit CURSOR_API_KEY over STIGMER_TOKEN in proxy mode", () => {
+  it("keeps an explicit CURSOR_API_KEY in proxy mode", () => {
     process.env.STIGMER_PROXY_ENDPOINT = "https://api.stigmer.ai";
     process.env.STIGMER_TOKEN = "stigmer-jwt";
     process.env.CURSOR_API_KEY = "explicit-cursor-key";
     const config = loadConfig();
 
     expect(config.cursorApiKey).toBe("explicit-cursor-key");
-  });
-
-  it("falls back to proxy-managed when no token in proxy mode", () => {
-    process.env.MODE = "local";
-    process.env.STIGMER_PROXY_ENDPOINT = "http://localhost:9090";
-    process.env.STIGMER_TOKEN = "token";
-    const config = loadConfig();
-
-    // With STIGMER_TOKEN present, cursorApiKey should be the token
-    expect(config.cursorApiKey).toBe("token");
   });
 
   it("normalizes bare host:port to http://", () => {

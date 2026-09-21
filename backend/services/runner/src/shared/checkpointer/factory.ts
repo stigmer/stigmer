@@ -68,7 +68,11 @@ export async function createCheckpointer(
           "proxyEndpoint is required for HTTP checkpointer",
         );
       }
-      if (!config.authToken) {
+      // The ref must be present AND hold a credential at open: a saver that
+      // opened without one would fail its first request with a bare 401
+      // instead of this named error, and a proxy-mode runner always has one
+      // (loadConfig refuses to boot without STIGMER_TOKEN).
+      if (!config.authToken?.current) {
         throw new CheckpointerCreationError(
           "http",
           "authToken is required for HTTP checkpointer",

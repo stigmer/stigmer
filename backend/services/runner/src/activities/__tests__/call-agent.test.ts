@@ -30,18 +30,16 @@ vi.mock("../../client/stigmer-client.js", () => ({
   })),
 }));
 
-vi.mock("../../config.js", () => ({
-  loadConfig: () => ({
-    stigmerBackendEndpoint: "http://localhost:7234",
-    stigmerToken: "test-token",
-  }),
-}));
-
 vi.mock("../../shared/heartbeat.js", () => ({
   startHeartbeat: () => ({ stop: vi.fn() }),
 }));
 
 import { callAgentAction } from "../call-agent.js";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+// The runner's injected Config, as the factory passes it (the mocked client
+// constructor above is what its refs resolve to).
+const appConfig = testConfig({ stigmerTokenRef: { current: "test-token" } });
 
 describe("callAgentAction", () => {
   beforeEach(() => {
@@ -68,6 +66,7 @@ describe("callAgentAction", () => {
           { agent: "notification-analyst", message: "Analyze data" },
           { __stigmer_org_id: "tt-demo" },
           "wfl_parent123",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -84,6 +83,7 @@ describe("callAgentAction", () => {
           { agent: "acme/my-agent", message: "Do something" },
           { __stigmer_org_id: "default-org" },
           "wfl_parent456",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -100,6 +100,7 @@ describe("callAgentAction", () => {
           { agent: "explicit-org/my-agent", message: "Hello" },
           { __stigmer_org_id: "workflow-org" },
           "wfl_parent789",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -122,6 +123,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Hello" },
           {},
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("call:agent requires an organization context");
     });
@@ -132,6 +134,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Hello" },
           { __stigmer_org_id: "env-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -152,6 +155,7 @@ describe("callAgentAction", () => {
           { agent: "ghost-agent", message: "Hello" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("resolved but has no metadata.id");
     });
@@ -164,6 +168,7 @@ describe("callAgentAction", () => {
           { agent: "", message: "Hello" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("'agent' resolved to empty");
     });
@@ -174,6 +179,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("'message' resolved to empty");
     });
@@ -186,6 +192,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Hello", harness: "CURSOR" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -204,6 +211,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Hello" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -218,6 +226,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Review this" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent_id",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -243,6 +252,7 @@ describe("callAgentAction", () => {
             __stigmer_activity_task_queue: "wfexec:wex_abc123",
           },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -259,6 +269,7 @@ describe("callAgentAction", () => {
             __stigmer_activity_task_queue: "stigmer_runner",
           },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -282,6 +293,7 @@ describe("callAgentAction", () => {
           },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -302,6 +314,7 @@ describe("callAgentAction", () => {
           },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -323,6 +336,7 @@ describe("callAgentAction", () => {
           },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow(
         "call:agent run_config.service_tier 'SERVICE_TIER_TURBO' has no proto mapping",
@@ -335,6 +349,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Hello" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -352,6 +367,7 @@ describe("callAgentAction", () => {
           },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -379,6 +395,7 @@ describe("callAgentAction", () => {
           },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -398,6 +415,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Hello" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -416,6 +434,7 @@ describe("callAgentAction", () => {
           } as any,
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -430,6 +449,7 @@ describe("callAgentAction", () => {
           { agent: "my-agent", message: "Hello" },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
@@ -463,6 +483,7 @@ describe("callAgentAction", () => {
           },
           { __stigmer_org_id: "test-org" },
           "wfl_parent",
+          appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 

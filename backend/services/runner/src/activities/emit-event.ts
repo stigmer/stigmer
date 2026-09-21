@@ -21,13 +21,16 @@
  * holding a different key. The server re-produces the payload, so each
  * side's codec passes it through.
  *
+ * The signal client is the caller's (`call-function.ts` builds one from the
+ * runner's injected `Config`, so it reads the live credential ref per
+ * request; config.ts header). This module constructs no client of its own.
+ *
  * CloudEvents spec: https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md
  */
 
 import { randomUUID } from "node:crypto";
 import type { JsonObject } from "@bufbuild/protobuf";
-import { StigmerClient } from "../client/stigmer-client.js";
-import { loadConfig } from "../config.js";
+import type { StigmerClient } from "../client/stigmer-client.js";
 import { resolveRuntimePlaceholders } from "../workflow-engine/resolve.js";
 
 export interface WebhookDeliveryTarget {
@@ -139,14 +142,6 @@ async function deliverWebhook(
   }
 }
 
-function buildClient(): StigmerClient {
-  const config = loadConfig();
-  return new StigmerClient({
-    endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
-  });
-}
-
 async function deliverSignal(
   envelope: Record<string, unknown>,
   target: SignalDeliveryTarget,
@@ -194,7 +189,8 @@ async function deliverSignal(
 export async function emitEventAction(
   config: EmitEventConfig,
   executionId: string,
-  runtimeEnv?: Record<string, unknown>,
+  runtimeEnv: Record<string, unknown> | undefined,
+  client: StigmerClient,
 ): Promise<Record<string, unknown>> {
   if (!config.event) {
     throw new Error("emit_event: 'event' field is required");
@@ -212,17 +208,12 @@ export async function emitEventAction(
   const errors: DeliveryError[] = [];
   const env = runtimeEnv ?? {};
 
-  // One client serves all signal targets of this emit; constructed lazily so
-  // webhook-only emits never pay for a gRPC transport.
-  let client: StigmerClient | undefined;
-
   for (const target of config.delivery) {
     let err: DeliveryError | null = null;
 
     if ("webhook" in target) {
       err = await deliverWebhook(envelope, target.webhook, env);
     } else if ("signal" in target) {
-      client ??= buildClient();
       err = await deliverSignal(envelope, target.signal, client);
     }
 

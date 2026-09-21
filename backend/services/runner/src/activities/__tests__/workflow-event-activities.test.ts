@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents, loadRecoveryContext } from "../workflow-event-activities.js";
+import { StigmerClient } from "../../client/stigmer-client.js";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
@@ -19,12 +20,9 @@ vi.mock("../../client/stigmer-client.js", () => ({
   })),
 }));
 
-vi.mock("../../config.js", () => ({
-  loadConfig: () => ({
-    stigmerBackendEndpoint: "http://localhost:7234",
-    stigmerToken: "test-token",
-  }),
-}));
+// The client the factory would build from the runner's Config; the mocked
+// constructor above is what it resolves to.
+const client = new StigmerClient({ endpoint: "http://localhost:7234" });
 
 const NOW = "2026-05-22T00:00:00.000Z";
 
@@ -34,7 +32,7 @@ describe("initSequenceFromEventLog", () => {
   });
 
   it("returns 0 and resets the legacy counter when executionId is empty", async () => {
-    const highWaterMark = await initSequenceFromEventLog("");
+    const highWaterMark = await initSequenceFromEventLog(client, "");
     expect(highWaterMark).toBe(0);
 
     const evt = toProtoEvent({
@@ -51,7 +49,7 @@ describe("initSequenceFromEventLog", () => {
   it("returns 0 when server has no events", async () => {
     mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(0));
 
-    const highWaterMark = await initSequenceFromEventLog("wfx_test-1");
+    const highWaterMark = await initSequenceFromEventLog(client, "wfx_test-1");
     expect(highWaterMark).toBe(0);
 
     const evt = toProtoEvent({
@@ -67,7 +65,7 @@ describe("initSequenceFromEventLog", () => {
   it("returns the high-water mark as a plain number (Temporal payload converter cannot carry BigInt)", async () => {
     mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(42));
 
-    const highWaterMark = await initSequenceFromEventLog("wfx_recovery-1");
+    const highWaterMark = await initSequenceFromEventLog(client, "wfx_recovery-1");
     expect(highWaterMark).toBe(42);
     expect(typeof highWaterMark).toBe("number");
   });
@@ -75,7 +73,7 @@ describe("initSequenceFromEventLog", () => {
   it("seeds the legacy counter so pre-patch replays continue from N+1", async () => {
     mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(42));
 
-    await initSequenceFromEventLog("wfx_recovery-1");
+    await initSequenceFromEventLog(client, "wfx_recovery-1");
 
     const e1 = toProtoEvent({
       type: "task_started",
@@ -101,7 +99,7 @@ describe("initSequenceFromEventLog", () => {
   it("handles large sequence numbers", async () => {
     mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(999999));
 
-    const highWaterMark = await initSequenceFromEventLog("wfx_large-seq");
+    const highWaterMark = await initSequenceFromEventLog(client, "wfx_large-seq");
     expect(highWaterMark).toBe(999999);
 
     const evt = toProtoEvent({
@@ -117,13 +115,13 @@ describe("initSequenceFromEventLog", () => {
   it("propagates server errors", async () => {
     mockGetEventLogHighWaterMark.mockRejectedValue(new Error("server unavailable"));
 
-    await expect(initSequenceFromEventLog("wfx_error-1")).rejects.toThrow("server unavailable");
+    await expect(initSequenceFromEventLog(client, "wfx_error-1")).rejects.toThrow("server unavailable");
   });
 });
 
 describe("toProtoEvent", () => {
   beforeEach(async () => {
-    await initSequenceFromEventLog("");
+    await initSequenceFromEventLog(client, "");
   });
 
   describe("sequence numbering", () => {
@@ -199,7 +197,7 @@ describe("toProtoEvent", () => {
         attemptNumber: 1,
       });
 
-      await initSequenceFromEventLog("");
+      await initSequenceFromEventLog(client, "");
 
       const evt = toProtoEvent({
         type: "task_started",
@@ -719,7 +717,7 @@ describe("emitWorkflowEvents", () => {
   });
 
   it("returns silently for empty events array", async () => {
-    await expect(emitWorkflowEvents("exec-1", [])).resolves.toBeUndefined();
+    await expect(emitWorkflowEvents(client, "exec-1", [])).resolves.toBeUndefined();
     expect(mockUpdateStatus).not.toHaveBeenCalled();
   });
 
@@ -731,14 +729,14 @@ describe("emitWorkflowEvents", () => {
       taskKind: "set",
       attemptNumber: 1,
     }];
-    await expect(emitWorkflowEvents("", events)).resolves.toBeUndefined();
+    await expect(emitWorkflowEvents(client, "", events)).resolves.toBeUndefined();
     expect(mockUpdateStatus).not.toHaveBeenCalled();
   });
 
   it("sends workflow-assigned sequence numbers through to the RPC", async () => {
     mockUpdateStatus.mockResolvedValue({});
 
-    await emitWorkflowEvents("exec-1", [{
+    await emitWorkflowEvents(client, "exec-1", [{
       type: "task_started",
       taskName: "t",
       occurredAt: NOW,
@@ -765,7 +763,7 @@ describe("emitWorkflowEvents", () => {
       sequenceNumber: 1,
     }];
 
-    await expect(emitWorkflowEvents("exec-1", events)).rejects.toThrow("server unavailable");
+    await expect(emitWorkflowEvents(client, "exec-1", events)).rejects.toThrow("server unavailable");
   });
 });
 
@@ -792,7 +790,7 @@ describe("loadRecoveryContext", () => {
       },
     });
 
-    const result = await loadRecoveryContext("wfx_test-1");
+    const result = await loadRecoveryContext(client, "wfx_test-1");
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
@@ -810,7 +808,7 @@ describe("loadRecoveryContext", () => {
   it("returns empty array when execution has no status", async () => {
     mockGetWorkflowExecution.mockResolvedValue({});
 
-    const result = await loadRecoveryContext("wfx_empty-1");
+    const result = await loadRecoveryContext(client, "wfx_empty-1");
     expect(result).toEqual([]);
   });
 
@@ -819,7 +817,7 @@ describe("loadRecoveryContext", () => {
       status: { tasks: [] },
     });
 
-    const result = await loadRecoveryContext("wfx_no-tasks-1");
+    const result = await loadRecoveryContext(client, "wfx_no-tasks-1");
     expect(result).toEqual([]);
   });
 
@@ -836,7 +834,7 @@ describe("loadRecoveryContext", () => {
       },
     });
 
-    const result = await loadRecoveryContext("wfx_statuses-1");
+    const result = await loadRecoveryContext(client, "wfx_statuses-1");
 
     expect(result[0].status).toBe("started");
     expect(result[1].status).toBe("completed");
@@ -848,6 +846,6 @@ describe("loadRecoveryContext", () => {
   it("propagates server errors", async () => {
     mockGetWorkflowExecution.mockRejectedValue(new Error("server unavailable"));
 
-    await expect(loadRecoveryContext("wfx_error-1")).rejects.toThrow("server unavailable");
+    await expect(loadRecoveryContext(client, "wfx_error-1")).rejects.toThrow("server unavailable");
   });
 });
