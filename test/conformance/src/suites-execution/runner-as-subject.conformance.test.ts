@@ -97,7 +97,10 @@ import {
   type AnthropicMessageBody,
 } from "../harness/llm-wire";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
-import { connectClassifierVerdict, type MockLlmProxy } from "../harness/mock-llm";
+import {
+  connectClassifierVerdict,
+  type MockLlmProxy,
+} from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
   awaitTerminal,
@@ -673,7 +676,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
     });
 
-    it("a shared workflow calling an agent the member cannot view: the child is created as the member and then refused at its blueprint read, and the workflow fails (the recorded reach)", async (ctx) => {
+    it("a shared workflow calling an agent the member cannot view: the parent's reference read is refused as the member before any child exists, and the workflow fails (the recorded reach)", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const privateAgent = await createAgent(
@@ -693,33 +696,37 @@ describe.skipIf(!runnerActsAsRunCreator)(
         execution.metadata!.id,
       );
 
-      // The reach the model gives a run's credential today, the same in both
-      // editions: the workflow-bound runner is admitted on the child's
-      // run-gate checks, so the child EXISTS and is the member's; the
-      // child's own run then reads the agent it runs as the member and is
-      // refused, because a shared workflow runs its agents as the person who
-      // ran it. A widening of that reach turns this arm red on purpose.
+      // The reach the model gives a run's credential, the same in both
+      // editions: a shared workflow runs its agents as the person who ran
+      // it. The parent's `call:agent` resolves the callee by reference as
+      // the member, and a read by reference asks exactly what the read by id
+      // asks — so the refusal comes at the parent's own read, with the
+      // agent's `get` copy, before any child execution is created. A
+      // widening of that reach (the reference read admitting what the id
+      // read refuses, or the runner reading as itself) turns this arm red
+      // on purpose.
       expect(
         settled.status?.phase,
         `the workflow: ${settled.status?.error}`,
       ).toBe(WorkflowExecutionPhase.EXECUTION_FAILED);
-      const child = await childExecutionOf(
-        people.member,
-        people.org,
-        settled.metadata!.id,
-      );
       expect(
-        child.status?.audit?.specAudit?.createdBy?.id,
-        "the child was created as the member before its run was refused",
-      ).toBe(people.memberId);
-      expect(child.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+        settled.status?.error,
+        "the workflow failed at the callee's reference read, with the get copy",
+      ).toContain("unauthorized to get agent");
+      const listed = await people.member.agentExecutionQuery.list({
+        org: people.org,
+      });
       expect(
-        child.status?.error,
-        "the child failed at an authorization refusal, not a fault",
-      ).toMatch(/unauthorized/i);
+        listed.entries.filter(
+          (entry) =>
+            entry.metadata?.labels[WORKFLOW_EXECUTION_ID_LABEL] ===
+            settled.metadata!.id,
+        ),
+        "no child execution was created: the refusal came before the child",
+      ).toEqual([]);
       expect(
         mock.consumed(),
-        "no model turn was spent: the refusal came before the child's first call",
+        "no model turn was spent: the refusal came before any call",
       ).toBe(0);
     });
 
@@ -751,7 +758,12 @@ describe.skipIf(!runnerActsAsRunCreator)(
         org: people.org,
         name: uniqueName("ras-credentialed"),
         url: mcpTools.url(),
-        env: { RAS_REQUIRED_KEY: { description: "a required credential", isSecret: true } },
+        env: {
+          RAS_REQUIRED_KEY: {
+            description: "a required credential",
+            isSecret: true,
+          },
+        },
       });
       input.metadata = {
         ...input.metadata,
@@ -759,7 +771,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
       };
       const server = await people.member.mcpServerCommand.create(input);
       fixtures.defer(() =>
-        people.member.mcpServerCommand.delete({ resourceId: server.metadata!.id }),
+        people.member.mcpServerCommand.delete({
+          resourceId: server.metadata!.id,
+        }),
       );
 
       // A redacted or refused secret read fails discovery loudly (the runner's
@@ -775,7 +789,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
         `the member's connect: ${connected.status?.connectStatus?.failureMessage ?? ""}`,
       ).toBe(ConnectPhase.succeeded);
       expect(
-        (connected.status?.discoveredCapabilities?.tools ?? []).map((t) => t.name),
+        (connected.status?.discoveredCapabilities?.tools ?? []).map(
+          (t) => t.name,
+        ),
       ).toEqual([ECHO_TOOL_NAME]);
       expect(mock.consumed(), "one classifier turn").toBe(1);
     });
