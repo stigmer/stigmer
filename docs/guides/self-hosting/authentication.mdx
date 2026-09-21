@@ -278,10 +278,11 @@ From the boot that read the issuer, every request needs a credential:
   Members use what is shared with the Organization and create their own
   Sessions, Environments and API keys. Viewers only read what is shared. An
   Agent, Workflow or Skill marked Private shows up in the library and opens on
-  its page only for the person who created it and the Organization's admins.
-  Nobody reads another person's conversations, API keys or Environments, admins
-  included. These are the same rules Stigmer Cloud enforces, so an Agent behaves
-  the same way wherever it runs.
+  its page only for the person who created it and the Organization's admins,
+  whether it is opened by ID or by name (`stigmer get agent acme/helper` answers
+  the same as the page does). Nobody reads another person's conversations, API
+  keys or Environments, admins included. These are the same rules Stigmer Cloud
+  enforces, so an Agent behaves the same way wherever it runs.
 - **If authentication was already on before 3.16.0, roles were assigned at the
   first start of that release.** People who signed in under an earlier release
   keep what they had: whoever created an Organization owns it, whoever created
