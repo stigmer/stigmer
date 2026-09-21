@@ -108,6 +108,24 @@ describe("useSessionPageFlow — the agent binding on a follow-up", () => {
     expect(lastFollowUpOptions().agentInstanceId).toBe("");
   });
 
+  it("a null ref from the composer's picker clears the binding like clearAgent", async () => {
+    // The composer's agent picker deselects through `setAgentRef(null)` and
+    // `setResolution(null)`, never through `clearAgent`. Both surfaces name
+    // one act, so both must send the same wire: an empty id. Pinned because
+    // the picker path once cleared the screen and left the server bound.
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    act(() => {
+      result.current.setAgentRef(null);
+      result.current.setResolution(null);
+    });
+    expect(result.current.agentRef).toBeNull();
+
+    await act(async () => {
+      await result.current.handleSubmit("follow up");
+    });
+    expect(lastFollowUpOptions().agentInstanceId).toBe("");
+  });
+
   it("picking an agent after a clear rebinds rather than clearing", async () => {
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
     act(() => {

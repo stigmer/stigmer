@@ -128,7 +128,10 @@ export interface UseSessionPageFlowReturn {
    * by user); `null` is the built-in assistant.
    */
   readonly agentRef: ResourceRef | null;
-  /** Update the agent reference for future follow-ups. */
+  /**
+   * Update the agent reference for future follow-ups. `null` is the drop:
+   * the same act as {@link clearAgent}, reached from the composer's picker.
+   */
   readonly setAgentRef: (ref: ResourceRef | null) => void;
   /** Current agent resolution state. */
   readonly resolution: AgentResolution | null;
@@ -477,18 +480,26 @@ export function useSessionPageFlow(
     }
   }
 
-  const setAgentRef = useCallback((ref: ResourceRef | null) => {
-    setAgentRefState(ref);
-    if (ref !== null) setAgentCleared(false);
-  }, []);
-  const setResolution = useCallback((r: AgentResolution | null) => {
-    setResolutionState(r);
-    if (r !== null) setAgentCleared(false);
-  }, []);
   const clearAgent = useCallback(() => {
     setAgentRefState(null);
     setResolutionState(null);
     setAgentCleared(true);
+  }, []);
+  // A `null` ref is the drop, whichever surface it arrives from: the setup
+  // tab calls `clearAgent`, the composer's agent picker deselects through
+  // `setAgentRef(null)`. One implementation for one act, so the two
+  // surfaces cannot disagree about what the next follow-up carries.
+  const setAgentRef = useCallback((ref: ResourceRef | null) => {
+    if (ref === null) {
+      clearAgent();
+      return;
+    }
+    setAgentRefState(ref);
+    setAgentCleared(false);
+  }, [clearAgent]);
+  const setResolution = useCallback((r: AgentResolution | null) => {
+    setResolutionState(r);
+    if (r !== null) setAgentCleared(false);
   }, []);
 
   // -------------------------------------------------------------------------
