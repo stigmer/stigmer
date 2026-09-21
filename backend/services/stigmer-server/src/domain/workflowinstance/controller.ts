@@ -112,6 +112,7 @@ import {
   newRejectDefaultWorkflowInstanceVisibilityUpdateStep,
   newValidateInstanceUpdateStep,
   newValidateSameOrgBusinessRuleStep,
+  resolveWorkflowInstanceCreateTargets,
 } from "./steps.js";
 import type { ParentWorkflowLoaderProvider } from "./steps.js";
 
@@ -186,6 +187,14 @@ async function createInstance(
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadParentWorkflowStep(deps.parentWorkflowLoader, deps.logger))
+    // Before the same-org rule, whose refusal names the parent's organization
+    // (steps.ts, resolveWorkflowInstanceCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveWorkflowInstanceCreateTargets,
+      ),
+    )
     .addStep(newValidateSameOrgBusinessRuleStep(deps.logger))
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())

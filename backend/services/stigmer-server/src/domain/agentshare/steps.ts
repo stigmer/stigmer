@@ -35,6 +35,7 @@ import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb"
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
   failedPreconditionError,
@@ -44,6 +45,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
@@ -61,10 +63,66 @@ type AgentShareDesc = typeof AgentShareSchema;
 /**
  * Context key for the agent resolved from spec.agent_ref during
  * create/apply, so later steps never re-load it — Go referencedAgentKey.
- * Module-private: only ResolveShareDefaults writes it and StampAgentPin
- * reads it, both in this file.
+ * ResolveShareDefaults writes it; the create lane's authorization step and
+ * StampAgentPin read it.
  */
-const REFERENCED_AGENT_KEY = "agentShareReferencedAgent";
+export const REFERENCED_AGENT_KEY = "agentShareReferencedAgent";
+
+/** The deny copy of the agent's bar, the Java AgentShareCreateHandler's. */
+export const SHARE_AGENT_DENIED_MESSAGE =
+  "You don't have permission to share this agent";
+
+/** The deny copy of the sharing organization's bar, the Java handler's. */
+export const SHARE_ORGANIZATION_DENIED_MESSAGE =
+  "You don't have permission to create agent shares in this organization";
+
+/**
+ * The create lane's authorization questions, for AuthorizeResolvedTarget
+ * after ResolveShareDefaults: the two-arm consent bar the Java handler
+ * enforced and the model's comment on can_create_agent_share describes.
+ * The RPC is is_skip_authorization because the target is the referenced
+ * agent, resolved from a slug, not a request field.
+ *
+ * A same-org share (spec.agent_ref.org equals metadata.org, after the
+ * resolve step made the reference absolute) asks can_edit on the agent:
+ * sharing puts the agent in front of a wider audience, an editor's act.
+ *
+ * A cross-org share of another organization's public agent asks two
+ * questions, agent first as Java did: can_execute on the agent (whoever may
+ * run it may offer it) and then can_create_agent_share on the SHARING
+ * organization — a public share spends that organization's credits on the
+ * open internet, an admin-level act. The cross-org validity rules (public
+ * agent, no org audience, public dependencies) stay the resolve step's.
+ */
+export function resolveShareCreateTargets(
+  ctx: RequestContext<AgentShareDesc>,
+): ReadonlyArray<AuthorizationTarget> {
+  const agent = ctx.get(REFERENCED_AGENT_KEY) as Agent | undefined;
+  if (agent === undefined) {
+    throw new Error("referenced agent not found in context");
+  }
+  const share = ctx.newState;
+  const shareOrg = share.metadata?.org ?? "";
+  const crossOrg = (share.spec?.agentRef?.org ?? "") !== shareOrg;
+  const agentBar: AuthorizationTarget = {
+    permission: crossOrg ? IamPermission.can_execute : IamPermission.can_edit,
+    resourceKind: ApiResourceKind.agent,
+    resourceId: agent.metadata?.id ?? "",
+    deniedMessage: SHARE_AGENT_DENIED_MESSAGE,
+  };
+  if (!crossOrg) {
+    return [agentBar];
+  }
+  return [
+    agentBar,
+    {
+      permission: IamPermission.can_create_agent_share,
+      resourceKind: ApiResourceKind.organization,
+      resourceId: shareOrg,
+      deniedMessage: SHARE_ORGANIZATION_DENIED_MESSAGE,
+    },
+  ];
+}
 
 /**
  * The single refusal for every anonymous/member resolution miss: share
@@ -90,7 +148,10 @@ export function sharedNotFound(slug: string): ConnectError {
  * guard restores Go's semantics; the length of a token is not secret (all
  * server-minted tokens are 27 chars).
  */
-export function sharingLinkTokenAllowed(presented: string, live: string): boolean {
+export function sharingLinkTokenAllowed(
+  presented: string,
+  live: string,
+): boolean {
   if (live === "") {
     return true;
   }
@@ -182,7 +243,9 @@ export async function findShareByOrgAndSlug(
  *      provided neither — the canonical share keeps the agent's hosted URL.
  *      Runs before ResolveSlug, which skips already-set slugs.
  */
-export function newResolveShareDefaultsStep(store: Store): PipelineStep<AgentShareDesc> {
+export function newResolveShareDefaultsStep(
+  store: Store,
+): PipelineStep<AgentShareDesc> {
   return {
     name: "ResolveShareDefaults",
     async execute(ctx: RequestContext<AgentShareDesc>): Promise<void> {
@@ -204,7 +267,11 @@ export function newResolveShareDefaultsStep(store: Store): PipelineStep<AgentSha
         agentRef!.org = metadata!.org;
       }
 
-      const agent = await findAgentByOrgAndSlug(store, agentRef!.org, agentRef!.slug);
+      const agent = await findAgentByOrgAndSlug(
+        store,
+        agentRef!.org,
+        agentRef!.slug,
+      );
       if (agent === undefined) {
         throw notFoundError("Agent", agentRef!.slug);
       }
@@ -288,7 +355,10 @@ async function findNonPublicDependencies(
 
   const seen = new Set<string>();
   const deps: DepRef[] = [];
-  const add = (kind: ApiResourceKind, ref: ApiResourceReference | undefined): void => {
+  const add = (
+    kind: ApiResourceKind,
+    ref: ApiResourceReference | undefined,
+  ): void => {
     if (ref === undefined || ref.slug === "") {
       return;
     }
@@ -320,8 +390,20 @@ async function findNonPublicDependencies(
       // are the only dependency kinds an agent blueprint declares.
       const resolved =
         dep.kind === ApiResourceKind.skill
-          ? await findResourceBySlug(store, dep.kind, SkillSchema, dep.slug, dep.org)
-          : await findResourceBySlug(store, dep.kind, McpServerSchema, dep.slug, dep.org);
+          ? await findResourceBySlug(
+              store,
+              dep.kind,
+              SkillSchema,
+              dep.slug,
+              dep.org,
+            )
+          : await findResourceBySlug(
+              store,
+              dep.kind,
+              McpServerSchema,
+              dep.slug,
+              dep.org,
+            );
       visibility = resolved?.metadata?.visibility;
     } catch (error) {
       throw internalError(
@@ -396,20 +478,28 @@ export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
       // Normalize the input ref's org the same way create does (empty
       // means the share's own org) before comparing.
       const inputOrg =
-        (inputRef?.org ?? "") !== "" ? inputRef!.org : (existing.metadata?.org ?? "");
+        (inputRef?.org ?? "") !== ""
+          ? inputRef!.org
+          : (existing.metadata?.org ?? "");
 
       if (
         (inputRef?.slug ?? "") !== (existingRef?.slug ?? "") ||
         inputOrg !== (existingRef?.org ?? "")
       ) {
         throw failedPreconditionError(
-          agentRefImmutableMessage(existingRef?.org ?? "", existingRef?.slug ?? ""),
+          agentRefImmutableMessage(
+            existingRef?.org ?? "",
+            existingRef?.slug ?? "",
+          ),
         );
       }
 
-      const isCrossOrg = (existingRef?.org ?? "") !== (existing.metadata?.org ?? "");
+      const isCrossOrg =
+        (existingRef?.org ?? "") !== (existing.metadata?.org ?? "");
       if (isCrossOrg && ctx.input.spec?.audience === AgentShareAudience.org) {
-        throw failedPreconditionError(crossOrgAudienceMessage(existingRef?.org ?? ""));
+        throw failedPreconditionError(
+          crossOrgAudienceMessage(existingRef?.org ?? ""),
+        );
       }
     },
   };
@@ -430,7 +520,11 @@ export async function buildSharedAgentProfile(
   share: AgentShare,
 ): Promise<SharedAgentProfile> {
   const ref = share.spec?.agentRef;
-  const agent = await findAgentByOrgAndSlug(store, ref?.org ?? "", ref?.slug ?? "");
+  const agent = await findAgentByOrgAndSlug(
+    store,
+    ref?.org ?? "",
+    ref?.slug ?? "",
+  );
   if (agent === undefined) {
     throw sharedNotFound(share.metadata?.slug ?? "");
   }
@@ -440,7 +534,8 @@ export async function buildSharedAgentProfile(
     throw sharedNotFound(share.metadata?.slug ?? "");
   }
 
-  const isCrossOrg = (share.metadata?.org ?? "") !== (agent.metadata?.org ?? "");
+  const isCrossOrg =
+    (share.metadata?.org ?? "") !== (agent.metadata?.org ?? "");
   if (
     isCrossOrg &&
     agent.metadata?.visibility !== ApiResourceVisibility.visibility_public

@@ -6,10 +6,10 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * McpServerCommandController provides write operations for MCP server resources.
  * &#64;internal
- * Authorization model for writes:
- * - Platform-scoped: Only platform operators can create/modify
- * - Organization-scoped: Org admins can create/modify
- * - Identity-account-scoped: Only the owner can create/modify
+ * Authorization model for writes: an MCP server is an organization's
+ * blueprint. create asks can_create_mcp_server on the organization (the
+ * admin bar every blueprint kind takes); update, delete and the connect
+ * lanes ask the row's own permission (can_edit, can_delete, can_connect).
  * Primary interface: The `apply` method provides Kubernetes-style idempotent
  * create-or-update semantics, which is the recommended approach for CLI usage.
  * </pre>
@@ -457,10 +457,10 @@ public final class McpServerCommandControllerGrpc {
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
    * &#64;internal
-   * Authorization model for writes:
-   * - Platform-scoped: Only platform operators can create/modify
-   * - Organization-scoped: Org admins can create/modify
-   * - Identity-account-scoped: Only the owner can create/modify
+   * Authorization model for writes: an MCP server is an organization's
+   * blueprint. create asks can_create_mcp_server on the organization (the
+   * admin bar every blueprint kind takes); update, delete and the connect
+   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
    * Primary interface: The `apply` method provides Kubernetes-style idempotent
    * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
@@ -490,11 +490,8 @@ public final class McpServerCommandControllerGrpc {
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
      * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * Requires permission to create MCP servers in the specified scope:
-     * - Platform: Requires platform operator role
-     * - Organization: Requires org admin role or can_create_mcp_server permission
-     * - Identity Account: Automatically allowed for the authenticated user
+     * Authorization: can_create_mcp_server on the organization named by
+     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     default void create(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -756,10 +753,10 @@ public final class McpServerCommandControllerGrpc {
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
    * &#64;internal
-   * Authorization model for writes:
-   * - Platform-scoped: Only platform operators can create/modify
-   * - Organization-scoped: Org admins can create/modify
-   * - Identity-account-scoped: Only the owner can create/modify
+   * Authorization model for writes: an MCP server is an organization's
+   * blueprint. create asks can_create_mcp_server on the organization (the
+   * admin bar every blueprint kind takes); update, delete and the connect
+   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
    * Primary interface: The `apply` method provides Kubernetes-style idempotent
    * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
@@ -777,10 +774,10 @@ public final class McpServerCommandControllerGrpc {
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
    * &#64;internal
-   * Authorization model for writes:
-   * - Platform-scoped: Only platform operators can create/modify
-   * - Organization-scoped: Org admins can create/modify
-   * - Identity-account-scoped: Only the owner can create/modify
+   * Authorization model for writes: an MCP server is an organization's
+   * blueprint. create asks can_create_mcp_server on the organization (the
+   * admin bar every blueprint kind takes); update, delete and the connect
+   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
    * Primary interface: The `apply` method provides Kubernetes-style idempotent
    * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
@@ -822,11 +819,8 @@ public final class McpServerCommandControllerGrpc {
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
      * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * Requires permission to create MCP servers in the specified scope:
-     * - Platform: Requires platform operator role
-     * - Organization: Requires org admin role or can_create_mcp_server permission
-     * - Identity Account: Automatically allowed for the authenticated user
+     * Authorization: can_create_mcp_server on the organization named by
+     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public void create(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -1099,10 +1093,10 @@ public final class McpServerCommandControllerGrpc {
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
    * &#64;internal
-   * Authorization model for writes:
-   * - Platform-scoped: Only platform operators can create/modify
-   * - Organization-scoped: Org admins can create/modify
-   * - Identity-account-scoped: Only the owner can create/modify
+   * Authorization model for writes: an MCP server is an organization's
+   * blueprint. create asks can_create_mcp_server on the organization (the
+   * admin bar every blueprint kind takes); update, delete and the connect
+   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
    * Primary interface: The `apply` method provides Kubernetes-style idempotent
    * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
@@ -1143,11 +1137,8 @@ public final class McpServerCommandControllerGrpc {
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
      * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * Requires permission to create MCP servers in the specified scope:
-     * - Platform: Requires platform operator role
-     * - Organization: Requires org admin role or can_create_mcp_server permission
-     * - Identity Account: Automatically allowed for the authenticated user
+     * Authorization: can_create_mcp_server on the organization named by
+     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer create(ai.stigmer.agentic.mcpserver.v1.McpServer request) throws io.grpc.StatusException {
@@ -1409,10 +1400,10 @@ public final class McpServerCommandControllerGrpc {
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
    * &#64;internal
-   * Authorization model for writes:
-   * - Platform-scoped: Only platform operators can create/modify
-   * - Organization-scoped: Org admins can create/modify
-   * - Identity-account-scoped: Only the owner can create/modify
+   * Authorization model for writes: an MCP server is an organization's
+   * blueprint. create asks can_create_mcp_server on the organization (the
+   * admin bar every blueprint kind takes); update, delete and the connect
+   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
    * Primary interface: The `apply` method provides Kubernetes-style idempotent
    * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
@@ -1453,11 +1444,8 @@ public final class McpServerCommandControllerGrpc {
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
      * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * Requires permission to create MCP servers in the specified scope:
-     * - Platform: Requires platform operator role
-     * - Organization: Requires org admin role or can_create_mcp_server permission
-     * - Identity Account: Automatically allowed for the authenticated user
+     * Authorization: can_create_mcp_server on the organization named by
+     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer create(ai.stigmer.agentic.mcpserver.v1.McpServer request) {
@@ -1719,10 +1707,10 @@ public final class McpServerCommandControllerGrpc {
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
    * &#64;internal
-   * Authorization model for writes:
-   * - Platform-scoped: Only platform operators can create/modify
-   * - Organization-scoped: Org admins can create/modify
-   * - Identity-account-scoped: Only the owner can create/modify
+   * Authorization model for writes: an MCP server is an organization's
+   * blueprint. create asks can_create_mcp_server on the organization (the
+   * admin bar every blueprint kind takes); update, delete and the connect
+   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
    * Primary interface: The `apply` method provides Kubernetes-style idempotent
    * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
@@ -1764,11 +1752,8 @@ public final class McpServerCommandControllerGrpc {
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
      * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * Requires permission to create MCP servers in the specified scope:
-     * - Platform: Requires platform operator role
-     * - Organization: Requires org admin role or can_create_mcp_server permission
-     * - Identity Account: Automatically allowed for the authenticated user
+     * Authorization: can_create_mcp_server on the organization named by
+     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> create(

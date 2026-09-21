@@ -8,10 +8,12 @@
  * __tests__/schedule.composed.test.ts.
  */
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { ScheduleSpec } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
   failedPreconditionError,
@@ -21,6 +23,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
@@ -128,8 +131,45 @@ export function newResolveScheduleDefaultsStep(
       if (agentRef !== undefined) {
         agentRef.org = refOrg;
       }
+      ctx.set(REFERENCED_AGENT_KEY, found);
     },
   };
+}
+
+/**
+ * Context key for the agent ResolveScheduleDefaults resolved from
+ * spec.agent.agent_ref, read by the create lane's authorization step.
+ */
+export const REFERENCED_AGENT_KEY = "scheduleReferencedAgent";
+
+/** The deny copy of the create bar, the Java ScheduleCreateHandler's. */
+export const SCHEDULE_CREATE_DENIED_MESSAGE =
+  "You don't have permission to schedule this agent";
+
+/**
+ * The create lane's authorization question, for AuthorizeResolvedTarget
+ * after ResolveScheduleDefaults: can_edit on the REFERENCED AGENT. The RPC
+ * is is_skip_authorization because its target is that agent, resolved from
+ * a slug, not a request field; and there is deliberately no organization
+ * bar — a schedule is unattended spend on an agent, an editor's act, and
+ * the same-org invariant the resolve step enforces already binds the
+ * schedule's organization to the agent's (command.proto).
+ */
+export function resolveScheduleCreateTargets(
+  ctx: RequestContext<typeof ScheduleSchema>,
+): ReadonlyArray<AuthorizationTarget> {
+  const agent = ctx.get(REFERENCED_AGENT_KEY) as Agent | undefined;
+  if (agent === undefined) {
+    throw new Error("referenced agent not found in context");
+  }
+  return [
+    {
+      permission: IamPermission.can_edit,
+      resourceKind: ApiResourceKind.agent,
+      resourceId: agent.metadata?.id ?? "",
+      deniedMessage: SCHEDULE_CREATE_DENIED_MESSAGE,
+    },
+  ];
 }
 
 /**
@@ -140,7 +180,9 @@ export function newResolveScheduleDefaultsStep(
  * deterministic provisioning failure at 3 AM. Copy is cross-edition
  * contract (Go validateScheduleWorkspace).
  */
-export function validateScheduleWorkspace(spec: ScheduleSpec | undefined): void {
+export function validateScheduleWorkspace(
+  spec: ScheduleSpec | undefined,
+): void {
   const entries =
     spec?.target.case === "agent" ? spec.target.value.workspaceEntries : [];
   for (const [i, entry] of entries.entries()) {
@@ -174,7 +216,8 @@ export function validateScheduleModelPinning(
   if (presence !== "") {
     throw invalidArgumentError(presence);
   }
-  const invocation = spec?.target.case === "agent" ? spec.target.value : undefined;
+  const invocation =
+    spec?.target.case === "agent" ? spec.target.value : undefined;
   const existence = unknownModelPinRefusal(
     modelRegistry,
     "spec.agent.run_config.model_name",

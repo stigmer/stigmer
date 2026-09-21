@@ -16,8 +16,10 @@ import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinst
 import { AgentInstanceListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { isServerComposedRequest } from "../../extensions/identity.js";
 import { isDefaultInstance } from "../../pipeline/apiresource-labels.js";
 import {
   failedPreconditionError,
@@ -29,6 +31,7 @@ import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import {
   compareCreatedAtDesc,
   matchesAllLabels,
@@ -54,18 +57,19 @@ export interface ParentAgentLoader {
  */
 export type ParentAgentLoaderProvider = () => ParentAgentLoader;
 
+/** Context key for the loaded parent agent, read by the create check below. */
+export const PARENT_AGENT_KEY = "parent_agent";
+
 /**
  * LoadParentAgent — create.go: an unknown spec.agent_id is rejected with
  * NotFound instead of persisting a dangling instance (oss#645), converging
  * on cloud's LoadParentAgent step and this server's own WorkflowInstance
- * create pipeline.
- *
- * Unlike its WorkflowInstance twin, the loaded agent is NOT stored in the
- * request context: nothing downstream consumes it (cloud's consumer is the
- * FGA authorize step, which OSS excludes; the WorkflowInstance twin's
- * consumer is the same-org rule, which agent instances deliberately do not
- * have — an agent is a shareable blueprint, and one agent legitimately has
- * instances in several orgs: the marketplace case).
+ * create pipeline. The loaded agent is stashed under PARENT_AGENT_KEY for
+ * the authorization step that follows; no same-org rule reads it, because
+ * an agent is a shareable blueprint and one agent legitimately has
+ * instances in several orgs (the marketplace case) — the instance's
+ * organization is the caller's, and the check below asks the caller's
+ * standing there.
  */
 export function newLoadParentAgentStep(
   agentLoader: ParentAgentLoaderProvider,
@@ -95,8 +99,78 @@ export function newLoadParentAgentStep(
         agentId,
         org: parentAgent.metadata?.org ?? "",
       });
+      ctx.set(PARENT_AGENT_KEY, parentAgent);
     },
   };
+}
+
+/** The deny copy of the parent's bar, the Java AgentInstanceCreateHandler's. */
+export const INSTANCE_PARENT_DENIED_MESSAGE =
+  "You don't have permission to create instances of this agent";
+
+/** The deny copy of the organization's bar. */
+export const INSTANCE_ORGANIZATION_DENIED_MESSAGE =
+  "unauthorized to create agent instance in this organization";
+
+/**
+ * The create lane's authorization questions, for AuthorizeResolvedTarget
+ * after LoadParentAgent. The RPC is is_skip_authorization because its
+ * target is the PARENT, loaded from spec.agent_id, not a request field.
+ *
+ * A personal instance asks two questions, the organization's first so an
+ * outsider learns nothing about the agent from which copy came back:
+ * may the caller create instances in metadata.org (can_create_agent_instance,
+ * member-level: the instance is the caller's conversation shell in their
+ * own organization, which may differ from the agent's — the marketplace
+ * case), and may the caller instantiate this agent (can_create_instance on
+ * the parent, which the model resolves to whoever may run it).
+ *
+ * A DEFAULT instance asks nothing: it is the agent's row, not the caller's.
+ * The server composes one for the run's human when the agent has none
+ * (attribution stays the person's), and the run was already admitted one
+ * step earlier by the lane that vouched for it — a guest, a channel turn,
+ * a schedule fire hold no viewer tuple on the agent and would be refused
+ * here for a row that is not theirs. The arm is keyed on what only the
+ * server can produce: the request entered through the in-process transport
+ * (the wire cannot claim that; the propagation header is stripped at the
+ * chassis), it carries the reserved default-instance label (which the label
+ * guard lets only such a request write), and its organization is the
+ * parent's (the invariant buildDefaultInstanceRequest holds). A labelled
+ * request that fails any of the three takes the personal bar in full — a
+ * mis-orged default instance is judged as the human's own act, never waved
+ * through.
+ */
+export function resolveInstanceCreateTargets(
+  ctx: RequestContext<typeof AgentInstanceSchema>,
+): ReadonlyArray<AuthorizationTarget> {
+  const parent = ctx.get(PARENT_AGENT_KEY) as Agent | undefined;
+  if (parent === undefined) {
+    throw new Error("parent agent not found in context");
+  }
+  const metadata = ctx.newState.metadata;
+  const org = metadata?.org ?? "";
+  const parentId = parent.metadata?.id ?? "";
+  if (
+    isDefaultInstance(metadata) &&
+    isServerComposedRequest(ctx.callerIdentity) &&
+    org === (parent.metadata?.org ?? "")
+  ) {
+    return [];
+  }
+  return [
+    {
+      permission: IamPermission.can_create_agent_instance,
+      resourceKind: ApiResourceKind.organization,
+      resourceId: org,
+      deniedMessage: INSTANCE_ORGANIZATION_DENIED_MESSAGE,
+    },
+    {
+      permission: IamPermission.can_create_instance,
+      resourceKind: ApiResourceKind.agent,
+      resourceId: parentId,
+      deniedMessage: INSTANCE_PARENT_DENIED_MESSAGE,
+    },
+  ];
 }
 
 /**

@@ -16,8 +16,10 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { isServerComposedRequest } from "../../extensions/identity.js";
 import { isDefaultInstance } from "../../pipeline/apiresource-labels.js";
 import {
   failedPreconditionError,
@@ -27,6 +29,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { rejectDefaultInstanceVisibilityUpdate } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -72,7 +75,8 @@ export function newLoadParentWorkflowStep(
         parent = await loaderProvider().get(workflowId);
       } catch (error) {
         logger.warn("Parent workflow not found", {
-          error: error instanceof ConnectError ? error.rawMessage : String(error),
+          error:
+            error instanceof ConnectError ? error.rawMessage : String(error),
           workflowId,
         });
         throw notFoundError("Workflow", workflowId);
@@ -81,6 +85,50 @@ export function newLoadParentWorkflowStep(
       ctx.set(PARENT_WORKFLOW_KEY, parent);
     },
   };
+}
+
+/** The deny copy of the parent's bar, the Java WorkflowInstanceCreateHandler's. */
+export const WORKFLOW_INSTANCE_PARENT_DENIED_MESSAGE =
+  "You don't have permission to create instances of this workflow";
+
+/**
+ * The create lane's authorization question, for AuthorizeResolvedTarget
+ * after LoadParentWorkflow and BEFORE ValidateSameOrgBusinessRule (whose
+ * refusal names the parent's organization, which a refused caller should
+ * not learn). The RPC is is_skip_authorization because its target is the
+ * PARENT, loaded from spec.workflow_id, not a request field.
+ *
+ * One question: may the caller run this workflow (can_execute on the
+ * parent, the relation the run gate asks; the same-org rule already binds
+ * the instance's organization to the workflow's, so there is no separate
+ * organization bar). A DEFAULT instance asks nothing, for the reason its
+ * agent twin gives (agentinstance/steps.ts): it is the workflow's row,
+ * composed by the server for the run's human, keyed on the in-process
+ * origin, the reserved label and the parent's organization together.
+ */
+export function resolveWorkflowInstanceCreateTargets(
+  ctx: RequestContext<InstanceDesc>,
+): ReadonlyArray<AuthorizationTarget> {
+  const parent = ctx.get(PARENT_WORKFLOW_KEY) as Workflow | undefined;
+  if (parent === undefined) {
+    throw new Error("parent workflow not found in context");
+  }
+  const metadata = ctx.newState.metadata;
+  if (
+    isDefaultInstance(metadata) &&
+    isServerComposedRequest(ctx.callerIdentity) &&
+    (metadata?.org ?? "") === (parent.metadata?.org ?? "")
+  ) {
+    return [];
+  }
+  return [
+    {
+      permission: IamPermission.can_execute,
+      resourceKind: ApiResourceKind.workflow,
+      resourceId: parent.metadata?.id ?? "",
+      deniedMessage: WORKFLOW_INSTANCE_PARENT_DENIED_MESSAGE,
+    },
+  ];
 }
 
 /**

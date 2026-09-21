@@ -30,6 +30,7 @@ import { MemoryListSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/i
 import { MemoryProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
 import { MemoryStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import {
@@ -42,6 +43,8 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import { isServerComposedRequest } from "../../extensions/identity.js";
+import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import {
   generateId,
   setAuditFieldsForUpdate,
@@ -157,6 +160,44 @@ export function newResolveMemoryDefaultsStep(): PipelineStep<
       }
     },
   };
+}
+
+/** The deny copy of the create lane's organization bar. */
+export const MEMORY_CREATE_DENIED_MESSAGE =
+  "unauthorized to capture memory in this organization";
+
+/**
+ * The create lane's authorization question, for AuthorizeResolvedTarget
+ * after ResolveMemoryDefaults (which requires metadata.org) and BEFORE
+ * CheckMemoryEnablement, so a refused caller learns nothing about the
+ * organization's memory settings. The RPC is is_skip_authorization
+ * because the row does not exist yet and the subject IS the caller
+ * (command.proto); GuardMemoryCapture is the gate that decides WHO may
+ * capture at all, and this question is WHERE: can_create_session on
+ * metadata.org — memory is captured inside a conversation, so whoever may
+ * converse in an organization may remember there.
+ *
+ * The credentialed capture lane is already scoped to the run's
+ * organization by the credential provider (a mismatch is refused inside
+ * GuardMemoryCapture with its own copy); this question closes the plain
+ * path, a person with no run credential naming an organization they hold
+ * nothing in. A server-composed traversal asks nothing, as the gate itself
+ * says: the entry-point request already passed.
+ */
+export function resolveMemoryCreateTargets(
+  ctx: RequestContext<typeof MemorySchema>,
+): ReadonlyArray<AuthorizationTarget> {
+  if (isServerComposedRequest(ctx.callerIdentity)) {
+    return [];
+  }
+  return [
+    {
+      permission: IamPermission.can_create_session,
+      resourceKind: ApiResourceKind.organization,
+      resourceId: ctx.newState.metadata?.org ?? "",
+      deniedMessage: MEMORY_CREATE_DENIED_MESSAGE,
+    },
+  ];
 }
 
 /**

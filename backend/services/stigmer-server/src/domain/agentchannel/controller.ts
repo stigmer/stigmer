@@ -114,6 +114,7 @@ import {
   newResolveChannelDefaultsStep,
   newTeardownChannelRuntimeStep,
   newValidateChannelUpdateStep,
+  resolveChannelCreateTargets,
 } from "./steps.js";
 
 export interface AgentChannelControllerDeps {
@@ -193,6 +194,14 @@ async function createChannel(
         deps.store,
         deps.modelRegistry,
         deps.channelRuntime,
+      ),
+    )
+    // Before the duplicate check and the install state (steps.ts,
+    // resolveChannelCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveChannelCreateTargets,
       ),
     )
     .addStep(newResolveSlugStep())

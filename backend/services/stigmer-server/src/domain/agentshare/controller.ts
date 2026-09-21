@@ -113,6 +113,7 @@ import {
   newValidateShareUpdateStep,
   sharedNotFound,
   sharingLinkTokenAllowed,
+  resolveShareCreateTargets,
 } from "./steps.js";
 
 export interface AgentShareControllerDeps {
@@ -180,6 +181,13 @@ async function createShare(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
+    // Before the duplicate check (steps.ts, resolveShareCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveShareCreateTargets,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())

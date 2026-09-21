@@ -120,6 +120,7 @@ import { newClearSchedulePauseStep } from "./resume.js";
 import {
   newResolveScheduleDefaultsStep,
   newValidateScheduleUpdateStep,
+  resolveScheduleCreateTargets,
 } from "./steps.js";
 import {
   TRIGGER_RESULT_KEY,
@@ -205,6 +206,15 @@ async function createSchedule(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveScheduleDefaultsStep(deps))
+    // Before the duplicate check and before ArmSchedule: a refused caller
+    // learns nothing about existing slugs and costs no Temporal schedule
+    // (steps.ts, resolveScheduleCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveScheduleCreateTargets,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
