@@ -24,18 +24,6 @@ vi.mock("../../execution/useCreateAgentExecution", () => ({
   }),
 }));
 
-const mockDefaultAgent = {
-  agent: null as { status?: { defaultInstanceId?: string } } | null,
-  isLoading: false,
-  error: null as Error | null,
-  refetch: vi.fn(),
-  waitForResolution: vi.fn<() => Promise<unknown>>(),
-};
-const useDefaultAgentSpy = vi.fn((_org: string | null) => mockDefaultAgent);
-vi.mock("../../agent", () => ({
-  useDefaultAgent: (org: string | null) => useDefaultAgentSpy(org),
-}));
-
 const mockWorkspace = {
   entries: [],
   hasEntries: false,
@@ -120,11 +108,6 @@ function defaultOptions() {
 describe("useNewSessionFlow", () => {
   beforeEach(() => {
     localStorage.clear();
-    mockDefaultAgent.agent = {
-      status: { defaultInstanceId: "default-inst" },
-    };
-    mockDefaultAgent.isLoading = false;
-    mockDefaultAgent.error = null;
     mockCreateExecution.mockResolvedValue({
       executionId: "exec-new",
       sessionId: "sess-new",
@@ -389,7 +372,10 @@ describe("useNewSessionFlow", () => {
       const execInput = mockCreateExecution.mock.calls[0][0];
       expect(execInput.message).toBe("Hello");
       expect(execInput.sessionSpec).toBeDefined();
-      expect(execInput.sessionSpec.agentInstanceId).toBe("default-inst");
+      // No agent picked: the built-in assistant, nothing to resolve or wait
+      // for — the session spec carries no instance and no agent id.
+      expect(execInput.sessionSpec.agentInstanceId).toBeUndefined();
+      expect(execInput.agentId).toBeUndefined();
       expect(execInput.sessionId).toBeUndefined();
     });
 
@@ -1045,114 +1031,7 @@ describe("useNewSessionFlow", () => {
     });
   });
 
-  describe("submit while default agent is loading", () => {
-    it("awaits default agent and creates session when fetch resolves", async () => {
-      const resolvedAgent = { status: { defaultInstanceId: "awaited-inst" } };
-      mockDefaultAgent.agent = null;
-      mockDefaultAgent.isLoading = true;
-      mockDefaultAgent.error = null;
-      mockDefaultAgent.waitForResolution.mockResolvedValue(resolvedAgent);
-
-      const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.submit("Hello");
-      });
-
-      expect(mockDefaultAgent.waitForResolution).toHaveBeenCalledOnce();
-      expect(mockCreateExecution).toHaveBeenCalledOnce();
-      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.agentInstanceId).toBe("awaited-inst");
-      expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
-      expect(result.current.submitError).toBeNull();
-    });
-
-    it("surfaces error when fetch fails during await", async () => {
-      mockDefaultAgent.agent = null;
-      mockDefaultAgent.isLoading = true;
-      mockDefaultAgent.error = null;
-      mockDefaultAgent.waitForResolution.mockRejectedValue(
-        new Error("Network failure"),
-      );
-
-      const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.submit("Hello");
-      });
-
-      expect(result.current.submitError).toBeTruthy();
-      expect(opts.onError).toHaveBeenCalled();
-      expect(mockCreateExecution).not.toHaveBeenCalled();
-    });
-
-    it("surfaces timeout error when fetch never resolves", async () => {
-      vi.useFakeTimers();
-
-      mockDefaultAgent.agent = null;
-      mockDefaultAgent.isLoading = true;
-      mockDefaultAgent.error = null;
-      mockDefaultAgent.waitForResolution.mockReturnValue(
-        new Promise(() => {}),
-      );
-
-      const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      let submitPromise: Promise<void>;
-      act(() => {
-        submitPromise = result.current.submit("Hello") as unknown as Promise<void>;
-      });
-
-      await act(async () => {
-        vi.advanceTimersByTime(10_000);
-      });
-
-      await act(async () => {
-        await submitPromise;
-      });
-
-      expect(result.current.submitError).toContain("did not load in time");
-      expect(opts.onError).toHaveBeenCalled();
-      expect(mockCreateExecution).not.toHaveBeenCalled();
-
-      vi.useRealTimers();
-    });
-
-    it("errors immediately when default agent has already failed", async () => {
-      mockDefaultAgent.agent = null;
-      mockDefaultAgent.isLoading = false;
-      mockDefaultAgent.error = new Error("Already failed");
-
-      const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.submit("Hello");
-      });
-
-      expect(result.current.submitError).toContain("Failed to load default agent");
-      expect(opts.onError).toHaveBeenCalled();
-      expect(mockCreateExecution).not.toHaveBeenCalled();
-      expect(mockDefaultAgent.waitForResolution).not.toHaveBeenCalled();
-    });
-  });
-
   describe("guest audience", () => {
-    it("disables the default-agent lookup (a read guests cannot make)", () => {
-      const opts = { ...defaultOptions(), audience: "guest" as const };
-      renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      expect(useDefaultAgentSpy).toHaveBeenCalledWith(null);
-    });
-
-    it("keeps the default-agent lookup for other audiences", () => {
-      renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      expect(useDefaultAgentSpy).toHaveBeenCalledWith("acme");
-    });
-
     it("creates the session against the pinned resolution", async () => {
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
@@ -1170,9 +1049,9 @@ describe("useNewSessionFlow", () => {
       expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
     });
 
-    it("fails closed on submit without a resolution — never the default agent", async () => {
-      // A default agent exists (the beforeEach seeds one); a guest must
-      // still never fall back to it.
+    it("fails closed on submit without a resolution — never the built-in assistant", async () => {
+      // An integrator with no agent picked gets the built-in assistant; a
+      // guest on a shared page never does — only the pinned shared agent.
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 

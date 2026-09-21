@@ -135,32 +135,27 @@ export async function assertArtifactLane(artifactBaseUrl) {
 }
 
 /**
- * The default plugin a fresh backend is bootstrapped with, read back the way
- * `stigmer up` decides whether to push it: the `assistant` plugin in the
- * system org, materialised (READY) and public. The plugin can only exist in
- * an org the bootstrap created, so this one read proves the whole bootstrap
- * ran, and it is the step that gives a fresh install its default agent.
- * Resolves to the plugin's digest.
+ * The organization a fresh backend is bootstrapped with, read back the way
+ * `stigmer up` decides whether to create it: the `stigmer` organization
+ * among the caller's own (the CLI's `ensureSystemOrg` asks
+ * findMyOrganizations and matches the slug). The bootstrap runs a few
+ * seconds after SERVING, from the daemon's onStarted, and creating this
+ * organization is the whole of it — a fresh install needs no default
+ * content, because a session with no agent runs the built-in assistant.
+ * Resolves to the organization's id.
  */
-export async function waitForDefaultPlugin(baseUrl, timeoutMs, { org = "stigmer", slug = "assistant" } = {}) {
-  return pollUntil(`default plugin '${slug}' READY`, timeoutMs, async () => {
-    let plugin;
-    try {
-      plugin = await connectJson(baseUrl, "ai.stigmer.agentic.plugin.v1.PluginQueryController/getByReference", {
-        org,
-        kind: "plugin",
-        slug,
-      });
-    } catch (error) {
-      // Not yet installed: the bootstrap runs a few seconds after SERVING.
-      if (String(error).includes("HTTP 404")) return false;
-      throw error;
-    }
-    if (plugin.status?.state !== "PLUGIN_STATE_READY") return false;
-    if (plugin.metadata?.visibility !== "visibility_public") {
-      throw new Error(`default plugin '${slug}' is ${plugin.metadata?.visibility ?? "unset"} — want visibility_public`);
-    }
-    return plugin.status.digest;
+export async function waitForSystemOrganization(baseUrl, timeoutMs, { slug = "stigmer" } = {}) {
+  return pollUntil(`organization '${slug}' present`, timeoutMs, async () => {
+    const list = await connectJson(
+      baseUrl,
+      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations",
+      {},
+    );
+    const match = (list.entries ?? []).find((org) => org.metadata?.slug === slug);
+    if (match === undefined) return false;
+    const id = match.metadata?.id;
+    if (!id) throw new Error(`organization '${slug}' has no id: ${JSON.stringify(match)}`);
+    return id;
   });
 }
 

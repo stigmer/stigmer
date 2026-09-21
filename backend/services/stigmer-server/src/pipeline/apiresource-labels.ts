@@ -23,8 +23,8 @@ import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/api
 
 /**
  * The platform-reserved label key namespace. Keys under this prefix carry
- * platform semantics (default-agent resolution, personal-environment
- * uniqueness, default-instance marking) and are written by the server —
+ * platform semantics (personal-environment uniqueness, default-instance
+ * marking, plugin membership and lineage) and are written by the server —
  * never introduced by ordinary client requests on the cloud edition.
  */
 export const RESERVED_LABEL_PREFIX = "stigmer.ai/";

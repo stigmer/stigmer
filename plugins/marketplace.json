@@ -1,9 +1,8 @@
 {
   "name": "stigmer",
-  "description": "Stigmer's official plugin catalogue: the plugins a fresh install bootstraps with, and the plugins you add by name.",
+  "description": "Stigmer's official plugin catalogue: the plugins you add by name.",
   "owner": {"name":"Stigmer","url":"https://stigmer.ai"},
   "plugins": [
-    { "name": "assistant", "source": "./assistant" },
     { "name": "advisor", "source": "./advisor" },
     { "name": "ahrefs", "source": "./ahrefs" },
     { "name": "airtable", "source": "./airtable" },
@@ -84,5 +83,5 @@
     { "name": "workable", "source": "./workable" },
     { "name": "wrike", "source": "./wrike" }
   ],
-  "defaults": ["assistant"]
+  "defaults": []
 }

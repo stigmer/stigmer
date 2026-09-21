@@ -13,7 +13,6 @@ afterEach(cleanup);
 
 const BASE_PROPS: SetupTabProps = {
   agentRef: null,
-  isDefaultAgent: false,
   mcpServerUsages: [],
   skillRefs: [],
   sessionVariables: null,

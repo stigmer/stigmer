@@ -6,6 +6,11 @@
  * test driving a NON-EMPTY environment and a real token injection through
  * buildAndPersistExecutionContext. Go has no unit twin (its coverage is
  * the execution conformance suites); this pin is TS-only by design.
+ *
+ * Also pins the one declaration rule (the module header of the step): the
+ * agent's env united with the session servers' env, and a session
+ * server's saved key reaching the run from the personal environment — for
+ * an agent-bound run and for the built-in assistant alike.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -20,6 +25,7 @@ import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentins
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -283,4 +289,214 @@ it("assembles merge → filter → OAuth injection → EC persist over a non-emp
   // ...and the grant's expiry was advanced past the old one.
   const grant = await store.oauthGrants.find("", "mcps_vendor", ORG);
   expect(grant?.accessTokenExpiresAt ?? 0).toBeGreaterThan(now);
+});
+
+// ---------------------------------------------------------------------------
+// The one declaration rule: the run declares what its agent declares AND
+// what its session's MCP servers declare, and a session server's declared
+// variables the merge chain never carried (no instance layer can) come
+// from the caller's personal environment by declared key. Two shapes, one
+// rule: an agent-bound run whose session added a server, and the built-in
+// assistant, which is the case with no agent half at all.
+// ---------------------------------------------------------------------------
+
+/** A personal environment reader over a fixed map; every read is recorded. */
+function personalEnvironmentOver(
+  org: string,
+  data: Record<string, string>,
+  reads: string[],
+): ReturnType<ExecutionContextBuilderDeps["environmentReader"]> {
+  return {
+    list: async () => ({
+      $typeName: "ai.stigmer.agentic.environment.v1.EnvironmentList",
+      totalCount: 1,
+      items: [
+        create(EnvironmentSchema, {
+          metadata: { id: "env_personal", org, slug: "personal" },
+          spec: {
+            data: Object.fromEntries(
+              Object.keys(data).map((key) => [key, { value: "***", isSecret: true }]),
+            ),
+          },
+        }),
+      ],
+    }),
+    getSecretValue: async (input) => {
+      const key = input.key ?? "";
+      reads.push(key);
+      return create(EnvironmentValueSchema, {
+        value: data[key] ?? "",
+        isSecret: true,
+      });
+    },
+  };
+}
+
+it("a session-level server's declared key saved in the personal environment reaches an agent-bound run", async () => {
+  const ORG = "acme";
+  await store.saveResource(
+    ApiResourceKind.mcp_server,
+    "mcps_github",
+    McpServerSchema,
+    create(McpServerSchema, {
+      metadata: { id: "mcps_github", org: ORG, slug: "github" },
+      spec: {
+        env: {
+          GITHUB_PAT: { isSecret: true },
+          GITHUB_ORG: { isSecret: false, optional: true },
+        },
+      },
+    }),
+  );
+  const agent = create(AgentSchema, {
+    metadata: { id: "agt_rule", org: ORG, slug: "rule-agent" },
+    // The agent declares its own key and nothing of the session's server.
+    spec: { env: { API_KEY: { isSecret: true } } },
+  });
+  const reads: string[] = [];
+  const createdEcs: ExecutionContext[] = [];
+  const deps: ExecutionContextBuilderDeps = {
+    store,
+    logger: silentLogger,
+    agentLoader: () => ({ get: async () => agent }),
+    agentInstanceLoader: () => ({
+      get: async (instanceId) =>
+        create(AgentInstanceSchema, {
+          metadata: { id: instanceId, org: ORG },
+          spec: { agentId: "agt_rule" },
+        }),
+    }),
+    sessionLoader: () => ({
+      get: async (sessionId) =>
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: ORG },
+          spec: {
+            agentInstanceId: "agi_rule",
+            // Added at the session level: no instance, no environment_refs.
+            mcpServerUsages: [{ mcpServerRef: { slug: "github", org: ORG } }],
+          },
+        }),
+    }),
+    environmentReader: () =>
+      personalEnvironmentOver(ORG, { GITHUB_PAT: "ghp-saved", API_KEY: "never-read" }, reads),
+    environmentResolution: {
+      resolveByReference: async () => {
+        throw new Error("no environment refs on this instance");
+      },
+    } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
+    executionContextCreator: () => ({
+      create: async (ec) => {
+        createdEcs.push(ec);
+        return ec;
+      },
+    }),
+    managedEnvService: {
+      readSecretValue: async () => "",
+      updateSecrets: async () => {},
+    } as unknown as ManagedEnvironmentService,
+  };
+  const execution = create(AgentExecutionSchema, {
+    metadata: { id: "aexec_rule", org: ORG },
+    spec: {
+      sessionId: "ses_rule",
+      message: "hi",
+      runtimeEnv: {
+        API_KEY: { value: "runtime", isSecret: true },
+        UNDECLARED: { value: "stripped", isSecret: false },
+      },
+    },
+  });
+
+  await buildAndPersistExecutionContext(deps, execution, "");
+
+  const data = createdEcs[0]?.spec?.data ?? {};
+  // The agent's own key still flows as before.
+  expect(data["API_KEY"]?.value).toBe("runtime");
+  // The session server's declared key survives the filter (the union) and
+  // is resolved from the personal environment, marked secret as declared.
+  expect(data["GITHUB_PAT"]?.value).toBe("ghp-saved");
+  expect(data["GITHUB_PAT"]?.isSecret).toBe(true);
+  // A key nobody declared is filtered, as before.
+  expect(data["UNDECLARED"]).toBeUndefined();
+  // Least privilege: only the session server's still-missing declared key
+  // the personal environment HOLDS was read — never the agent's (already
+  // present), never a key the environment lacks (the optional one is
+  // skipped on the stored-keys check, no secret read), never the whole
+  // environment.
+  expect(reads).toEqual(["GITHUB_PAT"]);
+  expect(data["GITHUB_ORG"]).toBeUndefined();
+});
+
+it("the built-in assistant: no instance, no agent, the session's servers are the declared set", async () => {
+  const ORG = "acme";
+  await store.saveResource(
+    ApiResourceKind.mcp_server,
+    "mcps_notes",
+    McpServerSchema,
+    create(McpServerSchema, {
+      metadata: { id: "mcps_notes", org: ORG, slug: "notes" },
+      spec: { env: { NOTES_TOKEN: { isSecret: true } } },
+    }),
+  );
+  const reads: string[] = [];
+  const createdEcs: ExecutionContext[] = [];
+  const deps: ExecutionContextBuilderDeps = {
+    store,
+    logger: silentLogger,
+    // Neither lane may be reached: there is no instance and no agent.
+    agentLoader: () => ({
+      get: async () => {
+        throw new Error("agent loader must not be reached");
+      },
+    }),
+    agentInstanceLoader: () => ({
+      get: async () => {
+        throw new Error("instance loader must not be reached");
+      },
+    }),
+    sessionLoader: () => ({
+      get: async (sessionId) =>
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: ORG },
+          spec: {
+            agentInstanceId: "",
+            mcpServerUsages: [{ mcpServerRef: { slug: "notes", org: ORG } }],
+          },
+        }),
+    }),
+    environmentReader: () => personalEnvironmentOver(ORG, { NOTES_TOKEN: "nt-saved" }, reads),
+    environmentResolution: {
+      resolveByReference: async () => {
+        throw new Error("no environment refs without an instance");
+      },
+    } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
+    executionContextCreator: () => ({
+      create: async (ec) => {
+        createdEcs.push(ec);
+        return ec;
+      },
+    }),
+    managedEnvService: {
+      readSecretValue: async () => "",
+      updateSecrets: async () => {},
+    } as unknown as ManagedEnvironmentService,
+  };
+  const execution = create(AgentExecutionSchema, {
+    metadata: { id: "aexec_assistant", org: ORG },
+    spec: {
+      sessionId: "ses_assistant",
+      message: "hi",
+      runtimeEnv: { STRAY: { value: "stripped", isSecret: false } },
+    },
+  });
+
+  await buildAndPersistExecutionContext(deps, execution, "");
+
+  expect(createdEcs).toHaveLength(1);
+  const data = createdEcs[0]?.spec?.data ?? {};
+  expect(data["NOTES_TOKEN"]?.value).toBe("nt-saved");
+  // The declared set is the session servers' alone, so the filter is
+  // live: a stray runtime key is stripped, not passed through.
+  expect(data["STRAY"]).toBeUndefined();
+  expect(reads).toEqual(["NOTES_TOKEN"]);
 });

@@ -759,7 +759,9 @@ export async function resolveMcpServersAndPolicies(
     execution.spec?.recalledMemories,
     {
       org: session.metadata?.org ?? "",
-      agentId: blueprint.agent.metadata?.id ?? "",
+      // Provenance, not scope: empty for the built-in assistant, and the
+      // carrier omits an empty field (memory-attachment.ts).
+      agentId: blueprint.agent?.metadata?.id ?? "",
       sessionId,
       agentExecutionId: executionId,
     },

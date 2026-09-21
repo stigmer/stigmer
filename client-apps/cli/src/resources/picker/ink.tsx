@@ -28,17 +28,26 @@ export interface PickAgentOptions {
 }
 
 /**
- * Render the agent picker and resolve with the chosen agent, or `undefined`
- * when the user cancels (Esc / Ctrl+C). Never throws and never exits the
- * process — the caller decides what to do with the selection.
+ * What the agent picker resolved with: an agent the search found, or the
+ * built-in assistant (the first row; a session with no agent).
  */
-export async function pickAgent(opts: PickAgentOptions): Promise<SearchResult | undefined> {
-  return runPicker<SearchResult>(
+export type PickedAgent =
+  | { readonly kind: "agent"; readonly agent: SearchResult }
+  | { readonly kind: "built-in-assistant" };
+
+/**
+ * Render the agent picker and resolve with the choice, or `undefined` when
+ * the user cancels (Esc / Ctrl+C). Never throws and never exits the process
+ * — the caller decides what to do with the selection.
+ */
+export async function pickAgent(opts: PickAgentOptions): Promise<PickedAgent | undefined> {
+  return runPicker<PickedAgent>(
     (resolve) => (
       <AgentPicker
         org={opts.org}
         initialQuery={opts.initialQuery}
-        onSelect={(agent) => resolve(agent)}
+        onSelect={(agent) => resolve({ kind: "agent", agent })}
+        onSelectBuiltInAssistant={() => resolve({ kind: "built-in-assistant" })}
         onCancel={() => resolve(undefined)}
       />
     ),

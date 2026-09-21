@@ -60,7 +60,6 @@ import type {
 } from "../domain/agentexecution/create-execution-context-step.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
-import type { AgentInstanceCreator } from "../domain/session/steps.js";
 import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
 import type { ExecutionWorkflowInstanceCreator } from "../domain/workflowexecution/create-steps.js";
 import type {
@@ -89,7 +88,6 @@ import type { CallOptions } from "@connectrpc/connect";
 /** The narrow in-process surfaces the domains consume (DD-002). */
 export interface InProcessClients {
   readonly agentInstanceApplier: AgentInstanceApplier;
-  readonly agentInstanceCreator: AgentInstanceCreator;
   readonly parentAgentLoader: ParentAgentLoader;
   readonly workflowInstanceCreator: WorkflowInstanceCreator;
   readonly parentWorkflowLoader: ParentWorkflowLoader;
@@ -253,13 +251,6 @@ export function createInProcessClients(
     agentInstanceApplier: {
       applyAsCaller: (instance, caller) =>
         agentInstanceCommand.apply(instance, asCaller(caller)),
-    },
-    // CREATE (not apply) so a duplicate default-instance slug surfaces
-    // as AlreadyExists instead of silently updating — as the original
-    // caller (ruling R5).
-    agentInstanceCreator: {
-      createAsCaller: (instance, caller) =>
-        agentInstanceCommand.create(instance, asCaller(caller)),
     },
     parentAgentLoader: {
       get: (agentId) =>

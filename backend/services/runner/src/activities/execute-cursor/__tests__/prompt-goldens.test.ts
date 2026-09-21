@@ -15,7 +15,9 @@
  * override —, two workspace dirs plus one runner-internal dir the sanitizer
  * drops, referenced files, three input files with a rename and a download
  * URL, the vision disclosure, channel templates, all five standing sections,
- * the catchup); the enhanced prompt in plan mode; a resumed agent's raw
+ * the catchup); the enhanced prompt with no instructions (the built-in
+ * assistant's words in this harness's framing, with the response rules);
+ * the enhanced prompt in plan mode; a resumed agent's raw
  * follow-up; a resumed agent's prefixed follow-up (build-from-plan, this
  * turn's attachments, the catchup); the decisions-only HITL reinvocation on a
  * resumed agent (an APPROVE, an already-applied APPROVE, a SKIP and a REJECT);
@@ -180,6 +182,17 @@ describe("Cursor prompt goldens", () => {
   it("the enhanced prompt on a first execution, every section populated", async () => {
     const prompt = buildPrompt(everything("created_first_execution"));
     await expect(prompt).toMatchFileSnapshot("./goldens/prompt.enhanced.everything.prompt.md");
+  });
+
+  // The built-in assistant (a session with no agent, or an agent with no
+  // instructions): the shared words in this harness's framing, and the
+  // engine-facing response rules the blueprint said nothing about. Both
+  // harnesses' minimal goldens carry the same instructions text.
+  it("the enhanced prompt with no instructions: the built-in assistant, no skills, no sub-agents", async () => {
+    const prompt = buildPrompt(
+      everything("created_first_execution", { instructions: "", skills: [], subAgents: [] }),
+    );
+    await expect(prompt).toMatchFileSnapshot("./goldens/prompt.enhanced.no-instructions.prompt.md");
   });
 
   it("the enhanced prompt in plan mode", async () => {

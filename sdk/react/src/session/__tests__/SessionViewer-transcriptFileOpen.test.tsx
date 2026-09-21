@@ -94,7 +94,6 @@ const stubSessionPageFlow = {
   setAgentRef: vi.fn(),
   resolution: null,
   setResolution: vi.fn(),
-  isDefaultAgent: false,
   mcpServerUsages: [],
   setMcpServerUsages: vi.fn(),
   skillRefs: [],

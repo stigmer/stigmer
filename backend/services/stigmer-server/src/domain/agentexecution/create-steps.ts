@@ -3,6 +3,13 @@
  * compose_declared_preferences_step.go, and
  * compose_recalled_memories_step.go. The chain itself is assembled in
  * controller.ts, mirroring Go buildCreatePipeline order exactly.
+ *
+ * An execution names its target one of three ways (session_id, agent_id,
+ * session_spec.agent_instance_id) or not at all: the all-empty shape is the
+ * built-in assistant (agentexecution/v1/spec.proto), for which
+ * CreateSessionIfNeeded creates a session with no agent and the runner
+ * resolves an agent-less blueprint. Nothing here resolves a stored default
+ * agent into that shape.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
@@ -44,15 +51,10 @@ import {
   notFoundError,
   rethrownStatusError,
 } from "../../pipeline/errors.js";
-import { ConnectError, Code } from "@connectrpc/connect";
+import { ConnectError } from "@connectrpc/connect";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import {
-  DefaultAgentNotConfiguredError,
-  DefaultAgentNotPublicError,
-  findDefaultAgent,
-} from "../agent/defaultagent.js";
 import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
 
 import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
@@ -95,120 +97,6 @@ export interface SessionCreator {
 export type SessionCreatorProvider = () => SessionCreator;
 
 // ---------------------------------------------------------------------------
-// ResolveDefaultAgent — create.go resolveDefaultAgentStep.
-// ---------------------------------------------------------------------------
-
-/**
- * Resolves the platform's public default agent when neither session_id
- * nor agent_id (nor a session_spec instance) is provided — the
- * session-first UX, a VALID request shape, not an input error. Resolution
- * (candidate set, visibility preference, deterministic incumbent-wins
- * tie-break) is owned by the defaultagent module, shared with the
- * Agent.GetDefault RPC and session create.
- */
-export function newResolveDefaultAgentStep(
-  store: Store,
-  logger: Logger,
-): PipelineStep<CreateDesc> {
-  return {
-    name: "ResolveDefaultAgent",
-    async execute(ctx) {
-      const spec = ctx.input.spec;
-      if (
-        (spec?.sessionId ?? "") !== "" ||
-        (spec?.agentId ?? "") !== "" ||
-        (spec?.sessionSpec?.agentInstanceId ?? "") !== ""
-      ) {
-        return;
-      }
-
-      logger.info(
-        "Neither session_id nor agent_id provided, resolving platform default agent",
-      );
-
-      let defaultAgent: Agent;
-      try {
-        defaultAgent = await findDefaultAgent(store, logger);
-      } catch (error) {
-        if (error instanceof DefaultAgentNotConfiguredError) {
-          // Caller-actionable message: the create caller can fix this by
-          // supplying a reference — deliberately different from the
-          // Agent.GetDefault RPC's message, whose caller cannot.
-          throw new ConnectError(
-            "No default agent is configured on this platform. Provide session_id or agent_id explicitly, or seed an agent labeled stigmer.ai/default-agent=true with visibility_public",
-            Code.NotFound,
-          );
-        }
-        if (error instanceof DefaultAgentNotPublicError) {
-          throw failedPreconditionError(
-            "Default agent exists but is not visibility_public",
-          );
-        }
-        // Store/decode failure — an internal fault, not "no default
-        // agent". The sanitized wire copy keeps the cause off the wire
-        // (stigmer/stigmer#478).
-        throw internalError(
-          error,
-          "failed to resolve the platform default agent",
-        );
-      }
-
-      const resolvedId = defaultAgent.metadata?.id ?? "";
-      logger.info("Resolved platform default agent", {
-        agentId: resolvedId,
-        agentName: defaultAgent.metadata?.name ?? "",
-      });
-
-      // Set agent_id on newState (not input): later steps and Persist
-      // operate on newState.
-      const newState = ctx.newState;
-      const newSpec = (newState.spec ??= create(AgentExecutionSpecSchema));
-      newSpec.agentId = resolvedId;
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// EnsureSessionOrAgentResolved — the invariant guard.
-// ---------------------------------------------------------------------------
-
-/**
- * Asserts the post-condition that a session, agent, or
- * embedded-session-spec instance reference has been resolved. An
- * invariant guard, NOT input validation: ResolveDefaultAgent runs first
- * and guarantees one of the three or an error, so reaching this step with
- * none set is a server-side programming error — hence Internal, not
- * InvalidArgument. Deliberately diverges from WorkflowExecution's
- * validateWorkflowOrInstanceStep (InvalidArgument), whose check is
- * genuinely reachable (issue #196) — do not "harmonize" the two.
- */
-export function newEnsureSessionOrAgentResolvedStep(
-  logger: Logger,
-): PipelineStep<CreateDesc> {
-  return {
-    name: "EnsureSessionOrAgentResolved",
-    execute(ctx) {
-      const spec = ctx.newState.spec;
-      const hasSessionId = (spec?.sessionId ?? "") !== "";
-      const hasAgentId = (spec?.agentId ?? "") !== "";
-      const hasSpecInstanceId =
-        (spec?.sessionSpec?.agentInstanceId ?? "") !== "";
-      if (!hasSessionId && !hasAgentId && !hasSpecInstanceId) {
-        logger.error(
-          "Invariant violated: no session, agent, or session_spec instance reference resolved after ResolveDefaultAgent",
-        );
-        throw internalError(
-          new Error(
-            "neither session_id, agent_id, nor session_spec.agent_instance_id set after ResolveDefaultAgent",
-          ),
-          "execution target not resolved",
-        );
-      }
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
 // EnsureEngineAvailable lives in engine.ts (Phase 1); re-exported by the
 // controller for chain assembly.
 // ---------------------------------------------------------------------------
@@ -233,11 +121,13 @@ export type ExecutionAgentInstanceCreatorProvider =
 
 /**
  * Ensures the referenced agent has a default instance: skips when a
- * session or explicit session_spec instance names the target; loads the
- * agent via the in-process client, creates the default instance when the
- * status lacks one, saves the agent status DIRECTLY to the store
- * (matching Go/Java: repo save, not the Update pipeline), and stores the
- * instance id in the context for the next step.
+ * session or explicit session_spec instance names the target, and when no
+ * agent is named at all (the built-in assistant: there is no agent whose
+ * instance could be created); otherwise loads the agent via the in-process
+ * client, creates the default instance when the status lacks one, saves
+ * the agent status DIRECTLY to the store (matching Go/Java: repo save, not
+ * the Update pipeline), and stores the instance id in the context for the
+ * next step.
  */
 export function newCreateDefaultInstanceIfNeededStep(deps: {
   store: Store;
@@ -261,13 +151,20 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
         return;
       }
       // An explicit session_spec instance fully specifies the target — no
-      // agent load or default-instance creation needed (a default-agent
-      // lookup would stamp misleading metadata).
+      // agent load or default-instance creation needed.
       const specInstanceId = execution.spec?.sessionSpec?.agentInstanceId ?? "";
       if (specInstanceId !== "") {
         deps.logger.debug(
           "session_spec carries an explicit agent instance, skipping default instance check",
           { agentInstanceId: specInstanceId },
+        );
+        return;
+      }
+      // No agent named: the built-in assistant runs in a session with no
+      // instance, so there is nothing to load or create here.
+      if (agentId === "") {
+        deps.logger.debug(
+          "No agent named, the built-in assistant runs; skipping default instance check",
         );
         return;
       }
@@ -385,7 +282,9 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
  * bootstrap, stigmer/stigmer#249) is CLONED and forwarded so the session
  * carries workspace_entries, harness, execution_target, MCP servers, and
  * skills from a single create call; defaults fill in the instance (when
- * the spec names none) and the subject sentinel (when empty).
+ * the spec names none and an agent's default instance was resolved; an
+ * empty id here and there is the built-in assistant) and the subject
+ * sentinel (when empty).
  */
 export function buildAutoCreateSessionSpec(
   callerSpec: SessionSpec | undefined,
@@ -407,11 +306,12 @@ export function buildAutoCreateSessionSpec(
 /**
  * Auto-creates the session when session_id is absent: forwards the
  * caller's session_spec, fills the instance from the previous step's
- * context key when needed, owns the session under the CALLER's org (never
- * the agent's — cross-org public agents stay usable), updates the
- * execution with the created id, and CLEARS session_spec (the Session
- * resource is the single source of truth; the persisted execution never
- * carries a second copy that could drift).
+ * context key when an agent was named, leaves it empty for the built-in
+ * assistant, owns the session under the CALLER's org (never the agent's —
+ * cross-org agents stay usable), updates the execution with the created
+ * id, and CLEARS session_spec (the Session resource is the single source
+ * of truth; the persisted execution never carries a second copy that
+ * could drift).
  */
 export function newCreateSessionIfNeededStep(deps: {
   logger: Logger;
@@ -440,12 +340,12 @@ export function newCreateSessionIfNeededStep(deps: {
         hasSessionSpec: callerSpec !== undefined,
       });
 
-      // 1. Resolve the instance when the caller's spec does not name one.
-      // The previous step resolved it and only skips when the spec
-      // carries an explicit instance, so the key is present exactly when
-      // needed.
+      // 1. Resolve the instance when the caller's spec does not name one
+      // and an agent was named: the previous step put the agent's default
+      // instance under the context key exactly then. With no agent the
+      // session is created with no instance — the built-in assistant.
       let defaultInstanceId = "";
-      if ((callerSpec?.agentInstanceId ?? "") === "") {
+      if ((callerSpec?.agentInstanceId ?? "") === "" && agentId !== "") {
         const resolved = ctx.get(DEFAULT_INSTANCE_ID_KEY);
         if (typeof resolved !== "string" || resolved === "") {
           deps.logger.error("DEFAULT_INSTANCE_ID not found in context", {

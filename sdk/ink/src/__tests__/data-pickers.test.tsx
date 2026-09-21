@@ -54,6 +54,50 @@ describe("AgentPicker", () => {
     expect(onSelect.mock.calls[0][0].id).toBe("agt_1");
   });
 
+  it("offers the built-in assistant first when asked, and picks it without an agent", async () => {
+    const results = [agentResult("agt_1", "acme/alpha", "first")];
+    const client = fakeClient({
+      agent: { list: vi.fn(async () => ({ entries: results, totalPages: 1, totalCount: 1 })) },
+    });
+    const onSelect = vi.fn();
+    const onSelectBuiltInAssistant = vi.fn();
+
+    const { lastFrame, stdin } = render(
+      <InkStigmerProvider client={client}>
+        <AgentPicker
+          org="acme"
+          onSelect={onSelect}
+          onSelectBuiltInAssistant={onSelectBuiltInAssistant}
+          onCancel={vi.fn()}
+        />
+      </InkStigmerProvider>,
+    );
+
+    await settle();
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("Assistant (built-in)");
+    // First row: above every agent the search found.
+    expect(frame.indexOf("Assistant (built-in)")).toBeLessThan(frame.indexOf("acme/alpha"));
+
+    stdin.write(KEY.enter);
+    await settle();
+    expect(onSelectBuiltInAssistant).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("offers agents only when no built-in handler is given", async () => {
+    const client = fakeClient({
+      agent: { list: vi.fn(async () => ({ entries: [], totalPages: 0, totalCount: 0 })) },
+    });
+    const { lastFrame } = render(
+      <InkStigmerProvider client={client}>
+        <AgentPicker org="acme" onSelect={vi.fn()} onCancel={vi.fn()} />
+      </InkStigmerProvider>,
+    );
+    await settle();
+    expect(lastFrame() ?? "").not.toContain("Assistant (built-in)");
+  });
+
   it("seeds the search box from initialQuery", async () => {
     const list = vi.fn(async () => ({ entries: [], totalPages: 0, totalCount: 0 }));
     const client = fakeClient({ agent: { list } });

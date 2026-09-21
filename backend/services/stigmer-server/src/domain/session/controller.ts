@@ -110,11 +110,9 @@ import {
   newListAllSessionsStep,
   newRecordHarnessStateHistoryStep,
   newRejectDeleteWithActiveExecutionsStep,
-  newResolveDefaultAgentInstanceStep,
   newValidateExecutionTargetImmutabilityStep,
   newValidateHarnessImmutabilityStep,
 } from "./steps.js";
-import type { AgentInstanceCreatorProvider } from "./steps.js";
 
 export interface SessionControllerDeps {
   readonly store: Store;
@@ -129,12 +127,6 @@ export interface SessionControllerDeps {
    * same deployment default dispatch uses (oss#397).
    */
   readonly temporalConfig: AgentExecutionTemporalConfig;
-  /**
-   * The agentinstance in-process CREATE edge — a lazy provider because the
-   * routes↔clients definition cycle resolves at request time (the ratified
-   * DI story, DD-002).
-   */
-  readonly agentInstanceCreator: AgentInstanceCreatorProvider;
   /** The composed slot registrations — this domain's create slot (O4). */
   readonly gateSteps: ResolvedGateSteps;
   /**
@@ -177,23 +169,19 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline. ResolveDefaultAgentInstance
- * runs BEFORE ValidateProto: when agent_instance_id is omitted, the
- * resolution fills it in before validation sees the spec.
- *
- * AuthorizeRunTarget (the run gate, P1 sp.run-gate) follows it directly:
- * the first step after the instance the session binds to is known, so a
- * caller who may not run that instance is refused before validation reads
- * anything further and before any step the chain owns side-effects. The
- * default-instance creation INSIDE the resolution step still precedes it —
- * the inherited pre-gate side effect recorded below, unchanged here.
+ * Create — chain per Go buildCreatePipeline. AuthorizeRunTarget (the run
+ * gate, P1 sp.run-gate) runs right after Authorize: the instance the
+ * session binds to is the caller's own spec, so a caller who may not run
+ * that instance is refused before validation reads anything further and
+ * before any step the chain owns side-effects. An empty agent_instance_id
+ * is the built-in assistant, for which the gate makes no target check:
+ * Authorize's can_create_session on the organization already admitted the
+ * conversation (sessionRunTarget's header).
  *
  * The pre-side-effect gate slot splices before Persist, after the last
  * pure step (O4 plan-gate ruling Q2, mirroring the Java baseline's
- * post-resolution gate position). The default-instance resolution above
- * it side-effects PRE-gate in BOTH editions — a gate refusal can leave a
- * created default instance behind; inherited Java semantics, not a new
- * compromise.
+ * post-resolution gate position). Every step above it is pure, so a gate
+ * refusal leaves nothing behind.
  */
 async function createSession(
   deps: SessionControllerDeps,
@@ -212,14 +200,6 @@ async function createSession(
   )
     .addStep(
       newAuthorizeStep(SessionCommandController.method.create, deps.authorizer),
-    )
-    .addStep(
-      newResolveDefaultAgentInstanceStep(
-        deps.store,
-        deps.agentInstanceCreator,
-        deps.logger,
-        deps.authorizationLifecycle,
-      ),
     )
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(newValidateProtoStep())

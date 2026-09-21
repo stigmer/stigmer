@@ -77,37 +77,6 @@ public final class AgentQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest,
-      ai.stigmer.agentic.agent.v1.Agent> getGetDefaultMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getDefault",
-      requestType = ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest.class,
-      responseType = ai.stigmer.agentic.agent.v1.Agent.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest,
-      ai.stigmer.agentic.agent.v1.Agent> getGetDefaultMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest, ai.stigmer.agentic.agent.v1.Agent> getGetDefaultMethod;
-    if ((getGetDefaultMethod = AgentQueryControllerGrpc.getGetDefaultMethod) == null) {
-      synchronized (AgentQueryControllerGrpc.class) {
-        if ((getGetDefaultMethod = AgentQueryControllerGrpc.getGetDefaultMethod) == null) {
-          AgentQueryControllerGrpc.getGetDefaultMethod = getGetDefaultMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getDefault"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
-              .setSchemaDescriptor(new AgentQueryControllerMethodDescriptorSupplier("getDefault"))
-              .build();
-        }
-      }
-    }
-    return getGetDefaultMethod;
-  }
-
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -197,29 +166,6 @@ public final class AgentQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByReferenceMethod(), responseObserver);
     }
-
-    /**
-     * <pre>
-     * Get the platform default agent.
-     * Returns the default agent for the platform, including
-     * status.default_instance_id for creating a session. Use this
-     * to start a conversation without selecting an agent first.
-     * Returns NOT_FOUND if no default agent is configured.
-     * &#64;internal
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Custom authorization in handler.
-     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
-     * agents are candidates, and with multiple candidates — a reachable state,
-     * since safe label rotation applies the new default before retiring the
-     * old — the one with the lowest metadata.id (the incumbent) wins. The
-     * default changes only when the incumbent's label is explicitly removed,
-     * never as a side effect of another agent gaining the label.
-     * </pre>
-     */
-    default void getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetDefaultMethod(), responseObserver);
-    }
   }
 
   /**
@@ -280,30 +226,6 @@ public final class AgentQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request, responseObserver);
     }
-
-    /**
-     * <pre>
-     * Get the platform default agent.
-     * Returns the default agent for the platform, including
-     * status.default_instance_id for creating a session. Use this
-     * to start a conversation without selecting an agent first.
-     * Returns NOT_FOUND if no default agent is configured.
-     * &#64;internal
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Custom authorization in handler.
-     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
-     * agents are candidates, and with multiple candidates — a reachable state,
-     * since safe label rotation applies the new default before retiring the
-     * old — the one with the lowest metadata.id (the incumbent) wins. The
-     * default changes only when the incumbent's label is explicitly removed,
-     * never as a side effect of another agent gaining the label.
-     * </pre>
-     */
-    public void getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetDefaultMethod(), getCallOptions()), request, responseObserver);
-    }
   }
 
   /**
@@ -348,29 +270,6 @@ public final class AgentQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
     }
-
-    /**
-     * <pre>
-     * Get the platform default agent.
-     * Returns the default agent for the platform, including
-     * status.default_instance_id for creating a session. Use this
-     * to start a conversation without selecting an agent first.
-     * Returns NOT_FOUND if no default agent is configured.
-     * &#64;internal
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Custom authorization in handler.
-     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
-     * agents are candidates, and with multiple candidates — a reachable state,
-     * since safe label rotation applies the new default before retiring the
-     * old — the one with the lowest metadata.id (the incumbent) wins. The
-     * default changes only when the incumbent's label is explicitly removed,
-     * never as a side effect of another agent gaining the label.
-     * </pre>
-     */
-    public ai.stigmer.agentic.agent.v1.Agent getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetDefaultMethod(), getCallOptions(), request);
-    }
   }
 
   /**
@@ -414,29 +313,6 @@ public final class AgentQueryControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Get the platform default agent.
-     * Returns the default agent for the platform, including
-     * status.default_instance_id for creating a session. Use this
-     * to start a conversation without selecting an agent first.
-     * Returns NOT_FOUND if no default agent is configured.
-     * &#64;internal
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Custom authorization in handler.
-     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
-     * agents are candidates, and with multiple candidates — a reachable state,
-     * since safe label rotation applies the new default before retiring the
-     * old — the one with the lowest metadata.id (the incumbent) wins. The
-     * default changes only when the incumbent's label is explicitly removed,
-     * never as a side effect of another agent gaining the label.
-     * </pre>
-     */
-    public ai.stigmer.agentic.agent.v1.Agent getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetDefaultMethod(), getCallOptions(), request);
     }
   }
 
@@ -484,35 +360,10 @@ public final class AgentQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request);
     }
-
-    /**
-     * <pre>
-     * Get the platform default agent.
-     * Returns the default agent for the platform, including
-     * status.default_instance_id for creating a session. Use this
-     * to start a conversation without selecting an agent first.
-     * Returns NOT_FOUND if no default agent is configured.
-     * &#64;internal
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Custom authorization in handler.
-     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
-     * agents are candidates, and with multiple candidates — a reachable state,
-     * since safe label rotation applies the new default before retiring the
-     * old — the one with the lowest metadata.id (the incumbent) wins. The
-     * default changes only when the incumbent's label is explicitly removed,
-     * never as a side effect of another agent gaining the label.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> getDefault(
-        ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetDefaultMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_GET_DEFAULT = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -537,10 +388,6 @@ public final class AgentQueryControllerGrpc {
           break;
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
-          break;
-        case METHODID_GET_DEFAULT:
-          serviceImpl.getDefault((ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         default:
@@ -575,13 +422,6 @@ public final class AgentQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_GET_BY_REFERENCE)))
-        .addMethod(
-          getGetDefaultMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest,
-              ai.stigmer.agentic.agent.v1.Agent>(
-                service, METHODID_GET_DEFAULT)))
         .build();
   }
 
@@ -632,7 +472,6 @@ public final class AgentQueryControllerGrpc {
               .setSchemaDescriptor(new AgentQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getGetDefaultMethod())
               .build();
         }
       }

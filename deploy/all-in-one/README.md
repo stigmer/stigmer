@@ -40,7 +40,7 @@ docker build --build-arg STIGMER_VERSION=$(cat deploy/all-in-one/stage/VERSION) 
 
 ## Prove
 
-`scripts/smoke-all-in-one.mjs` is the one smoke, run by `make smoke-all-in-one`, by `ci.all-in-one.yaml` on every relevant PR (both arches, from the PR's sources), and by the release lane against the pushed tag. It proves: Docker `healthy`; the banner and the no-key warning; SERVING and the console lane; the default plugin installed on first boot; an LLM-free Workflow run to `EXECUTION_COMPLETED` through the embedded Temporal and runner; the artifact lane; `docker restart` persistence; an unclean restart (`docker kill`, `docker start`) with exactly one Temporal across three supervisor ticks; `docker stop -t 30` exiting 0; an unwritable bind mount refused.
+`scripts/smoke-all-in-one.mjs` is the one smoke, run by `make smoke-all-in-one`, by `ci.all-in-one.yaml` on every relevant PR (both arches, from the PR's sources), and by the release lane against the pushed tag. It proves: Docker `healthy`; the banner and the no-key warning; SERVING and the console lane; the `stigmer` organization created on first boot (the bootstrap's one act); an LLM-free Workflow run to `EXECUTION_COMPLETED` through the embedded Temporal and runner; the artifact lane; `docker restart` persistence; an unclean restart (`docker kill`, `docker start`) with exactly one Temporal across three supervisor ticks; `docker stop -t 30` exiting 0; an unwritable bind mount refused.
 
 ## Ports and stopping
 

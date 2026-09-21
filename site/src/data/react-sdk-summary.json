@@ -18,7 +18,7 @@
       "slug": "agent",
       "title": "Agent",
       "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
-      "hooks": 8,
+      "hooks": 7,
       "components": 4
     },
     {

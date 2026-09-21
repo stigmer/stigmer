@@ -321,8 +321,10 @@ export {
 
 // Session utilities (hand-written)
 export {
+  BUILT_IN_ASSISTANT_NAME,
   PENDING_SUBJECT,
   SESSION_CONTEXT_METADATA_KEY,
+  isBuiltInAssistant,
   mergeSessionContext,
   resolvedSubject,
 } from "./session.js";

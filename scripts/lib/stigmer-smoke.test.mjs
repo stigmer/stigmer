@@ -5,8 +5,8 @@
 // spelled out here rather than imported so a drift in the library's constant
 // is caught, not mirrored. The Host-derived arm is the #1087 incident: four
 // gates accepted `http://<host>` after the server stopped serving it. The
-// default-plugin probe: polls the plugin query until the bootstrap's second
-// step has landed, and refuses a default that is not public. Run via
+// bootstrap probe: polls the caller's organizations until the `stigmer`
+// organization the bootstrap creates is present. Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test` and
 // ci.ts-workspace).
 
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import { assertConsoleServed, waitForDefaultPlugin } from "./stigmer-smoke.mjs";
+import { assertConsoleServed, waitForSystemOrganization } from "./stigmer-smoke.mjs";
 
 const TRUSTED_LOCAL_DOCUMENT = {
   apiUrl: "",
@@ -160,22 +160,18 @@ test("refuses a / that does not answer HTML", async () => {
   assert.match(refusal.message, /console \/.*text\/html/);
 });
 
-// ─── The default-plugin probe ───────────────────────────────────────────────
+// ─── The bootstrap probe ────────────────────────────────────────────────────
 //
-// A plugin query lane on 127.0.0.1:0 that answers getByReference from a
-// script of responses, one per call, so the probe's polling (404 until the
-// bootstrap lands, then READY) and its refusals are pinned without a server.
+// An organization query lane on 127.0.0.1:0 that answers findMyOrganizations
+// from a script of responses, one per call, so the probe's polling (no
+// `stigmer` organization until the bootstrap lands, then present) is pinned
+// without a server.
 
-async function servePluginLane(responses) {
+async function serveOrganizationLane(responses) {
   let call = 0;
   const server = createServer((request, response) => {
     const next = responses[Math.min(call, responses.length - 1)];
     call += 1;
-    if (next === 404) {
-      response.writeHead(404, { "content-type": "application/json" });
-      response.end(JSON.stringify({ code: "not_found", message: "plugin not found" }));
-      return;
-    }
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify(next));
   });
@@ -187,36 +183,30 @@ async function servePluginLane(responses) {
   };
 }
 
-const READY_ASSISTANT = {
-  metadata: { slug: "assistant", org: "stigmer", visibility: "visibility_public" },
-  status: { state: "PLUGIN_STATE_READY", digest: "a".repeat(64) },
-};
+const STIGMER_ORG = { metadata: { id: "org_stigmer_0001", slug: "stigmer", name: "stigmer" } };
+const OTHER_ORG = { metadata: { id: "org_other_0001", slug: "acme", name: "acme" } };
 
-test("waits through 404 and INSTALLING until the default plugin is READY, then yields its digest", async () => {
-  const lane = await servePluginLane([
-    404,
-    { ...READY_ASSISTANT, status: { state: "PLUGIN_STATE_INSTALLING", digest: "" } },
-    READY_ASSISTANT,
+test("waits until the `stigmer` organization is among the caller's, then yields its id", async () => {
+  const lane = await serveOrganizationLane([
+    { entries: [] },
+    { entries: [OTHER_ORG] },
+    { entries: [OTHER_ORG, STIGMER_ORG] },
   ]);
   try {
-    const digest = await waitForDefaultPlugin(lane.baseUrl, 10_000, {});
-    assert.equal(digest, "a".repeat(64));
+    const id = await waitForSystemOrganization(lane.baseUrl, 10_000, {});
+    assert.equal(id, "org_stigmer_0001");
     assert.equal(lane.calls(), 3);
   } finally {
     await lane.close();
   }
 });
 
-test("refuses a READY default plugin that is not public, naming its visibility at the deadline", async () => {
-  const lane = await servePluginLane([
-    { ...READY_ASSISTANT, metadata: { ...READY_ASSISTANT.metadata, visibility: "visibility_private" } },
+test("matches the organization by slug, never by name", async () => {
+  const lane = await serveOrganizationLane([
+    { entries: [{ metadata: { id: "org_x", slug: "not-it", name: "stigmer" } }] },
   ]);
   try {
-    // pollUntil surfaces the last refusal when the deadline passes; a short one keeps the arm quick.
-    await assert.rejects(
-      waitForDefaultPlugin(lane.baseUrl, 2_500, {}),
-      /default plugin 'assistant' is visibility_private — want visibility_public/,
-    );
+    await assert.rejects(waitForSystemOrganization(lane.baseUrl, 2_500, {}), /organization 'stigmer' present/);
   } finally {
     await lane.close();
   }

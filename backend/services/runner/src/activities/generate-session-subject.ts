@@ -137,22 +137,26 @@ export async function generateSessionSubject(
     return;
   }
 
+  // The agent, when the conversation has one, lends the title its purpose;
+  // the built-in assistant (no agent on the session) is titled from the
+  // message alone rather than left "Untitled".
+  let agentName = "";
+  let agentDescription = "";
   const agentId = await resolveAgentId(execution, session, client);
-  if (agentId === "") {
-    log(`cannot resolve agent_id for execution ${executionId}, skipping`);
-    return;
+  if (agentId !== "") {
+    const agent = await getOrSkip(
+      () => client.getAgent(agentId),
+      `agent not found: ${agentId}`,
+    );
+    if (agent === undefined) return;
+    agentName = agent.metadata?.name ?? "";
+    agentDescription = agent.spec?.description ?? "";
   }
-
-  const agent = await getOrSkip(
-    () => client.getAgent(agentId),
-    `agent not found: ${agentId}`,
-  );
-  if (agent === undefined) return;
 
   const subject = await generateTitle({
     userMessage,
-    agentName: agent.metadata?.name ?? "",
-    agentDescription: agent.spec?.description ?? "",
+    agentName,
+    agentDescription,
     executionId,
     options,
   });
@@ -175,7 +179,8 @@ export async function generateSessionSubject(
 /**
  * The agent behind the execution: the direct agent_id when the execution
  * carries one, else resolved through the session's agent-instance chain.
- * Empty string when unresolvable. Mirrors the cloud activity's resolveAgentId.
+ * Empty string when there is none (the built-in assistant) or when the
+ * instance cannot be read.
  */
 export async function resolveAgentId(
   execution: AgentExecution,
@@ -264,7 +269,9 @@ export function buildUserPrompt(
   agentDescription: string,
 ): string {
   let prompt = `User's first message:\n"${userMessage}"\n\n`;
-  prompt += `Agent: ${agentName}\n`;
+  if (agentName !== "") {
+    prompt += `Agent: ${agentName}\n`;
+  }
   if (agentDescription !== "") {
     prompt += `Agent purpose: ${agentDescription}\n`;
   }

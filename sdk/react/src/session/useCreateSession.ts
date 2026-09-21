@@ -76,16 +76,17 @@ export interface SharedSessionFields {
 }
 
 /**
- * Input for creating a session. Exactly one agent resolution strategy
- * must be provided:
+ * Input for creating a session. At most one agent resolution strategy is
+ * provided:
  *
  * - **`agentInstanceId`** — Use a pre-provisioned AgentInstance directly.
  * - **`agentRef`** — Resolve the agent's default instance via
  *   `agent.getByReference()`.
+ * - **neither** — The session runs the built-in assistant: no agent is
+ *   bound, and the runner answers with the one built-in prompt and the
+ *   MCP servers and skills the session itself carries.
  *
- * Providing both is a type error. Platform builders who need the
- * backend's implicit agent resolution can use `@stigmer/sdk`'s
- * `session.create()` directly.
+ * Providing both is a type error.
  */
 export type CreateSessionInput = SharedSessionFields &
   (
@@ -100,6 +101,12 @@ export type CreateSessionInput = SharedSessionFields &
         readonly agentRef: ResourceRef;
         /** @internal Discriminant — excluded when `agentRef` is provided. */
         readonly agentInstanceId?: never;
+      }
+    | {
+        /** @internal Neither strategy: the built-in assistant. */
+        readonly agentInstanceId?: never;
+        /** @internal Neither strategy: the built-in assistant. */
+        readonly agentRef?: never;
       }
   );
 
@@ -186,10 +193,8 @@ export function useCreateSession(): UseCreateSessionReturn {
 
           resolvedInstanceId = defaultId;
         } else {
-          throw new Error(
-            "useCreateSession requires either agentInstanceId or agentRef. " +
-              "Provide one to specify which agent this session should use.",
-          );
+          // The built-in assistant: an empty id on the wire binds no agent.
+          resolvedInstanceId = "";
         }
 
         const resolvedTarget = input.executionTarget ?? contextTarget;

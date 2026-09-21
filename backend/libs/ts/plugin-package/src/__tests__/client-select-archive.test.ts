@@ -8,7 +8,7 @@
  * `d75b0724a` (`preparePluginPush` over the vendored `thermos` fixture,
  * whose bytes never change). If it changes, every installed plugin would
  * look like an upgrade; this test is the tripwire. The catalogue's own
- * `plugins/assistant` is read too, but its content is allowed to evolve (a
+ * `plugins/linear` is read too, but its content is allowed to evolve (a
  * manifest edit is an upgrade by design), so its cases pin the identity
  * discipline (the directory edge and the in-memory edge agree on one
  * digest, and the selection is exactly its files) rather than a constant.
@@ -68,14 +68,10 @@ function inMemory(files: Record<string, string>): { candidates: CandidateFile[];
 const RESPECT = { respectGitignore: true };
 
 describe("parity with the CLI's original walk", () => {
-  it("plugins/assistant selects exactly its files, in walk order", () => {
-    const { candidates, read } = listDirectory(`${REPO_PLUGINS}assistant`);
+  it("plugins/linear selects exactly its files, in walk order", () => {
+    const { candidates, read } = listDirectory(`${REPO_PLUGINS}linear`);
     const selection = selectPluginFiles(candidates, read, RESPECT);
-    expect(selection.files.entries.map((entry) => entry.path)).toEqual([
-      "ai.stigmer/agent.yaml",
-      "icon.svg",
-      "plugin.json",
-    ]);
+    expect(selection.files.entries.map((entry) => entry.path)).toEqual(["mcp.json", "plugin.json"]);
   });
 
   it("the thermos fixture archives to the CLI's digest", async () => {
@@ -86,7 +82,7 @@ describe("parity with the CLI's original walk", () => {
   });
 
   it("the same bytes from a directory and from an in-memory listing yield one digest", async () => {
-    const dir = listDirectory(`${REPO_PLUGINS}assistant`);
+    const dir = listDirectory(`${REPO_PLUGINS}linear`);
     const fromDirectory = await digestArchive(archivePlugin(selectPluginFiles(dir.candidates, dir.read, RESPECT).files));
     const memory = inMemory(
       Object.fromEntries(dir.candidates.map((c) => [c.path, new TextDecoder().decode(dir.read(c.path))])),

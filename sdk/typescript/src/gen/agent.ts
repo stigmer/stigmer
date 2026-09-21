@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentIdSchema, GetDefaultAgentRequestSchema, type GetDefaultAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, type ToolApprovalOverride, type McpServerUsage, type McpAccess, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -70,12 +70,6 @@ export class AgentClient {
   async getByReference(ref: ResourceRef): Promise<Agent> {
     try {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.agent }));
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async getDefault(input: GetDefaultAgentRequest): Promise<Agent> {
-    try {
-      return await this.query.getDefault(input);
     } catch (e) { throw wrapError(e); }
   }
 

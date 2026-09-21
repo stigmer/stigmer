@@ -1,7 +1,8 @@
 // The default plugins a backend is bootstrapped with: the `defaults` list of
 // the official marketplace, installed in order into the system org as
-// public, so the global default-agent lookup and cross-org references find
-// them.
+// public. The official list is empty today (a session with no agent runs
+// the built-in assistant, so a fresh install needs no default content);
+// the mechanism stays until the bootstrap is re-scoped.
 //
 // Two phases, deliberately separate. Preparing (resolve the official tree,
 // which may acquire `@stigmer/plugins` at the CLI's version; walk, zip and

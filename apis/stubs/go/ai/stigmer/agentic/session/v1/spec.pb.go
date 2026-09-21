@@ -27,7 +27,13 @@ const (
 // SessionSpec defines the configurable properties of a session.
 type SessionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent instance this session runs against.
+	// Agent instance this session runs against; empty means no agent, and the
+	// built-in assistant answers with the MCP servers and skills this session
+	// itself declares.
+	//
+	// A session may gain an agent or drop back to the built-in assistant on
+	// update; the harness and execution target are the immutable fields, not
+	// this one.
 	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
 	// Conversation title for UI display.
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`

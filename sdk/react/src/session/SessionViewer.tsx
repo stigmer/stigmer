@@ -1055,7 +1055,6 @@ const ConversationColumn = memo(function ConversationColumn({
             // org reads a guest token cannot make.
             onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
             onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
-            isDefaultAgent={flow.isDefaultAgent}
             lockAgent={isCurated}
             mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
             onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
@@ -1285,10 +1284,9 @@ function SessionPanelRegion({
     [planVirtualDocument, artifactVirtualDocuments],
   );
 
-  const handleRemoveAgent = useCallback(() => {
-    flow.setAgentRef(null);
-    flow.setResolution(null);
-  }, [flow.setAgentRef, flow.setResolution]);
+  // Dropping the agent is a real change of the conversation's binding, not a
+  // chip disappearing: the flow's clear rides the next follow-up to the server.
+  const handleRemoveAgent = flow.clearAgent;
 
   const handleRemoveMcp = useCallback(
     (ref: ResourceRef) => {
@@ -1315,7 +1313,6 @@ function SessionPanelRegion({
   const sessionConfig = useMemo<SetupTabProps>(
     () => ({
       agentRef: flow.agentRef,
-      isDefaultAgent: flow.isDefaultAgent,
       mcpServerUsages: flow.mcpServerUsages,
       skillRefs: flow.skillRefs,
       sessionVariables: flow.sessionVariables,
@@ -1337,14 +1334,16 @@ function SessionPanelRegion({
       mutations: isCurated
         ? undefined
         : {
-            onRemoveAgent: flow.isDefaultAgent ? undefined : handleRemoveAgent,
+            // Removable whenever there is one: the built-in assistant, the
+            // empty state, has nothing to remove and the tab shows it as such.
+            onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
             onRemoveMcp: handleRemoveMcp,
             onRemoveSkill: handleRemoveSkill,
           },
       accessSlot,
     }),
     [
-      flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
+      flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
       flow.autoApproveAll, flow.setAutoApproveAll, isObserver, exportSessionId,
       isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,

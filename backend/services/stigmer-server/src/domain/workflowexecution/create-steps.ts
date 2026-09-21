@@ -62,9 +62,10 @@ export type ExecutionWorkflowInstanceCreatorProvider =
 /**
  * ValidateWorkflowOrInstance — at least one of workflow_id /
  * workflow_instance_id must be provided. Matches the cloud
- * WorkflowExecutionCreateHandler. AgentExecution differs: it has a
- * ResolveDefaultAgent step, so its guard is an unreachable invariant
- * (Internal), not reachable InvalidArgument validation (issue #196).
+ * WorkflowExecutionCreateHandler. AgentExecution differs on purpose: its
+ * all-empty shape is legal (the built-in assistant), so it has no such
+ * step; a workflow execution has no built-in workflow to fall back to
+ * (issue #196).
  */
 export function newValidateWorkflowOrInstanceStep(): PipelineStep<ExecutionDesc> {
   return {

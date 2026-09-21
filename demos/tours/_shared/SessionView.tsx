@@ -190,7 +190,6 @@ function ThreadState({
   const sessionConfig = useMemo<SetupTabProps>(
     () => ({
       agentRef: agentRef ?? null,
-      isDefaultAgent: agentRef == null,
       mcpServerUsages: [],
       skillRefs: [],
       sessionVariables: null,

@@ -20,6 +20,24 @@
 export const PENDING_SUBJECT = "Auto-created session";
 
 /**
+ * The display name of the built-in assistant: what answers a session whose
+ * `agentInstanceId` is empty (the session names no agent). Every surface
+ * that shows an agent's name where there is none — the console's composer
+ * and setup panel, the CLI's picker — reads this one constant, because the
+ * server stores no name for it: there is no agent row, only the runner's
+ * built-in prompt.
+ */
+export const BUILT_IN_ASSISTANT_NAME = "Assistant";
+
+/**
+ * Whether a session runs the built-in assistant rather than an agent: the
+ * one reading of an empty `agentInstanceId`, so no caller re-derives it.
+ */
+export function isBuiltInAssistant(agentInstanceId: string | undefined): boolean {
+  return (agentInstanceId ?? "") === "";
+}
+
+/**
  * Returns the session subject when it carries a meaningful value, or `null`
  * while it still holds the backend sentinel.
  *

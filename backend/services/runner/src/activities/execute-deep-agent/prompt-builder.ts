@@ -40,6 +40,7 @@ import {
   type StandingSectionKind,
   type VisionPromptInfo,
 } from "../../shared/prompt-sections.js";
+import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -115,11 +116,8 @@ directly over delegating. Only delegate when context isolation \
 or parallelism genuinely helps the user.
 `;
 
-/** The agent's instructions when the blueprint carries none; the prompt is never empty (since #1096: was `setup.ts`'s alone). */
-export const DEFAULT_INSTRUCTIONS = "You are a helpful AI assistant.";
-
 export interface PromptBuilderInput {
-  /** The blueprint's instructions, raw; empty falls back to {@link DEFAULT_INSTRUCTIONS}. */
+  /** The blueprint's instructions, raw; empty reads the built-in assistant's (shared/builtin-assistant-prompt.ts). */
   instructions: string;
   provisionResults: ProvisionResult[];
   containerRoot: string;
@@ -233,7 +231,7 @@ const STANDING_SECTION_HEADINGS: Record<StandingSectionKind, string> = {
  * sections. Pure function with no I/O.
  */
 export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
-  let prompt = input.instructions || DEFAULT_INSTRUCTIONS;
+  let prompt = effectiveInstructions(input.instructions);
 
   const workspaceSection = buildWorkspacePromptSection(
     input.provisionResults,

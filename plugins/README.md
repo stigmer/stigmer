@@ -1,10 +1,11 @@
 # @stigmer/plugins
 
 Stigmer's **official plugin marketplace**: a directory tree with a root
-`marketplace.json` and one Agent Plugins package per entry. It is what a fresh
-`stigmer up` bootstraps a backend with (the `defaults` list, installed into the
-`stigmer` organization as public) and what `stigmer install <name>` and
-`stigmer marketplace show stigmer` read when no other marketplace is named.
+`marketplace.json` and one Agent Plugins package per entry. It is what
+`stigmer install <name>` and `stigmer marketplace show stigmer` read when no
+other marketplace is named. Its `defaults` list is empty: a fresh Stigmer
+answers with the built-in assistant, which is the runner's own prompt and no
+plugin's, so nothing is installed for a first message to work.
 
 The tree follows the convention Cursor (`cursor/plugins`), Claude Code
 (`anthropics/claude-code`) and Codex publish: the marketplace file at the root,
@@ -18,10 +19,6 @@ plugins/
   marketplace.json        the catalogue: name, owner, plugins[], defaults[]
   vendor.json             where every vendored folder came from; the strikes
   NOTICE                  the attribution for the vendored folders, generated
-  assistant/              an authored plugin, in the open Agent Plugins format
-    plugin.json           the manifest (root plugin.json with $schema)
-    ai.stigmer/agent.yaml Stigmer's own overlay: the Agent this plugin installs
-    icon.svg
   linear/                 an authored plugin for a vendor's public MCP endpoint
     plugin.json           extensions["ai.stigmer"].displayName names the card
     mcp.json              the URL; the control plane completes its OAuth at save
@@ -65,11 +62,10 @@ An authored plugin:
    (`plugin.json` with `$schema`, `author.name` `Stigmer`,
    `extensions["ai.stigmer"].displayName`), portable to Cursor, Claude Code and
    Codex. Anything only Stigmer reads goes under `ai.stigmer/`.
-2. `make sync-plugins` writes its `marketplace.json` line. Add it to `defaults`
-   by hand only if every fresh install should get it.
+2. `make sync-plugins` writes its `marketplace.json` line.
 3. `make test-plugins-static`: the files and the tree agree, every entry
    installs under its own name with a version and a description, each agent
-   overlay names its own plugin, exactly one entry carries the default-agent
+   overlay names its own plugin, none carries the retired default-agent
    label, and npm would publish every staged file.
 4. `stigmer validate -f plugins/<name>` for the offline read the server will
    repeat, and `stigmer install stigmer/<name>` from a checkout to see it land.

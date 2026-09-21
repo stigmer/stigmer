@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Agent instance this session runs against.",
+      "description": "Agent instance this session runs against; empty means no agent, and the\n built-in assistant answers with the MCP servers and skills this session\n itself declares.\n\n A session may gain an agent or drop back to the built-in assistant on\n update; the harness and execution target are the immutable fields, not\n this one.",
       "required": false
     },
     {

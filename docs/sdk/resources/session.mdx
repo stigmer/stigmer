@@ -631,7 +631,7 @@ Input for creating or updating a Session.
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
-    agentInstanceId: { type: "string", description: "Agent instance this session runs against." },
+    agentInstanceId: { type: "string", description: "Agent instance this session runs against; empty means no agent, and the built-in assistant answers with the MCP servers and skills this session itself declares." },
     subject: { type: "string", description: "Conversation title for UI display." },
     harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
     harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },

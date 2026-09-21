@@ -2,8 +2,9 @@
 // contract (stigmer/stigmer#249). A workspace-bearing run must issue exactly
 // one create RPC — the AgentExecution carrying session_spec — instead of the
 // old session.create + agentExecution.create pair, and the flow must read the
-// canonical session id back from the returned execution spec. Runs use
-// detach mode so no streaming machinery is exercised.
+// canonical session id back from the returned execution spec. The built-in
+// assistant rides the same flow with no agent at all. Runs use detach mode
+// so no streaming machinery is exercised.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -128,6 +129,29 @@ describe("executeResolvedAgent", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0]?.spec?.sessionSpec).toBeUndefined();
     expect(sent[0]?.spec?.agentId).toBe("agt_1");
+  });
+
+  it("runs the built-in assistant with no agent: an all-empty target and the assistant's name in the header", async () => {
+    const { client, creates } = fakeBackend();
+
+    await executeResolvedAgent({
+      agent: undefined,
+      prepared: makePrepared({ detach: true }),
+      org: "acme",
+      downloadDir: "",
+      outputMode: "inline",
+      client,
+    });
+
+    const sent = creates();
+    expect(sent).toHaveLength(1);
+    // Neither an agent nor a session nor a session_spec instance: the backend
+    // creates a session with no agent and the runner answers as the assistant.
+    expect(sent[0]?.spec?.agentId).toBe("");
+    expect(sent[0]?.spec?.sessionId).toBe("");
+    expect(sent[0]?.spec?.sessionSpec?.agentInstanceId ?? "").toBe("");
+    expect(stderrLines.join("")).toContain("Assistant");
+    expect(stderrLines.join("")).toContain("stigmer resume ses_srv");
   });
 
   it("threads the resolved harness onto the wire and surfaces it in the header (oss#293)", async () => {

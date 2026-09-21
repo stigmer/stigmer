@@ -58,7 +58,6 @@ Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get a single agent by ID. |
 | [`getByReference`](#getbyreference) | Get an agent by its organization-scoped reference (org/slug). |
-| [`getDefault`](#getdefault) | Get the platform default agent. |
 | [`apply`](#apply) | Create or update an agent. |
 | [`create`](#create) | Create an agent. |
 | [`update`](#update) | Update an existing agent. |
@@ -148,49 +147,6 @@ Agent agent = client.agents().getByReference(ApiResourceReference.builder()
 </SDKTabs>
 
 **Parameters**: [`ResourceRef`](#resourceref)
-
-**Returns**: [`Agent`](#agent)
-
-### getDefault
-
-Get the platform default agent.
-
-Returns the default agent for the platform, including status.default_instance_id for creating a session. Use this to start a conversation without selecting an agent first.
-
-Returns NOT_FOUND if no default agent is configured.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const agent = await stigmer.agent.getDefault({
-  org: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-agent, err := client.Agent.GetDefault(ctx, &stigmer.GetDefaultAgentRequest{
-  Org: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-agent = client.agents.get_default(GetDefaultAgentRequest(
-    org="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-Agent agent = client.agents().getDefault(GetDefaultAgentRequest.builder()
-    .org("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`GetDefaultAgentRequest`](#getdefaultagentrequest)
 
 **Returns**: [`Agent`](#agent)
 
@@ -620,16 +576,6 @@ Input for updating the visibility of any API resource.
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
     visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
-  }}
-/>
-
-### GetDefaultAgentRequest
-
-GetDefaultAgentRequest is the input for retrieving the platform default agent.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization slug for authorization scoping." },
   }}
 />
 

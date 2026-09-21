@@ -5,8 +5,8 @@
  * lane passes GuardReservedLabels structurally (the controller stamps the
  * membership labels by design), so this module is the one place plugin-
  * provided metadata is judged before it can ride that lane. Without it an
- * archive could carry `stigmer.ai/default-agent: "true"` in its agent
- * overlay and become every organization's default agent.
+ * archive could carry any `stigmer.ai/*` label in its overlays and have
+ * the server act on a platform decision the plugin's author made.
  *
  * Four rules, each one sentence with the document's path:
  *   - a `stigmer.ai/*` label costs `can_write_reserved_labels` on

@@ -84,12 +84,20 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object agentInstanceId_ = "";
   /**
    * <pre>
-   * Agent instance this session runs against.
+   * Agent instance this session runs against; empty means no agent, and the
+   * built-in assistant answers with the MCP servers and skills this session
+   * itself declares.
+   *
+   * A session may gain an agent or drop back to the built-in assistant on
+   * update; the harness and execution target are the immutable fields, not
+   * this one.
    *
    * &#64;internal
-   * When empty, the backend resolves the platform default agent
-   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-   * and auto-creates a default instance if needed.
+   * Nothing resolves an empty value into an instance: the run gate makes no
+   * target check (the organization's can_create_session admitted the
+   * conversation and the session's can_create_execution_in admits each
+   * turn), and the runner resolves an agent-less blueprint whose instructions
+   * are the one built-in prompt.
    * </pre>
    *
    * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -110,12 +118,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent instance this session runs against.
+   * Agent instance this session runs against; empty means no agent, and the
+   * built-in assistant answers with the MCP servers and skills this session
+   * itself declares.
+   *
+   * A session may gain an agent or drop back to the built-in assistant on
+   * update; the harness and execution target are the immutable fields, not
+   * this one.
    *
    * &#64;internal
-   * When empty, the backend resolves the platform default agent
-   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-   * and auto-creates a default instance if needed.
+   * Nothing resolves an empty value into an instance: the run gate makes no
+   * target check (the organization's can_create_session admitted the
+   * conversation and the session's can_create_execution_in admits each
+   * turn), and the runner resolves an agent-less blueprint whose instructions
+   * are the one built-in prompt.
    * </pre>
    *
    * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1664,12 +1680,20 @@ java.lang.String defaultValue) {
     private java.lang.Object agentInstanceId_ = "";
     /**
      * <pre>
-     * Agent instance this session runs against.
+     * Agent instance this session runs against; empty means no agent, and the
+     * built-in assistant answers with the MCP servers and skills this session
+     * itself declares.
+     *
+     * A session may gain an agent or drop back to the built-in assistant on
+     * update; the harness and execution target are the immutable fields, not
+     * this one.
      *
      * &#64;internal
-     * When empty, the backend resolves the platform default agent
-     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-     * and auto-creates a default instance if needed.
+     * Nothing resolves an empty value into an instance: the run gate makes no
+     * target check (the organization's can_create_session admitted the
+     * conversation and the session's can_create_execution_in admits each
+     * turn), and the runner resolves an agent-less blueprint whose instructions
+     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1689,12 +1713,20 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent instance this session runs against.
+     * Agent instance this session runs against; empty means no agent, and the
+     * built-in assistant answers with the MCP servers and skills this session
+     * itself declares.
+     *
+     * A session may gain an agent or drop back to the built-in assistant on
+     * update; the harness and execution target are the immutable fields, not
+     * this one.
      *
      * &#64;internal
-     * When empty, the backend resolves the platform default agent
-     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-     * and auto-creates a default instance if needed.
+     * Nothing resolves an empty value into an instance: the run gate makes no
+     * target check (the organization's can_create_session admitted the
+     * conversation and the session's can_create_execution_in admits each
+     * turn), and the runner resolves an agent-less blueprint whose instructions
+     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1715,12 +1747,20 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent instance this session runs against.
+     * Agent instance this session runs against; empty means no agent, and the
+     * built-in assistant answers with the MCP servers and skills this session
+     * itself declares.
+     *
+     * A session may gain an agent or drop back to the built-in assistant on
+     * update; the harness and execution target are the immutable fields, not
+     * this one.
      *
      * &#64;internal
-     * When empty, the backend resolves the platform default agent
-     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-     * and auto-creates a default instance if needed.
+     * Nothing resolves an empty value into an instance: the run gate makes no
+     * target check (the organization's can_create_session admitted the
+     * conversation and the session's can_create_execution_in admits each
+     * turn), and the runner resolves an agent-less blueprint whose instructions
+     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1737,12 +1777,20 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent instance this session runs against.
+     * Agent instance this session runs against; empty means no agent, and the
+     * built-in assistant answers with the MCP servers and skills this session
+     * itself declares.
+     *
+     * A session may gain an agent or drop back to the built-in assistant on
+     * update; the harness and execution target are the immutable fields, not
+     * this one.
      *
      * &#64;internal
-     * When empty, the backend resolves the platform default agent
-     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-     * and auto-creates a default instance if needed.
+     * Nothing resolves an empty value into an instance: the run gate makes no
+     * target check (the organization's can_create_session admitted the
+     * conversation and the session's can_create_execution_in admits each
+     * turn), and the runner resolves an agent-less blueprint whose instructions
+     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1756,12 +1804,20 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent instance this session runs against.
+     * Agent instance this session runs against; empty means no agent, and the
+     * built-in assistant answers with the MCP servers and skills this session
+     * itself declares.
+     *
+     * A session may gain an agent or drop back to the built-in assistant on
+     * update; the harness and execution target are the immutable fields, not
+     * this one.
      *
      * &#64;internal
-     * When empty, the backend resolves the platform default agent
-     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-     * and auto-creates a default instance if needed.
+     * Nothing resolves an empty value into an instance: the run gate makes no
+     * target check (the organization's can_create_session admitted the
+     * conversation and the session's can_create_execution_in admits each
+     * turn), and the runner resolves an agent-less blueprint whose instructions
+     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>

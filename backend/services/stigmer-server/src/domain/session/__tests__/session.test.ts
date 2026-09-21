@@ -1,16 +1,13 @@
 /**
  * Pins the session domain against Go's pkg/domain/session tests — through
  * the REAL stack: a composed server on an ephemeral port, a native gRPC
- * client, the full interceptor chain, and the DD-002 in-process
- * agentinstance CREATE edge (session create's default-instance self-heal
- * runs through the router transport).
+ * client, and the full interceptor chain.
  *
  * The load-bearing pins:
- *   - ResolveDefaultAgentInstance fills the session's agent_instance_id
- *     from the platform default agent (newState, not input — the persisted
- *     session carries it); the on-the-fly default-instance creation path
- *     writes the agent's status.default_instance_id; the not-configured /
- *     not-public arms carry Go WrapError's exact double-wrapped copy;
+ *   - an empty agent_instance_id is the built-in assistant: create stores
+ *     it empty (nothing resolves it into an instance), an explicit id is
+ *     kept as given, and a session may gain an agent or drop back to the
+ *     assistant on update — the instance is not an immutable field;
  *   - harness immutability locks only once harness_state_id is non-empty,
  *     with UNSPECIFIED==NATIVE equivalence in both directions and the
  *     exact FAILED_PRECONDITION copy;
@@ -39,11 +36,8 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -53,7 +47,6 @@ import {
   ExecutionTarget,
   Harness,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { loadConfig } from "../../../boot/config.js";
@@ -70,10 +63,6 @@ import {
   ROUTING_GLOBAL,
   newConfigFromEnv,
 } from "../../agentexecution/temporal/config.js";
-import {
-  DEFAULT_AGENT_LABEL,
-  DEFAULT_AGENT_LABEL_VALUE,
-} from "../../agent/defaultagent.js";
 import { newValidateExecutionTargetImmutabilityStep } from "../steps.js";
 
 const silentLogger = createLogger({
@@ -92,7 +81,6 @@ let dir: string;
 let server: ComposedServer;
 let transport: Transport;
 let agentCommand: Client<typeof AgentCommandController>;
-let instanceQuery: Client<typeof AgentInstanceQueryController>;
 let command: Client<typeof SessionCommandController>;
 let query: Client<typeof SessionQueryController>;
 
@@ -120,7 +108,6 @@ beforeAll(async () => {
   const port = await server.start();
   transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
   agentCommand = createClient(AgentCommandController, transport);
-  instanceQuery = createClient(AgentInstanceQueryController, transport);
   command = createClient(SessionCommandController, transport);
   query = createClient(SessionQueryController, transport);
 });
@@ -139,33 +126,6 @@ async function createAgent(name: string) {
       instructions: "You are a helpful agent used by the session tests.",
     },
   });
-}
-
-/**
- * Stamps the default-agent label (and optionally visibility_public)
- * directly on the stored agent row — the reserved stigmer.ai/* label is
- * operator-seeded state, not something the OSS write path guards, and the
- * direct write keeps the test independent of create-time visibility rules.
- */
-async function markDefaultAgent(
-  agentId: string,
-  opts: { public: boolean },
-): Promise<void> {
-  const stored = await server.store.getResource(
-    ApiResourceKind.agent,
-    agentId,
-    AgentSchema,
-  );
-  stored.metadata!.labels[DEFAULT_AGENT_LABEL] = DEFAULT_AGENT_LABEL_VALUE;
-  if (opts.public) {
-    stored.metadata!.visibility = ApiResourceVisibility.visibility_public;
-  }
-  await server.store.saveResource(
-    ApiResourceKind.agent,
-    agentId,
-    AgentSchema,
-    stored,
-  );
 }
 
 let sessionCounter = 0;
@@ -252,108 +212,36 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   }
 }
 
-// The resolve tests run FIRST: the not-configured arm requires that no
-// agent carries the default-agent label yet, and later tests only create
-// unlabeled agents (or clean their labeled ones up).
-describe("session create — ResolveDefaultAgentInstance", () => {
-  it("rejects a create with no default agent configured (exact NotFound copy, Go's double wrap)", async () => {
-    const error = await grpcError(() => createSession({}));
-    expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(
-      "No default agent available. Ensure an agent with label " +
-        "stigmer.ai/default-agent=true and visibility_public exists: " +
-        "no default agent available on this platform: " +
-        "no agent labeled stigmer.ai/default-agent=true",
-    );
+describe("session create and update — the built-in assistant", () => {
+  it("stores an empty agent_instance_id as given: no agent is resolved for the session", async () => {
+    const session = await createSession({});
+    expect(session.spec?.agentInstanceId).toBe("");
+    const fetched = await query.get({ value: session.metadata!.id });
+    expect(fetched.spec?.agentInstanceId).toBe("");
+    await command.delete({ value: session.metadata!.id });
   });
 
-  it("rejects when the labeled default agent is not visibility_public (exact FailedPrecondition copy)", async () => {
-    const agent = await createAgent("Non Public Default Agent");
-    await markDefaultAgent(agent.metadata!.id, { public: false });
-    try {
-      const error = await grpcError(() => createSession({}));
-      expect(error.code).toBe(Code.FailedPrecondition);
-      expect(error.rawMessage).toBe(
-        "Default agent exists but is not visibility_public: " +
-          "agents labeled stigmer.ai/default-agent=true exist but none is visibility_public",
-      );
-    } finally {
-      await agentCommand.delete({ value: agent.metadata!.id });
-    }
-  });
-
-  it("fills the persisted session's agent_instance_id from the default agent's existing default instance", async () => {
-    const agent = await createAgent("Configured Default Agent");
-    const defaultInstanceId = agent.status!.defaultInstanceId;
-    expect(defaultInstanceId).not.toBe("");
-    await markDefaultAgent(agent.metadata!.id, { public: true });
-    try {
-      const session = await createSession({});
-      // The resolve step wrote newState.spec (the clone Persist saves) —
-      // the id survives the round trip to storage.
-      expect(session.spec?.agentInstanceId).toBe(defaultInstanceId);
-      const fetched = await query.get({ value: session.metadata!.id });
-      expect(fetched.spec?.agentInstanceId).toBe(defaultInstanceId);
-      await command.delete({ value: session.metadata!.id });
-    } finally {
-      await agentCommand.delete({ value: agent.metadata!.id });
-    }
-  });
-
-  it("creates the default instance on the fly and writes the agent's status.default_instance_id", async () => {
-    // Seeded directly: a labeled public agent with NO default instance —
-    // the legacy shape the self-heal path exists for.
-    const agentId = "agt_sessiontest_selfheal";
-    const seeded = create(AgentSchema, {
-      apiVersion: API_VERSION,
-      kind: "Agent",
-      metadata: {
-        id: agentId,
-        name: "Self Heal Default Agent",
-        slug: "self-heal-default-agent",
-        org: ORG,
-        visibility: ApiResourceVisibility.visibility_public,
-        labels: { [DEFAULT_AGENT_LABEL]: DEFAULT_AGENT_LABEL_VALUE },
-      },
-      spec: { instructions: "seeded for the self-heal path" },
-    });
-    await server.store.saveResource(
-      ApiResourceKind.agent,
-      agentId,
-      AgentSchema,
-      seeded,
-    );
-    try {
-      const session = await createSession({});
-      const resolvedId = session.spec?.agentInstanceId ?? "";
-      expect(resolvedId).not.toBe("");
-
-      // The created instance is real (rode the in-process CREATE edge and
-      // its full pipeline) and follows the defaultinstance factory shape.
-      const instance = await instanceQuery.get({ value: resolvedId });
-      expect(instance.spec?.agentId).toBe(agentId);
-      expect(instance.metadata?.slug).toBe("self-heal-default-agent-default");
-
-      // The agent's server-owned pointer was persisted (explicit agent
-      // kind — the pipeline's own ctx kind is session).
-      const storedAgent = await server.store.getResource(
-        ApiResourceKind.agent,
-        agentId,
-        AgentSchema,
-      );
-      expect(storedAgent.status?.defaultInstanceId).toBe(resolvedId);
-
-      await command.delete({ value: session.metadata!.id });
-    } finally {
-      await agentCommand.delete({ value: agentId });
-    }
-  });
-
-  it("is a no-op when agent_instance_id is provided (no default agent needed)", async () => {
-    // No labeled agent exists at this point; an explicit id must not
-    // trigger resolution.
+  it("keeps an explicit agent_instance_id as given", async () => {
     const session = await createSession({ agentInstanceId: "ain_explicit" });
     expect(session.spec?.agentInstanceId).toBe("ain_explicit");
+    await command.delete({ value: session.metadata!.id });
+  });
+
+  it("lets a conversation gain an agent and drop back to the assistant on update", async () => {
+    const session = await createSession({});
+
+    const withAgent = await command.update(
+      updateInput(session, { agentInstanceId: "ain_picked" }),
+    );
+    expect(withAgent.spec?.agentInstanceId).toBe("ain_picked");
+
+    const dropped = await command.update(
+      updateInput(withAgent, { agentInstanceId: "" }),
+    );
+    expect(dropped.spec?.agentInstanceId).toBe("");
+    const fetched = await query.get({ value: session.metadata!.id });
+    expect(fetched.spec?.agentInstanceId).toBe("");
+
     await command.delete({ value: session.metadata!.id });
   });
 });
@@ -714,69 +602,5 @@ describe("session delete — active-execution guard and cascade", () => {
     expect(untouched.spec?.sessionId).toBe(survivor.metadata?.id);
 
     await command.delete({ value: survivor.metadata!.id });
-  });
-});
-
-describe("session create — CreateAsSystem failure wire contract (oss#852)", () => {
-  it("answers the inner code with Go's %w-wrapped transport-formatted message", async () => {
-    // A labeled public default agent with NO status.default_instance_id
-    // (the self-heal shape) whose deterministic default-instance slug is
-    // already occupied: the in-process CreateAsSystem hits CheckDuplicate's
-    // AlreadyExists. Go wraps that error with fmt.Errorf("%w"), so the
-    // wire message embeds grpc-go's `rpc error: code = X desc = ...`
-    // rendering of the inner error — the leak filed as stigmer/stigmer#852,
-    // mirrored byte-for-byte until the both-editions post-cutover fix.
-    const agentId = "agt_wrap_session";
-    const seeded = create(AgentSchema, {
-      apiVersion: API_VERSION,
-      kind: "Agent",
-      metadata: {
-        id: agentId,
-        name: "Wrap Mirror Default Agent",
-        slug: "wrap-mirror-default-agent",
-        org: ORG,
-        visibility: ApiResourceVisibility.visibility_public,
-        labels: { [DEFAULT_AGENT_LABEL]: DEFAULT_AGENT_LABEL_VALUE },
-      },
-      spec: { instructions: "seeded for the wrapped-error mirror test" },
-    });
-    await server.store.saveResource(
-      ApiResourceKind.agent,
-      agentId,
-      AgentSchema,
-      seeded,
-    );
-    const occupier = create(AgentInstanceSchema, {
-      apiVersion: API_VERSION,
-      kind: "AgentInstance",
-      metadata: {
-        id: "ain_wrap_occupied",
-        name: "wrap-mirror-default-agent-default",
-        slug: "wrap-mirror-default-agent-default",
-        org: ORG,
-      },
-      spec: { agentId },
-    });
-    await server.store.saveResource(
-      ApiResourceKind.agent_instance,
-      "ain_wrap_occupied",
-      AgentInstanceSchema,
-      occupier,
-    );
-
-    try {
-      const error = await grpcError(() => createSession({}));
-      expect(error.code).toBe(Code.AlreadyExists);
-      expect(error.rawMessage).toBe(
-        "failed to create default instance for default agent: rpc error: " +
-          "code = AlreadyExists desc = AgentInstance already exists: slug " +
-          "'wrap-mirror-default-agent-default' in org 'acme' " +
-          "(id: ain_wrap_occupied)",
-      );
-    } finally {
-      // The cascade sweeps the occupying instance (spec.agent_id match)
-      // and removes the default-agent label with the agent.
-      await agentCommand.delete({ value: agentId });
-    }
   });
 });

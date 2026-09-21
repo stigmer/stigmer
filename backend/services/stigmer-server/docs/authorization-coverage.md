@@ -14,9 +14,9 @@ Verification notes: every registration map in `src/boot/compose.ts`'s routes clo
 ## Totals
 
 - Registered services: 29 (28 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06; Plugin command + query with the Plugin kind; Project command + query removed with the Project kind).
-- Registered RPC methods: 236.
-- Handler classes: 181 `chain-with-Authorize`, 55 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
-- Annotation classes: 141 `config`, 76 `is_skip_authorization`, 2 `is_public`, 17 `none` (14 apply RPCs + 3 health methods).
+- Registered RPC methods: 235 (Agent getDefault removed with the default-agent lookup: a session with no agent runs the built-in assistant).
+- Handler classes: 180 `chain-with-Authorize`, 55 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
+- Annotation classes: 141 `config`, 75 `is_skip_authorization`, 2 `is_public`, 17 `none` (14 apply RPCs + 3 health methods).
 - What the classes mean under each open-source posture: on a trusted-local server (no authentication) the composed Authorizer is the permissive single-team default and no list scope is composed, so every class admits every caller. Under an authentication posture with no unit Authorizer (`STIGMER_OIDC_ISSUER` set; `src/authorization/posture.ts`) the server composes its BUILT-IN Authorizer and ListReadScope — the cloud's OpenFGA model evaluated over tuples derived from the row — so every `config` lane enforces the model and every list lane marked "a composed ListReadScope narrows" below narrows to the caller's rows. `is_skip_authorization` lanes reach neither Authorizer in either posture: what guards each is the mid-chain step or driver its Handler column names, and a skip lane whose column names nothing is open to every authenticated caller in every edition.
 - Config-annotated methods served by direct handlers: 30, dispositioned at the C2 Stage-4 gate (17 `authorizeDirect`, 9 on the composed channel runtime, 1 deliberate skip, 3 recorded-gap stubs) — the full table before the notes section.
 
@@ -109,7 +109,6 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentCommandController.delete | config: can_delete on agent (field value), error_msg yes | chain-with-Authorize |
 | AgentQueryController.get | config: can_view on agent (field value), error_msg yes | chain-with-Authorize |
 | AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| AgentQueryController.getDefault | is_skip_authorization | chain-with-Authorize |
 
 ## 7. AgentInstance (`src/domain/agentinstance/controller.ts`)
 

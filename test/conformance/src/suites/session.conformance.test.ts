@@ -49,9 +49,10 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// A session needs an AgentInstance to run against. Agent.create provisions a
-// default instance and returns its id on status.default_instance_id, so every
-// test sources a real instance id this way rather than seeding a default agent.
+// An agent-bound session needs an AgentInstance to run against. Agent.create
+// provisions a default instance and returns its id on
+// status.default_instance_id, so every agent-bound test sources a real
+// instance id this way. A session with no instance is the built-in assistant.
 async function provisionAgentInstance(org: string): Promise<string> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -438,21 +439,50 @@ describe("Session conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with no resolvable agent instance (NotFound)", async () => {
+  it("creates a session with no agent (the built-in assistant) and stores the empty instance as given", async () => {
     const { org } = await target.provisionTenancy();
-    // With no agent_instance_id and no platform default agent configured (the
-    // conformance server seeds none), the default-agent resolution fails with
-    // NotFound. This mirrors the agent suite's getDefault-without-a-default case.
-    await expectGrpcCode(
-      () =>
-        clients.sessionCommand.create({
-          apiVersion: SESSION_API_VERSION,
-          kind: SESSION_KIND,
-          metadata: { name: uniqueName("session"), org },
-        }),
-      Code.NotFound,
-      "create without a resolvable agent instance",
-    );
+    // No agent_instance_id: nothing resolves it into an instance. The session
+    // runs the built-in assistant and the empty id is what persists.
+    const created = await clients.sessionCommand.create({
+      apiVersion: SESSION_API_VERSION,
+      kind: SESSION_KIND,
+      metadata: { name: uniqueName("session"), org },
+    });
+    fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
+    expect(created.spec?.agentInstanceId ?? "").toBe("");
+    const fetched = await clients.sessionQuery.get({ value: created.metadata!.id });
+    expect(fetched.spec?.agentInstanceId ?? "").toBe("");
+  });
+
+  it("lets a session gain an agent and drop back to the built-in assistant on update", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentInstanceId = await provisionAgentInstance(org);
+    const created = await clients.sessionCommand.create({
+      apiVersion: SESSION_API_VERSION,
+      kind: SESSION_KIND,
+      metadata: { name: uniqueName("session"), org },
+    });
+    fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
+    const { id, name, slug } = created.metadata!;
+
+    const bound = await clients.sessionCommand.update({
+      apiVersion: SESSION_API_VERSION,
+      kind: SESSION_KIND,
+      metadata: { id, name, slug, org },
+      spec: makeSessionSpec({ agentInstanceId }),
+    });
+    expect(bound.spec?.agentInstanceId).toBe(agentInstanceId);
+
+    // The instance is not an immutable field (the harness and the execution
+    // target are): an empty id on update returns the conversation to the
+    // built-in assistant.
+    const dropped = await clients.sessionCommand.update({
+      apiVersion: SESSION_API_VERSION,
+      kind: SESSION_KIND,
+      metadata: { id, name, slug, org },
+      spec: makeSessionSpec({ agentInstanceId: "" }),
+    });
+    expect(dropped.spec?.agentInstanceId ?? "").toBe("");
   });
 
   it("rejects a duplicate create (contract: AlreadyExists)", async () => {
@@ -473,9 +503,9 @@ describe("Session conformance — negative paths", () => {
   it("rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
-    // agent_instance_id is set so default-agent resolution is skipped and the spec
-    // is valid; the empty name is what must be rejected (slug resolution has
-    // nothing to derive from).
+    // agent_instance_id is set so the spec is an ordinary agent-bound one; the
+    // empty name is what must be rejected (slug resolution has nothing to
+    // derive from).
     await expectGrpcCode(
       () =>
         clients.sessionCommand.create({

@@ -6,11 +6,6 @@
  * the router transport, traversing the whole chain).
  *
  * The load-bearing pins:
- *   - default-agent resolution (stigmer/stigmer#356): NotFound copy when
- *     nothing is labeled; FailedPrecondition copy when labeled agents
- *     exist but none is public; incumbent-wins (LOWEST metadata.id) among
- *     public labeled candidates — an older non-public labeled agent never
- *     wins;
  *   - MCP env-merge semantics: agent-declared entries win, among servers
  *     first-encountered wins, only declaration fields are copied;
  *   - enabled-tools validation (#402): byte-pinned INVALID_ARGUMENT copy
@@ -46,10 +41,6 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
-import {
-  DEFAULT_AGENT_LABEL,
-  DEFAULT_AGENT_LABEL_VALUE,
-} from "../defaultagent.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -196,65 +187,6 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
     throw error;
   }
 }
-
-// The getDefault tests are order-dependent within this describe: the
-// platform default is a GLOBAL singleton, so the empty state must be
-// asserted before any labeled agent exists.
-describe("agent getDefault (platform default resolution, #356)", () => {
-  it("answers NotFound with the configured-hint copy when nothing carries the label", async () => {
-    // org is required for authorization scoping only; resolution is global.
-    const error = await grpcError(() => query.getDefault({ org: ORG }));
-    expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(
-      "No default agent available. Ensure an agent with label " +
-        "stigmer.ai/default-agent=true and visibility_public exists: " +
-        "no agent labeled stigmer.ai/default-agent=true",
-    );
-  });
-
-  it("answers FailedPrecondition when labeled agents exist but none is public", async () => {
-    await command.create(
-      agentInput({
-        name: "Labeled But Org Visible",
-        labels: { [DEFAULT_AGENT_LABEL]: DEFAULT_AGENT_LABEL_VALUE },
-      }),
-    );
-
-    const error = await grpcError(() => query.getDefault({ org: ORG }));
-    expect(error.code).toBe(Code.FailedPrecondition);
-    expect(error.rawMessage).toBe(
-      "Default agent exists but is not visibility_public: agents labeled " +
-        "stigmer.ai/default-agent=true exist but none is visibility_public",
-    );
-  });
-
-  it("serves the incumbent — the LOWEST metadata.id among PUBLIC labeled candidates", async () => {
-    const first = await command.create(
-      agentInput({
-        name: "Public Default One",
-        visibility: ApiResourceVisibility.visibility_public,
-        labels: { [DEFAULT_AGENT_LABEL]: DEFAULT_AGENT_LABEL_VALUE },
-      }),
-    );
-    const second = await command.create(
-      agentInput({
-        name: "Public Default Two",
-        visibility: ApiResourceVisibility.visibility_public,
-        labels: { [DEFAULT_AGENT_LABEL]: DEFAULT_AGENT_LABEL_VALUE },
-      }),
-    );
-
-    const firstId = first.metadata!.id;
-    const secondId = second.metadata!.id;
-    const incumbentId = firstId < secondId ? firstId : secondId;
-
-    // The older NON-public labeled agent (previous test) has a lower id
-    // than both public candidates; incumbent-wins must skip it.
-    // A DIFFERENT org resolves the same singleton — resolution is global.
-    const resolved = await query.getDefault({ org: "globex" });
-    expect(resolved.metadata?.id).toBe(incumbentId);
-  });
-});
 
 describe("agent MCP env merge (merge_mcp_env_specs)", () => {
   it("merges declarations: agent-declared wins, first-encountered server wins, declaration fields copied", async () => {

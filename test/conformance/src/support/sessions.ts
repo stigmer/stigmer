@@ -1,13 +1,14 @@
 // Canonical valid Session fixtures for the conformance suite.
 // Domain: conformance support.
 //
-// Session is the runtime conversation thread that runs against an AgentInstance.
-// Its one structurally meaningful reference is spec.agent_instance_id: when it is
-// empty the server resolves a platform default agent (labeled
-// stigmer.ai/default-agent), which the fresh conformance server does not seed — so
-// the canonical builder always carries an explicit instance id. Suites obtain that
-// id from an Agent fixture: Agent.create provisions a default AgentInstance and
-// returns it on status.default_instance_id (an `ain_…` id).
+// Session is the runtime conversation thread that runs against an AgentInstance,
+// or against none: an empty spec.agent_instance_id is the built-in assistant.
+// The canonical builder carries an explicit instance id so the agent-bound
+// contract is what most suites exercise; the built-in-assistant arm is written
+// inline where it is the thing under test (an empty id, "" — a legal value,
+// not an omission). Suites obtain an instance id from an Agent fixture:
+// Agent.create provisions a default AgentInstance and returns it on
+// status.default_instance_id (an `ain_…` id).
 //
 // Negatives (duplicate, missing name, wrong const fields) are written inline in the
 // suite, matching support/agents.ts and support/environments.ts: this module is
@@ -25,8 +26,8 @@ export const SESSION_API_VERSION = "agentic.stigmer.ai/v1";
 export const SESSION_KIND = "Session";
 
 export interface SessionSpecOptions {
-  // Agent instance the session runs against. Required for clean creation; pass an
-  // Agent fixture's status.default_instance_id (an `ain_…` id).
+  // Agent instance the session runs against: an Agent fixture's
+  // status.default_instance_id (an `ain_…` id), or "" for the built-in assistant.
   agentInstanceId: string;
   // Conversation title; defaults to a stable placeholder.
   subject?: string;

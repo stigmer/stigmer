@@ -26,9 +26,6 @@ vi.mock("../../hooks", () => ({
   useStigmer: () => ({ agent: { getByReference: vi.fn() } }),
 }));
 
-vi.mock("../../agent", () => ({
-  useDefaultAgent: () => ({ agent: null, isLoading: false, error: null }),
-}));
 
 const mockWorkspace = {
   entries: [],

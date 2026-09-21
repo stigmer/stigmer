@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentResolution } from "../agent/index.js";
-import { useDefaultAgent } from "../agent/index.js";
 import { useStigmer } from "../hooks.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
@@ -51,10 +50,10 @@ export interface UseSessionPageFlowOptions {
   /**
    * Who this flow serves. `"guest"` adapts the orchestration to the
    * guest principal's permission model: the session→agent derivation
-   * (`agentInstance.get` → `agent.get`) and the org default-agent
-   * lookup — reads a guest token cannot make — are skipped. Follow-ups
-   * then carry no agent override and simply continue on the session's
-   * bound instance, which is exactly right for a shared-agent page.
+   * (`agentInstance.get` → `agent.get`), a read a guest token cannot
+   * make, is skipped. Follow-ups then carry no agent override and simply
+   * continue on the session's bound instance, which is exactly right for
+   * a shared-agent page.
    * See {@link SessionAudience}.
    *
    * @default "integrator"
@@ -124,7 +123,10 @@ export interface UseSessionPageFlowReturn {
     (mode: InteractionModeOption) => void,
   ];
 
-  /** Currently selected agent reference (derived from session, or overridden by user). */
+  /**
+   * Currently selected agent reference (derived from session, or overridden
+   * by user); `null` is the built-in assistant.
+   */
   readonly agentRef: ResourceRef | null;
   /** Update the agent reference for future follow-ups. */
   readonly setAgentRef: (ref: ResourceRef | null) => void;
@@ -133,10 +135,12 @@ export interface UseSessionPageFlowReturn {
   /** Update the agent resolution. */
   readonly setResolution: (r: AgentResolution | null) => void;
   /**
-   * `true` when the session's agent is the org's default agent.
-   * Used to render the agent chip as non-removable in the composer.
+   * Drop the session's agent: the next follow-up rebinds the session to
+   * the built-in assistant (an empty `agentInstanceId` on the wire), so
+   * the conversation continues without an agent rather than only looking
+   * as if it had. Picking an agent again undoes it.
    */
-  readonly isDefaultAgent: boolean;
+  readonly clearAgent: () => void;
 
   /** Active MCP server configurations for follow-ups. */
   readonly mcpServerUsages: McpServerUsageInput[];
@@ -443,30 +447,49 @@ export function useSessionPageFlow(
   // no-op): the reads are FGA-denied for a guest token, and a guest
   // never overrides the session's agent — `resolution` stays null, so
   // follow-ups continue on the bound instance without an override.
+  // `null` while the session has not loaded; "" once it has and names no
+  // agent (the built-in assistant).
   const sessionInstanceId = conv.session?.spec?.agentInstanceId ?? null;
   const { agentRef: derivedAgentRef } = useAgentRefFromSession(
     isGuest ? null : sessionInstanceId,
   );
-  const { agent: defaultAgent, isLoading: isDefaultAgentLoading } = useDefaultAgent(
-    isGuest ? null : org,
-  );
 
-  const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
-  const [resolution, setResolution] = useState<AgentResolution | null>(null);
-  const [isDefaultAgent, setIsDefaultAgent] = useState(false);
+  const [agentRef, setAgentRefState] = useState<ResourceRef | null>(null);
+  const [resolution, setResolutionState] = useState<AgentResolution | null>(null);
+  // The user dropped the session's agent and no follow-up has carried the
+  // clear to the server yet. Distinguishes "no agent selected because the
+  // person removed it" from "no agent selected because the session has
+  // none", so only the first sends an override.
+  const [agentCleared, setAgentCleared] = useState(false);
   const [agentInitDone, setAgentInitDone] = useState(false);
 
-  if (!agentInitDone && derivedAgentRef && sessionInstanceId && !isDefaultAgentLoading) {
-    setAgentInitDone(true);
-    setAgentRef(derivedAgentRef);
-    setResolution({ mode: "saved", instanceId: sessionInstanceId });
-
-    const isDefault =
-      defaultAgent &&
-      derivedAgentRef.org === defaultAgent.metadata?.org &&
-      derivedAgentRef.slug === defaultAgent.metadata?.slug;
-    setIsDefaultAgent(!!isDefault);
+  // Seed the selection from the session once it is known: its agent when
+  // it names one, nothing when it runs the built-in assistant. Runs once,
+  // so a later pick or clear by the person is never overwritten by a
+  // derived ref arriving after the fact.
+  if (!agentInitDone && sessionInstanceId !== null) {
+    if (sessionInstanceId === "") {
+      setAgentInitDone(true);
+    } else if (derivedAgentRef) {
+      setAgentInitDone(true);
+      setAgentRefState(derivedAgentRef);
+      setResolutionState({ mode: "saved", instanceId: sessionInstanceId });
+    }
   }
+
+  const setAgentRef = useCallback((ref: ResourceRef | null) => {
+    setAgentRefState(ref);
+    if (ref !== null) setAgentCleared(false);
+  }, []);
+  const setResolution = useCallback((r: AgentResolution | null) => {
+    setResolutionState(r);
+    if (r !== null) setAgentCleared(false);
+  }, []);
+  const clearAgent = useCallback(() => {
+    setAgentRefState(null);
+    setResolutionState(null);
+    setAgentCleared(true);
+  }, []);
 
   // -------------------------------------------------------------------------
   // Session spec sync — hydrate workspace, MCP servers, and skills on first load
@@ -519,6 +542,10 @@ export function useSessionPageFlow(
       // mutation. The composer fires this handler without awaiting it,
       // so a rejection would otherwise be an unhandled rejection —
       // failures must land in submitError instead.
+      //
+      // The agent override is tri-state: `undefined` leaves the session's
+      // binding alone; an instance id rebinds it; "" clears it to the
+      // built-in assistant (the server treats an empty id as no agent).
       let agentInstanceIdOverride: string | undefined;
       let runtimeEnv: SessionComposerSubmitContext["runtimeEnv"];
 
@@ -536,6 +563,8 @@ export function useSessionPageFlow(
               agentInstanceIdOverride = defaultId;
             }
           }
+        } else if (agentCleared && sessionInstanceId) {
+          agentInstanceIdOverride = "";
         }
 
         // Evaluated per follow-up so short-lived host credentials are
@@ -580,7 +609,7 @@ export function useSessionPageFlow(
 
       sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, agentCleared, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
   );
 
   // -------------------------------------------------------------------------
@@ -619,7 +648,7 @@ export function useSessionPageFlow(
     setAgentRef,
     resolution,
     setResolution,
-    isDefaultAgent,
+    clearAgent,
     mcpServerUsages,
     setMcpServerUsages,
     skillRefs,

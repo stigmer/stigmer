@@ -15,8 +15,8 @@ experience, themed to match your product.
 
 **Time**: ~10 minutes **Prerequisites**: the local stack running (`stigmer up`),
 Node.js 22.13 or newer, and the Agent you created in
-[Create your Agent](/docs/getting-started/create-agent) — or the built-in
-`assistant` if you're jumping in here.
+[Create your Agent](/docs/getting-started/create-agent) — the embed below pins
+the conversation to it by name.
 
 Here's the result in a fictional product — a support page with the chat
 embedded, from first message to streamed reply:
@@ -132,7 +132,7 @@ function SupportChat() {
     <NewSessionViewer
       org="stigmer"
       audience="endUser"
-      initialAgentRef={{ org: "stigmer", slug: "assistant" }}
+      initialAgentRef={{ org: "stigmer", slug: "support-agent" }}
       onSessionCreated={setSessionId}
     />
   );
@@ -144,8 +144,9 @@ presents it as product chat: your user can't swap the Agent or reconfigure its
 tools — you decided that upstream.
 
 On the local server every resource lives in the `stigmer` Organization, so
-`org="stigmer"` works as written. Swap `assistant` for the slug of the Agent you
-created earlier — `support-agent` — to chat with your own tools and Skills.
+`org="stigmer"` works as written, and `support-agent` is the slug of the Agent
+you created earlier. Leave `initialAgentRef` out and the embed talks to the
+built-in assistant instead, with no tools of its own.
 
 </Step>
 <Step>

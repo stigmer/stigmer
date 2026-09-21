@@ -9,7 +9,7 @@ export interface ChipItem {
   /**
    * Remove handler. When omitted, the chip renders without an X button
    * and with a subtly muted style to signal it is non-removable
-   * (e.g., the session's default agent).
+   * (e.g., a locked agent on a curated page).
    */
   onRemove?: () => void;
   /** Drives visual variant: amber for `needsSetup`, muted+spinner for `loading`/`submitting`. */

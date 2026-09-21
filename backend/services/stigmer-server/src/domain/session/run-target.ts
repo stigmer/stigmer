@@ -1,13 +1,14 @@
 /**
- * The session run-target resolver (P1 sp.run-gate): a session is a
- * conversation bound to ONE agent instance, so its run target is that
- * instance — agent_instance#can_execute on spec.agent_instance_id.
+ * The session run-target resolver (P1 sp.run-gate): a session bound to an
+ * agent instance has that instance as its run target —
+ * agent_instance#can_execute on spec.agent_instance_id.
  *
- * Pure over the record being built. ResolveDefaultAgentInstance runs before
- * the gate and guarantees the id (the caller's, or the platform default
- * agent's default instance), so an empty id here is that step's own
- * refusal already thrown, never a check to make. Read from newState, where
- * the resolution writes — the same clone gotcha steps.ts records.
+ * Pure over the record being built. An empty id is the built-in assistant
+ * (session/v1/spec.proto): there is no blueprint to spend, so the answer is
+ * "no target" and the gate makes no check. What admits the conversation is
+ * the Authorize step ahead of the gate — can_create_session on the
+ * organization — and each turn is admitted by the session's own
+ * can_create_execution_in on the execution chain.
  */
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 

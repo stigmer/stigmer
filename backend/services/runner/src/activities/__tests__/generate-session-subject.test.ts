@@ -139,6 +139,14 @@ describe("generateSessionSubject", () => {
     expect(updated).toEqual([{ sessionId: SESSION_ID, subject: "PostgreSQL B-tree Indexing" }]);
   });
 
+  it("titles the built-in assistant's session from the message alone (no agent anywhere)", async () => {
+    const { client, updated } = fakeClient({ execution: fakeExecution({ agentId: "" }) });
+    await generateSessionSubject(EXECUTION_ID, client, OPTIONS);
+    expect(updated).toHaveLength(1);
+    expect(client.getAgentInstance).not.toHaveBeenCalled();
+    expect(client.getAgent).not.toHaveBeenCalled();
+  });
+
   it("titles a session whose subject is empty (not just the sentinel)", async () => {
     const { client, updated } = fakeClient({ session: fakeSession("") });
     await generateSessionSubject(EXECUTION_ID, client, OPTIONS);
@@ -344,5 +352,11 @@ describe("buildUserPrompt", () => {
 
   it("omits the purpose line when the description is empty", () => {
     expect(buildUserPrompt("m", "a", "")).not.toContain("Agent purpose:");
+  });
+
+  it("omits the agent line entirely for the built-in assistant", () => {
+    const prompt = buildUserPrompt("m", "", "");
+    expect(prompt).not.toContain("Agent:");
+    expect(prompt.endsWith("Generate the title:")).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { BUILT_IN_ASSISTANT_NAME, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { Copy, FileJson, FileText } from "lucide-react";
 import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";
@@ -20,7 +20,7 @@ import {
 
 /** Interactive mutation callbacks for config items in SetupTab. */
 export interface SetupTabMutationCallbacks {
-  /** Remove the current agent. Absent = non-removable (e.g. default agent). */
+  /** Drop the current agent, returning the session to the built-in assistant. Absent = read-only. */
   readonly onRemoveAgent?: () => void;
   /** Remove an MCP server by its org/slug ref. */
   readonly onRemoveMcp?: (ref: ResourceRef) => void;
@@ -48,8 +48,8 @@ export interface SetupTabAutoApprove {
 
 /** Props for {@link SetupTab}. */
 export interface SetupTabProps {
+  /** The session's agent; `null` is the built-in assistant. */
   readonly agentRef: ResourceRef | null;
-  readonly isDefaultAgent: boolean;
   readonly mcpServerUsages: readonly McpServerUsageInput[];
   readonly skillRefs: readonly ResourceRef[];
   readonly sessionVariables: UseSessionVariablesReturn | null;
@@ -106,7 +106,6 @@ export interface SetupTabProps {
  */
 export function SetupTab({
   agentRef,
-  isDefaultAgent,
   mcpServerUsages,
   skillRefs,
   sessionVariables,
@@ -129,11 +128,7 @@ export function SetupTab({
         autoApprove={autoApprove}
       />
 
-      <AgentSection
-        agentRef={agentRef}
-        isDefaultAgent={isDefaultAgent}
-        onRemove={mutations?.onRemoveAgent}
-      />
+      <AgentSection agentRef={agentRef} onRemove={mutations?.onRemoveAgent} />
 
       <McpSection
         mcpServerUsages={mcpServerUsages}
@@ -203,22 +198,24 @@ function RunConfigSection({
 // Agent
 // ---------------------------------------------------------------------------
 
+/**
+ * The session's agent, or its absence: a session with no agent runs the
+ * built-in assistant, which is shown by name as the row itself — the empty
+ * state IS the assistant, not a missing value — with nothing to remove.
+ */
 function AgentSection({
   agentRef,
-  isDefaultAgent,
   onRemove,
 }: {
   agentRef: ResourceRef | null;
-  isDefaultAgent: boolean;
   onRemove?: () => void;
 }) {
   return (
     <FacetSection heading="Agent">
       {agentRef ? (
         <FacetRow
-          meta={isDefaultAgent ? "default" : undefined}
           actions={
-            onRemove && !isDefaultAgent ? (
+            onRemove ? (
               <FacetRemoveButton
                 onClick={onRemove}
                 label={`Remove agent ${agentRef.slug}`}
@@ -229,7 +226,9 @@ function AgentSection({
           <span className="stg:truncate">{agentRef.slug}</span>
         </FacetRow>
       ) : (
-        <FacetEmptyHint>No agent selected — using platform default.</FacetEmptyHint>
+        <FacetRow meta="built-in">
+          <span className="stg:truncate">{BUILT_IN_ASSISTANT_NAME}</span>
+        </FacetRow>
       )}
     </FacetSection>
   );

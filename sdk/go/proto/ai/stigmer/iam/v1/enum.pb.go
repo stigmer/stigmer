@@ -112,10 +112,10 @@ const (
 	// Platform-level permission to introduce or change labels in the
 	// reserved stigmer.ai/* key namespace through client-facing write
 	// boundaries. Gated to platform operators (the seeding machine
-	// account): reserved labels carry platform semantics — most
-	// critically stigmer.ai/default-agent, which selects the platform
-	// default agent served to every organization — so ordinary requests
-	// may echo or remove them but never write them (cloud#320).
+	// account): reserved labels carry platform semantics the server acts
+	// on (the personal-environment marker, the default-instance marker,
+	// plugin membership and lineage) — so ordinary requests may echo or
+	// remove them but never write them (cloud#320).
 	IamPermission_can_write_reserved_labels IamPermission = 37
 	// Platform-level permission to view platform provider standing: the
 	// canary-probe verdicts (health, billing/auth rejections, latency) for

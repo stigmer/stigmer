@@ -13,15 +13,6 @@ test.describe("Session launcher", () => {
     expect(text).toBeTruthy();
   });
 
-  test("no 'Failed to load default agent' error on page load", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(5000);
-
-    const errorText = page.locator('text="Failed to load default agent"');
-    await expect(errorText).toHaveCount(0);
-  });
-
   test("no error when submitting immediately after page load", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -38,12 +29,9 @@ test.describe("Session launcher", () => {
 
     await page.waitForTimeout(3000);
 
-    const loadingError = page.locator('text="Loading default agent"');
-    const failedError = page.locator('text="Failed to load default agent"');
-    const timeoutError = page.locator('text="did not load in time"');
-
-    await expect(loadingError).toHaveCount(0);
-    await expect(failedError).toHaveCount(0);
-    await expect(timeoutError).toHaveCount(0);
+    // With no agent picked the built-in assistant answers: nothing is looked
+    // up before the send, so no agent-resolution error can surface.
+    const agentError = page.locator('text=/agent/i').filter({ hasText: /failed|not found|did not load/i });
+    await expect(agentError).toHaveCount(0);
   });
 });

@@ -4,8 +4,8 @@
  * default instance through the in-process agentinstance client (the
  * agent↔agentinstance mutual edge, wired as a lazy provider in the
  * composition root — sub-project DD-002); delete cascades ALL instances
- * (oss#611) and same-org shares before the agent row; GetDefault serves
- * the platform default-agent resolution (defaultagent.ts).
+ * (oss#611) and same-org shares before the agent row. There is no default
+ * agent to serve: a session with no agent runs the built-in assistant.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local) and
@@ -20,10 +20,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type {
-  AgentId,
-  GetDefaultAgentRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type { AgentId } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   ApiResourceReference,
   UpdateVisibilityInput,
@@ -98,7 +95,6 @@ import {
   newCascadeDeleteInstancesStep,
   newCascadeDeleteSharesStep,
   newCreateDefaultInstanceStep,
-  newLoadDefaultAgentStep,
   newMergeMcpServerEnvSpecsStep,
   newUpdateAgentStatusWithDefaultInstanceStep,
   newValidateEnabledToolsStep,
@@ -136,7 +132,6 @@ export function registerAgentServices(
   router.service(AgentQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    getDefault: (req, ctx) => getDefault(deps, req, ctx),
   });
 }
 
@@ -532,36 +527,6 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentSchema))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.get(TARGET_RESOURCE_KEY) as Agent;
-}
-
-/**
- * GetDefault — the platform default agent (label + visibility_public,
- * incumbent-wins). Used by frontends for the session-first UX where users
- * start a conversation without explicitly selecting an agent.
- */
-async function getDefault(
-  deps: AgentControllerDeps,
-  req: GetDefaultAgentRequest,
-  ctx: HandlerContext,
-): Promise<Agent> {
-  const reqCtx = new RequestContext(
-    AgentQueryController.method.getDefault.input,
-    req,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof AgentQueryController.method.getDefault.input>(
-    "agent-get-default",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(AgentQueryController.method.getDefault, deps.authorizer),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newLoadDefaultAgentStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Agent;

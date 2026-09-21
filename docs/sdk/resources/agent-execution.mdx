@@ -1340,7 +1340,7 @@ SessionSpec defines the configurable properties of a session.
 
 <TypeTable
   type={{
-    agentInstanceId: { type: "string", description: "Agent instance this session runs against." },
+    agentInstanceId: { type: "string", description: "Agent instance this session runs against; empty means no agent, and the built-in assistant answers with the MCP servers and skills this session itself declares." },
     subject: { type: "string", description: "Conversation title for UI display." },
     harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
     harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
