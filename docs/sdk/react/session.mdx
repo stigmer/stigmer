@@ -715,7 +715,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state." },
     sandboxWorkspaceRoot: { type: "string | undefined", description: "Sandbox workspace root for file path normalization, or `undefined` when the session has no git-repo workspace entries." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
-    setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the agent reference for future follow-ups." },
+    setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the agent reference for future follow-ups. `null` is the drop: the same act as clearAgent, reached from the composer's picker." },
     setAutoApproveAll: { type: "(value: boolean) => void", description: "Set the user's explicit session-scoped auto-approve choice. Wired to the Config facet's switch; an explicit `false` wins over both seeds and over an armed in-flight run for everything the client controls (follow-up carry, gate auto-release) — an already-armed run's server-side bypass cannot be revoked mid-run, exactly as with today's gate-time \"Approve & don't ask again\". Never written back to the account preference: the flip is scoped to THIS conversation." },
     setMcpServerUsages: { type: "(usages: McpServerUsageInput[]) => void", description: "Update MCP server configurations." },
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
