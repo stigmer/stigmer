@@ -114,6 +114,7 @@ import {
   sharedNotFound,
   sharingLinkTokenAllowed,
   resolveShareCreateTargets,
+  newAuthorizeMemberAudienceStep,
 } from "./steps.js";
 
 export interface AgentShareControllerDeps {
@@ -815,6 +816,8 @@ async function getSharedProfileForMember(
       ),
     )
     .addStep(newValidateProtoStep())
+    // Membership before existence (steps.ts, AuthorizeMemberAudience).
+    .addStep(newAuthorizeMemberAudienceStep(deps.authorizer))
     .addStep(newLoadShareForMemberProfileStep(deps.store))
     .addStep(newProjectMemberSharedProfileStep(deps.store))
     .build()

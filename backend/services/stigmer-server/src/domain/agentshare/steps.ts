@@ -45,7 +45,13 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import {
+  AUTHORIZATION_UNAVAILABLE_MESSAGE,
+  evaluateAuthorizer,
+} from "../../pipeline/steps/authorize.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
+import type { GetByReferenceDesc } from "../../pipeline/steps/authorize-resolved-target.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
@@ -134,6 +140,71 @@ export function resolveShareCreateTargets(
  */
 export function sharedNotFound(slug: string): ConnectError {
   return notFoundError("Agent", slug);
+}
+
+/**
+ * AuthorizeMemberAudience — the member-profile lane's gate, membership
+ * BEFORE existence: the Java AgentShareGetSharedProfileForMemberHandler
+ * order. getSharedProfileForMember is the signed-in resolution path for a
+ * share URL, and the proto pins its contract: a share that does not exist,
+ * is disabled, or is asked for by someone who is not a member of the
+ * sharing organization all answer the SAME NOT_FOUND, so a share URL
+ * teaches a non-member nothing — not even whether the share exists. A
+ * non-member resolving a public share uses the anonymous lane instead.
+ *
+ * The question is can_view on the organization named in the reference (the
+ * viewer set: members and above), asked live on every call so a revoked
+ * member loses access at once; the RPC is is_skip_authorization because
+ * the target is the reference's organization, not a request field the
+ * annotation can key on. This is deliberately NOT the shared
+ * AuthorizeResolvedTarget step: that step answers deny with
+ * PERMISSION_DENIED, and this lane's wire contract is the indistinguishable
+ * NOT_FOUND above, so the lane keeps its own mapping over the same
+ * evaluation (the decision form checkMyPermission uses). An empty org is
+ * left to the loader's INVALID_ARGUMENT, the proto's own copy for it; an
+ * unavailable authorizer is INTERNAL, never softened into a refusal; the
+ * `internal` class is exempt as everywhere.
+ */
+export function newAuthorizeMemberAudienceStep(
+  authorizer: Authorizer,
+): PipelineStep<GetByReferenceDesc> {
+  return {
+    name: "AuthorizeMemberAudience",
+    async execute(ctx: RequestContext<GetByReferenceDesc>): Promise<void> {
+      const ref = ctx.input;
+      if (ref.org === "" || ctx.callerIdentity.callerClass === "internal") {
+        return;
+      }
+      const decision = await evaluateAuthorizer(
+        authorizer,
+        ctx.callerIdentity,
+        {
+          permission: IamPermission.can_view,
+          resourceKind: ApiResourceKind.organization,
+          resourceId: ref.org,
+        },
+      );
+      switch (decision.kind) {
+        case "allow":
+          return;
+        case "deny":
+        case "not-found":
+          throw sharedNotFound(ref.slug);
+        case "unavailable":
+          throw internalError(
+            decision.cause,
+            AUTHORIZATION_UNAVAILABLE_MESSAGE,
+          );
+        default: {
+          const exhaustive: never = decision;
+          throw internalError(
+            new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
+            AUTHORIZATION_UNAVAILABLE_MESSAGE,
+          );
+        }
+      }
+    },
+  };
 }
 
 /**
