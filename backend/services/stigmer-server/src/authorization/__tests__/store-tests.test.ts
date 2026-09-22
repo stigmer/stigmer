@@ -133,6 +133,7 @@ const SKIPPED_PINNED: ReadonlyArray<string> = [
   "reserved-label-writer :: operator may write reserved labels, tenants may not :: identity_account:machine platform:stigmer :: undeclared-kind",
   "reserved-label-writer :: operator may write reserved labels, tenants may not :: identity_account:mallory platform:stigmer :: undeclared-kind",
   // undeclared-subject-type: identity_provider#platform_user
+  "agent-instance-creation :: the tenant-family case, the agent half from platform_viewer and the organization half at home :: identity_account:mia can_create_instance agent:open-bot :: undeclared-subject-type (identity_provider)",
   "default-instance-inheritance :: managed-org member reaches the default instance of a platform-shared agent :: identity_account:alice can_execute agent_instance:sara-default :: undeclared-subject-type (identity_provider)",
   "default-instance-inheritance :: managed-org member reaches the default instance of a platform-shared agent :: identity_account:alice can_view agent_instance:sara-default :: undeclared-subject-type (identity_provider)",
   "default-instance-inheritance :: managed-org member reaches the default instance of a platform-shared workflow :: identity_account:alice can_execute workflow_instance:onboarding-default :: undeclared-subject-type (identity_provider)",
