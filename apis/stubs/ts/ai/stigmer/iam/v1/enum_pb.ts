@@ -201,12 +201,6 @@ export enum IamPermission {
    * Organization-level permission to create agent shares billed to the
    * organization.
    *
-   * Checked only for CROSS-ORG shares (a share of another org's
-   * marketplace-public agent — decision 013): a public share spends the
-   * sharing org's credits on the open internet, an admin-level act.
-   * Same-org shares keep their Phase A bar (can_edit on the agent), which
-   * already implies membership in the agent's org.
-   *
    * @generated from enum value: can_create_agent_share = 30;
    */
   can_create_agent_share = 30,

@@ -198,11 +198,12 @@ public enum IamPermission
    * Organization-level permission to create agent shares billed to the
    * organization.
    *
-   * Checked only for CROSS-ORG shares (a share of another org's
-   * marketplace-public agent — decision 013): a public share spends the
-   * sharing org's credits on the open internet, an admin-level act.
-   * Same-org shares keep their Phase A bar (can_edit on the agent), which
-   * already implies membership in the agent's org.
+   * &#64;internal
+   * Asked on every share create beside can_edit on the shared agent: a
+   * share spends the organization's credits on the open internet, an
+   * admin-level act, whichever agent it offers. A share's agent lives in
+   * the share's own organization (the AgentShare spec), so the two
+   * questions are always one organization's.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>
@@ -537,11 +538,12 @@ public enum IamPermission
    * Organization-level permission to create agent shares billed to the
    * organization.
    *
-   * Checked only for CROSS-ORG shares (a share of another org's
-   * marketplace-public agent — decision 013): a public share spends the
-   * sharing org's credits on the open internet, an admin-level act.
-   * Same-org shares keep their Phase A bar (can_edit on the agent), which
-   * already implies membership in the agent's org.
+   * &#64;internal
+   * Asked on every share create beside can_edit on the shared agent: a
+   * share spends the organization's credits on the open internet, an
+   * admin-level act, whichever agent it offers. A share's agent lives in
+   * the share's own organization (the AgentShare spec), so the two
+   * questions are always one organization's.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>

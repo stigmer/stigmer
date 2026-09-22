@@ -144,7 +144,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | AgentShareCommandController.apply | none | chain-with-Authorize |
-| AgentShareCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the referenced agent for a same-org share; can_execute on the agent, then can_create_agent_share on the sharing organization for a cross-org share; the Java two-arm consent bar) |
+| AgentShareCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the referenced agent, then can_create_agent_share on the share's organization; the resolve step refuses an agent outside that organization before either is asked) |
 | AgentShareCommandController.update | config: can_edit on agent_share (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentShareCommandController.rotateShareLink | config: can_edit on agent_share (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentShareCommandController.delete | config: can_delete on agent_share (field value), error_msg yes | chain-with-Authorize |

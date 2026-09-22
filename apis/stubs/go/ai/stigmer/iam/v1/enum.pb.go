@@ -83,12 +83,6 @@ const (
 	IamPermission_can_execute_billing_ops IamPermission = 29
 	// Organization-level permission to create agent shares billed to the
 	// organization.
-	//
-	// Checked only for CROSS-ORG shares (a share of another org's
-	// marketplace-public agent — decision 013): a public share spends the
-	// sharing org's credits on the open internet, an admin-level act.
-	// Same-org shares keep their Phase A bar (can_edit on the agent), which
-	// already implies membership in the agent's org.
 	IamPermission_can_create_agent_share IamPermission = 30
 	// Organization-level permission to register channel apps (customer-owned
 	// messaging-platform apps holding webhook and OAuth credentials).

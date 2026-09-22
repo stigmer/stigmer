@@ -312,11 +312,11 @@ describe("agent enabled-tools validation (#402)", () => {
 });
 
 describe("agent cascade delete (oss#611)", () => {
-  it("sweeps ALL instances by spec.agent_id (cross-org included), deletes same-org shares, keeps cross-org shares", async () => {
+  it("sweeps ALL instances by spec.agent_id (cross-org included), deletes same-org shares, keeps a stored cross-org share", async () => {
     const agent = await command.create(
       agentInput({
         name: "Cascade Target",
-        visibility: ApiResourceVisibility.visibility_public,
+        visibility: ApiResourceVisibility.visibility_org,
       }),
     );
     const agentId = agent.metadata!.id;
@@ -358,6 +358,10 @@ describe("agent cascade delete (oss#611)", () => {
       AgentShareSchema,
       sameOrgShare,
     );
+    // A share in another organization is a row no create admits any more
+    // (a share's agent lives in the share's organization); one written
+    // before that rule is still another organization's row, and the
+    // cascade leaves it as it always did.
     const crossOrgShare = create(AgentShareSchema, {
       metadata: { id: "ash_cross_org", name: "cross-org-share", org: "globex" },
       spec: {

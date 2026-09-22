@@ -33,6 +33,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
+import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
@@ -48,7 +49,7 @@ import { createLogger } from "../../../boot/logger.js";
 import type { Store } from "../../../store/interface.js";
 import {
   ORG_REQUIRED_FOR_LOOKUP_MESSAGE,
-  crossOrgAudienceMessage,
+  sameOrgInvariantMessage,
 } from "../constants.js";
 import { findShareByOrgAndSlug, sharingLinkTokenAllowed } from "../steps.js";
 
@@ -126,13 +127,6 @@ async function createTestAgent(name: string, org: string): Promise<Agent> {
 }
 
 /** Flips the agent marketplace-public through the real pipeline (D1). */
-async function makeAgentPublic(agent: Agent): Promise<void> {
-  await agents.updateVisibility({
-    resourceId: agent.metadata!.id,
-    visibility: ApiResourceVisibility.visibility_public,
-  });
-}
-
 /**
  * Writes a skill fixture directly to the store — the established
  * cross-domain fixture pattern (the skill domain is not ported yet, and
@@ -218,7 +212,7 @@ describe("agentshare create", () => {
     expect(err.rawMessage).toBe("Agent not found: no-such-agent");
   });
 
-  it("cross-org ref to a nonexistent agent is NOT_FOUND — no cross-org fallback", async () => {
+  it("an agent_ref naming another organization is FAILED_PRECONDITION with the same-organization copy, before any lookup", async () => {
     const agent = await createTestAgent(
       uniqueName("Cross Org Ghost Agent"),
       ORG,
@@ -230,7 +224,8 @@ describe("agentshare create", () => {
     } as never;
 
     const err = await grpcError(() => shares.create(share));
-    expect(err.code).toBe(Code.NotFound);
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(sameOrgInvariantMessage("some-other-org"));
   });
 
   it("stamps the agent-id pin on the created share", async () => {
@@ -458,11 +453,11 @@ describe("agentshare update", () => {
 // Cross-org contract (Go TestAgentShareController_CrossOrg, decision 013).
 // ---------------------------------------------------------------------------
 
-describe("cross-org shares (decision 013)", () => {
+describe("the same-organization invariant", () => {
   const PROVIDER = "provider-org";
   const CONSUMER = "consumer-org";
 
-  function crossOrgShare(agent: Agent, enabled: boolean) {
+  function shareInAnotherOrg(agent: Agent, enabled: boolean) {
     const share = shareFor(agent, enabled);
     share.metadata.org = CONSUMER;
     share.spec.agentRef = {
@@ -472,155 +467,69 @@ describe("cross-org shares (decision 013)", () => {
     return share;
   }
 
-  it("public agent is shareable cross-org: pin stamped, slug defaulted, profile resolves", async () => {
-    const agent = await createTestAgent(
-      uniqueName("Public Provider Agent"),
+  it("another organization's agent cannot be shared — the same sentence whether the agent exists or not, at any level", async () => {
+    const existing = await createTestAgent(
+      uniqueName("Provider Agent"),
       PROVIDER,
     );
-    await makeAgentPublic(agent);
-
-    const created = await shares.create(crossOrgShare(agent, true));
-    expect(created.metadata?.org).toBe(CONSUMER);
-    expect(created.spec?.agentRef?.org).toBe(PROVIDER);
-    expect(created.metadata?.slug).toBe(agent.metadata!.slug);
-    expect(created.status?.agentId).toBe(agent.metadata!.id);
-
-    const profile = await query.getSharedProfile({
-      org: CONSUMER,
-      slug: created.metadata!.slug,
-    });
-    expect(profile.org).toBe(CONSUMER);
-    expect(profile.name).toBe(agent.metadata!.name);
-  });
-
-  it("non-public agent is NOT_FOUND, indistinguishable from absence", async () => {
-    const agent = await createTestAgent(
-      uniqueName("Private Provider Agent"),
-      PROVIDER,
-    );
-
     const err = await grpcError(() =>
-      shares.create(crossOrgShare(agent, true)),
-    );
-    expect(err.code).toBe(Code.NotFound);
-
-    // The refusal must match a genuinely missing agent — no existence
-    // probe for private slugs (the T09 indistinguishability contract).
-    const ghost = crossOrgShare(agent, true);
-    ghost.spec.agentRef = {
-      ...ghost.spec.agentRef,
-      org: "empty-provider-org",
-    } as never;
-    const ghostErr = await grpcError(() => shares.create(ghost));
-    expect(err.rawMessage).toBe(ghostErr.rawMessage);
-  });
-
-  it("org audience is refused cross-org, on create and on update", async () => {
-    const agent = await createTestAgent(
-      uniqueName("Audience Rule Agent"),
-      PROVIDER,
-    );
-    await makeAgentPublic(agent);
-
-    const orgAudience = crossOrgShare(agent, true);
-    (orgAudience.spec as Record<string, unknown>).audience =
-      AgentShareAudience.org;
-    const createErr = await grpcError(() => shares.create(orgAudience));
-    expect(createErr.code).toBe(Code.FailedPrecondition);
-    expect(createErr.rawMessage).toBe(crossOrgAudienceMessage(PROVIDER));
-
-    const created = await shares.create(crossOrgShare(agent, true));
-    created.spec!.audience = AgentShareAudience.org;
-    const updateErr = await grpcError(() => shares.update(created));
-    expect(updateErr.code).toBe(Code.FailedPrecondition);
-    expect(updateErr.rawMessage).toBe(crossOrgAudienceMessage(PROVIDER));
-  });
-
-  it("non-public dependencies block creation, naming every blocker sorted", async () => {
-    await saveSkill(
-      "skl_private_dep",
-      PROVIDER,
-      "private-skill",
-      ApiResourceVisibility.visibility_private,
-    );
-    await saveSkill(
-      "skl_public_dep",
-      PROVIDER,
-      "public-skill",
-      ApiResourceVisibility.visibility_public,
-    );
-
-    const agent = await agents.create({
-      apiVersion: API_VERSION,
-      kind: "Agent",
-      metadata: { name: uniqueName("Tooling Agent"), org: PROVIDER },
-      spec: {
-        instructions: "You are a tool-using cross-org test agent.",
-        skillRefs: [
-          { kind: ApiResourceKind.skill, slug: "private-skill" },
-          { kind: ApiResourceKind.skill, slug: "public-skill" },
-        ],
-      },
-    });
-    await makeAgentPublic(agent);
-
-    const err = await grpcError(() =>
-      shares.create(crossOrgShare(agent, true)),
+      shares.create(shareInAnotherOrg(existing, true)),
     );
     expect(err.code).toBe(Code.FailedPrecondition);
-    expect(err.rawMessage).toContain("provider-org/private-skill");
-    expect(err.rawMessage).not.toContain("public-skill");
+    expect(err.rawMessage).toBe(sameOrgInvariantMessage(PROVIDER));
 
-    // Same-org sharing of the same agent stays unaffected — the sweep is
-    // a cross-org rule only.
-    await shares.create(shareFor(agent, true));
+    const ghost = shareFor(existing, true);
+    ghost.metadata.org = CONSUMER;
+    ghost.spec.agentRef = {
+      ...ghost.spec.agentRef,
+      org: PROVIDER,
+      slug: "no-such-agent",
+    } as never;
+    const ghostErr = await grpcError(() => shares.create(ghost));
+    expect(ghostErr.code).toBe(Code.FailedPrecondition);
+    expect(ghostErr.rawMessage).toBe(sameOrgInvariantMessage(PROVIDER));
   });
 
-  it("visibility flip fails the profile closed", async () => {
+  it("a stored share whose agent is in another organization fails the profile closed, like a dangling reference", async () => {
     const agent = await createTestAgent(
-      uniqueName("Revocable Agent"),
+      uniqueName("Legacy Provider Agent"),
       PROVIDER,
     );
-    await makeAgentPublic(agent);
-    const created = await shares.create(crossOrgShare(agent, true));
-
-    const ref = { org: CONSUMER, slug: created.metadata!.slug };
-    await query.getSharedProfile(ref);
-
-    await agents.updateVisibility({
-      resourceId: agent.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_private,
+    // A row from before the invariant, written straight to the store.
+    const legacy = create(AgentShareSchema, {
+      apiVersion: API_VERSION,
+      kind: "AgentShare",
+      metadata: {
+        id: "ash_legacy_cross_org",
+        name: "legacy-cross-org",
+        slug: "legacy-cross-org",
+        org: CONSUMER,
+      },
+      spec: {
+        agentRef: {
+          kind: ApiResourceKind.agent,
+          org: PROVIDER,
+          slug: agent.metadata!.slug,
+        },
+        enabled: true,
+        audience: AgentShareAudience.public,
+      },
+      status: { agentId: agent.metadata!.id },
     });
+    await server.store.saveResource(
+      ApiResourceKind.agent_share,
+      legacy.metadata!.id,
+      AgentShareSchema,
+      legacy,
+    );
 
-    const err = await grpcError(() => query.getSharedProfile(ref));
+    const err = await grpcError(() =>
+      query.getSharedProfile({ org: CONSUMER, slug: "legacy-cross-org" }),
+    );
     expect(err.code).toBe(Code.NotFound);
-  });
-
-  it("agent delete leaves the cross-org share failing closed; recreate never rebinds", async () => {
-    const name = uniqueName("Ephemeral Provider Agent");
-    const agent = await createTestAgent(name, PROVIDER);
-    await makeAgentPublic(agent);
-    const created = await shares.create(crossOrgShare(agent, true));
-    const ref = { org: CONSUMER, slug: created.metadata!.slug };
-
-    await agents.delete({ value: agent.metadata!.id });
-
-    // The consumer org's share survives the provider's delete (cross-org
-    // shares are NOT cascaded — not the provider's resource to destroy)
-    // but fails closed.
-    const survived = await query.get({ value: created.metadata!.id });
-    expect(survived.status?.agentId).toBe(agent.metadata!.id);
-    const danglingErr = await grpcError(() => query.getSharedProfile(ref));
-    expect(danglingErr.code).toBe(Code.NotFound);
-
-    // A DIFFERENT public agent later claims the same org/slug: the pin
-    // must keep the old share dark.
-    const recreated = await createTestAgent(name, PROVIDER);
-    await makeAgentPublic(recreated);
-    expect(recreated.metadata!.slug).toBe(agent.metadata!.slug);
-
-    const rebindErr = await grpcError(() => query.getSharedProfile(ref));
-    expect(rebindErr.code).toBe(Code.NotFound);
+    // The row itself is still readable by id — nothing is deleted.
+    const row = await query.get({ value: legacy.metadata!.id });
+    expect(row.status?.agentId).toBe(agent.metadata!.id);
   });
 });
 
@@ -919,21 +828,14 @@ describe("getByAgent", () => {
       uniqueName("Org Scoped List Agent"),
       "gba-provider-org",
     );
-    await makeAgentPublic(agent);
     await shares.create(shareFor(agent, true));
-
-    const crossOrg = shareFor(agent, true);
-    crossOrg.metadata.org = "gba-consumer-org";
-    crossOrg.spec.agentRef = {
-      ...crossOrg.spec.agentRef,
-      org: agent.metadata!.org,
-    } as never;
-    await shares.create(crossOrg);
+    const named = shareFor(agent, true);
+    named.metadata = { ...named.metadata, name: "second link" } as never;
+    await shares.create(named);
 
     const cases: Array<{ org: string; want: number; wantOrg: string }> = [
       { org: "", want: 2, wantOrg: "" },
-      { org: "gba-provider-org", want: 1, wantOrg: "gba-provider-org" },
-      { org: "gba-consumer-org", want: 1, wantOrg: "gba-consumer-org" },
+      { org: "gba-provider-org", want: 2, wantOrg: "gba-provider-org" },
       { org: "gba-bystander-org", want: 0, wantOrg: "" },
     ];
     for (const tt of cases) {
