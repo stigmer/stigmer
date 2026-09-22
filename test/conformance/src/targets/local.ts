@@ -57,7 +57,6 @@ export class LocalTarget implements TargetProfile {
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,
     firstPartyMemoryCapture: true,
-    clientPublicVisibilityWrites: true,
     // No channel runtime in this edition (T02 §0-b) — the suite pins the
     // documented refusal copy on every runtime lane.
     channelMessaging: false,

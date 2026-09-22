@@ -41,10 +41,10 @@
 //     of two sees one; `checkMyPermission(can_edit, organization)` is false
 //     for a member and true for an admin (the console's gates read exactly
 //     this).
-//   - The platform: `checkMyPermission(can_set_public_visibility,
-//     platform:stigmer)` is false for an owner, and a public-visibility
-//     create by an owner is PERMISSION_DENIED — nobody publishes to the
-//     open internet from an organization role.
+//   - The platform: `checkMyPermission(can_view_provider_standing,
+//     platform:stigmer)` is false for an owner — no organization role holds
+//     a platform capability — and the retired public level is refused for
+//     an owner as an invalid level, gated for nobody.
 //   - An unprovisioned caller — admitted idp-shaped, no account — may not
 //     create a blueprint (the sign-in flow's first RPC is provisionMyAccount,
 //     not a write). Where the lane cannot mint one the cell skips VISIBLY.
@@ -558,17 +558,17 @@ describe("role enforcement — the organization: enumeration, membership, the co
   });
 });
 
-describe("role enforcement — the platform: nobody publishes from an organization role", () => {
-  it("checkMyPermission(can_set_public_visibility, platform:stigmer) is false for an owner", async (ctx) => {
+describe("role enforcement — the platform: no organization role holds a platform capability", () => {
+  it("checkMyPermission(can_view_provider_standing, platform:stigmer) is false for an owner", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const result = await lane.clients.iamPolicyQuery.checkMyPermission({
       resource: ref("platform", "stigmer"),
-      relation: "can_set_public_visibility",
+      relation: "can_view_provider_standing",
     });
     expect(result.isAuthorized).toBe(false);
   });
 
-  it("a public-visibility create by an owner is PERMISSION_DENIED", async (ctx) => {
+  it("the retired public level is refused for an owner as an invalid level — gated for nobody", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy).catch(() => undefined));
@@ -581,10 +581,14 @@ describe("role enforcement — the platform: nobody publishes from an organizati
       ...input.metadata,
       visibility: ApiResourceVisibility.visibility_public,
     };
-    await expectGrpcCode(
+    const err = await expectGrpcCode(
       () => lane.clients.agentCommand.create(input),
-      Code.PermissionDenied,
-      "an owner creating a PUBLIC agent",
+      Code.InvalidArgument,
+      "an owner creating an agent at the retired public level",
+    );
+    expect(err.message).toContain(
+      "agent resources cannot be set to visibility_public. " +
+        "Supported visibility levels: visibility_private, visibility_org, visibility_platform.",
     );
   });
 });

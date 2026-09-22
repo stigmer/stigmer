@@ -1,6 +1,6 @@
 // AgentShare conformance — CRUD, the rotatable link token, the anonymous
-// resolution lane's uniform-refusal contract, and the cross-org
-// public-dependency rules (Class A).
+// resolution lane's uniform-refusal contract, and the same-organization
+// invariant on agent_ref (Class A).
 // Domain: conformance suites.
 //
 // An AgentShare is the hosted-chat channel for one agent. Four surfaces
@@ -20,18 +20,17 @@
 //   - The ROTATABLE link token: rotateShareLink is status.share_link_token's
 //     sole writer; after rotation the plain URL dies, the tokened URL
 //     resolves, and a stale token on an UNLOCKED link stays harmless.
-//   - The CROSS-ORG contract (decision 013): sharing another org's agent
-//     requires the agent public, the audience public, and every declared
-//     dependency public — with the blocker-naming refusal pinned. Gated on
-//     clientPublicVisibilityWrites (the happy paths need a public agent,
-//     which only the local single-tenant targets let an ordinary caller
-//     mint); the same-org surface runs everywhere.
+//   - The SAME-ORGANIZATION invariant: a share's agent lives in the share's
+//     own organization. An agent_ref naming another organization is refused
+//     with one FailedPrecondition sentence before any lookup, whether that
+//     organization's slug exists or not, so the share lane is never an
+//     existence probe; another organization's agent is shared by installing
+//     the plugin that carries it and sharing the installed copy.
 //
 // OD-1 exclusion (parent blueprint): the agentshare boot migration is
 // asserted separately, never here.
 import { Code } from "@connectrpc/connect";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -59,17 +58,11 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-async function createAgentFixture(org: string, opts: { public?: boolean } = {}) {
+async function createAgentFixture(org: string) {
   const agent = await clients.agentCommand.create(
     makeAgent({ org, name: uniqueName("shared-agent") }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  if (opts.public === true) {
-    await clients.agentCommand.updateVisibility({
-      resourceId: agent.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_public,
-    });
-  }
   return agent;
 }
 
@@ -451,109 +444,36 @@ describe("AgentShare conformance — the member resolution lane", () => {
   });
 });
 
-describe("AgentShare conformance — the cross-org contract (decision 013)", () => {
-  it("refuses to share another org's non-public agent with the enumeration-safe NotFound", async () => {
+describe("AgentShare conformance — the same-organization invariant", () => {
+  it("refuses an agent_ref naming another organization with one sentence, whether the agent exists or not", async () => {
     const { org: originOrg } = await target.provisionTenancy();
     const { org: sharingOrg } = await target.provisionTenancy();
-    const privateAgent = await createAgentFixture(originOrg);
+    const existing = await createAgentFixture(originOrg);
 
-    // For the sharing org, another org's private agent does not exist —
-    // this create path must not become an existence probe.
-    const err = await expectGrpcCode(
+    const copy =
+      "spec.agent_ref.org must match metadata.org — a share must live in " +
+      `the referenced agent's organization (${originOrg})`;
+
+    const existingErr = await expectGrpcCode(
       () =>
         clients.agentShareCommand.create(
-          makeAgentShare(sharingOrg, privateAgent.metadata!.slug, { agentRefOrg: originOrg }),
-        ),
-      Code.NotFound,
-      "cross-org share of a private agent",
-    );
-    expect(err.rawMessage).toBe(sharedNotFoundMessage(privateAgent.metadata!.slug));
-  });
-
-  it("shares a public agent cross-org, refusing the org audience with the pinned copy", async (ctx) => {
-    // The happy path needs a PUBLIC agent, which only the unguarded local
-    // targets let the ordinary caller mint (the workflow/skill suites'
-    // gating precedent).
-    if (!target.capabilities.clientPublicVisibilityWrites) return ctx.skip();
-    const { org: originOrg } = await target.provisionTenancy();
-    const { org: sharingOrg } = await target.provisionTenancy();
-    const publicAgent = await createAgentFixture(originOrg, { public: true });
-
-    // Org-audience semantics don't carry across the org boundary.
-    const orgAudience = await expectGrpcCode(
-      () =>
-        clients.agentShareCommand.create(
-          makeAgentShare(sharingOrg, publicAgent.metadata!.slug, {
-            agentRefOrg: originOrg,
-            audience: AgentShareAudience.org,
-          }),
+          makeAgentShare(sharingOrg, existing.metadata!.slug, { agentRefOrg: originOrg }),
         ),
       Code.FailedPrecondition,
-      "cross-org share with an org audience",
+      "share of another organization's existing agent",
     );
-    expect(orgAudience.rawMessage).toBe(
-      `a cross-org share must have a public audience — org-audience shares are limited to the agent's own organization (${originOrg})`,
-    );
+    expect(existingErr.rawMessage).toBe(copy);
 
-    // Public audience + public dependency-free agent: the share resolves
-    // for anonymous visitors under the SHARING org's URL.
-    const share = await createShareFixture(sharingOrg, publicAgent.metadata!.slug, {
-      agentRefOrg: originOrg,
-    });
-    const profile = await clients.agentShareQuery.getSharedProfile({
-      org: sharingOrg,
-      slug: share.metadata!.slug,
-    });
-    expect(profile.org).toBe(sharingOrg);
-    expect(profile.name).toBe(publicAgent.metadata?.name);
-  });
-
-  it("names every non-public dependency in the blocker refusal", async (ctx) => {
-    if (!target.capabilities.clientPublicVisibilityWrites) return ctx.skip();
-    const { org: originOrg } = await target.provisionTenancy();
-    const { org: sharingOrg } = await target.provisionTenancy();
-
-    // A public agent whose declared MCP dependency is NOT public — guests
-    // could resolve the agent but its tools would silently vanish, so the
-    // create refuses and names exactly what to publish.
-    const mcpServer = await clients.mcpServerCommand.create({
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "McpServer",
-      metadata: { name: uniqueName("private-dep"), org: originOrg },
-      spec: {
-        description: "non-public dependency for the cross-org blocker pin",
-        serverType: {
-          case: "stdio",
-          value: { command: "npx", args: ["-y", "@modelcontextprotocol/server-everything"] },
-        },
-      },
-    });
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: mcpServer.metadata!.id }));
-
-    const agent = await clients.agentCommand.create(
-      makeAgent({
-        org: originOrg,
-        name: uniqueName("shared-agent"),
-        mcpServerRefs: [mcpServer.metadata!.slug],
-      }),
-    );
-    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    await clients.agentCommand.updateVisibility({
-      resourceId: agent.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_public,
-    });
-
-    const err = await expectGrpcCode(
+    // The same answer for a slug that organization does not hold: the
+    // create path is not an existence probe.
+    const ghostErr = await expectGrpcCode(
       () =>
         clients.agentShareCommand.create(
-          makeAgentShare(sharingOrg, agent.metadata!.slug, { agentRefOrg: originOrg }),
+          makeAgentShare(sharingOrg, "no-such-agent", { agentRefOrg: originOrg }),
         ),
       Code.FailedPrecondition,
-      "cross-org share of an agent with a non-public dependency",
+      "share of another organization's missing agent",
     );
-    expect(err.rawMessage).toBe(
-      `cannot share ${originOrg}/${agent.metadata!.slug} across organizations: ` +
-        `it references resources that are not public: mcp_server ${originOrg}/${mcpServer.metadata!.slug}`,
-    );
+    expect(ghostErr.rawMessage).toBe(copy);
   });
 });

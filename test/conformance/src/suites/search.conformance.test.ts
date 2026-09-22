@@ -20,7 +20,6 @@
 // silently relies on (a flaky pass here would smell of an async index).
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -159,15 +158,14 @@ describe("Search conformance — search mode (text query)", () => {
   });
 });
 
-describe("Search conformance — org & visibility scoping", () => {
-  it("a strict org filter never leaks another org's private resources", async () => {
+describe("Search conformance — org scoping", () => {
+  it("a strict org filter never admits another org's resources, whatever their level", async () => {
     const { org: orgA } = await target.provisionTenancy();
     const { org: orgB } = await target.provisionTenancy();
     const token = uniqueToken();
     const mine = await createAgentNamed(orgA, `scoped-${token}-a`);
     await createAgentNamed(orgB, `scoped-${token}-b`);
 
-    // Strict filter (cross_org_public unset): only orgA's resource.
     const strict = await clients.search.search({
       kinds: [ApiResourceKind.agent],
       org: orgA,
@@ -175,57 +173,15 @@ describe("Search conformance — org & visibility scoping", () => {
     });
     expect(strict.entries.map((e) => e.id)).toEqual([mine.metadata?.id]);
 
-    // cross_org_public widens to PUBLIC resources of other orgs — orgB's
-    // agent is private, so nothing changes.
-    const widened = await clients.search.search({
+    // There is no request shape that widens an org filter: another
+    // organization's rows are reached through the plugins that install
+    // them, never through Search.
+    const theirs = await clients.search.search({
       kinds: [ApiResourceKind.agent],
-      org: orgA,
-      query: token,
-      crossOrgPublic: true,
-    });
-    expect(widened.entries.map((e) => e.id)).toEqual([mine.metadata?.id]);
-  });
-
-  it("cross_org_public admits other orgs' PUBLIC resources; exclude_public removes them", async (ctx) => {
-    // Minting a public resource needs the unguarded local write door (the
-    // agentshare suite's gating precedent).
-    if (!target.capabilities.clientPublicVisibilityWrites) return ctx.skip();
-    const { org: orgA } = await target.provisionTenancy();
-    const { org: orgB } = await target.provisionTenancy();
-    const token = uniqueToken();
-    const mine = await createAgentNamed(orgA, `vis-${token}-mine`);
-    const theirs = await createAgentNamed(orgB, `vis-${token}-public`);
-    await clients.agentCommand.updateVisibility({
-      resourceId: theirs.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_public,
-    });
-
-    // The "All" library scope: my org's resources plus the marketplace.
-    const widened = await clients.search.search({
-      kinds: [ApiResourceKind.agent],
-      org: orgA,
-      query: token,
-      crossOrgPublic: true,
-    });
-    expect(new Set(widened.entries.map((e) => e.id))).toEqual(
-      new Set([mine.metadata?.id, theirs.metadata?.id]),
-    );
-
-    // Strict org filter: the public foreign resource disappears.
-    const strict = await clients.search.search({
-      kinds: [ApiResourceKind.agent],
-      org: orgA,
+      org: orgB,
       query: token,
     });
-    expect(strict.entries.map((e) => e.id)).toEqual([mine.metadata?.id]);
-
-    // exclude_public is an independent subtraction on top of any scope.
-    const excluded = await clients.search.search({
-      kinds: [ApiResourceKind.agent],
-      query: token,
-      excludePublic: true,
-    });
-    expect(excluded.entries.map((e) => e.id)).toEqual([mine.metadata?.id]);
+    expect(theirs.entries.map((e) => e.id)).not.toContain(mine.metadata?.id);
   });
 });
 

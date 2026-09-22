@@ -298,7 +298,7 @@ describe("Agent instance conformance — visibility level validation", () => {
     // contract (both editions build it from the kind's proto config).
     expect(err.message, "both editions emit the same rejection text").toContain(
       "agent_instance resources cannot be set to visibility_platform. " +
-        "Supported visibility levels: visibility_private, visibility_org, visibility_public.",
+        "Supported visibility levels: visibility_private, visibility_org.",
     );
   });
 
@@ -434,7 +434,7 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
         org,
         // The stigmer#573 bypass shape: an explicitly carried level on a
         // plain update. Must be ignored like the slug/org mutations above.
-        visibility: ApiResourceVisibility.visibility_public,
+        visibility: ApiResourceVisibility.visibility_platform,
       },
       spec: makeAgentSpec({ description: "updated alongside a carried level" }),
     });
@@ -467,7 +467,7 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
         id: instance.metadata!.id,
         name: instance.metadata!.name,
         org,
-        visibility: ApiResourceVisibility.visibility_public,
+        visibility: ApiResourceVisibility.visibility_org,
       },
       spec: instance.spec,
     });

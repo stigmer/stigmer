@@ -99,7 +99,6 @@ export class CloudTarget implements TargetProfile {
     // the credential class DD-002 D4 deliberately excludes; the suite
     // pins the create-gate refusal instead (see target.ts).
     firstPartyMemoryCapture: false,
-    clientPublicVisibilityWrites: false,
     // The cloud channel runtime serves installs, conversation participation,
     // and proactive messaging for real — the OSS refusal pins are gated off
     // here (their full behavior needs live provider workspaces; see target.ts).

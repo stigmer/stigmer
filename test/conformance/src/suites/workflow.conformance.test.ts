@@ -615,28 +615,26 @@ describe("Workflow conformance — tagVersion", () => {
 });
 
 describe("Workflow conformance — updateVisibility", () => {
-  it("changes an org-default workflow to public", async () => {
-    // Escalation to PUBLIC is operator-gated in the cloud edition (both
-    // write doors require can_set_public_visibility on platform:stigmer),
-    // and the ordinary conformance user holds no operator grant — see the
-    // capability's doc in targets/target.ts. The gate itself is pinned by
-    // the PermissionDenied case below; this happy path runs where the
-    // caller may publish (the local OSS targets, deliberately unguarded).
-    if (!target.capabilities.clientPublicVisibilityWrites) return;
-
+  it("narrows an org-default workflow to private and widens it back, without moving the definition's audit slot", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
     expect(created.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
 
-    const updated = await clients.workflowCommand.updateVisibility({
+    const narrowed = await clients.workflowCommand.updateVisibility({
       resourceId: created.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_public,
+      visibility: ApiResourceVisibility.visibility_private,
     });
-    expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(narrowed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+
+    const widened = await clients.workflowCommand.updateVisibility({
+      resourceId: created.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    expect(widened.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
 
     // The change is durable and observable via a fresh read.
     const fetched = await clients.workflowQuery.get({ value: created.metadata!.id });
-    expect(fetched.metadata?.visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(fetched.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
 
     // Cross-edition audit-slot contract (stigmer#540): a visibility flip is
     // a lifecycle change, not a definition change, so the live workflow's
@@ -647,30 +645,28 @@ describe("Workflow conformance — updateVisibility", () => {
     expect(fetched.status?.audit?.specAudit?.updatedAt).toEqual(createdSpecUpdatedAt);
   });
 
-  it("rejects escalation to public from a non-operator (PermissionDenied) and leaves the stored level untouched", async () => {
-    // The inverse pin of the happy path above: where the caller holds no
-    // operator grant (the cloud edition), escalation to PUBLIC is a
-    // curation decision the platform team makes — the visibility write door
-    // answers PermissionDenied and the stored level must not move. Skipped
-    // where publishing is self-service (the local OSS targets).
-    if (target.capabilities.clientPublicVisibilityWrites) return;
-
+  it("refuses the retired public level (InvalidArgument, the levels named) and leaves the stored level untouched", async () => {
+    // The level is gone, not gated: both editions refuse it from the kind's
+    // proto config with the same sentence, for every caller.
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
-    expect(created.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
 
-    await expectGrpcCode(
+    const err = await expectGrpcCode(
       () =>
         clients.workflowCommand.updateVisibility({
           resourceId: created.metadata!.id,
           visibility: ApiResourceVisibility.visibility_public,
         }),
-      Code.PermissionDenied,
-      "update workflow visibility to public as a non-operator",
+      Code.InvalidArgument,
+      "update workflow visibility to the retired public level",
+    );
+    expect(err.message, "both editions emit the same rejection text").toContain(
+      "workflow resources cannot be set to visibility_public. " +
+        "Supported visibility levels: visibility_private, visibility_org, visibility_platform.",
     );
 
     const stored = await clients.workflowQuery.get({ value: created.metadata!.id });
-    expect(stored.metadata?.visibility, "the rejected escalation must not change the stored level").toBe(
+    expect(stored.metadata?.visibility, "the refused level must not change the stored one").toBe(
       ApiResourceVisibility.visibility_org,
     );
   });
@@ -680,7 +676,7 @@ describe("Workflow conformance — updateVisibility", () => {
       () =>
         clients.workflowCommand.updateVisibility({
           resourceId: "wfl_doesnotexist",
-          visibility: ApiResourceVisibility.visibility_public,
+          visibility: ApiResourceVisibility.visibility_private,
         }),
       Code.NotFound,
       "updateVisibility unknown id",

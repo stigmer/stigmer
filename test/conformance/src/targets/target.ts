@@ -202,24 +202,6 @@ export interface CapabilityFlags {
   // hold wherever no conversation traffic exists — exactly the state a
   // fresh conformance fixture is in on either edition.
   channelMessaging: boolean;
-  // The conformance caller may set a resource's visibility to PUBLIC — the
-  // only level that crosses every org boundary (the cross-org "explore"
-  // catalog).
-  //
-  // True for the local OSS targets: single-tenant, deliberately unguarded —
-  // the operator owns the store, the same scoping stigmer-cloud#320 applied
-  // to reserved labels.
-  //
-  // False for cloud: public listing is operator-gated at BOTH write doors
-  // (AuthorizeVisibilityTransitionStep on updateVisibility escalation,
-  // GuardPublicVisibilityStep on create-with-public — both requiring
-  // can_set_public_visibility on platform:stigmer), and the ordinary
-  // conformance user holds no platform-operator grant. Where false, the
-  // suite pins the gate itself: escalation to public returns
-  // PermissionDenied and leaves the stored level untouched. Flip or retire
-  // this flag when the harness gains a platform-privileged caller
-  // (stigmer#547) — until then the happy-path pin runs OSS-side only.
-  clientPublicVisibilityWrites: boolean;
   // The org-level OAuth-app configuration surface exists here: the McpServer
   // service's setOrgOAuthApp / getOrgOAuthApp / deleteOrgOAuthApp RPCs (the
   // hosted BYOA lane — an org admin registers their own vendor OAuth app for
