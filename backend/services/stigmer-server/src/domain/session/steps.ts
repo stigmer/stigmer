@@ -44,7 +44,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
-import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
@@ -533,41 +533,33 @@ export function newFilterByAgentInstanceStep(
 
 /**
  * AuthorizeChannelAccess — the Java SessionListByChannelHandler's
- * two-stage authorization, stage one (census lane 3's extra arm,
- * 20260830.01 ruling Q8): an explicit can_view check on the TARGET
- * agent_channel before any session work, so a caller without channel
- * access learns nothing about the channel's sessions. The mid-chain
- * resolved-id evaluation (the is_skip_authorization annotation makes the
- * position-1 step a no-op on this lane); deny copy is the Java handler's
- * byte-pinned "unauthorized to list channel conversations". The blank-id
- * refusal stays FilterByChannel's (the step behind this gate) — the gate
- * checks only a named channel.
+ * two-stage authorization, stage one: an explicit can_view check on the
+ * TARGET agent_channel before any session work, so a caller without
+ * channel access learns nothing about the channel's sessions. The
+ * mid-chain resolved-target evaluation (the is_skip_authorization
+ * annotation makes the position-1 step a no-op on this lane); deny copy is
+ * the Java handler's byte-pinned "unauthorized to list channel
+ * conversations". The blank-id refusal stays FilterByChannel's (the step
+ * behind this gate) — the gate asks nothing when no channel is named.
  */
 export function newAuthorizeChannelAccessStep(
   authorizer: Authorizer,
 ): PipelineStep<typeof SessionQueryController.method.listByChannel.input> {
-  return {
-    name: "AuthorizeChannelAccess",
-    async execute(
-      ctx: RequestContext<
-        typeof SessionQueryController.method.listByChannel.input
-      >,
-    ): Promise<void> {
-      if (ctx.input.channelId === "") {
-        return;
-      }
-      await authorizeResolvedResource(
-        authorizer,
-        ctx.callerIdentity,
-        {
-          permission: IamPermission.can_view,
-          resourceKind: ApiResourceKind.agent_channel,
-          resourceId: ctx.input.channelId,
-        },
-        "unauthorized to list channel conversations",
-      );
-    },
-  };
+  return newAuthorizeResolvedTargetStep(
+    authorizer,
+    ({ input }) =>
+      input.channelId === ""
+        ? []
+        : [
+            {
+              permission: IamPermission.can_view,
+              resourceKind: ApiResourceKind.agent_channel,
+              resourceId: input.channelId,
+              deniedMessage: "unauthorized to list channel conversations",
+            },
+          ],
+    "AuthorizeChannelAccess",
+  );
 }
 
 /**

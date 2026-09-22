@@ -60,6 +60,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newBuildNewStateStep,
@@ -109,6 +113,8 @@ import {
   newValidateShareUpdateStep,
   sharedNotFound,
   sharingLinkTokenAllowed,
+  resolveShareCreateTargets,
+  newAuthorizeMemberAudienceStep,
 } from "./steps.js";
 
 export interface AgentShareControllerDeps {
@@ -176,6 +182,13 @@ async function createShare(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
+    // Before the duplicate check (steps.ts, resolveShareCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveShareCreateTargets,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -491,6 +504,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentShareSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(AgentShareQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as AgentShare;
@@ -797,6 +816,8 @@ async function getSharedProfileForMember(
       ),
     )
     .addStep(newValidateProtoStep())
+    // Membership before existence (steps.ts, AuthorizeMemberAudience).
+    .addStep(newAuthorizeMemberAudienceStep(deps.authorizer))
     .addStep(newLoadShareForMemberProfileStep(deps.store))
     .addStep(newProjectMemberSharedProfileStep(deps.store))
     .build()

@@ -6,8 +6,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * ExecutionContextCommandController handles write operations for ExecutionContext resources.
  * &#64;internal
- * Every write RPC uses is_skip_authorization with a real handler-level check
- * (the framework's declarative FGA options cannot express any of these):
+ * create and apply use is_skip_authorization with a real handler-level check
+ * (the declarative options cannot express the caller-class split); delete
+ * carries the declarative can_edit check on the execution_context:
  *   - create: the caller-class differs by transport. Internal in-process
  *     pipeline calls (agent execution, workflow execution, workflow recovery,
  *     MCP connect) are trusted — the parent operation already authorized the
@@ -19,9 +20,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  *   - apply: intentionally unannotated router — it delegates to create
  *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
  *     pipeline runs under create's handler, authorization included.
- *   - delete: caller must have can_edit on execution_context:&lt;id&gt; (owner-only,
- *     per the execution_context FGA model). The FGA target is the loaded
- *     resource, so it cannot be a declarative method option.
+ *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
+ *     the execution_context model); the server's own cleanup after a run
+ *     writes the store directly and never reaches this RPC.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -188,8 +189,9 @@ public final class ExecutionContextCommandControllerGrpc {
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
    * &#64;internal
-   * Every write RPC uses is_skip_authorization with a real handler-level check
-   * (the framework's declarative FGA options cannot express any of these):
+   * create and apply use is_skip_authorization with a real handler-level check
+   * (the declarative options cannot express the caller-class split); delete
+   * carries the declarative can_edit check on the execution_context:
    *   - create: the caller-class differs by transport. Internal in-process
    *     pipeline calls (agent execution, workflow execution, workflow recovery,
    *     MCP connect) are trusted — the parent operation already authorized the
@@ -201,9 +203,9 @@ public final class ExecutionContextCommandControllerGrpc {
    *   - apply: intentionally unannotated router — it delegates to create
    *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
    *     pipeline runs under create's handler, authorization included.
-   *   - delete: caller must have can_edit on execution_context:&lt;id&gt; (owner-only,
-   *     per the execution_context FGA model). The FGA target is the loaded
-   *     resource, so it cannot be a declarative method option.
+   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
+   *     the execution_context model); the server's own cleanup after a run
+   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public interface AsyncService {
@@ -244,10 +246,9 @@ public final class ExecutionContextCommandControllerGrpc {
      * <pre>
      * Delete an ExecutionContext.
      * &#64;internal
-     * Called when execution completes. Handler-level auth (the FGA target is the
-     * loaded resource, so it cannot be a declarative option): caller must have
-     * can_edit on execution_context:&lt;id&gt;, which the FGA model resolves to the
-     * owner written at create time.
+     * can_edit on the execution_context resolves to the owner written at
+     * create time. The execution machinery deletes a run's context through the
+     * store when the run completes, not through this RPC.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -261,8 +262,9 @@ public final class ExecutionContextCommandControllerGrpc {
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
    * &#64;internal
-   * Every write RPC uses is_skip_authorization with a real handler-level check
-   * (the framework's declarative FGA options cannot express any of these):
+   * create and apply use is_skip_authorization with a real handler-level check
+   * (the declarative options cannot express the caller-class split); delete
+   * carries the declarative can_edit check on the execution_context:
    *   - create: the caller-class differs by transport. Internal in-process
    *     pipeline calls (agent execution, workflow execution, workflow recovery,
    *     MCP connect) are trusted — the parent operation already authorized the
@@ -274,9 +276,9 @@ public final class ExecutionContextCommandControllerGrpc {
    *   - apply: intentionally unannotated router — it delegates to create
    *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
    *     pipeline runs under create's handler, authorization included.
-   *   - delete: caller must have can_edit on execution_context:&lt;id&gt; (owner-only,
-   *     per the execution_context FGA model). The FGA target is the loaded
-   *     resource, so it cannot be a declarative method option.
+   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
+   *     the execution_context model); the server's own cleanup after a run
+   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static abstract class ExecutionContextCommandControllerImplBase
@@ -292,8 +294,9 @@ public final class ExecutionContextCommandControllerGrpc {
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
    * &#64;internal
-   * Every write RPC uses is_skip_authorization with a real handler-level check
-   * (the framework's declarative FGA options cannot express any of these):
+   * create and apply use is_skip_authorization with a real handler-level check
+   * (the declarative options cannot express the caller-class split); delete
+   * carries the declarative can_edit check on the execution_context:
    *   - create: the caller-class differs by transport. Internal in-process
    *     pipeline calls (agent execution, workflow execution, workflow recovery,
    *     MCP connect) are trusted — the parent operation already authorized the
@@ -305,9 +308,9 @@ public final class ExecutionContextCommandControllerGrpc {
    *   - apply: intentionally unannotated router — it delegates to create
    *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
    *     pipeline runs under create's handler, authorization included.
-   *   - delete: caller must have can_edit on execution_context:&lt;id&gt; (owner-only,
-   *     per the execution_context FGA model). The FGA target is the loaded
-   *     resource, so it cannot be a declarative method option.
+   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
+   *     the execution_context model); the server's own cleanup after a run
+   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerStub
@@ -361,10 +364,9 @@ public final class ExecutionContextCommandControllerGrpc {
      * <pre>
      * Delete an ExecutionContext.
      * &#64;internal
-     * Called when execution completes. Handler-level auth (the FGA target is the
-     * loaded resource, so it cannot be a declarative option): caller must have
-     * can_edit on execution_context:&lt;id&gt;, which the FGA model resolves to the
-     * owner written at create time.
+     * can_edit on the execution_context resolves to the owner written at
+     * create time. The execution machinery deletes a run's context through the
+     * store when the run completes, not through this RPC.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -379,8 +381,9 @@ public final class ExecutionContextCommandControllerGrpc {
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
    * &#64;internal
-   * Every write RPC uses is_skip_authorization with a real handler-level check
-   * (the framework's declarative FGA options cannot express any of these):
+   * create and apply use is_skip_authorization with a real handler-level check
+   * (the declarative options cannot express the caller-class split); delete
+   * carries the declarative can_edit check on the execution_context:
    *   - create: the caller-class differs by transport. Internal in-process
    *     pipeline calls (agent execution, workflow execution, workflow recovery,
    *     MCP connect) are trusted — the parent operation already authorized the
@@ -392,9 +395,9 @@ public final class ExecutionContextCommandControllerGrpc {
    *   - apply: intentionally unannotated router — it delegates to create
    *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
    *     pipeline runs under create's handler, authorization included.
-   *   - delete: caller must have can_edit on execution_context:&lt;id&gt; (owner-only,
-   *     per the execution_context FGA model). The FGA target is the loaded
-   *     resource, so it cannot be a declarative method option.
+   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
+   *     the execution_context model); the server's own cleanup after a run
+   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerBlockingV2Stub
@@ -446,10 +449,9 @@ public final class ExecutionContextCommandControllerGrpc {
      * <pre>
      * Delete an ExecutionContext.
      * &#64;internal
-     * Called when execution completes. Handler-level auth (the FGA target is the
-     * loaded resource, so it cannot be a declarative option): caller must have
-     * can_edit on execution_context:&lt;id&gt;, which the FGA model resolves to the
-     * owner written at create time.
+     * can_edit on the execution_context resolves to the owner written at
+     * create time. The execution machinery deletes a run's context through the
+     * store when the run completes, not through this RPC.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -463,8 +465,9 @@ public final class ExecutionContextCommandControllerGrpc {
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
    * &#64;internal
-   * Every write RPC uses is_skip_authorization with a real handler-level check
-   * (the framework's declarative FGA options cannot express any of these):
+   * create and apply use is_skip_authorization with a real handler-level check
+   * (the declarative options cannot express the caller-class split); delete
+   * carries the declarative can_edit check on the execution_context:
    *   - create: the caller-class differs by transport. Internal in-process
    *     pipeline calls (agent execution, workflow execution, workflow recovery,
    *     MCP connect) are trusted — the parent operation already authorized the
@@ -476,9 +479,9 @@ public final class ExecutionContextCommandControllerGrpc {
    *   - apply: intentionally unannotated router — it delegates to create
    *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
    *     pipeline runs under create's handler, authorization included.
-   *   - delete: caller must have can_edit on execution_context:&lt;id&gt; (owner-only,
-   *     per the execution_context FGA model). The FGA target is the loaded
-   *     resource, so it cannot be a declarative method option.
+   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
+   *     the execution_context model); the server's own cleanup after a run
+   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerBlockingStub
@@ -530,10 +533,9 @@ public final class ExecutionContextCommandControllerGrpc {
      * <pre>
      * Delete an ExecutionContext.
      * &#64;internal
-     * Called when execution completes. Handler-level auth (the FGA target is the
-     * loaded resource, so it cannot be a declarative option): caller must have
-     * can_edit on execution_context:&lt;id&gt;, which the FGA model resolves to the
-     * owner written at create time.
+     * can_edit on the execution_context resolves to the owner written at
+     * create time. The execution machinery deletes a run's context through the
+     * store when the run completes, not through this RPC.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -547,8 +549,9 @@ public final class ExecutionContextCommandControllerGrpc {
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
    * &#64;internal
-   * Every write RPC uses is_skip_authorization with a real handler-level check
-   * (the framework's declarative FGA options cannot express any of these):
+   * create and apply use is_skip_authorization with a real handler-level check
+   * (the declarative options cannot express the caller-class split); delete
+   * carries the declarative can_edit check on the execution_context:
    *   - create: the caller-class differs by transport. Internal in-process
    *     pipeline calls (agent execution, workflow execution, workflow recovery,
    *     MCP connect) are trusted — the parent operation already authorized the
@@ -560,9 +563,9 @@ public final class ExecutionContextCommandControllerGrpc {
    *   - apply: intentionally unannotated router — it delegates to create
    *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
    *     pipeline runs under create's handler, authorization included.
-   *   - delete: caller must have can_edit on execution_context:&lt;id&gt; (owner-only,
-   *     per the execution_context FGA model). The FGA target is the loaded
-   *     resource, so it cannot be a declarative method option.
+   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
+   *     the execution_context model); the server's own cleanup after a run
+   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerFutureStub
@@ -616,10 +619,9 @@ public final class ExecutionContextCommandControllerGrpc {
      * <pre>
      * Delete an ExecutionContext.
      * &#64;internal
-     * Called when execution completes. Handler-level auth (the FGA target is the
-     * loaded resource, so it cannot be a declarative option): caller must have
-     * can_edit on execution_context:&lt;id&gt;, which the FGA model resolves to the
-     * owner written at create time.
+     * can_edit on the execution_context resolves to the owner written at
+     * create time. The execution machinery deletes a run's context through the
+     * store when the run completes, not through this RPC.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> delete(

@@ -10,8 +10,9 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // ExecutionContextCommandController handles write operations for ExecutionContext resources.
 //
 // @internal
-// Every write RPC uses is_skip_authorization with a real handler-level check
-// (the framework's declarative FGA options cannot express any of these):
+// create and apply use is_skip_authorization with a real handler-level check
+// (the declarative options cannot express the caller-class split); delete
+// carries the declarative can_edit check on the execution_context:
 //   - create: the caller-class differs by transport. Internal in-process
 //     pipeline calls (agent execution, workflow execution, workflow recovery,
 //     MCP connect) are trusted — the parent operation already authorized the
@@ -23,9 +24,9 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //   - apply: intentionally unannotated router — it delegates to create
 //     (create-or-fail; ExecutionContext has no update RPC) and the delegated
 //     pipeline runs under create's handler, authorization included.
-//   - delete: caller must have can_edit on execution_context:<id> (owner-only,
-//     per the execution_context FGA model). The FGA target is the loaded
-//     resource, so it cannot be a declarative method option.
+//   - delete: can_edit on execution_context:<resource_id> (owner-only, per
+//     the execution_context model); the server's own cleanup after a run
+//     writes the store directly and never reaches this RPC.
 service ExecutionContextCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = execution_context;
 
@@ -54,11 +55,13 @@ service ExecutionContextCommandController {
   // Delete an ExecutionContext.
   //
   // @internal
-  // Called when execution completes. Handler-level auth (the FGA target is the
-  // loaded resource, so it cannot be a declarative option): caller must have
-  // can_edit on execution_context:<id>, which the FGA model resolves to the
-  // owner written at create time.
+  // can_edit on the execution_context resolves to the owner written at
+  // create time. The execution machinery deletes a run's context through the
+  // store when the run completes, not through this RPC.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (ExecutionContext) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = execution_context;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete execution context";
   }
 }

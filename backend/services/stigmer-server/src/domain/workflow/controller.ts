@@ -45,7 +45,6 @@ import {
   ApiResourceKind,
   ApiResourceKindSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   ApiResourceReference,
   UpdateVisibilityInput,
@@ -71,9 +70,13 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
   authorizeDirect,
-  authorizeResolvedResource,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
+import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newAuthorizeVisibilityTransitionStep,
@@ -90,10 +93,7 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import {
-  findResourceBySlug,
-  requireOrgForReference,
-} from "../../pipeline/steps/helpers.js";
+import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
@@ -150,6 +150,7 @@ import {
   newValidateWorkflowSpecStep,
   truncateHash,
 } from "./steps.js";
+import { newLoadWorkflowByReferenceStep } from "./version-resolution.js";
 import type { WorkflowInstanceCreatorProvider } from "./steps.js";
 
 export interface WorkflowControllerDeps {
@@ -192,7 +193,7 @@ export function registerWorkflowServices(
   });
   router.service(WorkflowQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
-    getByReference: (ref) => getByReference(deps, ref),
+    getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
     listVersions: (input, ctx) => listVersions(deps, input, ctx),
     getVersion: (input, ctx) => getVersion(deps, input, callerIdentityOf(ctx)),
   });
@@ -831,130 +832,47 @@ async function get(
   return reqCtx.get(TARGET_RESOURCE_KEY) as Workflow;
 }
 
-/** A 64-hex value is an exact content hash; anything else is a tag. */
-const WORKFLOW_HASH_PATTERN = /^[a-f0-9]{64}$/;
-
 /**
- * getByReference — query.go: slug/org resolution plus version resolution.
- * Empty/"latest" → the current head; a version matching the head's hash or
- * tag → the head; otherwise the audit store by hash or tag, with the
- * snapshot's tag overlaid from the audit column (the source of truth) so
- * callers never see a stale embedded tag after a tag move. Like
- * validateSpec, this branching read flow reads more honestly written
- * directly than as a pipeline (Go's own note).
+ * getByReference — the slug/org read plus the version ladder, as a chain:
+ * Authorize (a no-op under the lane's skip annotation) → ValidateProto →
+ * LoadWorkflowByReference (the ladder, version-resolution.ts) →
+ * AuthorizeResolvedTarget, which asks of the loaded head's id exactly what
+ * `get` asks by id, so a slug reveals nothing a member could not read
+ * through the id. The archived snapshot shares the head's id, so the check
+ * on a versioned read is the check on the head.
  */
 async function getByReference(
   deps: WorkflowControllerDeps,
   ref: ApiResourceReference,
+  ctx: HandlerContext,
 ): Promise<Workflow> {
-  if (ref.slug === "") {
-    throw invalidArgumentError("slug is required in reference");
-  }
-
-  // Workflow is org-scoped: its slug is unique only within an org, so an
-  // empty-org reference is under-specified.
-  requireOrgForReference(ApiResourceKind.workflow, ref.org);
-
-  if (
-    ref.kind !== ApiResourceKind.api_resource_kind_unknown &&
-    ref.kind !== ApiResourceKind.workflow
-  ) {
-    // Go renders both sides with .String(): the NAME for defined values and
-    // the bare NUMBER for unknown ones (proto3 open enums preserve them, and
-    // ref.kind carries no defined_only rule) — enumToJson would throw on the
-    // unknown arm (panel finding).
-    const got = ApiResourceKind[ref.kind] ?? String(ref.kind);
-    throw invalidArgumentError(
-      `kind mismatch: expected ${ApiResourceKind[ApiResourceKind.workflow]}, got ${got}`,
-    );
-  }
-
-  let mainWorkflow: Workflow | undefined;
-  try {
-    mainWorkflow = await findResourceBySlug(
-      deps.store,
-      ApiResourceKind.workflow,
-      WorkflowSchema,
-      ref.slug,
-      ref.org,
-    );
-  } catch (error) {
-    // Go wraps the slug scan's store failure (query.go:110) — without this
-    // the raw storage error would cross the wire as Unknown (panel finding).
-    throw internalError(error, "failed to list workflows");
-  }
-  if (mainWorkflow === undefined) {
-    throw notFoundError("workflow", ref.slug);
-  }
-
-  const version = ref.version.trim();
-  if (version === "" || version === "latest") {
-    return mainWorkflow;
-  }
-
-  if (workflowMatchesVersion(mainWorkflow, version)) {
-    return mainWorkflow;
-  }
-
-  const archived = await findAuditWorkflowByVersion(
-    deps.store,
-    mainWorkflow.metadata!.id,
-    version,
+  const reqCtx = new RequestContext(
+    WorkflowQueryController.method.getByReference.input,
+    ref,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
   );
-  if (archived === undefined) {
-    throw notFoundError("workflow version", `${ref.slug}:${version}`);
-  }
-  return archived;
-}
-
-function workflowMatchesVersion(wf: Workflow, version: string): boolean {
-  if (wf.status === undefined) {
-    return false;
-  }
-  if (WORKFLOW_HASH_PATTERN.test(version)) {
-    return wf.status.versionHash === version;
-  }
-  return wf.metadata?.version?.tag === version;
-}
-
-async function findAuditWorkflowByVersion(
-  store: Store,
-  workflowId: string,
-  version: string,
-): Promise<Workflow | undefined> {
-  let rec: AuditRecord;
-  try {
-    rec = WORKFLOW_HASH_PATTERN.test(version)
-      ? await store.getAuditRecordByHash(
-          ApiResourceKind.workflow,
-          workflowId,
-          version,
-        )
-      : await store.getAuditRecordByTag(
-          ApiResourceKind.workflow,
-          workflowId,
-          version,
-        );
-  } catch (error) {
-    if (error instanceof AuditNotFoundError) {
-      return undefined;
-    }
-    throw internalError(error, "failed to query workflow audit by version");
-  }
-
-  let wf: Workflow;
-  try {
-    wf = fromBinary(WorkflowSchema, rec.data);
-  } catch (error) {
-    throw internalError(error, "failed to decode archived workflow version");
-  }
-  // Overlay the authoritative tag (audit column) onto the snapshot's
-  // metadata.version.tag — the snapshot's embedded tag is only correct as
-  // of archival time.
-  wf.metadata ??= create(ApiResourceMetadataSchema);
-  wf.metadata.version ??= create(ApiResourceMetadataVersionSchema);
-  wf.metadata.version.tag = rec.tag;
-  return wf;
+  await newPipeline<typeof WorkflowQueryController.method.getByReference.input>(
+    "workflow-get-by-reference",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep(newLoadWorkflowByReferenceStep(deps.store))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(WorkflowQueryController.method.get),
+      ),
+    )
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(TARGET_RESOURCE_KEY) as Workflow;
 }
 
 // ---------------------------------------------------------------------------
@@ -996,28 +914,23 @@ async function listVersions(
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveWorkflowBySlugStep(deps.store))
-    .addStep({
-      name: "AuthorizeResolvedWorkflow",
-      async execute(stepCtx): Promise<void> {
-        // The Java WorkflowListVersionsHandler's mid-chain can_view on the
-        // RESOLVED workflow id (20260830.01 ruling Q8 — the DD-007 pattern
-        // "the two traced ListVersions handlers port onto"; the skip
-        // annotation exists because the target resolves from org+slug, not
-        // a request field). Deny copy is the Java handler's byte-pinned
-        // error_msg. The resolve step above already answered NOT_FOUND for
-        // an unknown slug, the load-first order both editions share.
-        await authorizeResolvedResource(
-          deps.authorizer,
-          stepCtx.callerIdentity,
-          {
-            permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.workflow,
-            resourceId: stepCtx.get(LIST_VERSIONS_WORKFLOW_ID_KEY) as string,
-          },
+    // The Java WorkflowListVersionsHandler's mid-chain can_view on the
+    // RESOLVED workflow id (the skip annotation exists because the target
+    // resolves from org+slug, not a request field); the copy is the Java
+    // handler's byte-pinned error_msg, and the resolve step above already
+    // answered NOT_FOUND for an unknown slug, the load-first order both
+    // editions share.
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        versionHistoryTarget(
+          ApiResourceKind.workflow,
           "unauthorized to view workflow version history",
-        );
-      },
-    })
+          LIST_VERSIONS_WORKFLOW_ID_KEY,
+        ),
+        "AuthorizeResolvedWorkflow",
+      ),
+    )
     .addStep(newLoadAndMapWorkflowVersionsStep(deps.store))
     .build()
     .execute(reqCtx);

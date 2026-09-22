@@ -53,7 +53,6 @@ import type {
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
@@ -70,10 +69,12 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
-  authorizeResolvedResource,
-  newAuthorizeStep,
-} from "../../pipeline/steps/authorize.js";
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
+import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
 import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newCleanupIamPoliciesStep,
@@ -677,6 +678,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSkillByReferenceStep(deps.store))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(SkillQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Skill;
@@ -808,26 +815,20 @@ async function listVersions(
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSkillBySlugStep(deps.store))
-    .addStep({
-      name: "AuthorizeResolvedSkill",
-      async execute(stepCtx): Promise<void> {
-        // The Java SkillListVersionsHandler's mid-chain can_view on the
-        // RESOLVED skill id (20260830.01 ruling Q8 — the second of the two
-        // traced ListVersions handlers, DD-007's named pattern). Deny copy
-        // is the Java handler's byte-pinned error_msg; unknown slugs were
-        // already answered NOT_FOUND by the resolve step above.
-        await authorizeResolvedResource(
-          deps.authorizer,
-          stepCtx.callerIdentity,
-          {
-            permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.skill,
-            resourceId: stepCtx.get(LIST_VERSIONS_SKILL_ID_KEY) as string,
-          },
+    // The Java SkillListVersionsHandler's mid-chain can_view on the RESOLVED
+    // skill id; the copy is the Java handler's byte-pinned error_msg, and an
+    // unknown slug was already answered NOT_FOUND by the resolve step above.
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        versionHistoryTarget(
+          ApiResourceKind.skill,
           "unauthorized to view skill version history",
-        );
-      },
-    })
+          LIST_VERSIONS_SKILL_ID_KEY,
+        ),
+        "AuthorizeResolvedSkill",
+      ),
+    )
     .addStep(newLoadAndMapVersionsStep(deps.store))
     .build()
     .execute(reqCtx);

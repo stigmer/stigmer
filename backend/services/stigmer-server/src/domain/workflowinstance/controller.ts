@@ -53,6 +53,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newAuthorizeVisibilityTransitionStep,
@@ -108,6 +112,7 @@ import {
   newRejectDefaultWorkflowInstanceVisibilityUpdateStep,
   newValidateInstanceUpdateStep,
   newValidateSameOrgBusinessRuleStep,
+  resolveWorkflowInstanceCreateTargets,
 } from "./steps.js";
 import type { ParentWorkflowLoaderProvider } from "./steps.js";
 
@@ -182,6 +187,14 @@ async function createInstance(
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadParentWorkflowStep(deps.parentWorkflowLoader, deps.logger))
+    // Before the same-org rule, whose refusal names the parent's organization
+    // (steps.ts, resolveWorkflowInstanceCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveWorkflowInstanceCreateTargets,
+      ),
+    )
     .addStep(newValidateSameOrgBusinessRuleStep(deps.logger))
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -707,6 +720,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, WorkflowInstanceSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(WorkflowInstanceQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as WorkflowInstance;

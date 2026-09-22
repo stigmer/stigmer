@@ -163,36 +163,30 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
     const id = server.metadata!.id;
 
-    // TWO-ARMED ordering pin on the two engine-backed lanes: connect and
-    // startConnect check the engine BEFORE they load and authorize
-    // (connect.ts, start-connect.ts: "connect is not available: Temporal not
-    // configured" is their first arm), so on an enforcing server with no
-    // Temporal an outsider hears FAILED_PRECONDITION where every other
-    // target answers the denial. Disclosed, not the contract: the
-    // authorize-before-precondition order the run gate and
-    // initiateOAuthConnect keep is the one these two should keep as well.
-    // Pinned per shape (scheduleFiring doubles as "a Temporal engine backs
-    // this target", the execution suites' reading) so the fix collapses
-    // both arms to PERMISSION_DENIED visibly.
-    const engineBacked = target.capabilities.scheduleFiring;
-    const engineBackedDenial = (name: string, op: () => Promise<unknown>) =>
-      engineBacked
-        ? expectGrpcCode(op, Code.PermissionDenied, `outsider ${name} on a foreign server`)
-        : expectGrpcCode(
-            op,
-            Code.FailedPrecondition,
-            `outsider ${name} on a Temporal-less server (the engine arm precedes the check)`,
-          );
+    // Ordering pin on the two engine-backed lanes: connect and startConnect
+    // load and authorize BEFORE they check the engine (connect.ts,
+    // start-connect.ts), the authorize-before-precondition order the run gate
+    // and initiateOAuthConnect keep, so an outsider hears the denial on every
+    // target — a Temporal-less server included, where the engine arm used to
+    // answer FAILED_PRECONDITION first and disclose engine state.
     for (const [name, op] of [
-      ["connect", () => outsider.mcpServerCommand.connect({ mcpServerId: id, org })],
-      ["startConnect", () => outsider.mcpServerCommand.startConnect({ mcpServerId: id, org })],
+      [
+        "connect",
+        () => outsider.mcpServerCommand.connect({ mcpServerId: id, org }),
+      ],
+      [
+        "startConnect",
+        () => outsider.mcpServerCommand.startConnect({ mcpServerId: id, org }),
+      ],
     ] as const) {
-      const refused = await engineBackedDenial(name, op);
-      if (engineBacked) {
-        expect(refused.rawMessage, `${name} annotation copy`).toBe(
-          "unauthorized to connect to mcp server",
-        );
-      }
+      const refused = await expectGrpcCode(
+        op,
+        Code.PermissionDenied,
+        `outsider ${name} on a foreign server`,
+      );
+      expect(refused.rawMessage, `${name} annotation copy`).toBe(
+        "unauthorized to connect to mcp server",
+      );
     }
 
     const rpcs: ReadonlyArray<[string, () => Promise<unknown>, string]> = [
@@ -224,7 +218,11 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     // reorder of the two steps shows here (the retired Java edition checked
     // the precondition first and answered FAILED_PRECONDITION).
     const denied = await expectGrpcCode(
-      () => outsider.mcpServerCommand.initiateOAuthConnect({ mcpServerId: id, org }),
+      () =>
+        outsider.mcpServerCommand.initiateOAuthConnect({
+          mcpServerId: id,
+          org,
+        }),
       Code.PermissionDenied,
       "outsider initiateOAuthConnect on a foreign server",
     );
@@ -245,7 +243,11 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
       clients.agentCommand.delete({ value: agent.metadata!.id }),
     );
     const channel = await clients.agentChannelCommand.create(
-      makeSlackAgentChannel(org, uniqueName("authz-channel"), agent.metadata!.slug),
+      makeSlackAgentChannel(
+        org,
+        uniqueName("authz-channel"),
+        agent.metadata!.slug,
+      ),
     );
     fixtures.defer(() =>
       clients.agentChannelCommand.delete({ value: channel.metadata!.id }),
@@ -345,7 +347,8 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     // these six unobserved for a month).
     const observed: Record<string, string> = {};
     for (const [lane, op] of lanes) {
-      observed[lane] = Code[await grpcCodeOf(op, `outsider ${lane} on an unknown execution`)];
+      observed[lane] =
+        Code[await grpcCodeOf(op, `outsider ${lane} on an unknown execution`)];
     }
     expect(observed).toEqual(
       Object.fromEntries(lanes.map(([lane]) => [lane, "NotFound"])),

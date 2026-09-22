@@ -66,9 +66,9 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
   authorizeDirect,
-  authorizeResolvedResource,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
 import {
   generateId,
   setAuditFieldsForCreate,
@@ -426,23 +426,18 @@ async function listByExecution(
         }
       },
     })
-    .addStep({
-      name: "AuthorizeParentExecution",
-      async execute(stepCtx): Promise<void> {
-        // The Java ArtifactListByExecutionHandler's hand-rolled gate
-        // (20260830.01 ruling Q8): can_view on the PARENT execution —
-        // "if you can view an execution, you can list its artifacts."
-        // The two-field dispatch (workflow-execution first, the Java
-        // order) is why the declarative annotation cannot express this
-        // lane and the proto carries is_skip_authorization. Deny copy is
-        // the Java handler's byte-pinned error_msg; a nonexistent id
-        // answers NOT_FOUND through the authorizer's probe — the ruled
-        // uniform unknown-id posture (DD-007 addendum), a recorded
-        // divergence from Java's deny-everyone arm on this lane.
-        const input = stepCtx.input;
-        await authorizeResolvedResource(
-          deps.authorizer,
-          stepCtx.callerIdentity,
+    // The Java ArtifactListByExecutionHandler's gate: can_view on the PARENT
+    // execution — "if you can view an execution, you can list its
+    // artifacts." The two-field dispatch (workflow-execution first, the Java
+    // order) is why the declarative annotation cannot express this lane and
+    // the proto carries is_skip_authorization. Deny copy is the Java
+    // handler's byte-pinned error_msg; a nonexistent id answers NOT_FOUND
+    // through the authorizer's probe — the ruled uniform unknown-id
+    // posture, a recorded divergence from Java's deny-everyone arm here.
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        ({ input }) => [
           {
             permission: IamPermission.can_view,
             resourceKind:
@@ -453,11 +448,12 @@ async function listByExecution(
               input.workflowExecutionId !== ""
                 ? input.workflowExecutionId
                 : input.agentExecutionId,
+            deniedMessage: "unauthorized to list artifacts for this execution",
           },
-          "unauthorized to list artifacts for this execution",
-        );
-      },
-    })
+        ],
+        "AuthorizeParentExecution",
+      ),
+    )
     .addStep({
       name: "QueryArtifactsByExecution",
       async execute(stepCtx): Promise<void> {

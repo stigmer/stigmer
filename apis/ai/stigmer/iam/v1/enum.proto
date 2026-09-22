@@ -172,6 +172,27 @@ enum IamPermission {
   // can_manage_plans because issuing a license to a named customer is a
   // different act, and a different audit line, from editing the catalog.
   can_issue_license = 42;
+
+  // Organization-level permission to create an MCP server in the
+  // organization.
+  //
+  // @internal
+  // An MCP server is a blueprint kind like an agent or a skill, and takes
+  // the same bar (admin). Before this relation existed, McpServer.create
+  // was is_skip_authorization in both editions and any member could author
+  // one; the annotation now names this relation on metadata.org.
+  can_create_mcp_server = 43;
+
+  // Organization-level permission to create an agent instance in the
+  // organization.
+  //
+  // @internal
+  // Asked beside can_create_instance on the parent agent: a personal
+  // instance's organization is the caller's, not the agent's (the
+  // marketplace case keeps cross-org instances), so the parent's permission
+  // alone would leave any metadata.org open. Member-level, the bar of
+  // can_create_session, since an instance exists to be conversed with.
+  can_create_agent_instance = 44;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

@@ -10,13 +10,13 @@
  * Proven by agentinstance.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/agentinstance.test.ts.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize (FGA
- * can_create_instance on the parent agent), CreateIamPolicies, and Publish
+ * Versus Stigmer Cloud, OSS excludes the CreateIamPolicies and Publish
  * steps. Deliberately NO same-org rule on create, unlike WorkflowInstance:
  * an agent is a shareable blueprint, and one agent legitimately has
- * instances in several orgs (the marketplace case) — cloud governs
- * cross-org creation with FGA on the parent agent; OSS has no
- * authorization layer, so cross-org creation is allowed.
+ * instances in several orgs (the marketplace case). What governs a
+ * cross-org instance in both editions is the create lane's authorization
+ * (steps.ts, resolveInstanceCreateTargets): the caller's standing in the
+ * instance's organization and on the parent agent.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -47,6 +47,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newAuthorizeVisibilityTransitionStep,
@@ -106,6 +110,7 @@ import {
   newLoadParentAgentStep,
   newRejectDefaultInstanceVisibilityUpdateStep,
   newValidateInstanceUpdateStep,
+  resolveInstanceCreateTargets,
 } from "./steps.js";
 import type { ParentAgentLoaderProvider } from "./steps.js";
 
@@ -181,6 +186,14 @@ async function createInstance(
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadParentAgentStep(deps.parentAgentLoader, deps.logger))
+    // Before the duplicate check, so a refused caller learns nothing about
+    // which slugs exist (steps.ts, resolveInstanceCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveInstanceCreateTargets,
+      ),
+    )
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardPublicVisibilityStep(deps.authorizer))
@@ -548,6 +561,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentInstanceSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(AgentInstanceQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as AgentInstance;

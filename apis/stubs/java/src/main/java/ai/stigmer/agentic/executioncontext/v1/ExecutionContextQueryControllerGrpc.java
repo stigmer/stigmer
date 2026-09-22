@@ -6,10 +6,14 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * ExecutionContextQueryController handles read operations for ExecutionContext resources.
  * &#64;internal
- * Authorization: All RPCs use is_skip_authorization with handler-level auth.
- * In cloud, the handler performs a direct FGA check: can_view on
- * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
- * time by the create pipeline. OSS enforces no authorization.
+ * Authorization: get carries the declarative can_view check on the
+ * execution_context (the owner written at creation time, in both editions);
+ * getByReference authorizes the loaded row exactly as get does, after the
+ * slug lookup; getByExecutionId is the runner's token lane and skips the
+ * declarative check for the reason its own comment gives. An execution's
+ * context is created by the server acting as itself, so under enforcement
+ * only the server reads it; a connect's context is created as the connecting
+ * person, who may read it.
  * Secret handling (both editions, stigmer#535): values with is_secret=true
  * are encrypted at rest and redacted (***REDACTED***) for user-class callers
  * on every read RPC; only getByExecutionId can return decrypted values, and
@@ -180,10 +184,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
-   * In cloud, the handler performs a direct FGA check: can_view on
-   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
-   * time by the create pipeline. OSS enforces no authorization.
+   * Authorization: get carries the declarative can_view check on the
+   * execution_context (the owner written at creation time, in both editions);
+   * getByReference authorizes the loaded row exactly as get does, after the
+   * slug lookup; getByExecutionId is the runner's token lane and skips the
+   * declarative check for the reason its own comment gives. An execution's
+   * context is created by the server acting as itself, so under enforcement
+   * only the server reads it; a connect's context is created as the connecting
+   * person, who may read it.
    * Secret handling (both editions, stigmer#535): values with is_secret=true
    * are encrypted at rest and redacted (***REDACTED***) for user-class callers
    * on every read RPC; only getByExecutionId can return decrypted values, and
@@ -196,7 +204,6 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -209,7 +216,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * is_skip_authorization because the target is a slug the declarative check
+     * cannot key on; the handler loads the row and authorizes it exactly as
+     * get does (can_view, the same copy). Org is required in the reference.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -248,10 +257,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
-   * In cloud, the handler performs a direct FGA check: can_view on
-   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
-   * time by the create pipeline. OSS enforces no authorization.
+   * Authorization: get carries the declarative can_view check on the
+   * execution_context (the owner written at creation time, in both editions);
+   * getByReference authorizes the loaded row exactly as get does, after the
+   * slug lookup; getByExecutionId is the runner's token lane and skips the
+   * declarative check for the reason its own comment gives. An execution's
+   * context is created by the server acting as itself, so under enforcement
+   * only the server reads it; a connect's context is created as the connecting
+   * person, who may read it.
    * Secret handling (both editions, stigmer#535): values with is_secret=true
    * are encrypted at rest and redacted (***REDACTED***) for user-class callers
    * on every read RPC; only getByExecutionId can return decrypted values, and
@@ -271,10 +284,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
-   * In cloud, the handler performs a direct FGA check: can_view on
-   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
-   * time by the create pipeline. OSS enforces no authorization.
+   * Authorization: get carries the declarative can_view check on the
+   * execution_context (the owner written at creation time, in both editions);
+   * getByReference authorizes the loaded row exactly as get does, after the
+   * slug lookup; getByExecutionId is the runner's token lane and skips the
+   * declarative check for the reason its own comment gives. An execution's
+   * context is created by the server acting as itself, so under enforcement
+   * only the server reads it; a connect's context is created as the connecting
+   * person, who may read it.
    * Secret handling (both editions, stigmer#535): values with is_secret=true
    * are encrypted at rest and redacted (***REDACTED***) for user-class callers
    * on every read RPC; only getByExecutionId can return decrypted values, and
@@ -298,7 +315,6 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -312,7 +328,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * is_skip_authorization because the target is a slug the declarative check
+     * cannot key on; the handler loads the row and authorizes it exactly as
+     * get does (can_view, the same copy). Org is required in the reference.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -353,10 +371,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
-   * In cloud, the handler performs a direct FGA check: can_view on
-   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
-   * time by the create pipeline. OSS enforces no authorization.
+   * Authorization: get carries the declarative can_view check on the
+   * execution_context (the owner written at creation time, in both editions);
+   * getByReference authorizes the loaded row exactly as get does, after the
+   * slug lookup; getByExecutionId is the runner's token lane and skips the
+   * declarative check for the reason its own comment gives. An execution's
+   * context is created by the server acting as itself, so under enforcement
+   * only the server reads it; a connect's context is created as the connecting
+   * person, who may read it.
    * Secret handling (both editions, stigmer#535): values with is_secret=true
    * are encrypted at rest and redacted (***REDACTED***) for user-class callers
    * on every read RPC; only getByExecutionId can return decrypted values, and
@@ -380,7 +402,6 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -393,7 +414,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * is_skip_authorization because the target is a slug the declarative check
+     * cannot key on; the handler loads the row and authorizes it exactly as
+     * get does (can_view, the same copy). Org is required in the reference.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -432,10 +455,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
-   * In cloud, the handler performs a direct FGA check: can_view on
-   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
-   * time by the create pipeline. OSS enforces no authorization.
+   * Authorization: get carries the declarative can_view check on the
+   * execution_context (the owner written at creation time, in both editions);
+   * getByReference authorizes the loaded row exactly as get does, after the
+   * slug lookup; getByExecutionId is the runner's token lane and skips the
+   * declarative check for the reason its own comment gives. An execution's
+   * context is created by the server acting as itself, so under enforcement
+   * only the server reads it; a connect's context is created as the connecting
+   * person, who may read it.
    * Secret handling (both editions, stigmer#535): values with is_secret=true
    * are encrypted at rest and redacted (***REDACTED***) for user-class callers
    * on every read RPC; only getByExecutionId can return decrypted values, and
@@ -459,7 +486,6 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -472,7 +498,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * is_skip_authorization because the target is a slug the declarative check
+     * cannot key on; the handler loads the row and authorizes it exactly as
+     * get does (can_view, the same copy). Org is required in the reference.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -511,10 +539,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
-   * In cloud, the handler performs a direct FGA check: can_view on
-   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
-   * time by the create pipeline. OSS enforces no authorization.
+   * Authorization: get carries the declarative can_view check on the
+   * execution_context (the owner written at creation time, in both editions);
+   * getByReference authorizes the loaded row exactly as get does, after the
+   * slug lookup; getByExecutionId is the runner's token lane and skips the
+   * declarative check for the reason its own comment gives. An execution's
+   * context is created by the server acting as itself, so under enforcement
+   * only the server reads it; a connect's context is created as the connecting
+   * person, who may read it.
    * Secret handling (both editions, stigmer#535): values with is_secret=true
    * are encrypted at rest and redacted (***REDACTED***) for user-class callers
    * on every read RPC; only getByExecutionId can return decrypted values, and
@@ -538,7 +570,6 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
      * Secret values are redacted in both editions.
      * </pre>
      */
@@ -552,7 +583,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * is_skip_authorization because the target is a slug the declarative check
+     * cannot key on; the handler loads the row and authorizes it exactly as
+     * get does (can_view, the same copy). Org is required in the reference.
      * Secret values are redacted in both editions.
      * </pre>
      */

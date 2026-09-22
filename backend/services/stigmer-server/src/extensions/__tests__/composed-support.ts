@@ -23,7 +23,7 @@
  */
 import path from "node:path";
 
-import type { DescService } from "@bufbuild/protobuf";
+import type { DescMethod, DescService } from "@bufbuild/protobuf";
 import type {
   ConnectRouter,
   Interceptor,
@@ -94,11 +94,30 @@ export function bearer(token: string): Interceptor {
 export function servedServices(
   routes: (router: ConnectRouter) => void,
 ): DescService[] {
-  const served: DescService[] = [];
+  return servedRegistrations(routes).map((r) => r.service);
+}
+
+/** One `router.service(desc, implementation)` registration, as replayed. */
+export interface ServedRegistration {
+  readonly service: DescService;
+  readonly implementation: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * The registrations themselves, with each service's implementation map,
+ * for a reader that must know which of a service's methods are actually
+ * served: a partially implemented service (a method registered only when
+ * a composed capability carries it) lists the method on its descriptor
+ * and omits it from the map, and ConnectRPC answers UNIMPLEMENTED for it.
+ */
+export function servedRegistrations(
+  routes: (router: ConnectRouter) => void,
+): ServedRegistration[] {
+  const served: ServedRegistration[] = [];
   const recorder = {
     handlers: [],
-    service(desc: DescService) {
-      served.push(desc);
+    service(desc: DescService, implementation: Record<string, unknown>) {
+      served.push({ service: desc, implementation });
       return recorder;
     },
     rpc() {
@@ -107,6 +126,21 @@ export function servedServices(
   };
   routes(recorder as unknown as ConnectRouter);
   return served;
+}
+
+/** The methods a composed server actually serves: on a registered service AND in its implementation map. */
+export function servedMethods(
+  routes: (router: ConnectRouter) => void,
+): DescMethod[] {
+  const methods: DescMethod[] = [];
+  for (const { service, implementation } of servedRegistrations(routes)) {
+    for (const method of service.methods) {
+      if (method.localName in implementation) {
+        methods.push(method);
+      }
+    }
+  }
+  return methods;
 }
 
 /** A gRPC transport to the composed server on `port`, presenting `token` when given. */

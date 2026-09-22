@@ -66,6 +66,10 @@ import {
   authorizeDirect,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -110,6 +114,7 @@ import {
   newResolveChannelDefaultsStep,
   newTeardownChannelRuntimeStep,
   newValidateChannelUpdateStep,
+  resolveChannelCreateTargets,
 } from "./steps.js";
 
 export interface AgentChannelControllerDeps {
@@ -189,6 +194,14 @@ async function createChannel(
         deps.store,
         deps.modelRegistry,
         deps.channelRuntime,
+      ),
+    )
+    // Before the duplicate check and the install state (steps.ts,
+    // resolveChannelCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveChannelCreateTargets,
       ),
     )
     .addStep(newResolveSlugStep())
@@ -499,6 +512,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentChannelSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(AgentChannelQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as AgentChannel;

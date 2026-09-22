@@ -25,11 +25,10 @@
 //     with no role on the organization — is PERMISSION_DENIED on an
 //     existing row and NOT_FOUND on a missing id (the Authorizer's
 //     existence probe: a missing target is never dressed as a denial).
-//     `McpServer.create` has no `can_create_*` relation in the model and a
-//     skip annotation on the wire, so a MEMBER IS ADMITTED today — pinned
-//     as such, by name, so the pin flips visibly when the model and the
-//     annotation gain the line (the parent's finding; see the header of
-//     `createAsMember` below).
+//     `McpServer.create` takes the same admin bar (`can_create_mcp_server`)
+//     since the annotation and the model line landed; before that a member
+//     authored MCP servers in both editions, and this suite pinned the
+//     admission by name so the line's arrival flipped it visibly.
 //   - Personal rows (a session, an environment, an API key): the person's
 //     own; another member and the organization's ADMIN are refused on
 //     `get`, and every list — theirs, the admin's — omits the row. The
@@ -151,9 +150,6 @@ const ORG_VISIBLE = ApiResourceVisibility.visibility_org;
 // `updateVisibility` for skills, which are pushed, never updated.
 interface BlueprintKind {
   readonly name: string;
-  // Whether a MEMBER's create is admitted today (the mcp_server exception,
-  // pinned by name in the arm).
-  readonly memberCreateAdmitted: boolean;
   create(
     using: ConformanceClients,
     org: string,
@@ -167,7 +163,6 @@ interface BlueprintKind {
 const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
   {
     name: "agent",
-    memberCreateAdmitted: false,
     async create(using, org, visibility) {
       const input = makeAgent({ org, name: uniqueName("role-agent") });
       input.metadata = { ...input.metadata, visibility };
@@ -186,7 +181,6 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
   },
   {
     name: "workflow",
-    memberCreateAdmitted: false,
     async create(using, org, visibility) {
       const input = makeWorkflow({ org, name: uniqueName("role-wf") });
       input.metadata = { ...input.metadata, visibility };
@@ -205,7 +199,6 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
   },
   {
     name: "skill",
-    memberCreateAdmitted: false,
     async create(using, org, visibility) {
       const pushed = await using.skillCommand.push({
         org,
@@ -230,11 +223,6 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
   },
   {
     name: "mcp_server",
-    // `McpServer.create` is `is_skip_authorization` and the model declares
-    // no `can_create_mcp_server` — in either edition. A member authors MCP
-    // servers today. Pinned so the day the line lands, this arm flips red
-    // and is corrected with it, never silently.
-    memberCreateAdmitted: true,
     async create(using, org, visibility) {
       const input = makeMcpServer({ org, name: uniqueName("role-mcp") });
       input.metadata = { ...input.metadata, visibility };
@@ -358,27 +346,14 @@ describe("role enforcement — blueprints: who may read, edit, delete and create
       );
     });
 
-    it(
-      kind.memberCreateAdmitted
-        ? "a member's create is ADMITTED — the kind has no can_create relation and a skip annotation (the parent's finding; pinned to flip visibly)"
-        : "a member may not create — can_create is the admin's",
-      async (ctx) => {
-        const c = castOrSkip(ctx);
-        if (kind.memberCreateAdmitted) {
-          const id = await kind.create(c.member, c.org, PRIVATE);
-          fixtures.defer(() => kind.delete(c.owner, id).catch(() => undefined));
-          expect(id, `a member's ${kind.name} create answers a row`).not.toBe(
-            "",
-          );
-          return;
-        }
-        await expectGrpcCode(
-          () => kind.create(c.member, c.org, PRIVATE),
-          Code.PermissionDenied,
-          `member create of a ${kind.name}`,
-        );
-      },
-    );
+    it("a member may not create — can_create is the admin's", async (ctx) => {
+      const c = castOrSkip(ctx);
+      await expectGrpcCode(
+        () => kind.create(c.member, c.org, PRIVATE),
+        Code.PermissionDenied,
+        `member create of a ${kind.name}`,
+      );
+    });
   });
 });
 

@@ -62,6 +62,10 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -116,6 +120,7 @@ import { newClearSchedulePauseStep } from "./resume.js";
 import {
   newResolveScheduleDefaultsStep,
   newValidateScheduleUpdateStep,
+  resolveScheduleCreateTargets,
 } from "./steps.js";
 import {
   TRIGGER_RESULT_KEY,
@@ -201,6 +206,15 @@ async function createSchedule(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveScheduleDefaultsStep(deps))
+    // Before the duplicate check and before ArmSchedule: a refused caller
+    // learns nothing about existing slugs and costs no Temporal schedule
+    // (steps.ts, resolveScheduleCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveScheduleCreateTargets,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -477,6 +491,12 @@ async function getByReference(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, ScheduleSchema))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        loadedTargetAsMethod(ScheduleQueryController.method.get),
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Schedule;

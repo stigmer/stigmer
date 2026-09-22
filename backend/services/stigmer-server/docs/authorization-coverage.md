@@ -7,18 +7,19 @@ How to read the tables:
 - **Annotation** is what the method's proto declares: a `config` summary (`permission` on `resource_kind`, the `field_path` or literal `resource_id` the target is resolved from, and whether `error_msg` is set), `is_public` (50057), `is_skip_authorization` (50058), or `none` (no option at all — the apply RPCs and the gRPC health service).
 - **Handler** is what the server actually runs: `chain-with-Authorize` means the handler builds a `newPipeline(...)` whose FIRST `.addStep` is `newAuthorizeStep(<its own method descriptor>, authorizer)`; `direct: <posture>` means no pipeline is built. A direct handler marked `authorizeDirect` evaluates its annotation through the SAME exported evaluation the step runs (`authorizeDirect` in `src/pipeline/steps/authorize.ts` — identical skip arms, target resolution, and decision mapping; C2 Stage 4, 20260827.10), placed per the Java baseline's handler order (noted per row where it differs from authorize-first).
 - The two columns are independent facts. A method can carry a `config` annotation and be a direct handler — since C2 Stage 4 nearly all such methods evaluate the annotation via `authorizeDirect`; the dispositions of the full set are recorded in the "Config-annotated methods served by direct handlers" section before the notes.
+- **Every `is_skip_authorization` row names what guards it**, in its Handler cell, with one of three markers — the inventory's own rule, enforced by `src/authorization/__tests__/skip-lane-inventory.test.ts`, which also holds this table's skip rows equal to the served descriptors' skip set: `guard: <Name>` names the mid-chain pipeline step, or the handler's guard function, that authorizes the lane (it must exist by that name in `src/`; the shared one is `AuthorizeResolvedTarget`, `src/pipeline/steps/authorize-resolved-target.ts`, for every lane whose target is a loaded row or a stashed parent rather than a request field); `driver: <Seam>` names the composed seam that decides (the `ListReadScope` on every list lane, the `OrganizationDirectory`, the `RunnerCredentialProvider`); `by design: <reason>` says the lane is open to every authenticated caller and why. A skip row carrying none of the three is a defect: that lane is open in every edition and nobody has said so.
 - Authorize step semantics (verified in `src/pipeline/steps/authorize.ts`): the step returns immediately for the `internal` caller class, then for `is_public`, then for `is_skip_authorization`, then for methods with no `config` option; only a present `config` reaches the composed Authorizer. So even on chain methods, a skip/public annotation means the Authorizer is never consulted — the step's presence still gives C1/C2 the uniform interception point.
 
 Verification notes: every registration map in `src/boot/compose.ts`'s routes closure was cross-checked against its controller file and its proto service definition; every `newAuthorizeStep` call site was checked for descriptor/RPC agreement (all ten lifecycle RPCs pass their own descriptor through the shared `runLifecyclePipeline` builder; memory `confirm`/`reject` pass their own descriptors through the shared `runTransition` helper); a mechanical scan confirmed `newAuthorizeStep` is the first `.addStep` of every `newPipeline` in the server (zero exceptions).
 
 ## Totals
 
-- Registered services: 29 (28 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06; Plugin command + query with the Plugin kind; Project command + query removed with the Project kind).
-- Registered RPC methods: 235 (Agent getDefault removed with the default-agent lookup: a session with no agent runs the built-in assistant).
-- Handler classes: 180 `chain-with-Authorize`, 55 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
-- Annotation classes: 141 `config`, 75 `is_skip_authorization`, 2 `is_public`, 17 `none` (14 apply RPCs + 3 health methods).
-- What the classes mean under each open-source posture: on a trusted-local server (no authentication) the composed Authorizer is the permissive single-team default and no list scope is composed, so every class admits every caller. Under an authentication posture with no unit Authorizer (`STIGMER_OIDC_ISSUER` set; `src/authorization/posture.ts`) the server composes its BUILT-IN Authorizer and ListReadScope — the cloud's OpenFGA model evaluated over tuples derived from the row — so every `config` lane enforces the model and every list lane marked "a composed ListReadScope narrows" below narrows to the caller's rows. `is_skip_authorization` lanes reach neither Authorizer in either posture: what guards each is the mid-chain step or driver its Handler column names, and a skip lane whose column names nothing is open to every authenticated caller in every edition.
-- Config-annotated methods served by direct handlers: 30, dispositioned at the C2 Stage-4 gate (17 `authorizeDirect`, 9 on the composed channel runtime, 1 deliberate skip, 3 recorded-gap stubs) — the full table before the notes section.
+- Registered services: 33 (32 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06; Plugin command + query with the Plugin kind; Project command + query removed with the Project kind; IdentityAccount and IamPolicy command + query with the open-source identity domain, sections 27 and 28).
+- Registered RPC methods: 262 (Agent getDefault removed with the default-agent lookup: a session with no agent runs the built-in assistant; `OrganizationQueryController.getByExternalOrgId` is served only when a composed directory carries the lookup, so it is not counted here — the unregistered-methods list).
+- Handler classes: 192 `chain-with-Authorize`, 70 `direct` (28 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4 and the identity domain; Workflow getByReference became a chain to carry the resolved-target check).
+- Annotation classes: 165 `config`, 78 `is_skip_authorization`, 2 `is_public`, 17 `none` (14 apply RPCs + 3 health methods). Three skip lanes became `config` when their targets turned out to be request fields after all: McpServer create (`can_create_mcp_server` on `metadata.org`), ExecutionContext get and delete (`can_view` / `can_edit` on the row's id).
+- What the classes mean under each open-source posture: on a trusted-local server (no authentication) the composed Authorizer is the permissive single-team default and no list scope is composed, so every class admits every caller. Under an authentication posture with no unit Authorizer (`STIGMER_OIDC_ISSUER` set; `src/authorization/posture.ts`) the server composes its BUILT-IN Authorizer and ListReadScope — the cloud's OpenFGA model evaluated over tuples derived from the row — so every `config` lane enforces the model and every list lane marked "a composed ListReadScope narrows" below narrows to the caller's rows. `is_skip_authorization` lanes reach neither Authorizer in either posture: what guards each is the mid-chain step or driver its Handler column names with the `guard:` / `driver:` / `by design:` markers above, and a skip lane whose column names nothing is open to every authenticated caller in every edition — which is why the inventory test refuses one.
+- Config-annotated methods served by direct handlers: 41 — 30 dispositioned at the C2 Stage-4 gate (the table before the notes section: `authorizeDirect`, the composed channel runtime, one deliberate skip, three recorded-gap stubs) and the 11 lookup-then-authorize and federation lanes of the identity domain (sections 27 and 28), every one of them `authorizeDirect`.
 
 ## 1. Health (`grpc.health.v1.Health`, `src/transport/health.ts`)
 
@@ -35,12 +36,12 @@ The standard gRPC health protocol — an external proto with no Stigmer annotati
 | Method | Annotation | Handler |
 |---|---|---|
 | OrganizationCommandController.apply | none | chain-with-Authorize |
-| OrganizationCommandController.create | is_skip_authorization | chain-with-Authorize |
+| OrganizationCommandController.create | is_skip_authorization | chain-with-Authorize (by design: any authenticated person may found an organization and becomes its owner; there is no organization yet to hold a permission on) |
 | OrganizationCommandController.update | config: can_edit on organization (field metadata.id), error_msg yes | chain-with-Authorize |
 | OrganizationCommandController.delete | config: can_delete on organization (field value), error_msg yes | chain-with-Authorize |
 | OrganizationQueryController.get | config: can_view on organization (field value), error_msg yes | chain-with-Authorize |
-| OrganizationQueryController.find | is_skip_authorization | chain-with-Authorize (the composed OrganizationDirectory's `refusesEnumeration` answers UNIMPLEMENTED before any work — the cloud's posture, and open source's under the built-in posture; trusted-local enumerates) |
-| OrganizationQueryController.findMyOrganizations | is_skip_authorization | direct: the composed OrganizationDirectory — trusted-local answers ALL organizations (single-team); the built-in directory answers the organizations the caller holds a role on (the cloud filters by IAM policy the same way) |
+| OrganizationQueryController.find | is_skip_authorization | chain-with-Authorize (driver: OrganizationDirectory — the composed directory's `refusesEnumeration` answers UNIMPLEMENTED before any work under the built-in posture and on the cloud; trusted-local enumerates) |
+| OrganizationQueryController.findMyOrganizations | is_skip_authorization | direct (driver: OrganizationDirectory — trusted-local answers ALL organizations (single-team); the built-in directory answers the organizations the caller holds a role on; the cloud filters by IAM policy the same way) |
 
 Proto method NOT registered by this server: `OrganizationQueryController.getByExternalOrgId` (is_skip_authorization) — see the unregistered-methods list.
 
@@ -50,12 +51,12 @@ The first domain registered after this inventory's O2 baseline (registration ord
 
 | Method | Annotation | Handler |
 |---|---|---|
-| ApiKeyCommandController.create | is_skip_authorization | chain-with-Authorize |
+| ApiKeyCommandController.create | is_skip_authorization | chain-with-Authorize (by design: a person mints keys for their own identity; the row's owner is the caller and no other principal is named) |
 | ApiKeyCommandController.update | config: can_edit on api_key (field metadata.id), error_msg yes | chain-with-Authorize |
 | ApiKeyCommandController.delete | config: can_delete on api_key (field value), error_msg yes | chain-with-Authorize |
 | ApiKeyQueryController.get | config: can_view on api_key (field value), error_msg yes | chain-with-Authorize |
-| ApiKeyQueryController.getByKeyHash | is_skip_authorization | chain-with-Authorize (the cloud edition additionally gates this inside its handler via a platform-admin FGA check; the OSS permissive posture serves it openly — O3 ruling Q5) |
-| ApiKeyQueryController.findAll | is_skip_authorization | chain-with-Authorize (returns all keys under the scope-less single-team posture — O3 ruling Q5; a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| ApiKeyQueryController.getByKeyHash | is_skip_authorization | chain-with-Authorize (by design: a hash lookup the verifier does not use — O3 ruling Q5; the cloud edition gates it inside its handler with a platform-admin check, open source serves it under the permissive posture) |
+| ApiKeyQueryController.findAll | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the scope-less single-team posture returns all keys — O3 ruling Q5) |
 
 ## 3. Environment (`src/domain/environment/controller.ts`)
 
@@ -69,9 +70,9 @@ The first domain registered after this inventory's O2 baseline (registration ord
 | EnvironmentCommandController.updateVariables | config: can_edit on environment (field environment_id), error_msg yes | chain-with-Authorize |
 | EnvironmentCommandController.removeVariables | config: can_edit on environment (field environment_id), error_msg yes | chain-with-Authorize |
 | EnvironmentQueryController.get | config: can_view on environment (field value), error_msg yes | chain-with-Authorize |
-| EnvironmentQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| EnvironmentQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; response redacted) |
 | EnvironmentQueryController.getSecretValue | config: can_read_secrets on environment (field environment_id), error_msg yes | chain-with-Authorize |
-| EnvironmentQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| EnvironmentQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
 ## 4. OAuthApp (`src/domain/oauthapp/controller.ts`)
 
@@ -82,7 +83,7 @@ The first domain registered after this inventory's O2 baseline (registration ord
 | OAuthAppCommandController.update | config: can_edit on oauth_app (field metadata.id), error_msg yes | chain-with-Authorize |
 | OAuthAppCommandController.delete | config: can_delete on oauth_app (field resource_id), error_msg yes | chain-with-Authorize |
 | OAuthAppQueryController.get | config: can_view on oauth_app (field value), error_msg yes | chain-with-Authorize |
-| OAuthAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| OAuthAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; response redacted) |
 | OAuthAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
 
 ## 5. ExecutionContext (`src/domain/executioncontext/controller.ts`)
@@ -92,11 +93,11 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | ExecutionContextCommandController.apply | none | chain-with-Authorize |
-| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeExecutionContextCreate mid-chain check: can_create_execution_in on the organization, before the duplicate check — the Java AuthorizeCreate order, stigmer-cloud#297); the MCP connect lane creates its ephemeral EC through this chain AS THE CONNECTING PERSON (`boot/inprocess.ts`, the in-process `asCaller` lane), so the row's creator stamp is the connect token's person under the built-in posture) |
-| ExecutionContextCommandController.delete | is_skip_authorization | chain-with-Authorize |
-| ExecutionContextQueryController.get | is_skip_authorization | chain-with-Authorize (response redacted) |
-| ExecutionContextQueryController.getByReference | is_skip_authorization | chain-with-Authorize (response redacted) |
-| ExecutionContextQueryController.getByExecutionId | is_skip_authorization | chain-with-Authorize (runner-token verified in domain; redaction-as-success; under the built-in posture the runner-subject verifier admits the bearer of a RUN credential as the run's person and the bearer of a CONNECT token as the person the connect's EC was created by — `src/runnerauth/bound-execution.ts`, the three bindings; a clockless token bound to a connect falls closed to redaction through the same `bindsARun` predicate the verifier refuses it with) |
+| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeCreate — can_create_execution_in on the organization for a wire caller, before the duplicate check (the Java AuthorizeCreate order, stigmer-cloud#297); a server-composed request is trusted, the entry-point request having passed its own gate. The MCP connect lane creates its ephemeral EC through this chain AS THE CONNECTING PERSON (`boot/inprocess.ts`, the in-process `asCaller` lane), so the row's creator stamp is the connect token's person under the built-in posture) |
+| ExecutionContextCommandController.delete | config: can_edit on execution_context (field resource_id), error_msg yes | chain-with-Authorize |
+| ExecutionContextQueryController.get | config: can_view on execution_context (field value), error_msg yes | chain-with-Authorize (response redacted) |
+| ExecutionContextQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; response redacted) |
+| ExecutionContextQueryController.getByExecutionId | is_skip_authorization | chain-with-Authorize (driver: RunnerCredentialProvider — the runner token is verified in the domain, redaction-as-success; under the built-in posture the runner-subject verifier admits the bearer of a RUN credential as the run's person and the bearer of a CONNECT token as the person the connect's EC was created by — `src/runnerauth/bound-execution.ts`, the three bindings; a clockless token bound to a connect falls closed to redaction through the same `bindsARun` predicate the verifier refuses it with) |
 
 ## 6. Agent (`src/domain/agent/controller.ts`)
 
@@ -108,21 +109,21 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentCommandController.updateVisibility | config: can_edit on agent (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentCommandController.delete | config: can_delete on agent (field value), error_msg yes | chain-with-Authorize |
 | AgentQueryController.get | config: can_view on agent (field value), error_msg yes | chain-with-Authorize |
-| AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
 
 ## 7. AgentInstance (`src/domain/agentinstance/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | AgentInstanceCommandController.apply | none | chain-with-Authorize |
-| AgentInstanceCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentInstanceCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_create_agent_instance on metadata.org, then can_create_instance on the parent agent LoadParentAgent stashed; a default instance the server composed in-process for the parent's organization asks nothing) |
 | AgentInstanceCommandController.update | config: can_edit on agent_instance (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentInstanceCommandController.updateVisibility | config: can_edit on agent_instance (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentInstanceCommandController.delete | config: can_delete on agent_instance (field value), error_msg yes | chain-with-Authorize |
 | AgentInstanceQueryController.get | config: can_view on agent_instance (field value), error_msg yes | chain-with-Authorize |
-| AgentInstanceQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
-| AgentInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| AgentInstanceQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| AgentInstanceQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| AgentInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
+| AgentInstanceQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
 ## 8. Session (`src/domain/session/controller.ts`)
 
@@ -134,40 +135,40 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | SessionCommandController.updateSubject | config: can_edit on session (field id), error_msg yes | direct: field-level read-modify-write (ports Go update_subject.go); authorizeDirect AFTER the load — the Java load-before-authorize order (#224) |
 | SessionCommandController.delete | config: can_delete on session (field value), error_msg yes | chain-with-Authorize |
 | SessionQueryController.get | config: can_view on session (field value), error_msg yes | chain-with-Authorize |
-| SessionQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01); the guest cookie rule is driver-internal) |
-| SessionQueryController.listByAgentInstance | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
-| SessionQueryController.listByChannel | is_skip_authorization | chain-with-Authorize (the AuthorizeChannelAccess mid-chain can_view on the agent_channel — the Java two-stage shape, 20260830.01 Q8; a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| SessionQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the guest cookie rule is driver-internal) |
+| SessionQueryController.listByAgentInstance | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| SessionQueryController.listByChannel | is_skip_authorization | chain-with-Authorize (guard: AuthorizeChannelAccess — can_view on the agent_channel before any session work, the Java two-stage shape; driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
 ## 9. AgentShare (`src/domain/agentshare/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | AgentShareCommandController.apply | none | chain-with-Authorize |
-| AgentShareCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentShareCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the referenced agent for a same-org share; can_execute on the agent, then can_create_agent_share on the sharing organization for a cross-org share; the Java two-arm consent bar) |
 | AgentShareCommandController.update | config: can_edit on agent_share (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentShareCommandController.rotateShareLink | config: can_edit on agent_share (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentShareCommandController.delete | config: can_delete on agent_share (field value), error_msg yes | chain-with-Authorize |
 | AgentShareQueryController.get | config: can_view on agent_share (field value), error_msg yes | chain-with-Authorize |
-| AgentShareQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| AgentShareQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
-| AgentShareQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| AgentShareQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
+| AgentShareQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| AgentShareQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | AgentShareQueryController.getSharedProfile | is_public | chain-with-Authorize (the public share-link read; the step's is_public arm skips the Authorizer) |
-| AgentShareQueryController.getSharedProfileForMember | is_skip_authorization | chain-with-Authorize |
+| AgentShareQueryController.getSharedProfileForMember | is_skip_authorization | chain-with-Authorize (guard: AuthorizeMemberAudience — can_view on the reference's organization BEFORE the share is loaded, the Java order; a non-member hears the same NOT_FOUND as a missing share, the proto's contract) |
 
 ## 10. AgentChannel (`src/domain/agentchannel/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | AgentChannelCommandController.apply | none | chain-with-Authorize |
-| AgentChannelCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentChannelCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the referenced agent ResolveChannelDefaults stashed) |
 | AgentChannelCommandController.update | config: can_edit on agent_channel (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentChannelCommandController.initiateInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: `authorizeDirect` AFTER the load (the Java LoadChannel-then-authorize order — missing ids answer NOT_FOUND for everyone), then refuse FAILED_PRECONDITION on the storing edition or delegate to `drivers.channelRuntime` (C2 close-out, 20260827.10 — the interim stub's owed can_edit arm) |
 | AgentChannelCommandController.completeInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: same load → `authorizeDirect` → refuse-or-delegate |
 | AgentChannelCommandController.delete | config: can_delete on agent_channel (field value), error_msg yes | chain-with-Authorize |
 | AgentChannelQueryController.get | config: can_view on agent_channel (field value), error_msg yes | chain-with-Authorize |
-| AgentChannelQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| AgentChannelQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
-| AgentChannelQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| AgentChannelQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
+| AgentChannelQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| AgentChannelQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
 ## 11. ChannelMessage (`src/domain/agentchannel/message.ts`)
 
@@ -175,9 +176,9 @@ The proactive-messaging surface is a cloud capability; OSS serves edition stubs,
 
 | Method | Annotation | Handler |
 |---|---|---|
-| ChannelMessageCommandController.sendMessage | is_skip_authorization | direct: OSS stub — refuses FAILED_PRECONDITION (proactive messaging unavailable) |
-| ChannelMessageQueryController.listTemplates | is_skip_authorization | direct: OSS stub — refuses FAILED_PRECONDITION |
-| ChannelMessageQueryController.listMessagingChannels | is_skip_authorization | direct: returns an empty list |
+| ChannelMessageCommandController.sendMessage | is_skip_authorization | direct (by design: the OSS handler is a stub that refuses FAILED_PRECONDITION and touches no row — proactive messaging is unavailable here) |
+| ChannelMessageQueryController.listTemplates | is_skip_authorization | direct (by design: the OSS handler is a stub that refuses FAILED_PRECONDITION and touches no row) |
+| ChannelMessageQueryController.listMessagingChannels | is_skip_authorization | direct (by design: the OSS handler answers an empty list and touches no row) |
 
 ## 12. ChannelConversation (`src/domain/agentchannel/conversation.ts`)
 
@@ -185,7 +186,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| ChannelConversationQueryController.listConversations | is_skip_authorization | direct: returns an empty list |
+| ChannelConversationQueryController.listConversations | is_skip_authorization | direct (by design: the OSS handler answers an empty list and touches no row) |
 | ChannelConversationQueryController.getConversation | config: can_view on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — answers NOT_FOUND unconditionally (no load-then-miss probing) |
 | ChannelConversationQueryController.getTimeline | config: can_view on agent_channel (field agent_channel_id), error_msg yes | direct: returns an empty timeline |
 | ChannelConversationQueryController.getMediaDownloadUrl | config: can_view on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — byte-pinned uniform NOT_FOUND miss (a prober cannot learn which items exist) |
@@ -193,7 +194,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ChannelConversationCommandController.takeOver | config: can_participate on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — refuses FAILED_PRECONDITION |
 | ChannelConversationCommandController.handBack | config: can_participate on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — refuses FAILED_PRECONDITION |
 | ChannelConversationCommandController.clearAttention | config: can_participate on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — refuses FAILED_PRECONDITION |
-| ChannelConversationCommandController.escalate | is_skip_authorization | direct: OSS stub — refuses FAILED_PRECONDITION |
+| ChannelConversationCommandController.escalate | is_skip_authorization | direct (by design: the OSS handler is a stub that refuses FAILED_PRECONDITION and touches no row) |
 
 ## 13. ChannelApp (`src/domain/channelapp/controller.ts`)
 
@@ -204,7 +205,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ChannelAppCommandController.update | config: can_edit on channel_app (field metadata.id), error_msg yes | chain-with-Authorize |
 | ChannelAppCommandController.delete | config: can_delete on channel_app (field resource_id), error_msg yes | chain-with-Authorize |
 | ChannelAppQueryController.get | config: can_view on channel_app (field value), error_msg yes | chain-with-Authorize |
-| ChannelAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| ChannelAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; response redacted) |
 | ChannelAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
 
 ## 14. Schedule (`src/domain/schedule/controller.ts`)
@@ -212,34 +213,34 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | Method | Annotation | Handler |
 |---|---|---|
 | ScheduleCommandController.apply | none | chain-with-Authorize |
-| ScheduleCommandController.create | is_skip_authorization | chain-with-Authorize |
+| ScheduleCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the referenced agent ResolveScheduleDefaults stashed; before the duplicate check and before ArmSchedule) |
 | ScheduleCommandController.update | config: can_edit on schedule (field metadata.id), error_msg yes | chain-with-Authorize |
 | ScheduleCommandController.delete | config: can_delete on schedule (field value), error_msg yes | chain-with-Authorize |
 | ScheduleCommandController.resume | config: can_edit on schedule (field value), error_msg yes | chain-with-Authorize |
 | ScheduleCommandController.trigger | config: can_edit on schedule (field value), error_msg yes | chain-with-Authorize |
 | ScheduleQueryController.get | config: can_view on schedule (field value), error_msg yes | chain-with-Authorize |
-| ScheduleQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| ScheduleQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
-| ScheduleQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| ScheduleQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
+| ScheduleQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| ScheduleQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | ScheduleQueryController.listRuns | config: can_view on schedule (field schedule_id), error_msg yes | chain-with-Authorize |
 
 ## 15. Memory (`src/domain/memory/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| MemoryCommandController.create | is_skip_authorization | chain-with-Authorize (the GuardMemoryCapture mid-chain step decides the row's subject through the composed `RunnerCredentialProvider.authorizeMemoryCapture`: under the built-in posture an agent-bound runner's capture is admitted as the run's person with the run's session as the proved provenance, a workflow- or connect-bound runner is refused, and a person's own create carries no capture credential and so no subject — `src/pipeline/steps/guard-memory-capture.ts`, `src/runnerauth/built-in-runner-credential-provider.ts`) |
+| MemoryCommandController.create | is_skip_authorization | chain-with-Authorize (guard: GuardMemoryCapture — decides WHO may capture, through the composed `RunnerCredentialProvider.authorizeMemoryCapture`: under the built-in posture an agent-bound runner's capture is admitted as the run's person with the run's session as the proved provenance and scoped to the run's organization, a workflow- or connect-bound runner is refused, and a person's own create carries no capture credential and so no subject — `src/pipeline/steps/guard-memory-capture.ts`, `src/runnerauth/built-in-runner-credential-provider.ts`; guard: AuthorizeResolvedTarget — decides WHERE, can_create_session on metadata.org for a wire caller, after ResolveMemoryDefaults and before the enablement check) |
 | MemoryCommandController.update | config: can_edit on memory (field metadata.id), error_msg yes | chain-with-Authorize |
 | MemoryCommandController.delete | config: can_delete on memory (field value), error_msg yes | chain-with-Authorize |
 | MemoryCommandController.confirm | config: can_edit on memory (field value), error_msg yes | chain-with-Authorize (shared runTransition helper, own descriptor) |
 | MemoryCommandController.reject | config: can_edit on memory (field value), error_msg yes | chain-with-Authorize (shared runTransition helper, own descriptor) |
 | MemoryQueryController.get | config: can_view on memory (field value), error_msg yes | chain-with-Authorize |
-| MemoryQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| MemoryQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
 ## 16. AgentExecution (`src/domain/agentexecution/controller.ts` + lifecycle.ts, update-status.ts, submit-approval.ts, submit-file-decision.ts, usage.ts, artifacts.ts, subscribe.ts)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; P1 sp.run-gate, stigmer-cloud#709; under the built-in posture these five run-gate checks are answered `allow` for a WORKFLOW-bound runner before the Authorizer is asked, so a shared workflow's `agent_call` creates its child as the person who ran the workflow — `src/authorization/lane-admission.ts`, composed in `boot/compose.ts`; an agent-bound runner and every person are checked as themselves) |
+| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeRunTarget — by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; P1 sp.run-gate, stigmer-cloud#709; under the built-in posture these five run-gate checks are answered `allow` for a WORKFLOW-bound runner before the Authorizer is asked, so a shared workflow's `agent_call` creates its child as the person who ran the workflow — `src/authorization/lane-admission.ts`, composed in `boot/compose.ts`; an agent-bound runner and every person are checked as themselves) |
 | AgentExecutionCommandController.update | config: can_edit on agent_execution (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentExecutionCommandController.updateStatus | config: can_edit on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
 | AgentExecutionCommandController.submitApproval | config: can_edit on agent_execution (field agent_execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
@@ -249,11 +250,11 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | AgentExecutionCommandController.recover | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
 | AgentExecutionCommandController.pause | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
 | AgentExecutionCommandController.resume | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
-| AgentExecutionCommandController.uploadAttachment | is_skip_authorization | direct: blob-store write; the returned storage_key acts as the capability token for the later create |
+| AgentExecutionCommandController.uploadAttachment | is_skip_authorization | direct (by design: a blob-store write whose returned storage_key is the capability token for the later create, which is where the execution is authorized) |
 | AgentExecutionCommandController.delete | config: can_edit on agent_execution (field value), error_msg yes | chain-with-Authorize |
 | AgentExecutionQueryController.get | config: can_view on agent_execution (field value), error_msg yes | chain-with-Authorize |
-| AgentExecutionQueryController.list | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01) ∩ the request org when non-blank; the guest cookie rule is driver-internal) |
-| AgentExecutionQueryController.listBySession | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01); the guest cookie rule is driver-internal) |
+| AgentExecutionQueryController.list | is_skip_authorization | direct (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the request org when non-blank; the guest cookie rule is driver-internal) |
+| AgentExecutionQueryController.listBySession | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the guest cookie rule is driver-internal) |
 | AgentExecutionQueryController.subscribe | config: can_view on agent_execution (field value), error_msg yes | direct: stream subscribe over broker (register-before-snapshot; server-stream generator cannot run inside the pipeline executor); authorizeDirect once at subscription start |
 | AgentExecutionQueryController.getArtifactDownloadUrl | config: can_view on agent_execution (field execution_id), error_msg yes | direct: authorizeDirect, then key-prefix / attachment-membership ownership check, then time-limited URL mint |
 | AgentExecutionQueryController.getArtifactContent | config: can_view on agent_execution (field execution_id), error_msg yes | direct: authorizeDirect, then key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
@@ -261,7 +262,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | AgentExecutionQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts) |
 | AgentExecutionQueryController.getAgentUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
 | AgentExecutionQueryController.getOrgUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
-| AgentExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard (a direct handler in Go as well); a composed ListReadScope narrows it to authorized ids ∩ requested org (C2 Stage 4's ExecutionReadScope, absorbed by 20260830.01) |
+| AgentExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard, a direct handler in Go as well (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the requested org — C2 Stage 4's ExecutionReadScope, absorbed by 20260830.01) |
 
 ## 17. Workflow (`src/domain/workflow/controller.ts`)
 
@@ -275,8 +276,8 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | WorkflowCommandController.validateSpec | config: can_create_workflow on organization (field metadata.org), error_msg yes | direct: validation-only, nothing persisted (Layer-2 validator over the domain-owned registry store); annotation DELIBERATELY not evaluated — matches the Java handler's documented "no persist, no authorize" posture (C2 Stage-4 gate ruling; the annotation mismatch is recorded, not an omission) |
 | WorkflowCommandController.tagVersion | config: can_edit on workflow (field workflow_id), error_msg yes | chain-with-Authorize |
 | WorkflowQueryController.get | config: can_view on workflow (field value), error_msg yes | chain-with-Authorize |
-| WorkflowQueryController.getByReference | is_skip_authorization | direct: branching slug/org read (Go's own direct-handler note) |
-| WorkflowQueryController.listVersions | is_skip_authorization | chain-with-Authorize (the AuthorizeResolvedWorkflow mid-chain can_view on the resolved id — the Java handler's hand-rolled check, ported 20260830.01 Q8) |
+| WorkflowQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; the ladder is LoadWorkflowByReference, version-resolution.ts) |
+| WorkflowQueryController.listVersions | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedWorkflow — can_view on the resolved id, the Java handler's check) |
 | WorkflowQueryController.getVersion | config: can_view on workflow (field workflow_id), error_msg yes | direct: authorizeDirect, then live-then-audit version read. DELIBERATE divergence from the Java edition (C2 Stage-4 gate ruling): Java declares the annotation but never evaluates it (a cross-org version-read gap; its javadoc claims framework enforcement that does not exist) — the annotation is the contract and this server enforces it |
 
 ## 18. WorkflowInstance (`src/domain/workflowinstance/controller.ts`)
@@ -284,20 +285,20 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | Method | Annotation | Handler |
 |---|---|---|
 | WorkflowInstanceCommandController.apply | none | chain-with-Authorize |
-| WorkflowInstanceCommandController.create | is_skip_authorization | chain-with-Authorize |
+| WorkflowInstanceCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_execute on the parent workflow LoadParentWorkflow stashed, before the same-org rule; a default instance the server composed in-process for the parent's organization asks nothing) |
 | WorkflowInstanceCommandController.update | config: can_edit on workflow_instance (field metadata.id), error_msg yes | chain-with-Authorize |
 | WorkflowInstanceCommandController.updateVisibility | config: can_edit on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
 | WorkflowInstanceCommandController.updateExecutionVisibility | config: can_grant_access on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
 | WorkflowInstanceCommandController.delete | config: can_delete on workflow_instance (field value), error_msg yes | chain-with-Authorize |
 | WorkflowInstanceQueryController.get | config: can_view on workflow_instance (field value), error_msg yes | chain-with-Authorize |
-| WorkflowInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| WorkflowInstanceQueryController.getByWorkflow | is_skip_authorization | chain-with-Authorize (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| WorkflowInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
+| WorkflowInstanceQueryController.getByWorkflow | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
 ## 19. WorkflowExecution (`src/domain/workflowexecution/controller.ts` + lifecycle.ts, update-status.ts, submit-approval.ts, submit-file-decision.ts, submit-workflow-task-approval.ts, send-signal.ts, queries.ts, subscribe.ts, subscribe-events.ts, get-event-log.ts, get-execution-summary.ts, list-pending-approvals.ts)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| WorkflowExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after ValidateWorkflowOrInstance: can_execute on the workflow_instance (workflow_instance_id) or on the workflow (workflow_id); P1 sp.run-gate, stigmer-cloud#709) |
+| WorkflowExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeRunTarget — by request shape, right after ValidateWorkflowOrInstance: can_execute on the workflow_instance (workflow_instance_id) or on the workflow (workflow_id); P1 sp.run-gate, stigmer-cloud#709) |
 | WorkflowExecutionCommandController.update | config: can_edit on workflow_execution (field metadata.id), error_msg yes | chain-with-Authorize |
 | WorkflowExecutionCommandController.updateStatus | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
 | WorkflowExecutionCommandController.submitApproval | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
@@ -311,20 +312,20 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | WorkflowExecutionCommandController.pause | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
 | WorkflowExecutionCommandController.resume | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
 | WorkflowExecutionQueryController.get | config: can_view on workflow_execution (field value), error_msg yes | chain-with-Authorize |
-| WorkflowExecutionQueryController.list | is_skip_authorization | direct: full-scan store read (malformed rows skipped; a composed ListReadScope narrows to the caller's authorized rows (20260830.01) ∩ the request org when non-blank) |
-| WorkflowExecutionQueryController.listByWorkflow | is_skip_authorization | direct: full-scan store read filtered by workflow (a composed ListReadScope narrows to the caller's authorized rows (20260830.01)) |
+| WorkflowExecutionQueryController.list | is_skip_authorization | direct: full-scan store read, malformed rows skipped (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the request org when non-blank) |
+| WorkflowExecutionQueryController.listByWorkflow | is_skip_authorization | direct: full-scan store read filtered by workflow (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | WorkflowExecutionQueryController.subscribe | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: stream subscribe over broker; authorizeDirect once at subscription start |
 | WorkflowExecutionQueryController.getEventLog | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: authorizeDirect, then cursor-paginated read over the event side table (no existence check by contract) |
 | WorkflowExecutionQueryController.subscribeEvents | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: authorizeDirect at subscription start, then event-log replay + poll stream (existence-checked NotFound before streaming) |
-| WorkflowExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard; a composed ListReadScope narrows it to authorized ids ∩ requested org, empty set = the default instance (C2 Stage 4's ExecutionReadScope, absorbed by 20260830.01) |
-| WorkflowExecutionQueryController.listPendingApprovals | is_skip_authorization | direct: scan of IN_PROGRESS executions for waiting-approval tasks (a composed ListReadScope narrows to the caller's authorized rows (20260830.01) ∩ the request org, applied before the approvals projection) |
+| WorkflowExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the requested org, empty set = the default instance — C2 Stage 4's ExecutionReadScope, absorbed by 20260830.01) |
+| WorkflowExecutionQueryController.listPendingApprovals | is_skip_authorization | direct: scan of IN_PROGRESS executions for waiting-approval tasks (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the request org, applied before the approvals projection) |
 
 ## 20. McpServer (`src/domain/mcpserver/controller.ts` + connect.ts, start-connect.ts, initiate-oauth-connect.ts, complete-oauth-connect.ts, disconnect-oauth.ts, get-oauth-grant-status.ts)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | McpServerCommandController.apply | none | chain-with-Authorize |
-| McpServerCommandController.create | is_skip_authorization | chain-with-Authorize |
+| McpServerCommandController.create | config: can_create_mcp_server on organization (field metadata.org), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.update | config: can_edit on mcp_server (field metadata.id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.updateVisibility | config: can_edit on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.delete | config: can_delete on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
@@ -336,7 +337,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | McpServerCommandController.setOrgOAuthApp | config: can_create_oauth_app on organization (field org), error_msg yes | direct: OSS stub — throws Unimplemented (org OAuth-app overrides are cloud-only) |
 | McpServerCommandController.deleteOrgOAuthApp | config: can_create_oauth_app on organization (field org), error_msg yes | direct: OSS stub — throws Unimplemented |
 | McpServerQueryController.get | config: can_view on mcp_server (field value), error_msg yes | chain-with-Authorize |
-| McpServerQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| McpServerQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; before EnrichOAuthStatus) |
 | McpServerQueryController.getOAuthGrantStatus | config: can_view on mcp_server (field resource_id), error_msg yes | direct: authorizeDirect after input validation, then grant-store read |
 | McpServerQueryController.getOrgOAuthApp | config: can_view on mcp_server (field resource_id), error_msg yes | direct: OSS stub — throws Unimplemented |
 
@@ -350,10 +351,10 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | SkillCommandController.updateVisibility | config: can_edit on skill (field resource_id), error_msg yes | chain-with-Authorize |
 | SkillCommandController.delete | config: can_delete on skill (field value), error_msg yes | chain-with-Authorize |
 | SkillQueryController.get | config: can_view on skill (field value), error_msg yes | chain-with-Authorize |
-| SkillQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| SkillQueryController.getArtifact | is_skip_authorization | chain-with-Authorize |
-| SkillQueryController.getArtifactDownloadUrl | is_skip_authorization | chain-with-Authorize |
-| SkillQueryController.listVersions | is_skip_authorization | chain-with-Authorize (the AuthorizeResolvedSkill mid-chain can_view on the resolved id — the Java handler's hand-rolled check, ported 20260830.01 Q8) |
+| SkillQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; the ladder is LoadSkillByReference) |
+| SkillQueryController.getArtifact | is_skip_authorization | chain-with-Authorize (by design: the artifact key is a content hash — unguessable, deliberately immutable (a deleted skill's artifact keeps working by contract) and possibly shared by several skills — so the key itself is the capability; the way to learn a private skill's key is the skill row, whose reads are authorized) |
+| SkillQueryController.getArtifactDownloadUrl | is_skip_authorization | chain-with-Authorize (by design: the same content-hash capability as getArtifact) |
+| SkillQueryController.listVersions | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedSkill — can_view on the resolved id, the Java handler's check) |
 
 ## 21a. Plugin (`src/domain/plugin/controller.ts` + push.ts)
 
@@ -364,18 +365,18 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | PluginCommandController.updateVisibility | config: can_edit on plugin (field resource_id), error_msg yes | chain-with-Authorize (the fan-out to members rides each member kind's own updateVisibility chain in-process as the caller) |
 | PluginCommandController.delete | config: can_delete on plugin (field value), error_msg yes | chain-with-Authorize (members are deleted through their own delete chains in-process as the caller) |
 | PluginQueryController.get | config: can_view on plugin (field value), error_msg yes | chain-with-Authorize |
-| PluginQueryController.getByReference | is_skip_authorization | chain-with-Authorize (the AuthorizeResolvedPlugin mid-chain can_view on the resolved id — the ListVersions pattern) |
+| PluginQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedPlugin — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
 | PluginQueryController.listMembers | config: can_view on plugin (field value), error_msg yes | chain-with-Authorize |
-| PluginQueryController.listVersions | is_skip_authorization | chain-with-Authorize (the AuthorizeResolvedPlugin mid-chain can_view on the resolved id) |
+| PluginQueryController.listVersions | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedPlugin — can_view on the resolved id) |
 
 ## 22. Artifact (`src/domain/artifact/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| ArtifactCommandController.create | is_skip_authorization | direct: content-addressed blob write + metadata row persist |
+| ArtifactCommandController.create | is_skip_authorization | direct (by design: the runner's content-addressed blob write plus the metadata row for its execution; the execution the artifact belongs to was authorized when it was created) |
 | ArtifactCommandController.delete | config: can_edit on artifact (field value), error_msg yes | direct: soft delete — storage_state transition, never a row removal; authorizeDirect AFTER the load (#224) |
 | ArtifactQueryController.get | config: can_view on artifact (field value), error_msg yes | chain-with-Authorize |
-| ArtifactQueryController.listByExecution | is_skip_authorization | chain-with-Authorize (the AuthorizeParentExecution mid-chain can_view on the named execution — the Java handler's two-field dispatch, ported 20260830.01 Q8) |
+| ArtifactQueryController.listByExecution | is_skip_authorization | chain-with-Authorize (guard: AuthorizeParentExecution — can_view on the named execution, the Java handler's two-field dispatch) |
 | ArtifactQueryController.getDownloadUrl | config: can_view on artifact (field value), error_msg yes | direct: time-limited URL mint against the blob store; authorizeDirect AFTER the load (#224) |
 | ArtifactQueryController.getContent | config: can_view on artifact (field artifact_id), error_msg yes | direct: truncated bytes in the response (512KB default cap); authorizeDirect AFTER the load (#224) |
 
@@ -383,29 +384,70 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| SearchService.search | is_skip_authorization | direct: CQRS read over the search query store (cross-aggregate; carries no api_resource_kind option; a composed ListReadScope feeds a per-effective-kind authorized-id allowlist into the engine query, crossOrgPublic bypassing FGA verbatim — 20260830.01) |
+| SearchService.search | is_skip_authorization | direct: CQRS read over the search query store, cross-aggregate, no api_resource_kind option (driver: ListReadScope — a composed scope narrows to the caller's authorized rows, fed as a per-effective-kind authorized-id allowlist into the engine query, crossOrgPublic bypassing FGA verbatim) |
 
 ## 24. Activity (`src/query/activity/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| ActivityQueryController.listRecentActivity | is_skip_authorization | direct: CQRS recents read over listResources (the request's org merely narrows the result; a composed ListReadScope narrows both kinds to the caller's authorized ids — 20260830.01) |
+| ActivityQueryController.listRecentActivity | is_skip_authorization | direct: CQRS recents read over listResources, the request's org merely narrowing (driver: ListReadScope — a composed scope narrows to the caller's authorized rows, both kinds narrowed to the caller's authorized ids) |
 
 ## 25. GitHub (`src/domain/github/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| GitHubService.getOAuthAuthorizeUrl | is_skip_authorization | direct: stateless OAuth broker — authorize-URL mint from config, nothing persisted |
-| GitHubService.exchangeOAuthCode | is_skip_authorization | direct: stateless OAuth broker — code-for-token exchange, token returned to the caller, never stored |
+| GitHubService.getOAuthAuthorizeUrl | is_skip_authorization | direct (by design: a stateless OAuth broker — an authorize-URL mint from config, nothing persisted, no row read) |
+| GitHubService.exchangeOAuthCode | is_skip_authorization | direct (by design: a stateless OAuth broker — the code-for-token exchange returns the token to the caller and stores nothing) |
 
 ## 26. Platform (`src/domain/platform/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | PlatformQueryController.getServerInfo | is_public | direct: static edition + version read |
-| PlatformQueryController.getLicenseStatus | is_skip_authorization | direct: the state of the license this server holds, answered by the composed `licenseStatus` driver (`src/extensions/license-status.ts`) or the built-in `absent` provider when none is registered, with `checked_at` stamped from the same instant the provider evaluated against. Authenticated, no permission, by design: the answer feeds the console banner every signed-in person sees, and it is not public because a license names its customer. The handler performs no check of its own; under either posture every authenticated caller is admitted. Open source and the cloud always answer `absent`. |
-| PlatformQueryController.getRunnerBootstrapConfig | is_skip_authorization | direct: publishes the Temporal coordinates for embedded runners (token fields empty on OSS: the runner's process credential is the operator's API key it already holds; its per-run credential arrives in the workflow input, not here) |
-| PlatformQueryController.getRunnerScopedToken | is_skip_authorization | direct: mints the execution-scoped runner token; fail-soft (empty id, keyless service, or mint error answer the not-minted shape). Under trusted-local the token is the ExecutionContext decrypt-lane discriminator and nothing more, minted for any caller naming an execution. Under the built-in authorization posture the same token is also an identity: the runner-subject verifier (`src/runnerauth/runner-subject-verifier.ts`, composed between `apikey` and `oidc`) admits its bearer as the human whose run it is, for as long as the run lives — so there the exchange is a MINT GATE: the built-in provider's `exchangeScopedToken` (`src/runnerauth/built-in-runner-credential-provider.ts`, the C4 delegation) mints the run credential for the run's own person only; a missing run is NOT_FOUND with the load-first copy, anyone else is PERMISSION_DENIED. Runs receive their credential from the dispatch itself (both engine clients put `execution_context_token` on the workflow input, 2026-09-16); the exchange is the runner's fallback. |
+| PlatformQueryController.getLicenseStatus | is_skip_authorization | direct (by design: the state of the license this server holds, answered by the composed `licenseStatus` driver (`src/extensions/license-status.ts`) or the built-in `absent` provider when none is registered, with `checked_at` stamped from the same instant the provider evaluated against. Authenticated, no permission: the answer feeds the console banner every signed-in person sees, and it is not public because a license names its customer. Open source and the cloud always answer `absent`) |
+| PlatformQueryController.getRunnerBootstrapConfig | is_skip_authorization | direct (by design: publishes the Temporal coordinates for embedded runners; token fields empty on OSS — the runner's process credential is the operator's API key it already holds, and its per-run credential arrives in the workflow input, not here) |
+| PlatformQueryController.getRunnerScopedToken | is_skip_authorization | direct (driver: RunnerCredentialProvider — mints the execution-scoped runner token, fail-soft (empty id, keyless service, or mint error answer the not-minted shape). Under trusted-local the token is the ExecutionContext decrypt-lane discriminator and nothing more, minted for any caller naming an execution. Under the built-in authorization posture the same token is also an identity: the runner-subject verifier (`src/runnerauth/runner-subject-verifier.ts`, composed between `apikey` and `oidc`) admits its bearer as the human whose run it is, for as long as the run lives — so there the exchange is a MINT GATE: the built-in provider's `exchangeScopedToken` (`src/runnerauth/built-in-runner-credential-provider.ts`) mints the run credential for the run's own person only; a missing run is NOT_FOUND with the load-first copy, anyone else is PERMISSION_DENIED. Runs receive their credential from the dispatch itself (both engine clients put `execution_context_token` on the workflow input); the exchange is the runner's fallback) |
+
+## 27. IdentityAccount (`src/domain/identityaccount/controller.ts`)
+
+The open-source identity domain (accounts and organization roles landed with it), served over the generic store; the cloud edition serves the same domain over its own table. Registered after Organization. Three lanes are skips: `create` is the platform's own pipelines' RPC (the hook that JIT-provisions an OIDC subject and the trusted-local boot ensure are in-process; a person never creates an account row directly), `provisionMyAccount` and `whoAmI` act on the caller's own account and nothing else. The three federated RPCs and `getByExternalSub` need a composed identity federation and answer UNIMPLEMENTED without one, after the annotation is evaluated.
+
+| Method | Annotation | Handler |
+|---|---|---|
+| IdentityAccountCommandController.create | is_skip_authorization | chain-with-Authorize (guard: guardInternalRpc — before the chain, the platform's own pipelines only (`isPlatformPipelineCaller`: a machine account, the internal class, or any request that entered in-process); a wire person is refused PERMISSION_DENIED with the domain's copy. There is no row yet to hold a permission on, and the account's roles are written by the create chain itself) |
+| IdentityAccountCommandController.update | config: can_edit on identity_account (field metadata.id), error_msg yes | chain-with-Authorize |
+| IdentityAccountCommandController.delete | config: can_delete on identity_account (field value), error_msg yes | chain-with-Authorize |
+| IdentityAccountCommandController.createFederatedAccount | config: can_create_identity_account on organization (field org), error_msg yes | direct: authorizeDirect, then the composed federation (UNIMPLEMENTED without one) |
+| IdentityAccountCommandController.updateFederatedAccount | config: can_create_identity_account on organization (field org), error_msg yes | direct: authorizeDirect, then the composed federation |
+| IdentityAccountCommandController.deprovisionFederatedAccount | config: can_create_identity_account on organization (field org), error_msg yes | direct: authorizeDirect, then the composed federation |
+| IdentityAccountCommandController.provisionMyAccount | is_skip_authorization | direct (by design: the caller provisions their OWN account from the identity-provider subject their token carries — a token with no such subject is UNAUTHENTICATED; the row that results is the caller's, and the composed post-persist gates run on every call) |
+| IdentityAccountQueryController.get | config: can_view on identity_account (field value), error_msg yes | chain-with-Authorize |
+| IdentityAccountQueryController.whoAmI | is_skip_authorization | direct (by design: answers the caller's own account, resolved from their identity by id then by subject; no other row is reachable through this lane) |
+| IdentityAccountQueryController.getByEmail | config: can_view on identity_account (field value), error_msg yes | direct: lookup first, then authorizeDirect on the FOUND id as the target override (the annotation's `value` is the email) |
+| IdentityAccountQueryController.getByIdpId | config: can_view on identity_account (field value), error_msg yes | direct: lookup first, then authorizeDirect on the FOUND id as the target override |
+| IdentityAccountQueryController.getByExternalSub | config: can_create_identity_account on organization (field org), error_msg yes | direct: authorizeDirect, then the composed federation |
+| IdentityAccountQueryController.getActorInfo | config: can_view on identity_account (field value), error_msg yes | chain-with-Authorize |
+
+## 28. IamPolicy (`src/domain/iampolicy/controller.ts`)
+
+The IamPolicy row half in open source: the grant path (`create`, `delete`, `revokeOrgAccess`) is annotation-driven on the policy's RESOURCE (`resource_kind_path`), the three system RPCs admit the platform's own pipelines only before their chain, and the three query lanes that IAM cannot authorize with IAM (it would recurse) are skips whose trust is authentication plus the principal-trust rule. `checkMyPermission` is the console's one permission question.
+
+| Method | Annotation | Handler |
+|---|---|---|
+| IamPolicyCommandController.create | config: can_grant_access on resource_kind_path resource.kind (field resource.id), error_msg yes | chain-with-Authorize |
+| IamPolicyCommandController.delete | config: can_grant_access on resource_kind_path resource.kind (field resource.id), error_msg yes | chain-with-Authorize |
+| IamPolicyCommandController.bootstrapPolicy | config: can_bootstrap_iam on platform (resource_id stigmer), error_msg yes | chain-with-Authorize (guardSystemRpc before the chain: the platform's own pipelines only, `isPlatformPipelineCaller`; a wire person is refused with the annotation's own copy, because under the permissive Authorizer the annotation alone would admit anyone) |
+| IamPolicyCommandController.cleanupResourcePolicies | config: can_bootstrap_iam on platform (resource_id stigmer), error_msg yes | chain-with-Authorize (guardSystemRpc before the chain, as above) |
+| IamPolicyCommandController.revokeOrgAccess | config: can_grant_access on organization (field organization_id), error_msg yes | chain-with-Authorize |
+| IamPolicyCommandController.bootstrapRevokeOrgAccess | config: can_bootstrap_iam on platform (resource_id stigmer), error_msg yes | chain-with-Authorize (guardSystemRpc before the chain, as above) |
+| IamPolicyQueryController.get | config: can_view_access on the loaded row's resource (no static kind or field; the target is the policy's own resource), error_msg yes | direct: load first, then authorizeDirect with the row's resource kind and id as the target override |
+| IamPolicyQueryController.checkMyPermission | is_skip_authorization | direct (by design: asks about the CALLER themself — an authenticated caller's own standing on a named resource, answered as a boolean; an unknown permission name or kind is INVALID_ARGUMENT before any evaluation, and IAM authorizing IAM would recurse) |
+| IamPolicyQueryController.checkAuthorization | is_skip_authorization | direct (guard: enforcePrincipalTrust — the platform's own pipelines (machine, internal) may ask about any principal; a person only about their own account, PERMISSION_DENIED otherwise; then the composed query engine) |
+| IamPolicyQueryController.listAuthorizedResourceIds | is_skip_authorization | direct (guard: enforcePrincipalTrust — as checkAuthorization; the lane names no resource, so trust is on the principal) |
+| IamPolicyQueryController.listAuthorizedPrincipalIds | config: can_view_access on resource_kind_path resource.kind (field resource.id), error_msg yes | direct: authorizeDirect |
+| IamPolicyQueryController.listResourceAccessByPrincipal | config: can_view_access on resource_kind_path resource.kind (field resource.id), error_msg yes | direct: authorizeDirect |
+| IamPolicyQueryController.getPrincipalResourceRoles | config: can_view_access on resource_kind_path resource.kind (field resource.id), error_msg yes | direct: authorizeDirect |
+| IamPolicyQueryController.getPrincipalsCount | config: can_view_access on organization (field org_id), error_msg yes | direct: authorizeDirect |
 
 ## Config-annotated methods served by direct handlers
 

@@ -56,6 +56,14 @@
  * names no kind because the target is the loaded row's resource). The
  * annotation keeps owning the permission, the copy and the skip arms in
  * both shapes; only the target is the handler's.
+ *
+ * The annotation read itself is one pure function, `resolveAnnotatedCheck`,
+ * so a third entry shape needs no third copy of it: the resolved-target
+ * step (authorize-resolved-target.ts) authorizes a row a chain LOADED as
+ * a sibling method's annotation would — a read by reference asks exactly
+ * what its `get` asks, target override and all — and every lane whose
+ * position-1 annotation is a skip because the target is not in the request
+ * answers its question there, with the same four arms.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMethod, DescMessage, Message } from "@bufbuild/protobuf";
@@ -138,6 +146,49 @@ export interface AuthorizeTargetOverride {
 }
 
 /**
+ * One question for the Authorizer together with the lane's deny copy: the
+ * unit `authorizeResolvedResource` consumes, whether the annotation named
+ * it (`resolveAnnotatedCheck`) or a chain's own resolver did (the run gate,
+ * the resolved-target step).
+ */
+export interface AuthorizationTarget extends AuthzCheck {
+  readonly deniedMessage: string;
+}
+
+/**
+ * The annotation's answer for one method: the target it names for this
+ * request, or `undefined` when it names none — `is_public`,
+ * `is_skip_authorization`, or no config at all. Pure over the descriptor
+ * and the request; the `internal` exemption is the evaluation's, not the
+ * annotation's, so it is not applied here. Exported so a chain step can
+ * authorize a loaded row exactly as a SIBLING method's annotation would
+ * (a read by reference asks what its `get` asks) without a second copy of
+ * the skip arms or the field-path resolution.
+ */
+export function resolveAnnotatedCheck(
+  method: DescMethod,
+  input: Message,
+  override?: AuthorizeTargetOverride,
+): AuthorizationTarget | undefined {
+  if (
+    getOption(method, is_public) ||
+    getOption(method, is_skip_authorization)
+  ) {
+    return undefined;
+  }
+  if (!hasOption(method, rpcAuthorizationConfig)) {
+    return undefined;
+  }
+  const config = getOption(method, rpcAuthorizationConfig);
+  return {
+    permission: config.permission,
+    resourceKind: override?.resourceKind ?? resolveResourceKind(input, config),
+    resourceId: override?.resourceId ?? resolveResourceId(input, config),
+    deniedMessage: config.errorMsg,
+  };
+}
+
+/**
  * The Authorize evaluation for direct handlers: identical skip arms,
  * target resolution, and decision-to-wire mapping as the pipeline step
  * (which delegates here). Throws the mapped ConnectError on any
@@ -153,27 +204,33 @@ export async function authorizeDirect(
   if (identity.callerClass === "internal") {
     return;
   }
-  if (
-    getOption(method, is_public) ||
-    getOption(method, is_skip_authorization)
-  ) {
+  const target = resolveAnnotatedCheck(method, input, override);
+  if (target === undefined) {
     return;
   }
-  if (!hasOption(method, rpcAuthorizationConfig)) {
-    return;
-  }
-  const config = getOption(method, rpcAuthorizationConfig);
+  return authorizeTarget(authorizer, identity, target);
+}
 
+/**
+ * `authorizeResolvedResource` over an AuthorizationTarget: the check the
+ * Authorizer sees carries exactly the three fields of an AuthzCheck, never
+ * the copy, so a recording Authorizer (a test's, a driver's audit line)
+ * observes the question and nothing else.
+ */
+export function authorizeTarget(
+  authorizer: Authorizer,
+  identity: CallerIdentity,
+  target: AuthorizationTarget,
+): Promise<void> {
   return authorizeResolvedResource(
     authorizer,
     identity,
     {
-      permission: config.permission,
-      resourceKind:
-        override?.resourceKind ?? resolveResourceKind(input, config),
-      resourceId: override?.resourceId ?? resolveResourceId(input, config),
+      permission: target.permission,
+      resourceKind: target.resourceKind,
+      resourceId: target.resourceId,
     },
-    config.errorMsg,
+    target.deniedMessage,
   );
 }
 

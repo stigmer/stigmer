@@ -77,6 +77,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardMemoryCaptureStep } from "../../pipeline/steps/guard-memory-capture.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
@@ -118,6 +119,7 @@ import {
   newResolveMemoryDefaultsStep,
   newTransitionMemoryLifecycleStep,
   newValidateMemoryUpdateStep,
+  resolveMemoryCreateTargets,
 } from "./steps.js";
 
 export interface MemoryControllerDeps {
@@ -194,6 +196,15 @@ async function createMemory(
     .addStep(newGuardMemoryCaptureStep(deps.runnerCredentialProvider))
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveMemoryDefaultsStep())
+    // Before the enablement and cap checks, so a refused caller learns
+    // nothing about the organization's settings (steps.ts,
+    // resolveMemoryCreateTargets).
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveMemoryCreateTargets,
+      ),
+    )
     .addStep(newCheckMemoryEnablementStep(deps.store))
     .addStep(newCheckMemoryCapStep(deps.store))
     .addStep(newResolveSlugStep())

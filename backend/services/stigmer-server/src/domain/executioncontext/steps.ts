@@ -34,6 +34,7 @@ import { isCiphertextShaped } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { EncryptionScope } from "../../encryption/encryption.js";
 import type { Authorizer, AuthzDecision } from "../../extensions/authorizer.js";
+import { isServerComposedRequest } from "../../extensions/identity.js";
 import {
   internalError,
   invalidArgumentError,
@@ -240,7 +241,7 @@ export function newAuthorizeExecutionContextCreateStep(
       ctx: RequestContext<typeof ExecutionContextSchema>,
     ): Promise<void> {
       const caller = ctx.callerIdentity;
-      if (caller.callerClass === "internal" || caller.origin === "in-process") {
+      if (isServerComposedRequest(caller)) {
         return; // authorized upstream — the Java in-process trust arm
       }
       let decision: AuthzDecision;

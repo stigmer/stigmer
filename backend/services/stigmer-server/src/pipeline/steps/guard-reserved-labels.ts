@@ -55,6 +55,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
+import { isServerComposedRequest } from "../../extensions/identity.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
@@ -117,15 +118,11 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
   return {
     name: "GuardReservedLabels",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      if (
-        ctx.callerIdentity.callerClass === "internal" ||
-        ctx.callerIdentity.origin === "in-process"
-      ) {
-        // Server-composed request (the Java isInProcessCall arm,
-        // cloud#386): the trust decision was made by the service code
-        // that built it — default-instance factories stamp reserved
-        // labels by design, even when the call propagates the user's
-        // identity for attribution (ruling R5).
+      if (isServerComposedRequest(ctx.callerIdentity)) {
+        // The Java isInProcessCall arm (cloud#386): the trust decision was
+        // made by the service code that built the request — default-instance
+        // factories stamp reserved labels by design, even when the call
+        // propagates the user's identity for attribution (ruling R5).
         return;
       }
       const state = stateOf(ctx);

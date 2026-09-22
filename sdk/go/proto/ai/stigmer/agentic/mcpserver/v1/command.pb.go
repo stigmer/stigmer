@@ -26,10 +26,10 @@ var File_ai_stigmer_agentic_mcpserver_v1_command_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_mcpserver_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd2\x10\n" +
+	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x9d\x11\n" +
 	"\x1aMcpServerCommandController\x12_\n" +
-	"\x05apply\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\x12f\n" +
-	"\x06create\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"\x04и\x18\x01\x12\x9a\x01\n" +
+	"\x05apply\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\x12\xb0\x01\n" +
+	"\x06create\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"N¸\x18J\b+\x10\x1e\"\fmetadata.org*6unauthorized to create mcp server in this organization\x12\x9a\x01\n" +
 	"\x06update\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x02\x10,\"\vmetadata.id*!unauthorized to update mcp server\x12\xa6\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x03\x10,\"\vresource_id*!unauthorized to delete mcp server\x12\xba\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"C¸\x18?\b\x02\x10,\"\vresource_id*,unauthorized to update mcp server visibility\x12\xa4\x01\n" +

@@ -69,13 +69,6 @@ export async function startConnect(
   input: ConnectInput,
   identity: CallerIdentity,
 ): Promise<McpServer> {
-  const engineState = deps.engineState();
-  if (!engineState.connected) {
-    throw failedPreconditionError(
-      "connect is not available: Temporal not configured",
-    );
-  }
-
   const mcpServerId = input.mcpServerId;
   if (mcpServerId === "") {
     throw invalidArgumentError("mcp_server_id is required");
@@ -95,15 +88,23 @@ export async function startConnect(
     throw notFoundError("mcp_server", mcpServerId);
   }
 
-  // The annotation's can_connect check AFTER the load — the Java
-  // McpServerStartConnectHandler order (the connect handler's shared
-  // load/authorize steps, stigmer#224). C2 Stage 4.
+  // The annotation's can_connect check after the load and BEFORE the engine
+  // check (the Java McpServerStartConnectHandler load-before-authorize order,
+  // stigmer#224): a caller who may not connect this server learns nothing
+  // about whether the engine is up.
   await authorizeDirect(
     McpServerCommandController.method.startConnect,
     deps.authorizer,
     identity,
     input,
   );
+
+  const engineState = deps.engineState();
+  if (!engineState.connected) {
+    throw failedPreconditionError(
+      "connect is not available: Temporal not configured",
+    );
+  }
 
   const connectStatus = mcpServer.status?.connectStatus;
   if (connectStatus?.phase === ConnectPhase.connecting) {
@@ -249,7 +250,12 @@ async function settleConnectAsync(
         outcome.failure,
         ASYNC_CONNECT_TIMEOUT,
       );
-      await persistConnectFailure(deps.store, deps.logger, mcpServerId, failure);
+      await persistConnectFailure(
+        deps.store,
+        deps.logger,
+        mcpServerId,
+        failure,
+      );
       return;
     }
 

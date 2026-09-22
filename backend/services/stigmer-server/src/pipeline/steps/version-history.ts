@@ -31,6 +31,7 @@ import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
   internalError,
@@ -42,6 +43,7 @@ import type { RequestContext } from "../request-context.js";
 import { AuditNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { findResourceBySlug, requireOrgForReference } from "./helpers.js";
+import type { ResolvedTargetResolver } from "./authorize-resolved-target.js";
 import { TARGET_RESOURCE_KEY } from "./load-target.js";
 import { metadataOf } from "./shapes.js";
 
@@ -191,6 +193,38 @@ const MAX_PAGE_SIZE = 100;
 export const LIST_VERSIONS_RESOURCE_ID_KEY = "listVersionsResourceId";
 export const LIST_VERSIONS_HEAD_HASH_KEY = "listVersionsHeadHash";
 export const LIST_VERSIONS_RESPONSE_KEY = "listVersionsResponse";
+
+/**
+ * The ListVersions lanes' authorization question, for the
+ * AuthorizeResolvedTarget step placed after the slug resolver: `can_view`
+ * on the resolved head's id (the version history of a row is readable by
+ * whoever may read the row), with the lane's byte-pinned copy. The id key
+ * is the resolver's own — the shared resolver stashes under
+ * LIST_VERSIONS_RESOURCE_ID_KEY; a domain resolver with its own key names
+ * it. An id the chain did not stash is a broken invariant and throws.
+ */
+export function versionHistoryTarget<Desc extends DescMessage>(
+  kind: ApiResourceKind,
+  deniedMessage: string,
+  idKey: string = LIST_VERSIONS_RESOURCE_ID_KEY,
+): ResolvedTargetResolver<Desc> {
+  return (ctx) => {
+    const resourceId = ctx.get(idKey);
+    if (typeof resourceId !== "string" || resourceId === "") {
+      throw new Error(
+        `ListVersions: no resolved resource id under ${idKey}; the slug resolver must run first`,
+      );
+    }
+    return [
+      {
+        permission: IamPermission.can_view,
+        resourceKind: kind,
+        resourceId,
+        deniedMessage,
+      },
+    ];
+  };
+}
 
 /** The fields every ListVersions input carries; the binding reads them off its own message. */
 export interface ListVersionsInputShape {

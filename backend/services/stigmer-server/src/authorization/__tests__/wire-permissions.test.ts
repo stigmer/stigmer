@@ -117,12 +117,11 @@ describe("every static (kind, permission) the served RPCs ask about is a declare
     expect(undeclared).toEqual([]);
   });
 
-  it("asks about every served kind the model declares except the two no RPC targets statically", () => {
+  it("asks about every served kind the model declares except the one no RPC targets statically", () => {
     // iam_policy's RPCs target the policy's RESOURCE (`resource_kind_path`
-    // or the load-then-authorize `get`); execution_context's RPCs are
-    // `is_skip_authorization` lanes (or unannotated) whose handlers gate on
-    // the runner's execution-scoped token. Every other declared kind is
-    // asked about by at least one static annotation.
+    // or the load-then-authorize `get`). Every other declared kind is asked
+    // about by at least one static annotation — execution_context through
+    // its `get` and `delete`; its runner-token lane stays a skip.
     const asked = new Set(wireQuestions().map((q) => kindEnumName(q.kind)));
     expect([...asked].sort()).toEqual(
       [
@@ -135,6 +134,7 @@ describe("every static (kind, permission) the served RPCs ask about is a declare
         "artifact",
         "channel_app",
         "environment",
+        "execution_context",
         "identity_account",
         "mcp_server",
         "memory",
