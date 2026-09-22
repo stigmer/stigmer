@@ -32,6 +32,11 @@
  */
 import type { DatabaseSync } from "node:sqlite";
 
+import {
+  PUBLIC_ROW_KINDS_AT_RETIREMENT,
+  movePublicRowToOrg,
+} from "../public-visibility-retired.js";
+
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
 export const SCHEMA_VERSION_3 = 3;
@@ -44,9 +49,11 @@ export const SCHEMA_VERSION_7 = 7;
 export const SCHEMA_VERSION_8 = 8;
 /** v9: the rows of the removed Project kind deleted. */
 export const SCHEMA_VERSION_9 = 9;
+/** v10: every row holding the retired public visibility level moved to org. */
+export const SCHEMA_VERSION_10 = 10;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_9;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_10;
 
 /** Applies all pending migrations in order. */
 export function runMigrations(db: DatabaseSync): void {
@@ -69,6 +76,7 @@ export function runMigrations(db: DatabaseSync): void {
     [SCHEMA_VERSION_7, migrateToV7],
     [SCHEMA_VERSION_8, migrateToV8],
     [SCHEMA_VERSION_9, migrateToV9],
+    [SCHEMA_VERSION_10, migrateToV10],
   ];
 
   for (const [version, migrate] of chain) {
@@ -378,4 +386,40 @@ function migrateToV9(db: DatabaseSync): void {
     DELETE FROM resources WHERE kind = 'project';
     DELETE FROM resource_audit WHERE kind = 'project';
   `);
+}
+
+/**
+ * v10: the public visibility level is retired, so every row that still
+ * holds it is moved to org visibility — the chain's first migration that
+ * decodes a row (public-visibility-retired.ts says why a migration, why
+ * the kind table is frozen there, and why an undecodable row fails the
+ * step). This step owns the SQL: one read per kind in the frozen table,
+ * one UPDATE per moved row with `updated_at` bumped the way saveResource
+ * bumps it, rows that hold any other level left byte-for-byte as they
+ * are. Runs inside applyInTransaction's BEGIN, so a throw from the mover
+ * rolls the whole step back and the boot stops on the row it names.
+ */
+function migrateToV10(db: DatabaseSync): void {
+  const update = db.prepare(
+    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
+  );
+  for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
+    const rows = db
+      .prepare(`SELECT id, data FROM resources WHERE kind = ?`)
+      .all(entry.kind) as Array<{ id: string; data: Uint8Array }>;
+    for (const row of rows) {
+      let moved: Uint8Array | undefined;
+      try {
+        moved = movePublicRowToOrg(entry, row.data);
+      } catch (error) {
+        throw new Error(
+          `${entry.kind} '${row.id}' cannot be moved off the retired public level: ${String(error)}`,
+          { cause: error },
+        );
+      }
+      if (moved !== undefined) {
+        update.run(moved, entry.kind, row.id);
+      }
+    }
+  }
 }

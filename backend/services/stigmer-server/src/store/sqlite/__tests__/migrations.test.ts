@@ -6,7 +6,10 @@
  * predates Go's idempotent ALTERs gains its columns; a legacy pre-v2
  * database gets its prefix-based audit rows migrated. Rollback safety
  * (DD-006): a v7 database re-opened by Go-shaped version checks
- * (< 6) runs nothing.
+ * (< 6) runs nothing. v10, the chain's first row-decoding step, moves
+ * every row of the seven kinds that held the retired public level to org
+ * and leaves every other row's bytes as they were; a row it cannot decode
+ * fails the step and leaves the database at v9.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,12 +18,20 @@ import { DatabaseSync } from "node:sqlite";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
+import type { DescMessage } from "@bufbuild/protobuf";
+
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+
 import { SqliteStore } from "../store.js";
 import {
   CURRENT_SCHEMA_VERSION,
+  SCHEMA_VERSION_10,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
+import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { materializeGoFixture } from "./support.js";
 
 const cleanups: Array<() => void | Promise<void>> = [];
@@ -81,7 +92,9 @@ describe("fresh database", () => {
     const rows = db
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
-    expect(rows.map((row) => row.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(rows.map((row) => row.version)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    ]);
   });
 
   it("re-opening an already-migrated database is a no-op", async () => {
@@ -138,7 +151,9 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     expect(org.id).toBe("acme");
 
     const audit = db
-      .prepare(`SELECT version_hash, tag FROM resource_audit WHERE kind = 'organization'`)
+      .prepare(
+        `SELECT version_hash, tag FROM resource_audit WHERE kind = 'organization'`,
+      )
       .get() as { version_hash: string; tag: string };
     expect(audit).toEqual({ version_hash: "hash-v1", tag: "stable" });
 
@@ -283,8 +298,10 @@ describe("legacy pre-v2 database", () => {
       CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')));
       INSERT INTO schema_version (version) VALUES (1);
       CREATE TABLE resources (kind TEXT NOT NULL, id TEXT NOT NULL, data BLOB NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (kind, id)) WITHOUT ROWID;
-      INSERT INTO resources (kind, id, data) VALUES ('skill', 'skl_1', X'0a01aa');
-      INSERT INTO resources (kind, id, data) VALUES ('skill', 'skill_audit/skl_1/1706123456789', X'0a01bb');
+      -- Field 1 (api_version) holding one ASCII byte: bytes v10 can decode
+      -- as a Skill, since it walks every live row of that kind.
+      INSERT INTO resources (kind, id, data) VALUES ('skill', 'skl_1', X'0a0176');
+      INSERT INTO resources (kind, id, data) VALUES ('skill', 'skill_audit/skl_1/1706123456789', X'0a0177');
     `);
     setup.close();
 
@@ -328,5 +345,174 @@ describe("rollback safety (DD-006)", () => {
       .prepare(`SELECT COALESCE(MAX(version), 0) AS v FROM schema_version`)
       .get() as { v: number };
     expect(version.v).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe("v10: the retired public level leaves every row", () => {
+  /** A v9 database: the chain replayed, then v10's version row removed. */
+  function v9Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup);
+    setup
+      .prepare(`DELETE FROM schema_version WHERE version = ?`)
+      .run(SCHEMA_VERSION_10);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_10 - 1);
+    return { dbPath, db: setup };
+  }
+
+  function agentBytes(
+    id: string,
+    visibility: ApiResourceVisibility,
+  ): Uint8Array {
+    return toBinary(
+      AgentSchema,
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { id, name: id, slug: id, org: "acme", visibility },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+  }
+
+  /** A row of `schema` carrying only the envelope every kind shares, at `visibility`. */
+  function envelopeBytes(
+    schema: DescMessage,
+    id: string,
+    visibility: ApiResourceVisibility,
+  ): Uint8Array {
+    return toBinary(
+      schema,
+      fromJson(schema, {
+        metadata: {
+          id,
+          name: id,
+          slug: id,
+          org: "acme",
+          visibility: ApiResourceVisibility[visibility],
+        },
+      }),
+    );
+  }
+
+  function insert(
+    db: DatabaseSync,
+    kind: string,
+    id: string,
+    data: Uint8Array,
+  ): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, '2026-09-01 00:00:00')`,
+    ).run(kind, id, data);
+  }
+
+  function row(
+    db: DatabaseSync,
+    kind: string,
+    id: string,
+  ): { data: Uint8Array; updated_at: string } {
+    return db
+      .prepare(
+        `SELECT data, updated_at FROM resources WHERE kind = ? AND id = ?`,
+      )
+      .get(kind, id) as { data: Uint8Array; updated_at: string };
+  }
+
+  it("moves a public row of every kind in the frozen table to org, and leaves an org row and a private row byte-for-byte", () => {
+    const { dbPath, db: setup } = v9Database();
+    // One public row per kind the level could live under, each encoded
+    // through its own schema.
+    for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
+      insert(
+        setup,
+        entry.kind,
+        `${entry.kind}_public`,
+        envelopeBytes(
+          entry.schema,
+          `${entry.kind}_public`,
+          ApiResourceVisibility.visibility_public,
+        ),
+      );
+    }
+    const orgBytes = agentBytes(
+      "agt_org",
+      ApiResourceVisibility.visibility_org,
+    );
+    const privateBytes = agentBytes(
+      "agt_private",
+      ApiResourceVisibility.visibility_private,
+    );
+    insert(setup, "agent", "agt_org", orgBytes);
+    insert(setup, "agent", "agt_private", privateBytes);
+    setup.close();
+
+    const store = SqliteStore.open(dbPath);
+    cleanups.push(() => store.close());
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+    for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
+      const moved = row(db, entry.kind, `${entry.kind}_public`);
+      expect(moved.data, entry.kind).toEqual(
+        envelopeBytes(
+          entry.schema,
+          `${entry.kind}_public`,
+          ApiResourceVisibility.visibility_org,
+        ),
+      );
+      expect(moved.updated_at, `${entry.kind} updated_at bumped`).not.toBe(
+        "2026-09-01 00:00:00",
+      );
+    }
+    expect(row(db, "agent", "agt_org")).toEqual({
+      data: orgBytes,
+      updated_at: "2026-09-01 00:00:00",
+    });
+    expect(row(db, "agent", "agt_private")).toEqual({
+      data: privateBytes,
+      updated_at: "2026-09-01 00:00:00",
+    });
+    const publicLeft = db
+      .prepare(`SELECT count(*) AS n FROM resources WHERE kind = 'agent'`)
+      .get() as { n: number };
+    expect(publicLeft.n).toBe(3);
+  });
+
+  it("a row of a kind outside the frozen table is never decoded", () => {
+    const { dbPath, db: setup } = v9Database();
+    // Bytes no schema decodes, under a kind the level never applied to.
+    insert(setup, "session", "ses_opaque", new Uint8Array([0xff, 0xff]));
+    setup.close();
+
+    const store = SqliteStore.open(dbPath);
+    cleanups.push(() => store.close());
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+    expect(row(db, "session", "ses_opaque").data).toEqual(
+      new Uint8Array([0xff, 0xff]),
+    );
+  });
+
+  it("a row of a table kind that does not decode fails the step, names the row, and leaves the database at v9 with every row untouched", () => {
+    const { dbPath, db: setup } = v9Database();
+    const publicBytes = agentBytes(
+      "agt_public",
+      ApiResourceVisibility.visibility_public,
+    );
+    insert(setup, "agent", "agt_public", publicBytes);
+    insert(setup, "agent", "agt_broken", new Uint8Array([0xff, 0xff, 0xff]));
+    setup.close();
+
+    expect(() => SqliteStore.open(dbPath)).toThrow(
+      /migrate to v10: .*agent 'agt_broken' cannot be moved off the retired public level/,
+    );
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_10 - 1);
+    expect(row(db, "agent", "agt_public").data).toEqual(publicBytes);
   });
 });
