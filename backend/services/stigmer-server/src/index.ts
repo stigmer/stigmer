@@ -309,6 +309,19 @@ export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
 // composition never re-derives the set.
 export { isRunGateCheck } from "./pipeline/steps/authorize-run-target.js";
 export { newValidateProtoStep } from "./pipeline/steps/validation.js";
+// The create-shaping steps, for an envelope kind a composition serves
+// itself (a cloud_only kind has no OSS controller to run them): between
+// ValidateProto and its own domain step the composition runs the SAME
+// ResolveSlug and BuildNewState every OSS create runs, so how a slug is
+// derived from a name, how an id is spelled, how status.audit is stamped
+// for the caller and how visibility defaults live exactly once and move
+// together. The RequestContext must carry the kind (its fourth
+// constructor argument) for BuildNewState to pick the id prefix.
+// CheckDuplicate is deliberately not here: it reads this server's Store,
+// and a composition's own table answers that question in a step of the
+// same name over its own repo.
+export { newBuildNewStateStep } from "./pipeline/steps/defaults.js";
+export { newResolveSlugStep } from "./pipeline/steps/slug.js";
 
 // The driver interfaces and the store-fault classes the ratified mapping
 // keys on (typed not-found → NotFound; anything else rethrows as an
