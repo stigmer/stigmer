@@ -52,10 +52,11 @@ export class SearchHandler {
    * mapping string-matches them (#478 sanitization contract).
    *
    * With a composed ListReadScope (20260830.01, census lane 21) the
-   * store read carries a per-effective-kind authorized-id map — the Java
-   * SearchHandler's QueryAuthorizedIds step, with its crossOrgPublic
-   * bypass preserved verbatim (public-widened discovery is
-   * visibility-filtered by the engine, FGA never consulted). A scope
+   * store read ALWAYS carries a per-effective-kind authorized-id map —
+   * the Java SearchHandler's QueryAuthorizedIds step. There is no request
+   * shape that skips the scope: the one that did (the retired public
+   * level's cross-organization discovery, which the engine filtered by
+   * visibility with FGA never consulted) left with the level. A scope
    * failure propagates — the controller's default arm answers the
    * sanitized Internal, never a silently unscoped result.
    */
@@ -74,8 +75,6 @@ export class SearchHandler {
         request.kinds,
         request.query,
         request.org,
-        request.excludePublic,
-        request.crossOrgPublic,
         request.page?.num ?? 0,
         request.page?.size ?? 0,
       );
@@ -87,7 +86,7 @@ export class SearchHandler {
     }
 
     let authorizedIdsByKind: Map<string, ReadonlySet<string>> | undefined;
-    if (this.listReadScope !== undefined && !criteria.crossOrgPublic()) {
+    if (this.listReadScope !== undefined) {
       authorizedIdsByKind = new Map<string, ReadonlySet<string>>();
       for (const kind of criteria.effectiveKinds()) {
         authorizedIdsByKind.set(

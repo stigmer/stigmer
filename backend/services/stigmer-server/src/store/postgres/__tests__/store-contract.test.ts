@@ -111,8 +111,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             kinds: ["agent"],
             terms: ["billing"],
             orgFilter: "",
-            crossOrgPublic: false,
-            excludePublic: false,
             limit: 20,
             offset: 0,
           });

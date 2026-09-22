@@ -98,8 +98,6 @@ export class SearchCriteria {
     private readonly requestedKinds: readonly ApiResourceKind[],
     private readonly queryText: string,
     private readonly orgFilterValue: string,
-    private readonly excludePublicFlag: boolean,
-    private readonly crossOrgPublicFlag: boolean,
     private readonly pageNumberValue: number,
     private readonly pageSizeValue: number,
   ) {}
@@ -121,8 +119,6 @@ export class SearchCriteria {
     kinds: readonly ApiResourceKind[],
     query: string,
     orgFilter: string,
-    excludePublic: boolean,
-    crossOrgPublic: boolean,
     pageNumber: number,
     pageSize: number,
   ): SearchCriteria {
@@ -136,8 +132,6 @@ export class SearchCriteria {
       [...kinds],
       normalizedQuery,
       goTrimSpace(orgFilter),
-      excludePublic,
-      crossOrgPublic,
       pageNumber < 1 ? 1 : pageNumber,
       pageSize < 1 ? DEFAULT_PAGE_SIZE : Math.min(pageSize, MAX_PAGE_SIZE),
     );
@@ -154,14 +148,6 @@ export class SearchCriteria {
 
   orgFilter(): string {
     return this.orgFilterValue;
-  }
-
-  excludePublic(): boolean {
-    return this.excludePublicFlag;
-  }
-
-  crossOrgPublic(): boolean {
-    return this.crossOrgPublicFlag;
   }
 
   pageNumber(): number {

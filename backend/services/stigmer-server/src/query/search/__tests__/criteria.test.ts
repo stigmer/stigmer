@@ -25,8 +25,6 @@ function criteria(overrides?: {
   kinds?: ApiResourceKind[];
   query?: string;
   org?: string;
-  excludePublic?: boolean;
-  crossOrgPublic?: boolean;
   pageNumber?: number;
   pageSize?: number;
 }): SearchCriteria {
@@ -34,8 +32,6 @@ function criteria(overrides?: {
     overrides?.kinds ?? [],
     overrides?.query ?? "",
     overrides?.org ?? "",
-    overrides?.excludePublic ?? false,
-    overrides?.crossOrgPublic ?? false,
     overrides?.pageNumber ?? 1,
     overrides?.pageSize ?? 20,
   );
