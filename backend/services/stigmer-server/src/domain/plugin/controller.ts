@@ -105,8 +105,10 @@ import {
 import type { VersionHistoryBinding } from "../../pipeline/steps/version-history.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
-import { uploadUrl } from "../skill/transfer/handler.js";
-import type { UploadSlots } from "../skill/transfer/slots.js";
+import type {
+  ArchiveStaging,
+  StagedUpload,
+} from "../skill/transfer/staging.js";
 import { TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
 import type { PluginMaterializerProvider } from "./materialize/ports.js";
 import { findMembers } from "./members.js";
@@ -139,12 +141,6 @@ import {
 } from "./push.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
 
-/** The transfer lane's controller-side pair; the slots are the skill lane's (one upload surface). */
-export interface PluginTransferLaneDeps {
-  readonly slots: UploadSlots;
-  readonly baseUrl: string;
-}
-
 export interface PluginControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
@@ -152,7 +148,8 @@ export interface PluginControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly artifactStorage: ContentAddressedArchiveStore;
   readonly materializerProvider: PluginMaterializerProvider;
-  readonly transferLane?: PluginTransferLaneDeps;
+  /** The skill lane's staging port (one upload surface for every archive); absent, the lane answers FailedPrecondition. */
+  readonly staging?: ArchiveStaging;
 }
 
 /** Registers both plugin services on the router (routes stage). */
@@ -207,7 +204,7 @@ async function push(
     .addStep(newValidateProtoStep())
     .addStep(
       newResolveArtifactSourceStep<typeof PushPluginRequestSchema>(
-        deps.transferLane?.slots,
+        deps.staging,
         {
           source: (input) => ({
             artifact: input.artifact,
@@ -273,16 +270,17 @@ async function push(
 // ─── createArtifactUploadUrl ─────────────────────────────────────────────
 
 /**
- * Mints a short-lived, single-use upload URL over the shared slots; an
- * over-limit declaration is refused with the limit BEFORE any bytes move.
+ * Mints a short-lived, single-use upload URL through the shared staging
+ * port; an over-limit declaration is refused with the limit BEFORE any
+ * bytes move.
  */
 async function createArtifactUploadUrl(
   deps: PluginControllerDeps,
   req: CreatePluginArtifactUploadUrlRequest,
   ctx: HandlerContext,
 ): Promise<PluginArtifactUploadUrl> {
-  const lane = deps.transferLane;
-  if (lane === undefined) {
+  const staging = deps.staging;
+  if (staging === undefined) {
     throw failedPreconditionError(TRANSFER_LANE_NOT_CONFIGURED);
   }
   const reqCtx = new RequestContext(
@@ -309,14 +307,14 @@ async function createArtifactUploadUrl(
       `plugin archive size ${req.sizeBytes} bytes exceeds the ${MAX_ZIP_SIZE}-byte (100MB) archive limit`,
     );
   }
-  let minted: { ref: string; ttlMs: number };
+  let minted: StagedUpload;
   try {
-    minted = lane.slots.mint(Number(req.sizeBytes));
+    minted = await staging.mint(Number(req.sizeBytes));
   } catch (error) {
     throw internalError(error, "failed to mint upload reference");
   }
   return create(PluginArtifactUploadUrlSchema, {
-    url: uploadUrl(lane.baseUrl, minted.ref),
+    url: minted.url,
     artifactUploadRef: minted.ref,
     ttlSeconds: Math.trunc(minted.ttlMs / 1000),
   });

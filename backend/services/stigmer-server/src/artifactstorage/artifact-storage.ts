@@ -58,17 +58,15 @@ export class ArtifactStorageNotFoundError extends Error {
 }
 
 /**
- * A staged upload minted by presignPut: the URL receives the bytes, the
- * stagingKey reads them back through the same driver. Staged blobs are
- * short-lived by contract — the local lane sweeps them on TTL expiry and
- * boot; R2 deployments configure a bucket lifecycle rule on the staging
- * prefix (the §6b driver-side sweep expectation).
+ * A staged upload minted by presignPut: the URL receives the bytes, which
+ * the caller reads back through download() under the key IT named. Staged
+ * blobs are short-lived by contract — the local lane sweeps them on TTL
+ * expiry and boot; a bucket deployment configures a lifecycle rule on the
+ * domain's staging prefix (the §6b driver-side sweep expectation).
  */
 export interface PresignedUpload {
-  /** Accepts one HTTP PUT of exactly the declared byte count. */
+  /** Accepts an HTTP PUT of exactly the declared byte count. */
   readonly url: string;
-  /** Driver key where the staged bytes land, readable via download(). */
-  readonly stagingKey: string;
   /** The TTL actually granted, after per-driver clamping. */
   readonly ttlMs: number;
 }
@@ -98,18 +96,25 @@ export interface ArtifactStorage {
     downloadFilename: string,
   ): Promise<string>;
   /**
-   * A time-limited upload URL for a staging-prefixed blob of exactly
-   * declaredSizeBytes (§6b). Per-driver semantics differ DELIBERATELY and
-   * are contract, not accident: the local backend rides the skill transfer
-   * lane's URL-as-credential slot mechanism (single-use, exact-size
-   * enforced by the lane, TTL clamped to the lane's slot TTL) and answers
-   * only on instances with a staged-upload lane wired — unwired instances
-   * throw the explicit not-configured error, never a silent no-op. The R2
-   * backend presigns a PUT (repeatable within its TTL, size enforced by
-   * the signed Content-Length header, TTL clamped to the 7-day R2
-   * maximum).
+   * A time-limited upload URL for a blob of exactly declaredSizeBytes at
+   * the key the CALLER names (§6b). The key is the domain's: it chooses
+   * the staging prefix its sweep targets and the mapping from its wire
+   * reference, and reads the bytes back through download(key) — the
+   * driver never invents a key of its own. Per-driver semantics differ
+   * DELIBERATELY and are contract, not accident: the local backend rides
+   * the skill transfer lane's URL-as-credential slot mechanism
+   * (single-use, exact-size enforced by the lane, TTL clamped to the
+   * lane's slot TTL) and answers only on instances with a staged-upload
+   * lane wired — unwired instances throw the explicit not-configured
+   * error, never a silent no-op. The R2 backend presigns a PUT
+   * (repeatable within its TTL, size enforced by the signed
+   * Content-Length header, TTL clamped to the 7-day R2 maximum).
    */
-  presignPut(declaredSizeBytes: number, ttlMs: number): Promise<PresignedUpload>;
+  presignPut(
+    key: string,
+    declaredSizeBytes: number,
+    ttlMs: number,
+  ): Promise<PresignedUpload>;
   /** Removes the artifact; missing is not an error. */
   delete(key: string): Promise<void>;
   /** Whether an artifact with the key exists. */
@@ -136,16 +141,16 @@ export type ArtifactStorageDriverFactory = () => ArtifactStorage;
  * the shape it needs and stays ignorant of who provides it.
  */
 export interface StagedUploadLane {
-  /** Reserves a single-use upload slot; returns its reference + TTL. */
-  mint(declaredSizeBytes: number): { ref: string; ttlMs: number };
-  /** The externally-reachable PUT URL for a minted reference. */
-  uploadUrl(ref: string): string;
   /**
-   * The driver key where the reference's staged bytes land — MUST resolve
-   * inside the driver instance's root, or download(stagingKey) could
-   * never read what the lane received.
+   * Reserves a single-use upload slot whose bytes land at `key` under this
+   * driver instance's root — the lane stages into the driver's own tree,
+   * so download(key) reads exactly what the lane received. Returns the
+   * externally-reachable PUT URL and the TTL the lane grants.
    */
-  stagedKey(ref: string): string;
+  reserve(
+    key: string,
+    declaredSizeBytes: number,
+  ): { url: string; ttlMs: number };
 }
 
 export interface ArtifactStorageConfig {
@@ -259,6 +264,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
   }
 
   async presignPut(
+    key: string,
     declaredSizeBytes: number,
     _ttlMs: number,
   ): Promise<PresignedUpload> {
@@ -267,15 +273,13 @@ export class LocalArtifactStorage implements ArtifactStorage {
         "local presigned uploads not configured - no staged-upload lane is wired to this store instance",
       );
     }
+    // The key must be one this instance can read back, or the lane would
+    // stage bytes download(key) can never reach.
+    this.resolveWithinRoot(key);
     // The lane's slot TTL governs, not the caller's ask — the slot
     // registry sweeps on ITS clock, and a URL outliving its slot would be
     // a credential for nothing.
-    const { ref, ttlMs } = this.stagedUploadLane.mint(declaredSizeBytes);
-    return {
-      url: this.stagedUploadLane.uploadUrl(ref),
-      stagingKey: this.stagedUploadLane.stagedKey(ref),
-      ttlMs,
-    };
+    return this.stagedUploadLane.reserve(key, declaredSizeBytes);
   }
 
   async getSignedUrl(

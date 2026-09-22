@@ -1,24 +1,28 @@
 /**
  * Skill artifact transfer lane — ports pkg/domain/skill/transfer/handler.go:
  * the HTTP upload/download surface that carries skill artifact bytes
- * OUTSIDE the gRPC control plane (#675). The gRPC server caps messages at
- * 10MB while the skill layer permits 100MB artifacts, so inline bytes
- * physically cannot carry every valid skill.
+ * OUTSIDE the gRPC control plane (#675) when the blob driver is the local
+ * one. The gRPC server caps messages at 10MB while the skill layer permits
+ * 100MB artifacts, so inline bytes physically cannot carry every valid
+ * skill; a bucket driver signs URLs straight to its bucket and this lane
+ * carries nothing for it.
  *
  *   PUT {prefix}/uploads/{ref}  — stage artifact bytes (capability: ref)
  *   GET {prefix}/{storage_key}  — serve artifact bytes (capability: key)
  *
  * Neither route carries bearer auth by design: the URL is the credential,
- * mirroring cloud's pre-signed R2 URLs. Minting an upload URL requires the
+ * mirroring a bucket's pre-signed URLs. Minting an upload URL requires the
  * same gRPC authorization as push; download keys are unguessable content
  * hashes handed out by authorized skill reads.
  *
  * The lane slots into the transport's existing skillTransferLane seam
  * (transport/server.ts lane 3); URL renderers live next to the route
  * dispatch so the URL shape and its handler cannot drift apart (Go's
- * stated invariant). Proven by __tests__/skill.test.ts's transfer-lane
- * block (both protocol stacks) and the conformance suite's transfer-lane
- * tests.
+ * stated invariant): uploadUrl is what the local driver's staged-upload
+ * lane mints, and transferServeUrl is the serve URL the composition hands
+ * the local skill driver so its signed GETs land on the download route
+ * below. Proven by __tests__/skill.test.ts's transfer-lane block (both
+ * protocol stacks) and the conformance suite's transfer-lane tests.
  */
 import type { Logger } from "../../../boot/logger.js";
 import { SKILL_ARTIFACTS_PATH_PREFIX } from "../../../transport/constants.js";
@@ -32,6 +36,7 @@ import {
   SlotUnknownError,
 } from "./slots.js";
 import type { UploadSlots } from "./slots.js";
+import { stagingKeyOf } from "./staging.js";
 
 /**
  * Renders the capability URL for a minted reference against the lane's
@@ -41,9 +46,13 @@ export function uploadUrl(baseUrl: string, ref: string): string {
   return `${trimTrailingSlash(baseUrl)}${SKILL_ARTIFACTS_PATH_PREFIX}${UPLOADS_SEGMENT}${ref}`;
 }
 
-/** Renders the download URL for an artifact storage key. */
-export function downloadUrl(baseUrl: string, storageKey: string): string {
-  return `${trimTrailingSlash(baseUrl)}${SKILL_ARTIFACTS_PATH_PREFIX}/${storageKey}`;
+/**
+ * The lane's download origin: the local skill driver's serve URL, so that
+ * `${serveUrl}/${storageKey}` (LocalArtifactStorage.getSignedUrl's shape)
+ * is exactly the GET route this handler dispatches.
+ */
+export function transferServeUrl(baseUrl: string): string {
+  return `${trimTrailingSlash(baseUrl)}${SKILL_ARTIFACTS_PATH_PREFIX}`;
 }
 
 function trimTrailingSlash(url: string): string {
@@ -108,16 +117,25 @@ async function handleUpload(
     return;
   }
 
+  // Deliberately one shape for "malformed", "never existed" and "expired":
+  // distinguishing them would let an unauthorized caller probe which
+  // tokens were once valid.
+  const unknown = () =>
+    writeText(response, 404, "upload reference unknown or expired — request a new upload URL");
+
+  const key = stagingKeyOf(ref);
+  if (key === undefined) {
+    unknown();
+    return;
+  }
+
   try {
-    await slots.receive(ref, request);
+    await slots.receive(key, request);
     response.statusCode = 204;
     response.end();
   } catch (error) {
     if (error instanceof SlotUnknownError) {
-      // Deliberately the same shape for "never existed" and "expired":
-      // distinguishing them would let an unauthorized caller probe which
-      // tokens were once valid.
-      writeText(response, 404, "upload reference unknown or expired — request a new upload URL");
+      unknown();
     } else if (error instanceof SlotConsumedError) {
       writeText(response, 409, "upload reference already used — request a new upload URL");
     } else if (error instanceof SizeMismatchError) {
