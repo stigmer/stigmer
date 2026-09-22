@@ -23,9 +23,6 @@ import { McpServerConfigPanel } from "./McpServerConfigPanel.js";
 import type { McpServerSetupEntry } from "./mcpServerSetupReducer.js";
 import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
-import { ScopeToggle } from "../library/ScopeToggle.js";
-import type { ResourceListScope } from "../search/index.js";
-
 // ---------------------------------------------------------------------------
 // Setup integration props
 // ---------------------------------------------------------------------------
@@ -76,18 +73,8 @@ export interface McpServerSetupIntegration {
 
 /** Props for {@link McpServerPicker}. */
 export interface McpServerPickerProps {
-  /** Organization slug used as the default search scope. */
+  /** Organization whose MCP servers the picker searches. */
   readonly org: string;
-  /**
-   * Controls search scope.
-   *
-   * - `"org"` — search only within the provided organization.
-   * - `"all"` — search all organizations the caller can access,
-   *   including public/platform MCP servers from other orgs.
-   *
-   * @default "org"
-   */
-  readonly scope?: "org" | "all";
   /**
    * Currently selected MCP server usages.
    *
@@ -253,7 +240,6 @@ function slugFromServerKey(key: string): string {
  */
 export function McpServerPicker({
   org,
-  scope,
   value,
   onChange,
   onDisplayNameResolved,
@@ -267,9 +253,7 @@ export function McpServerPicker({
   const instanceId = useId();
   const listId = `${instanceId}-list`;
 
-  const [activeScope, setActiveScope] = useState<ResourceListScope>(scope ?? "org");
-  const { results, isLoading, error, query, setQuery } =
-    useMcpServerSearch(org, { scope: activeScope });
+  const { results, isLoading, error, query, setQuery } = useMcpServerSearch(org);
   const oauth = useMcpServerOAuthConnect();
   // Bare tool-discovery `connect`, used when sign-in already succeeded and
   // only the chained discovery leg failed — relaunching the OAuth popup
@@ -675,8 +659,6 @@ export function McpServerPicker({
         className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
         autoFocus
       />
-
-      <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
 
       {error && <p className="stg:text-xs stg:text-destructive">{error.message}</p>}
 

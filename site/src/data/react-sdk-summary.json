@@ -166,7 +166,7 @@
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
       "hooks": 8,
-      "components": 5
+      "components": 4
     },
     {
       "slug": "manifest",

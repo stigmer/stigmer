@@ -241,11 +241,6 @@ function useMcpServerCount(org: string | null, options?: UseMcpServerCountOption
 const { count, isLoading } = useMcpServerCount("acme");
 ```
 
-```tsx
-// Count all accessible MCP servers including public/platform ones
-const { count } = useMcpServerCount("acme", { scope: "all" });
-```
-
 
 ### useMcpServerCredentials
 
@@ -372,9 +367,9 @@ if (creds.missingVariables.length > 0) {
 
 Data hook that fetches a paginated list of MCP servers for the Library.
 
-Wraps `stigmer.mcpServer.list()` with pagination, scope filtering,
-and text search. All parameters are externally controlled — the
-consumer manages page state, query debouncing, and scope toggling.
+Wraps `stigmer.mcpServer.list()` with pagination and text search over
+the organization's MCP servers. All parameters are externally
+controlled — the consumer manages page state and query debouncing.
 
 For picker/type-ahead search with internal debouncing and query
 state management, use [`useMcpServerSearch`](#usemcpserversearch) instead.
@@ -412,13 +407,7 @@ function useMcpServerList(org: string | null, options?: UseMcpServerListOptions)
 const { mcpServers, totalCount, isLoading } = useMcpServerList("acme", {
   page: 1,
   pageSize: 20,
-  scope: "org",
 });
-```
-
-```tsx
-// Show all MCP servers including public/platform ones
-const { mcpServers } = useMcpServerList("acme", { scope: "all" });
 ```
 
 
@@ -956,9 +945,8 @@ All visual properties flow through `--stgm-*` tokens.
     initialServerKey: { type: "string", description: "When provided, the picker opens directly to the configure view for the given server key (`\"org/slug\"`) instead of showing the list.  Intended for flows where the caller already knows which server needs configuration (e.g. a warning banner for a single unconfigured server, or a chip click on a specific server).  Only used as the initial view — subsequent navigation within the picker is unaffected. Ignored if the key does not match any entry in `setup.entries`." },
     onChange: { type: "(usages: McpServerUsageInput[]) => void", description: "Called when the selection changes in simple mode.  Required when `setup` is not provided. Not called when `setup` is provided — selection goes through `setup.onServerAdded` and `setup.onServerRemoved` instead." },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an item is added (for chip rendering)." },
-    org: { type: "string", description: "Organization slug used as the default search scope.", required: true },
+    org: { type: "string", description: "Organization whose MCP servers the picker searches.", required: true },
     poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling credential fields from the session env pool. Passed through to McpServerConfigPanel's credentials form. When a field's key returns a value, the field is pre-populated." },
-    scope: { type: "\"org\" | \"all\"", description: "Controls search scope.  - `\"org\"` — search only within the provided organization. - `\"all\"` — search all organizations the caller can access,   including public/platform MCP servers from other orgs." },
     setup: { type: "McpServerSetupIntegration", description: "When provided, enables setup-integrated mode: per-server status indicators, credential collection, tool selection, and drill-in to McpServerConfigPanel.  In this mode, `value` and `onChange` are not needed — selection is managed through `setup.entries` and the setup callbacks.  When omitted, the picker operates in simple mode (current behavior): toggle servers on/off with `value`/`onChange`.", typeDescriptionLink: "#mcpserversetupintegration" },
     value: { type: "McpServerUsageInput[]", description: "Currently selected MCP server usages.  Required in simple mode (when `setup` is not provided). In setup mode, selection is derived from `setup.entries` and this prop is not needed." },
   }}
@@ -1368,7 +1356,6 @@ Options for [`useMcpServerCount`](#usemcpservercount).
   type={{
     query: { type: "string", description: "Text query to filter MCP servers before counting." },
     refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
-    scope: { type: "ResourceListScope", description: "Controls which MCP servers are counted.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers." },
   }}
 />
 
@@ -1382,7 +1369,6 @@ Options for [`useMcpServerList`](#usemcpserverlist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum MCP servers per page." },
     query: { type: "string", description: "Text query to filter MCP servers by name, description, or tags." },
-    scope: { type: "ResourceListScope", description: "Controls which MCP servers are visible.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers." },
   }}
 />
 

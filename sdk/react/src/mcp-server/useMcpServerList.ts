@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useResourceList, type ResourceListScope } from "../search/index.js";
+import { useResourceList } from "../search/index.js";
 
 /** Options for {@link useMcpServerList}. */
 export interface UseMcpServerListOptions {
@@ -13,15 +13,6 @@ export interface UseMcpServerListOptions {
   readonly page?: number;
   /** Text query to filter MCP servers by name, description, or tags. */
   readonly query?: string;
-  /**
-   * Controls which MCP servers are visible.
-   *
-   * - `"org"` — only MCP servers owned by the given organization.
-   * - `"all"` — includes public/platform MCP servers.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
 }
 
 /** Return value of {@link useMcpServerList}. */
@@ -45,9 +36,9 @@ export interface UseMcpServerListReturn {
 /**
  * Data hook that fetches a paginated list of MCP servers for the Library.
  *
- * Wraps `stigmer.mcpServer.list()` with pagination, scope filtering,
- * and text search. All parameters are externally controlled — the
- * consumer manages page state, query debouncing, and scope toggling.
+ * Wraps `stigmer.mcpServer.list()` with pagination and text search over
+ * the organization's MCP servers. All parameters are externally
+ * controlled — the consumer manages page state and query debouncing.
  *
  * For picker/type-ahead search with internal debouncing and query
  * state management, use {@link useMcpServerSearch} instead.
@@ -59,14 +50,7 @@ export interface UseMcpServerListReturn {
  * const { mcpServers, totalCount, isLoading } = useMcpServerList("acme", {
  *   page: 1,
  *   pageSize: 20,
- *   scope: "org",
  * });
- * ```
- *
- * @example
- * ```tsx
- * // Show all MCP servers including public/platform ones
- * const { mcpServers } = useMcpServerList("acme", { scope: "all" });
  * ```
  */
 export function useMcpServerList(

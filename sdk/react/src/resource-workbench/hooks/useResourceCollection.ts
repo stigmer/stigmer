@@ -27,7 +27,7 @@ import type {
 export interface UseResourceCollectionOptions<TData = SearchResult> {
   /**
    * Async function that fetches a page of resources.
-   * The hook passes `ListParams` (org, query, page, scope) and expects
+   * The hook passes `ListParams` (org, query, page) and expects
    * `ListResult` back. Pass `null` to disable fetching (idle state).
    */
   readonly listFn: ((params: ListParams) => Promise<ListResult>) | null;
@@ -35,13 +35,6 @@ export interface UseResourceCollectionOptions<TData = SearchResult> {
   readonly org: string | null;
   /** Text search query. No debouncing is applied — the consumer controls timing. */
   readonly query?: string;
-  /**
-   * Scope for resource visibility.
-   * - `"org"` — resources owned by the active organization.
-   * - `"all"` — includes public resources from other organizations.
-   * @default "org"
-   */
-  readonly scope?: "org" | "all";
   /** Current page number (1-indexed). @default 1 */
   readonly page?: number;
   /** Page size. @default 20 */
@@ -158,7 +151,6 @@ export function useResourceCollection<TData = SearchResult>(
     listFn,
     org,
     query = "",
-    scope = "org",
     page = 1,
     pageSize = DEFAULT_PAGE_SIZE,
     sort = null,
@@ -186,7 +178,7 @@ export function useResourceCollection<TData = SearchResult>(
           };
         }
       : null,
-    [listFn, org, query, scope, page, pageSize, refetchToken],
+    [listFn, org, query, page, pageSize, refetchToken],
     INITIAL_DATA,
   );
 
@@ -220,8 +212,8 @@ export function useResourceCollection<TData = SearchResult>(
   // --- Row selection state ------------------------------------------------
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  // Clear selection when page, query, or scope changes to prevent stale refs.
-  const clearKey = `${page}-${query}-${scope}`;
+  // Clear selection when page or query changes to prevent stale refs.
+  const clearKey = `${page}-${query}`;
   const prevClearKey = useRef(clearKey);
   useEffect(() => {
     if (prevClearKey.current !== clearKey) {

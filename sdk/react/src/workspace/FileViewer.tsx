@@ -255,7 +255,7 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
 /**
  * Segmented control for a changed file's two views: the authoritative reviewed
  * **Diff** and the live **File**. A mutually-exclusive choice, so it follows
- * the platform's radiogroup segmented-control pattern (see `library/ScopeToggle`)
+ * the platform's radiogroup segmented-control pattern (see `resource-workbench/components/ViewSwitcher`)
  * rather than a tablist — it must not nest a second tablist inside the
  * inspector's own tabs.
  */

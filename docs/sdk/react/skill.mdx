@@ -196,11 +196,6 @@ function useSkillCount(org: string | null, options?: UseSkillCountOptions): UseS
 const { count, isLoading } = useSkillCount("acme");
 ```
 
-```tsx
-// Count all accessible skills including public/platform ones
-const { count } = useSkillCount("acme", { scope: "all" });
-```
-
 
 ### useSkillDiff
 
@@ -277,9 +272,9 @@ function useSkillDuplicateCheck(): UseSkillDuplicateCheckReturn
 
 Data hook that fetches a paginated list of skills for the Library.
 
-Wraps `stigmer.skill.list()` with pagination, scope filtering,
-and text search. All parameters are externally controlled — the
-consumer manages page state, query debouncing, and scope toggling.
+Wraps `stigmer.skill.list()` with pagination and text search over the
+organization's skills. All parameters are externally controlled — the
+consumer manages page state and query debouncing.
 
 For picker/type-ahead search with internal debouncing and query
 state management, use [`useSkillSearch`](#useskillsearch) instead.
@@ -317,13 +312,7 @@ function useSkillList(org: string | null, options?: UseSkillListOptions): UseSki
 const { skills, totalCount, isLoading } = useSkillList("acme", {
   page: 1,
   pageSize: 20,
-  scope: "org",
 });
-```
-
-```tsx
-// Show all skills including public/platform ones
-const { skills } = useSkillList("acme", { scope: "all" });
 ```
 
 
@@ -589,8 +578,7 @@ All visual properties flow through `--stgm-*` tokens.
     disabled: { type: "boolean", description: "Disables all interaction." },
     onChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the selection changes.", required: true },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an item is added (for chip rendering)." },
-    org: { type: "string", description: "Organization slug used as the default search scope.", required: true },
-    scope: { type: "\"org\" | \"all\"", description: "Controls search scope.  - `\"org\"` — search only within the provided organization. - `\"all\"` — search all organizations the caller can access,   including public/platform skills from other orgs." },
+    org: { type: "string", description: "Organization whose skills the picker searches.", required: true },
     value: { type: "ResourceRef[]", description: "Currently selected skill references.", required: true },
   }}
 />
@@ -711,7 +699,6 @@ Options for [`useSkillCount`](#useskillcount).
   type={{
     query: { type: "string", description: "Text query to filter skills before counting." },
     refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
-    scope: { type: "ResourceListScope", description: "Controls which skills are counted.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills." },
   }}
 />
 
@@ -725,7 +712,6 @@ Options for [`useSkillList`](#useskilllist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum skills per page." },
     query: { type: "string", description: "Text query to filter skills by name, description, or tags." },
-    scope: { type: "ResourceListScope", description: "Controls which skills are visible.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills." },
   }}
 />
 

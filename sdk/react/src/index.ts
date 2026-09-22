@@ -1620,7 +1620,6 @@ export {
   LibraryBreadcrumbProvider,
   useBreadcrumbLabel,
   useBreadcrumbOverride,
-  ScopeToggle,
   ResourceCountCard,
   detectStigmerResource,
   useDetectStigmerResource,
@@ -1646,7 +1645,6 @@ export {
   useCanSetPublicVisibility,
 } from "./library/index.js";
 export type {
-  ScopeToggleProps,
   ResourceCountCardProps,
   StigmerResourceKind,
   StigmerResourceDetection,

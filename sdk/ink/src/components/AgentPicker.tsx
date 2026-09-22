@@ -9,8 +9,6 @@ export interface AgentPickerProps {
   readonly org: string;
   /** Seeds the search box (e.g. an unresolved slug the user already typed). */
   readonly initialQuery?: string;
-  /** `"org"` (default) searches the org; `"all"` includes public agents. */
-  readonly scope?: "org" | "all";
   /** Called with the chosen agent's search result on selection. */
   readonly onSelect: (agent: SearchResult) => void;
   /**
@@ -60,12 +58,11 @@ const BUILT_IN_ASSISTANT_ITEM: PickerItem = {
 export function AgentPicker({
   org,
   initialQuery,
-  scope,
   onSelect,
   onSelectBuiltInAssistant,
   onCancel,
 }: AgentPickerProps) {
-  const { results, isLoading, error, query, setQuery } = useAgentSearch(org, { scope });
+  const { results, isLoading, error, query, setQuery } = useAgentSearch(org);
 
   // Seed the typed-but-unresolved query once on mount so the user picks up
   // where the smart-resolution attempt left off.

@@ -26,7 +26,6 @@ import { BulkActionBar } from "./BulkActionBar.js";
 import { ResourceInspector } from "./ResourceInspector.js";
 import { EmptyState } from "../../empty-state/index.js";
 import { ResourceAvatar } from "./ResourceAvatar.js";
-import { ScopeToggle } from "../../library/ScopeToggle.js";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -94,10 +93,6 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
   readonly initialSort?: SortValue | null;
   /** Initial search query (e.g. restored from URL on mount). */
   readonly initialQuery?: string;
-  /** Scope for resource visibility. @default "org" */
-  readonly scope?: "org" | "all";
-  /** Called when scope changes (for Console to persist). */
-  readonly onScopeChange?: (scope: "org" | "all") => void;
   /** Called when any filter/sort/query state changes (for URL sync). */
   readonly onStateChange?: (state: {
     filters: readonly FilterValue[];
@@ -225,8 +220,6 @@ export function ResourceWorkbench<TData = SearchResult>({
   initialFilters,
   initialSort,
   initialQuery,
-  scope: controlledScope = "org",
-  onScopeChange,
   onStateChange,
   enableSelection = false,
   getItemId = defaultGetId as (item: TData) => string,
@@ -271,7 +264,6 @@ export function ResourceWorkbench<TData = SearchResult>({
     listFn: listFn as ((params: ListParams) => Promise<ListResult>) | null,
     org,
     query: filtersHook.debouncedQuery,
-    scope: controlledScope,
     page,
     sort: filtersHook.sort,
     onSortChange: filtersHook.setSort,
@@ -333,12 +325,9 @@ export function ResourceWorkbench<TData = SearchResult>({
             />
           </div>
         ) : (
-          // Spacer keeps the scope toggle / view switcher / header action
-          // right-aligned, matching the searchable layout.
+          // Spacer keeps the view switcher / header action right-aligned,
+          // matching the searchable layout.
           <div className="stg:flex-1" aria-hidden="true" />
-        )}
-        {onScopeChange && (
-          <ScopeToggle value={controlledScope} onChange={onScopeChange} />
         )}
         {viewModes.length > 1 && (
           <ViewSwitcher

@@ -455,7 +455,7 @@ this form's curated input — see the note on [`useCreateSchedule`](#usecreatesc
     className: { type: "string", description: "Additional CSS class names for the root form element." },
     onCancel: { type: "() => void", description: "Fired when the user cancels." },
     onComplete: { type: "(schedule: Schedule) => void", description: "Fired with the created schedule after a successful submit." },
-    org: { type: "string", description: "Organization slug. Schedules are org-local: the server requires the target agent to live in this same org, so the agent picker is locked to org scope.", required: true },
+    org: { type: "string", description: "Organization slug. Schedules are org-local: the server requires the target agent to live in this same org, which is the org the agent picker searches.", required: true },
   }}
 />
 

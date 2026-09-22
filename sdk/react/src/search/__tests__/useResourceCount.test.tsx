@@ -12,7 +12,7 @@ function mockListFn(totalCount = 0) {
 }
 
 describe("useResourceCount", () => {
-  it("counts in org scope by default: org sent", async () => {
+  it("always sends the org with a one-row page (an empty org means every org the caller can access to the search backend)", async () => {
     const listFn = mockListFn(7);
 
     const { result } = renderHook(() => useResourceCount(listFn, "acme"));
@@ -23,22 +23,6 @@ describe("useResourceCount", () => {
     const params = listFn.mock.calls[0][0];
     expect(params.org).toBe("acme");
     expect(params.page).toEqual({ num: 1, size: 1 });
-  });
-
-  it('always sends org in "all" scope (empty org means a cross-org FGA dump to the backend)', async () => {
-    const listFn = mockListFn(3);
-
-    const { result } = renderHook(() =>
-      useResourceCount(listFn, "acme", { scope: "all" }),
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    const params = listFn.mock.calls[0][0];
-    // Regression guard: the pre-fix hook blanked org for "all", which the
-    // search backend defines as "every org the caller can access" — the
-    // Library cards then counted platform-wide instead of org + public.
-    expect(params.org).toBe("acme");
   });
 
   it("does not fetch when org is null", async () => {

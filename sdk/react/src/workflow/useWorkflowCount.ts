@@ -2,21 +2,12 @@
 
 import { useCallback } from "react";
 import { useStigmer } from "../hooks.js";
-import { useResourceCount, type ResourceListScope } from "../search/index.js";
+import { useResourceCount } from "../search/index.js";
 
 /** Options for {@link useWorkflowCount}. */
 export interface UseWorkflowCountOptions {
   /** Text query to filter workflows before counting. */
   readonly query?: string;
-  /**
-   * Controls which workflows are counted.
-   *
-   * - `"org"` — only workflows owned by the given organization.
-   * - `"all"` — includes public/platform workflows.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
   /** Opaque token that forces a recount when its value changes. */
   readonly refetchToken?: unknown;
 }

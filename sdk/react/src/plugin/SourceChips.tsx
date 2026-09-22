@@ -7,7 +7,7 @@
  * source; the chips are how a user learns where plugins come from before
  * they scroll.
  *
- * A WAI-ARIA radiogroup in the `ScopeToggle` shape (roving tabindex, arrow
+ * A WAI-ARIA radiogroup in the `ViewSwitcher` shape (roving tabindex, arrow
  * keys move and select). Each chip carries its source's read state: a
  * spinner while its catalogue is read, its entry count once read, a
  * warning mark with the refusal's sentence in a tooltip when it failed;

@@ -409,39 +409,6 @@ const { count, isLoading } = useAgentCount("acme");
 ```
 
 
-### ScopeToggle
-
-Segmented control for switching resource list scope between
-organization-only and all (including public community resources).
-
-Renders as a WAI-ARIA Radio Group with roving tabindex and
-arrow-key navigation. Follows the same visual pattern as
-[`VisibilitySelector`](#visibilityselector).
-
-The component is controlled — the consumer owns the `value` state
-and handles persistence (e.g., localStorage).
-
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `ScopeToggleProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes applied to the root element." },
-    compact: { type: "boolean", description: "When true, renders icon-only buttons without text labels. Useful inside space-constrained contexts like picker popovers. Each button retains an accessible `aria-label`." },
-    disabled: { type: "boolean", description: "Disables all interaction." },
-    onChange: { type: "(scope: ResourceListScope) => void", description: "Called when the user selects a different scope.", required: true },
-    value: { type: "ResourceListScope", description: "The currently selected scope.", required: true },
-  }}
-/>
-
-```tsx
-const [scope, setScope] = useState<ResourceListScope>("org");
-
-<ScopeToggle value={scope} onChange={setScope} />
-```
-
-
 ### VisibilityBadge
 
 Visibility indicator with a matching icon, covering all four levels
@@ -903,7 +870,6 @@ Shared options for resource search hooks (`useAgentSearch`, `useMcpServerSearch`
   type={{
     debounceMs: { type: "number", description: "Debounce delay for query changes in milliseconds." },
     pageSize: { type: "number", description: "Maximum results per page." },
-    scope: { type: "\"org\" | \"all\"", description: "Controls search scope.  - `\"org\"` — search only within the provided organization. - `\"all\"` — search within the provided organization plus public   resources from other organizations." },
   }}
 />
 

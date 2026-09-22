@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useResourceCount, useResourceList, type ResourceListScope } from "../search/index.js";
+import { useResourceCount, useResourceList } from "../search/index.js";
 
 /** Options for {@link usePluginList}. */
 export interface UsePluginListOptions {
@@ -13,15 +13,6 @@ export interface UsePluginListOptions {
   readonly page?: number;
   /** Text query to filter plugins by name, description or keywords. */
   readonly query?: string;
-  /**
-   * Controls which plugins are visible.
-   *
-   * - `"org"` — only plugins installed in the given organization.
-   * - `"all"` — includes public plugins other organizations installed.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
 }
 
 /** Return value of {@link usePluginList}. */
@@ -45,8 +36,8 @@ export interface UsePluginListReturn {
 /**
  * Data hook that fetches a paginated list of installed plugins for the
  * Library. Wraps `stigmer.plugin.list()` (the search-backed listing every
- * indexed kind shares) with pagination, scope filtering and text search;
- * the consumer owns page state, query debouncing and scope toggling.
+ * indexed kind shares) with pagination and text search over the
+ * organization's plugins; the consumer owns page state and query debouncing.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
@@ -76,8 +67,6 @@ export function usePluginList(org: string | null, options?: UsePluginListOptions
 export interface UsePluginCountOptions {
   /** Text query to filter plugins before counting. */
   readonly query?: string;
-  /** Which plugins are counted; see {@link UsePluginListOptions.scope}. @default "org" */
-  readonly scope?: ResourceListScope;
   /** Opaque token that forces a recount when its value changes. */
   readonly refetchToken?: unknown;
 }
