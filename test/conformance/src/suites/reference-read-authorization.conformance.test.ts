@@ -368,6 +368,14 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
 describe.each(KINDS)(
   "$name — a read by reference answers as the read by id",
   (kind) => {
+    // The table speaks the ApiResourceKind vocabulary (`mcp_server`), the
+    // reference lane speaks slugs (`^[a-z][a-z0-9-]*[a-z0-9]$`, the
+    // ApiResourceReference rule in commons/apiresource/io.proto). A literal
+    // that fails the slug rule is refused INVALID_ARGUMENT by protovalidate
+    // before the server runs, so every slug this file invents is built from
+    // this stem, or the arm proves the validator instead of the lane.
+    const slugStem = kind.name.replaceAll("_", "-");
+
     async function seededBy(
       using: ConformanceClients,
       org: string,
@@ -446,7 +454,7 @@ describe.each(KINDS)(
       expect(denied.rawMessage).toBe(kind.deniedCopy);
       await expectGrpcCode(
         () =>
-          kind.getByReference(outsider, org, `${kind.name}-reference-missing`),
+          kind.getByReference(outsider, org, `${slugStem}-reference-missing`),
         Code.NotFound,
         `outsider ${kind.name} missing slug`,
       );
@@ -454,11 +462,16 @@ describe.each(KINDS)(
 
     it("an org-less reference is refused as under-specified", async (ctx) => {
       const lane = laneOrSkip(ctx);
-      await expectGrpcCode(
-        () => kind.getByReference(lane.clients, "", `${kind.name}-orgless`),
+      const refused = await expectGrpcCode(
+        () => kind.getByReference(lane.clients, "", `${slugStem}-orgless`),
         Code.InvalidArgument,
         `${kind.name} org-less reference`,
       );
+      // The proto admits an empty org, so the refusal must be the server's
+      // reference rule (requireOrgForReference, one copy for every kind with
+      // a reference lane), not the validator's: the copy names the kind, and
+      // this arm holds that shape rather than thirteen kind names.
+      expect(refused.rawMessage).toMatch(/^org is required for .+ lookup$/);
     });
   },
 );

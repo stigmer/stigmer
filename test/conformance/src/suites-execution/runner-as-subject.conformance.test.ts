@@ -42,11 +42,14 @@
 //     editions — a shared workflow runs its agents as the person who ran it,
 //     who must be able to view them — pinned so a widening of that reach
 //     turns this arm red on purpose;
-//   - the runner's MCP children act as the person who asked. A member's
-//     connect of their own server that declares a credential SUCCEEDS with
-//     the fixture's tools: the connect's ExecutionContext is created as the
+//   - the runner's MCP children act as the person who asked. An MCP server
+//     is an organization's blueprint, an admin's to author; a member brings
+//     their own credential to it. A member's connect of an admin-authored,
+//     org-visible server that declares a credential SUCCEEDS with the
+//     fixture's tools: the connect's ExecutionContext is created as the
 //     member and the connect token admits the runner as the member for the
-//     secret read (stigmer#1137's connect half). A member's run with memory
+//     secret read from the member's personal environment (stigmer#1137's
+//     connect half). A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
 //     member and whose provenance session is the run's, which the operator —
 //     an organization owner — cannot list (stigmer#1147: the stdio child
@@ -65,8 +68,10 @@
 //     reads outcomes, never a server log;
 //   - the discovery's McpServer metadata read: it rides the runner's own
 //     credential, an organization admin's under the chart's install, whom
-//     the model makes an owner of every McpServer in the organization; the
-//     connect arm's private server proves that read as a side effect.
+//     the model makes an owner of every McpServer in the organization. No
+//     arm here tells that key from the member's connect token — every
+//     server a member may connect is one both may read — so which key the
+//     read rides is the runner's own units' to pin, not this suite's.
 //
 // The arms run on the target's ENFORCING LANE (targets/target.ts): on the
 // execution targets an open-source sibling in the OIDC posture WITH its own
@@ -111,7 +116,7 @@ import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makePersonalEnvironment } from "../support/environments";
 import { pollUntil } from "../support/execution-poll";
 import { makeHttpMcpServer } from "../support/mcpservers";
-import { MEMORY_CAP } from "../support/memories";
+import { enableOrganizationMemory, MEMORY_CAP } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import {
   AGENT_CALL_AFTER_TASK_NAME,
@@ -730,16 +735,18 @@ describe.skipIf(!runnerActsAsRunCreator)(
       ).toBe(0);
     });
 
-    it("a member's connect of their own credentialed server succeeds: the connect's ExecutionContext is created as the member, and the connect token admits the runner as the member for the secret read", async (ctx) => {
+    it("a member's connect of an admin-authored server with their own credential succeeds: the connect's ExecutionContext is created as the member, and the connect token admits the runner as the member for the secret read", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const mcpTools = requireMcpFixture(target);
 
-      // The member saves the credential the server declares, in the
-      // organization's personal environment, and owns a PRIVATE server that
-      // declares it — so the discovery's metadata read (the runner's own key,
-      // an organization admin's) and its secret read (the connect token, the
-      // member's) are both exercised by one connect.
+      // The founder (the organization's owner, so an admin) authors an
+      // ORG-VISIBLE server that declares a credential — authoring an MCP
+      // server is the organization's blueprint bar, and a member holds
+      // `can_connect` on an org-visible row and on no private one. The
+      // member saves the credential in their own personal environment for
+      // the organization; the connect reads it from THERE, as the member,
+      // through the connect token — the read this arm proves.
       const personal = await people.member.environmentCommand.create(
         makePersonalEnvironment({
           org: people.org,
@@ -767,11 +774,11 @@ describe.skipIf(!runnerActsAsRunCreator)(
       });
       input.metadata = {
         ...input.metadata,
-        visibility: ApiResourceVisibility.visibility_private,
+        visibility: ApiResourceVisibility.visibility_org,
       };
-      const server = await people.member.mcpServerCommand.create(input);
+      const server = await people.founder.mcpServerCommand.create(input);
       fixtures.defer(() =>
-        people.member.mcpServerCommand.delete({
+        people.founder.mcpServerCommand.delete({
           resourceId: server.metadata!.id,
         }),
       );
@@ -802,18 +809,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
 
       // Memory is an organization preference an admin turns on; the founder
       // owns the organization.
-      const organization = await people.founder.organizationQuery.get({
-        value: people.org,
-      });
-      await people.founder.organizationCommand.update({
-        apiVersion: organization.apiVersion,
-        kind: organization.kind,
-        metadata: {
-          id: organization.metadata!.id,
-          name: organization.metadata!.name,
-        },
-        spec: { preferences: { memoryEnabled: true } },
-      });
+      await enableOrganizationMemory(people.founder, people.org);
       const agent = await createAgent(
         people,
         ApiResourceVisibility.visibility_org,

@@ -25,10 +25,8 @@
 // (reference-read-authorization), and the default-instance self-heal the
 // server composes in-process (a server unit, since the wire cannot compose
 // one).
-import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { OrganizationPreferencesSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -39,7 +37,7 @@ import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentInstance } from "../support/agentinstances";
 import { makeAgentShare } from "../support/agentshares";
 import { makeMcpServer } from "../support/mcpservers";
-import { makeMemory } from "../support/memories";
+import { enableOrganizationMemory, makeMemory } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
 import { makeWorkflow } from "../support/workflows";
@@ -317,15 +315,7 @@ describe("Memory.create asks can_create_session on the organization", () => {
     // so the member's positive arm reaches the store. The outsider's arm
     // does not depend on it: the authorization question comes BEFORE the
     // enablement check, so an outsider never learns the setting.
-    const org = await c.owner.organizationQuery.get({ value: c.org });
-    if (org.spec === undefined) {
-      throw new Error("the provisioned organization carries no spec");
-    }
-    org.spec.preferences = create(OrganizationPreferencesSchema, {
-      standingContext: org.spec.preferences?.standingContext ?? "",
-      memoryEnabled: true,
-    });
-    await c.owner.organizationCommand.update(org);
+    await enableOrganizationMemory(c.owner, c.org);
     const memory = await c.member.memoryCommand.create(makeMemory(c.org));
     fixtures.defer(() =>
       c.owner.memoryCommand.delete({ value: memory.metadata!.id }),

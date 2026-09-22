@@ -13,7 +13,12 @@
 // them in their own unit tests, and this suite asserts them over the
 // wire. A change to any of them is a contract change, not a copy edit.
 import type { InitShape } from "./init-shape";
+import { clone, create } from "@bufbuild/protobuf";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
+import {
+  OrganizationPreferencesSchema,
+  OrganizationSpecSchema,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "./naming";
@@ -78,6 +83,37 @@ export function makeMemory(
       content: options.content ?? "Prefers terse answers with code examples.",
     },
   };
+}
+
+// Turns the memory switch ON for an organization that already exists —
+// the enforcing lane founds its tenancies with no spec, and the switch is
+// an organization preference an admin sets after the fact. The update is
+// a fresh envelope over the row's identity (the organization suite's own
+// shape) carrying the spec as it stands plus the switch: update replaces
+// the spec whole, so a description or a standing context already saved
+// must ride along or be lost. `clients` must hold the organization's
+// admin bar; `org` is the slug (which is also the id, the tenancy-root
+// addressing rule).
+export async function enableOrganizationMemory(
+  clients: ConformanceClients,
+  org: string,
+): Promise<void> {
+  const organization = await clients.organizationQuery.get({ value: org });
+  const spec =
+    organization.spec === undefined
+      ? create(OrganizationSpecSchema)
+      : clone(OrganizationSpecSchema, organization.spec);
+  spec.preferences ??= create(OrganizationPreferencesSchema);
+  spec.preferences.memoryEnabled = true;
+  await clients.organizationCommand.update({
+    apiVersion: organization.apiVersion,
+    kind: organization.kind,
+    metadata: {
+      id: organization.metadata!.id,
+      name: organization.metadata!.name,
+    },
+    spec,
+  });
 }
 
 export interface OrgWithConfirmedFacts {
