@@ -8,8 +8,6 @@ import { PulseHighlight } from "@scenar/react";
 import { DEMO_ORG } from "./fixtures";
 import "./ResourceListPage.css";
 
-const noop = () => {};
-
 interface ResourceListPageProps {
   /** Page heading (e.g. "Agents", "Skills", "MCP Servers"). */
   readonly title: string;
@@ -98,8 +96,6 @@ export function ResourceListPage({
         <ResourceWorkbench
           listFn={listFn}
           org={DEMO_ORG}
-          scope="org"
-          onScopeChange={noop}
           defaultViewMode="cards"
           viewModes={["table", "cards"]}
           searchPlaceholder={`Search ${nounPlural}\u2026`}

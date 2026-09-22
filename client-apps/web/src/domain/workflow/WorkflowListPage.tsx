@@ -5,10 +5,6 @@ import Link from "next/link";
 import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Plus, Upload } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
-  readPersistedScope,
-  writePersistedScope,
-} from "@/domain/library/scope-persistence";
-import {
   ResourceWorkbench,
   ActionMenu,
   ApplyManifestDialog,
@@ -62,9 +58,6 @@ export function WorkflowListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(() =>
-    readPersistedScope("workflows"),
-  );
   const [importOpen, setImportOpen] = useState(false);
   // Bumped after an out-of-band mutation (apply YAML, delete) to refetch
   // the list in place — no remount flash, pagination and sort preserved.
@@ -95,11 +88,6 @@ export function WorkflowListPage() {
     [confirm, stigmer],
   );
 
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope("workflows", newScope);
-  }, []);
-
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.workflow.list>[0]) =>
       stigmer.workflow.list(params),
@@ -120,8 +108,6 @@ export function WorkflowListPage() {
         listFn={listFn}
         org={org}
         columns={WORKFLOW_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}

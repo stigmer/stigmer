@@ -10,10 +10,6 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  readPersistedScope,
-  writePersistedScope,
-} from "./scope-persistence";
-import {
   ResourceWorkbench,
   ActionMenu,
   ApplyManifestDialog,
@@ -67,16 +63,10 @@ export default function AgentListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("agents"));
   const [importOpen, setImportOpen] = useState(false);
   // Bumped after an out-of-band mutation (apply YAML, delete) to refetch
   // the list in place — no remount flash, pagination and sort preserved.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
-
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope("agents", newScope);
-  }, []);
 
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.agent.list>[0]) =>
@@ -123,8 +113,6 @@ export default function AgentListPage() {
         listFn={listFn}
         org={org}
         columns={AGENT_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}

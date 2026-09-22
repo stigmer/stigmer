@@ -9,10 +9,6 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  readPersistedScope,
-  writePersistedScope,
-} from "./scope-persistence";
-import {
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -65,15 +61,9 @@ export default function SkillListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("skills"));
   // Bumped after a delete to refetch the list in place — no remount
   // flash, pagination and sort preserved.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
-
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope("skills", newScope);
-  }, []);
 
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.skill.list>[0]) =>
@@ -116,8 +106,6 @@ export default function SkillListPage() {
         listFn={listFn}
         org={org}
         columns={SKILL_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}

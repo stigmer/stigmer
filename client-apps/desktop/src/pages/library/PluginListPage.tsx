@@ -2,10 +2,6 @@ import { useCallback, useMemo, useReducer, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Blocks, Copy, ExternalLink, MoreHorizontal, Trash2, Store, Upload } from "lucide-react";
 import {
-  readPersistedScope,
-  writePersistedScope,
-} from "./scope-persistence";
-import {
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -79,7 +75,6 @@ export default function PluginListPage() {
   const navigate = useNavigate();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("plugins"));
   // Bumped after a remove to refetch the list in place — no remount
   // flash, pagination and sort preserved.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
@@ -106,11 +101,6 @@ export default function PluginListPage() {
     [confirm, stigmer],
   );
 
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope("plugins", newScope);
-  }, []);
-
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.plugin.list>[0]) =>
       stigmer.plugin.list(params),
@@ -131,8 +121,6 @@ export default function PluginListPage() {
         listFn={listFn}
         org={org}
         columns={PLUGIN_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}

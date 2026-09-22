@@ -5,10 +5,6 @@ import Link from "next/link";
 import { Bot, Plus, Upload, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
-  readPersistedScope,
-  writePersistedScope,
-} from "@/domain/library/scope-persistence";
-import {
   ResourceWorkbench,
   ActionMenu,
   ApplyManifestDialog,
@@ -61,7 +57,6 @@ export function AgentListPage() {
   const { navigateToDetail } = useLibraryNavigation();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("agents"));
   const [importOpen, setImportOpen] = useState(false);
   // Bumped after an out-of-band mutation (apply YAML, delete) to refetch
   // the list in place — no remount flash, pagination and sort preserved.
@@ -90,11 +85,6 @@ export function AgentListPage() {
     [confirm, stigmer],
   );
 
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope("agents", newScope);
-  }, []);
-
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.agent.list>[0]) =>
       stigmer.agent.list(params),
@@ -117,8 +107,6 @@ export function AgentListPage() {
         listFn={listFn}
         org={org}
         columns={AGENT_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}
