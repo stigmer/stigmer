@@ -434,7 +434,7 @@ describe("transfer lane (#675) — mint → PUT → push-by-ref → download", (
     );
   });
 
-  it("a ref whose slot was minted but never uploaded is rejected at push", async () => {
+  it("a ref whose slot was minted but never uploaded is rejected at push — the one condition every driver can answer", async () => {
     const minted = await command.createArtifactUploadUrl({ org: ORG, sizeBytes: 1024n });
     const err = await expectCode(
       command.push({ org: ORG, artifactUploadRef: minted.artifactUploadRef }),
@@ -442,7 +442,7 @@ describe("transfer lane (#675) — mint → PUT → push-by-ref → download", (
       "empty slot",
     );
     expect(err.rawMessage).toBe(
-      "artifact_upload_ref not usable: upload reference has no uploaded bytes — request a new upload URL via createArtifactUploadUrl",
+      "artifact_upload_ref not usable: upload reference unknown or expired — request a new upload URL via createArtifactUploadUrl",
     );
   });
 
@@ -499,7 +499,9 @@ describe("transfer lane (#675) — mint → PUT → push-by-ref → download", (
     const minted = await query.getArtifactDownloadUrl({
       artifactStorageKey: pushed.status!.artifactStorageKey,
     });
-    expect(minted.ttlSeconds).toBe(0);
+    // The floor of the URL's validity, the same on every driver; the local
+    // lane's content-hash URL simply outlives it.
+    expect(minted.ttlSeconds).toBe(3600);
     expect(minted.sizeBytes).toBe(BigInt(artifact.length));
 
     const resp = await fetch(minted.url);

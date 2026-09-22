@@ -13,10 +13,12 @@
  * optional deps; every absent-surface answer is a deliberate arm, not an
  * accident.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize/TransformResponse/
- * SendResponse steps (no multi-tenant auth or response transformation) and
- * serves artifact bytes itself instead of R2 pre-signed URLs — same
- * capability-URL trust model, same client semantics.
+ * Versus Stigmer Cloud, OSS excludes the TransformResponse/SendResponse
+ * steps (no response transformation). The transfer lane's capability
+ * URLs come from the blob driver through the staging port
+ * (transfer/staging.ts): the local driver's point at this server's own
+ * HTTP lane, a bucket driver's straight at the bucket — same
+ * capability-URL trust model, same client semantics, one code path.
  *
  * Proven by skill.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the co-located __tests__/ suites.
@@ -119,8 +121,11 @@ import {
 import { skillSearchExtractor } from "./search-extractor.js";
 import { ArtifactNotFoundError } from "./storage/artifact-storage.js";
 import type { SkillArtifactStorage } from "./storage/artifact-storage.js";
-import { downloadUrl, uploadUrl } from "./transfer/handler.js";
-import type { UploadSlots } from "./transfer/slots.js";
+import type {
+  ArchiveStaging,
+  DownloadCapability,
+  StagedUpload,
+} from "./transfer/staging.js";
 import {
   LIST_VERSIONS_RESPONSE_KEY,
   LIST_VERSIONS_SKILL_ID_KEY,
@@ -135,13 +140,6 @@ import {
  * finishes far inside it.
  */
 const EXECUTION_ARTIFACT_DOWNLOAD_TIMEOUT_MS = 60_000;
-
-/** The transfer lane's controller-side pair (Go SetTransferLane). */
-export interface SkillTransferLaneDeps {
-  readonly slots: UploadSlots;
-  /** Externally-reachable base minted into upload and download URLs. */
-  readonly baseUrl: string;
-}
 
 export interface SkillControllerDeps {
   readonly store: Store;
@@ -158,11 +156,12 @@ export interface SkillControllerDeps {
    */
   readonly executionArtifactStorage?: ArtifactStorage;
   /**
-   * The HTTP transfer lane (Go SetTransferLane). Optional — absent,
-   * createArtifactUploadUrl and getArtifactDownloadUrl answer
-   * FailedPrecondition and push accepts inline bytes only.
+   * The transfer lane's staging port (Go SetTransferLane) over the skill
+   * blob driver. Optional — absent, createArtifactUploadUrl and
+   * getArtifactDownloadUrl answer FailedPrecondition and push accepts
+   * inline bytes only.
    */
-  readonly transferLane?: SkillTransferLaneDeps;
+  readonly staging?: ArchiveStaging;
 }
 
 /** Registers both skill services on the router (routes stage). */
@@ -222,7 +221,7 @@ async function push(
   await newPipeline<typeof PushSkillRequestSchema>("skill-push", deps.logger)
     .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newValidateProtoStep())
-    .addStep(newResolveArtifactSourceStep(deps.transferLane?.slots))
+    .addStep(newResolveArtifactSourceStep(deps.staging))
     .addStep(newBuildInitialSkillStep())
     .addStep(newExtractAndHashArtifactStep())
     .addStep(newResolveSlugForPushStep())
@@ -266,19 +265,20 @@ async function push(
 }
 
 /**
- * CreateArtifactUploadUrl — mints a short-lived, single-use HTTP upload
- * URL for an artifact exceeding the gRPC message cap (#675). The size gate
- * is the fail-loud half of the contract: an over-limit artifact is refused
- * with the actual limit in the message BEFORE any bytes move, instead of
- * surfacing as a transport error mid-upload.
+ * CreateArtifactUploadUrl — mints a short-lived, single-use upload URL for
+ * an artifact exceeding the gRPC message cap (#675): the blob driver's own
+ * PUT surface, through the staging port. The size gate is the fail-loud
+ * half of the contract: an over-limit artifact is refused with the actual
+ * limit in the message BEFORE any bytes move, instead of surfacing as a
+ * transport error mid-upload.
  */
 async function createArtifactUploadUrl(
   deps: SkillControllerDeps,
   req: CreateSkillArtifactUploadUrlRequest,
   ctx: HandlerContext,
 ): Promise<SkillArtifactUploadUrl> {
-  const lane = deps.transferLane;
-  if (lane === undefined) {
+  const staging = deps.staging;
+  if (staging === undefined) {
     throw failedPreconditionError(TRANSFER_LANE_NOT_CONFIGURED);
   }
 
@@ -307,15 +307,15 @@ async function createArtifactUploadUrl(
     );
   }
 
-  let minted: { ref: string; ttlMs: number };
+  let minted: StagedUpload;
   try {
-    minted = lane.slots.mint(Number(req.sizeBytes));
+    minted = await staging.mint(Number(req.sizeBytes));
   } catch (error) {
     throw internalError(error, "failed to mint upload reference");
   }
 
   return create(SkillArtifactUploadUrlSchema, {
-    url: uploadUrl(lane.baseUrl, minted.ref),
+    url: minted.url,
     artifactUploadRef: minted.ref,
     ttlSeconds: Math.trunc(minted.ttlMs / 1000),
   });
@@ -738,17 +738,19 @@ async function getArtifact(
 
 /**
  * GetArtifactDownloadUrl — the transfer-lane twin of GetArtifact (#675):
- * stats (never loads) the artifact and mints its capability URL. The URL
- * does not expire on OSS (ttl_seconds = 0) — it embeds the same
- * content-hash capability a stored storage key would.
+ * stats (never loads) the artifact, then asks the staging port for its
+ * capability URL. ttl_seconds is the floor of the URL's validity: a bucket
+ * driver signs its GET for exactly that long, while the local lane's URL
+ * embeds the same content-hash capability the storage key does and never
+ * expires, so the floor holds there trivially.
  */
 async function getArtifactDownloadUrl(
   deps: SkillControllerDeps,
   req: GetArtifactRequest,
   ctx: HandlerContext,
 ): Promise<SkillArtifactDownloadUrl> {
-  const lane = deps.transferLane;
-  if (lane === undefined) {
+  const staging = deps.staging;
+  if (staging === undefined) {
     throw failedPreconditionError(TRANSFER_LANE_NOT_CONFIGURED);
   }
 
@@ -784,9 +786,16 @@ async function getArtifactDownloadUrl(
     throw internalError(error, "failed to stat skill artifact");
   }
 
+  let capability: DownloadCapability;
+  try {
+    capability = await staging.downloadUrl(req.artifactStorageKey);
+  } catch (error) {
+    throw internalError(error, "failed to mint skill artifact download URL");
+  }
+
   return create(SkillArtifactDownloadUrlSchema, {
-    url: downloadUrl(lane.baseUrl, req.artifactStorageKey),
-    ttlSeconds: 0,
+    url: capability.url,
+    ttlSeconds: Math.trunc(capability.ttlMs / 1000),
     sizeBytes: BigInt(size),
   });
 }

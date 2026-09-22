@@ -81,7 +81,7 @@ import { skillSearchExtractor } from "./search-extractor.js";
 import { extractSkillMd } from "./storage/zip-gate.js";
 import type { ExtractSkillMdResult } from "./storage/zip-gate.js";
 import type { SkillArtifactStorage } from "./storage/artifact-storage.js";
-import type { UploadSlots } from "./transfer/slots.js";
+import type { ArchiveStaging } from "./transfer/staging.js";
 
 type PushDesc = typeof PushSkillRequestSchema;
 
@@ -99,9 +99,9 @@ export const SHOULD_CREATE_SKILL_KEY = "shouldCreateSkill";
  * pipeline/steps/resolve-artifact-source.ts for the semantics).
  */
 export function newResolveArtifactSourceStep(
-  slots: UploadSlots | undefined,
+  staging: ArchiveStaging | undefined,
 ): PipelineStep<PushDesc> {
-  return newSharedResolveArtifactSourceStep<PushDesc>(slots, {
+  return newSharedResolveArtifactSourceStep<PushDesc>(staging, {
     source: (req) => ({
       artifact: req.artifact,
       artifactUploadRef: req.artifactUploadRef,

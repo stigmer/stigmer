@@ -38,7 +38,7 @@ beforeAll(async () => {
   // test previously composed against the DEFAULT paths, which meant
   // opening the developer's real ~/.stigmer/stigmer.db — and with the
   // skill domain's boot-time staging wipe (#8) it would now also clear
-  // ~/.stigmer/storage/skills-staging. Tests never touch the home dir.
+  // ~/.stigmer/storage/skills/staging. Tests never touch the home dir.
   testDir = mkdtempSync(path.join(tmpdir(), "registry-lanes-test-"));
   const config = loadConfig({
     STIGMER_MODEL_REGISTRY_REFRESH: "off",

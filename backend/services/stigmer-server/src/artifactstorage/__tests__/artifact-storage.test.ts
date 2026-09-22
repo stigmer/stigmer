@@ -14,9 +14,13 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { UPLOADS_SEGMENT } from "../../domain/skill/constants.js";
+import {
+  STAGING_KEY_PREFIX,
+  UPLOADS_SEGMENT,
+} from "../../domain/skill/constants.js";
 import { UploadSlots } from "../../domain/skill/transfer/slots.js";
 import { uploadUrl } from "../../domain/skill/transfer/handler.js";
+import { uploadRefOf } from "../../domain/skill/transfer/staging.js";
 import { SKILL_ARTIFACTS_PATH_PREFIX } from "../../transport/constants.js";
 import {
   ArtifactStorageNotFoundError,
@@ -184,33 +188,32 @@ describe("LocalArtifactStorage", () => {
     });
 
     it("presignPut without a wired lane is the explicit not-configured throw, never a silent no-op", async () => {
-      await expect(storage.presignPut(16, 60_000)).rejects.toThrow(
-        "local presigned uploads not configured",
-      );
+      await expect(
+        storage.presignPut("skills/staging/deadbeef.zip", 16, 60_000),
+      ).rejects.toThrow("local presigned uploads not configured");
     });
   });
 });
 
 // The local presigned-PUT arm over the REAL skill-transfer-lane slot
 // mechanism (§6b, the Q1 ruling: one upload surface, no new lane) — the
-// adapter below mirrors boot/compose.ts's wiring exactly.
+// adapter below mirrors boot/compose.ts's wiring exactly. The caller names
+// the key; the lane stages under it inside this driver's root.
 describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
   const BASE_URL = "http://localhost:8080";
+  const KEY = `${STAGING_KEY_PREFIX}${"ab".repeat(16)}.zip`;
   let root: string;
   let slots: UploadSlots;
   let driver: ArtifactStorage;
 
   beforeEach(() => {
     root = mkdtempSync(path.join(tmpdir(), "artifact-presign-"));
-    slots = new UploadSlots(
-      path.join(root, "skills-staging"),
-      60_000,
-      1024 * 1024,
-    );
+    slots = new UploadSlots(root, STAGING_KEY_PREFIX, 60_000, 1024 * 1024);
     driver = new LocalArtifactStorage(root, "", {
-      mint: (declaredSizeBytes) => slots.mint(declaredSizeBytes),
-      uploadUrl: (ref) => uploadUrl(BASE_URL, ref),
-      stagedKey: (ref) => `skills-staging/${slots.stagedFileName(ref)}`,
+      reserve: (key, declaredSizeBytes) => {
+        const { ttlMs } = slots.reserve(key, declaredSizeBytes);
+        return { url: uploadUrl(BASE_URL, uploadRefOf(key)), ttlMs };
+      },
     });
   });
 
@@ -218,36 +221,36 @@ describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("mint → PUT (lane receive) → download(stagingKey) round-trips the bytes", async () => {
+  it("presignPut(key) → PUT (lane receive) → download(key) round-trips the bytes", async () => {
     const bytes = Buffer.from("staged artifact bytes");
-    const upload = await driver.presignPut(bytes.length, 999_999_999);
+    const upload = await driver.presignPut(KEY, bytes.length, 999_999_999);
 
     // The URL is the lane's wire shape and the ref is its last segment —
     // exactly how the lane handler dispatches a PUT.
-    expect(
-      upload.url.startsWith(
-        `${BASE_URL}${SKILL_ARTIFACTS_PATH_PREFIX}${UPLOADS_SEGMENT}`,
-      ),
-    ).toBe(true);
+    expect(upload.url).toBe(
+      `${BASE_URL}${SKILL_ARTIFACTS_PATH_PREFIX}${UPLOADS_SEGMENT}${uploadRefOf(KEY)}`,
+    );
     // The lane's slot TTL governs, not the caller's larger ask.
     expect(upload.ttlMs).toBe(60_000);
 
-    const ref = upload.url.slice(upload.url.lastIndexOf("/") + 1);
-    await slots.receive(ref, Readable.from(bytes));
+    await slots.receive(KEY, Readable.from(bytes));
 
-    expect(Buffer.from(await driver.download(upload.stagingKey))).toEqual(
-      bytes,
-    );
-    expect(await driver.size(upload.stagingKey)).toBe(bytes.length);
+    expect(Buffer.from(await driver.download(KEY))).toEqual(bytes);
+    expect(await driver.size(KEY)).toBe(bytes.length);
+    // The driver's own delete retires the staged bytes — the consume path.
+    await driver.delete(KEY);
+    await expect(driver.download(KEY)).rejects.toThrow(ArtifactStorageNotFoundError);
   });
 
-  it("the staged key never resolves outside the driver root", async () => {
-    const upload = await driver.presignPut(4, 60_000);
-    expect(upload.stagingKey.startsWith("skills-staging/")).toBe(true);
-    // Unreceived slot: the key is honest about absence.
-    await expect(driver.download(upload.stagingKey)).rejects.toThrow(
-      ArtifactStorageNotFoundError,
-    );
+  it("an unreceived key is honest about absence", async () => {
+    await driver.presignPut(KEY, 4, 60_000);
+    await expect(driver.download(KEY)).rejects.toThrow(ArtifactStorageNotFoundError);
+  });
+
+  it("refuses a key that would stage outside the driver root before the lane sees it", async () => {
+    await expect(
+      driver.presignPut("../outside.zip", 4, 60_000),
+    ).rejects.toThrow("resolves outside the artifact storage root");
   });
 });
 

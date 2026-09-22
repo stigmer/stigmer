@@ -53,7 +53,7 @@ const temporalHostPort = process.env.TEMPORAL_HOST_PORT ?? "127.0.0.1:7233";
 
 // Every filesystem-touching stage gets a throwaway root: the boot check
 // must never write the operator's ~/.stigmer. STORAGE_PATH matters beyond
-// hygiene — the skill domain WIPES {STORAGE_PATH}/skills-staging at boot
+// hygiene — the skill domain WIPES {STORAGE_PATH}/skills/staging at boot
 // (crash recovery, #8), which against the real default would clear a
 // running server's in-flight uploads.
 const scratch = mkdtempSync(join(tmpdir(), "verify-boot-"));
