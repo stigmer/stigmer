@@ -50,6 +50,7 @@ const FIXTURES = new URL("./fixtures/fga/", import.meta.url);
  */
 const DOCUMENTS = [
   "agent-channel-owner.fga.yaml",
+  "agent-instance-creation.fga.yaml",
   "agent-share-owner.fga.yaml",
   "artifact-org-and-owner.fga.yaml",
   "blueprint-private-visibility.fga.yaml",
@@ -58,6 +59,7 @@ const DOCUMENTS = [
   "channel-session-visibility.fga.yaml",
   "cross-org-share-creation.fga.yaml",
   "default-instance-inheritance.fga.yaml",
+  "mcp-server-authoring.fga.yaml",
   "memory-subject-only.fga.yaml",
   "org-admin-owner-inheritance.fga.yaml",
   "org-shared-environment.fga.yaml",
