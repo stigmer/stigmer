@@ -220,6 +220,18 @@ export async function createTestWaitWorkflow(
   };
 }
 
+export interface CreateMultiKindTestWorkflowOpts {
+  /**
+   * Slug of an agent in the workflow's organization for the `agent_call`
+   * task to name. The server refuses a workflow whose referenced agent does
+   * not exist, so the caller seeds the agent first (`createTestAgent`) and
+   * passes its slug.
+   */
+  agentSlug: string;
+  name?: string;
+  org?: string;
+}
+
 /**
  * Creates a workflow with tasks spanning multiple visual classes for T01
  * visual registry E2E testing. Includes: agent_call (task-card),
@@ -228,10 +240,10 @@ export async function createTestWaitWorkflow(
  */
 export async function createMultiKindTestWorkflow(
   client: Stigmer,
-  opts?: { name?: string; org?: string },
+  opts: CreateMultiKindTestWorkflowOpts,
 ): Promise<TestWorkflowResult> {
-  const name = opts?.name ?? `e2e-multi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const org = opts?.org ?? DEFAULT_ORG;
+  const name = opts.name ?? `e2e-multi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const org = opts.org ?? DEFAULT_ORG;
 
   const workflow = await client.workflow.apply({
     name,
@@ -253,7 +265,7 @@ export async function createMultiKindTestWorkflow(
       {
         name: "classify_input",
         kind: WorkflowTaskKind.agent_call,
-        taskConfig: { agent: "test-agent", message: "classify this" },
+        taskConfig: { agent: opts.agentSlug, message: "classify this" },
         export: { as: "${ . }" },
       },
       {
