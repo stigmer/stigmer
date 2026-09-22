@@ -1,5 +1,5 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/platform-visibility.fga.yaml
-# at commit b87dd1170 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#765 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for platform visibility (visibility_platform).
@@ -102,8 +102,6 @@ tests:
     check:
       - user: identity_account:alice
         object: agent:sara
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -112,8 +110,6 @@ tests:
           can_delete: false
       - user: identity_account:bob
         object: agent:sara
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -122,8 +118,6 @@ tests:
     check:
       - user: identity_account:mallory
         object: agent:sara
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
@@ -133,8 +127,6 @@ tests:
     check:
       - user: identity_account:priya
         object: agent:sara
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -144,8 +136,6 @@ tests:
       # narrower: platform_user resolves member-from-managed_org.)
       - user: identity_account:veda
         object: agent:sara
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: false
@@ -154,8 +144,6 @@ tests:
     check:
       - user: identity_account:alice
         object: agent:internal-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
@@ -163,8 +151,6 @@ tests:
       # without an explicit visibility tuple.
       - user: identity_account:priya
         object: agent:internal-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
@@ -173,8 +159,6 @@ tests:
     check:
       - user: identity_account:alice
         object: skill:research
-        context:
-          allow: false
         assertions:
           can_view: true
           can_use: true
@@ -184,8 +168,6 @@ tests:
     check:
       - user: identity_account:alice
         object: workflow:onboarding
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -194,8 +176,6 @@ tests:
     check:
       - user: identity_account:alice
         object: mcp_server:github
-        context:
-          allow: false
         assertions:
           can_view: true
           can_use: true
@@ -205,8 +185,6 @@ tests:
     check:
       - user: identity_account:swarup
         object: agent:sara
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -216,8 +194,6 @@ tests:
     list_objects:
       - user: identity_account:alice
         type: agent
-        context:
-          allow: false
         assertions:
           can_view:
             - agent:sara

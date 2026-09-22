@@ -65,14 +65,12 @@ import type { CallerIdentity } from "./identity.js";
  * The visibility tuple shapes of the shared FGA model, named
  * edition-neutrally. The driver maps each to its tuple:
  *   - org-viewer:      <kind>:<id>#viewer@organization:<org>#viewer
- *   - public-viewer:   <kind>:<id>#viewer@identity_account:* (conditional)
  *   - platform-viewer: <kind>:<id>#platform_viewer@identity_provider:<idp>#platform_user
  *     (fans out per IdP the org owns — the driver's lookup, not OSS's)
+ * Every shape names a bounded set of readers; the model has no shape that
+ * reaches every account.
  */
-export type VisibilityTupleShape =
-  | "org-viewer"
-  | "public-viewer"
-  | "platform-viewer";
+export type VisibilityTupleShape = "org-viewer" | "platform-viewer";
 
 /**
  * One resolved structural link from the created resource to a parent

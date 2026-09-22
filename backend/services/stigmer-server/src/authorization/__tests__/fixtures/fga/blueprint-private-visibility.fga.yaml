@@ -1,5 +1,5 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/blueprint-private-visibility.fga.yaml
-# at commit 2ec420161 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#765 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for real blueprint privacy (Phase 3 of the visibility model).
@@ -14,7 +14,6 @@
 #             viewers; pre-cloud#257 tuples carried #member, which excluded
 #             viewer-role users — still honored until backfilled, see the
 #             legacy-bot fixture)
-#   PUBLIC    viewer@identity_account:* (allow_public)  +  the ORG tuple
 #   PLATFORM  platform_viewer@identity_provider:<idp>#platform_user  +  the ORG tuple
 #
 # Read vs spend: an org viewer-role user READS org-visible blueprints (and, at
@@ -23,9 +22,8 @@
 # can_create_execution_in permissions, which require member-or-guest. The
 # vera assertions pin both halves of that contract.
 #
-# The ORG tuple rides along on PUBLIC/PLATFORM (the "org floor") so a shared
-# blueprint stays listable in its own org — org-scoped ListObjects runs with
-# {"allow": false}, which suppresses the public wildcard.
+# The ORG tuple rides along on PLATFORM (the "org floor") so a shared
+# blueprint stays listable in its own org.
 #
 # T08 exception: org ADMINS (and org owners, via the role hierarchy) are
 # composed into blueprint `owner` and therefore see, list, and manage
@@ -39,8 +37,8 @@
 # Scenario: org "acme" has owner-creator carol, org admin oscar, plain
 # member dave, and read-only viewer vera (the role SSO auto-provisioning
 # grants by default); mallory belongs to an unrelated org. Carol authors one
-# blueprint of each kind at PRIVATE, plus an ORG agent, a PUBLIC agent, and
-# a legacy ORG agent whose tuple still carries the pre-cloud#257 shape.
+# blueprint of each kind at PRIVATE, plus an ORG agent and a legacy ORG
+# agent whose tuple still carries the pre-cloud#257 shape.
 name: blueprint-private-visibility
 model_file: ../model/fga.mod
 
@@ -114,22 +112,6 @@ tuples:
     relation: viewer
     object: agent:legacy-bot
 
-  # --- PUBLIC agent (wildcard + org floor tuple) ---
-  - user: organization:acme
-    relation: organization
-    object: agent:open-bot
-  - user: identity_account:carol
-    relation: owner
-    object: agent:open-bot
-  - user: identity_account:*
-    relation: viewer
-    object: agent:open-bot
-    condition:
-      name: allow_public
-  - user: organization:acme#viewer
-    relation: viewer
-    object: agent:open-bot
-
   # --- PRIVATE agent with an explicit individual viewer grant ---
   - user: organization:acme
     relation: organization
@@ -146,8 +128,6 @@ tests:
     check:
       - user: identity_account:dave
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
@@ -155,22 +135,16 @@ tests:
           can_clone: false
       - user: identity_account:dave
         object: skill:secret-notes
-        context:
-          allow: false
         assertions:
           can_view: false
           can_use: false
       - user: identity_account:dave
         object: workflow:secret-flow
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
       - user: identity_account:dave
         object: mcp_server:secret-tools
-        context:
-          allow: false
         assertions:
           can_view: false
           can_use: false
@@ -180,8 +154,6 @@ tests:
     check:
       - user: identity_account:oscar
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -189,15 +161,11 @@ tests:
           can_execute: true
       - user: identity_account:oscar
         object: skill:secret-notes
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
       - user: identity_account:oscar
         object: workflow:secret-flow
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -205,8 +173,6 @@ tests:
       # four private-blueprint kinds are pinned to the same rule.
       - user: identity_account:oscar
         object: mcp_server:secret-tools
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -215,22 +181,17 @@ tests:
     list_objects:
       - user: identity_account:oscar
         type: agent
-        context:
-          allow: false
         assertions:
           can_view:
             - agent:secret-bot
             - agent:team-bot
             - agent:legacy-bot
-            - agent:open-bot
             - agent:shared-secret
 
   - name: owner retains full access to private blueprints
     check:
       - user: identity_account:carol
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -239,8 +200,6 @@ tests:
           can_delete: true
       - user: identity_account:carol
         object: workflow:secret-flow
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -250,8 +209,6 @@ tests:
     check:
       - user: identity_account:dave
         object: agent:team-bot
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -260,32 +217,9 @@ tests:
           can_delete: false
       - user: identity_account:mallory
         object: agent:team-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
-
-  - name: public agent is reachable by everyone with allow context, and by org members without it
-    check:
-      # Outsider resolves through the conditional wildcard ({"allow": true}).
-      - user: identity_account:mallory
-        object: agent:open-bot
-        context:
-          allow: true
-        assertions:
-          can_view: true
-          can_execute: true
-      # Org member resolves through the org floor tuple even with the
-      # wildcard suppressed — this is what keeps public blueprints in
-      # org-scoped listings.
-      - user: identity_account:dave
-        object: agent:open-bot
-        context:
-          allow: false
-        assertions:
-          can_view: true
-          can_execute: true
 
   - name: explicit individual viewer grant on a private agent conveys view and run
     check:
@@ -294,38 +228,30 @@ tests:
       # which checks can_view).
       - user: identity_account:dave
         object: agent:shared-secret
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
           can_edit: false
 
-  - name: org member's listable agents exclude private ones (wildcard suppressed)
+  - name: org member's listable agents exclude private ones
     list_objects:
       - user: identity_account:dave
         type: agent
-        context:
-          allow: false
         assertions:
           can_view:
             - agent:team-bot
             - agent:legacy-bot
-            - agent:open-bot
             - agent:shared-secret
 
   - name: owner's listable agents include everything they authored
     list_objects:
       - user: identity_account:carol
         type: agent
-        context:
-          allow: false
         assertions:
           can_view:
             - agent:secret-bot
             - agent:team-bot
             - agent:legacy-bot
-            - agent:open-bot
             - agent:shared-secret
 
   # ── cloud#257: the viewer-role cell (previously untested) ──────────────
@@ -336,27 +262,16 @@ tests:
       # spend refusal is pinned separately on the org permissions below.
       - user: identity_account:vera
         object: agent:team-bot
-        context:
-          allow: false
         assertions:
           can_view: true
           can_clone: true
           can_execute: true
           can_edit: false
           can_delete: false
-      # The org floor of a PUBLIC blueprint reaches viewers the same way.
-      - user: identity_account:vera
-        object: agent:open-bot
-        context:
-          allow: false
-        assertions:
-          can_view: true
       # Private stays private — the viewer role grants nothing beyond the
       # explicit visibility tuples.
       - user: identity_account:vera
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
@@ -382,8 +297,6 @@ tests:
     check:
       - user: identity_account:dave
         object: agent:legacy-bot
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -392,8 +305,6 @@ tests:
       # organization#member. The boot backfill converges these tuples.
       - user: identity_account:vera
         object: agent:legacy-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
@@ -402,9 +313,6 @@ tests:
     list_objects:
       - user: identity_account:vera
         type: agent
-        context:
-          allow: false
         assertions:
           can_view:
             - agent:team-bot
-            - agent:open-bot

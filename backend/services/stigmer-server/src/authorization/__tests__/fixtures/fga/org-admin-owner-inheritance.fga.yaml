@@ -1,5 +1,5 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/org-admin-owner-inheritance.fga.yaml
-# as changed by stigmer-cloud#757 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#765 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for org-admin owner inheritance (T08).
@@ -131,8 +131,6 @@ tests:
     check:
       - user: identity_account:ana
         object: agent:carols-bot
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -169,8 +167,6 @@ tests:
           can_grant_access: true
       - user: identity_account:ana
         object: skill:carols-notes
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -178,8 +174,6 @@ tests:
           can_grant_access: true
       - user: identity_account:ana
         object: workflow:carols-flow
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -197,8 +191,6 @@ tests:
     check:
       - user: identity_account:root
         object: agent:carols-bot
-        context:
-          allow: false
         assertions:
           can_edit: true
           can_delete: true
@@ -218,8 +210,6 @@ tests:
     check:
       - user: identity_account:dave
         object: agent:carols-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_edit: false
@@ -250,8 +240,6 @@ tests:
     check:
       - user: identity_account:zara
         object: agent:carols-bot
-        context:
-          allow: false
         assertions:
           can_view: false
           can_edit: false
@@ -266,8 +254,6 @@ tests:
     check:
       - user: identity_account:ana
         object: agent_instance:carols-instance
-        context:
-          allow: false
         assertions:
           can_view: false
           can_edit: false
@@ -297,8 +283,6 @@ tests:
     check:
       - user: identity_account:carol
         object: agent:carols-bot
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -309,8 +293,6 @@ tests:
     list_objects:
       - user: identity_account:ana
         type: agent
-        context:
-          allow: false
         assertions:
           can_view:
             - agent:carols-bot
@@ -318,8 +300,6 @@ tests:
             - agent:carols-bot
       - user: identity_account:ana
         type: agent_instance
-        context:
-          allow: false
         assertions:
           can_view: []
       - user: identity_account:ana

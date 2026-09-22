@@ -34,9 +34,9 @@ editions; the cloud stores what open source computes.
   `spec.execution_visibility`).
 - `tuples.ts` — the tuple vocabulary (object, relation, subject; the string
   notation), the `Person` type (the caller as the model sees them: account id
-  plus the aliases a creator stamp may carry), `CheckContext` (the
-  `allow_public` parameter: `allow: true` on a point check, `false` in a listing
-  — the cloud's own posture).
+  plus the aliases a creator stamp may carry). The model declares no wildcard
+  subject and no condition, so a check carries no context and the parser refuses
+  the `type:*` notation.
 - `person.ts` — the one construction of a `Person`: `resolvePerson` reads the
   caller's account through the port the way whoAmI does, `personFor` builds the
   aliases (the account id and the issuer subject; an email is nobody's) and
@@ -70,8 +70,8 @@ editions; the cloud stores what open source computes.
 
 - `authorizer.ts` — the `Authorizer` driver, arm for arm the cloud's
   (`stigmer-cloud src/authorizer/fga-authorizer.ts`): the four pre-check denials
-  with the Java copy; a kind this edition does not serve denied (so nobody sets
-  public visibility on a self-host); the target loaded once through the source;
+  with the Java copy; a kind this edition does not serve denied (a platform
+  capability no self-host holds); the target loaded once through the source;
   `not-found` for a missing row except on the kinds the cloud never probes
   (`NOT_FOUND_EXEMPT_KINDS`: `identity_account`, `iam_policy` — account ids
   cannot be enumerated); the model's answer with an empty reason on a denial so
@@ -87,15 +87,14 @@ editions; the cloud stores what open source computes.
   counts against the schedule instead of retrying forever.
 - `list-read-scope.ts` — the `ListReadScope` driver, the cloud's twin
   (`stigmer-cloud src/iam/list-read-scope.ts`): every candidate a list lane
-  offers is answered by `can_view` under the listing context (`allow: false`,
-  the public wildcard suppressed) — one evaluator walk per candidate over one
-  source seeded with the candidates' facts, so no candidate row is read twice
-  and a parent hop reads each distinct parent once; the enumeration verb
-  (search, recent activity, the two execution summaries — the console library
-  rides it) scans the kind and evaluates the same way, a row that does not
-  decode skipped; the `internal` class keeps everything (the in-process skip); a
-  fault throws and is never an empty answer; an undeclared kind is a consumer
-  bug, loud.
+  offers is answered by `can_view`, the same question a get asks — one evaluator
+  walk per candidate over one source seeded with the candidates' facts, so no
+  candidate row is read twice and a parent hop reads each distinct parent once;
+  the enumeration verb (search, recent activity, the two execution summaries —
+  the console library rides it) scans the kind and evaluates the same way, a row
+  that does not decode skipped; the `internal` class keeps everything (the
+  in-process skip); a fault throws and is never an empty answer; an undeclared
+  kind is a consumer bug, loud.
 - `posture.ts` — the three postures, named once for the composition root and the
   boot log.
 
@@ -110,15 +109,14 @@ kind. `model/__tests__/registry.test.ts` pins the declared set to the
 open-source tier and each kind's wire permissions to its file;
 `__tests__/wire-permissions.test.ts` pins that every static `(kind, permission)`
 a served RPC asks about is a declared relation. The rest pin the machinery:
-alias matching, the wildcard's condition, the memo, the bounds, the source and
-the two derived rules on both store drivers. The four drivers are pinned arm by
-arm on both store drivers (`__tests__/authorizer.test.ts`,
-`organization-directory.test.ts`, `schedule-fire-caller.test.ts`,
-`list-read-scope.test.ts` — the adversarial cells first: the outsider, the
-viewer rung, the admin who does not read members' conversations, the orphaned
-execution, the memory with no subject), the posture at the wire over three real
-boots (`extensions/__tests__/built-in-authorization-composed.test.ts`, the list
-lanes included, and the two-boot proof that the sole person's lists are
-byte-identical with and without the scope), and the scope's cost is measured
-rather than assumed (`list-read-scope.measure.test.ts`, gated on
-`AUTHORIZATION_MEASURE=1`).
+alias matching, the memo, the bounds, the source and the two derived rules on
+both store drivers. The four drivers are pinned arm by arm on both store drivers
+(`__tests__/authorizer.test.ts`, `organization-directory.test.ts`,
+`schedule-fire-caller.test.ts`, `list-read-scope.test.ts` — the adversarial
+cells first: the outsider, the viewer rung, the admin who does not read members'
+conversations, the orphaned execution, the memory with no subject), the posture
+at the wire over three real boots
+(`extensions/__tests__/built-in-authorization-composed.test.ts`, the list lanes
+included, and the two-boot proof that the sole person's lists are byte-identical
+with and without the scope), and the scope's cost is measured rather than
+assumed (`list-read-scope.measure.test.ts`, gated on `AUTHORIZATION_MEASURE=1`).

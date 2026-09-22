@@ -12,7 +12,6 @@ import {
   direct,
   from,
   objectOf,
-  publicWith,
   union,
   usersetOf,
 } from "./rewrite.js";
@@ -39,7 +38,6 @@ export const mcpServerDeclaration = declareKind({
       union(
         direct(
           objectOf("identity_account"),
-          publicWith("identity_account", "allow_public"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
         ),

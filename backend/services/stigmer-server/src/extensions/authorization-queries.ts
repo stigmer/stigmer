@@ -32,9 +32,10 @@
  * Semantics the controller and the conformance suite rely on (the Java
  * check-handler posture the cloud's client already implements):
  *
- *   - `check` answers a public grant (a wildcard principal resolves), so
- *     "may I read this public agent" is true for anyone.
- *   - the two listings never expand wildcards, and `listPrincipalIds`
+ *   - `check` resolves usersets (a grant to `organization:acme#member`
+ *     answers true for a member), so "may I read this" is the model's
+ *     answer and not a lookup of who was named.
+ *   - the two listings never expand usersets, and `listPrincipalIds`
  *     answers DIRECT principals only — a listing is an inventory of who
  *     was named, never a resolution of who could reach.
  *   - contextual policies are evaluated as if held, and nothing is written.
@@ -74,7 +75,7 @@ export interface AuthorizationQueryEngine {
   ): Promise<boolean>;
   /**
    * The ids of `resourceKind` resources on which `principal` holds
-   * `relation` (ListAuthorizedResourceIdsInput's field order). Wildcards
+   * `relation` (ListAuthorizedResourceIdsInput's field order). Usersets
    * are not expanded.
    */
   listResourceIds(
@@ -86,7 +87,7 @@ export interface AuthorizationQueryEngine {
   /**
    * The ids of `principalKind` principals holding `relation` on `resource`
    * (ListAuthorizedPrincipalIdsInput's field order). Direct principals
-   * only; wildcards are not expanded.
+   * only; usersets are not expanded.
    */
   listPrincipalIds(
     resource: ApiResourceRef,

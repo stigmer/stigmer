@@ -2,8 +2,7 @@
  * Transcript of fga/model/agentic/plugin.fga — the unit of install, shaped
  * exactly like a skill: an organization-owned blueprint whose owner is the
  * installer (and, through the organization, its admins), whose viewers are
- * the org's members and viewers, public readers when published, and the
- * platform viewer. Its verbs are the blueprint set: `can_view`, `can_edit`
+ * the org's members and viewers and the platform viewer. Its verbs are the blueprint set: `can_view`, `can_edit`
  * (visibility), `can_delete` (uninstall), `can_grant_access`,
  * `can_view_access`; `can_use` is carried as the model's word for
  * "install from" though no wire permission names it yet.
@@ -21,7 +20,6 @@ import {
   direct,
   from,
   objectOf,
-  publicWith,
   union,
   usersetOf,
 } from "./rewrite.js";
@@ -48,7 +46,6 @@ export const pluginDeclaration = declareKind({
       union(
         direct(
           objectOf("identity_account"),
-          publicWith("identity_account", "allow_public"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
         ),

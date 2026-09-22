@@ -32,8 +32,7 @@
  * annotation, which is why this driver meets that caller at all: a
  * skip lane hands the directory the identity the interceptor stamped,
  * and no Authorize arm ran before it. Every other caller gets the
- * evaluated list. The listing context (`allow: false`) is the cloud's,
- * though no organization line admits a wildcard.
+ * evaluated list.
  * The controller loads each id it is handed and skips the ones whose row
  * is gone (grants can outlive rows); the source has already loaded the
  * row once for the evaluation — two primary-key reads per organization,
@@ -102,7 +101,6 @@ export function newBuiltInOrganizationDirectory(
             { type: ORGANIZATION, id },
             "can_view",
             person,
-            { allow: false },
           )
         ) {
           visible.push(id);

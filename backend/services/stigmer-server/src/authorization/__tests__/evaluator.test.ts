@@ -1,11 +1,10 @@
 /**
  * Pins the evaluator's semantics the store tests cannot express (the
  * cloud's `.fga.yaml` documents prove the model's answers; this file
- * proves the machinery under them): how a person matches a tuple, what
- * the `allow_public` context does, that a direct tuple outside the line's
- * type restriction is ignored (model drift fails closed), how far a
- * resolution may walk, and that a declaration cycle or an undeclared
- * target is a thrown fault and never a silent deny.
+ * proves the machinery under them): how a person matches a tuple, that a
+ * direct tuple outside the line's type restriction is ignored (model drift
+ * fails closed), how far a resolution may walk, and that a declaration
+ * cycle or an undeclared target is a thrown fault and never a silent deny.
  *
  * The fixture source is the in-memory one the store-test kit uses, so the
  * two proofs share one tuple vocabulary. Where a case needs a shape the
@@ -30,7 +29,6 @@ import {
   direct,
   from,
   objectOf,
-  publicWith,
   union,
   usersetOf,
 } from "../model/rewrite.js";
@@ -56,22 +54,17 @@ function person(accountId: string, ...aliases: string[]): Person {
   return { accountId, aliases: new Set([accountId, ...aliases]) };
 }
 
-const RESOLVE = { allow: true };
-const LIST = { allow: false };
-
 async function allowed(
   source: TupleSource,
   object: string,
   relation: string,
   who: Person,
-  context = RESOLVE,
 ): Promise<boolean> {
   return checkRelation(
     { model: builtInModel, source },
     parseObjectRef(object),
     relation,
     who,
-    context,
   );
 }
 
@@ -100,67 +93,17 @@ describe("a person against a direct tuple", () => {
   });
 });
 
-describe("the public wildcard and its condition", () => {
-  const publicViewer = (object: string): Tuple => ({
-    object: parseObjectRef(object),
-    relation: "viewer",
-    subject: {
-      form: "wildcard",
-      type: "identity_account",
-      condition: "allow_public",
-    },
-  });
-  const source = newInMemoryTupleSource([
-    tuple("agent:open#organization@organization:acme"),
-    publicViewer("agent:open"),
-  ]);
-  const stranger = person("ida_mallory");
-
-  it("reads for anyone on a point check (the cloud's `allow: true`) and for nobody in a listing (`allow: false`)", async () => {
+describe("a stranger against a row with no grant that names them", () => {
+  it("reads nothing: no subject form reaches every account, so a stranger holds no relation on a row they were not granted", async () => {
+    const source = newInMemoryTupleSource([
+      tuple("agent:open#organization@organization:acme"),
+      tuple("agent:open#owner@identity_account:ida_carol"),
+      tuple("agent:open#viewer@organization:acme#viewer"),
+    ]);
+    const stranger = person("ida_mallory");
     expect(await allowed(source, "agent:open", "can_view", stranger)).toBe(
-      true,
+      false,
     );
-    expect(
-      await allowed(source, "agent:open", "can_view", stranger, LIST),
-    ).toBe(false);
-  });
-
-  it("ignores a wildcard tuple that carries no condition where the line demands one — a tuple the cloud could never have written", async () => {
-    const bare = newInMemoryTupleSource([
-      tuple("agent:open#viewer@identity_account:*"),
-    ]);
-    expect(await allowed(bare, "agent:open", "can_view", stranger)).toBe(false);
-  });
-
-  it("is a thrown fault under a condition the transcript names but the evaluator does not know — a model that grew a condition", async () => {
-    const grown = declareKind({
-      kind: ApiResourceKind.agent,
-      schema: AgentSchema,
-      source: "test/grown.fga",
-      relations: [
-        ["viewer", direct(publicWith("identity_account", "after_hours"))],
-      ],
-    });
-    const afterHours = newInMemoryTupleSource([
-      {
-        object: parseObjectRef("agent:open"),
-        relation: "viewer",
-        subject: {
-          form: "wildcard",
-          type: "identity_account",
-          condition: "after_hours",
-        },
-      },
-    ]);
-    await expect(
-      checkRelation(
-        { model: newModel([grown]), source: afterHours },
-        parseObjectRef("agent:open"),
-        "viewer",
-        stranger,
-        RESOLVE,
-      ),
-    ).rejects.toMatchObject({ reason: "unknown-condition" });
   });
 });
 
@@ -277,7 +220,6 @@ describe("the walk itself", () => {
         parseObjectRef("agent:n0"),
         "next",
         person("ida_nobody"),
-        RESOLVE,
       ),
     ).rejects.toMatchObject({ reason: "resolution-depth-exceeded" });
   });
@@ -298,7 +240,6 @@ describe("the walk itself", () => {
         parseObjectRef("agent:x"),
         "a",
         person("ida_nobody"),
-        RESOLVE,
       ),
     ).rejects.toBeInstanceOf(AuthorizationEvaluationError);
   });
@@ -332,7 +273,7 @@ describe("declareKind validates a transcript at load", () => {
         source: "test/bad.fga",
         relations: [
           ["viewer", direct(objectOf("identity_account"))],
-          ["viewer", direct(publicWith("identity_account", "allow_public"))],
+          ["viewer", direct(usersetOf("organization", "viewer"))],
         ],
       }),
     ).toThrow("declared twice");

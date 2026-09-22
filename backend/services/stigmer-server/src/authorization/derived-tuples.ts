@@ -12,7 +12,6 @@
  *   - owner SELF:     <row>#owner@identity_account:<row id>
  *   - creator:        <row>#creator@identity_account:<creator stamp>   (kinds flagged requires_creator_tuple)
  *   - org-viewer:     <row>#viewer@organization:<org>#viewer          (visibility_org; cloud#257's shape)
- *   - public-viewer:  <row>#viewer@identity_account:* with allow_public
  *   - platform-viewer: none — it fans out over identity providers, a kind this edition does not serve
  *
  * Two facts are this edition's own and are stated here, nowhere else:
@@ -91,11 +90,7 @@ import type {
   Tuple,
   TupleSource,
 } from "./tuples.js";
-import {
-  ACCOUNT_TYPE,
-  ALLOW_PUBLIC_CONDITION,
-  formatObjectRef,
-} from "./tuples.js";
+import { ACCOUNT_TYPE, formatObjectRef } from "./tuples.js";
 
 /**
  * Kinds whose `[identity_account]` owner is recorded as an IamPolicy row
@@ -184,12 +179,6 @@ function visibilitySubject(
             object: { type: "organization", id: org },
             relation: "viewer",
           };
-    case "public-viewer":
-      return {
-        form: "wildcard",
-        type: ACCOUNT_TYPE,
-        condition: ALLOW_PUBLIC_CONDITION,
-      };
     case "platform-viewer":
       return undefined;
     default: {
@@ -361,24 +350,18 @@ function tupleOfRow(row: IamPolicy): Tuple {
     type: principal?.kind ?? "",
     id: principal?.id ?? "",
   };
-  let subject: Subject;
-  if (principal !== undefined && principal.relation !== "") {
-    subject = {
-      form: "userset",
-      object: principalObject,
-      relation: principal.relation,
-    };
-  } else if (principalObject.id === "*") {
-    // A wildcard row carries no condition of its own; the evaluator
-    // honours it only where a line admits an unconditioned wildcard,
-    // which no line in the model does.
-    subject = {
-      form: "wildcard",
-      type: principalObject.type,
-      condition: undefined,
-    };
-  } else {
-    subject = { form: "object", object: principalObject };
-  }
+  // A principal id of `*` (a wildcard row a cloud database may still hold
+  // from the retired public level) is read as an ordinary object id here:
+  // no person carries `*` among their aliases, so the row matches nobody
+  // and reads as the inert grant it is, never as a fault that would turn
+  // the resource unreadable.
+  const subject: Subject =
+    principal !== undefined && principal.relation !== ""
+      ? {
+          form: "userset",
+          object: principalObject,
+          relation: principal.relation,
+        }
+      : { form: "object", object: principalObject };
   return { object, relation: spec?.relation ?? "", subject };
 }
