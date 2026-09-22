@@ -42,7 +42,7 @@ export interface VisibilitySelectorProps {
    *   ladder of levels. Escalations are confirmed by severity: a light
    *   inline prompt for levels carrying {@link VisibilityLevelOption.confirmPrompt}
    *   (e.g. Organization), and a blocking modal for levels carrying
-   *   {@link VisibilityLevelOption.confirmDialog} (Platform, Public). This is
+   *   {@link VisibilityLevelOption.confirmDialog} (Platform). This is
    *   the live-resource case.
    * - `"create"` — an inline radio list that applies immediately, with no
    *   escalation confirmation. Used to pick an initial value while creating
@@ -70,11 +70,11 @@ export interface VisibilitySelectorProps {
  *
  * In `"manage"` mode it renders a current-state chip (icon + label + caret)
  * that opens a popover listing each offered level with its own description —
- * scaling cleanly to four levels without the layout shift of a segmented
+ * scaling cleanly to three levels without the layout shift of a segmented
  * control, and explaining every choice at a glance (Recognition over
  * Recall). Escalation is confirmed in proportion to how far access expands:
  * de-escalation applies instantly, an Organization escalation shows a light
- * inline prompt, and Platform/Public escalations open a blocking
+ * inline prompt, and a Platform escalation opens a blocking
  * {@link ConfirmDialog} that names the exact audience. Confirmation is owned
  * here so every consumer — blueprint detail, instance detail, and any
  * standalone embed — behaves identically.
@@ -95,7 +95,7 @@ export interface VisibilitySelectorProps {
  * ```tsx
  * <VisibilitySelector
  *   visibility={agent.metadata.visibility}
- *   options={blueprintVisibilityLevels({ deploymentMode, hasIdentityProvider })}
+ *   options={blueprintVisibilityLevels({ hasIdentityProvider })}
  *   onVisibilityChange={updateVisibility}
  *   isPending={isPending}
  * />
@@ -439,8 +439,9 @@ export interface VisibilityBadgeProps {
 }
 
 /**
- * Visibility indicator with a matching icon, covering all four levels
- * (Private / Organization / Platform / Public).
+ * Visibility indicator with a matching icon, covering every level a stored
+ * row can carry (Private / Organization / Platform, and the retired Public
+ * for a row from before its retirement).
  *
  * Rendered wherever the interactive {@link VisibilitySelector} is not
  * available — for viewers who lack `can_edit`, and while a permission check

@@ -685,8 +685,10 @@ builders, guided tours) can render any configuration state from props.
 Wizard step 1: MCP server identity and transport configuration.
 
 Collects: name (required), slug (auto-derived), description,
-icon URL, visibility, transport type (HTTP vs Stdio), and the
-transport-specific fields.
+icon URL, transport type (HTTP vs Stdio), and the
+transport-specific fields. Visibility is not chosen here: a new server
+takes its kind's default level, and the detail page's
+`ResourceVisibilityControl` is the one home of the choice.
 
 Transport type uses a radio group (mutually exclusive modes).
 Conditional fields render based on the selected transport.
@@ -826,7 +828,7 @@ const [connectTarget, setConnectTarget] = useState<{ org: string; slug: string }
 Multi-step wizard for creating a new MCP server blueprint.
 
 Three steps:
-1. **Identity & Transport** — name, slug, description, visibility, transport config
+1. **Identity & Transport** — name, slug, description, icon, transport config
 2. **Environment & Auth** — env var declarations, OAuth auth configuration (all optional)
 3. **Review & Create** — YAML preview + submission
 
@@ -1302,7 +1304,6 @@ a `McpServerInput` for submission on the final step.
     stdioCommand: { type: "string", description: "Stdio command to execute.", required: true },
     stdioWorkingDir: { type: "string", description: "Stdio working directory.", required: true },
     transportType: { type: "\"stdio\" | \"http\"", description: "Selected transport type.", required: true },
-    visibility: { type: "\"private\" | \"public\"", description: "Resource visibility.", required: true },
   }}
 />
 

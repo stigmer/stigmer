@@ -343,7 +343,7 @@ function useUpdateAgent(): UseUpdateAgentReturn
 Multi-step wizard for creating a new agent blueprint.
 
 Three condensed steps:
-1. **Identity & Instructions** — name, slug, description, visibility, system prompt
+1. **Identity & Instructions** — name, slug, description, icon, system prompt
 2. **Capabilities** — MCP servers + tools, skills, env var declarations (all optional)
 3. **Review & Create** — YAML preview + submission
 
@@ -633,7 +633,6 @@ an `AgentInput` for submission on the final step.
     skillRefs: { type: "ResourceRef[]", description: "Skill references.", required: true },
     slug: { type: "string", description: "URL-friendly slug (auto-derived from name, editable).", required: true },
     slugTouched: { type: "boolean", description: "Whether the slug has been manually edited by the user.", required: true },
-    visibility: { type: "\"private\" | \"public\"", description: "Resource visibility.", required: true },
   }}
 />
 

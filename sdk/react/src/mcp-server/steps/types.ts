@@ -21,8 +21,6 @@ export interface McpServerWizardData {
   readonly description: string;
   /** Icon URL (optional). */
   readonly iconUrl: string;
-  /** Resource visibility. */
-  readonly visibility: "private" | "public";
   /** Selected transport type. */
   readonly transportType: "http" | "stdio";
   /** HTTP server URL. */
@@ -65,7 +63,6 @@ export function createInitialMcpServerWizardData(): McpServerWizardData {
     slugTouched: false,
     description: "",
     iconUrl: "",
-    visibility: "private",
     transportType: "http",
     httpUrl: "",
     httpHeaders: [],

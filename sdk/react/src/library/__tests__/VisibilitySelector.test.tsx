@@ -15,11 +15,10 @@ import {
 import {
   instanceVisibilityLevels,
   blueprintVisibilityLevels,
+  type VisibilityLevelOption,
 } from "../visibilityLevels";
 
-const INSTANCE_VISIBILITY_LEVELS = instanceVisibilityLevels({
-  canSetPublicVisibility: true,
-});
+const INSTANCE_VISIBILITY_LEVELS = instanceVisibilityLevels();
 
 // Base UI's Popover positioner observes its anchor; happy-dom lacks
 // ResizeObserver, so provide a no-op shim.
@@ -37,9 +36,7 @@ beforeAll(() => {
 afterEach(cleanup);
 
 const BLUEPRINT_LEVELS = blueprintVisibilityLevels({
-  deploymentMode: "cloud",
   hasIdentityProvider: true,
-  canSetPublicVisibility: true,
 });
 
 // Option accessible names are "<label> <description>"; anchor on the label so
@@ -66,10 +63,9 @@ describe("VisibilitySelector — create mode (inline list)", () => {
 
     const group = screen.getByRole("radiogroup", { name: "Resource visibility" });
     const radios = within(group).getAllByRole("radio");
-    expect(radios).toHaveLength(3);
+    expect(radios).toHaveLength(2);
     expect(within(group).getByText("Private")).toBeTruthy();
     expect(within(group).getByText("Organization")).toBeTruthy();
-    expect(within(group).getByText("Public")).toBeTruthy();
     expect(within(group).getByText("Only you can access")).toBeTruthy();
   });
 
@@ -84,9 +80,9 @@ describe("VisibilitySelector — create mode (inline list)", () => {
       />,
     );
 
-    // Public is an escalation, but in create mode there is nothing to escalate.
-    fireEvent.click(screen.getByRole("radio", { name: /Public/i }));
-    expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_public);
+    // Organization is an escalation, but in create mode there is nothing to escalate.
+    fireEvent.click(screen.getByRole("radio", { name: /^Organization/i }));
+    expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -106,6 +102,28 @@ describe("VisibilitySelector — create mode (inline list)", () => {
     expect(platformRow?.getAttribute("aria-checked")).toBe("true");
   });
 
+  it("renders a row still carrying the retired public level truthfully, and lets it move to an offered level", () => {
+    // A server not yet upgraded can still answer with the retired level; the
+    // selector shows it as what it is rather than falling through to Private.
+    const onChange = vi.fn();
+    render(
+      <VisibilitySelector
+        mode="create"
+        visibility={ApiResourceVisibility.visibility_public}
+        options={INSTANCE_VISIBILITY_LEVELS}
+        onVisibilityChange={onChange}
+      />,
+    );
+
+    const group = screen.getByRole("radiogroup", { name: "Resource visibility" });
+    const publicRow = within(group).getByText("Public").closest("button");
+    expect(publicRow?.getAttribute("aria-checked")).toBe("true");
+    expect(publicRow?.textContent).toContain("Retired");
+
+    fireEvent.click(screen.getByRole("radio", { name: /^Organization/i }));
+    expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
+  });
+
   it("disables interaction when disabled", () => {
     const onChange = vi.fn();
     render(
@@ -123,39 +141,45 @@ describe("VisibilitySelector — create mode (inline list)", () => {
   });
 });
 
-describe("VisibilitySelector — operator-gated Public (locked row)", () => {
-  // The caller may not publish: the level builders lock the Public row.
-  const GATED_LEVELS = instanceVisibilityLevels({
-    canSetPublicVisibility: false,
-  });
+describe("VisibilitySelector — a locked row (consumer-supplied lockedReason)", () => {
+  // The selector takes its options from the consumer, so a platform builder
+  // can lock a level its caller may not enter; the component renders the
+  // lock without knowing which level or why.
+  const LOCKED_REASON = "Platform sharing is enabled by your workspace admin.";
+  const LOCKED_LEVELS: readonly VisibilityLevelOption[] = BLUEPRINT_LEVELS.map(
+    (level) =>
+      level.value === ApiResourceVisibility.visibility_platform
+        ? { ...level, lockedReason: LOCKED_REASON }
+        : level,
+  );
 
-  it("renders the locked Public row non-interactive with the platform-team copy", () => {
+  it("renders the locked row non-interactive with the consumer's copy", () => {
     const onChange = vi.fn();
     render(
       <VisibilitySelector
         mode="create"
         visibility={ApiResourceVisibility.visibility_private}
-        options={GATED_LEVELS}
+        options={LOCKED_LEVELS}
         onVisibilityChange={onChange}
       />,
     );
 
-    const publicRow = screen.getByRole("radio", { name: /Public/i });
-    expect((publicRow as HTMLButtonElement).disabled).toBe(true);
-    expect(publicRow.getAttribute("aria-disabled")).toBe("true");
-    expect(publicRow.textContent).toContain("granted by the platform team");
+    const lockedRow = screen.getByRole("radio", { name: /^Platform/i });
+    expect((lockedRow as HTMLButtonElement).disabled).toBe(true);
+    expect(lockedRow.getAttribute("aria-disabled")).toBe("true");
+    expect(lockedRow.textContent).toContain(LOCKED_REASON);
 
-    fireEvent.click(publicRow);
+    fireEvent.click(lockedRow);
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("keeps every other level selectable — only publishing is operator-granted", () => {
+  it("keeps every other level selectable", () => {
     const onChange = vi.fn();
     render(
       <VisibilitySelector
         mode="create"
         visibility={ApiResourceVisibility.visibility_private}
-        options={GATED_LEVELS}
+        options={LOCKED_LEVELS}
         onVisibilityChange={onChange}
       />,
     );
@@ -180,14 +204,14 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     ).toBeTruthy();
 
     await openPopover();
-    expect(screen.getAllByRole("option")).toHaveLength(4);
+    expect(screen.getAllByRole("option")).toHaveLength(3);
   });
 
   it("applies a de-escalation immediately, without confirmation", async () => {
     const onChange = vi.fn();
     render(
       <VisibilitySelector
-        visibility={ApiResourceVisibility.visibility_public}
+        visibility={ApiResourceVisibility.visibility_platform}
         options={BLUEPRINT_LEVELS}
         onVisibilityChange={onChange}
       />,
@@ -221,7 +245,7 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
   });
 
-  it("requires the confirm dialog before escalating to Public", async () => {
+  it("requires the confirm dialog before escalating to Platform", async () => {
     const onChange = vi.fn();
     render(
       <VisibilitySelector
@@ -232,16 +256,16 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     );
 
     await openPopover();
-    fireEvent.click(optionByLabel("Public"));
+    fireEvent.click(optionByLabel("Platform"));
 
     // Not applied until the modal is confirmed.
     expect(onChange).not.toHaveBeenCalled();
-    expect(await screen.findByText("Make this public?")).toBeTruthy();
+    expect(await screen.findByText("Share with your whole platform?")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Make Public" }));
+    fireEvent.click(screen.getByRole("button", { name: "Make Platform" }));
     // The confirm resolves on a microtask, so the apply is asynchronous.
     await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_public),
+      expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_platform),
     );
   });
 
@@ -278,12 +302,12 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     );
 
     await openPopover();
-    fireEvent.click(optionByLabel("Public"));
-    await screen.findByText("Make this public?");
+    fireEvent.click(optionByLabel("Platform"));
+    await screen.findByText("Share with your whole platform?");
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() =>
-      expect(screen.queryByText("Make this public?")).toBeNull(),
+      expect(screen.queryByText("Share with your whole platform?")).toBeNull(),
     );
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -293,6 +317,12 @@ describe("VisibilityBadge", () => {
   it("renders the human label for a visibility value", () => {
     render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_platform} />);
     expect(screen.getByText("Platform")).toBeTruthy();
+  });
+
+  it("renders the retired public level by its own name, never as Private", () => {
+    render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_public} />);
+    expect(screen.getByText("Public")).toBeTruthy();
+    expect(screen.queryByText("Private")).toBeNull();
   });
 
   it("is non-interactive without onClick — a plain badge, not a button", () => {
