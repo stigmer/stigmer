@@ -225,35 +225,35 @@ git_provenance:
 
 ---
 
-## Cloud Mode: Public Skill
+## Cloud Mode: Platform Skill
 
-A skill pushed to a named organization with public visibility for marketplace publishing.
+A skill pushed to a platform organization and shared with every organization that platform manages through its identity provider.
 
 ```bash
 # Push to a named org (cloud mode)
-stigmer push skill ./skills/web-scraper --org acme-corp --tag stable
+stigmer push skill ./skills/web-scraper --org acme-cloud --tag stable
 ```
 
-After pushing, update visibility via the API to make it public for marketplace listing. By default, all skills are `visibility_private`.
+Declare `visibility: platform` in the SKILL.md frontmatter, or apply the level after the push. By default a skill is `visibility_org`, readable by its own organization only.
 
-**Reference in an Agent from a different org:**
+**Reference in an Agent from a managed organization:**
 ```yaml
-# An agent in acme-corp referencing their own skill
+# An agent in acme-cloud referencing its own skill
 skill_refs:
-  - org: acme-corp
+  - org: acme-cloud
     kind: skill
     slug: web-scraper
     version: stable
 
-# An agent in another org referencing acme-corp's public skill
+# An agent in an organization acme-cloud manages, referencing the platform skill
 skill_refs:
-  - org: acme-corp
+  - org: acme-cloud
     kind: skill
     slug: web-scraper
     version: stable
 ```
 
-Public skills are readable by anyone. Write access (pushing new versions) always requires org membership.
+A cross-organization reference is accepted only toward a platform-visible skill; any other is refused at write. Write access (pushing new versions) always requires membership of the owning organization. An organization outside the platform uses the skill by installing the plugin that carries it.
 
 ---
 

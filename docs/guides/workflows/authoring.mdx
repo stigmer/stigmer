@@ -21,7 +21,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Workflow
 metadata:
   name: my-workflow
-  visibility: visibility_public
+  visibility: visibility_org
 spec:
   description: What this workflow does.
   document:
@@ -456,6 +456,20 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
   `human_input` outcome targets, `agent_call` fallback targets — all must
   reference valid task names (with typo suggestions on near-misses)
 - **Budget**: valid policy values
+
+### Referenced Agents must exist
+
+When you save a Workflow, Stigmer also checks every `agent_call` task's `agent`:
+the Agent must already exist in your Organization (or be shared with it at
+`visibility_platform` by the Organization that owns it), and the Workflow may
+not be more visible than the Agents it calls. A Workflow that names an Agent
+nobody has applied yet is refused when saved. The refusal names the task and the
+reference; nothing is stored to fail later at run time.
+
+`stigmer apply -f <directory>` applies files in dependency order — MCP Servers,
+Skills, Agents, then Workflows — so a directory that holds both is fine. When
+you apply files one at a time, from a script, or through an SDK, apply the
+Agents before the Workflows that call them.
 
 ## Worked example
 

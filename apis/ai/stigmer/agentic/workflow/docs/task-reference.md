@@ -551,11 +551,12 @@ Invokes an AI agent as a task, delegating complex reasoning or tool use to a spe
   flow:
     then: publishReview
 
-# Cross-org agent call with config overrides
+# Agent call naming a platform organization's agent, with config overrides
+# (accepted only when acme-cloud shares the agent at visibility_platform)
 - name: generateReport
   kind: agent_call
   task_config:
-    agent: "stigmer/report-generator"
+    agent: "acme-cloud/report-generator"
     message: "Generate a deployment report for build ${$context.buildId}. Data: ${$context.buildMetrics}"
     env:
       S3_BUCKET: "${.env.REPORTS_BUCKET}"

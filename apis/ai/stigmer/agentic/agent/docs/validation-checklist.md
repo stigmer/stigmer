@@ -17,7 +17,7 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 ### Organization and Visibility
 
 - [ ] `metadata.org` is set, or the CLI has an active organization context to resolve it from
-- [ ] `metadata.visibility` is intentional — omit for private (default), set `visibility_public` only for marketplace publishing
+- [ ] `metadata.visibility` is intentional — omit for the organization default, set `visibility_private` to keep a draft to yourself, `visibility_platform` only from an organization that operates an identity provider
 
 ### Resource References
 

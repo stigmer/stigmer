@@ -290,10 +290,10 @@ From the boot that read the issuer, every request needs a credential:
   admin there, the operator email's holder is an admin everywhere, and everyone
   else is a member. This happens once; from then on roles change only when an
   owner or admin changes them.
-- **Anything marked Public before 3.16.0 stays readable by every signed-in
-  person**, including people outside its Organization. New Public marks are
-  refused on a self-hosted server; an admin can set an existing one back to
-  Organization from its page.
+- **Nothing is readable outside its Organization.** The Public visibility level
+  is retired: it is refused everywhere, and a server upgrading from a release
+  that still had it moves every row that carried it to Organization visibility
+  on its first start, deleting nothing.
 - **Runs belong to the person who started them, whoever's key the runner
   holds.** For each run, the server gives the runner a credential for that run
   alone, and everything the runner does for it, including the Sessions and

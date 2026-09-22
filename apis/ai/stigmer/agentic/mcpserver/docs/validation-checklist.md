@@ -30,8 +30,8 @@ Run through this list before applying an McpServer YAML with `stigmer apply -f`.
 ### Organization and Visibility
 
 - [ ] `metadata.org` is set appropriately — `local` for local mode, your org slug for cloud mode
-- [ ] `metadata.visibility` is intentional — omit or set `visibility_private` for internal use, set `visibility_public` only for marketplace publishing
-- [ ] For public servers, `spec.env_spec` descriptions are detailed enough for external users to know exactly what credentials to provide
+- [ ] `metadata.visibility` is intentional — omit for the organization default, `visibility_private` to keep it to yourself, `visibility_platform` only from an organization that operates an identity provider
+- [ ] For a server carried in a plugin, `spec.env_spec` descriptions are detailed enough for an installing organization to know exactly what credentials to provide
 
 ### Tool Names
 

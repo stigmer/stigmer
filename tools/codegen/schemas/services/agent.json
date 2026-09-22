@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.AgentId",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Delete an agent.\n\n Deletion also removes the agent's system-managed default instance and\n every AgentShare in the agent's own organization referencing it, so a\n later agent created at the same org/slug starts clean. Personal\n instances, sessions, and other organizations' shares of this agent are\n not deleted — external shares stop resolving instead."
+          "description": "Delete an agent.\n\n Deletion also removes the agent's system-managed default instance and\n every AgentShare in the agent's own organization referencing it, so a\n later agent created at the same org/slug starts clean. Personal\n instances and sessions are not deleted, nor is a share written in\n another organization before sharing across organizations was retired;\n such a share stops resolving instead."
         }
       ]
     },

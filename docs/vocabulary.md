@@ -269,9 +269,10 @@ on offer by default.
   came from. Nothing on the server records the source, so installing `thermos`
   from a second source upgrades the `thermos` from the first: a plugin is
   identified by its name in your Organization, and the install preview names the
-  installed plugin an upgrade replaces. The Marketplace is also not the
-  Library's "All" scope: that scope shows other Organizations' public resources
-  you may reference in place; the Marketplace shows plugins you install and own.
+  installed plugin an upgrade replaces. The Marketplace is also the only way
+  another Organization's work reaches yours: the Library shows your
+  Organization's resources, and what you want from elsewhere you install as a
+  plugin and own.
 
 **Good examples**:
 
@@ -1062,6 +1063,28 @@ went with it.
   a manifest that still carries `kind: Project`, which says what happened and
   names `stigmer push plugin`. Lowercase "project" for an npm, Go, Python or
   Maven project stays ordinary English.
+
+---
+
+#### Public (visibility)
+
+Retired term. `visibility_public` was a resource visibility level that made an
+Agent, Skill, MCP Server, Workflow or Plugin readable to every signed-in person
+on the server, and the Library's "All" scope listed other Organizations' public
+resources for reference in place. Both went with the level: a resource is
+visible to its creator (Private), to its Organization (Organization, the
+default), or to every Organization a platform manages through its Identity
+Provider (Platform). Another Organization's work reaches yours as a Plugin you
+install and own. A server upgrading from a release that still had the level
+moves every row that carried it to Organization visibility.
+
+- **Capitalize**: Yes, when naming the retired level in an upgrade note.
+- **Context rule**: Do not use for a resource level in new writing. "Public"
+  stays ordinary English for a share's audience ("anyone with the link", the
+  `public` audience of a share) and for a public website or API. A doc
+  describing "publishing to the marketplace" or "a public Skill another
+  Organization can reference" is describing the retired level; point it at
+  Plugin, or at Platform when the two Organizations share an Identity Provider.
 
 ---
 

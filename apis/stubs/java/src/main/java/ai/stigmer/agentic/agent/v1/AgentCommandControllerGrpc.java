@@ -301,8 +301,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -424,8 +425,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -530,8 +532,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -635,8 +638,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -744,8 +748,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and

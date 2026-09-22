@@ -61,12 +61,12 @@ skill_refs:
 
 ### Absolute References
 
-Set `org` explicitly when referencing resources in a different organization — typically public marketplace resources published by another org.
+Set `org` explicitly when referencing a resource in a different organization. The server accepts it only when that organization is a platform sharing the resource with yours at `visibility_platform`; any other cross-organization reference is refused at write, and a missing target is refused with the same sentence (the rule never says whether another organization's slug exists). To use another organization's skill or server otherwise, install the plugin that carries it and reference your own copy.
 
 ```yaml
-# Absolute — referencing a public skill from another org
+# Absolute — a skill the platform organization shares with the organizations it manages
 skill_refs:
-  - org: stigmer
+  - org: acme-cloud
     kind: skill
     slug: code-analysis
 
