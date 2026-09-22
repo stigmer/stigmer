@@ -109,10 +109,15 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import {
+  collectSpecReferences,
+  newGuardReferenceFloorOnEscalationStep,
   newNormalizeReferencesStep,
   newValidateReferencesStep,
 } from "../../pipeline/steps/references.js";
-import { newValidateAgentCallReferencesStep } from "./agent-call-references.js";
+import {
+  collectAgentCallReferences,
+  newValidateAgentCallReferencesStep,
+} from "./agent-call-references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -455,6 +460,22 @@ async function updateVisibility(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_WORKFLOW_KEY),
     )
     .addStep(newValidateVisibilityUpdateStep())
+    // The reference floor's second door: a workflow may not be raised above
+    // the agents its agent_call tasks run.
+    .addStep(
+      newGuardReferenceFloorOnEscalationStep(
+        deps.store,
+        UPDATE_VISIBILITY_WORKFLOW_KEY,
+        [
+          (row) => collectSpecReferences(WorkflowSchema, row),
+          (row) =>
+            collectAgentCallReferences(
+              (row as Workflow).spec,
+              (row as Workflow).metadata?.org ?? "",
+            ),
+        ],
+      ),
+    )
     .addStep(newSetWorkflowVisibilityStep())
     .addStep(newPersistWorkflowForVisibilityUpdateStep(deps.store))
     .addStep(

@@ -9,7 +9,9 @@
  * ONE sentence whether it is missing or merely not shared; the MCP-server
  * copy that predates the rule is byte-identical and its siblings take its
  * shape; the walk reads a reference's kind from its field, not from the
- * message; and the step over a real store loads each referenced kind once.
+ * message; the step over a real store loads each referenced kind once; and
+ * the escalation door asks the floor alone — a dependency that has left is
+ * not its question — and only when the level is being raised.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescField, DescMessage } from "@bufbuild/protobuf";
@@ -35,6 +37,7 @@ import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workf
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -49,6 +52,7 @@ import {
   collectSpecReferences,
   loadReferenceTargets,
   missingReferencesMessage,
+  newGuardReferenceFloorOnEscalationStep,
   newValidateReferencesStep,
   noOrgReferenceMessage,
   notAvailableReferenceMessage,
@@ -563,5 +567,137 @@ describe("the step over a store", () => {
       V.visibility_platform,
     );
     expect(targets.visibilityOf(ref(K.skill, "acme", "none"))).toBeUndefined();
+  });
+});
+
+describe("GuardReferenceFloorOnEscalation", () => {
+  let store: SqliteStore;
+  let cleanup: () => Promise<void>;
+  const TARGET = "loadedAgent";
+
+  beforeEach(() => {
+    const temp = tempStore();
+    store = temp.store;
+    cleanup = temp.cleanup;
+  });
+
+  afterEach(async () => {
+    await cleanup();
+  });
+
+  async function seedSkill(
+    id: string,
+    slug: string,
+    visibility: ApiResourceVisibility,
+  ): Promise<void> {
+    await store.saveResource(
+      K.skill,
+      id,
+      SkillSchema,
+      create(SkillSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Skill",
+        metadata: { id, name: slug, slug, org: "acme", visibility },
+      }),
+    );
+  }
+
+  function storedAgent(
+    visibility: ApiResourceVisibility,
+    skillSlugs: ReadonlyArray<string>,
+  ) {
+    return create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { id: "agt_1", name: "Helper", org: "acme", visibility },
+      spec: {
+        instructions: "help",
+        skillRefs: skillSlugs.map((slug) => ({ org: "acme", slug })),
+      },
+    });
+  }
+
+  async function escalate(
+    stored: ReturnType<typeof storedAgent>,
+    requested: ApiResourceVisibility,
+  ): Promise<unknown> {
+    const ctx = new RequestContext(
+      UpdateVisibilityInputSchema,
+      create(UpdateVisibilityInputSchema, {
+        resourceId: "agt_1",
+        visibility: requested,
+      }),
+      testCallerIdentity(),
+      K.agent,
+    );
+    ctx.set(TARGET, stored);
+    return failureOf(() =>
+      newGuardReferenceFloorOnEscalationStep(store, TARGET, [
+        (row) => collectSpecReferences(AgentSchema, row),
+      ]).execute(ctx),
+    );
+  }
+
+  it("refuses raising a level above a run-read dependency, naming it", async () => {
+    await seedSkill("skl_1", "mine", V.visibility_private);
+    const error = await escalate(
+      storedAgent(V.visibility_private, ["mine"]),
+      V.visibility_org,
+    );
+    expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((error as ConnectError).rawMessage).toBe(
+      belowFloorMessage(
+        referenceTargetKind(K.skill)!,
+        ref(K.skill, "acme", "mine"),
+        V.visibility_private,
+        V.visibility_org,
+      ),
+    );
+  });
+
+  it("passes when every dependency clears the requested level, and is silent on a lowering or a same-level write", async () => {
+    await seedSkill("skl_1", "shared", V.visibility_org);
+    expect(
+      await escalate(
+        storedAgent(V.visibility_private, ["shared"]),
+        V.visibility_org,
+      ),
+    ).toBeUndefined();
+    // Lowering never asks; the dependency below the OLD level is not the door's question.
+    await seedSkill("skl_2", "mine", V.visibility_private);
+    expect(
+      await escalate(
+        storedAgent(V.visibility_org, ["mine"]),
+        V.visibility_private,
+      ),
+    ).toBeUndefined();
+    expect(
+      await escalate(storedAgent(V.visibility_org, ["mine"]), V.visibility_org),
+    ).toBeUndefined();
+  });
+
+  it("asks the floor alone: a dependency that has left since the write does not block an escalation", async () => {
+    expect(
+      await escalate(
+        storedAgent(V.visibility_private, ["gone"]),
+        V.visibility_org,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("is a wiring fault without a loaded target", async () => {
+    const ctx = new RequestContext(
+      UpdateVisibilityInputSchema,
+      create(UpdateVisibilityInputSchema, {
+        resourceId: "agt_1",
+        visibility: V.visibility_org,
+      }),
+      testCallerIdentity(),
+      K.agent,
+    );
+    const error = await failureOf(() =>
+      newGuardReferenceFloorOnEscalationStep(store, TARGET, []).execute(ctx),
+    );
+    expect((error as ConnectError).code).toBe(Code.Internal);
   });
 });

@@ -48,6 +48,17 @@
  * the rule must agree with the runtime. A reference with an empty slug is
  * unset and skipped (the field-level CEL rules own "required").
  *
+ * The floor has a second door. Raising a resource's level through
+ * updateVisibility could open the same gap a create cannot, so
+ * GuardReferenceFloorOnEscalation runs on the two chains whose rows carry
+ * run-read references (agent, workflow) after ValidateVisibilityUpdate:
+ * when the requested level is above the stored one, every run-read
+ * reference the STORED row carries must be at least the requested level,
+ * judged by the same function over the same collectors, else the
+ * escalation is refused naming the dependencies. Only the floor is asked at
+ * that door — a dependency that has since left or stopped being shared was
+ * judged when the row was written and is the run's to refuse.
+ *
  * REFERENCE_TARGET_KINDS is the one explicit table of kinds a spec may
  * reference, with each kind's schema and its `readByRun` flag: the
  * composition-root idiom (query/search/registry.ts) — an explicit list a
@@ -66,7 +77,7 @@
  * the same shape. `collectSpecReferences` is the walk exported for the
  * readers that ask the reverse question ("who references this?").
  */
-import type { DescField, DescMessage } from "@bufbuild/protobuf";
+import type { DescField, DescMessage, Message } from "@bufbuild/protobuf";
 import { fromBinary, getOption, hasOption } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
@@ -79,6 +90,7 @@ import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
+import type { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 
 import type { Store } from "../../store/interface.js";
@@ -514,6 +526,74 @@ export async function checkReferences(
     parent,
     refs.map((ref) => ({ ref, verdict: checkReference(targets, parent, ref) })),
   );
+}
+
+/** The references a stored row carries, for the escalation door; a chain passes one collector per place its row keeps them. */
+export type ReferenceCollector = (row: Message) => ReadonlyArray<SpecReference>;
+
+/**
+ * The floor's second door (the module header): on an updateVisibility chain,
+ * after the loaded row is on the context under `targetKey` and after
+ * ValidateVisibilityUpdate, refuses raising the level while a run-read
+ * reference the row carries would end below it.
+ */
+export function newGuardReferenceFloorOnEscalationStep(
+  store: Store,
+  targetKey: string,
+  collectors: ReadonlyArray<ReferenceCollector>,
+): PipelineStep<typeof UpdateVisibilityInputSchema> {
+  return {
+    name: "GuardReferenceFloorOnEscalation",
+    async execute(
+      ctx: RequestContext<typeof UpdateVisibilityInputSchema>,
+    ): Promise<void> {
+      const row = ctx.get(targetKey) as Message | undefined;
+      if (row === undefined) {
+        // Wiring error, not a user error: a guard that silently passes
+        // un-guards the boundary it exists to protect.
+        throw internalError(
+          new Error(
+            "GuardReferenceFloorOnEscalation ran without a loaded target — the step must follow the load step",
+          ),
+          "reference floor requires the loaded resource",
+        );
+      }
+      const metadata = metadataOf(row);
+      if (metadata === undefined) {
+        throw internalError(
+          new Error("resource metadata is nil"),
+          "reference floor requires the loaded resource",
+        );
+      }
+      const requested = ctx.input.visibility;
+      if (visibilityRank(requested) <= visibilityRank(metadata.visibility)) {
+        return;
+      }
+      const refs = collectors
+        .flatMap((collect) => collect(row))
+        .filter((ref) => ref.slug !== "");
+      if (refs.length === 0) {
+        return;
+      }
+      const parent: ReferenceParent = {
+        org: metadata.org,
+        visibility: requested,
+      };
+      const targets = await loadReferenceTargets(store, refs);
+      const refusal = referenceRefusal(
+        parent,
+        refs
+          .map((ref) => ({
+            ref,
+            verdict: checkReference(targets, parent, ref),
+          }))
+          .filter(({ verdict }) => verdict.kind === "below-floor"),
+      );
+      if (refusal !== undefined) {
+        throw refusal;
+      }
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -73,6 +73,8 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import {
+  collectSpecReferences,
+  newGuardReferenceFloorOnEscalationStep,
   newNormalizeReferencesStep,
   newValidateReferencesStep,
 } from "../../pipeline/steps/references.js";
@@ -356,6 +358,15 @@ async function updateVisibility(
     )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
+    // The reference floor's second door: an agent may not be raised above
+    // the skills and MCP servers it runs with.
+    .addStep(
+      newGuardReferenceFloorOnEscalationStep(
+        deps.store,
+        UPDATE_VISIBILITY_AGENT_KEY,
+        [(row) => collectSpecReferences(AgentSchema, row)],
+      ),
+    )
     .addStep(newSetAgentVisibilityStep())
     .addStep(newPersistAgentForVisibilityUpdateStep(deps.store))
     .addStep(
