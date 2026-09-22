@@ -43,10 +43,6 @@ import {
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
-  newAuthorizeVisibilityTransitionStep,
-  newGuardPublicVisibilityStep,
-} from "../../pipeline/steps/visibility-gates.js";
-import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
@@ -168,7 +164,6 @@ async function createAgent(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newGuardPublicVisibilityStep(deps.authorizer))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store))
@@ -361,12 +356,6 @@ async function updateVisibility(
     )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_AGENT_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newSetAgentVisibilityStep())
     .addStep(newPersistAgentForVisibilityUpdateStep(deps.store))
     .addStep(

@@ -41,15 +41,10 @@ const caller: CallerIdentity = {
 const V = ApiResourceVisibility;
 
 describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
-  it("agent (blueprint with org floor): org / public / platform expansions", () => {
+  it("agent (blueprint with org floor): org / platform expansions", () => {
     expect([
       ...visibilityShapesFor(ApiResourceKind.agent, V.visibility_org),
     ]).toEqual(["org-viewer"]);
-    expect(
-      [
-        ...visibilityShapesFor(ApiResourceKind.agent, V.visibility_public),
-      ].sort(),
-    ).toEqual(["org-viewer", "public-viewer"]);
     expect(
       [
         ...visibilityShapesFor(ApiResourceKind.agent, V.visibility_platform),
@@ -60,25 +55,27 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
     ]).toEqual([]);
   });
 
-  it("workflow_instance (no org floor): public expands to the wildcard shape alone", () => {
-    expect([
-      ...visibilityShapesFor(
-        ApiResourceKind.workflow_instance,
-        V.visibility_public,
-      ),
-    ]).toEqual(["public-viewer"]);
+  it("the retired public level expands to nothing for every kind — no wildcard shape exists", () => {
+    for (const kind of [
+      ApiResourceKind.agent,
+      ApiResourceKind.workflow_instance,
+      ApiResourceKind.plugin,
+      ApiResourceKind.session,
+    ]) {
+      expect([...visibilityShapesFor(kind, V.visibility_public)]).toEqual([]);
+    }
   });
 
   it("session (no visibility config): every level yields nothing, silently", () => {
     expect([
-      ...visibilityShapesFor(ApiResourceKind.session, V.visibility_public),
+      ...visibilityShapesFor(ApiResourceKind.session, V.visibility_org),
     ]).toEqual([]);
     expect([
-      ...visibilityShapesFor(ApiResourceKind.session, V.visibility_org),
+      ...visibilityShapesFor(ApiResourceKind.session, V.visibility_platform),
     ]).toEqual([]);
   });
 
-  it("agent_instance supports org+public but never platform (tenant isolation)", () => {
+  it("agent_instance supports org but never platform (tenant isolation)", () => {
     expect([
       ...visibilityShapesFor(
         ApiResourceKind.agent_instance,
@@ -101,15 +98,15 @@ describe("diffVisibilityShapes (the reconciler's transition matrix, re-pinned)",
     expect(diff.shapesToDelete).toEqual([]);
   });
 
-  it("unspecified→public creates public + the org floor", () => {
+  it("unspecified→platform creates the platform shape + the org floor", () => {
     const diff = diffVisibilityShapes(
       agent,
       V.api_resource_visibility_unspecified,
-      V.visibility_public,
+      V.visibility_platform,
     );
     expect([...diff.shapesToCreate].sort()).toEqual([
       "org-viewer",
-      "public-viewer",
+      "platform-viewer",
     ]);
     expect(diff.shapesToDelete).toEqual([]);
   });
@@ -124,23 +121,13 @@ describe("diffVisibilityShapes (the reconciler's transition matrix, re-pinned)",
     expect(diff.shapesToDelete).toEqual(["org-viewer"]);
   });
 
-  it("public→org deletes ONLY the wildcard — the shared org shape stays untouched", () => {
-    const diff = diffVisibilityShapes(
-      agent,
-      V.visibility_public,
-      V.visibility_org,
-    );
-    expect(diff.shapesToCreate).toEqual([]);
-    expect(diff.shapesToDelete).toEqual(["public-viewer"]);
-  });
-
-  it("platform→public swaps the family shape and never touches the org floor", () => {
+  it("platform→org deletes ONLY the platform shape — the shared org floor stays untouched", () => {
     const diff = diffVisibilityShapes(
       agent,
       V.visibility_platform,
-      V.visibility_public,
+      V.visibility_org,
     );
-    expect(diff.shapesToCreate).toEqual(["public-viewer"]);
+    expect(diff.shapesToCreate).toEqual([]);
     expect(diff.shapesToDelete).toEqual(["platform-viewer"]);
   });
 

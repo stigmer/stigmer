@@ -78,10 +78,6 @@ import {
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
-import {
-  newAuthorizeVisibilityTransitionStep,
-  newGuardPublicVisibilityStep,
-} from "../../pipeline/steps/visibility-gates.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
   setAuditFieldsForUpdate,
@@ -238,7 +234,6 @@ async function createWorkflow(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newGuardPublicVisibilityStep(deps.authorizer))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newPopulateServerlessValidationStep(deps.logger))
@@ -411,8 +406,8 @@ async function deleteWorkflow(
 // updateVisibility — update_visibility.go: a targeted metadata update (only
 // metadata.visibility changes; spec/status untouched). The level check runs
 // AFTER load, preserving the cross-edition error precedence: unknown id +
-// bad level = NOT_FOUND on both editions. CW-9's suite block is the wire
-// pin (clientPublicVisibilityWrites, true on local targets).
+// bad level = NOT_FOUND on both editions. The workflow conformance suite's
+// visibility block is the wire pin.
 // ---------------------------------------------------------------------------
 
 const UPDATE_VISIBILITY_WORKFLOW_KEY = "updateVisibilityWorkflow";
@@ -452,12 +447,6 @@ async function updateVisibility(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_WORKFLOW_KEY),
     )
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_WORKFLOW_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newSetWorkflowVisibilityStep())
     .addStep(newPersistWorkflowForVisibilityUpdateStep(deps.store))
     .addStep(

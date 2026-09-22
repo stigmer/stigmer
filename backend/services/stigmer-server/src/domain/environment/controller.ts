@@ -63,7 +63,6 @@ import {
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
-import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -398,12 +397,6 @@ async function updateVisibility(
     // After load, per the cross-edition error precedence: unknown id +
     // bad level = NOT_FOUND on both editions.
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_ENVIRONMENT_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newValidateEnvironmentShareRestrictionStep())
     .addStep(newSetEnvironmentVisibilityStep())
     .addStep(newPersistEnvironmentForVisibilityUpdateStep(deps.store))

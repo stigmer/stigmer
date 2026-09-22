@@ -287,10 +287,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             UNKNOWN_KIND_DENY_REASON,
           ],
           [
-            "a kind this edition does not serve (platform — nobody sets public visibility)",
+            "a kind this edition does not serve (platform — nobody holds an operator capability)",
             resolved(FOUNDER),
             check(
-              IamPermission.can_set_public_visibility,
+              IamPermission.can_view_provider_standing,
               ApiResourceKind.platform,
               "stigmer",
             ),

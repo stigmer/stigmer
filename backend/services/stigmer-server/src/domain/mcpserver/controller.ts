@@ -59,10 +59,6 @@ import {
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
-  newAuthorizeVisibilityTransitionStep,
-  newGuardPublicVisibilityStep,
-} from "../../pipeline/steps/visibility-gates.js";
-import {
   setAuditFieldsForUpdate,
   newBuildNewStateStep,
 } from "../../pipeline/steps/defaults.js";
@@ -241,7 +237,6 @@ async function createMcpServer(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newGuardPublicVisibilityStep(deps.authorizer))
     // A URL-only server is asked once whether it wants OAuth and completed
     // when it does; immediately before GuardReservedLabels because the
     // provenance label it stamps is one the guard diffs.
@@ -463,12 +458,6 @@ async function updateVisibility(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_MCP_SERVER_KEY),
     )
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_MCP_SERVER_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newSetMcpServerVisibilityStep())
     .addStep(newPersistMcpServerForVisibilityUpdateStep(deps.store))
     .addStep(
