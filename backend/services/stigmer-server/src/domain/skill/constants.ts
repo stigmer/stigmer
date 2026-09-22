@@ -27,9 +27,33 @@ export const MAX_SKILL_MD_SIZE = 1 * 1024 * 1024;
 /**
  * Upload-slot lifetime — generous enough for a 100MB upload on a slow
  * link, short enough that abandoned slots don't accumulate. Go:
- * transfer.DefaultSlotTTL (15 minutes).
+ * transfer.DefaultSlotTTL (15 minutes). The same lifetime is asked of a
+ * bucket driver's presigned PUT, so the reference and the URL it names
+ * expire together whichever driver serves them.
  */
 export const DEFAULT_SLOT_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Download capability lifetime — the floor of a minted download URL's
+ * validity, reported as ttl_seconds. A bucket driver signs its GET for
+ * exactly this long, the lifetime the cloud edition already grants
+ * execution-artifact downloads; the local lane's URL is a content-hash
+ * capability that never expires, so the floor holds there trivially. An
+ * hour outlives any mount the runner performs while staying short enough
+ * that a leaked URL is not a standing grant.
+ */
+export const DOWNLOAD_URL_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Where staged uploads live in the blob store, under the skill store's own
+ * prefix: `skills/staging/<hex>.zip`. The retired cloud service staged
+ * under this exact prefix, so the bucket lifecycle rule that sweeps
+ * abandoned uploads is written for it, and on the local driver the boot
+ * wipe targets the same directory. Every staged object is a random
+ * 128-bit key, so its exposure through the download lane is the same
+ * capability the upload reference already grants.
+ */
+export const STAGING_KEY_PREFIX = "skills/staging/";
 
 /**
  * Random capability-token size: 16 bytes = 128 bits of entropy, matching
@@ -53,8 +77,9 @@ export const UPLOADS_SEGMENT = "/uploads/";
 
 /**
  * Downloads are restricted to the skill artifact store's own keys
- * ("skills/<hash>.zip"); everything else under the storage root — should
- * the two ever share one — stays unreachable from this lane.
+ * ("skills/<hash>.zip", and the staged uploads under STAGING_KEY_PREFIX);
+ * everything else under the storage root — should the two ever share one
+ * — stays unreachable from this lane.
  */
 export const DOWNLOAD_KEY_PREFIX = "skills/";
 

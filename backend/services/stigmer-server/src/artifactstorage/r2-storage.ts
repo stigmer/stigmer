@@ -9,8 +9,6 @@
  * that have logic: config validation copy, the 7-day presign clamp, the
  * signed Content-Disposition, and the not-found mapping.
  */
-import { randomBytes } from "node:crypto";
-
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -29,13 +27,6 @@ import {
 
 /** Go: "R2 has a maximum expiration of 7 days" — presigns clamp here. */
 export const R2_MAX_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
-
-/**
- * Key prefix for presignPut staging blobs (§6b). Pinned as the surface a
- * deployment's bucket lifecycle rule targets: the driver mints under it,
- * operations sweeps it — changing it orphans staged blobs from the sweep.
- */
-export const R2_STAGING_PREFIX = "staging/";
 
 /**
  * Go get_content/get_download_url wrap their storage calls in a 30s
@@ -167,17 +158,17 @@ export class R2ArtifactStorage implements ArtifactStorage {
   }
 
   async presignPut(
+    key: string,
     declaredSizeBytes: number,
     ttlMs: number,
   ): Promise<PresignedUpload> {
     const clampedMs = Math.min(ttlMs, R2_MAX_EXPIRATION_MS);
-    // Random staging key: the URL is the credential (unguessable), and the
-    // prefix is the contract surface a bucket lifecycle rule sweeps (§6b —
-    // staged uploads the domain never committed must not accrete forever).
-    const stagingKey = `${R2_STAGING_PREFIX}${randomBytes(16).toString("hex")}`;
+    // The key is the caller's: the domain names its staging prefix (the
+    // surface a bucket lifecycle rule sweeps) and keeps the unguessable
+    // part of the URL-as-credential in the reference it hands the client.
     const command = new PutObjectCommand({
       Bucket: this.bucket,
-      Key: stagingKey,
+      Key: key,
       // Signed into the URL: a PUT whose body disagrees with the declared
       // size fails the signature check — R2's arm of the exact-size
       // contract the local lane enforces by counting bytes.
@@ -187,7 +178,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
       const url = await this.presign(this.client, command, {
         expiresIn: Math.floor(clampedMs / 1000),
       });
-      return { url, stagingKey, ttlMs: clampedMs };
+      return { url, ttlMs: clampedMs };
     } catch (error) {
       throw new Error(`r2 presign failed: ${errorText(error)}`, { cause: error });
     }

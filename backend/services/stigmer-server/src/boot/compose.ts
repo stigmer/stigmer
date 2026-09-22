@@ -119,14 +119,20 @@ import { registerSkillServices } from "../domain/skill/controller.js";
 import {
   DEFAULT_SLOT_TTL_MS,
   MAX_ZIP_SIZE,
+  STAGING_KEY_PREFIX,
 } from "../domain/skill/constants.js";
 import { newSkillArtifactStorage } from "../domain/skill/storage/artifact-storage.js";
 import { newContentAddressedArchiveStore } from "../archive/content-store.js";
 import {
   newSkillTransferLane,
+  transferServeUrl,
   uploadUrl as skillUploadUrl,
 } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
+import {
+  newArchiveStaging,
+  uploadRefOf,
+} from "../domain/skill/transfer/staging.js";
 import {
   DEFAULT_WRITE_VERSION,
   ENCRYPTION_KEY_ENV_VAR,
@@ -166,6 +172,7 @@ import { SqliteStore } from "../store/sqlite/store.js";
 import type { Store } from "../store/interface.js";
 import { resolveExtensions } from "../extensions/registry.js";
 import { resolveOAuthRedirectUri } from "./oauth-redirect-uri.js";
+import { assessSkillTransferOrigin } from "./skill-transfer-origin.js";
 import type { ServerExtension } from "../extensions/registry.js";
 import { registerWorkflowServices } from "../domain/workflow/controller.js";
 import {
@@ -926,7 +933,7 @@ export async function composeServer(
       : undefined;
   // The skill artifact store + transfer lane (Go server.go:318-340). The
   // store is content-addressed and never-GC at {storagePath}/skills/;
-  // the slots registry wipes {storagePath}/skills-staging at boot (orphans
+  // the slots registry wipes {storagePath}/skills/staging at boot (orphans
   // from a dead process are useless — the registry died with it). On OSS
   // the lane is ALWAYS configured (Go wires it unconditionally too): the
   // FailedPrecondition lane-absent arms exist for construction-order
@@ -938,16 +945,25 @@ export async function composeServer(
   // deployment changes nothing for skill artifacts until it opts in
   // explicitly, and the Go-written skills/ directory keeps serving in
   // place on the default arm.
+  //
+  // Capability URLs come from the driver through the staging port
+  // (domain/skill/transfer/staging.ts, stigmer#1219): the local driver's
+  // presignPut reserves a slot here and renders the lane URL below, a
+  // bucket driver's signs a PUT straight to the bucket, and the
+  // controllers cannot tell which. The slots are constructed on every
+  // arm so the HTTP lane always has a registry to consult; on a bucket
+  // arm nothing is ever reserved in it.
   const skillUploadSlots = new UploadSlots(
-    path.join(config.storagePath, "skills-staging"),
+    config.storagePath,
+    STAGING_KEY_PREFIX,
     DEFAULT_SLOT_TTL_MS,
     MAX_ZIP_SIZE,
   );
+  const skillType =
+    config.skillArtifactStorageType === ""
+      ? "local"
+      : config.skillArtifactStorageType;
   const skillStorageDriver = ((): ArtifactStorage => {
-    const skillType =
-      config.skillArtifactStorageType === ""
-        ? "local"
-        : config.skillArtifactStorageType;
     if (skillType === "local") {
       // Go layout invariant: {storagePath}/skills exists from boot with
       // 0755 (the retired LocalFileStorage constructor's mkdir; the
@@ -958,16 +974,23 @@ export async function composeServer(
       });
       // The local presigned-PUT arm rides the skill transfer lane's slot
       // mechanism (§6b Q1 ruling: one upload surface, no new lane). The
-      // slots stage inside THIS driver's root, so a minted stagingKey
-      // reads back through the same instance; the empty serve URL is the
-      // honest state — skill downloads ride the transfer lane, never
-      // getSignedUrl.
-      return new LocalArtifactStorage(config.storagePath, "", {
-        mint: (declaredSizeBytes) => skillUploadSlots.mint(declaredSizeBytes),
-        uploadUrl: (ref) => skillUploadUrl(config.skillTransferBaseUrl, ref),
-        stagedKey: (ref) =>
-          `skills-staging/${skillUploadSlots.stagedFileName(ref)}`,
-      });
+      // slots stage inside THIS driver's root under the domain's staging
+      // key, so download(key) reads back what the lane received; the
+      // serve URL is the lane's download route, so getSignedUrl renders
+      // the very URL the lane dispatches.
+      return new LocalArtifactStorage(
+        config.storagePath,
+        transferServeUrl(config.skillTransferBaseUrl),
+        {
+          reserve: (key, declaredSizeBytes) => {
+            const { ttlMs } = skillUploadSlots.reserve(key, declaredSizeBytes);
+            return {
+              url: skillUploadUrl(config.skillTransferBaseUrl, uploadRefOf(key)),
+              ttlMs,
+            };
+          },
+        },
+      );
     }
     // Non-local skill backends share the artifact store's R2 settings for
     // the built-in arm and the composition's registered drivers beyond it.
@@ -994,11 +1017,31 @@ export async function composeServer(
     skillStorageDriver,
     PLUGIN_ARTIFACT_KEY_PREFIX,
   );
+  // One staging port for every archive kind, over the one skill blob
+  // driver: the controllers mint, consume and sign through it and never
+  // meet the slots or the bucket.
+  const skillArchiveStaging = newArchiveStaging(skillStorageDriver, logger);
   const skillTransferLane = newSkillTransferLane(
     skillUploadSlots,
     skillArtifactStorage,
     logger,
   );
+  // A hosted server relaying bytes through itself from its loopback
+  // default mints URLs no caller can reach (stigmer#1219); nothing inside
+  // the process can observe that, so the boot says it. Never fatal: the
+  // inline push and every other RPC work, and a self-host behind a tunnel
+  // it forgot to name deserves a pointer, not an outage.
+  const transferOrigin = assessSkillTransferOrigin({
+    baseUrl: config.skillTransferBaseUrl,
+    relaysThroughServer: skillType === "local",
+    requireAuthentication,
+  });
+  if (transferOrigin.kind === "loopback-hosted") {
+    logger.warn(
+      "skill artifact transfer lane mints capability URLs on the server's own loopback while the server requires authentication; pushes above the gRPC message cap and sandbox skill downloads will fail — set SKILL_TRANSFER_BASE_URL to the origin callers reach this server on",
+      { baseUrl: transferOrigin.baseUrl },
+    );
+  }
   // The console lane (lane 4, DD-012): present only when a static export
   // is bundled (slim artifacts) or configured (STIGMER_CONSOLE_DIR) —
   // "not bundled" is a modeled state, logged once, with the router
@@ -1463,14 +1506,11 @@ export async function composeServer(
       // The agentexecution blob store (server.go:362-363) — read side of
       // pushFromExecutionArtifact.
       executionArtifactStorage: artifactStorage,
-      transferLane: {
-        slots: skillUploadSlots,
-        baseUrl: config.skillTransferBaseUrl,
-      },
+      staging: skillArchiveStaging,
     });
     // Plugins materialise their members through the in-process lane as
     // the installing caller; the lazy provider resolves the clients built
-    // from these same routes after boot. The upload slots are the skill
+    // from these same routes after boot. The staging port is the skill
     // lane's: one upload surface for every archive.
     registerPluginServices(router, {
       store,
@@ -1479,10 +1519,7 @@ export async function composeServer(
       authorizationLifecycle,
       artifactStorage: pluginArtifactStorage,
       materializerProvider: () => requireInProcess().pluginMaterializer,
-      transferLane: {
-        slots: skillUploadSlots,
-        baseUrl: config.skillTransferBaseUrl,
-      },
+      staging: skillArchiveStaging,
     });
     // Artifact CRUD shares the ONE blob store with agentexecution's
     // attachment lanes (Go server.go 347–374).

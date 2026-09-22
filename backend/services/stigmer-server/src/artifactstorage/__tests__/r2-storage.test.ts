@@ -4,8 +4,8 @@
  * ships r2_storage.go untested; these pins are what the port adds:
  * required-config copy, the 7-day presign clamp, the signed
  * Content-Disposition, the not-found mapping, and the O5 widened surface
- * (typed not-found on download/size, presigned-PUT under the pinned
- * staging prefix with the signed Content-Length).
+ * (typed not-found on download/size, presigned-PUT under the caller's key
+ * with the signed Content-Length).
  */
 import { describe, expect, it } from "vitest";
 
@@ -13,7 +13,6 @@ import { ArtifactStorageNotFoundError } from "../artifact-storage.js";
 import {
   R2ArtifactStorage,
   R2_MAX_EXPIRATION_MS,
-  R2_STAGING_PREFIX,
   isNotFoundError,
 } from "../r2-storage.js";
 
@@ -64,16 +63,14 @@ describe("R2ArtifactStorage presigned URLs", () => {
 });
 
 describe("R2ArtifactStorage O5 widened surface", () => {
-  it("presignPut mints under the pinned staging prefix, clamps the TTL, and signs the declared size", async () => {
+  it("presignPut signs a PUT under the caller's key, clamps the TTL, and signs the declared size", async () => {
     const storage = new R2ArtifactStorage(VALID);
-    const upload = await storage.presignPut(1234, R2_MAX_EXPIRATION_MS * 5);
+    const key = "skills/staging/0123456789abcdef0123456789abcdef.zip";
+    const upload = await storage.presignPut(key, 1234, R2_MAX_EXPIRATION_MS * 5);
 
-    expect(upload.stagingKey.startsWith(R2_STAGING_PREFIX)).toBe(true);
     expect(upload.ttlMs).toBe(R2_MAX_EXPIRATION_MS);
     expect(
-      upload.url.startsWith(
-        `${VALID.endpoint}/${VALID.bucket}/${upload.stagingKey}?`,
-      ),
+      upload.url.startsWith(`${VALID.endpoint}/${VALID.bucket}/${key}?`),
     ).toBe(true);
     expect(upload.url).toContain("X-Amz-Expires=604800");
     // Content-Length rides the signature: a body of a different size
@@ -81,11 +78,12 @@ describe("R2ArtifactStorage O5 widened surface", () => {
     expect(upload.url.toLowerCase()).toContain("content-length");
   });
 
-  it("two mints never share a staging key (the URL is the credential)", async () => {
+  it("the key is the caller's verbatim — the driver invents none of its own", async () => {
     const storage = new R2ArtifactStorage(VALID);
-    const a = await storage.presignPut(1, 60_000);
-    const b = await storage.presignPut(1, 60_000);
-    expect(a.stagingKey).not.toBe(b.stagingKey);
+    const a = await storage.presignPut("staging/a.zip", 1, 60_000);
+    const b = await storage.presignPut("staging/b.zip", 1, 60_000);
+    expect(a.url).toContain(`/${VALID.bucket}/staging/a.zip?`);
+    expect(b.url).toContain(`/${VALID.bucket}/staging/b.zip?`);
   });
 
   it("download and size map the SDK's not-found onto the typed class; real faults stay wrapped", async () => {

@@ -121,9 +121,10 @@ export interface ServerConfig {
   readonly oauthRedirectUri: string;
   /**
    * Skill artifact storage root (STORAGE_PATH; Go defaultStoragePath
-   * ~/.stigmer/storage). Artifacts live at {storagePath}/skills/,
-   * upload staging at {storagePath}/skills-staging/ — byte-identical to
-   * Go's layout, so a Go-written directory is served in place at cutover.
+   * ~/.stigmer/storage). Artifacts live at {storagePath}/skills/ —
+   * byte-identical to Go's layout, so a Go-written directory is served in
+   * place at cutover — and upload staging at {storagePath}/skills/staging/,
+   * the prefix the domain names (domain/skill/constants.ts).
    */
   readonly storagePath: string;
   /**
