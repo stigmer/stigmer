@@ -2,7 +2,7 @@
   "sources": {
     "cursor-plugins": {
       "repo": "cursor/plugins",
-      "commit": "1f84288b2c047b6d39952da23f51cf486f3b2f7a"
+      "commit": "6ed0f7a9504f577d7529064103cecce9be7dfc5e"
     },
     "claude-code-plugins": {
       "repo": "anthropics/claude-code",
@@ -166,7 +166,7 @@
       "source": "cursor-plugins",
       "path": "third_party/excalidraw",
       "licence": "LICENSE",
-      "digest": "299c0c061725e66ee2196c16343d435b2c1de66ddfd00f03f43d72a95f6034df"
+      "digest": "7ee5be935127ff55634304af8de5a0faa6454ddb92eafb26ba7a59582d8b69b7"
     },
     {
       "name": "expo",
@@ -215,7 +215,7 @@
       "source": "cursor-plugins",
       "path": "grok-voice",
       "licence": "LICENSE",
-      "digest": "c23bbe69ba2c296a8b3b27fc18d342d97268fd7672c844784e0021c5c3cb63fd"
+      "digest": "7a6e9351383ef3abd384f9d5fd68afa62d8443959a09d264f4c7295ffe17aee8"
     },
     {
       "name": "guru",
