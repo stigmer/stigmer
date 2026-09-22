@@ -15,18 +15,20 @@ package ai.stigmer.commons.apiresource;
  * - Ownership: Which organization controls/manages the resource
  * - Visibility: Who can access/use the resource
  *
- * All resources belong to an organization. Visibility determines whether
- * users outside that organization can access the resource.
+ * All resources belong to an organization. Visibility determines which
+ * users, inside that organization or in the organizations linked to it by
+ * one identity provider, can read the resource. No level reaches every
+ * account on the server.
  *
  * The visibility levels map to FGA tuples:
  * - PRIVATE: no additional viewer tuples (owner-only access)
  * - ORG: resource#viewer&#64;organization:&lt;org&gt;#viewer tuple (everyone in the
  * org — the org role hierarchy flows downward, so owners, admins, members
  * AND read-only viewers all satisfy the organization#viewer userset)
- * - PUBLIC: resource#viewer&#64;identity_account:* with allow_public (all users)
  * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
  * (all members of all organizations managed by the owning org's
  * IdentityProvider)
+ * - PUBLIC: retired; see the value's own comment.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceVisibility}
@@ -67,18 +69,18 @@ public enum ApiResourceVisibility
   visibility_private(1),
   /**
    * <pre>
-   * Anyone can access (read) this resource.
-   * Used for marketplace-published resources (e.g., "stigmer/web-search").
-   * Write access still requires org membership.
+   * Retired. This level made a resource readable to every account on the
+   * server; it is refused at create and at updateVisibility for every kind,
+   * and every stored row that held it has been moved to visibility_org.
+   * Sharing across organizations happens through plugins (a copy is
+   * installed and owned) or, between organizations linked by one identity
+   * provider, through visibility_platform.
    *
-   * In the cloud edition, entering this level is operator-gated
-   * (can_set_public_visibility on platform:stigmer): public listing is a
-   * curation decision, requested by the resource owner and granted by the
-   * platform team — at both doors, updateVisibility escalation and
-   * create-with-public. Leaving this level stays self-service for anyone
-   * with can_edit. The OSS edition is unguarded (the self-hosted operator
-   * owns the store).
-   * Named visibility_public to avoid Java reserved keyword conflict.
+   * &#64;internal
+   * The value is kept, never renumbered: audit snapshots written before the
+   * level was retired carry it, and a reader that meets the number must
+   * still name it. Named visibility_public to avoid Java reserved keyword
+   * conflict.
    * </pre>
    *
    * <code>visibility_public = 2;</code>
@@ -180,18 +182,18 @@ public enum ApiResourceVisibility
   public static final int visibility_private_VALUE = 1;
   /**
    * <pre>
-   * Anyone can access (read) this resource.
-   * Used for marketplace-published resources (e.g., "stigmer/web-search").
-   * Write access still requires org membership.
+   * Retired. This level made a resource readable to every account on the
+   * server; it is refused at create and at updateVisibility for every kind,
+   * and every stored row that held it has been moved to visibility_org.
+   * Sharing across organizations happens through plugins (a copy is
+   * installed and owned) or, between organizations linked by one identity
+   * provider, through visibility_platform.
    *
-   * In the cloud edition, entering this level is operator-gated
-   * (can_set_public_visibility on platform:stigmer): public listing is a
-   * curation decision, requested by the resource owner and granted by the
-   * platform team — at both doors, updateVisibility escalation and
-   * create-with-public. Leaving this level stays self-service for anyone
-   * with can_edit. The OSS edition is unguarded (the self-hosted operator
-   * owns the store).
-   * Named visibility_public to avoid Java reserved keyword conflict.
+   * &#64;internal
+   * The value is kept, never renumbered: audit snapshots written before the
+   * level was retired carry it, and a reader that meets the number must
+   * still name it. Named visibility_public to avoid Java reserved keyword
+   * conflict.
    * </pre>
    *
    * <code>visibility_public = 2;</code>

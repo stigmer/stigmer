@@ -41,7 +41,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_participate: _ClassVar[IamPermission]
     can_write_reserved_labels: _ClassVar[IamPermission]
     can_view_provider_standing: _ClassVar[IamPermission]
-    can_set_public_visibility: _ClassVar[IamPermission]
     can_create_plugin: _ClassVar[IamPermission]
     can_manage_plans: _ClassVar[IamPermission]
     can_issue_license: _ClassVar[IamPermission]
@@ -91,7 +90,6 @@ can_manage_cursor_accounts: IamPermission
 can_participate: IamPermission
 can_write_reserved_labels: IamPermission
 can_view_provider_standing: IamPermission
-can_set_public_visibility: IamPermission
 can_create_plugin: IamPermission
 can_manage_plans: IamPermission
 can_issue_license: IamPermission

@@ -11,10 +11,8 @@ import { SEARCH_TABLE } from "./list.js";
 import { renderCollection } from "./render.js";
 
 export interface SearchParams {
-  /** Organization scope. Empty searches across all accessible orgs (incl. public). */
+  /** Organization scope. Empty searches across every org the caller can access. */
   readonly org: string;
-  /** Exclude public/platform resources, restricting to the caller's own. */
-  readonly excludePublic: boolean;
   /** 1-indexed page number. */
   readonly page: number;
   /** Results per page. */
@@ -40,7 +38,6 @@ export async function searchResources(
     kinds: [kind],
     query,
     org: params.org,
-    excludePublic: params.excludePublic,
     page: { num: params.page, size: params.pageSize },
   });
 

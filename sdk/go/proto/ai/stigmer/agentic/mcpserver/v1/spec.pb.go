@@ -501,7 +501,9 @@ type McpServerAuth struct {
 	// When set: Stigmer uses the referenced OAuthApp's client credentials to
 	// perform the OAuth authorization code flow with the vendor on behalf of
 	// the user. The OAuthApp must belong to the same organization as the
-	// McpServer (or be accessible via cross-org reference).
+	// McpServer: an OAuth app holds vendor credentials and is never
+	// platform-visible, so no cross-organization reference to one is
+	// accepted.
 	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
 	// The env var where the acquired access token is stored.
 	// Must correspond to an entry in env so the execution pipeline

@@ -85,8 +85,6 @@ export function useResourceList(
           const params: ListParams = {
             org,
             query: query || undefined,
-            excludePublic: false,
-            crossOrgPublic: scope === "all",
             page: { num: page, size: pageSize },
           };
           const result = await listFn(params);

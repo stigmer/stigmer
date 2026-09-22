@@ -52,9 +52,6 @@ export const PluginCommandController = {
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
      *
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     *
      * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.updateVisibility
      */
     updateVisibility: {

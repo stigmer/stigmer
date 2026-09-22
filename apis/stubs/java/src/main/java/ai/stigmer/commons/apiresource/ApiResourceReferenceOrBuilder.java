@@ -22,7 +22,8 @@ public interface ApiResourceReferenceOrBuilder extends
    * always have org populated (absolute form).
    *
    * Use empty org for same-org references (the common case).
-   * Use explicit org for cross-org references (e.g., marketplace resources).
+   * An explicit other org is accepted only when that organization is a
+   * platform that shares the resource with yours (visibility_platform).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -41,7 +42,8 @@ public interface ApiResourceReferenceOrBuilder extends
    * always have org populated (absolute form).
    *
    * Use empty org for same-org references (the common case).
-   * Use explicit org for cross-org references (e.g., marketplace resources).
+   * An explicit other org is accepted only when that organization is a
+   * platform that shares the resource with yours (visibility_platform).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>

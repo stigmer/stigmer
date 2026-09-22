@@ -340,19 +340,19 @@ public final class WorkflowCommandControllerGrpc {
      * Update the visibility of an existing workflow.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make a workflow publicly accessible or to revoke public access without
-     * sending the entire workflow resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the workflow without sending the entire
+     * workflow resource (avoiding read-modify-write races).
+     * Raising the level is refused while an agent an agent_call task names is
+     * less visible than the requested level: what a person can run they must
+     * also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the workflow for private/org/platform
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * Authorization: can_edit on the workflow for every transition. The level
+     * is checked against the kind's VisibilityConfig (visibility_public is
+     * refused for every kind); the reference floor is a pipeline step on this
+     * chain. Visibility transitions trigger FGA tuple management in Cloud
+     * mode:
+     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
+     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -496,19 +496,19 @@ public final class WorkflowCommandControllerGrpc {
      * Update the visibility of an existing workflow.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make a workflow publicly accessible or to revoke public access without
-     * sending the entire workflow resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the workflow without sending the entire
+     * workflow resource (avoiding read-modify-write races).
+     * Raising the level is refused while an agent an agent_call task names is
+     * less visible than the requested level: what a person can run they must
+     * also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the workflow for private/org/platform
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * Authorization: can_edit on the workflow for every transition. The level
+     * is checked against the kind's VisibilityConfig (visibility_public is
+     * refused for every kind); the reference floor is a pipeline step on this
+     * chain. Visibility transitions trigger FGA tuple management in Cloud
+     * mode:
+     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
+     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -639,19 +639,19 @@ public final class WorkflowCommandControllerGrpc {
      * Update the visibility of an existing workflow.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make a workflow publicly accessible or to revoke public access without
-     * sending the entire workflow resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the workflow without sending the entire
+     * workflow resource (avoiding read-modify-write races).
+     * Raising the level is refused while an agent an agent_call task names is
+     * less visible than the requested level: what a person can run they must
+     * also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the workflow for private/org/platform
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * Authorization: can_edit on the workflow for every transition. The level
+     * is checked against the kind's VisibilityConfig (visibility_public is
+     * refused for every kind); the reference floor is a pipeline step on this
+     * chain. Visibility transitions trigger FGA tuple management in Cloud
+     * mode:
+     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
+     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -778,19 +778,19 @@ public final class WorkflowCommandControllerGrpc {
      * Update the visibility of an existing workflow.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make a workflow publicly accessible or to revoke public access without
-     * sending the entire workflow resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the workflow without sending the entire
+     * workflow resource (avoiding read-modify-write races).
+     * Raising the level is refused while an agent an agent_call task names is
+     * less visible than the requested level: what a person can run they must
+     * also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the workflow for private/org/platform
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * Authorization: can_edit on the workflow for every transition. The level
+     * is checked against the kind's VisibilityConfig (visibility_public is
+     * refused for every kind); the reference floor is a pipeline step on this
+     * chain. Visibility transitions trigger FGA tuple management in Cloud
+     * mode:
+     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
+     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -920,19 +920,19 @@ public final class WorkflowCommandControllerGrpc {
      * Update the visibility of an existing workflow.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make a workflow publicly accessible or to revoke public access without
-     * sending the entire workflow resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the workflow without sending the entire
+     * workflow resource (avoiding read-modify-write races).
+     * Raising the level is refused while an agent an agent_call task names is
+     * less visible than the requested level: what a person can run they must
+     * also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the workflow for private/org/platform
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * Authorization: can_edit on the workflow for every transition. The level
+     * is checked against the kind's VisibilityConfig (visibility_public is
+     * refused for every kind); the reference floor is a pipeline step on this
+     * chain. Visibility transitions trigger FGA tuple management in Cloud
+     * mode:
+     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
+     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> updateVisibility(

@@ -41,11 +41,9 @@ type Page struct {
 
 // ListParams configures a SearchService-backed list query.
 type ListParams struct {
-	Org            string
-	Query          string
-	ExcludePublic  bool
-	CrossOrgPublic bool
-	Page           *Page
+	Org   string
+	Query string
+	Page  *Page
 }
 
 // ListResult holds the response from a SearchService-backed list.

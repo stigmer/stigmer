@@ -61,10 +61,6 @@ type McpServerCommandControllerClient interface {
 	//
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched.
-	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*McpServer, error)
 	// Connect to an MCP server: discover its tools and classify approval policies.
 	//
@@ -315,10 +311,6 @@ type McpServerCommandControllerServer interface {
 	//
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched.
-	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*McpServer, error)
 	// Connect to an MCP server: discover its tools and classify approval policies.
 	//

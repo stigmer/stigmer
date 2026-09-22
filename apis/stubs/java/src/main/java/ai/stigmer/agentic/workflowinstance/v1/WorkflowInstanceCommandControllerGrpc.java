@@ -340,26 +340,20 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing workflow instance.
-     * Changes who can view this instance and its executions. Supports the full
-     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
-     * PUBLIC (all authenticated users).
+     * Changes who can view this instance and its executions. Supports PRIVATE
+     * (owner only) and ORG (all org members); instances never take the
+     * platform level (tenant isolation).
      * For workflow instances, visibility has cascading effects on execution
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the workflow instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the workflow instance for every transition.
+     * The level is checked against the kind's VisibilityConfig
+     * (visibility_public is refused for every kind). Visibility transitions
+     * trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -375,7 +369,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * the instance itself. Making an instance org-runnable does NOT expose
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
-     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * ORGANIZATION (all org members). Platform is unsupported.
      * &#64;internal
      * Authorization: requires can_grant_access on the workflow instance —
      * sharing run history is an access-granting action, consistent with the
@@ -522,26 +516,20 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing workflow instance.
-     * Changes who can view this instance and its executions. Supports the full
-     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
-     * PUBLIC (all authenticated users).
+     * Changes who can view this instance and its executions. Supports PRIVATE
+     * (owner only) and ORG (all org members); instances never take the
+     * platform level (tenant isolation).
      * For workflow instances, visibility has cascading effects on execution
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the workflow instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the workflow instance for every transition.
+     * The level is checked against the kind's VisibilityConfig
+     * (visibility_public is refused for every kind). Visibility transitions
+     * trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -558,7 +546,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * the instance itself. Making an instance org-runnable does NOT expose
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
-     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * ORGANIZATION (all org members). Platform is unsupported.
      * &#64;internal
      * Authorization: requires can_grant_access on the workflow instance —
      * sharing run history is an access-granting action, consistent with the
@@ -682,26 +670,20 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing workflow instance.
-     * Changes who can view this instance and its executions. Supports the full
-     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
-     * PUBLIC (all authenticated users).
+     * Changes who can view this instance and its executions. Supports PRIVATE
+     * (owner only) and ORG (all org members); instances never take the
+     * platform level (tenant isolation).
      * For workflow instances, visibility has cascading effects on execution
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the workflow instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the workflow instance for every transition.
+     * The level is checked against the kind's VisibilityConfig
+     * (visibility_public is refused for every kind). Visibility transitions
+     * trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -717,7 +699,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * the instance itself. Making an instance org-runnable does NOT expose
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
-     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * ORGANIZATION (all org members). Platform is unsupported.
      * &#64;internal
      * Authorization: requires can_grant_access on the workflow instance —
      * sharing run history is an access-granting action, consistent with the
@@ -839,26 +821,20 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing workflow instance.
-     * Changes who can view this instance and its executions. Supports the full
-     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
-     * PUBLIC (all authenticated users).
+     * Changes who can view this instance and its executions. Supports PRIVATE
+     * (owner only) and ORG (all org members); instances never take the
+     * platform level (tenant isolation).
      * For workflow instances, visibility has cascading effects on execution
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the workflow instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the workflow instance for every transition.
+     * The level is checked against the kind's VisibilityConfig
+     * (visibility_public is refused for every kind). Visibility transitions
+     * trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -874,7 +850,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * the instance itself. Making an instance org-runnable does NOT expose
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
-     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * ORGANIZATION (all org members). Platform is unsupported.
      * &#64;internal
      * Authorization: requires can_grant_access on the workflow instance —
      * sharing run history is an access-granting action, consistent with the
@@ -999,26 +975,20 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing workflow instance.
-     * Changes who can view this instance and its executions. Supports the full
-     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
-     * PUBLIC (all authenticated users).
+     * Changes who can view this instance and its executions. Supports PRIVATE
+     * (owner only) and ORG (all org members); instances never take the
+     * platform level (tenant isolation).
      * For workflow instances, visibility has cascading effects on execution
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the workflow instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the workflow instance for every transition.
+     * The level is checked against the kind's VisibilityConfig
+     * (visibility_public is refused for every kind). Visibility transitions
+     * trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> updateVisibility(
@@ -1035,7 +1005,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * the instance itself. Making an instance org-runnable does NOT expose
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
-     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * ORGANIZATION (all org members). Platform is unsupported.
      * &#64;internal
      * Authorization: requires can_grant_access on the workflow instance —
      * sharing run history is an access-granting action, consistent with the

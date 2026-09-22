@@ -311,9 +311,12 @@ private static final long serialVersionUID = 0L;
   private int visibility_ = 0;
   /**
    * <pre>
-   * Visibility controls who can access this resource.
-   * - PRIVATE: Only members of the owning organization can access.
-   * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+   * Visibility controls who can read this resource.
+   * - PRIVATE: the owner and explicit grants.
+   * - ORG: every member of the owning organization.
+   * - PLATFORM: members of the organizations linked by the owning
+   * organization's identity provider (blueprint kinds only).
+   * Write access always requires membership of the owning organization.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    *
@@ -334,9 +337,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Visibility controls who can access this resource.
-   * - PRIVATE: Only members of the owning organization can access.
-   * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+   * Visibility controls who can read this resource.
+   * - PRIVATE: the owner and explicit grants.
+   * - ORG: every member of the owning organization.
+   * - PLATFORM: members of the organizations linked by the owning
+   * organization's identity provider (blueprint kinds only).
+   * Write access always requires membership of the owning organization.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    *
@@ -1699,9 +1705,12 @@ java.lang.String defaultValue) {
     private int visibility_ = 0;
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1722,9 +1731,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1750,9 +1762,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1775,9 +1790,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1803,9 +1821,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *

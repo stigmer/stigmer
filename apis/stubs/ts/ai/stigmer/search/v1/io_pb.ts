@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/search/v1/io.proto.
  */
 export const file_ai_stigmer_search_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch1haS9zdGlnbWVyL3NlYXJjaC92MS9pby5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEilQIKDVNlYXJjaFJlcXVlc3QSXQoFa2luZHMYASADKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZEINukgKkgEHIgWCAQIQARIXCgVxdWVyeRgCIAEoCUIIukgFcgMY9AMSKgoDb3JnGAMgASgJQh26SBpyGBg/MhReJHxeW2Etel1bYS16MC05LV0qJBIWCg5leGNsdWRlX3B1YmxpYxgEIAEoCBIuCgRwYWdlGAUgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxIYChBjcm9zc19vcmdfcHVibGljGAYgASgIIvQBCg5TZWFyY2hSZXNwb25zZRIzCgdlbnRyaWVzGAEgAygLMiIuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzdWx0Ek4KDmNvdW50c19ieV9raW5kGAIgAygLMjYuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzcG9uc2UuQ291bnRzQnlLaW5kRW50cnkSEwoLdG90YWxfY291bnQYAyABKAUSEwoLdG90YWxfcGFnZXMYBCABKAUaMwoRQ291bnRzQnlLaW5kRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgFOgI4ASKZAwoMU2VhcmNoUmVzdWx0Ek0KBGtpbmQYASABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBIKCgJpZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSFgoOcXVhbGlmaWVkX3NsdWcYBSABKAkSCwoDb3JnGAYgASgJEhMKC2Rlc2NyaXB0aW9uGAcgASgJEkkKCnZpc2liaWxpdHkYCCABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5EgwKBHRhZ3MYCSADKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFc2NvcmUYDCABKAISEAoIaWNvbl91cmwYDSABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Ch1haS9zdGlnbWVyL3NlYXJjaC92MS9pby5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEikQIKDVNlYXJjaFJlcXVlc3QSXQoFa2luZHMYASADKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZEINukgKkgEHIgWCAQIQARIXCgVxdWVyeRgCIAEoCUIIukgFcgMY9AMSKgoDb3JnGAMgASgJQh26SBpyGBg/MhReJHxeW2Etel1bYS16MC05LV0qJBIuCgRwYWdlGAUgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mb0oECAQQBUoECAYQB1IOZXhjbHVkZV9wdWJsaWNSEGNyb3NzX29yZ19wdWJsaWMi9AEKDlNlYXJjaFJlc3BvbnNlEjMKB2VudHJpZXMYASADKAsyIi5haS5zdGlnbWVyLnNlYXJjaC52MS5TZWFyY2hSZXN1bHQSTgoOY291bnRzX2J5X2tpbmQYAiADKAsyNi5haS5zdGlnbWVyLnNlYXJjaC52MS5TZWFyY2hSZXNwb25zZS5Db3VudHNCeUtpbmRFbnRyeRITCgt0b3RhbF9jb3VudBgDIAEoBRITCgt0b3RhbF9wYWdlcxgEIAEoBRozChFDb3VudHNCeUtpbmRFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAU6AjgBIpkDCgxTZWFyY2hSZXN1bHQSTQoEa2luZBgBIAEoDjI/LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXBpUmVzb3VyY2VLaW5kEgoKAmlkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEc2x1ZxgEIAEoCRIWCg5xdWFsaWZpZWRfc2x1ZxgFIAEoCRILCgNvcmcYBiABKAkSEwoLZGVzY3JpcHRpb24YByABKAkSSQoKdmlzaWJpbGl0eRgIIAEoDjI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVZpc2liaWxpdHkSDAoEdGFncxgJIAMoCRIuCgpjcmVhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVzY29yZRgMIAEoAhIQCghpY29uX3VybBgNIAEoCWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * SearchRequest specifies criteria for searching API resources.
@@ -82,21 +82,6 @@ export type SearchRequest = Message<"ai.stigmer.search.v1.SearchRequest"> & {
   org: string;
 
   /**
-   * Exclude public/platform resources from results.
-   *
-   * Default: false (include public resources).
-   *
-   * When true: Only return resources from organizations the caller
-   * is a member of. Excludes platform-provided public resources
-   * like "stigmer/web-search".
-   *
-   * Useful when users want to see only their own resources.
-   *
-   * @generated from field: bool exclude_public = 4;
-   */
-  excludePublic: boolean;
-
-  /**
    * Pagination parameters.
    *
    * - num: Page number (1-indexed). Default: 1
@@ -107,22 +92,6 @@ export type SearchRequest = Message<"ai.stigmer.search.v1.SearchRequest"> & {
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page = 5;
    */
   page?: PageInfo;
-
-  /**
-   * Include public resources from organizations other than the org filter.
-   *
-   * Only meaningful when org is non-empty. When true, the result set includes:
-   * 1. All authorized resources from the specified org (any visibility)
-   * 2. All authorized public resources from other orgs
-   *
-   * Use case: "All" scope in library views — shows the user's org resources
-   * plus marketplace/public resources from other organizations.
-   *
-   * Default: false (only resources matching the org filter are returned).
-   *
-   * @generated from field: bool cross_org_public = 6;
-   */
-  crossOrgPublic: boolean;
 };
 
 /**
@@ -275,10 +244,12 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
   description: string;
 
   /**
-   * Resource visibility: public or private.
+   * Resource visibility, as stored on the resource's metadata.
    *
-   * - visibility_private: Only org members can access
-   * - visibility_public: Anyone can read (e.g., marketplace resources)
+   * - visibility_private: the owner and explicit grants
+   * - visibility_org: every member of the owning organization
+   * - visibility_platform: members of the organizations linked by the
+   *   owning organization's identity provider
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 8;
    */

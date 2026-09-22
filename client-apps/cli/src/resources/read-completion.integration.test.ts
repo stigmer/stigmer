@@ -100,7 +100,6 @@ describe("search integration", () => {
   it("queries the SearchService and renders entries as protojson", async () => {
     const outcome = await searchResources(client, ApiResourceKind.workflow, "deploy", {
       org: "acme",
-      excludePublic: false,
       page: 1,
       pageSize: 20,
     }, "json");
@@ -113,7 +112,6 @@ describe("search integration", () => {
   it("renders a human table for search results", async () => {
     const outcome = await searchResources(client, ApiResourceKind.workflow, "deploy", {
       org: "acme",
-      excludePublic: false,
       page: 1,
       pageSize: 20,
     }, "table");

@@ -79,11 +79,9 @@ func (a *AgentClient) GetByReference(ctx context.Context, ref ResourceRef) (*age
 
 func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
 	req := &searchv1.SearchRequest{
-		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
-		Query:          params.Query,
-		Org:            params.Org,
-		ExcludePublic:  params.ExcludePublic,
-		CrossOrgPublic: params.CrossOrgPublic,
+		Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
+		Query: params.Query,
+		Org:   params.Org,
 	}
 	if params.Page != nil {
 		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}

@@ -451,22 +451,16 @@ function generateJavaListParams(outputDir: string): void {
   const body = `public final class ListParams {
     private final String org;
     private final String query;
-    private final boolean excludePublic;
-    private final boolean crossOrgPublic;
     private final Page page;
 
     private ListParams(Builder builder) {
         this.org = builder.org;
         this.query = builder.query;
-        this.excludePublic = builder.excludePublic;
-        this.crossOrgPublic = builder.crossOrgPublic;
         this.page = builder.page;
     }
 
     public String getOrg() { return org; }
     public String getQuery() { return query; }
-    public boolean isExcludePublic() { return excludePublic; }
-    public boolean isCrossOrgPublic() { return crossOrgPublic; }
     public Page getPage() { return page; }
 
     public static Builder builder() { return new Builder(); }
@@ -474,16 +468,12 @@ function generateJavaListParams(outputDir: string): void {
     public static final class Builder {
         private String org;
         private String query;
-        private boolean excludePublic;
-        private boolean crossOrgPublic;
         private Page page;
 
         private Builder() {}
 
         public Builder org(String org) { this.org = org; return this; }
         public Builder query(String query) { this.query = query; return this; }
-        public Builder excludePublic(boolean excludePublic) { this.excludePublic = excludePublic; return this; }
-        public Builder crossOrgPublic(boolean crossOrgPublic) { this.crossOrgPublic = crossOrgPublic; return this; }
         public Builder page(Page page) { this.page = page; return this; }
 
         public ListParams build() { return new ListParams(this); }
@@ -1048,8 +1038,6 @@ function generateJavaSearchList(buf: string[], cfg: SdkResourceConfig): void {
   buf.push("            if (params.getQuery() != null) {\n");
   buf.push("                req.setQuery(params.getQuery());\n");
   buf.push("            }\n");
-  buf.push("            req.setExcludePublic(params.isExcludePublic());\n");
-  buf.push("            req.setCrossOrgPublic(params.isCrossOrgPublic());\n");
   buf.push("            if (params.getPage() != null) {\n");
   buf.push("                req.setPage(PageInfo.newBuilder()\n");
   buf.push("                    .setNum(params.getPage().getNum())\n");

@@ -139,17 +139,13 @@ enum IamPermission {
   // platform permissions: the standing console only observes (cloud#447).
   can_view_provider_standing = 38;
 
-  // Platform-level permission to set a resource's visibility to PUBLIC —
-  // the only level that crosses every org boundary (the cross-org
-  // "explore" catalog). Gated to platform operators in the cloud
-  // edition: public listing is a curation decision, requested by the
-  // owner and granted by the platform team. Enforced at BOTH doors a
-  // resource can become public through — updateVisibility escalation and
-  // create-with-public — while org/platform levels and un-publishing
-  // stay self-service (resource can_edit). The OSS edition is
-  // deliberately unguarded: the self-hosted operator owns the store,
-  // the same scoping cloud#320 applied to reserved labels.
-  can_set_public_visibility = 39;
+  // 39 was can_set_public_visibility, the operator grant behind the
+  // retired visibility_public level (see ApiResourceVisibility). No
+  // resource can hold that level, so nothing is left to grant; the number
+  // and the name are reserved so neither is ever reused for a different
+  // permission.
+  reserved 39;
+  reserved "can_set_public_visibility";
 
   // Organization-level permission to install a plugin: push an Agent
   // Plugins archive that the server materialises into skills, MCP servers,

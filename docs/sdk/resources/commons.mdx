@@ -19,7 +19,7 @@ ApiResourceMetadata contains standard metadata for all API resources.
     slug: { type: "string", description: "URL-friendly identifier, unique within the organization." },
     id: { type: "string", description: "System-generated unique identifier." },
     org: { type: "string", description: "Organization that owns this resource." },
-    visibility: { type: "ApiResourceVisibility", description: "Visibility controls who can access this resource.", typeDescriptionLink: "#apiresourcevisibility" },
+    visibility: { type: "ApiResourceVisibility", description: "Visibility controls who can read this resource.", typeDescriptionLink: "#apiresourcevisibility" },
     labels: { type: "Record<string, string>", description: "Key-value labels for organization and filtering." },
     annotations: { type: "Record<string, string>", description: "Key-value annotations for additional metadata." },
     tags: { type: "string[]", description: "Tags for categorization." },
@@ -125,7 +125,7 @@ Visibility controls who can access an API resource.
 | Value | Description |
 |-------|-------------|
 | `visibility_private` | Only the owner, explicitly granted principals, and — for blueprint kinds in the cloud edition — org admins can access. |
-| `visibility_public` | Anyone can access (read) this resource. |
+| `visibility_public` | Retired. |
 | `visibility_org` | Everyone in the owning organization can access (read) this resource — all org roles including read-only viewers (the role SSO auto-provisioning grants by default). |
 | `visibility_platform` | All members of all organizations managed by the owning org's IdentityProvider can access (read and execute) this resource. |
 

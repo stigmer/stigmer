@@ -540,8 +540,6 @@ function generateTSSearchList(buf: string[], cfg: SdkResourceConfig): void {
   buf.push(`        kinds: [ApiResourceKind.${cfg.resourceKind}],\n`);
   buf.push("        query: params.query,\n");
   buf.push("        org: params.org,\n");
-  buf.push("        excludePublic: params.excludePublic ?? false,\n");
-  buf.push("        crossOrgPublic: params.crossOrgPublic ?? false,\n");
   buf.push("        page: params.page ? create(PageInfoSchema, params.page) : undefined,\n");
   buf.push("      }));\n");
   buf.push("      return {\n");

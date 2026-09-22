@@ -68,12 +68,10 @@ export function useResourceCount(
           // Identical params to useResourceList so a card's count always matches
           // the list page it links to. `org` is ALWAYS sent: an empty org means
           // "every org the caller can access" to the search backend (a global FGA
-          // dump), and `crossOrgPublic` with an empty org matches zero rows.
+          // dump).
           const params: ListParams = {
             org,
             query: query || undefined,
-            excludePublic: false,
-            crossOrgPublic: scope === "all",
             page: { num: 1, size: 1 },
           };
           const result = await listFn(params);

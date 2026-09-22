@@ -137,8 +137,6 @@ export class McpServerClient {
         kinds: [ApiResourceKind.mcp_server],
         query: params.query,
         org: params.org,
-        excludePublic: params.excludePublic ?? false,
-        crossOrgPublic: params.crossOrgPublic ?? false,
         page: params.page ? create(PageInfoSchema, params.page) : undefined,
       }));
       return {

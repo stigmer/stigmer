@@ -286,23 +286,6 @@ public enum IamPermission
   can_view_provider_standing(38),
   /**
    * <pre>
-   * Platform-level permission to set a resource's visibility to PUBLIC —
-   * the only level that crosses every org boundary (the cross-org
-   * "explore" catalog). Gated to platform operators in the cloud
-   * edition: public listing is a curation decision, requested by the
-   * owner and granted by the platform team. Enforced at BOTH doors a
-   * resource can become public through — updateVisibility escalation and
-   * create-with-public — while org/platform levels and un-publishing
-   * stay self-service (resource can_edit). The OSS edition is
-   * deliberately unguarded: the self-hosted operator owns the store,
-   * the same scoping cloud#320 applied to reserved labels.
-   * </pre>
-   *
-   * <code>can_set_public_visibility = 39;</code>
-   */
-  can_set_public_visibility(39),
-  /**
-   * <pre>
    * Organization-level permission to install a plugin: push an Agent
    * Plugins archive that the server materialises into skills, MCP servers,
    * an agent and workflows in the organization. Distinct from the child
@@ -642,23 +625,6 @@ public enum IamPermission
   public static final int can_view_provider_standing_VALUE = 38;
   /**
    * <pre>
-   * Platform-level permission to set a resource's visibility to PUBLIC —
-   * the only level that crosses every org boundary (the cross-org
-   * "explore" catalog). Gated to platform operators in the cloud
-   * edition: public listing is a curation decision, requested by the
-   * owner and granted by the platform team. Enforced at BOTH doors a
-   * resource can become public through — updateVisibility escalation and
-   * create-with-public — while org/platform levels and un-publishing
-   * stay self-service (resource can_edit). The OSS edition is
-   * deliberately unguarded: the self-hosted operator owns the store,
-   * the same scoping cloud#320 applied to reserved labels.
-   * </pre>
-   *
-   * <code>can_set_public_visibility = 39;</code>
-   */
-  public static final int can_set_public_visibility_VALUE = 39;
-  /**
-   * <pre>
    * Organization-level permission to install a plugin: push an Agent
    * Plugins archive that the server materialises into skills, MCP servers,
    * an agent and workflows in the organization. Distinct from the child
@@ -786,7 +752,6 @@ public enum IamPermission
       case 36: return can_participate;
       case 37: return can_write_reserved_labels;
       case 38: return can_view_provider_standing;
-      case 39: return can_set_public_visibility;
       case 40: return can_create_plugin;
       case 41: return can_manage_plans;
       case 42: return can_issue_license;

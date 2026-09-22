@@ -425,9 +425,9 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Results are automatically filtered based on user's permissions and owner scope.
      * &#64;internal
      * Authorization:
-     * Custom authorization filters results to only include executions the user can access:
-     * - Organization users: Only executions in their organization
-     * - Users with cross-org access: Public executions from other orgs
+     * Custom authorization filters results to only include executions the user
+     * can access: the executions in their organization the parent instance's
+     * visibility and their own runs admit.
      * Pagination:
      * - page_size: Maximum number of results to return (default: 50, max: 100)
      * - page_token: Opaque token from previous response for next page
@@ -928,9 +928,9 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Results are automatically filtered based on user's permissions and owner scope.
      * &#64;internal
      * Authorization:
-     * Custom authorization filters results to only include executions the user can access:
-     * - Organization users: Only executions in their organization
-     * - Users with cross-org access: Public executions from other orgs
+     * Custom authorization filters results to only include executions the user
+     * can access: the executions in their organization the parent instance's
+     * visibility and their own runs admit.
      * Pagination:
      * - page_size: Maximum number of results to return (default: 50, max: 100)
      * - page_token: Opaque token from previous response for next page
@@ -1413,9 +1413,9 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Results are automatically filtered based on user's permissions and owner scope.
      * &#64;internal
      * Authorization:
-     * Custom authorization filters results to only include executions the user can access:
-     * - Organization users: Only executions in their organization
-     * - Users with cross-org access: Public executions from other orgs
+     * Custom authorization filters results to only include executions the user
+     * can access: the executions in their organization the parent instance's
+     * visibility and their own runs admit.
      * Pagination:
      * - page_size: Maximum number of results to return (default: 50, max: 100)
      * - page_token: Opaque token from previous response for next page
@@ -1895,9 +1895,9 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Results are automatically filtered based on user's permissions and owner scope.
      * &#64;internal
      * Authorization:
-     * Custom authorization filters results to only include executions the user can access:
-     * - Organization users: Only executions in their organization
-     * - Users with cross-org access: Public executions from other orgs
+     * Custom authorization filters results to only include executions the user
+     * can access: the executions in their organization the parent instance's
+     * visibility and their own runs admit.
      * Pagination:
      * - page_size: Maximum number of results to return (default: 50, max: 100)
      * - page_token: Opaque token from previous response for next page
@@ -2376,9 +2376,9 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Results are automatically filtered based on user's permissions and owner scope.
      * &#64;internal
      * Authorization:
-     * Custom authorization filters results to only include executions the user can access:
-     * - Organization users: Only executions in their organization
-     * - Users with cross-org access: Public executions from other orgs
+     * Custom authorization filters results to only include executions the user
+     * can access: the executions in their organization the parent instance's
+     * visibility and their own runs admit.
      * Pagination:
      * - page_size: Maximum number of results to return (default: 50, max: 100)
      * - page_token: Opaque token from previous response for next page

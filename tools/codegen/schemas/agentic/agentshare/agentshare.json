@@ -13,7 +13,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the agent this share distributes.\n\n The referenced agent may live in another organization when it is\n marketplace-public: the share then offers that agent from this share's\n org, billed to this share's org, with tool credentials bound from this\n share's org. Cross-org shares must have a public audience.",
+      "description": "Reference to the agent this share distributes.\n\n The referenced agent must live in this share's organization: a share\n offers an agent its own organization owns, billed to that organization,\n with tool credentials bound from it. To share another organization's\n agent, install the plugin that carries it and share the installed copy.",
       "required": true,
       "referenceKind": 40,
       "validation": {

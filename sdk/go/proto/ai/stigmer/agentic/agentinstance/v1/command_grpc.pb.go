@@ -37,24 +37,22 @@ type AgentInstanceCommandControllerClient interface {
 	Apply(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Create an agent instance.
 	//
-	// Public agents allow any authenticated user to create instances (cross-org allowed).
-	// Private agents restrict instance creation to org members and the agent owner.
+	// Instance creation needs can_create_instance on the agent and
+	// can_create_agent_instance in the instance's own organization; a
+	// platform-visible agent may be instantiated from any organization its
+	// identity provider links.
 	Create(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Update an existing agent instance.
 	Update(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Update the visibility of an existing agent instance.
 	//
-	// Changes who can view this instance and interact with it. Supports the
-	// full visibility spectrum: PRIVATE (owner only), ORG (all org members),
-	// or PUBLIC (all authenticated users).
+	// Changes who can view this instance and interact with it. Supports
+	// PRIVATE (owner only) and ORG (all org members); instances never take
+	// the platform level (tenant isolation).
 	//
 	// For agent instances, visibility controls who can create sessions and run
 	// executions against this instance. Sessions remain personal regardless of
 	// instance visibility (conversation privacy is preserved).
-	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Delete an agent instance.
 	Delete(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error)
@@ -128,24 +126,22 @@ type AgentInstanceCommandControllerServer interface {
 	Apply(context.Context, *AgentInstance) (*AgentInstance, error)
 	// Create an agent instance.
 	//
-	// Public agents allow any authenticated user to create instances (cross-org allowed).
-	// Private agents restrict instance creation to org members and the agent owner.
+	// Instance creation needs can_create_instance on the agent and
+	// can_create_agent_instance in the instance's own organization; a
+	// platform-visible agent may be instantiated from any organization its
+	// identity provider links.
 	Create(context.Context, *AgentInstance) (*AgentInstance, error)
 	// Update an existing agent instance.
 	Update(context.Context, *AgentInstance) (*AgentInstance, error)
 	// Update the visibility of an existing agent instance.
 	//
-	// Changes who can view this instance and interact with it. Supports the
-	// full visibility spectrum: PRIVATE (owner only), ORG (all org members),
-	// or PUBLIC (all authenticated users).
+	// Changes who can view this instance and interact with it. Supports
+	// PRIVATE (owner only) and ORG (all org members); instances never take
+	// the platform level (tenant isolation).
 	//
 	// For agent instances, visibility controls who can create sessions and run
 	// executions against this instance. Sessions remain personal regardless of
 	// instance visibility (conversation privacy is preserved).
-	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*AgentInstance, error)
 	// Delete an agent instance.
 	Delete(context.Context, *AgentInstanceId) (*AgentInstance, error)

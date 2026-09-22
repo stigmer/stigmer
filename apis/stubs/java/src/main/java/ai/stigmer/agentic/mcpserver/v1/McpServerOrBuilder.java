@@ -63,13 +63,9 @@ public interface McpServerOrBuilder extends
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
    * - org: Organization that owns this MCP server (required)
-   * - visibility: Access control (PUBLIC or PRIVATE)
+   * - visibility: who can read the server (private, org or platform)
    *
-   * Visibility semantics:
-   * - PUBLIC: Marketplace server, discoverable by all users
-   * - PRIVATE: Only accessible to organization members
-   *
-   * Reference format: "org/slug" (e.g., "stigmer/github", "acme/internal-tools")
+   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -85,13 +81,9 @@ public interface McpServerOrBuilder extends
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
    * - org: Organization that owns this MCP server (required)
-   * - visibility: Access control (PUBLIC or PRIVATE)
+   * - visibility: who can read the server (private, org or platform)
    *
-   * Visibility semantics:
-   * - PUBLIC: Marketplace server, discoverable by all users
-   * - PRIVATE: Only accessible to organization members
-   *
-   * Reference format: "org/slug" (e.g., "stigmer/github", "acme/internal-tools")
+   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -107,13 +99,9 @@ public interface McpServerOrBuilder extends
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
    * - org: Organization that owns this MCP server (required)
-   * - visibility: Access control (PUBLIC or PRIVATE)
+   * - visibility: who can read the server (private, org or platform)
    *
-   * Visibility semantics:
-   * - PUBLIC: Marketplace server, discoverable by all users
-   * - PRIVATE: Only accessible to organization members
-   *
-   * Reference format: "org/slug" (e.g., "stigmer/github", "acme/internal-tools")
+   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

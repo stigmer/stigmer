@@ -98,7 +98,9 @@ private static final long serialVersionUID = 0L;
    * When set: Stigmer uses the referenced OAuthApp's client credentials to
    * perform the OAuth authorization code flow with the vendor on behalf of
    * the user. The OAuthApp must belong to the same organization as the
-   * McpServer (or be accessible via cross-org reference).
+   * McpServer: an OAuth app holds vendor credentials and is never
+   * platform-visible, so no cross-organization reference to one is
+   * accepted.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -120,7 +122,9 @@ private static final long serialVersionUID = 0L;
    * When set: Stigmer uses the referenced OAuthApp's client credentials to
    * perform the OAuth authorization code flow with the vendor on behalf of
    * the user. The OAuthApp must belong to the same organization as the
-   * McpServer (or be accessible via cross-org reference).
+   * McpServer: an OAuth app holds vendor credentials and is never
+   * platform-visible, so no cross-organization reference to one is
+   * accepted.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -142,7 +146,9 @@ private static final long serialVersionUID = 0L;
    * When set: Stigmer uses the referenced OAuthApp's client credentials to
    * perform the OAuth authorization code flow with the vendor on behalf of
    * the user. The OAuthApp must belong to the same organization as the
-   * McpServer (or be accessible via cross-org reference).
+   * McpServer: an OAuth app holds vendor credentials and is never
+   * platform-visible, so no cross-organization reference to one is
+   * accepted.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -923,7 +929,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -944,7 +952,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -969,7 +979,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -999,7 +1011,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -1027,7 +1041,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -1062,7 +1078,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -1089,7 +1107,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -1111,7 +1131,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
@@ -1136,7 +1158,9 @@ private static final long serialVersionUID = 0L;
      * When set: Stigmer uses the referenced OAuthApp's client credentials to
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
-     * McpServer (or be accessible via cross-org reference).
+     * McpServer: an OAuth app holds vendor credentials and is never
+     * platform-visible, so no cross-organization reference to one is
+     * accepted.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>

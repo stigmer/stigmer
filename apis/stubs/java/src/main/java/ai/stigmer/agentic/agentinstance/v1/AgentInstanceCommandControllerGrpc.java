@@ -252,8 +252,10 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent instance.
-     * Public agents allow any authenticated user to create instances (cross-org allowed).
-     * Private agents restrict instance creation to org members and the agent owner.
+     * Instance creation needs can_create_instance on the agent and
+     * can_create_agent_instance in the instance's own organization; a
+     * platform-visible agent may be instantiated from any organization its
+     * identity provider links.
      * &#64;internal
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
@@ -288,25 +290,19 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing agent instance.
-     * Changes who can view this instance and interact with it. Supports the
-     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
-     * or PUBLIC (all authenticated users).
+     * Changes who can view this instance and interact with it. Supports
+     * PRIVATE (owner only) and ORG (all org members); instances never take
+     * the platform level (tenant isolation).
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the agent instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the agent instance for every transition. The
+     * level is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind). Visibility transitions trigger FGA tuple
+     * management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -377,8 +373,10 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent instance.
-     * Public agents allow any authenticated user to create instances (cross-org allowed).
-     * Private agents restrict instance creation to org members and the agent owner.
+     * Instance creation needs can_create_instance on the agent and
+     * can_create_agent_instance in the instance's own organization; a
+     * platform-visible agent may be instantiated from any organization its
+     * identity provider links.
      * &#64;internal
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
@@ -415,25 +413,19 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing agent instance.
-     * Changes who can view this instance and interact with it. Supports the
-     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
-     * or PUBLIC (all authenticated users).
+     * Changes who can view this instance and interact with it. Supports
+     * PRIVATE (owner only) and ORG (all org members); instances never take
+     * the platform level (tenant isolation).
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the agent instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the agent instance for every transition. The
+     * level is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind). Visibility transitions trigger FGA tuple
+     * management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -491,8 +483,10 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent instance.
-     * Public agents allow any authenticated user to create instances (cross-org allowed).
-     * Private agents restrict instance creation to org members and the agent owner.
+     * Instance creation needs can_create_instance on the agent and
+     * can_create_agent_instance in the instance's own organization; a
+     * platform-visible agent may be instantiated from any organization its
+     * identity provider links.
      * &#64;internal
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
@@ -527,25 +521,19 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing agent instance.
-     * Changes who can view this instance and interact with it. Supports the
-     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
-     * or PUBLIC (all authenticated users).
+     * Changes who can view this instance and interact with it. Supports
+     * PRIVATE (owner only) and ORG (all org members); instances never take
+     * the platform level (tenant isolation).
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the agent instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the agent instance for every transition. The
+     * level is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind). Visibility transitions trigger FGA tuple
+     * management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -601,8 +589,10 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent instance.
-     * Public agents allow any authenticated user to create instances (cross-org allowed).
-     * Private agents restrict instance creation to org members and the agent owner.
+     * Instance creation needs can_create_instance on the agent and
+     * can_create_agent_instance in the instance's own organization; a
+     * platform-visible agent may be instantiated from any organization its
+     * identity provider links.
      * &#64;internal
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
@@ -637,25 +627,19 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing agent instance.
-     * Changes who can view this instance and interact with it. Supports the
-     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
-     * or PUBLIC (all authenticated users).
+     * Changes who can view this instance and interact with it. Supports
+     * PRIVATE (owner only) and ORG (all org members); instances never take
+     * the platform level (tenant isolation).
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the agent instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the agent instance for every transition. The
+     * level is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind). Visibility transitions trigger FGA tuple
+     * management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -712,8 +696,10 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent instance.
-     * Public agents allow any authenticated user to create instances (cross-org allowed).
-     * Private agents restrict instance creation to org members and the agent owner.
+     * Instance creation needs can_create_instance on the agent and
+     * can_create_agent_instance in the instance's own organization; a
+     * platform-visible agent may be instantiated from any organization its
+     * identity provider links.
      * &#64;internal
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
@@ -750,25 +736,19 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update the visibility of an existing agent instance.
-     * Changes who can view this instance and interact with it. Supports the
-     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
-     * or PUBLIC (all authenticated users).
+     * Changes who can view this instance and interact with it. Supports
+     * PRIVATE (owner only) and ORG (all org members); instances never take
+     * the platform level (tenant isolation).
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: can_edit on the agent instance for private/org
-     * transitions; escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition);
-     * downgrade from PUBLIC: can_edit OR the platform permission.
-     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * Authorization: can_edit on the agent instance for every transition. The
+     * level is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind). Visibility transitions trigger FGA tuple
+     * management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
      * - ORG → PRIVATE: deletes the org member viewer tuple
-     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> updateVisibility(

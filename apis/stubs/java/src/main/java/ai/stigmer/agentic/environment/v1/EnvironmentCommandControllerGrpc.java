@@ -352,7 +352,7 @@ public final class EnvironmentCommandControllerGrpc {
      * every visibility level.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
-     * public/platform levels are rejected via the kind's VisibilityConfig
+     * The platform level is rejected via the kind's VisibilityConfig
      * (supports_org only) — secret values must never be resolvable across the
      * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
      * (stigmer.ai/managed) environments reject visibility changes entirely:
@@ -495,7 +495,7 @@ public final class EnvironmentCommandControllerGrpc {
      * every visibility level.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
-     * public/platform levels are rejected via the kind's VisibilityConfig
+     * The platform level is rejected via the kind's VisibilityConfig
      * (supports_org only) — secret values must never be resolvable across the
      * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
      * (stigmer.ai/managed) environments reject visibility changes entirely:
@@ -625,7 +625,7 @@ public final class EnvironmentCommandControllerGrpc {
      * every visibility level.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
-     * public/platform levels are rejected via the kind's VisibilityConfig
+     * The platform level is rejected via the kind's VisibilityConfig
      * (supports_org only) — secret values must never be resolvable across the
      * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
      * (stigmer.ai/managed) environments reject visibility changes entirely:
@@ -751,7 +751,7 @@ public final class EnvironmentCommandControllerGrpc {
      * every visibility level.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
-     * public/platform levels are rejected via the kind's VisibilityConfig
+     * The platform level is rejected via the kind's VisibilityConfig
      * (supports_org only) — secret values must never be resolvable across the
      * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
      * (stigmer.ai/managed) environments reject visibility changes entirely:
@@ -880,7 +880,7 @@ public final class EnvironmentCommandControllerGrpc {
      * every visibility level.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
-     * public/platform levels are rejected via the kind's VisibilityConfig
+     * The platform level is rejected via the kind's VisibilityConfig
      * (supports_org only) — secret values must never be resolvable across the
      * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
      * (stigmer.ai/managed) environments reject visibility changes entirely:

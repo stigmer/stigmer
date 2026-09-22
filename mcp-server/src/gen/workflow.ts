@@ -111,7 +111,7 @@ const WorkspaceEntryInputSchema = z.object({
 type WorkspaceEntryInput = z.infer<typeof WorkspaceEntryInputSchema>;
 
 const EnvironmentRefInputSchema = z.object({
-  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."),
+  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is a platform that shares the resource with yours (visibility_platform)."),
   slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
 });
 type EnvironmentRefInput = z.infer<typeof EnvironmentRefInputSchema>;

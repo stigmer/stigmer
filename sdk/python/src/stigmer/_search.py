@@ -30,7 +30,6 @@ class SearchParams:
     kinds: list[int]
     org: str
     query: str = ""
-    exclude_public: bool = False
     page: Page | None = None
 
 
@@ -60,7 +59,6 @@ class SearchClient:
             kinds=params.kinds,
             query=params.query,
             org=params.org,
-            exclude_public=params.exclude_public,
         )
         if params.page is not None:
             req.page.CopyFrom(

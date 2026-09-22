@@ -221,8 +221,6 @@ export interface Page {
 export interface ListParams {
   readonly org: string;
   readonly query?: string;
-  readonly excludePublic?: boolean;
-  readonly crossOrgPublic?: boolean;
   readonly page?: Page;
 }
 

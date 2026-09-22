@@ -12,7 +12,7 @@ function mockListFn(totalCount = 0) {
 }
 
 describe("useResourceCount", () => {
-  it("counts in org scope by default: org sent, crossOrgPublic false", async () => {
+  it("counts in org scope by default: org sent", async () => {
     const listFn = mockListFn(7);
 
     const { result } = renderHook(() => useResourceCount(listFn, "acme"));
@@ -22,7 +22,6 @@ describe("useResourceCount", () => {
     expect(result.current.count).toBe(7);
     const params = listFn.mock.calls[0][0];
     expect(params.org).toBe("acme");
-    expect(params.crossOrgPublic).toBe(false);
     expect(params.page).toEqual({ num: 1, size: 1 });
   });
 
@@ -40,7 +39,6 @@ describe("useResourceCount", () => {
     // search backend defines as "every org the caller can access" — the
     // Library cards then counted platform-wide instead of org + public.
     expect(params.org).toBe("acme");
-    expect(params.crossOrgPublic).toBe(true);
   });
 
   it("does not fetch when org is null", async () => {

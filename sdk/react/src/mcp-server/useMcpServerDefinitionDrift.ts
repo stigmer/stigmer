@@ -65,7 +65,6 @@ export function useMcpServerDefinitionDrift(
             const result = await stigmer.mcpServer.list({
               org,
               query: slug,
-              crossOrgPublic: true,
             });
             const candidateOrgs = [
               ...new Set(

@@ -75,8 +75,6 @@ export function useResourceSearch(
       const params: ListParams = {
         org,
         query: debouncedQuery || undefined,
-        excludePublic: false,
-        crossOrgPublic: scope === "all",
         page: { num: 1, size: pageSize },
       };
       const result = await listFn(params);
