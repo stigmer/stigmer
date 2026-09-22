@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { emitEventAction, type EmitEventConfig, type SignalDeliveryTarget } from "../../../activities/emit-event.js";
+import type { StigmerClient } from "../../../client/stigmer-client.js";
 
 // ─── Server-mediated signal-delivery mocks ───────────────────────────────────
 // deliverSignal routes through StigmerClient.sendWorkflowSignal (the server's
@@ -12,25 +13,9 @@ const mockSendWorkflowSignal = vi.fn(async (
   _payload: unknown,
   _options?: { timeoutMs?: number },
 ) => ({}));
-const mockClientCtor = vi.fn((_opts: { endpoint: string; token?: string | null }) => ({
-  sendWorkflowSignal: mockSendWorkflowSignal,
-}));
-
-vi.mock("../../../client/stigmer-client.js", () => ({
-  StigmerClient: vi.fn().mockImplementation(
-    (opts: { endpoint: string; token?: string | null }) => mockClientCtor(opts),
-  ),
-}));
-
-// Mutable so each test can vary what config.ts resolves. deliverSignal builds
-// its client from the canonical stigmerBackendEndpoint resolution.
-let mockBackendEndpoint = "http://localhost:7234";
-vi.mock("../../../config.js", () => ({
-  loadConfig: () => ({
-    stigmerBackendEndpoint: mockBackendEndpoint,
-    stigmerToken: null,
-  }),
-}));
+// The client is the caller's (call-function.ts builds it from the runner's
+// Config); this module constructs none, so the test hands in a fake.
+const client = { sendWorkflowSignal: mockSendWorkflowSignal } as unknown as StigmerClient;
 
 describe("emitEventAction", () => {
   describe("envelope construction", () => {
@@ -39,7 +24,7 @@ describe("emitEventAction", () => {
         event: { type: "workflow.step.completed" },
       };
 
-      const result = await emitEventAction(config, "exec-123");
+      const result = await emitEventAction(config, "exec-123", undefined, client);
 
       expect(result.specversion).toBe("1.0");
       expect(result.type).toBe("workflow.step.completed");
@@ -55,7 +40,7 @@ describe("emitEventAction", () => {
         event: { type: "user.created", source: "/services/auth" },
       };
 
-      const result = await emitEventAction(config, "exec-456");
+      const result = await emitEventAction(config, "exec-456", undefined, client);
 
       expect(result.source).toBe("/services/auth");
     });
@@ -65,7 +50,7 @@ describe("emitEventAction", () => {
         event: { type: "order.shipped", subject: "order-789" },
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.subject).toBe("order-789");
     });
@@ -78,7 +63,7 @@ describe("emitEventAction", () => {
         },
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.data).toEqual({ build_id: "b-123", status: "success", duration_ms: 4500 });
     });
@@ -88,7 +73,7 @@ describe("emitEventAction", () => {
         event: { type: "ping", data: {} },
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.data).toBeUndefined();
     });
@@ -98,31 +83,31 @@ describe("emitEventAction", () => {
         event: { type: "test" },
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect("subject" in result).toBe(false);
     });
 
     it("throws when event field is missing", async () => {
       const config = {} as EmitEventConfig;
-      await expect(emitEventAction(config, "exec-1")).rejects.toThrow("'event' field is required");
+      await expect(emitEventAction(config, "exec-1", undefined, client)).rejects.toThrow("'event' field is required");
     });
 
     it("throws when event.type is missing", async () => {
       const config = { event: {} } as unknown as EmitEventConfig;
-      await expect(emitEventAction(config, "exec-1")).rejects.toThrow("'event.type' field is required");
+      await expect(emitEventAction(config, "exec-1", undefined, client)).rejects.toThrow("'event.type' field is required");
     });
 
     it("generates unique IDs for each invocation", async () => {
       const config: EmitEventConfig = { event: { type: "test" } };
-      const r1 = await emitEventAction(config, "e1");
-      const r2 = await emitEventAction(config, "e1");
+      const r1 = await emitEventAction(config, "e1", undefined, client);
+      const r2 = await emitEventAction(config, "e1", undefined, client);
       expect(r1.id).not.toBe(r2.id);
     });
 
     it("time field is a valid ISO 8601 string", async () => {
       const config: EmitEventConfig = { event: { type: "test" } };
-      const result = await emitEventAction(config, "e1");
+      const result = await emitEventAction(config, "e1", undefined, client);
       const parsed = new Date(result.time as string);
       expect(parsed.toISOString()).toBe(result.time);
     });
@@ -134,7 +119,7 @@ describe("emitEventAction", () => {
         event: { type: "test.event" },
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.type).toBe("test.event");
       expect(result.delivery_errors).toBeUndefined();
@@ -146,7 +131,7 @@ describe("emitEventAction", () => {
         delivery: [],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.type).toBe("test.event");
       expect(result.delivery_errors).toBeUndefined();
@@ -171,7 +156,7 @@ describe("emitEventAction", () => {
         delivery: [{ webhook: { url: "https://events.example.com/ingest" } }],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       const call = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
@@ -202,7 +187,7 @@ describe("emitEventAction", () => {
         }],
       };
 
-      await emitEventAction(config, "exec-1", { API_TOKEN: "secret123" });
+      await emitEventAction(config, "exec-1", { API_TOKEN: "secret123" }, client);
 
       const call = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
       expect((call[1].headers as Record<string, string>)["Authorization"]).toBe("Bearer secret123");
@@ -218,7 +203,7 @@ describe("emitEventAction", () => {
         delivery: [{ webhook: { url: "https://down.example.com" } }],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.delivery_errors).toHaveLength(1);
       expect((result.delivery_errors as any)[0].target).toBe("webhook:https://down.example.com");
@@ -235,7 +220,7 @@ describe("emitEventAction", () => {
         delivery: [{ webhook: { url: "https://unreachable.example.com" } }],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.delivery_errors).toHaveLength(1);
       expect((result.delivery_errors as any)[0].error).toContain("ECONNREFUSED");
@@ -255,7 +240,7 @@ describe("emitEventAction", () => {
         ],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(fetchSpy).toHaveBeenCalledTimes(2);
       expect(result.delivery_errors).toBeUndefined();
@@ -265,13 +250,10 @@ describe("emitEventAction", () => {
   describe("signal delivery (server-mediated SendSignal lane)", () => {
     beforeEach(() => {
       mockSendWorkflowSignal.mockClear();
-      mockClientCtor.mockClear();
       mockSendWorkflowSignal.mockResolvedValue({});
-      mockBackendEndpoint = "http://localhost:7234";
     });
 
-    it("routes through the server resolved by config, addressed by execution_id", async () => {
-      mockBackendEndpoint = "https://api.stigmer.example.com";
+    it("routes through the client it is handed, addressed by execution_id", async () => {
 
       const config: EmitEventConfig = {
         event: { type: "approval.granted" },
@@ -280,11 +262,8 @@ describe("emitEventAction", () => {
         ],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
-      expect(mockClientCtor).toHaveBeenCalledWith(
-        expect.objectContaining({ endpoint: "https://api.stigmer.example.com" }),
-      );
       expect(mockSendWorkflowSignal).toHaveBeenCalledTimes(1);
       const [executionId, signalName, envelope, options] =
         mockSendWorkflowSignal.mock.calls[0] as unknown as [
@@ -314,7 +293,7 @@ describe("emitEventAction", () => {
         ],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(result.delivery_errors).toHaveLength(1);
       expect((result.delivery_errors as any)[0].target).toBe("signal:wfx_done/ping");
@@ -334,7 +313,7 @@ describe("emitEventAction", () => {
         ],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(mockSendWorkflowSignal).not.toHaveBeenCalled();
       expect(result.delivery_errors).toHaveLength(1);
@@ -354,14 +333,14 @@ describe("emitEventAction", () => {
         ],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
       expect(mockSendWorkflowSignal).not.toHaveBeenCalled();
       expect(result.delivery_errors).toHaveLength(1);
       expect((result.delivery_errors as any)[0].error).toContain("'signal_name'");
     });
 
-    it("reuses one client across multiple signal targets", async () => {
+    it("sends every signal target through the one client", async () => {
       const config: EmitEventConfig = {
         event: { type: "fanout" },
         delivery: [
@@ -370,14 +349,13 @@ describe("emitEventAction", () => {
         ],
       };
 
-      const result = await emitEventAction(config, "exec-1");
+      const result = await emitEventAction(config, "exec-1", undefined, client);
 
-      expect(mockClientCtor).toHaveBeenCalledTimes(1);
       expect(mockSendWorkflowSignal).toHaveBeenCalledTimes(2);
       expect(result.delivery_errors).toBeUndefined();
     });
 
-    it("constructs no client for webhook-only delivery", async () => {
+    it("never touches the client for webhook-only delivery", async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn(() =>
         Promise.resolve(new Response(null, { status: 200 })),
@@ -389,9 +367,9 @@ describe("emitEventAction", () => {
           delivery: [{ webhook: { url: "https://events.example.com" } }],
         };
 
-        await emitEventAction(config, "exec-1");
+        await emitEventAction(config, "exec-1", undefined, client);
 
-        expect(mockClientCtor).not.toHaveBeenCalled();
+        expect(mockSendWorkflowSignal).not.toHaveBeenCalled();
       } finally {
         globalThis.fetch = originalFetch;
       }

@@ -186,7 +186,7 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
 
   beforeEach(async () => {
     proxy = await startMockProxy();
-    storage = new ProxyArtifactStorage(proxy.endpoint, "tok");
+    storage = new ProxyArtifactStorage(proxy.endpoint, { current: "tok" });
   });
   afterEach(async () => {
     await proxy.close();

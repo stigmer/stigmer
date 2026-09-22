@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { mapOptionsToConfig } from "../runner.js";
 import type { StigmerRunnerOptions, StigmerRunner } from "../runner.js";
+import type { TokenRef } from "../config.js";
 
 /**
  * Unit tests for the createStigmerRunner factory.
@@ -107,6 +108,9 @@ describe("StigmerRunnerOptions type contract", () => {
  * credential transport (`proxyEndpoint`): an explicit `executionMode` always
  * wins, and only when it is unset does `mode` fall back to the proxy-derived
  * default for backward compatibility. This mirrors `mapManagerOptionsToConfig`.
+ * The static root binds ONE ref as both the control-plane and the proxy
+ * credential (it mints no separate proxy token), and the config carries no
+ * credential by value (config.ts header).
  */
 describe("mapOptionsToConfig — execution mode", () => {
   const base: StigmerRunnerOptions = {
@@ -114,9 +118,10 @@ describe("mapOptionsToConfig — execution mode", () => {
     temporalAddress: "localhost:7233",
     stigmerEndpoint: "http://localhost:7234",
   };
+  const refs = (): [TokenRef, TokenRef] => [{ current: null }, { current: null }];
 
   it("defaults mode to local with no proxy and no executionMode", () => {
-    const config = mapOptionsToConfig(base);
+    const config = mapOptionsToConfig(base, ...refs());
     expect(config.mode).toBe("local");
   });
 
@@ -125,7 +130,7 @@ describe("mapOptionsToConfig — execution mode", () => {
       ...base,
       proxyEndpoint: "https://proxy.example.com",
       stigmerToken: "tok",
-    });
+    }, ...refs());
     expect(config.mode).toBe("cloud");
     // Proxy transport still engages independently of execution location.
     expect(config.proxyEndpoint).toBe("https://proxy.example.com");
@@ -139,7 +144,7 @@ describe("mapOptionsToConfig — execution mode", () => {
       executionMode: "local",
       proxyEndpoint: "https://proxy.example.com",
       stigmerToken: "tok",
-    });
+    }, ...refs());
     expect(config.mode).toBe("local");
     // Transport still routes through the proxy despite local execution.
     expect(config.proxyEndpoint).toBe("https://proxy.example.com");
@@ -147,8 +152,27 @@ describe("mapOptionsToConfig — execution mode", () => {
   });
 
   it("honors explicit cloud executionMode without a proxy", () => {
-    const config = mapOptionsToConfig({ ...base, executionMode: "cloud" });
+    const config = mapOptionsToConfig({ ...base, executionMode: "cloud" }, ...refs());
     expect(config.mode).toBe("cloud");
+  });
+
+  it("binds the one ref as both the control-plane and the proxy credential, and carries no credential by value", () => {
+    const tokenRef: TokenRef = { current: "boot-credential" };
+    const runnerTokenRef: TokenRef = { current: null };
+    const config = mapOptionsToConfig(
+      { ...base, proxyEndpoint: "https://proxy.example.com", stigmerToken: "boot-credential" },
+      tokenRef,
+      runnerTokenRef,
+    );
+    expect(config.stigmerTokenRef).toBe(tokenRef);
+    expect(config.proxyTokenRef).toBe(tokenRef);
+    expect(config.stigmerRunnerTokenRef).toBe(runnerTokenRef);
+    expect(config.cursorApiKey).toBe("proxy-managed");
+
+    tokenRef.current = "renewed-credential";
+    expect(config.stigmerTokenRef.current).toBe("renewed-credential");
+    expect(config.proxyTokenRef?.current).toBe("renewed-credential");
+    expect(JSON.stringify(config)).not.toContain("boot-credential");
   });
 });
 

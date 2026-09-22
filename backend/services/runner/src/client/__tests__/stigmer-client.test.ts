@@ -93,20 +93,22 @@ describe("StigmerClient", () => {
       expect(req.header.has("authorization")).toBe(false);
     });
 
-    it("updateToken() changes the token used on subsequent requests", async () => {
-      const client = new StigmerClient({ endpoint: "http://localhost", token: "old" });
+    it("a rotation is a write to the shared ref, never a method on the client: the next request carries the new value", async () => {
+      const ref: TokenRef = { current: "old" };
+      new StigmerClient({ endpoint: "http://localhost", tokenRef: ref });
 
-      client.updateToken("new-tok");
+      ref.current = "new-tok";
 
       const req = makeRequest();
       await runInterceptor(req);
       expect(req.header.get("authorization")).toBe("Bearer new-tok");
     });
 
-    it("updateToken(null) removes the Authorization header", async () => {
-      const client = new StigmerClient({ endpoint: "http://localhost", token: "tok" });
+    it("a ref rotated to null removes the Authorization header", async () => {
+      const ref: TokenRef = { current: "tok" };
+      new StigmerClient({ endpoint: "http://localhost", tokenRef: ref });
 
-      client.updateToken(null);
+      ref.current = null;
 
       const req = makeRequest();
       await runInterceptor(req);
@@ -620,19 +622,6 @@ describe("StigmerClient", () => {
       await client.sendWorkflowSignal("wfx_1", "ping", undefined);
 
       expect(rpc).toHaveBeenCalledWith(expect.anything(), { timeoutMs: undefined });
-    });
-  });
-
-  describe("updateToken", () => {
-    it("does not affect tokenRef-based resolution", async () => {
-      const ref: TokenRef = { current: "from-ref" };
-      const client = new StigmerClient({ endpoint: "http://localhost", token: null, tokenRef: ref });
-
-      client.updateToken("from-update");
-
-      const req = makeRequest();
-      await runInterceptor(req);
-      expect(req.header.get("authorization")).toBe("Bearer from-ref");
     });
   });
 

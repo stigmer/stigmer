@@ -420,7 +420,7 @@ export function createClassifyToolApprovalsActivities(config: Config) {
         // serve /v1/proxy/model-registry; that fallback does not port here.)
         return await classifyTools(input, {
           proxyEndpoint: config.proxyEndpoint,
-          stigmerToken: config.stigmerToken,
+          stigmerToken: config.stigmerTokenRef.current,
           primaryModel: config.primaryModel,
         });
       } finally {

@@ -155,7 +155,7 @@ All configuration is environment-driven. Names and defaults below are verified a
 | `TEMPORAL_NAMESPACE` | All | No | `default` | Temporal namespace. |
 | `STIGMER_BACKEND_ENDPOINT` | All | In cloud mode | `http://localhost:7234` (local) | Stigmer backend endpoint for status, blueprints, and local artifact serving. A bare `host:port` is normalized to `http://` (or `https://` for port `443`). |
 | `STIGMER_TOKEN` | Cloud or proxy mode | Yes (cloud/proxy) | _(none)_ | Auth token for the Stigmer backend / proxy. Required when `MODE=cloud` or `STIGMER_PROXY_ENDPOINT` is set; optional in local/direct mode. |
-| `CURSOR_API_KEY` | Direct mode | Yes (Cursor harness, direct) | _(empty)_ | Cursor API key for direct mode. In proxy mode it is not required — the proxy injects the real key; the runner falls back to `STIGMER_TOKEN` for the SDK transport credential. |
+| `CURSOR_API_KEY` | Direct mode | Yes (Cursor harness, direct) | _(empty)_ | Cursor API key for direct mode. In proxy mode it is not required — the proxy injects the real key, and the SDK transport presents the current `STIGMER_TOKEN` (read per turn, so a rotated token is honoured). |
 | `STIGMER_PROXY_ENDPOINT` | Proxy/cloud | No | _(none)_ | Stigmer proxy endpoint. When set, activates proxy transport: Cursor SDK traffic and artifact uploads are routed through the proxy. |
 | `WORKSPACE_ROOT_DIR` | All | No | `~/.stigmer/workspaces/runner` (fallback) | Root directory for agent workspaces. If unset, the runner warns and creates an isolated fallback directory — it never falls back to the process working directory. |
 | `TEMPORAL_MAX_CONCURRENCY` | All | No | `5` | Maximum concurrent Temporal activity executions (per session Worker in manager mode). |

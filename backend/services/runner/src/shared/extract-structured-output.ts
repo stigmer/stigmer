@@ -60,7 +60,7 @@ export async function extractStructuredOutput(
   const { model: llm } = await buildChatModel({
     modelName: extractionModel,
     proxyEndpoint,
-    stigmerToken: config.stigmerToken ?? undefined,
+    stigmerToken: config.stigmerTokenRef.current ?? undefined,
     maxTokens: 4096,
   });
 

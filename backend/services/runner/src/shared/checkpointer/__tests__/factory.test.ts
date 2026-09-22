@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -39,14 +39,14 @@ describe("createCheckpointer", () => {
     const saver = await createCheckpointer({
       type: "http",
       proxyEndpoint: "https://proxy.test",
-      authToken: "tok-123",
+      authToken: { current: "tok-123" },
     });
     expect(saver).toBeInstanceOf(HttpCheckpointSaver);
   });
 
   it("throws CheckpointerCreationError when http is missing proxyEndpoint", async () => {
     await expect(
-      createCheckpointer({ type: "http", authToken: "tok" }),
+      createCheckpointer({ type: "http", authToken: { current: "tok" } }),
     ).rejects.toThrow(CheckpointerCreationError);
   });
 
@@ -54,6 +54,26 @@ describe("createCheckpointer", () => {
     await expect(
       createCheckpointer({ type: "http", proxyEndpoint: "https://proxy.test" }),
     ).rejects.toThrow(CheckpointerCreationError);
+  });
+
+  it("throws CheckpointerCreationError when the http credential ref holds nothing at open", async () => {
+    await expect(
+      createCheckpointer({ type: "http", proxyEndpoint: "https://proxy.test", authToken: { current: null } }),
+    ).rejects.toThrow(CheckpointerCreationError);
+  });
+
+  it("hands the http saver the caller's ref itself, so a rotation after open reaches the saver's next request", async () => {
+    const ref = { current: "boot-credential" };
+    const saver = await createCheckpointer({ type: "http", proxyEndpoint: "https://proxy.test", authToken: ref });
+    const fetchSpy = vi.fn().mockResolvedValue({ status: 404, ok: false });
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      ref.current = "session-credential";
+      await saver.getTuple({ configurable: { thread_id: "t", checkpoint_ns: "" } });
+      expect(fetchSpy.mock.calls[0][1].headers.Authorization).toBe("Bearer session-credential");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("error includes the checkpointer type", async () => {

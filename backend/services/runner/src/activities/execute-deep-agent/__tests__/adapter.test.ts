@@ -25,7 +25,7 @@ const CONFIG: Config = {
   temporalNamespace: "default",
   stigmerBackendEndpoint: "http://localhost:7234",
   mcpBridgeEndpoint: null,
-  stigmerToken: "tok",
+  stigmerTokenRef: { current: "tok" },
   cursorApiKey: "",
   workspaceRootDir: "/tmp/adapter-test",
   mode: "local",
@@ -72,7 +72,7 @@ describe("createDeepAgentAdapter", () => {
     expect(resolveDeepAgentConfig(CONFIG)).toEqual({
       checkpointerType: "memory",
       checkpointerProxyEndpoint: null,
-      stigmerToken: "tok",
+      stigmerTokenRef: { current: "tok" },
       proxyEndpoint: null,
       mode: "local",
     });

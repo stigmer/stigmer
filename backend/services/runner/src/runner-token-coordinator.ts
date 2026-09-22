@@ -7,9 +7,14 @@
  *     Auth0 token), used for Authorization on control-plane gRPC; and
  *   - the proxy token (x-stigmer-auth), used for Cursor-proxy traffic.
  *
- * On most hosts these are the same token. On cloud the control plane mints a
- * dedicated iss=stigmer proxy token during bootstrap; from that point the proxy
- * token is a *separate* credential with its own TTL, owned and refreshed here.
+ * On most hosts these are the same token. When a manager boots WITHOUT a
+ * pinned Temporal address (the desktop runner), bootstrap discovery dials the
+ * control plane and it mints a dedicated iss=stigmer proxy token; from that
+ * point the proxy token is a *separate* credential with its own TTL, owned and
+ * refreshed here. An in-cluster sandbox pod pins its Temporal address, so its
+ * bootstrap returns before any mint and nothing is ever minted: its proxy
+ * credential stays the control-plane credential, in lockstep, for the pod's
+ * whole life — the claim of a pool member rotates both with one write.
  *
  * This coordinator exists because the proxy token's freshness was the subject of
  * two production fixes (stigmer-cloud _changelog 2026-05-26 and 2026-06-01):

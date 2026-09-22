@@ -14,7 +14,7 @@
  */
 
 import { StigmerClient } from "../client/stigmer-client.js";
-import { loadConfig } from "../config.js";
+import type { Config } from "../config.js";
 import { create } from "@bufbuild/protobuf";
 import {
   CreateArtifactInputSchema,
@@ -44,20 +44,16 @@ export interface ArtifactCreatedEventDescriptor {
   occurredAt: string;
 }
 
-let cachedClient: StigmerClient | null = null;
+export function createPromoteTaskOutputActivities(config: Config) {
+  // One client for the factory's life, from the runner's injected Config: it
+  // reads the live credential ref per request (config.ts header), so holding
+  // it is safe across every rotation.
+  const client = new StigmerClient({
+    endpoint: config.stigmerBackendEndpoint,
+    tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
+  });
 
-function getClient(): StigmerClient {
-  if (!cachedClient) {
-    const config = loadConfig();
-    cachedClient = new StigmerClient({
-      endpoint: config.stigmerBackendEndpoint,
-      token: config.stigmerToken,
-    });
-  }
-  return cachedClient;
-}
-
-export function createPromoteTaskOutputActivities() {
   return {
     /**
      * Check if a task output should be promoted to an artifact. If the
@@ -107,7 +103,7 @@ export function createPromoteTaskOutputActivities() {
         content: new Uint8Array(contentBytes),
       });
 
-      const artifact = await getClient().createArtifact(input);
+      const artifact = await client.createArtifact(input);
       const artifactId = artifact.metadata?.id ?? "";
 
       return {

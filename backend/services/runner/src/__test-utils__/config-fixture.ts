@@ -1,7 +1,7 @@
 /**
  * A complete, inert runner `Config` for tests.
  *
- * `Config` has twenty required fields (plus two optional token refs), so
+ * `Config` has twenty required fields (the credential ref among them, plus two optional refs), so
  * every test that needs one has had to spell all of them out; eight test
  * files carry their own literal today. This is the one place a test-only `Config` is
  * built from now on: {@link testConfig} returns the whole record with values
@@ -42,7 +42,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     temporalAddress: "127.0.0.1:1",
     temporalNamespace: "default",
     stigmerBackendEndpoint: INERT_ENDPOINT,
-    stigmerToken: null,
+    stigmerTokenRef: { current: null },
     mcpBridgeEndpoint: null,
     cursorApiKey: "",
     workspaceRootDir: join(tmpdir(), "stigmer-runner-test-workspaces"),

@@ -27,16 +27,17 @@ vi.mock("../../client/stigmer-client.js", () => ({
   })),
 }));
 
-vi.mock("../../config.js", () => ({
-  loadConfig: () => ({ stigmerBackendEndpoint: "http://localhost:7234", stigmerToken: "t" }),
-}));
-
+import { StigmerClient } from "../../client/stigmer-client.js";
 import {
   updateWorkflowFileReviewStatus,
   getAwaitingFileReviewChangeSetIds,
   updateWorkflowTaskApprovalStatus,
   clearWorkflowApprovalStatus,
 } from "../call-agent-status.js";
+
+// The client the factory would build from the runner's Config; the mocked
+// constructor above is what it resolves to.
+const client = new StigmerClient({ endpoint: "http://localhost:7234" });
 
 describe("call-agent-status file-review activities", () => {
   beforeEach(() => {
@@ -46,7 +47,7 @@ describe("call-agent-status file-review activities", () => {
 
   describe("updateWorkflowFileReviewStatus", () => {
     it("writes a single per-child reference scoped to the child", async () => {
-      await updateWorkflowFileReviewStatus("wfx_1", "aex_child", ["fcs_1", "fcs_2"]);
+      await updateWorkflowFileReviewStatus(client, "wfx_1", "aex_child", ["fcs_1", "fcs_2"]);
 
       expect(capturedUpdates).toHaveLength(1);
       const { executionId, status, options } = capturedUpdates[0];
@@ -59,7 +60,7 @@ describe("call-agent-status file-review activities", () => {
     });
 
     it("empty changeSetIds writes an empty list (scoped clear for the child)", async () => {
-      await updateWorkflowFileReviewStatus("wfx_1", "aex_child", []);
+      await updateWorkflowFileReviewStatus(client, "wfx_1", "aex_child", []);
 
       expect(capturedUpdates).toHaveLength(1);
       const { status, options } = capturedUpdates[0];
@@ -69,8 +70,8 @@ describe("call-agent-status file-review activities", () => {
     });
 
     it("is a no-op when executionId or childExecutionId is missing", async () => {
-      await updateWorkflowFileReviewStatus("", "aex_child", ["fcs_1"]);
-      await updateWorkflowFileReviewStatus("wfx_1", "", ["fcs_1"]);
+      await updateWorkflowFileReviewStatus(client, "", "aex_child", ["fcs_1"]);
+      await updateWorkflowFileReviewStatus(client, "wfx_1", "", ["fcs_1"]);
       expect(capturedUpdates).toHaveLength(0);
     });
   });
@@ -88,17 +89,17 @@ describe("call-agent-status file-review activities", () => {
         },
       };
 
-      const ids = await getAwaitingFileReviewChangeSetIds("aex_child");
+      const ids = await getAwaitingFileReviewChangeSetIds(client, "aex_child");
       expect(ids).toEqual(["fcs_await1", "fcs_await2"]);
     });
 
     it("returns empty when the child has no file change sets", async () => {
       mockGetExecutionResult = { status: {} };
-      expect(await getAwaitingFileReviewChangeSetIds("aex_child")).toEqual([]);
+      expect(await getAwaitingFileReviewChangeSetIds(client, "aex_child")).toEqual([]);
     });
 
     it("returns empty (non-fatal) on a missing child id", async () => {
-      expect(await getAwaitingFileReviewChangeSetIds("")).toEqual([]);
+      expect(await getAwaitingFileReviewChangeSetIds(client, "")).toEqual([]);
       expect(capturedUpdates).toHaveLength(0);
     });
   });
@@ -114,7 +115,7 @@ describe("call-agent-status file-review activities", () => {
         },
       };
 
-      const surfaced = await updateWorkflowTaskApprovalStatus("wfx_1", "task_a", "aex_child");
+      const surfaced = await updateWorkflowTaskApprovalStatus(client, "wfx_1", "task_a", "aex_child");
 
       expect(surfaced).toBe(true);
       expect(capturedUpdates).toHaveLength(1);
@@ -131,19 +132,19 @@ describe("call-agent-status file-review activities", () => {
       // approval card, and the orchestrator deliberately does not retry.
       mockGetExecutionResult = { status: { pendingApprovals: [] } };
 
-      const surfaced = await updateWorkflowTaskApprovalStatus("wfx_1", "task_a", "aex_child");
+      const surfaced = await updateWorkflowTaskApprovalStatus(client, "wfx_1", "task_a", "aex_child");
 
       expect(surfaced).toBe(false);
       expect(capturedUpdates).toHaveLength(0);
     });
 
     it("updateWorkflowTaskApprovalStatus is a no-op without a child id", async () => {
-      expect(await updateWorkflowTaskApprovalStatus("wfx_1", "task_a", "")).toBe(false);
+      expect(await updateWorkflowTaskApprovalStatus(client, "wfx_1", "task_a", "")).toBe(false);
       expect(capturedUpdates).toHaveLength(0);
     });
 
     it("clearWorkflowApprovalStatus scopes the clear to the given child", async () => {
-      await clearWorkflowApprovalStatus("wfx_1", "aex_child");
+      await clearWorkflowApprovalStatus(client, "wfx_1", "aex_child");
 
       expect(capturedUpdates).toHaveLength(1);
       const { status, options } = capturedUpdates[0];
@@ -153,7 +154,7 @@ describe("call-agent-status file-review activities", () => {
     });
 
     it("clearWorkflowApprovalStatus is a no-op without a child id", async () => {
-      await clearWorkflowApprovalStatus("wfx_1", "");
+      await clearWorkflowApprovalStatus(client, "wfx_1", "");
       expect(capturedUpdates).toHaveLength(0);
     });
   });

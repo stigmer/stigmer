@@ -84,7 +84,7 @@ function activityUnderTest() {
   bindHermeticClient(client);
   const config = {
     stigmerBackendEndpoint: "http://localhost:0",
-    stigmerToken: null,
+    stigmerTokenRef: { current: null },
     proxyEndpoint: null,
     primaryModel: "claude-sonnet-4.5",
   } as unknown as Config;

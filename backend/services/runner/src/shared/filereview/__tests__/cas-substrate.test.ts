@@ -412,7 +412,7 @@ describe("casBlobReader — ProxyArtifactStorage presigned+fetch path (cloud)", 
     });
     vi.stubGlobal("fetch", fetchMock);
     try {
-      const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+      const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
       const reader = casBlobReader(storage);
       const got = await reader(key);
       expect(got.equals(payload)).toBe(true);

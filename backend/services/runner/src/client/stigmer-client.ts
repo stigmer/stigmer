@@ -55,6 +55,7 @@ import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { TOKEN_TYPE_EMBEDDED_RUNNER, tokenTypeOf } from "./token-claims.js";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
+import type { TokenRef } from "../config.js";
 import { currentRunCredential } from "../shared/run-credential-store.js";
 
 /**
@@ -151,31 +152,31 @@ function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
   return { case: "renewal", value: create(TokenRenewalSchema) } as const;
 }
 
-/**
- * A shared mutable token reference. When provided, the interceptor
- * reads from this on every request, enabling token updates to
- * propagate to all clients sharing the same ref.
- */
-export interface TokenRef {
-  current: string | null;
-}
+/** The runner's shared credential reference (config.ts); re-exported for the client's callers. */
+export type { TokenRef };
 
 export interface StigmerClientOptions {
   endpoint: string;
-  token: string | null;
-  tokenRef?: TokenRef;
+  /**
+   * A fixed credential, for a client whose credential never rotates (a
+   * renewal client that authenticates each call explicitly passes `null`).
+   * Runner activities pass {@link tokenRef} instead: the interceptor reads
+   * it on every request, so one rotation reaches every client sharing it.
+   */
+  token?: string | null;
+  tokenRef?: Readonly<TokenRef>;
   /**
    * Optional runner credential (a server-minted token with a runner-class
    * `token_type` claim). When populated, ExecutionContext reads authenticate
    * with this instead of the control-plane token — see the interceptor in the
    * constructor for why the credential differs per service.
    */
-  runnerTokenRef?: TokenRef;
+  runnerTokenRef?: Readonly<TokenRef>;
 }
 
 export class StigmerClient {
   readonly transport: Transport;
-  private currentToken: string | null;
+  private readonly fixedToken: string | null;
   private readonly executionQuery: Client<typeof AgentExecutionQueryController>;
   private readonly executionCommand: Client<typeof AgentExecutionCommandController>;
   private readonly executionContextQuery: Client<typeof ExecutionContextQueryController>;
@@ -195,11 +196,11 @@ export class StigmerClient {
   private readonly platformQuery: Client<typeof PlatformQueryController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
 
-  private readonly tokenRef: TokenRef | null;
-  private readonly runnerTokenRef: TokenRef | null;
+  private readonly tokenRef: Readonly<TokenRef> | null;
+  private readonly runnerTokenRef: Readonly<TokenRef> | null;
 
   constructor(options: StigmerClientOptions) {
-    this.currentToken = options.token;
+    this.fixedToken = options.token ?? null;
     this.tokenRef = options.tokenRef ?? null;
     this.runnerTokenRef = options.runnerTokenRef ?? null;
     this.transport = createGrpcTransport({
@@ -274,7 +275,7 @@ export class StigmerClient {
             (isProcessBound ? undefined : currentRunCredential())
             ?? (usesRunnerCredential ? this.runnerTokenRef?.current : null)
             ?? this.tokenRef?.current
-            ?? this.currentToken;
+            ?? this.fixedToken;
           if (token) {
             req.header.set("authorization", `Bearer ${token}`);
           }
@@ -467,7 +468,7 @@ export class StigmerClient {
     }
     // Inspect the same credential chain the EC read's interceptor would use.
     const ambientTokenType = tokenTypeOf(
-      this.runnerTokenRef?.current ?? this.tokenRef?.current ?? this.currentToken,
+      this.runnerTokenRef?.current ?? this.tokenRef?.current ?? this.fixedToken,
     );
     const isEmbeddedRunner = ambientTokenType === TOKEN_TYPE_EMBEDDED_RUNNER;
     if (ambientTokenType !== undefined && !isEmbeddedRunner) {
@@ -762,7 +763,4 @@ export class StigmerClient {
     return this.workflowInstanceQuery.get({ value: instanceId });
   }
 
-  updateToken(token: string | null): void {
-    this.currentToken = token;
-  }
 }

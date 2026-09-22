@@ -376,7 +376,6 @@ export interface GenerateSessionSubjectInput {
 export function createGenerateSessionSubjectActivities(config: Config) {
   const client = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
     runnerTokenRef: config.stigmerRunnerTokenRef,
   });
@@ -391,7 +390,7 @@ export function createGenerateSessionSubjectActivities(config: Config) {
         log(`started: execution=${executionId}`);
         await generateSessionSubject(executionId, client, {
           proxyEndpoint: config.proxyEndpoint,
-          stigmerToken: config.stigmerToken,
+          stigmerToken: config.stigmerTokenRef.current,
           primaryModel: config.primaryModel,
         });
       } finally {

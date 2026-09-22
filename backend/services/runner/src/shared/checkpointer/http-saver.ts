@@ -26,6 +26,14 @@
  * upserts. Budget exhaustion still fails loudly — checkpoints are not
  * lossy-tolerable (unlike status updates, see status.ts), and silently
  * dropping one would corrupt resume state.
+ *
+ * The bearer credential is a shared ref read on EVERY request, never a
+ * header frozen at construction: a saver lives for a whole turn, and the
+ * runner's control-plane credential rotates underneath it (a pool member
+ * claimed for a session, a sandbox token renewed in place). A frozen header
+ * kept presenting the boot credential and every read after the rotation
+ * was refused (config.ts header; ProxyArtifactStorage holds its credential
+ * the same way).
  */
 
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -38,6 +46,7 @@ import {
   type ChannelVersions,
 } from "@langchain/langgraph-checkpoint";
 import type { CheckpointMetadata, PendingWrite } from "@langchain/langgraph-checkpoint";
+import type { TokenRef } from "../../config.js";
 import type { RetryOptions } from "../grpc-retry.js";
 import { fetchWithRetry, type FetchRetryPolicy } from "../http-retry.js";
 
@@ -119,20 +128,17 @@ const DEFAULT_RETRY = {
 
 export class HttpCheckpointSaver extends BaseCheckpointSaver {
   private readonly baseUrl: string;
-  private readonly headers: Record<string, string>;
+  private readonly authToken: Readonly<TokenRef>;
   private readonly retryPolicy: FetchRetryPolicy;
 
   constructor(
     proxyEndpoint: string,
-    authToken: string,
+    authToken: Readonly<TokenRef>,
     options: HttpCheckpointSaverOptions = {},
   ) {
     super();
     this.baseUrl = `${proxyEndpoint.replace(/\/+$/, "")}/v1/proxy/checkpoints`;
-    this.headers = {
-      Authorization: `Bearer ${authToken}`,
-      "Content-Type": "application/json",
-    };
+    this.authToken = authToken;
     this.retryPolicy = {
       label: "HttpCheckpointSaver",
       baseDelayMs: options.baseDelayMs ?? DEFAULT_RETRY.baseDelayMs,
@@ -140,6 +146,14 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       maxRetries: options.maxRetries ?? DEFAULT_RETRY.maxRetries,
       requestTimeoutMs: options.requestTimeoutMs ?? DEFAULT_RETRY.requestTimeoutMs,
       delayFn: options.delayFn,
+    };
+  }
+
+  /** The request headers as of now: the credential is resolved here, per request (the header). */
+  private get headers(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.authToken.current ?? ""}`,
+      "Content-Type": "application/json",
     };
   }
 

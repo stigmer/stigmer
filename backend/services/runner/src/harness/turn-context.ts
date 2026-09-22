@@ -724,9 +724,7 @@ export async function resolveMcpServersAndPolicies(
       `reads; degrading to the ambient credential: ${err instanceof Error ? err.message : err}`,
     );
   }
-  const attachmentCredential = exchangedRunnerToken
-    ?? config.stigmerTokenRef?.current
-    ?? config.stigmerToken;
+  const attachmentCredential = exchangedRunnerToken ?? config.stigmerTokenRef.current;
   const attachmentEndpoints = {
     bridgeEndpoint: config.mcpBridgeEndpoint,
     credential: attachmentCredential,
@@ -1004,7 +1002,7 @@ export function resolveStandingContext(
   const selectRecalledMemories = (): Promise<RecalledMemoriesContent | undefined> => {
     memorySelection ??= selectRecalledFacts(spec.recalledMemories, spec.message, {
       proxyEndpoint: deps.config.proxyEndpoint,
-      stigmerToken: deps.config.stigmerToken,
+      stigmerToken: deps.config.stigmerTokenRef.current,
       executionId: deps.input.executionId,
       priorReport: execution.status?.recalledMemoriesReport,
     }).then((selection) => {

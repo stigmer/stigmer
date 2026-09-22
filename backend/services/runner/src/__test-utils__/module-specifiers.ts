@@ -2,14 +2,17 @@
  * The module specifiers a TypeScript file names, read off its syntax tree —
  * the primitive behind the runner's import fences.
  *
- * Three fences stand on it: `src/harness/` and production `src/shared/` never
+ * Four fences stand on it: `src/harness/` and production `src/shared/` never
  * import `src/activities/` (`harness/__tests__/import-direction.test.ts`,
  * the rule the turn runtime is written under); the Cursor adapter never
  * imports `@temporalio/*` (`execute-cursor/__tests__/adapter-is-temporal-
- * free.test.ts`, what lets the contract kit run it outside an activity); and
+ * free.test.ts`, what lets the contract kit run it outside an activity);
  * `src/harness/transcript/` names no package outside a short allow-list
  * (`harness/__tests__/transcript-is-engine-free.test.ts`, what keeps the one
- * transcript builder engine-neutral).
+ * transcript builder engine-neutral); and `loadConfig` is bound by `main.ts`
+ * alone (`__tests__/config-boundary.test.ts`, what keeps one live credential
+ * ref per process — `importedBindings` below reads the NAMES a file imports,
+ * where the other fences read the modules).
  *
  * A syntax tree, not a regex, so a path quoted in a header comment cannot
  * trip a fence, and no import form can slip past one: static, type-only,
@@ -111,6 +114,45 @@ function packageName(specifier: string): string {
   const [first, second] = parts;
   if (first === undefined) return specifier;
   return first.startsWith("@") && second !== undefined ? `${first}/${second}` : first;
+}
+
+/** One name a file binds from a module: the exported name (`"*"` for a namespace import) and the specifier it came from. */
+export interface ImportedBinding {
+  readonly specifier: string;
+  readonly name: string;
+}
+
+/**
+ * Every name a file imports by static `import` declaration, in source order,
+ * type-only included (a fence on a VALUE reads the same list; a type import
+ * of a function is a smell the fence should see too). A namespace import
+ * binds every export at once and is reported as `"*"`. Dynamic `import()`
+ * binds nothing at the declaration and is not listed — a fence on a name
+ * that must also refuse `(await import(m)).name` pairs this with
+ * {@link moduleSpecifiers}.
+ */
+export function importedBindings(fileName: string, source: string): ImportedBinding[] {
+  const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, /* setParentNodes */ false);
+  const bindings: ImportedBinding[] = [];
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    const specifier = statement.moduleSpecifier.text;
+    const clause = statement.importClause;
+    if (clause === undefined) continue;
+    if (clause.name !== undefined) {
+      bindings.push({ specifier, name: "default" });
+    }
+    const named = clause.namedBindings;
+    if (named === undefined) continue;
+    if (ts.isNamespaceImport(named)) {
+      bindings.push({ specifier, name: "*" });
+    } else {
+      for (const element of named.elements) {
+        bindings.push({ specifier, name: (element.propertyName ?? element.name).text });
+      }
+    }
+  }
+  return bindings;
 }
 
 /** Every `.ts` file under `dir`, sorted, skipping the named directories at any depth. */

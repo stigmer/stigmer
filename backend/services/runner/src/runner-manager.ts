@@ -22,7 +22,7 @@ import {
   type InjectedSinks,
   type WorkflowBundleOption,
 } from "@temporalio/worker";
-import type { Config } from "./config.js";
+import type { Config, TokenRef } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 // Boot marks mirror the static runner's segment names where the work is the
 // same. Inert unless a mode emits the boot timeline (pool mode does; the
@@ -237,7 +237,7 @@ export async function createStigmerRunnerManager(
   // separately by a RunnerTokenCoordinator (created after the harnesses boot)
   // — see that module for the two-writer rationale and the staleness history
   // it guards.
-  const tokenRef = { current: options.stigmerToken ?? null };
+  const tokenRef: TokenRef = { current: options.stigmerToken ?? null };
   // `runnerTokenRef` mirrors the coordinator's proxy credential for gRPC use:
   // the minted runner token (token_type=embedded_runner) once adopted, tracking
   // the control-plane token in lockstep before that. StigmerClient authenticates
@@ -246,7 +246,7 @@ export async function createStigmerRunnerManager(
   // is the user's own Auth0 token, which the server treats as a browsing user
   // and answers with redacted secrets. Pre-mint the ref equals the control-plane
   // token, which is exactly what the client would fall back to anyway.
-  const runnerTokenRef = { current: options.stigmerToken ?? null };
+  const runnerTokenRef: TokenRef = { current: options.stigmerToken ?? null };
   const baseConfig = mapManagerOptionsToConfig(options, tokenRef, runnerTokenRef);
 
   assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
@@ -582,11 +582,16 @@ export async function createStigmerRunnerManager(
     },
 
     updateToken(token: string | null): void {
-      // Writes the control-plane credential. The coordinator decides whether the
-      // proxy credential follows it: only when no token has been minted (so the
-      // pre-mint lockstep is preserved), never once the runner owns a minted
-      // token. See runner-token-coordinator.ts and the staleness changelogs.
-      // The credential store is the second leg of the pair (it replaced the
+      // Writes the control-plane credential. Every reader follows this one
+      // write: the activity clients, the artifact store and the checkpoint
+      // saver read `tokenRef` per request, the per-turn model clients read it
+      // at build, and nothing holds the value (Config carries the ref alone;
+      // config.ts header). The coordinator decides whether the proxy
+      // credential follows it: only when no token has been minted (so the
+      // pre-mint lockstep is preserved — the in-cluster sandbox case, where
+      // nothing is ever minted), never once the runner owns a minted token.
+      // See runner-token-coordinator.ts and the staleness changelogs. The
+      // credential store is the second leg of the pair (it replaced the
       // process.env.STIGMER_TOKEN write, #508): per-call readers like
       // call-llm and the registry headers resolve the current token there.
       tokenRef.current = token;
@@ -677,10 +682,16 @@ function validateManagerOptions(options: RunnerManagerOptions): void {
   // explicit address nor a token is present, discovery falls back to localhost.
 }
 
+/**
+ * The runtime `Config` for the manager root. The refs are the root's: it
+ * creates them before mapping and writes them on every rotation
+ * (`updateToken`, the token coordinator), so a `Config` never carries a
+ * credential by value (config.ts header).
+ */
 export function mapManagerOptionsToConfig(
   options: RunnerManagerOptions,
-  tokenRef?: { current: string | null },
-  runnerTokenRef?: { current: string | null },
+  tokenRef: TokenRef,
+  runnerTokenRef: TokenRef,
 ): Config {
   const proxyActive = !!options.proxyEndpoint;
 
@@ -697,7 +708,6 @@ export function mapManagerOptionsToConfig(
     temporalAddress: options.temporalAddress ?? "",
     temporalNamespace: options.temporalNamespace ?? "default",
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
-    stigmerToken: options.stigmerToken ?? null,
     // Env-only like the env-loaded path (loadConfig): the bridge endpoint
     // is deployment topology, not per-session state.
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
@@ -791,14 +801,14 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createEvaluateExpressionsActivities(),
     ...createCallHttpActivities(),
     ...createCallGrpcActivities(),
-    ...createCallFunctionActivities(),
+    ...createCallFunctionActivities(config),
     ...createCallLlmActivities(),
     ...createCallAgentActivities(config),
-    ...createCallAgentStatusActivities(),
+    ...createCallAgentStatusActivities(config),
     ...createRunCommandActivities(),
     ...createHydrateWorkflowActivities(config),
-    ...createWorkflowEventActivities(),
-    ...createPromoteTaskOutputActivities(),
+    ...createWorkflowEventActivities(config),
+    ...createPromoteTaskOutputActivities(config),
     ...createAttachSessionActivities(config),
   };
 }

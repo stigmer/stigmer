@@ -15,7 +15,7 @@
  */
 
 import { StigmerClient } from "../client/stigmer-client.js";
-import { loadConfig } from "../config.js";
+import type { Config } from "../config.js";
 import { create, fromJson } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import {
@@ -136,14 +136,6 @@ function toJsonObject(value: unknown): JsonObject | undefined {
   }
 }
 
-function buildClient(): StigmerClient {
-  const config = loadConfig();
-  return new StigmerClient({
-    endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
-  });
-}
-
 /**
  * LEGACY sequence assignment — only for descriptors that arrive without a
  * workflow-assigned `sequenceNumber`, i.e. replays of histories recorded
@@ -181,12 +173,11 @@ function nextSequence(): bigint {
  * Returns a plain number — the value crosses back into the workflow
  * through Temporal's JSON payload converter, which cannot carry BigInt.
  */
-export async function initSequenceFromEventLog(executionId: string): Promise<number> {
+export async function initSequenceFromEventLog(client: StigmerClient, executionId: string): Promise<number> {
   if (!executionId) {
     sequenceCounter = 0;
     return 0;
   }
-  const client = buildClient();
   const highWaterMark = await client.getEventLogHighWaterMark(executionId);
   sequenceCounter = Number(highWaterMark);
   return sequenceCounter;
@@ -417,13 +408,13 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
  * exhausted, so a broken timeline write never fails the run.
  */
 export async function emitWorkflowEvents(
+  client: StigmerClient,
   executionId: string,
   events: WorkflowEventDescriptor[],
   taskStatuses?: TaskStatusEntry[],
 ): Promise<void> {
   if (!executionId || events.length === 0) return;
 
-  const client = buildClient();
   const protoEvents = events.map(toProtoEvent);
 
   const protoTasks = (taskStatuses ?? []).map(ts =>
@@ -507,8 +498,7 @@ function structToPlain(value: JsonObject | undefined): unknown {
  * Unlike emitWorkflowEvents (best-effort), this activity propagates
  * errors — recovery context loading is required for correctness.
  */
-export async function loadRecoveryContext(executionId: string): Promise<RecoveryTaskData[]> {
-  const client = buildClient();
+export async function loadRecoveryContext(client: StigmerClient, executionId: string): Promise<RecoveryTaskData[]> {
   const execution = await client.getWorkflowExecution(executionId);
   const tasks = execution.status?.tasks ?? [];
 
@@ -519,10 +509,19 @@ export async function loadRecoveryContext(executionId: string): Promise<Recovery
   }));
 }
 
-export function createWorkflowEventActivities() {
+export function createWorkflowEventActivities(config: Config) {
+  // One client from the runner's injected Config: it reads the live credential
+  // ref per request (config.ts header), so a rotation reaches these writes.
+  const client = new StigmerClient({
+    endpoint: config.stigmerBackendEndpoint,
+    tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
+  });
+
   return {
-    EmitWorkflowEvents: emitWorkflowEvents,
-    ResetEventSequence: initSequenceFromEventLog,
-    LoadRecoveryContext: loadRecoveryContext,
+    EmitWorkflowEvents: (executionId: string, events: WorkflowEventDescriptor[], taskStatuses?: TaskStatusEntry[]) =>
+      emitWorkflowEvents(client, executionId, events, taskStatuses),
+    ResetEventSequence: (executionId: string) => initSequenceFromEventLog(client, executionId),
+    LoadRecoveryContext: (executionId: string) => loadRecoveryContext(client, executionId),
   };
 }

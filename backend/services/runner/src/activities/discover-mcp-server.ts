@@ -613,7 +613,6 @@ async function classifyHttpOAuthFailure(
 export function createDiscoverMcpServerActivities(config: Config) {
   const stigmerClient = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
     runnerTokenRef: config.stigmerRunnerTokenRef,
   });

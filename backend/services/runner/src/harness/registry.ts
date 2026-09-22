@@ -104,7 +104,6 @@ export async function createHarnessActivities(
   const { StigmerClient } = await import("../client/stigmer-client.js");
   const client: StigmerClient = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
-    token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
     runnerTokenRef: config.stigmerRunnerTokenRef,
   });

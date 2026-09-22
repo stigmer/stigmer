@@ -66,7 +66,6 @@ export function resolveCursorConfig(config: Config): CursorAdapterConfig {
   return {
     proxyEndpoint: config.proxyEndpoint,
     cursorApiKey: config.cursorApiKey,
-    stigmerToken: config.stigmerToken,
     stigmerTokenRef: config.stigmerTokenRef,
     workspaceRootDir: config.workspaceRootDir,
     cloudModeEnabled: config.cloudModeEnabled,

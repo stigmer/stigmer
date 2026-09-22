@@ -112,7 +112,7 @@ describe("computeSummarizationDefaults", () => {
 // ── 2. Checkpoint Serialization Roundtrip ───────────────────────────
 
 describe("summarization state checkpoint serialization", () => {
-  const saver = new HttpCheckpointSaver("https://proxy.test", "test-token");
+  const saver = new HttpCheckpointSaver("https://proxy.test", { current: "test-token" });
 
   it("serializes and deserializes _summarizationEvent through JsonPlusSerializer", async () => {
     const summarizationEvent = {

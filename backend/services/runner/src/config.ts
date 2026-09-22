@@ -20,6 +20,21 @@
  *    - CURSOR_API_KEY is NOT required — the proxy injects it.
  *    - The fetch interceptor rewrites outbound Cursor SDK requests.
  *
+ * The credential is never held by value:
+ *
+ * The control-plane credential rotates while the process runs (the manager's
+ * `updateToken` on a pool claim or a host refresh, the static root's
+ * sandbox-token renewal), so `Config` carries it as a shared {@link TokenRef}
+ * and nothing else. Every reader resolves `ref.current` at the moment of use;
+ * a client that makes many requests over its life holds the ref and reads it
+ * per request (the artifact store, the checkpoint saver). The two roots own
+ * the writable ref; readers see it through `Readonly`, so a rotation has one
+ * writer and no copy to go stale. {@link loadConfig} is the environment
+ * boundary and is read once, by `main.ts`: the ref it returns holds the boot
+ * capture that the roots turn into the live ref (a test pins that no other
+ * module imports it). The only by-value reads are the pool boot's, where the
+ * credential the pod BOOTED with is the fact (`main.ts`).
+ *
  * Workspace isolation:
  *
  * WORKSPACE_ROOT_DIR must always resolve to a directory that is NOT the
@@ -58,12 +73,28 @@ export { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-
 import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
 
+/**
+ * A shared mutable credential reference. The root that owns a credential
+ * writes `current` on every rotation; every reader resolves it at the moment
+ * of use, so one write reaches all of them (the per-request reads in the
+ * Cursor interceptors, StigmerClient, the artifact store and the checkpoint
+ * saver). `Config` hands readers a `Readonly` view: rotation has one writer.
+ */
+export interface TokenRef {
+  current: string | null;
+}
+
 export interface Config {
   readonly taskQueue: string;
   readonly temporalAddress: string;
   readonly temporalNamespace: string;
   readonly stigmerBackendEndpoint: string;
-  readonly stigmerToken: string | null;
+  /**
+   * The control-plane credential, read per use (the module header). The
+   * static root and the manager both rotate it in place; `main.ts`'s
+   * `loadConfig` result holds the boot capture the roots start from.
+   */
+  readonly stigmerTokenRef: Readonly<TokenRef>;
   /**
    * The MCP bridge endpoint for the runner-synthesized attachments —
    * channel messaging and conversation participation
@@ -74,14 +105,12 @@ export interface Config {
    */
   readonly mcpBridgeEndpoint: string | null;
   /**
-   * Bearer credential for the Cursor SDK's Connect RPC transport.
-   *
-   * - Direct mode: the real Cursor API key (authenticates with Cursor directly).
-   * - Proxy mode: the STIGMER_TOKEN JWT (authenticates with our BiDi proxy,
-   *   which validates it and injects the real Cursor key upstream).
-   *
-   * Named after the CURSOR_API_KEY env var the SDK reads, though in proxy mode
-   * the credential authenticates with the proxy endpoint, not with Cursor.
+   * The Cursor API key for direct mode (authenticates with Cursor directly).
+   * In proxy mode this is a placeholder (`"proxy-managed"` unless the operator
+   * set CURSOR_API_KEY anyway): the credential the SDK transport presents to
+   * the proxy is the control-plane credential, read from
+   * {@link stigmerTokenRef} per turn by the Cursor adapter, never copied here.
+   * Named after the CURSOR_API_KEY env var the SDK reads.
    */
   readonly cursorApiKey: string;
   readonly workspaceRootDir: string;
@@ -136,16 +165,14 @@ export interface Config {
    * See shared/workspace/workspace-lock.ts for the serialization model.
    */
   readonly workspaceLockTimeoutMs: number;
-  /** Shared mutable token reference for dynamic token updates (manager mode). */
-  readonly stigmerTokenRef?: { current: string | null };
   /**
-   * Shared mutable reference to the runner credential (manager mode): the
+   * Shared reference to the runner credential (the roots bind it): the
    * server-minted runner token once adopted, tracking the control-plane token
    * in lockstep before that. StigmerClient authenticates ExecutionContext
    * reads with it so the server's runner-class decrypt gate recognizes a
    * desktop runner (see stigmer-client.ts).
    */
-  readonly stigmerRunnerTokenRef?: { current: string | null };
+  readonly stigmerRunnerTokenRef?: Readonly<TokenRef>;
   /**
    * Shared mutable reference to the credential the Cursor proxy transport
    * sends as `x-stigmer-auth` (the fetch and HTTP/2 interceptors read it per
@@ -158,7 +185,7 @@ export interface Config {
    * Required whenever `proxyEndpoint` is set; the Cursor adapter's
    * boot refuses a proxy without it.
    */
-  readonly proxyTokenRef?: { current: string | null };
+  readonly proxyTokenRef?: Readonly<TokenRef>;
 }
 
 export function loadConfig(): Config {
@@ -186,22 +213,23 @@ export function loadConfig(): Config {
   );
 
   // Secrets resolve through the credential store, not process.env — the
-  // boot capture has already moved them out of the environment (#508).
+  // boot capture has already moved them out of the environment (#508). The
+  // ref holds the boot capture: this function is read once, by main.ts, and
+  // the root it feeds builds the live ref from the value (the module header).
   const stigmerTokenValue = getRunnerSecret("STIGMER_TOKEN");
   if ((mode === "cloud" || proxyActive) && !stigmerTokenValue) {
     throw new Error("Required environment variable STIGMER_TOKEN is not set");
   }
-  const stigmerToken = stigmerTokenValue ?? null;
+  const stigmerTokenRef: TokenRef = { current: stigmerTokenValue ?? null };
 
   const mcpBridgeEndpoint = process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null;
 
-  // In proxy mode, pass STIGMER_TOKEN as the SDK's API key. The SDK exchanges
-  // it (via REST proxy → Tomcat → Cursor) for an access token. The HTTP/2
-  // interceptor injects x-stigmer-auth for BiDi proxy authentication while
-  // the SDK's authorization header (Cursor access token) passes through to
-  // api2.cursor.sh unchanged.
+  // In proxy mode the SDK's API key is the control-plane credential, which the
+  // Cursor adapter reads from the ref per turn (execute-cursor/turn-setup.ts);
+  // the placeholder here is the two option mappers' exact value, so the three
+  // construction sites agree and no copy of the credential rides in Config.
   const cursorApiKey = proxyActive
-    ? (getRunnerSecret("CURSOR_API_KEY") ?? stigmerToken ?? "proxy-managed")
+    ? (getRunnerSecret("CURSOR_API_KEY") ?? "proxy-managed")
     : (getRunnerSecret("CURSOR_API_KEY") ?? "");
 
   const workspaceRootDir = resolveWorkspaceRootDir();
@@ -245,7 +273,7 @@ export function loadConfig(): Config {
     temporalAddress,
     temporalNamespace,
     stigmerBackendEndpoint,
-    stigmerToken,
+    stigmerTokenRef,
     mcpBridgeEndpoint,
     cursorApiKey,
     workspaceRootDir,
