@@ -38,17 +38,25 @@
  *     lane can show it either.
  *
  * The `internal` class — the server acting as itself over the in-process
- * transport — keeps every offered id and enumerates every id of the kind:
- * the in-process authorization skip (pipeline/interceptors/auth.ts, ruling
- * Q4) applied to a list answer, as the built-in directory applies it to a
- * directory answer. No in-process edge reaches a list lane today; the arm
- * is pinned so a future one meets the same rule every other lane keeps.
+ * transport — is answered by the seam, not here: `restrictListByReadScope`
+ * returns the org-narrowed rows for the class before any driver is asked
+ * (extensions/list-read-scope.ts, the header's contract line), the
+ * Authorize step's trust-domain rule applied to a list answer. So this
+ * driver's `restrictListEntries` REFUSES the class (`internal-caller-offered`):
+ * being offered it means a caller reached the driver around the one
+ * consumption idiom, and evaluating the server as a person would return
+ * a quiet short list — the failure shape stigmer#1207 fixed. The
+ * enumeration verb has no helper in front of it and keeps its own arm:
+ * every id of the kind, as the built-in directory answers the class with
+ * every organization. No in-process edge reaches an enumeration lane
+ * today; the arm is pinned so a future one meets the rule.
  *
  * Faults THROW and are never an empty answer (the seam: an empty set means
  * "authorized to see nothing"; an outage is the pipeline's sanitized
- * INTERNAL). A kind the model does not declare is a consumer bug by the
- * seam's contract and faults through the evaluator, loud; the model
- * declares exactly the open-source tier, so no served lane can reach it.
+ * INTERNAL). A kind the model does not declare, like the internal class
+ * above, is a consumer bug by the seam's contract and faults through the
+ * evaluator, loud; the model declares exactly the open-source tier, so no
+ * served lane can reach it.
  *
  * Logging. One debug line per call — kind, offered, kept, elapsed — what
  * an operator needs to answer "why is Alice's list short" beside the
@@ -188,6 +196,12 @@ export function newBuiltInListReadScope(
       entries: ReadonlyArray<ListEntryMeta>,
     ): Promise<ReadonlySet<string>> {
       requireDeclared(kind);
+      if (caller.callerClass === "internal") {
+        throw new AuthorizationEvaluationError(
+          "internal-caller-offered",
+          `the internal caller class was offered to the list scope for kind '${kindEnumName(kind)}' — the shared helper answers that class before any driver; a list lane reached the driver around it`,
+        );
+      }
       // One candidate per unique id: a lane offers each row once, and a
       // duplicate would only spend a walk to learn the same answer.
       const unique = new Map<string, RowFacts>();
@@ -195,9 +209,6 @@ export function newBuiltInListReadScope(
         if (!unique.has(entry.id)) {
           unique.set(entry.id, rowFactsOfEntry(kind, entry));
         }
-      }
-      if (caller.callerClass === "internal") {
-        return new Set(unique.keys());
       }
       return visibleAmong(caller, kind, [...unique.values()]);
     },

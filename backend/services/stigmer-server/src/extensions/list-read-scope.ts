@@ -48,11 +48,27 @@
  *     authorization-backend outage surfaces as the pipeline's sanitized
  *     INTERNAL, exactly the Java baseline (DD-007: unavailable is never
  *     softened).
- *   - The scope receives whatever identity the call carries, including
- *     the in-process `internal` class — the driver owns that arm's
- *     semantics (the Java baseline propagates the original caller
- *     through in-process calls, so a composed driver normally never
- *     sees `internal` on these lanes).
+ *   - THE `internal` CLASS IS ANSWERED HERE, NEVER OFFERED TO
+ *     `restrictListEntries`. The server acting as itself over the
+ *     in-process transport (boot/inprocess.ts mints the class; nothing
+ *     else can) is the server's own trust domain, on list lanes exactly
+ *     as on the Authorize step, which returns for the class before any
+ *     Authorizer is asked (pipeline/steps/authorize.ts). The helper
+ *     below returns the org-narrowed rows for that class before the
+ *     scope is consulted. The rule is class-only, like the step's: a
+ *     caller PROPAGATED through the in-process header keeps its own
+ *     class and stays scoped. Why here and not in a driver: a driver
+ *     answering "every offered id" for the class must be written once
+ *     per edition and is a silent short list the day one edition
+ *     forgets (stigmer#1207: a composed driver scoped the class and
+ *     every server-internal list read came back empty — the
+ *     personal-environment reads at execution-context creation and MCP
+ *     connect in this repository, and a composition's own in-process
+ *     readers of a session's executions).
+ *     The enumeration verb is a wire caller's verb: no in-process edge
+ *     reaches `authorizedResourceIds`, and only a scanning driver can
+ *     say "all", so that verb's internal arm stays the driver's and is
+ *     stated in its doc below.
  *   - THE SCOPE IS THE LAST PER-ROW PREDICATE IN A LANE (stigmer-cloud
  *     20260913.04 T02, Q-LB-11). Every request predicate a lane applies
  *     — the request's org, a phase, labels, a parent id, filter criteria
@@ -157,6 +173,13 @@ export interface ListReadScope {
    * answer — consumers map it to their lane's empty shape without
    * touching the store. A scope may throw on a kind it was never ruled
    * to serve (a consumer bug by contract).
+   *
+   * The `internal` class CAN reach this verb (no helper stands between a
+   * consumer and it), and the driver owns that arm: a scanning driver
+   * answers every id of the kind, an engine-backed one answers what its
+   * engine holds for the class. No in-process edge reaches an
+   * enumeration lane today, so the two answers have never met a caller;
+   * a consumer that adds one reads this line first.
    */
   authorizedResourceIds(
     caller: CallerIdentity,
@@ -168,6 +191,12 @@ export interface ListReadScope {
    * baseline: the authorized-ids intersection plus the guest
    * cookie-label rule where the lane carries it). The result must be a
    * subset of the offered ids — a scope only narrows.
+   *
+   * `caller` is never the `internal` class: `restrictListByReadScope`,
+   * the one consumption idiom, answers that class before any driver is
+   * asked (the header's contract line). A driver that is offered it has
+   * been reached around the idiom and should refuse loudly rather than
+   * evaluate the server as a person (the built-in driver does).
    */
   restrictListEntries(
     caller: CallerIdentity,
@@ -209,8 +238,13 @@ export interface ScopedListResource {
  *     permission-bounded across orgs, verified per lane in the entry's
  *     census — lanes Java does not org-narrow pass ""), then to the kept
  *     ids. The same set either way (both are per-row predicates); the
- *     order is the header's second-to-last contract line: the scope sees
- *     the org's rows, not the kind's;
+ *     order is the header's contract line: the scope sees the org's
+ *     rows, not the kind's;
+ *   - scope composed, caller `internal` → the org-narrowed rows, the
+ *     scope never asked and no candidate built (the header's contract
+ *     line). The org predicate is the REQUEST's, not the caller's, so
+ *     the server's own read of a cross-org lane still honours the org
+ *     it asked for; only the caller predicate is skipped;
  *   - every candidate carries the row's authorization facts, and the
  *     candidates of a kind whose authorization is its parent's name that
  *     parent again as `authorizationParent` — one of the facts' parent
@@ -231,6 +265,12 @@ export async function restrictListByReadScope<T extends ScopedListResource>(
     requestOrg === ""
       ? resources
       : resources.filter((resource) => resource.metadata?.org === requestOrg);
+  // The server acting as itself: the trust-domain rule of the Authorize
+  // step, applied to a list answer — the caller predicate is skipped, the
+  // request's org predicate above is not (the header's contract line).
+  if (caller.callerClass === "internal") {
+    return [...offered];
+  }
   const parentOf = authorizationParentReader(kind);
   const entries: ListEntryMeta[] = offered.map((resource) => {
     const entry: ListEntryMeta = {
