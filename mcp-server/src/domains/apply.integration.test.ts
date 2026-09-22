@@ -139,7 +139,7 @@ describe("apply tools integration", () => {
     const result = await callTool("apply_agent", {
       name: "Code Reviewer",
       org: "acme",
-      visibility: "PUBLIC",
+      visibility: "visibility_platform",
       instructions: "Review code carefully.",
       skill_refs: [{ slug: "web-search", version: "stable" }],
       mcp_server_usages: [{ mcp_server_ref: { slug: "github" }, enabled_tools: ["create_pr"] }],
@@ -152,7 +152,7 @@ describe("apply tools integration", () => {
     expect(agent?.metadata?.name).toBe("Code Reviewer");
     expect(agent?.metadata?.slug).toBe("code-reviewer"); // auto-generated from name
     expect(agent?.metadata?.org).toBe("acme");
-    expect(agent?.metadata?.visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(agent?.metadata?.visibility).toBe(ApiResourceVisibility.visibility_platform);
     expect(agent?.spec?.instructions).toBe("Review code carefully.");
 
     const skillRef = agent?.spec?.skillRefs?.[0];
@@ -260,7 +260,7 @@ describe("apply tools integration", () => {
     const result = await callTool("apply_agent", {
       name: "Stored Org Agent",
       org: "acme",
-      visibility: "PUBLIC",
+      visibility: "visibility_platform",
       instructions: "i",
     });
     expect(result.isError).toBeFalsy();
@@ -269,9 +269,9 @@ describe("apply tools integration", () => {
     // the guarded door and return the landed level, not the stale one.
     expect(visibilityUpdates).toHaveLength(1);
     expect(visibilityUpdates[0].resourceId).toBe("agent-stored-1");
-    expect(visibilityUpdates[0].visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(visibilityUpdates[0].visibility).toBe(ApiResourceVisibility.visibility_platform);
     const text = result.content.find((c) => c.type === "text")?.text ?? "";
-    expect(JSON.parse(text).metadata.visibility).toBe("visibility_public");
+    expect(JSON.parse(text).metadata.visibility).toBe("visibility_platform");
   });
 
   it("apply_agent skips the follow-up when the server already matches", async () => {
@@ -279,7 +279,7 @@ describe("apply tools integration", () => {
     const result = await callTool("apply_agent", {
       name: "Plain Agent",
       org: "acme",
-      visibility: "PUBLIC",
+      visibility: "visibility_platform",
       instructions: "i",
     });
     expect(result.isError).toBeFalsy();

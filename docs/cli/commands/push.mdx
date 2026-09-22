@@ -45,22 +45,22 @@ stigmer push plugin ./thermos --dry-run
 
 ## Options
 
-| Flag              | Type     | Default  | Description                                                                                    |
-| ----------------- | -------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `--archive`       | `string` |          | push a pre-packaged ZIP archive as-is (version hash = the file's SHA-256)                      |
-| `--dry-run`       | `bool`   |          | validate without pushing                                                                       |
-| `--git-ref`       | `string` |          | git reference (tag, branch, or commit SHA) for remote push                                     |
-| `--git-url`       | `string` |          | push from a remote git repository URL                                                          |
-| `--ignore`        | `string` |          | additional pattern to ignore (repeatable)                                                      |
-| `--include`       | `string` |          | pattern to force-include (repeatable)                                                          |
-| `--json`          | `bool`   |          | emit the result as JSON                                                                        |
-| `--message`, `-m` | `string` |          | version message describing what changed                                                        |
-| `--no-gitignore`  | `bool`   |          | don't respect .gitignore patterns                                                              |
-| `--quiet`         | `bool`   |          | print only the status line                                                                     |
-| `--subdir`        | `string` |          | subdirectory within the git repository containing the artifact                                 |
-| `--tag`           | `string` | `latest` | version tag for the artifact (skills; a plugin's tag is its manifest version)                  |
-| `--verbose`       | `bool`   |          | show detailed output including ignore decisions                                                |
-| `--visibility`    | `string` |          | plugins: visibility for the plugin and everything it installs (private, org, public, platform) |
+| Flag              | Type     | Default  | Description                                                                            |
+| ----------------- | -------- | -------- | -------------------------------------------------------------------------------------- |
+| `--archive`       | `string` |          | push a pre-packaged ZIP archive as-is (version hash = the file's SHA-256)              |
+| `--dry-run`       | `bool`   |          | validate without pushing                                                               |
+| `--git-ref`       | `string` |          | git reference (tag, branch, or commit SHA) for remote push                             |
+| `--git-url`       | `string` |          | push from a remote git repository URL                                                  |
+| `--ignore`        | `string` |          | additional pattern to ignore (repeatable)                                              |
+| `--include`       | `string` |          | pattern to force-include (repeatable)                                                  |
+| `--json`          | `bool`   |          | emit the result as JSON                                                                |
+| `--message`, `-m` | `string` |          | version message describing what changed                                                |
+| `--no-gitignore`  | `bool`   |          | don't respect .gitignore patterns                                                      |
+| `--quiet`         | `bool`   |          | print only the status line                                                             |
+| `--subdir`        | `string` |          | subdirectory within the git repository containing the artifact                         |
+| `--tag`           | `string` | `latest` | version tag for the artifact (skills; a plugin's tag is its manifest version)          |
+| `--verbose`       | `bool`   |          | show detailed output including ignore decisions                                        |
+| `--visibility`    | `string` |          | plugins: visibility for the plugin and everything it installs (private, org, platform) |
 
 ### Plugins
 

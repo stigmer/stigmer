@@ -3,12 +3,13 @@
 // Flattened apply-input zod schema + toProto bridge for the McpServer resource.
 // Source proto package: ai.stigmer.agentic.mcpserver.v1
 
-import { generateSlug, visibilityFromString } from "./apply-runtime.js";
+import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
@@ -18,7 +19,7 @@ export const McpServerInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
   org: z.string().describe("Organization that owns this resource (e.g. acme)."),
-  visibility: z.string().optional().describe("Resource visibility: PRIVATE or PUBLIC. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged."),
+  visibility: z.string().optional().describe("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_platform."),
   labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description for marketplace display and documentation. Should explain what this MCP server does and its primary use cases. Example: 'GitHub MCP server for repository operations, code search, and PR management'"),
@@ -105,7 +106,7 @@ export function mcpServerInputToProto(input: McpServerInput): McpServer {
       name: input.name,
       slug,
       org: input.org,
-      ...(input.visibility !== undefined && { visibility: visibilityFromString(input.visibility) }),
+      ...(input.visibility !== undefined && { visibility: enumFromString(ApiResourceVisibility, input.visibility) as ApiResourceVisibility }),
       ...(input.labels !== undefined && { labels: input.labels }),
       ...(input.tags !== undefined && { tags: input.tags }),
     }),

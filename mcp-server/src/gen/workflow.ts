@@ -3,7 +3,7 @@
 // Flattened apply-input zod schema + toProto bridge for the Workflow resource.
 // Source proto package: ai.stigmer.agentic.workflow.v1
 
-import { generateSlug, visibilityFromString, enumFromString, toTimestamp } from "./apply-runtime.js";
+import { generateSlug, enumFromString, toTimestamp } from "./apply-runtime.js";
 import { create, fromJson, toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -36,6 +36,7 @@ import { CatchBlockSchema, TryTaskConfigSchema } from "@stigmer/protos/ai/stigme
 import { ValidationRuleSchema, ValidateTaskConfigSchema, ValidationFailPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/validate_pb";
 import { DurationSchema, WaitTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/wait_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
@@ -45,7 +46,7 @@ export const WorkflowInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
   org: z.string().describe("Organization that owns this resource (e.g. acme)."),
-  visibility: z.string().optional().describe("Resource visibility: PRIVATE or PUBLIC. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged."),
+  visibility: z.string().optional().describe("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_platform."),
   labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description for UI and marketplace display."),
@@ -492,7 +493,7 @@ export function workflowInputToProto(input: WorkflowInput): Workflow {
       name: input.name,
       slug,
       org: input.org,
-      ...(input.visibility !== undefined && { visibility: visibilityFromString(input.visibility) }),
+      ...(input.visibility !== undefined && { visibility: enumFromString(ApiResourceVisibility, input.visibility) as ApiResourceVisibility }),
       ...(input.labels !== undefined && { labels: input.labels }),
       ...(input.tags !== undefined && { tags: input.tags }),
     }),
