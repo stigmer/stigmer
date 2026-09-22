@@ -12,7 +12,14 @@
  *   - search (enumeration verb feeding the engine allowlist, and the
  *     crossOrgPublic bypass where FGA is never consulted — lane 21),
  *   - the OUTAGE arm: a throwing scope answers the sanitized INTERNAL,
- *     never an empty (or full!) list.
+ *     never an empty (or full!) list;
+ *   - the SERVER'S OWN reads over `inProcessTransport` (stigmer#1207):
+ *     the bare in-process call is stamped `internal` and the helper
+ *     answers it before the scope — agentexecution.listBySession (the
+ *     lane every server-internal reader of a session's turns rides) and
+ *     workflowexecution.list with the org arm still applied; a caller
+ *     PROPAGATED through the in-process header keeps its class and is
+ *     narrowed exactly like the wire.
  *
  * Per-lane logic beyond the wiring is pinned in the helper matrix
  * (list-read-scope.test.ts), the summaries suite, and the store-contract
@@ -31,6 +38,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -44,6 +53,11 @@ import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
+import { testCallerIdentity } from "../../pipeline/__tests__/support.js";
+import {
+  IN_PROCESS_CALLER_HEADER,
+  encodeInProcessCaller,
+} from "../../pipeline/interceptors/auth.js";
 import type { ListReadScope } from "../list-read-scope.js";
 import type { ServerExtension } from "../registry.js";
 
@@ -124,6 +138,27 @@ describe("list read scope (composed server, fake scope)", () => {
           kind: "Session",
           metadata: { id, name: id, org },
           spec: { agentInstanceId: "ain_01x", subject: id },
+          status: {
+            audit: {
+              specAudit: { createdAt: { seconds: 1_700_000_000n } },
+              statusAudit: { updatedAt: { seconds: 1_700_000_000n } },
+            },
+          },
+        }),
+      );
+    }
+    // Two turns of one session — the rows a server-internal reader of a
+    // conversation's executions asks listBySession for.
+    for (const id of ["aex_turn_1", "aex_turn_2"]) {
+      await server.store.saveResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+        create(AgentExecutionSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "AgentExecution",
+          metadata: { id, name: id, org: "acme" },
+          spec: { sessionId: "ses_mine" },
           status: {
             audit: {
               specAudit: { createdAt: { seconds: 1_700_000_000n } },
@@ -272,5 +307,56 @@ describe("list read scope (composed server, fake scope)", () => {
     const query = createClient(SessionQueryController, transport);
     const list = await query.list({});
     expect(list.entries).toEqual([]);
+  });
+
+  describe("the server's own reads over the in-process transport (stigmer#1207)", () => {
+    it("agentexecution.listBySession, bare: every turn of the session, the scope never asked", async () => {
+      // The scope would hide everything if it were asked.
+      allowed = new Set();
+      const query = createClient(
+        AgentExecutionQueryController,
+        server.inProcessTransport,
+      );
+      const turns = await query.listBySession({ sessionId: "ses_mine" });
+      expect(turns.entries.map((e) => e.metadata?.id).sort()).toEqual([
+        "aex_turn_1",
+        "aex_turn_2",
+      ]);
+      expect(seenKinds).toEqual([]);
+    });
+
+    it("a caller propagated through the in-process header keeps its class and is narrowed like the wire", async () => {
+      allowed = new Set(["aex_turn_2"]);
+      const query = createClient(
+        AgentExecutionQueryController,
+        server.inProcessTransport,
+      );
+      const turns = await query.listBySession(
+        { sessionId: "ses_mine" },
+        {
+          headers: {
+            [IN_PROCESS_CALLER_HEADER]: encodeInProcessCaller(
+              testCallerIdentity({ identityId: "alice" }),
+            ),
+          },
+        },
+      );
+      expect(turns.entries.map((e) => e.metadata?.id)).toEqual(["aex_turn_2"]);
+      expect(seenKinds).toEqual([ApiResourceKind.agent_execution]);
+    });
+
+    it("workflowexecution.list, bare: the request's org predicate still applies, the scope never asked", async () => {
+      allowed = new Set();
+      const query = createClient(
+        WorkflowExecutionQueryController,
+        server.inProcessTransport,
+      );
+      const acme = await query.list({ org: "acme" });
+      expect(acme.entries.map((e) => e.metadata?.id).sort()).toEqual([
+        "wfe_foreign",
+        "wfe_mine",
+      ]);
+      expect(seenKinds).toEqual([]);
+    });
   });
 });

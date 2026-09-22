@@ -12,6 +12,11 @@
  *     20260913.04 T02 the scope is the last per-row predicate, so it is
  *     offered the org's rows and never the kind's — the same result set,
  *     a fraction of the candidates);
+ *   - the `internal` class — the server acting as itself — gets the
+ *     org-narrowed rows and the scope is never asked (the Authorize
+ *     step's trust-domain rule on a list answer, stigmer#1207); the rule
+ *     is class-only, so a caller PROPAGATED through the in-process
+ *     transport (its own class, origin in-process) is still narrowed;
  *   - the candidates carry {id, org, labels} — the driver's guest
  *     cookie rule keys on labels — and the row's AUTHORIZATION FACTS
  *     (creator stamp, visibility level, every parent link), read by the
@@ -158,6 +163,64 @@ describe("restrictListByReadScope", () => {
       "ses_b",
       "ses_c",
     ]);
+  });
+
+  describe("the internal class — the server acting as itself (stigmer#1207)", () => {
+    /** A scope that must never be reached: any call is the failure under test. */
+    const neverAsked: ListReadScope = {
+      authorizedResourceIds: () =>
+        Promise.reject(new Error("the scope was asked for the internal class")),
+      restrictListEntries: () =>
+        Promise.reject(new Error("the scope was asked for the internal class")),
+    };
+    const internal = testCallerIdentity({
+      identityId: "system",
+      callerClass: "internal",
+      origin: "in-process",
+    });
+
+    it("gets the org-narrowed rows in the lane's order; the scope is never asked", async () => {
+      const withOrg = await restrictListByReadScope(
+        neverAsked,
+        internal,
+        ApiResourceKind.session,
+        rows,
+        "acme",
+      );
+      // The request's org predicate still applies — it is the request's,
+      // not the caller's; only the caller predicate is skipped.
+      expect(withOrg.map((r) => r.metadata.id)).toEqual(["ses_a", "ses_b"]);
+      const blankOrg = await restrictListByReadScope(
+        neverAsked,
+        internal,
+        ApiResourceKind.session,
+        rows,
+        "",
+      );
+      expect(blankOrg.map((r) => r.metadata.id)).toEqual([
+        "ses_a",
+        "ses_b",
+        "ses_c",
+      ]);
+      // A fresh array either way, as every arm of the helper returns.
+      expect(blankOrg).not.toBe(rows);
+    });
+
+    it("the rule is class-only: a caller propagated through the in-process transport keeps its class and is still narrowed", async () => {
+      const propagated = testCallerIdentity({
+        identityId: "alice",
+        callerClass: "user",
+        origin: "in-process",
+      });
+      const kept = await restrictListByReadScope(
+        scopeKeeping(["ses_c"]),
+        propagated,
+        ApiResourceKind.session,
+        rows,
+        "",
+      );
+      expect(kept.map((r) => r.metadata.id)).toEqual(["ses_c"]);
+    });
   });
 
   it("an empty kept set is a real answer — the empty list", async () => {

@@ -17,7 +17,9 @@
  * org-observable reaches the organization's viewers; a memory with no
  * subject is nobody's; an instance reaches whoever reads its blueprint
  * only when it is the default. Then the contract: a scope only narrows
- * and never reorders; the `internal` class is the in-process skip; an
+ * and never reorders; the `internal` class is the in-process skip on the
+ * enumeration verb and a loud consumer bug on the restrict verb (the
+ * shared helper answers the class before any driver, stigmer#1207); an
  * unprovisioned subject is their raw subject (the 3.14 verifiers' stamp); a
  * fault throws and is never an empty answer; an undeclared kind is a
  * consumer bug, loud; the enumeration verb equals the restrict verb over
@@ -583,17 +585,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(accountReads).toBe(0);
           });
 
-          it("the `internal` class — the server acting as itself — keeps every offered id and enumerates every id of the kind: the in-process authorization skip, with no account even asked for", async () => {
-            const offered = rowsOf(ApiResourceKind.agent).map((row) =>
-              entryOf(ApiResourceKind.agent, row),
-            );
-            expect([
-              ...(await scope().restrictListEntries(
-                INTERNAL,
-                ApiResourceKind.agent,
-                offered,
-              )),
-            ]).toEqual(offered.map((entry) => entry.id));
+          it("the `internal` class on the enumeration verb — the server acting as itself — is every id of the kind, with no account even asked for (the in-process skip; no helper stands before this verb)", async () => {
             expect(
               [
                 ...(await scope().authorizedResourceIds(
@@ -603,6 +595,25 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               ].sort(),
             ).toEqual(["ses_founder", "ses_member"]);
             expect(accountReads).toBe(0);
+          });
+
+          it("the `internal` class on the restrict verb is a consumer bug, loud: the shared helper answers that class before any driver, so a driver offered it was reached around the idiom", async () => {
+            const offered = rowsOf(ApiResourceKind.agent).map((row) =>
+              entryOf(ApiResourceKind.agent, row),
+            );
+            const refusal = await scope()
+              .restrictListEntries(INTERNAL, ApiResourceKind.agent, offered)
+              .then(
+                () => undefined,
+                (error: unknown) => error,
+              );
+            expect(refusal).toBeInstanceOf(AuthorizationEvaluationError);
+            expect((refusal as AuthorizationEvaluationError).reason).toBe(
+              "internal-caller-offered",
+            );
+            // Refused before any read: the server was never evaluated as a person.
+            expect(accountReads).toBe(0);
+            expect(storeReads).toEqual({ rows: 0, scans: 0 });
           });
 
           it("an unprovisioned subject is their raw subject and nothing else: the 3.14-stamped row is theirs, the organization's rows are not", async () => {
