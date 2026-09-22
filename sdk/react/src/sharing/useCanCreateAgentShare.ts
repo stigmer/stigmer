@@ -1,38 +1,33 @@
 "use client";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 
 /** Return value of {@link useCanCreateAgentShare}. */
 export interface UseCanCreateAgentShareReturn {
-  /** Whether the viewer may create a share of this agent in `shareOrg`. */
+  /** Whether the viewer may create a share of this agent. */
   readonly allowed: boolean;
-  /**
-   * The org that would own the new share — the viewer's org when set,
-   * else the agent's own. The share's URL, billing, and credential
-   * bindings all belong to this org.
-   */
-  readonly shareOrg: string;
-  /** Whether creating in `shareOrg` would be a cross-org share (decision 013). */
-  readonly isCrossOrg: boolean;
 }
 
 /**
  * Mirrors the server's AgentShare create bar so create affordances never
- * appear to a user whose create would be refused:
+ * appear to a user whose create would be refused.
  *
- * - **Same-org** (`shareOrg` equals the agent's org): agent `can_edit` —
- *   the exact permission the create/apply handlers enforce on the
- *   referenced agent.
- * - **Cross-org** (decision 013 D2, two-sided): the agent must be
- *   `visibility_public` — the origin org's implicit consent (D1), and
- *   the client-side proxy for the `can_execute`-via-`allow_public` half
- *   of the bar — and the viewer must hold `can_create_agent_share` in
- *   their own org (admin-level: a public share spends that org's credits
- *   on the open internet). The org check uses the org slug as the
- *   resource id — an Organization's id equals its slug
+ * A share lives in its agent's organization (to share another
+ * organization's agent, install the plugin that carries it and share the
+ * installed copy), and creating one asks two questions of that
+ * organization, both of which the create handler enforces:
+ *
+ * - `can_edit` on the agent — the share is a channel to this agent.
+ * - `can_create_agent_share` on the organization (admin by default) — a
+ *   share spends the organization's credits with anyone on the internet,
+ *   so it is an admin-level decision. The org check uses the org slug as
+ *   the resource id — an Organization's id equals its slug
  *   (ApiResourceMetadata.id).
+ *
+ * A viewer from another organization looking at a platform-visible agent
+ * needs no special case: both checks answer false for them, so the
+ * affordance hides on permissions alone.
  *
  * On the open-source edition the answer follows the server's posture. A
  * server without sign-in has the permissive single-team authorizer and
@@ -43,34 +38,22 @@ export interface UseCanCreateAgentShareReturn {
  * Pass `null` for `agent` while it loads — `allowed` stays `false` so
  * no affordance flashes before the gate can be evaluated.
  *
- * @param agent      The agent to share, or `null` while loading.
- * @param viewerOrg  The viewer's active org. Empty/omitted means the
- *                   agent's own org (the same-org owner flow).
+ * @param agent  The agent to share, or `null` while loading.
  */
 export function useCanCreateAgentShare(
   agent: Agent | null,
-  viewerOrg?: string,
 ): UseCanCreateAgentShareReturn {
   const agentId = agent?.metadata?.id ?? "";
   const agentOrg = agent?.metadata?.org ?? "";
-  const shareOrg = viewerOrg || agentOrg;
-  const isCrossOrg = shareOrg !== "" && shareOrg !== agentOrg;
-  const isPublic =
-    agent?.metadata?.visibility === ApiResourceVisibility.visibility_public;
 
-  // Both permission checks are declared unconditionally (hook rules);
-  // each skips its RPC (null resource) when its branch doesn't apply.
   const { allowed: canEditAgent } = useCheckPermission(
-    !isCrossOrg && agentId ? { kind: "agent", id: agentId } : null,
+    agentId ? { kind: "agent", id: agentId } : null,
     "can_edit",
   );
   const { allowed: canCreateInOrg } = useCheckPermission(
-    isCrossOrg && isPublic ? { kind: "organization", id: shareOrg } : null,
+    agentOrg ? { kind: "organization", id: agentOrg } : null,
     "can_create_agent_share",
   );
 
-  const allowed =
-    !!agent && (isCrossOrg ? isPublic && canCreateInOrg : canEditAgent);
-
-  return { allowed, shareOrg, isCrossOrg };
+  return { allowed: !!agent && canEditAgent && canCreateInOrg };
 }

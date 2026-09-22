@@ -217,31 +217,31 @@ describe("useSaveAgentShare", () => {
     expect(second.audience).toBe(AgentShareAudience.org);
   });
 
-  describe("cross-org create identity (shareOrg — decision 013)", () => {
-    it("a first save lands the share in the sharing org, agent_ref stays the agent's", async () => {
+  describe("create identity", () => {
+    it("a first save lands the share in the agent's own organization", async () => {
       const apply = vi.fn().mockResolvedValue({});
       const client = createMockStigmer({ apply });
 
-      const { result } = renderHook(
-        () => useSaveAgentShare(AGENT, "consumer-org"),
-        { wrapper: wrapper(client) },
-      );
+      const { result } = renderHook(() => useSaveAgentShare(AGENT), {
+        wrapper: wrapper(client),
+      });
 
       await act(() => result.current.save(FULL_DRAFT, null));
 
       const input = apply.mock.calls[0][0] as AgentShareInput;
-      // The share is the sharing org's resource (its URL, billing, and
-      // credentials), while agent_ref keeps pointing at the provider's
-      // blueprint — the whole point of a cross-org share.
-      expect(input.org).toBe("consumer-org");
+      // The share is the agent organization's resource (its URL, billing
+      // and credentials) and agent_ref points at that organization's agent.
+      expect(input.org).toBe("acme");
       expect(input.slug).toBe("support-agent");
       expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
     });
 
-    it("editing an existing cross-org share keeps ITS identity, not the hook argument's", async () => {
+    it("editing an existing share keeps ITS identity, whatever organization it was written in", async () => {
+      // A share written before sharing across organizations was retired
+      // may live in another organization; an edit must not re-home it.
       const apply = vi.fn().mockResolvedValue({});
       const client = createMockStigmer({ apply });
-      const externalShare = {
+      const legacyShare = {
         metadata: {
           id: "ash_ext",
           org: "consumer-org",
@@ -251,12 +251,11 @@ describe("useSaveAgentShare", () => {
         spec: { enabled: true },
       } as AgentShare;
 
-      const { result } = renderHook(
-        () => useSaveAgentShare(AGENT, "consumer-org"),
-        { wrapper: wrapper(client) },
-      );
+      const { result } = renderHook(() => useSaveAgentShare(AGENT), {
+        wrapper: wrapper(client),
+      });
 
-      await act(() => result.current.save(FULL_DRAFT, externalShare));
+      await act(() => result.current.save(FULL_DRAFT, legacyShare));
 
       const input = apply.mock.calls[0][0] as AgentShareInput;
       expect(input.org).toBe("consumer-org");

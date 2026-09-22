@@ -14,15 +14,15 @@ channels carrying its hosted-chat configuration (audience, allowed
 origins, visitor messages, tool credentials, link token).
 
 Sharing is channel configuration, not agent behavior (decision 011):
-an agent can carry N shares, each with its own URL, billing org, and
-credentials (decision 011 D3 + decision 013 cross-org shares).
+an agent can carry N shares, each with its own URL, audience and
+credentials (decision 011 D3), all in the agent's own organization.
 
 Pass `org` to scope the list to one organization's channels — the
-org-context view a console tab needs. Permissions alone cannot provide
-this scope: a member of several orgs can view all of their orgs'
-channels of the agent, so the unscoped list merges them. The server
+agent's organization is the one a console tab asks for. The server
 applies the scope (it only ever narrows the permission-bounded view);
-omit `org` for the full permission-bounded list.
+omit `org` for the full permission-bounded list, which for a member of
+several organizations may also carry shares written before sharing
+across organizations was retired.
 
 Pass an empty `agentId` to skip fetching (stable no-op) — useful
 while the agent is still loading.
@@ -63,19 +63,23 @@ const { shares, isLoading, refetch } = useAgentShares(
 ### useCanCreateAgentShare
 
 Mirrors the server's AgentShare create bar so create affordances never
-appear to a user whose create would be refused:
+appear to a user whose create would be refused.
 
-- **Same-org** (`shareOrg` equals the agent's org): agent `can_edit` —
-  the exact permission the create/apply handlers enforce on the
-  referenced agent.
-- **Cross-org** (decision 013 D2, two-sided): the agent must be
-  `visibility_public` — the origin org's implicit consent (D1), and
-  the client-side proxy for the `can_execute`-via-`allow_public` half
-  of the bar — and the viewer must hold `can_create_agent_share` in
-  their own org (admin-level: a public share spends that org's credits
-  on the open internet). The org check uses the org slug as the
-  resource id — an Organization's id equals its slug
+A share lives in its agent's organization (to share another
+organization's agent, install the plugin that carries it and share the
+installed copy), and creating one asks two questions of that
+organization, both of which the create handler enforces:
+
+- `can_edit` on the agent — the share is a channel to this agent.
+- `can_create_agent_share` on the organization (admin by default) — a
+  share spends the organization's credits with anyone on the internet,
+  so it is an admin-level decision. The org check uses the org slug as
+  the resource id — an Organization's id equals its slug
   (ApiResourceMetadata.id).
+
+A viewer from another organization looking at a platform-visible agent
+needs no special case: both checks answer false for them, so the
+affordance hides on permissions alone.
 
 On the open-source edition the answer follows the server's posture. A
 server without sign-in has the permissive single-team authorizer and
@@ -89,13 +93,12 @@ no affordance flashes before the gate can be evaluated.
 **Signature**
 
 ```tsx
-function useCanCreateAgentShare(agent: Agent | null, viewerOrg?: string): UseCanCreateAgentShareReturn
+function useCanCreateAgentShare(agent: Agent | null): UseCanCreateAgentShareReturn
 ```
 
 <TypeTable
   type={{
     agent: { type: "Agent | null", description: "The agent to share, or `null` while loading.", required: true },
-    viewerOrg: { type: "string", description: "The viewer's active org. Empty/omitted means the                   agent's own org (the same-org owner flow)." },
   }}
 />
 
@@ -103,9 +106,7 @@ function useCanCreateAgentShare(agent: Agent | null, viewerOrg?: string): UseCan
 
 <TypeTable
   type={{
-    allowed: { type: "boolean", description: "Whether the viewer may create a share of this agent in `shareOrg`." },
-    isCrossOrg: { type: "boolean", description: "Whether creating in `shareOrg` would be a cross-org share (decision 013)." },
-    shareOrg: { type: "string", description: "The org that would own the new share — the viewer's org when set, else the agent's own. The share's URL, billing, and credential bindings all belong to this org." },
+    allowed: { type: "boolean", description: "Whether the viewer may create a share of this agent." },
   }}
 />
 
@@ -205,8 +206,9 @@ Behavior hook that persists an agent share's configuration.
 
 Commits via `stigmer.agentShare.apply()` — an idempotent upsert keyed
 on the share's `(org, slug)` identity — so one code path serves both
-creation (the server authorizes on the referenced agent's `can_edit`)
-and every later edit. There is deliberately no create/update
+creation (the server authorizes on the referenced agent's `can_edit`
+and the organization's `can_create_agent_share`) and every later
+edit. There is deliberately no create/update
 branching: the share slug is unique per org, which makes
 apply-by-identity exact, and the generated `AgentShareInput` carries
 no `metadata.id` for an update to route by anyway. A create that
@@ -217,11 +219,11 @@ Disabling is a save with `enabled: false` — a config-preserving pause
 (decision 011 D1). Deleting the share is a separate, destructive
 operation ([`useDeleteAgentShare`](#usedeleteagentshare)).
 
-`shareOrg` selects which org owns a created share and defaults to the
-agent's own org. Pass the viewer's org to create a **cross-org
-share** (decision 013) — the server then authorizes on the public
-agent's `can_execute` plus `can_create_agent_share` in the sharing
-org, and bills that org.
+A created share lives in the agent's own organization: the share's URL,
+billing and credential bindings all belong to the organization that
+owns the agent, and the server refuses an `agent_ref` in any other. To
+share another organization's agent, install the plugin that carries it
+and share the installed copy.
 
 Pass `null` for `agent` to produce a stable no-op (useful while the
 agent is still loading).
@@ -229,13 +231,12 @@ agent is still loading).
 **Signature**
 
 ```tsx
-function useSaveAgentShare(agent: Agent | null, shareOrg?: string): UseSaveAgentShareReturn
+function useSaveAgentShare(agent: Agent | null): UseSaveAgentShareReturn
 ```
 
 <TypeTable
   type={{
     agent: { type: "Agent | null", description: "", required: true },
-    shareOrg: { type: "string", description: "" },
   }}
 />
 
@@ -360,15 +361,13 @@ Management surface for an agent's `AgentShare` channels — the
 agent analog of [`AgentInstanceList`](/docs/sdk/react/agent-instance#agentinstancelist), rendered in the agent
 detail view's Shares tab.
 
-Lists the viewer's active org's channels of the agent: `viewerOrg`
-scopes the `getByAgent` call server-side, so a member of several orgs
-sees exactly the current org context's channels — never a merged list
-of every org's (decision 013 amendment). Per-row actions: copy link,
-edit, pause/resume, reset link, delete. Creation goes through the same
-[`ShareAgentDialog`](#shareagentdialog) and always lands in the viewer's active org;
-the create bar mirrors the server's via
-[`useCanCreateAgentShare`](#usecancreateagentshare), so the button never appears to a user
-whose create would be refused.
+Lists the agent's organization's channels of the agent: a share lives
+in its agent's organization, so that org scopes the `getByAgent` call
+server-side. Per-row actions: copy link, edit, pause/resume, reset
+link, delete. Creation goes through the same [`ShareAgentDialog`](#shareagentdialog)
+and lands in the agent's organization; the create bar mirrors the
+server's via [`useCanCreateAgentShare`](#usecancreateagentshare), so the button never
+appears to a user whose create would be refused.
 
 Self-contained: owns its dialog, its confirmation prompts, and its
 refetch-after-mutation — hosts render it with just the agent and the
@@ -383,7 +382,6 @@ This is an SDK component (DD-001) — embeddable by platform builders.
     agent: { type: "Agent", description: "The agent whose shares are managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
     buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for a share. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, links fall back to the relative `/chat/<org>/<slug>`." },
     className: { type: "string", description: "Additional CSS class names." },
-    viewerOrg: { type: "string", description: "The viewer's active organization slug. Scopes the list to this org's channels of the agent, and a share created from this list lands in this org — its URL, billing, and credentials belong to it (a **cross-org share** when it differs from the agent's org, decision 013). Omit to default to the agent's own org." },
   }}
 />
 
@@ -428,8 +426,7 @@ Render it directly only when you own the open-state.
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
     onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the share list's `refetch`." },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
-    share: { type: "AgentShare | null", description: "The exact share to edit. When omitted, the dialog opens in **create mode**: a name/slug step creates a new share in `shareOrg`, then the dialog becomes its editor. The share's identity is immutable once created (decision 011 D2) — edit mode never renames." },
-    shareOrg: { type: "string", description: "The org that owns (and pays for) a share created by this dialog. Defaults to the agent's own org — the owner's channel. Pass the viewer's org to create a **cross-org share** of another org's marketplace-public agent (decision 013): the share, its billing, its credentials, and its hosted URL all belong to this org, while the agent stays live in its own. Cross-org shares are public-audience only, so the audience selector is hidden in that mode. Ignored in edit mode — an existing share knows its org." },
+    share: { type: "AgentShare | null", description: "The exact share to edit. When omitted, the dialog opens in **create mode**: a name/slug step creates a new share in the agent's own organization (its URL, billing and credentials belong to that organization), then the dialog becomes its editor. The share's identity is immutable once created (decision 011 D2) — edit mode never renames." },
   }}
 />
 
