@@ -41,6 +41,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { LicenseCommandController } from "@stigmer/protos/ai/stigmer/billing/license/v1/command_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -73,8 +74,10 @@ import {
   MintingDisabledError,
   newAgentExecutionTemporalConfigFromEnv,
   newAuthorizeStep,
+  newBuildNewStateStep,
   newModelCatalogProviderFromDocument,
   newPipeline,
+  newResolveSlugStep,
   newR2ArtifactStorage,
   newValidateProtoStep,
   newWorkflowExecutionConfigFromEnv,
@@ -784,6 +787,42 @@ const registerBillingService = (router: ConnectRouter): void => {
 };
 
 /**
+ * A consumer-served CREATE of an envelope kind this server has no
+ * controller for (a cloud_only kind): the chain runs the exported
+ * ResolveSlug and BuildNewState between ValidateProto and the consumer's
+ * own persistence, with the RequestContext carrying the kind so the id
+ * prefix comes from the kind's proto meta. The slug derivation, the id
+ * spelling, the audit stamp and the visibility default are therefore the
+ * OSS steps' own, never a consumer copy; CheckDuplicate stays the
+ * consumer's (it reads the consumer's table).
+ */
+const registerLicenseService = (router: ConnectRouter): void => {
+  const method = LicenseCommandController.method.create;
+  router.service(LicenseCommandController, {
+    create: async (input, ctx) => {
+      const reqCtx = new RequestContext(
+        method.input,
+        input,
+        callerIdentityOf(ctx),
+        ApiResourceKind.license,
+      );
+      await newPipeline<typeof method.input>(
+        "consumer-license-create",
+        createLogger({ level: "error", pretty: false }),
+      )
+        .addStep(newAuthorizeStep(method, authorizer))
+        .addStep(newValidateProtoStep())
+        .addStep(newResolveSlugStep())
+        .addStep(newBuildNewStateStep())
+        .build()
+        .execute(reqCtx);
+      // The shaped envelope: minted id, derived slug, stamped audit.
+      return reqCtx.newState;
+    },
+  });
+};
+
+/**
  * A consumer tuple-lifecycle driver (the C2 seam, ruling Q2) — receives
  * fully-resolved events; the tuple writes are the consumer's own.
  */
@@ -926,7 +965,7 @@ export const fakeExtension: ServerExtension = {
     // owns no copy of the address ranges.
     outboundEgress: consumerOutboundEgress,
   },
-  services: [registerBillingService],
+  services: [registerBillingService, registerLicenseService],
   workers: [workerFactory],
 };
 
