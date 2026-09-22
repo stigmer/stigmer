@@ -131,8 +131,10 @@ function agentInput(overrides?: {
 }
 
 /**
- * Seeds an MCP server straight into the store — the mcpserver controller
- * arrives with sub-project #9, and the agent pipelines only need the row.
+ * Seeds an MCP server straight into the store — the agent pipelines only
+ * need the row. Org-visible, the level the mcpserver create chain would
+ * have stamped: an org-visible agent may reference it under the reference
+ * floor, as it would a server created through the API.
  */
 async function seedMcpServer(opts: {
   id: string;
@@ -155,6 +157,7 @@ async function seedMcpServer(opts: {
       name: opts.slug,
       slug: opts.slug,
       org: opts.org ?? ORG,
+      visibility: ApiResourceVisibility.visibility_org,
     },
     spec: { env: opts.env ?? {} },
     status: connected

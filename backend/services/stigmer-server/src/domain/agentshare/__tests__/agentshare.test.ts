@@ -35,6 +35,7 @@ import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -51,7 +52,11 @@ import {
 } from "../constants.js";
 import { findShareByOrgAndSlug, sharingLinkTokenAllowed } from "../steps.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 
@@ -68,7 +73,10 @@ let dir: string;
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "agentshare-domain-test-"));
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 7).toString("base64"));
-  vi.stubEnv("STIGMER_RUNNER_TOKEN_KEY", Buffer.alloc(32, 8).toString("base64"));
+  vi.stubEnv(
+    "STIGMER_RUNNER_TOKEN_KEY",
+    Buffer.alloc(32, 8).toString("base64"),
+  );
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -142,7 +150,12 @@ async function saveSkill(
     kind: "Skill",
     metadata: { id, name: slug, slug, org, visibility },
   });
-  await server.store.saveResource(ApiResourceKind.skill, id, SkillSchema, skill);
+  await server.store.saveResource(
+    ApiResourceKind.skill,
+    id,
+    SkillSchema,
+    skill,
+  );
 }
 
 /** Minimal canonical share: no slug, no name — both default from the agent. */
@@ -178,7 +191,10 @@ describe("agentshare create", () => {
   const ORG = "create-test-org";
 
   it("canonical share defaults slug and name from the agent; ash_ id; ref normalized", async () => {
-    const agent = await createTestAgent(uniqueName("Canonical Default Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Canonical Default Agent"),
+      ORG,
+    );
     const share = await shares.create(shareFor(agent, true));
 
     expect(share.metadata?.slug).toBe(agent.metadata!.slug);
@@ -203,9 +219,15 @@ describe("agentshare create", () => {
   });
 
   it("cross-org ref to a nonexistent agent is NOT_FOUND — no cross-org fallback", async () => {
-    const agent = await createTestAgent(uniqueName("Cross Org Ghost Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Cross Org Ghost Agent"),
+      ORG,
+    );
     const share = shareFor(agent, true);
-    share.spec.agentRef = { ...share.spec.agentRef, org: "some-other-org" } as never;
+    share.spec.agentRef = {
+      ...share.spec.agentRef,
+      org: "some-other-org",
+    } as never;
 
     const err = await grpcError(() => shares.create(share));
     expect(err.code).toBe(Code.NotFound);
@@ -236,7 +258,10 @@ describe("agentshare create", () => {
   });
 
   it("second canonical share for the same agent is ALREADY_EXISTS", async () => {
-    const agent = await createTestAgent(uniqueName("Duplicate Share Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Duplicate Share Agent"),
+      ORG,
+    );
     await shares.create(shareFor(agent, true));
 
     const err = await grpcError(() => shares.create(shareFor(agent, true)));
@@ -248,7 +273,8 @@ describe("agentshare create", () => {
     await shares.create(shareFor(agent, true));
 
     const named = shareFor(agent, true);
-    (named.metadata as Record<string, string>).name = uniqueName("Docs Site Channel");
+    (named.metadata as Record<string, string>).name =
+      uniqueName("Docs Site Channel");
     const second = await shares.create(named);
     expect(second.metadata?.slug).not.toBe(agent.metadata!.slug);
   });
@@ -264,7 +290,10 @@ describe("launch-gate config", () => {
   const ORG = "launchgate-test-org";
 
   it("allowed_origins and messages persist and round-trip", async () => {
-    const agent = await createTestAgent(uniqueName("Launch Gate Config Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Launch Gate Config Agent"),
+      ORG,
+    );
     const created = await shares.create({
       ...shareFor(agent, true),
       spec: {
@@ -289,7 +318,10 @@ describe("launch-gate config", () => {
   });
 
   it("malformed origins are INVALID_ARGUMENT", async () => {
-    const agent = await createTestAgent(uniqueName("Origin Validation Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Origin Validation Agent"),
+      ORG,
+    );
     for (const origin of [
       "docs.example.com", // missing scheme
       "https://example.com/path", // path not allowed
@@ -308,7 +340,10 @@ describe("launch-gate config", () => {
   });
 
   it("overlong custom message is INVALID_ARGUMENT", async () => {
-    const agent = await createTestAgent(uniqueName("Message Length Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Message Length Agent"),
+      ORG,
+    );
     const err = await grpcError(() =>
       shares.create({
         ...shareFor(agent, true),
@@ -322,7 +357,27 @@ describe("launch-gate config", () => {
   });
 
   it("environment_refs on an org-audience share is INVALID_ARGUMENT; public persists", async () => {
-    const agent = await createTestAgent(uniqueName("Env Refs Audience Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Env Refs Audience Agent"),
+      ORG,
+    );
+    // The environment must exist when the share is written (the reference rule).
+    await server.store.saveResource(
+      ApiResourceKind.environment,
+      "env_shared_credentials",
+      EnvironmentSchema,
+      create(EnvironmentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Environment",
+        metadata: {
+          id: "env_shared_credentials",
+          name: "shared-credentials",
+          slug: "shared-credentials",
+          org: ORG,
+          visibility: ApiResourceVisibility.visibility_org,
+        },
+      }),
+    );
     const envRef = {
       kind: ApiResourceKind.environment,
       org: ORG,
@@ -378,8 +433,14 @@ describe("agentshare update", () => {
   });
 
   it("agent_ref is immutable — FAILED_PRECONDITION with the pinned copy", async () => {
-    const agentA = await createTestAgent(uniqueName("Immutable Ref Agent A"), ORG);
-    const agentB = await createTestAgent(uniqueName("Immutable Ref Agent B"), ORG);
+    const agentA = await createTestAgent(
+      uniqueName("Immutable Ref Agent A"),
+      ORG,
+    );
+    const agentB = await createTestAgent(
+      uniqueName("Immutable Ref Agent B"),
+      ORG,
+    );
     const created = await shares.create(shareFor(agentA, true));
 
     created.spec!.agentRef = create(ApiResourceReferenceSchema, {
@@ -404,12 +465,18 @@ describe("cross-org shares (decision 013)", () => {
   function crossOrgShare(agent: Agent, enabled: boolean) {
     const share = shareFor(agent, enabled);
     share.metadata.org = CONSUMER;
-    share.spec.agentRef = { ...share.spec.agentRef, org: agent.metadata!.org } as never;
+    share.spec.agentRef = {
+      ...share.spec.agentRef,
+      org: agent.metadata!.org,
+    } as never;
     return share;
   }
 
   it("public agent is shareable cross-org: pin stamped, slug defaulted, profile resolves", async () => {
-    const agent = await createTestAgent(uniqueName("Public Provider Agent"), PROVIDER);
+    const agent = await createTestAgent(
+      uniqueName("Public Provider Agent"),
+      PROVIDER,
+    );
     await makeAgentPublic(agent);
 
     const created = await shares.create(crossOrgShare(agent, true));
@@ -427,25 +494,37 @@ describe("cross-org shares (decision 013)", () => {
   });
 
   it("non-public agent is NOT_FOUND, indistinguishable from absence", async () => {
-    const agent = await createTestAgent(uniqueName("Private Provider Agent"), PROVIDER);
+    const agent = await createTestAgent(
+      uniqueName("Private Provider Agent"),
+      PROVIDER,
+    );
 
-    const err = await grpcError(() => shares.create(crossOrgShare(agent, true)));
+    const err = await grpcError(() =>
+      shares.create(crossOrgShare(agent, true)),
+    );
     expect(err.code).toBe(Code.NotFound);
 
     // The refusal must match a genuinely missing agent — no existence
     // probe for private slugs (the T09 indistinguishability contract).
     const ghost = crossOrgShare(agent, true);
-    ghost.spec.agentRef = { ...ghost.spec.agentRef, org: "empty-provider-org" } as never;
+    ghost.spec.agentRef = {
+      ...ghost.spec.agentRef,
+      org: "empty-provider-org",
+    } as never;
     const ghostErr = await grpcError(() => shares.create(ghost));
     expect(err.rawMessage).toBe(ghostErr.rawMessage);
   });
 
   it("org audience is refused cross-org, on create and on update", async () => {
-    const agent = await createTestAgent(uniqueName("Audience Rule Agent"), PROVIDER);
+    const agent = await createTestAgent(
+      uniqueName("Audience Rule Agent"),
+      PROVIDER,
+    );
     await makeAgentPublic(agent);
 
     const orgAudience = crossOrgShare(agent, true);
-    (orgAudience.spec as Record<string, unknown>).audience = AgentShareAudience.org;
+    (orgAudience.spec as Record<string, unknown>).audience =
+      AgentShareAudience.org;
     const createErr = await grpcError(() => shares.create(orgAudience));
     expect(createErr.code).toBe(Code.FailedPrecondition);
     expect(createErr.rawMessage).toBe(crossOrgAudienceMessage(PROVIDER));
@@ -485,7 +564,9 @@ describe("cross-org shares (decision 013)", () => {
     });
     await makeAgentPublic(agent);
 
-    const err = await grpcError(() => shares.create(crossOrgShare(agent, true)));
+    const err = await grpcError(() =>
+      shares.create(crossOrgShare(agent, true)),
+    );
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toContain("provider-org/private-skill");
     expect(err.rawMessage).not.toContain("public-skill");
@@ -496,7 +577,10 @@ describe("cross-org shares (decision 013)", () => {
   });
 
   it("visibility flip fails the profile closed", async () => {
-    const agent = await createTestAgent(uniqueName("Revocable Agent"), PROVIDER);
+    const agent = await createTestAgent(
+      uniqueName("Revocable Agent"),
+      PROVIDER,
+    );
     await makeAgentPublic(agent);
     const created = await shares.create(crossOrgShare(agent, true));
 
@@ -548,13 +632,18 @@ describe("getSharedProfile (anonymous lane)", () => {
   const ORG = "profile-test-org";
 
   it("uniform NotFound across no-share / disabled / deleted; enabled resolves trimmed", async () => {
-    const agent = await createTestAgent(uniqueName("Shared Profile Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Shared Profile Agent"),
+      ORG,
+    );
     const ref = { org: ORG, slug: agent.metadata!.slug };
 
     // No share yet.
     const noShareErr = await grpcError(() => query.getSharedProfile(ref));
     expect(noShareErr.code).toBe(Code.NotFound);
-    expect(noShareErr.rawMessage).toBe(`Agent not found: ${agent.metadata!.slug}`);
+    expect(noShareErr.rawMessage).toBe(
+      `Agent not found: ${agent.metadata!.slug}`,
+    );
 
     // Enabled share resolves to the trimmed profile — display fields from
     // the AGENT, URL identity from the SHARE, never the full Agent.
@@ -609,7 +698,10 @@ describe("audience and the member resolution lane", () => {
   const ORG = "audience-test-org";
 
   it("audience persists and round-trips", async () => {
-    const agent = await createTestAgent(uniqueName("Audience Round Trip Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Audience Round Trip Agent"),
+      ORG,
+    );
     const created = await shares.create({
       ...shareFor(agent, true),
       spec: { ...shareFor(agent, true).spec, audience: AgentShareAudience.org },
@@ -621,10 +713,15 @@ describe("audience and the member resolution lane", () => {
   });
 
   it("member path resolves shares in either audience (OSS: membership always holds)", async () => {
-    const agent = await createTestAgent(uniqueName("Member Resolution Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Member Resolution Agent"),
+      ORG,
+    );
     const ref = { org: ORG, slug: agent.metadata!.slug };
 
-    const noShareErr = await grpcError(() => query.getSharedProfileForMember(ref));
+    const noShareErr = await grpcError(() =>
+      query.getSharedProfileForMember(ref),
+    );
     expect(noShareErr.code).toBe(Code.NotFound);
 
     await shares.create({
@@ -637,7 +734,10 @@ describe("audience and the member resolution lane", () => {
   });
 
   it("the ANONYMOUS path collapses an org-audience share to the uniform NotFound (C2 close-out — the proto's audience contract)", async () => {
-    const agent = await createTestAgent(uniqueName("Org Audience Anon Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Org Audience Anon Agent"),
+      ORG,
+    );
     await shares.create({
       ...shareFor(agent, true),
       spec: { ...shareFor(agent, true).spec, audience: AgentShareAudience.org },
@@ -706,7 +806,9 @@ describe("rotateShareLink", () => {
 
     // Capture the no-share NOT_FOUND before creating — the locked-link
     // refusal must be byte-identical to it.
-    const noShareErr = await grpcError(() => query.getSharedProfile(request("")));
+    const noShareErr = await grpcError(() =>
+      query.getSharedProfile(request("")),
+    );
 
     const share = await shares.create(shareFor(agent, true));
 
@@ -714,23 +816,31 @@ describe("rotateShareLink", () => {
     await query.getSharedProfile(request("stray-token"));
 
     // Rotation locks the link: 27 url-safe chars, status-resident.
-    const rotated = await shares.rotateShareLink({ resourceId: share.metadata!.id });
+    const rotated = await shares.rotateShareLink({
+      resourceId: share.metadata!.id,
+    });
     const firstToken = rotated.status?.shareLinkToken ?? "";
     expect(firstToken).toHaveLength(27);
     expect(firstToken).toMatch(/^[A-Za-z0-9_-]+$/);
 
-    const lockedErr = await grpcError(() => query.getSharedProfile(request("")));
+    const lockedErr = await grpcError(() =>
+      query.getSharedProfile(request("")),
+    );
     expect(lockedErr.code).toBe(Code.NotFound);
     expect(lockedErr.rawMessage).toBe(noShareErr.rawMessage);
 
     await query.getSharedProfile(request(firstToken));
 
     // Re-rotation kills the previous token.
-    const reRotated = await shares.rotateShareLink({ resourceId: share.metadata!.id });
+    const reRotated = await shares.rotateShareLink({
+      resourceId: share.metadata!.id,
+    });
     const secondToken = reRotated.status?.shareLinkToken ?? "";
     expect(secondToken).not.toBe(firstToken);
 
-    const deadErr = await grpcError(() => query.getSharedProfile(request(firstToken)));
+    const deadErr = await grpcError(() =>
+      query.getSharedProfile(request(firstToken)),
+    );
     expect(deadErr.code).toBe(Code.NotFound);
     await query.getSharedProfile(request(secondToken));
 
@@ -757,7 +867,10 @@ describe("rotateShareLink", () => {
   });
 
   it("member path stays open for org-audience shares even when a token exists", async () => {
-    const agent = await createTestAgent(uniqueName("Org Audience Rotate Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Org Audience Rotate Agent"),
+      ORG,
+    );
     const created = await shares.create({
       ...shareFor(agent, true),
       spec: { ...shareFor(agent, true).spec, audience: AgentShareAudience.org },
@@ -778,11 +891,15 @@ describe("rotateShareLink", () => {
 
 describe("getByAgent", () => {
   it("finds the canonical share and a renamed share", async () => {
-    const agent = await createTestAgent(uniqueName("Get By Agent Agent"), "gba-org");
+    const agent = await createTestAgent(
+      uniqueName("Get By Agent Agent"),
+      "gba-org",
+    );
     const canonical = await shares.create(shareFor(agent, true));
 
     const renamed = shareFor(agent, true);
-    (renamed.metadata as Record<string, string>).name = uniqueName("Renamed Channel");
+    (renamed.metadata as Record<string, string>).name =
+      uniqueName("Renamed Channel");
     const second = await shares.create(renamed);
 
     const list = await query.getByAgent({ agentId: agent.metadata!.id });
@@ -820,7 +937,10 @@ describe("getByAgent", () => {
       { org: "gba-bystander-org", want: 0, wantOrg: "" },
     ];
     for (const tt of cases) {
-      const list = await query.getByAgent({ agentId: agent.metadata!.id, org: tt.org });
+      const list = await query.getByAgent({
+        agentId: agent.metadata!.id,
+        org: tt.org,
+      });
       expect(list.totalCount, `org ${tt.org}`).toBe(tt.want);
       for (const item of list.items) {
         if (tt.wantOrg !== "") {
@@ -848,7 +968,9 @@ describe("apply semantics", () => {
     expect(created.metadata?.id).not.toBe("");
 
     const again = shareFor(agent, true);
-    (again.spec as Record<string, unknown>).allowedOrigins = ["https://docs.example.com"];
+    (again.spec as Record<string, unknown>).allowedOrigins = [
+      "https://docs.example.com",
+    ];
     const updated = await shares.apply(again);
     expect(updated.metadata?.id).toBe(created.metadata!.id);
     expect(updated.spec?.allowedOrigins).toHaveLength(1);

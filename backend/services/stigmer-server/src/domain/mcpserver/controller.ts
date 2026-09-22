@@ -88,7 +88,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -243,6 +246,7 @@ async function createMcpServer(
     .addStep(newCompleteEndpointAuthStep(endpointAuthDeps(deps)))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -295,6 +299,7 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateDefaultEnabledToolsStep())
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(deps.store, mcpServerSearchExtractor, deps.logger),

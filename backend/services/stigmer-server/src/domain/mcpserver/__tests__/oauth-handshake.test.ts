@@ -41,7 +41,11 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const REDIRECT_URI = "http://127.0.0.1:8234/auth/oauth/callback";
 const ORG = "acme";
@@ -368,20 +372,30 @@ describe("initiateOAuthConnect", () => {
       "OAuth sign-in is unavailable: the platform's OAuth app for 'exampleco' is pending approval by the vendor. This server only accepts OAuth sign-in; an org admin can configure your own OAuth app instead.",
     ],
   ];
-  it.each(refusals)("vendor arm refuses %s", async (_label, status, oauthOnly, copy) => {
-    const slug = `vendor-${status}-${oauthOnly ? "only" : "manual"}`;
-    await seedOAuthApp(slug, status);
-    const id = await applyServer({ vendorSlug: slug, oauthOnly });
-    const error = await expectCode(
-      command.initiateOAuthConnect({ mcpServerId: id, org: ORG }),
-      Code.FailedPrecondition,
-      copy,
-    );
-    expect(error.rawMessage).toBe(copy);
-  });
+  it.each(refusals)(
+    "vendor arm refuses %s",
+    async (_label, status, oauthOnly, copy) => {
+      const slug = `vendor-${status}-${oauthOnly ? "only" : "manual"}`;
+      await seedOAuthApp(slug, status);
+      const id = await applyServer({ vendorSlug: slug, oauthOnly });
+      const error = await expectCode(
+        command.initiateOAuthConnect({ mcpServerId: id, org: ORG }),
+        Code.FailedPrecondition,
+        copy,
+      );
+      expect(error.rawMessage).toBe(copy);
+    },
+  );
 
   it("vendor arm answers NotFound for an unresolvable oauth_app_ref", async () => {
+    // The app must exist when the server is written (the reference rule);
+    // the reference becomes unresolvable when its target leaves afterwards.
+    await seedOAuthApp("no-such-app", VendorApprovalStatus.APPROVED);
     const id = await applyServer({ vendorSlug: "no-such-app" });
+    await server.store.deleteResource(
+      ApiResourceKind.oauth_app,
+      "oap_no-such-app",
+    );
     await expectCode(
       command.initiateOAuthConnect({ mcpServerId: id, org: ORG }),
       Code.NotFound,
@@ -406,17 +420,29 @@ describe("initiateOAuthConnect", () => {
 describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", () => {
   it("guards its inputs (proto rules answer first, exactly as on Go)", async () => {
     await expectCode(
-      command.completeOAuthConnect({ mcpServerId: "", state: "s", authorizationCode: "c" }),
+      command.completeOAuthConnect({
+        mcpServerId: "",
+        state: "s",
+        authorizationCode: "c",
+      }),
       Code.InvalidArgument,
       "mcp_server_id: value is required [required]",
     );
     await expectCode(
-      command.completeOAuthConnect({ mcpServerId: "m", state: "", authorizationCode: "c" }),
+      command.completeOAuthConnect({
+        mcpServerId: "m",
+        state: "",
+        authorizationCode: "c",
+      }),
       Code.InvalidArgument,
       "state:",
     );
     await expectCode(
-      command.completeOAuthConnect({ mcpServerId: "m", state: "s", authorizationCode: "" }),
+      command.completeOAuthConnect({
+        mcpServerId: "m",
+        state: "s",
+        authorizationCode: "",
+      }),
       Code.InvalidArgument,
       "authorization_code:",
     );
@@ -500,7 +526,10 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
 
     // The grant is queryable and HEALTHY; the refresh-token env var is
     // stamped unconditionally (oss#863's precondition, ported as-is).
-    const status = await query.getOAuthGrantStatus({ resourceId: id, org: ORG });
+    const status = await query.getOAuthGrantStatus({
+      resourceId: id,
+      org: ORG,
+    });
     expect(status.connected).toBe(true);
     expect(status.targetEnvVar).toBe("EXAMPLE_TOKEN");
     expect(status.authMethod).toBe("mcp_oauth");
@@ -514,7 +543,10 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
     expect(firstEnvId).not.toBe("");
 
     // Re-connect reuses the managed environment.
-    const again = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
+    const again = await command.initiateOAuthConnect({
+      mcpServerId: id,
+      org: ORG,
+    });
     await command.completeOAuthConnect({
       mcpServerId: id,
       state: again.state,
@@ -525,7 +557,10 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
 
     // Disconnect tears down grant + environment; a second disconnect is
     // the idempotent no-grant arm.
-    const disconnected = await command.disconnectOAuth({ resourceId: id, org: ORG });
+    const disconnected = await command.disconnectOAuth({
+      resourceId: id,
+      org: ORG,
+    });
     expect(disconnected.disconnected).toBe(true);
     expect(await server.store.oauthGrants.find("", id, ORG)).toBeUndefined();
     const againDisconnected = await command.disconnectOAuth({

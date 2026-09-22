@@ -81,7 +81,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -194,6 +197,7 @@ async function createInstance(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -238,6 +242,7 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(deps.store, agentInstanceSearchExtractor, deps.logger),

@@ -105,7 +105,10 @@ function taskConstraintViolations(task: WorkflowTask): string[] {
  * task_config is a Struct again — that is what the walker's recursion is
  * for).
  */
-function configConstraintViolations(task: WorkflowTask, cfg: Message): string[] {
+function configConstraintViolations(
+  task: WorkflowTask,
+  cfg: Message,
+): string[] {
   const schema = taskConfigSchemaFor(task.kind);
   if (schema === undefined) {
     // Unknown kinds were already rejected by validateTaskKinds; an
@@ -129,9 +132,10 @@ function configConstraintViolations(task: WorkflowTask, cfg: Message): string[] 
  * The WorkflowTask lists embedded in a control-flow task config, in
  * declaration order — the same recursion set the converter walks
  * (convertForTask/convertForkTask/convertTryTask) and the cloud Java
- * TaskConfigStrictParser mirrors.
+ * TaskConfigStrictParser mirrors. Exported for the write-time reference
+ * collector (../agent-call-references.ts), which walks the same tree.
  */
-function nestedTasks(cfg: Message): WorkflowTask[] {
+export function nestedTasks(cfg: Message): WorkflowTask[] {
   switch (cfg.$typeName) {
     case ForTaskConfigSchema.typeName:
       return (cfg as ForTaskConfig).do;

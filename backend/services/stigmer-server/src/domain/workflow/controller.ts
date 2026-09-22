@@ -108,7 +108,11 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
+import { newValidateAgentCallReferencesStep } from "./agent-call-references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -236,6 +240,8 @@ async function createWorkflow(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateAgentCallReferencesStep(deps.store))
     .addStep(newPopulateServerlessValidationStep(deps.logger))
     .addStep(newComputeVersionHashStep(deps.logger))
     .addStep(newPopulateVersionHashStep(true))
@@ -300,6 +306,8 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateAgentCallReferencesStep(deps.store))
     .addStep(newPopulateServerlessValidationStepForUpdate(deps.logger))
     .addStep(newComputeVersionHashStep(deps.logger))
     .addStep(newCheckVersionChangedStep(deps.logger))

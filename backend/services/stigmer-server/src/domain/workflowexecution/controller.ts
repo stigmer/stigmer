@@ -72,7 +72,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -299,7 +302,8 @@ async function createExecution(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep());
+    .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store));
   // The ratified sandbox-acquisition gate slot (blueprint 03 §3a; C4):
   // the Java-verified capacity-gate position — after Authorize and every
   // resolution step (the default instance, like Java's, side-effects
@@ -389,6 +393,7 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(
