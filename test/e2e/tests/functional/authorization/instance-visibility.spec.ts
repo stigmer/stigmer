@@ -3,10 +3,10 @@ import { test, expect } from "@playwright/test";
 /**
  * Instance Visibility Tests
  *
- * Verifies the popover visibility selector (private/org/public) on instance
- * detail panels: the current-state chip opens a listbox of levels, an
- * Organization escalation shows the light inline confirm, and a Public
- * escalation opens the blocking confirm dialog.
+ * Verifies the popover visibility selector (private/org) on instance detail
+ * panels: the current-state chip opens a listbox of levels, an Organization
+ * escalation shows the light inline confirm, and the retired public level is
+ * offered nowhere.
  *
  * Prerequisites:
  * - Running against a Cloud-connected backend with FGA enabled
@@ -40,7 +40,7 @@ function visibilityTrigger(page: import("@playwright/test").Page) {
 }
 
 test.describe("Instance Visibility", () => {
-  test("opens a popover listing private, organization, public", async ({
+  test("opens a popover listing private and organization, never public", async ({
     page,
   }) => {
     if (!(await openFirstWorkflowInstances(page))) return;
@@ -55,7 +55,8 @@ test.describe("Instance Visibility", () => {
     await expect(
       listbox.getByRole("option", { name: /Organization/i }),
     ).toBeVisible();
-    await expect(listbox.getByRole("option", { name: /Public/i })).toBeVisible();
+    // The public level is retired; instances offer exactly two levels.
+    await expect(listbox.getByRole("option", { name: /Public/i })).toHaveCount(0);
   });
 
   test("escalating to organization shows the inline confirm", async ({
@@ -78,28 +79,6 @@ test.describe("Instance Visibility", () => {
     const inlineConfirm = page.getByRole("alert");
     if (await inlineConfirm.isVisible()) {
       await expect(inlineConfirm).toContainText("Make visible to all org members");
-    }
-  });
-
-  test("escalating to public opens the confirm dialog", async ({ page }) => {
-    if (!(await openFirstWorkflowInstances(page))) return;
-
-    const trigger = visibilityTrigger(page);
-    if (!(await trigger.isVisible())) return;
-    await trigger.click();
-
-    const publicOption = page
-      .getByRole("listbox", { name: "Instance visibility" })
-      .getByRole("option", { name: /Public/i });
-    if (!(await publicOption.isVisible())) return;
-    await publicOption.click();
-
-    // Public is the most-exposing level, so escalating to it opens a blocking
-    // confirmation that names the audience.
-    const dialog = page.getByRole("dialog");
-    if (await dialog.isVisible()) {
-      await expect(dialog).toContainText("Make this public?");
-      await expect(dialog).toContainText(/Anyone signed in to Stigmer/i);
     }
   });
 });
