@@ -59,6 +59,7 @@ export type {
 export type {
   ExtensionServiceRegistration,
   ResolvedExtensions,
+  ResolvedServiceRegistration,
   ServerExtension,
 } from "./extensions/registry.js";
 export type {
@@ -166,6 +167,52 @@ export type { AuthorizationQueryEngine } from "./extensions/authorization-querie
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
+// The PlatformClient seams: the store PORT a composition drives the domain
+// through (drivers.platformClientStore; a driver throws
+// DuplicatePlatformClientError for a held id, slug or client_id) and its
+// vitest-free contract kit; the guest-token capability
+// (drivers.guestTokenMinting — the one token method only an edition that
+// hosts shared-agent pages serves).
+export type { PlatformClientStore } from "./domain/platformclient/store.js";
+export { DuplicatePlatformClientError } from "./domain/platformclient/store.js";
+export type {
+  PlatformClientStoreContractCase,
+  PlatformClientStoreContractFixture,
+} from "./domain/platformclient/store-contract.js";
+export { platformClientStoreContract } from "./domain/platformclient/store-contract.js";
+export type { GuestTokenMinting } from "./extensions/guest-token-minting.js";
+// The platform-token envelope and its key ring: the RS256 JWT every token
+// the server signs for itself rides. A composition supplies its ring
+// (drivers.platformTokenKeys, built from its PEMs), signs its own typed
+// lanes through the envelope, and verifies them with the same function and
+// refusal copy open source's user-token lane uses.
+export type {
+  PlatformTokenClaimValue,
+  PlatformTokenRefusal,
+  PlatformTokenVerification,
+  VerifiedPlatformToken,
+} from "./platformtoken/envelope.js";
+export {
+  PLATFORM_TOKEN_ISSUER,
+  PLATFORM_TOKEN_REFUSAL_MESSAGES,
+  TOKEN_TYPE_CLAIM,
+  decodeVerifiedPlatformTokenPayload,
+  platformTokenRefusalError,
+  signPlatformToken,
+  stringClaim,
+  verifyPlatformToken,
+} from "./platformtoken/envelope.js";
+export type {
+  PlatformTokenKeyMaterial,
+  PlatformTokenKeyRing,
+  PlatformTokenSigner,
+  SigningPlatformTokenKeyRing,
+} from "./platformtoken/key-ring.js";
+export {
+  DEFAULT_PLATFORM_TOKEN_TTL_SECONDS,
+  canSign,
+  platformTokenKeyRingFromPem,
+} from "./platformtoken/key-ring.js";
 // The built-in authorizer's model seams: the kind
 // declarations (transcripts of the cloud's `.fga` files), the evaluator,
 // and the OpenFGA store-test kit — exported so the cloud's drift test

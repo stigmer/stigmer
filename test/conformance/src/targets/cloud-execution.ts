@@ -29,7 +29,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { CLOUD_ENV } from "../harness/cloud-env";
-import type { ConformanceClients } from "../harness/clients";
+import type { ConformanceClients, PresentingOptions } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
 import { MockLlmProxy } from "../harness/mock-llm";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
@@ -145,8 +145,8 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.anonymousClients();
   }
 
-  clientsPresenting(bearerToken: string): ConformanceClients {
-    return this.cloud.clientsPresenting(bearerToken);
+  clientsPresenting(bearerToken: string, options?: PresentingOptions): ConformanceClients {
+    return this.cloud.clientsPresenting(bearerToken, options);
   }
 
   // The cloud-capability lanes are the same environment's; delegated so the

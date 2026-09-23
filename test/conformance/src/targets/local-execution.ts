@@ -10,7 +10,12 @@
 // to it). teardown() reverses it.
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { awaitGrpcReady } from "../harness/grpc-ready";
-import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import {
+  createTransport,
+  makeClients,
+  type ConformanceClients,
+  type PresentingOptions,
+} from "../harness/clients";
 import type { SiblingEnforcingLane } from "../harness/enforcing-lane";
 import { newSiblingEnforcingExecutionLane } from "../harness/enforcing-execution-lane";
 import { McpToolFixture } from "../harness/mcp-server";
@@ -87,10 +92,10 @@ export class LocalExecutionTarget implements TargetProfile {
     billingLedger: false,
     sideChannelProxy: false,
     publicLane: false,
-    // No PlatformClient surface in this edition — the controllers are
-    // unrouted and the serving edge composes zero caller guards (the
-    // 20260902.02 empty state), so the enforcement arms skip.
-    platformClientTokens: false,
+    // Open source serves PlatformClient; the minting lane is the OIDC
+    // sibling this target lends through enforcingLane(), where the key ring,
+    // the platform-token verifier and the origin guard are composed.
+    platformClientTokens: true,
     // Single-operator trusted-local posture, as on `local` — the runner's
     // STIGMER_TOKEN is a proxy bearer the server never verifies.
     requiresAuthentication: false,
@@ -212,8 +217,11 @@ export class LocalExecutionTarget implements TargetProfile {
       await temporal.stop();
       throw error;
     }
-    const clientsPresenting = (bearerToken: string): ConformanceClients =>
-      makeClients(createTransport(server.baseUrl, { bearerToken }));
+    const clientsPresenting = (
+      bearerToken: string,
+      options: PresentingOptions = {},
+    ): ConformanceClients =>
+      makeClients(createTransport(server.baseUrl, { ...options, bearerToken }));
     const teardown = async (): Promise<void> => {
       await server.stop();
       await storage.release();
@@ -324,8 +332,8 @@ export class LocalExecutionTarget implements TargetProfile {
     return makeClients(createTransport(this.serverBaseUrl()));
   }
 
-  clientsPresenting(bearerToken: string): ConformanceClients {
-    return makeClients(createTransport(this.serverBaseUrl(), { bearerToken }));
+  clientsPresenting(bearerToken: string, options: PresentingOptions = {}): ConformanceClients {
+    return makeClients(createTransport(this.serverBaseUrl(), { ...options, bearerToken }));
   }
 
   private serverBaseUrl(): string {

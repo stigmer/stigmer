@@ -108,6 +108,11 @@ import { registerExecutionContextServices } from "../domain/executioncontext/con
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
+import { registerPlatformClientServices } from "../domain/platformclient/controller.js";
+import { newPlatformClientOriginGuard } from "../domain/platformclient/origin-guard.js";
+import { newResourcePlatformClientStore } from "../domain/platformclient/resource-store.js";
+import { registerPlatformClientTokenService } from "../domain/platformclient/token-controller.js";
+import { newPlatformClientTokenVerifier } from "../domain/platformclient/verifier.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
@@ -144,6 +149,7 @@ import {
 import type { SecretCodec } from "../encryption/codec.js";
 import { getOrCreateNamedKey } from "../encryption/key-manager.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
+import { resolvePlatformTokenKeys } from "../platformtoken/key-ring.js";
 import { registerActivityServices } from "../query/activity/controller.js";
 import { ActivityHandler } from "../query/activity/handler.js";
 import { registerSearchServices } from "../query/search/controller.js";
@@ -203,6 +209,7 @@ import {
 } from "../transport/console/handler.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
+import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
 import type { ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
 import type { InProcessClients } from "./inprocess.js";
@@ -413,6 +420,14 @@ export async function composeServer(
   // bindings are what the IamPolicy controller registers over (routes).
   const iamPolicies =
     extensions.drivers.iamPolicyStore ?? newResourceIamPolicyStore(store);
+  // The PlatformClient store PORT, bound the same way
+  // (`drivers.platformClientStore`; open source's adapter over `store`
+  // when absent): the chains, the mint and the verifier's liveness read all
+  // go through this one binding, so a composed driver is followed
+  // everywhere by construction.
+  const platformClients =
+    extensions.drivers.platformClientStore ??
+    newResourcePlatformClientStore(store);
   const iamPolicyGrantPath = newIamPolicyGrantPath({
     policies: iamPolicies,
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
@@ -689,6 +704,26 @@ export async function composeServer(
     writeVersion:
       writeVersionValue === "" ? DEFAULT_WRITE_VERSION : writeVersionValue,
     registeredCodecs: [...secretCodecs.keys()].sort(),
+  });
+  // The platform-token key ring joins the FATAL side of the asymmetry:
+  // under an authentication posture a server that cannot sign or verify
+  // its own tokens would refuse every PlatformClient-minted caller, and an
+  // explicitly configured key that does not load is configuration the
+  // operator meant (the ladder's rule). No posture, no ring
+  // (resolvePlatformTokenKeys carries the four arms).
+  const platformTokenKeys = resolvePlatformTokenKeys({
+    requireAuthentication,
+    supplied: extensions.drivers.platformTokenKeys,
+    edition: extensions.edition,
+  });
+  logger.info("platform-token keys resolved", {
+    source:
+      platformTokenKeys === undefined
+        ? "none (no authentication posture)"
+        : extensions.drivers.platformTokenKeys !== undefined
+          ? "extension"
+          : "open-source ladder",
+    signing: platformTokenKeys?.signer !== undefined,
   });
   // Stage: temporal (#18). Construction is sync and connection-free —
   // initialConnect/startWorkers/startHealthMonitor run in start(), all
@@ -1284,6 +1319,34 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
     });
+    // PlatformClient, OAuthApp's inbound counterpart: served in every
+    // composition over the store PORT bound above. The token service is
+    // registered here too — mintGuestToken dispatches to the composed
+    // capability — so nothing else may register it (route-shadowing.ts).
+    // The mint writes end users through the identity-account create path
+    // and the one grant path, as the platform client (mint.ts), and signs
+    // with the ring the keys stage resolved (none without a posture: the
+    // mint then refuses).
+    registerPlatformClientServices(router, {
+      clients: platformClients,
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+      listReadScope,
+    });
+    registerPlatformClientTokenService(router, {
+      mint: {
+        clients: platformClients,
+        accounts: identityAccounts,
+        createAccount: createIdentityAccount,
+        grantPath: iamPolicyGrantPath,
+        keys: platformTokenKeys,
+        logger,
+        now: () => new Date(),
+      },
+      guestTokenMinting: extensions.drivers.guestTokenMinting,
+    });
     registerExecutionContextServices(router, {
       store,
       logger,
@@ -1549,6 +1612,7 @@ export async function composeServer(
       runnerAuthService: runnerCredentials,
       edition: extensions.edition,
       version: options.version ?? SERVER_VERSION,
+      authenticationRequired: requireAuthentication,
       // The built-in `absent` answer installs here, at the consumer, when
       // no unit registered a license-status provider: open source and the
       // cloud hold no key, and only an Enterprise unit ever has one.
@@ -1559,10 +1623,9 @@ export async function composeServer(
     // Extension services register after the whole OSS set, inside the ONE
     // routes closure — so the serving router AND the in-process transport
     // see them by construction (blueprint §2a; DD-002's parity doctrine
-    // extends to extension services unchanged).
-    for (const registerExtensionServices of extensions.services) {
-      registerExtensionServices(router);
-    }
+    // extends to extension services unchanged). A registration that would
+    // shadow a route already served is a boot throw (route-shadowing.ts).
+    registerExtensionServicesUnshadowed(router, extensions.services);
   };
   const inProcessWiring = createInProcessClients(routes, logger);
   inProcess = inProcessWiring.clients;
@@ -1610,6 +1673,18 @@ export async function composeServer(
     ...(requireAuthentication
       ? [newApiKeyIdentityVerifier({ store, accounts: identityAccounts })]
       : []),
+    // The PlatformClient user-token lane rides the ring, which the keys
+    // stage resolves only under an authentication posture. It sits before
+    // `oidc` for the runner-subject verifier's reason (stigmer#1137): the
+    // OIDC verifier would claim the platform token and throw on it.
+    ...(platformTokenKeys !== undefined
+      ? [
+          newPlatformClientTokenVerifier({
+            keys: platformTokenKeys,
+            clients: platformClients,
+          }),
+        ]
+      : []),
     ...(authorizationPosture === "built-in"
       ? [
           newRunnerSubjectIdentityVerifier({
@@ -1652,6 +1727,16 @@ export async function composeServer(
       ? [`extension '${extensions.requireAuthentication.declaredBy}'`]
       : []),
   ];
+  // Caller guards: open source's own first, then the extensions' — the
+  // rule the verifier list follows ("OSS entries first"). The origin guard
+  // exists only where PlatformClient tokens can be presented, under the
+  // posture that verifies them.
+  const callerGuards = [
+    ...(platformTokenKeys !== undefined
+      ? [newPlatformClientOriginGuard({ clients: platformClients, logger })]
+      : []),
+    ...extensions.callerGuards,
+  ];
   logger.info("authentication posture resolved", {
     posture: requireAuthentication ? "required" : "trusted-local",
     source: postureSources.length > 0 ? postureSources.join(" + ") : "none",
@@ -1680,7 +1765,7 @@ export async function composeServer(
       logger,
       createVerifierChainInterceptor(
         identityVerifiers,
-        extensions.callerGuards,
+        callerGuards,
         logger,
         requireAuthentication,
       ),

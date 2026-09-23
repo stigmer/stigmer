@@ -1,20 +1,26 @@
 /**
  * Named-key loader — ports pkg/encryption/keymanager.go.
  *
- * One convention for every 32-byte key the server holds (sub-project
- * DD-002): env var (Base64) → ~/.stigmer/<file> (raw bytes, 0600) →
- * auto-generate and persist. The loader is generalized over the env var
- * and file name so sibling key material (the runner-token signing key,
- * oss#535) rides the same ladder instead of growing a divergent loader.
+ * One convention for every key the server holds: env var (Base64) →
+ * ~/.stigmer/<file> (0600) → auto-generate and persist. The
+ * loader is generalized over the env var, the file name and a KeyCodec so
+ * sibling key material rides the same ladder instead of growing a
+ * divergent loader: the runner-token signing key (oss#535) and the
+ * encryption key are 32 raw bytes (RAW_32_BYTE_KEY); the platform-token
+ * signing key is an RSA private key (platformtoken/key-ring.ts). The codec
+ * says what a key IS — how an env value and a file decode, how one is
+ * generated and written — and nothing about the ladder, which stays one.
  *
- * Ladder semantics, exactly Go's:
+ * Ladder semantics, exactly Go's, for every codec:
  *   - An EXPLICITLY configured env key that is unusable (bad Base64, wrong
- *     length) is an ERROR, never a degrade — silently ignoring deliberate
- *     configuration would be worse than refusing to boot.
+ *     length, not the key type the codec holds) is an ERROR, never a
+ *     degrade — silently ignoring deliberate configuration would be worse
+ *     than refusing to boot.
  *   - A key file that fails its load checks (permissions other than 0600,
- *     wrong size) is never adopted; the ladder FALLS THROUGH to
- *     auto-generate, which overwrites the file's content — Go's shipped
- *     behavior (loadKeyFromFile error → generate → save), ported as-is.
+ *     content the codec does not accept) is never adopted; the ladder
+ *     FALLS THROUGH to auto-generate, which overwrites the file's content —
+ *     Go's shipped behavior (loadKeyFromFile error → generate → save),
+ *     ported as-is.
  *   - Auto-generation persists for future boots; a persist FAILURE is a
  *     stderr warning only — the key is still usable for this process.
  *
@@ -50,34 +56,81 @@ export interface KeyLoaderOptions {
 }
 
 /**
- * Go GetOrCreateNamedKey: env var → key file → auto-generate. Throws only
- * on unusable EXPLICIT configuration (bad env value) or when no key can be
- * produced at all.
+ * What one kind of key is, for the ladder. `fromEnv` receives the env
+ * value already strictly Base64-decoded and THROWS when the bytes are not
+ * a usable key (explicit configuration is never silently ignored);
+ * `fromFile` answers `undefined` for content it does not accept, so the
+ * ladder falls through exactly as it does for a wrong-sized raw key.
+ */
+export interface KeyCodec<Key> {
+  fromEnv(envVar: string, decoded: Buffer): Key;
+  fromFile(content: Buffer): Key | undefined;
+  generate(): Key;
+  toFile(key: Key): Buffer;
+}
+
+/** The 32 raw bytes the encryption and runner-token keys are. */
+export const RAW_32_BYTE_KEY: KeyCodec<Buffer> = {
+  fromEnv(envVar, decoded) {
+    if (decoded.length !== KEY_SIZE) {
+      throw new Error(
+        `${envVar} must be exactly 32 bytes (256 bits) when decoded, got ${decoded.length} bytes`,
+      );
+    }
+    return decoded;
+  },
+  fromFile(content) {
+    return content.length === KEY_SIZE ? content : undefined;
+  },
+  generate() {
+    return randomBytes(KEY_SIZE);
+  },
+  toFile(key) {
+    return key;
+  },
+};
+
+/**
+ * Go GetOrCreateNamedKey: env var → key file → auto-generate, for a 32-byte
+ * raw key. Throws only on unusable EXPLICIT configuration (bad env value)
+ * or when no key can be produced at all.
  */
 export function getOrCreateNamedKey(
   envVar: string,
   fileName: string,
   options: KeyLoaderOptions = {},
 ): Buffer {
+  return getOrCreateKey(RAW_32_BYTE_KEY, envVar, fileName, options);
+}
+
+/** The ladder over any codec: env var → key file → auto-generate. */
+export function getOrCreateKey<Key>(
+  codec: KeyCodec<Key>,
+  envVar: string,
+  fileName: string,
+  options: KeyLoaderOptions = {},
+): Key {
   const env = options.env ?? process.env;
 
-  // 1. Environment variable (highest priority) — Base64-encoded 32 bytes.
+  // 1. Environment variable (highest priority) — Base64-encoded.
   const envValue = env[envVar];
   if (envValue !== undefined && envValue !== "") {
-    return decodeEnvKey(envVar, envValue);
+    return codec.fromEnv(envVar, decodeEnvBase64(envVar, envValue));
   }
 
-  // 2. Local key file — raw 32 bytes, refused on insecure permissions.
+  // 2. Local key file — refused on insecure permissions or content the
+  //    codec does not accept.
   const keyPath = namedKeyFilePath(fileName, options);
-  const fromFile = loadKeyFromFile(keyPath);
+  const content = readKeyFile(keyPath);
+  const fromFile = content === undefined ? undefined : codec.fromFile(content);
   if (fromFile !== undefined) {
     return fromFile;
   }
 
   // 3. Auto-generate (local development); persist for future boots.
-  const key = randomBytes(KEY_SIZE);
+  const key = codec.generate();
   try {
-    saveKeyToFile(keyPath, key);
+    saveKeyToFile(keyPath, codec.toFile(key));
   } catch (error) {
     // Warn but don't fail — the key is still usable (Go's posture).
     process.stderr.write(
@@ -87,22 +140,17 @@ export function getOrCreateNamedKey(
   return key;
 }
 
-/** Strict Base64 decode + length check for an env-configured key. */
-function decodeEnvKey(envVar: string, value: string): Buffer {
-  const key = Buffer.from(value, "base64");
+/** Strict Base64 decode for an env-configured key. */
+function decodeEnvBase64(envVar: string, value: string): Buffer {
+  const decoded = Buffer.from(value, "base64");
   // Node's base64 decoder is lenient (skips invalid characters, accepts
   // missing padding) and never throws; Go's StdEncoding errors on any
   // non-canonical input. Round-tripping — Buffer always re-emits the
   // canonical padded form — restores Go's strictness.
-  if (key.toString("base64") !== value) {
+  if (decoded.toString("base64") !== value) {
     throw new Error(`invalid Base64 encoding in ${envVar}`);
   }
-  if (key.length !== KEY_SIZE) {
-    throw new Error(
-      `${envVar} must be exactly 32 bytes (256 bits) when decoded, got ${key.length} bytes`,
-    );
-  }
-  return key;
+  return decoded;
 }
 
 /** Path to a named key file under <home>/.stigmer. */
@@ -115,13 +163,13 @@ export function namedKeyFilePath(
 }
 
 /**
- * Reads raw key bytes, mirroring Go loadKeyFromFile: missing file →
- * undefined (fall through the ladder); present-but-wrong (insecure
- * permissions, wrong size) also falls through — exactly Go's behavior,
- * where any load error falls to auto-generate. The 0600 check is skipped
- * on Windows, where POSIX modes are not meaningful.
+ * Reads a key file's bytes, mirroring Go loadKeyFromFile: missing file →
+ * undefined (fall through the ladder); present with insecure permissions
+ * also falls through — exactly Go's behavior, where any load error falls
+ * to auto-generate. The 0600 check is skipped on Windows, where POSIX
+ * modes are not meaningful.
  */
-function loadKeyFromFile(keyPath: string): Buffer | undefined {
+function readKeyFile(keyPath: string): Buffer | undefined {
   let stat: fs.Stats;
   try {
     stat = fs.statSync(keyPath);
@@ -134,23 +182,18 @@ function loadKeyFromFile(keyPath: string): Buffer | undefined {
       return undefined;
     }
   }
-  let key: Buffer;
   try {
-    key = fs.readFileSync(keyPath);
+    return fs.readFileSync(keyPath);
   } catch {
     return undefined;
   }
-  if (key.length !== KEY_SIZE) {
-    return undefined;
-  }
-  return key;
 }
 
 /** Writes the key with secure permissions (dir 0700, file 0600). */
-function saveKeyToFile(keyPath: string, key: Buffer): void {
+function saveKeyToFile(keyPath: string, content: Buffer): void {
   fs.mkdirSync(path.dirname(keyPath), {
     recursive: true,
     mode: KEY_DIR_PERMISSIONS,
   });
-  fs.writeFileSync(keyPath, key, { mode: KEY_FILE_PERMISSIONS });
+  fs.writeFileSync(keyPath, content, { mode: KEY_FILE_PERMISSIONS });
 }

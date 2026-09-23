@@ -39,6 +39,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -97,6 +98,7 @@ const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentExecutionSchema,
   WorkflowExecutionSchema,
   ExecutionContextSchema,
+  PlatformClientSchema,
   AgentCallTaskConfigSchema,
 ];
 

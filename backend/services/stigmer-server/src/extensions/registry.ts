@@ -49,9 +49,12 @@ import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
+import type { PlatformTokenKeyRing } from "../platformtoken/key-ring.js";
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
+import type { GuestTokenMinting } from "./guest-token-minting.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
@@ -87,6 +90,17 @@ import type {
  * calls is exactly the bug this placement makes impossible).
  */
 export type ExtensionServiceRegistration = (router: ConnectRouter) => void;
+
+/**
+ * A service registration with the unit that contributed it, so the routes
+ * stage can name the unit when a registration shadows a core route
+ * (compose.ts refuses that at boot: Connect's router keys handlers by
+ * request path and the last registration wins, silently).
+ */
+export interface ResolvedServiceRegistration {
+  readonly unit: string;
+  readonly register: ExtensionServiceRegistration;
+}
 
 /**
  * One named extension unit — a package's whole contribution to the server
@@ -191,7 +205,7 @@ export interface ResolvedExtensions {
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
   readonly drivers: ResolvedExtensionDrivers;
-  readonly services: ReadonlyArray<ExtensionServiceRegistration>;
+  readonly services: ReadonlyArray<ResolvedServiceRegistration>;
   readonly workers: ReadonlyArray<WorkerFactory>;
 }
 
@@ -284,6 +298,22 @@ export interface ResolvedExtensionDrivers {
    * source's relaxed posture (only the link-local range refused).
    */
   readonly outboundEgress: OutboundEgressPolicy | undefined;
+  /**
+   * The platform-client store driver — undefined = compose.ts installs the
+   * OSS adapter over the generic Store.
+   */
+  readonly platformClientStore: PlatformClientStore | undefined;
+  /**
+   * The platform-token key ring — undefined = compose.ts composes open
+   * source's ring under an authentication posture, and refuses to boot a
+   * non-open-source edition that supplied none.
+   */
+  readonly platformTokenKeys: PlatformTokenKeyRing | undefined;
+  /**
+   * The guest-token capability — undefined = `mintGuestToken` refuses
+   * UNIMPLEMENTED with the edition sentence.
+   */
+  readonly guestTokenMinting: GuestTokenMinting | undefined;
 }
 
 /**
@@ -301,7 +331,7 @@ export function resolveExtensions(
   const gateSteps = new Map<string, ReadonlyArray<PipelineStep<DescMessage>>>();
   const statusObservers: AgentExecutionStatusObserver[] = [];
   const responseDecorators: AgentExecutionResponseDecorator[] = [];
-  const services: ExtensionServiceRegistration[] = [];
+  const services: ResolvedServiceRegistration[] = [];
   const workers: WorkerFactory[] = [];
 
   let edition: ServerEdition | undefined;
@@ -341,6 +371,12 @@ export function resolveExtensions(
   let licenseStatusDeclaredBy: string | undefined;
   let outboundEgress: OutboundEgressPolicy | undefined;
   let outboundEgressDeclaredBy: string | undefined;
+  let platformClientStore: PlatformClientStore | undefined;
+  let platformClientStoreDeclaredBy: string | undefined;
+  let platformTokenKeys: PlatformTokenKeyRing | undefined;
+  let platformTokenKeysDeclaredBy: string | undefined;
+  let guestTokenMinting: GuestTokenMinting | undefined;
+  let guestTokenMintingDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -552,6 +588,36 @@ export function resolveExtensions(
       outboundEgressDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.platformClientStore !== undefined) {
+      if (platformClientStoreDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a PlatformClientStore, but '${platformClientStoreDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      platformClientStore = unit.drivers.platformClientStore;
+      platformClientStoreDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.platformTokenKeys !== undefined) {
+      if (platformTokenKeysDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a PlatformTokenKeyRing, but '${platformTokenKeysDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      platformTokenKeys = unit.drivers.platformTokenKeys;
+      platformTokenKeysDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.guestTokenMinting !== undefined) {
+      if (guestTokenMintingDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a GuestTokenMinting capability, but '${guestTokenMintingDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      guestTokenMinting = unit.drivers.guestTokenMinting;
+      guestTokenMintingDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -643,7 +709,12 @@ export function resolveExtensions(
     responseDecorators.push(
       ...(unit.statusTransitionHooks?.responseDecorators ?? []),
     );
-    services.push(...(unit.services ?? []));
+    services.push(
+      ...(unit.services ?? []).map((register) => ({
+        unit: unit.name,
+        register,
+      })),
+    );
     workers.push(...(unit.workers ?? []));
   }
 
@@ -679,6 +750,9 @@ export function resolveExtensions(
       authorizationQueries,
       licenseStatus,
       outboundEgress,
+      platformClientStore,
+      platformTokenKeys,
+      guestTokenMinting,
     },
     services,
     workers,

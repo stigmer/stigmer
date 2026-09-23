@@ -40,8 +40,8 @@ type PlatformClientQueryControllerClient interface {
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*PlatformClient, error)
 	// List all platform clients belonging to an organization.
 	//
-	// Returns every PlatformClient whose metadata.org matches the input org.
-	// Typically a small set per org, so results are not paginated.
+	// Returns the PlatformClients of the input org that the caller may view,
+	// newest first. Typically a small set per org, so results are not paginated.
 	ListByOrg(ctx context.Context, in *ListPlatformClientsByOrgInput, opts ...grpc.CallOption) (*PlatformClients, error)
 }
 
@@ -98,8 +98,8 @@ type PlatformClientQueryControllerServer interface {
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*PlatformClient, error)
 	// List all platform clients belonging to an organization.
 	//
-	// Returns every PlatformClient whose metadata.org matches the input org.
-	// Typically a small set per org, so results are not paginated.
+	// Returns the PlatformClients of the input org that the caller may view,
+	// newest first. Typically a small set per org, so results are not paginated.
 	ListByOrg(context.Context, *ListPlatformClientsByOrgInput) (*PlatformClients, error)
 }
 

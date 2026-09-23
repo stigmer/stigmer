@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSKNBAoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYBiABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYByABKAgSMwoPYXV0b19ncmFudF9yb2xlGAggASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIXCg9hbGxvd2VkX29yaWdpbnMYCSADKAkSyAEKEGVudmlyb25tZW50X3JlZnMYCiADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSKQBwoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYBiABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYByABKAgSMwoPYXV0b19ncmFudF9yb2xlGAggASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIXCg9hbGxvd2VkX29yaWdpbnMYCSADKAkSyAEKEGVudmlyb25tZW50X3JlZnMYCiADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNTqAA7pI/AIa2wEKMnBsYXRmb3JtX2NsaWVudC5hdXRvX2dyYW50X3JlcXVpcmVzX2F1dG9fcHJvdmlzaW9uEmxhdXRvX2dyYW50X29uX29yZyByZXF1aXJlcyBhdXRvX3Byb3Zpc2lvbl9hY2NvdW50czogb25seSBhbiBhY2NvdW50IHRoZSBjbGllbnQgcHJvdmlzaW9ucyByZWNlaXZlcyB0aGUgZ3JhbnQaNyF0aGlzLmF1dG9fZ3JhbnRfb25fb3JnIHx8IHRoaXMuYXV0b19wcm92aXNpb25fYWNjb3VudHMamwEKKXBsYXRmb3JtX2NsaWVudC5hdXRvX2dyYW50X3JvbGVfbm90X293bmVyElNhdXRvX2dyYW50X3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoZdGhpcy5hdXRvX2dyYW50X3JvbGUgIT0gMWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PlatformClientSpec defines the configuration for a platform client credential.
@@ -55,29 +55,16 @@ export const file_ai_stigmer_iam_platformclient_v1_spec: GenFile = /*@__PURE__*/
  *      auto_grant_on_org and auto_grant_role.
  *
  *   3. JIT + Auto-Grant: When both auto_provision_accounts and auto_grant_on_org are
- *      true, newly provisioned accounts are immediately granted auto_grant_role on
- *      the PlatformClient's owning organization.
- *
- * Example YAML:
- *   apiVersion: iam.stigmer.ai/v1
- *   kind: PlatformClient
- *   metadata:
- *     name: Acme Dashboard
- *     slug: acme-dashboard
- *     org: acme
- *   spec:
- *     auto_provision_accounts: true
- *     auto_grant_on_org: true
- *     auto_grant_role: viewer
- *     allowed_origins: ["https://app.acme.com"]
+ *      true, newly provisioned accounts are granted auto_grant_role on the
+ *      PlatformClient's owning organization.
  *
  * @generated from message ai.stigmer.iam.platformclient.v1.PlatformClientSpec
  */
 export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.PlatformClientSpec"> & {
   /**
    * OAuth client identifier.
-   * Generated on creation with the prefix "stgm_cid_" followed by 32 random
-   * alphanumeric characters. Permanent across secret rotations — safe for logs,
+   * Generated on creation with the prefix "stgm_cid_" followed by 43 random
+   * URL-safe characters. Permanent across secret rotations — safe for logs,
    * configuration files, and client-side code.
    *
    * @generated from field: string client_id = 1;
@@ -141,7 +128,9 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
    * access. The platform must create IAM policies to grant access.
    *
    * When true, Stigmer grants auto_grant_role (default: viewer) on the
-   * PlatformClient's owning organization immediately after account creation.
+   * PlatformClient's owning organization to every account it provisions.
+   * Accounts that already exist keep the roles they hold: changing this
+   * setting or auto_grant_role later does not reach them.
    *
    * Requires auto_provision_accounts to be true.
    *
@@ -163,7 +152,7 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
 
   /**
    * Web origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient (Stigmer Cloud).
+   * this PlatformClient.
    *
    * Enforced on every API request bearing a user token minted by this
    * client (never on mintUserToken itself — minting is server-to-server and
@@ -181,8 +170,8 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
    *     browser context; the client_secret remains the primary control,
    *     and non-browser callers are not constrained by it.
    *
-   * Edits propagate immediately: the enforcement cache is evicted on every
-   * PlatformClient update.
+   * Edits apply to the next request: the client is read on every request
+   * that bears one of its tokens.
    *
    * @generated from field: repeated string allowed_origins = 9;
    */

@@ -386,6 +386,11 @@ you generated at install is the key for the life of the stack.
 `STIGMER_RUNNER_TOKEN_KEY` signs the short-lived credentials the runner
 authenticates each run with; leave it alone too.
 
+`STIGMER_PLATFORM_TOKEN_KEY`, when you set it, signs the 15-minute tokens
+PlatformClients mint for your product's users. It can be replaced at any
+restart: tokens minted in the last 15 minutes stop working and your backend
+mints new ones, as it does when a token expires.
+
 ## Uninstall
 
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>

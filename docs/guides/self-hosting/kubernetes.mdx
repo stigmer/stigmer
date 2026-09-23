@@ -76,7 +76,9 @@ kubectl -n stigmer create secret generic stigmer-secrets \
 `STIGMER_ENCRYPTION_KEY` encrypts secret values at rest.
 `STIGMER_RUNNER_TOKEN_KEY` signs the tokens the runner authenticates with. Keep
 this Secret with your backups: without the encryption key, every encrypted value
-in the database is unreadable.
+in the database is unreadable. Once you turn on authentication, the Secret may
+also carry `STIGMER_PLATFORM_TOKEN_KEY`, which signs the tokens PlatformClients
+mint; it is optional, and the server generates one on its volume without it.
 
 If you have an LLM provider key, put it in a second Secret now, so Agents can
 answer from the first run:

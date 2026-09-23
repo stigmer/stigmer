@@ -195,14 +195,20 @@ export function isPersonStamp(stamp: string): boolean {
  * `user`-class gate, for the reconciliation, which has a row and no
  * caller. A machine account (`is_machine_account`, or the `machine`
  * provisioning mode) earns no role, exactly as a `machine`-class caller
- * earns none at the hook.
+ * earns none at the hook. Nor does a platform-client end user: it is a
+ * person on its platform's product, not on this install — the mint grants
+ * it exactly its client's auto-grant role on the owning organization and
+ * never runs these rules, and the reconciliation must not either, or every
+ * product user would become a member of every organization (and the
+ * operator-email arm would read an email the platform asserted).
  */
 export function isPersonAccount(account: IdentityAccount): boolean {
   const spec = account.spec;
   return (
     spec !== undefined &&
     !spec.isMachineAccount &&
-    spec.provisioningMode !== IdentityAccountProvisioningMode.machine
+    spec.provisioningMode !== IdentityAccountProvisioningMode.machine &&
+    spec.provisioningMode !== IdentityAccountProvisioningMode.platform_client
   );
 }
 

@@ -78,10 +78,15 @@ import { formatObjectRef } from "./tuples.js";
 
 /**
  * Kinds whose missing row is a denial, never `not-found` (arm 4): the
- * cloud's `PROBE_EXEMPT_KINDS` restricted to the kinds this edition
- * serves — `platform`, `identity_provider`, `platform_client` and
- * `invitation` are refused by arm 2 before any row is asked about. The
- * cloud's drift test pins the two sets equal over the open-source tier.
+ * cloud's `PROBE_EXEMPT_KINDS` (stigmer-cloud
+ * src/authorizer/fga-authorizer.ts) restricted to the kinds this edition
+ * serves — `platform`, `identity_provider` and `invitation` are refused by
+ * arm 2 before any row is asked about. The cloud exempts them because
+ * their rows live in its own tables, out of its probe's reach; matching
+ * the set here keeps the wire identical across editions (an unknown
+ * platform client's id is PERMISSION_DENIED with the annotation's copy in
+ * both). Nothing pins the two sets together mechanically: a kind that
+ * moves into open source joins this set in the same change.
  *
  * `iam_policy` is reachable as a target through the IamPolicy RPCs' own
  * `resource.kind` (a caller may name it); the grant scope refuses such a
@@ -91,6 +96,7 @@ import { formatObjectRef } from "./tuples.js";
 export const NOT_FOUND_EXEMPT_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.identity_account,
   ApiResourceKind.iam_policy,
+  ApiResourceKind.platform_client,
 ]);
 
 /** The Java RequestAuthorizationService's pre-check copy, byte for byte (the cloud renders the same). */

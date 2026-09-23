@@ -7,9 +7,9 @@ import { PlatformClientListPanel } from "../platform-client/PlatformClientListPa
 import { CreatePlatformClientForm } from "../platform-client/CreatePlatformClientForm.js";
 import { PlatformClientDetailPanel } from "../platform-client/PlatformClientDetailPanel.js";
 import { PlatformClientSecretAlert } from "../platform-client/PlatformClientSecretAlert.js";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useActiveOrgSlug } from "../organization/OrgProvider.js";
+import { useServerInfo } from "../server-info.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -22,11 +22,20 @@ type FlowState =
     }
   | { phase: "editing"; platformClient: PlatformClient };
 
-/** Settings section for creating and maintaining platform clients. */
+/**
+ * Settings section for creating and maintaining platform clients.
+ *
+ * Every edition serves platform clients, but only a server that
+ * authenticates its callers mints their user tokens. On a server that
+ * trusts every request the section explains that and offers no create
+ * button; clients that already exist stay listed and manageable.
+ */
 export function PlatformClientsSection() {
   const headingId = useId();
   const org = useActiveOrgSlug();
-  const pcAvailable = useResourceAvailable(ApiResourceKind.platform_client);
+  const { serverInfo } = useServerInfo();
+  const canMint = serverInfo?.authenticationRequired === true;
+  const trustsEveryRequest = serverInfo?.authenticationRequired === false;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);
@@ -81,7 +90,7 @@ export function PlatformClientsSection() {
           Platform Clients
         </h2>
 
-        {pcAvailable && org && flow.phase === "idle" && (
+        {canMint && org && flow.phase === "idle" && (
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
@@ -97,12 +106,16 @@ export function PlatformClientsSection() {
         OIDC federation.
       </p>
 
-      {!pcAvailable ? (
-        <CloudFeatureNotice>
-          Platform clients are not available in local mode. Token minting
-          requires Stigmer Cloud.
+      {trustsEveryRequest && (
+        <CloudFeatureNotice className="stg:mb-4">
+          This server trusts every request, so nothing would verify a
+          platform client&apos;s tokens and it does not mint them. Configure an
+          identity provider (<code>STIGMER_OIDC_ISSUER</code>) to create
+          platform clients.
         </CloudFeatureNotice>
-      ) : flow.phase === "creating" ? (
+      )}
+
+      {flow.phase === "creating" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <CreatePlatformClientForm
             org={org}

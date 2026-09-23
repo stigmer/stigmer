@@ -124,9 +124,13 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
 afterAll(dropPostgresFixture);
 
 describe("NOT_FOUND_EXEMPT_KINDS", () => {
-  it("is the cloud's probe exemption restricted to the kinds this edition serves — identity_account and iam_policy", () => {
+  it("is the cloud's probe exemption restricted to the kinds this edition serves — identity_account, iam_policy and platform_client", () => {
     expect([...NOT_FOUND_EXEMPT_KINDS].sort()).toEqual(
-      [ApiResourceKind.identity_account, ApiResourceKind.iam_policy].sort(),
+      [
+        ApiResourceKind.identity_account,
+        ApiResourceKind.iam_policy,
+        ApiResourceKind.platform_client,
+      ].sort(),
     );
   });
 });

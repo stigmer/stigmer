@@ -58,8 +58,8 @@ class PlatformClientQueryControllerServicer(object):
     def listByOrg(self, request, context):
         """List all platform clients belonging to an organization.
 
-        Returns every PlatformClient whose metadata.org matches the input org.
-        Typically a small set per org, so results are not paginated.
+        Returns the PlatformClients of the input org that the caller may view,
+        newest first. Typically a small set per org, so results are not paginated.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

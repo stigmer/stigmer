@@ -256,7 +256,7 @@ PlatformClient platformClient = client.platformclients().getByReference(ApiResou
 
 List all platform clients belonging to an organization.
 
-Returns every PlatformClient whose metadata.org matches the input org. Typically a small set per org, so results are not paginated.
+Returns the PlatformClients of the input org that the caller may view, newest first. Typically a small set per org, so results are not paginated.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -394,7 +394,7 @@ PlatformClient platformClientCreateResponse = client.platformclients().create(Pl
 
 Update an existing platform client.
 
-Only mutable fields can be changed: auto_provision_accounts, auto_grant_on_org, auto_grant_role, and allowed_origins. Credential fields (client_id, client_secret_hash, secret_fingerprint) are immutable after creation. Use rotateSecret to change the client secret.
+The name, labels and every spec field can be changed except the credential fields (client_id, client_secret_hash, secret_fingerprint), which are kept from the stored client. Use rotateSecret to change the client secret. A system-managed client cannot be updated.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -591,9 +591,9 @@ The platform builder's backend calls this RPC with its PlatformClient credential
 
 The returned JWT can be used by the React SDK (via StigmerProvider's getAccessToken callback) to authenticate API calls from the browser.
 
-Authentication flow: 1. Validate client_id + client_secret against stored hash 2. Resolve or JIT-provision the identity account for user_id 3. If auto_grant_on_org is enabled, grant the configured role 4. Sign a JWT with Stigmer's private key containing the user's identity
+Authentication flow: 1. Validate client_id + client_secret against stored hash 2. Resolve the identity account for user_id; on first use, provision it (and grant auto_grant_role when auto_grant_on_org is enabled) 3. Sign a JWT with the server's platform-token key containing the user's identity
 
-Error scenarios: - UNAUTHENTICATED: Invalid client_id or client_secret - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts is false, or the PlatformClient secret has expired - INTERNAL: Account provisioning could not be completed (for example, the auto_grant_on_org role grant failed). No partial account is left behind — the account is rolled back — so the request is safe to retry.
+Error scenarios: - UNAUTHENTICATED: Invalid client_id or client_secret - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts is false, the PlatformClient secret has expired, or the server does not authenticate its callers - INTERNAL: Account provisioning could not be completed. No partial account is left behind, so the request is safe to retry: a retry completes the provisioning.
 
 Origin enforcement (spec.allowed_origins) does NOT apply to this call: minting is server-to-server, so there is no browser Origin to check. It applies to the browser API calls that BEAR the minted token — when the PlatformClient lists allowed_origins, requests whose Origin header is not on the list are refused PERMISSION_DENIED (see the allowed_origins field docs in spec.proto for the exact semantics).
 
@@ -656,7 +656,7 @@ MintUserTokenResponse mintUserTokenResponse = client.platformclients().mintUserT
 
 Rotate the client secret.
 
-Generates a new client_secret, invalidates the old one immediately, and returns the new raw secret in the response. The client_id remains unchanged — platform builders do not need to update their client_id configuration after rotation.
+Generates a new client_secret, invalidates the old one immediately, and returns the new raw secret in the response. The client_id remains unchanged — platform builders do not need to update their client_id configuration after rotation. Tokens already minted stay valid until they expire; delete the client to revoke them. A system-managed client's secret cannot be rotated.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -709,7 +709,7 @@ Input for creating or updating a Platform Client.
     autoProvisionAccounts: { type: "boolean", description: "Whether to automatically create an identity account when mintUserToken is called with a user_id that has no existing account." },
     autoGrantOnOrg: { type: "boolean", description: "Whether to automatically grant a role on the PlatformClient's owning organization when an account is auto-provisioned." },
     autoGrantRole: { type: "IamRole", description: "The role to grant when auto_grant_on_org is true.", typeDescriptionLink: "#iamrole" },
-    allowedOrigins: { type: "string[]", description: "Web origins allowed for browser-based requests using tokens minted by this PlatformClient (Stigmer Cloud)." },
+    allowedOrigins: { type: "string[]", description: "Web origins allowed for browser-based requests using tokens minted by this PlatformClient." },
     environmentRefs: { type: "ResourceRef[]", description: "Environments whose values are delivered to every agent execution created by a session this PlatformClient minted.", typeDescriptionLink: "#resourceref" },
   }}
 />
@@ -767,8 +767,8 @@ MintUserTokenRequest contains the credentials and user identity needed to mint a
     clientId: { type: "string", description: "The PlatformClient's client identifier (stgm_cid_ prefix)." },
     clientSecret: { type: "string", description: "The raw client secret (stgm_cs_ prefix)." },
     userId: { type: "string", description: "Platform's stable user identifier for the end user." },
-    userEmail: { type: "string", description: "User's email address." },
-    userName: { type: "string", description: "User's display name." },
+    userEmail: { type: "string", description: "User's email address, asserted by the platform." },
+    userName: { type: "string", description: "User's display name, asserted by the platform." },
     orgId: { type: "string", description: "Optional confirmation of the organization the token is scoped to." },
   }}
 />

@@ -95,7 +95,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "th_app\020\026\0321\252\377+-\010\002\020\001\032\010OAuthApp\"\tOAuth App*" +
       "\004oapp8\001@\001J\010\010\002\020\001:\002\001\004\022Q\n\017platform_client\020\027" +
       "\032<\252\377+8\010\002\020\001\032\016PlatformClient\"\017Platform Cli" +
-      "ent*\003pcl8\001@\002J\010\010\002\020\001:\002\001\004\022I\n\014organization\020\036" +
+      "ent*\003pcl8\001@\001J\010\010\002\020\001:\002\001\004\022I\n\014organization\020\036" +
       "\0327\252\377+3\010\003\020\001\032\014Organization\"\014Organization*\003" +
       "org@\001J\n\010\004\020\001:\004\001\002\003\004\0229\n\010platform\020\037\032+\252\377+\'\010\003\020" +
       "\001\032\010Platform\"\010Platform*\003plt8\001@\003J\004\010\005\020\004\022:\n\005" +

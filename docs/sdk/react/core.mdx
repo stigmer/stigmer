@@ -85,6 +85,43 @@ function useRunnerAdapter(): RunnerAdapter | null
 ```
 
 
+### useServerInfo
+
+Data hook for the connected server's identity: its edition, its version
+and whether it authenticates its callers (`platform.getServerInfo()`, a
+public RPC every edition answers).
+
+Read it where a surface depends on a fact the host app does not pass
+down — the PlatformClients section asks whether the server can mint
+user tokens at all, which only a server that authenticates its callers
+does. The deployment mode stays a provider prop (`StigmerProvider`'s
+`deploymentMode`), because every tier gate reads it on first render.
+
+Cached across mounts under a [`FetchCacheProvider`](#fetchcacheprovider): the answer is a
+property of the server, so a revisit renders it immediately.
+
+**Signature**
+
+```tsx
+function useServerInfo(): UseServerInfoReturn
+```
+
+**Returns** — `UseServerInfoReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    serverInfo: { type: "ServerInfo | null", description: "The connected server's edition, version and posture, or `null` while loading / on error." },
+  }}
+/>
+
+```tsx
+const { serverInfo } = useServerInfo();
+const canMint = serverInfo?.authenticationRequired === true;
+```
+
+
 ### useStigmer
 
 Access the `Stigmer` SDK client from the nearest

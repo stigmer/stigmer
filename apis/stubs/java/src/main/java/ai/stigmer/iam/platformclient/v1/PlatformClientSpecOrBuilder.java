@@ -13,8 +13,8 @@ public interface PlatformClientSpecOrBuilder extends
   /**
    * <pre>
    * OAuth client identifier.
-   * Generated on creation with the prefix "stgm_cid_" followed by 32 random
-   * alphanumeric characters. Permanent across secret rotations — safe for logs,
+   * Generated on creation with the prefix "stgm_cid_" followed by 43 random
+   * URL-safe characters. Permanent across secret rotations — safe for logs,
    * configuration files, and client-side code.
    * </pre>
    *
@@ -25,8 +25,8 @@ public interface PlatformClientSpecOrBuilder extends
   /**
    * <pre>
    * OAuth client identifier.
-   * Generated on creation with the prefix "stgm_cid_" followed by 32 random
-   * alphanumeric characters. Permanent across secret rotations — safe for logs,
+   * Generated on creation with the prefix "stgm_cid_" followed by 43 random
+   * URL-safe characters. Permanent across secret rotations — safe for logs,
    * configuration files, and client-side code.
    * </pre>
    *
@@ -150,7 +150,9 @@ public interface PlatformClientSpecOrBuilder extends
    * access. The platform must create IAM policies to grant access.
    *
    * When true, Stigmer grants auto_grant_role (default: viewer) on the
-   * PlatformClient's owning organization immediately after account creation.
+   * PlatformClient's owning organization to every account it provisions.
+   * Accounts that already exist keep the roles they hold: changing this
+   * setting or auto_grant_role later does not reach them.
    *
    * Requires auto_provision_accounts to be true.
    * </pre>
@@ -192,7 +194,7 @@ public interface PlatformClientSpecOrBuilder extends
   /**
    * <pre>
    * Web origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient (Stigmer Cloud).
+   * this PlatformClient.
    *
    * Enforced on every API request bearing a user token minted by this
    * client (never on mintUserToken itself — minting is server-to-server and
@@ -210,8 +212,8 @@ public interface PlatformClientSpecOrBuilder extends
    * browser context; the client_secret remains the primary control,
    * and non-browser callers are not constrained by it.
    *
-   * Edits propagate immediately: the enforcement cache is evicted on every
-   * PlatformClient update.
+   * Edits apply to the next request: the client is read on every request
+   * that bears one of its tokens.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>
@@ -222,7 +224,7 @@ public interface PlatformClientSpecOrBuilder extends
   /**
    * <pre>
    * Web origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient (Stigmer Cloud).
+   * this PlatformClient.
    *
    * Enforced on every API request bearing a user token minted by this
    * client (never on mintUserToken itself — minting is server-to-server and
@@ -240,8 +242,8 @@ public interface PlatformClientSpecOrBuilder extends
    * browser context; the client_secret remains the primary control,
    * and non-browser callers are not constrained by it.
    *
-   * Edits propagate immediately: the enforcement cache is evicted on every
-   * PlatformClient update.
+   * Edits apply to the next request: the client is read on every request
+   * that bears one of its tokens.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>
@@ -251,7 +253,7 @@ public interface PlatformClientSpecOrBuilder extends
   /**
    * <pre>
    * Web origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient (Stigmer Cloud).
+   * this PlatformClient.
    *
    * Enforced on every API request bearing a user token minted by this
    * client (never on mintUserToken itself — minting is server-to-server and
@@ -269,8 +271,8 @@ public interface PlatformClientSpecOrBuilder extends
    * browser context; the client_secret remains the primary control,
    * and non-browser callers are not constrained by it.
    *
-   * Edits propagate immediately: the enforcement cache is evicted on every
-   * PlatformClient update.
+   * Edits apply to the next request: the client is read on every request
+   * that bears one of its tokens.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>
@@ -281,7 +283,7 @@ public interface PlatformClientSpecOrBuilder extends
   /**
    * <pre>
    * Web origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient (Stigmer Cloud).
+   * this PlatformClient.
    *
    * Enforced on every API request bearing a user token minted by this
    * client (never on mintUserToken itself — minting is server-to-server and
@@ -299,8 +301,8 @@ public interface PlatformClientSpecOrBuilder extends
    * browser context; the client_secret remains the primary control,
    * and non-browser callers are not constrained by it.
    *
-   * Edits propagate immediately: the enforcement cache is evicted on every
-   * PlatformClient update.
+   * Edits apply to the next request: the client is read on every request
+   * that bears one of its tokens.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>
@@ -328,8 +330,7 @@ public interface PlatformClientSpecOrBuilder extends
    * client's owning org through the org-shared environment resolution seam
    * (OrgSharedEnvironmentPolicy): each referenced environment must be
    * visibility_org there, or the merge skips it with a diagnostic. Edits
-   * propagate immediately — every PlatformClient mutation path evicts the
-   * client cache (the allowed_origins precedent).
+   * apply to the next execution: the client is read, not cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -354,8 +355,7 @@ public interface PlatformClientSpecOrBuilder extends
    * client's owning org through the org-shared environment resolution seam
    * (OrgSharedEnvironmentPolicy): each referenced environment must be
    * visibility_org there, or the merge skips it with a diagnostic. Edits
-   * propagate immediately — every PlatformClient mutation path evicts the
-   * client cache (the allowed_origins precedent).
+   * apply to the next execution: the client is read, not cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -379,8 +379,7 @@ public interface PlatformClientSpecOrBuilder extends
    * client's owning org through the org-shared environment resolution seam
    * (OrgSharedEnvironmentPolicy): each referenced environment must be
    * visibility_org there, or the merge skips it with a diagnostic. Edits
-   * propagate immediately — every PlatformClient mutation path evicts the
-   * client cache (the allowed_origins precedent).
+   * apply to the next execution: the client is read, not cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -404,8 +403,7 @@ public interface PlatformClientSpecOrBuilder extends
    * client's owning org through the org-shared environment resolution seam
    * (OrgSharedEnvironmentPolicy): each referenced environment must be
    * visibility_org there, or the merge skips it with a diagnostic. Edits
-   * propagate immediately — every PlatformClient mutation path evicts the
-   * client cache (the allowed_origins precedent).
+   * apply to the next execution: the client is read, not cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -430,8 +428,7 @@ public interface PlatformClientSpecOrBuilder extends
    * client's owning org through the org-shared environment resolution seam
    * (OrgSharedEnvironmentPolicy): each referenced environment must be
    * visibility_org there, or the merge skips it with a diagnostic. Edits
-   * propagate immediately — every PlatformClient mutation path evicts the
-   * client cache (the allowed_origins precedent).
+   * apply to the next execution: the client is read, not cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

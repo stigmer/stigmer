@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
           "outputType": "PlatformClient",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Update an existing platform client.\n\n Only mutable fields can be changed: auto_provision_accounts, auto_grant_on_org,\n auto_grant_role, and allowed_origins. Credential fields (client_id,\n client_secret_hash, secret_fingerprint) are immutable after creation.\n Use rotateSecret to change the client secret."
+          "description": "Update an existing platform client.\n\n The name, labels and every spec field can be changed except the\n credential fields (client_id, client_secret_hash, secret_fingerprint),\n which are kept from the stored client. Use rotateSecret to change the\n client secret. A system-managed client cannot be updated."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientId",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation."
+          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation. Tokens already minted stay valid until they\n expire; delete the client to revoke them. A system-managed client's\n secret cannot be rotated."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput",
           "outputType": "PlatformClients",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClients",
-          "description": "List all platform clients belonging to an organization.\n\n Returns every PlatformClient whose metadata.org matches the input org.\n Typically a small set per org, so results are not paginated."
+          "description": "List all platform clients belonging to an organization.\n\n Returns the PlatformClients of the input org that the caller may view,\n newest first. Typically a small set per org, so results are not paginated."
         }
       ]
     },
@@ -84,7 +84,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenRequest",
           "outputType": "MintUserTokenResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenResponse",
-          "description": "Mint a user-scoped JWT for browser-based access to Stigmer resources.\n\n The platform builder's backend calls this RPC with its PlatformClient\n credentials (client_id + client_secret) and the end user's identity.\n Stigmer validates the credentials, optionally JIT-provisions the user's\n identity account, and returns a Stigmer-signed JWT.\n\n The returned JWT can be used by the React SDK (via StigmerProvider's\n getAccessToken callback) to authenticate API calls from the browser.\n\n Authentication flow:\n 1. Validate client_id + client_secret against stored hash\n 2. Resolve or JIT-provision the identity account for user_id\n 3. If auto_grant_on_org is enabled, grant the configured role\n 4. Sign a JWT with Stigmer's private key containing the user's identity\n\n Error scenarios:\n - UNAUTHENTICATED: Invalid client_id or client_secret\n - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts\n   is false, or the PlatformClient secret has expired\n - INTERNAL: Account provisioning could not be completed (for example, the\n   auto_grant_on_org role grant failed). No partial account is left behind\n   — the account is rolled back — so the request is safe to retry.\n\n Origin enforcement (spec.allowed_origins) does NOT apply to this call:\n minting is server-to-server, so there is no browser Origin to check.\n It applies to the browser API calls that BEAR the minted token — when\n the PlatformClient lists allowed_origins, requests whose Origin header\n is not on the list are refused PERMISSION_DENIED (see the\n allowed_origins field docs in spec.proto for the exact semantics)."
+          "description": "Mint a user-scoped JWT for browser-based access to Stigmer resources.\n\n The platform builder's backend calls this RPC with its PlatformClient\n credentials (client_id + client_secret) and the end user's identity.\n Stigmer validates the credentials, optionally JIT-provisions the user's\n identity account, and returns a Stigmer-signed JWT.\n\n The returned JWT can be used by the React SDK (via StigmerProvider's\n getAccessToken callback) to authenticate API calls from the browser.\n\n Authentication flow:\n 1. Validate client_id + client_secret against stored hash\n 2. Resolve the identity account for user_id; on first use, provision it\n    (and grant auto_grant_role when auto_grant_on_org is enabled)\n 3. Sign a JWT with the server's platform-token key containing the user's identity\n\n Error scenarios:\n - UNAUTHENTICATED: Invalid client_id or client_secret\n - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts\n   is false, the PlatformClient secret has expired, or the server does not\n   authenticate its callers\n - INTERNAL: Account provisioning could not be completed. No partial\n   account is left behind, so the request is safe to retry: a retry\n   completes the provisioning.\n\n Origin enforcement (spec.allowed_origins) does NOT apply to this call:\n minting is server-to-server, so there is no browser Origin to check.\n It applies to the browser API calls that BEAR the minted token — when\n the PlatformClient lists allowed_origins, requests whose Origin header\n is not on the list are refused PERMISSION_DENIED (see the\n allowed_origins field docs in spec.proto for the exact semantics)."
         },
         {
           "name": "MintGuestToken",
@@ -304,10 +304,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "Platform's stable user identifier for the end user. Used together with\n the PlatformClient's owning org to resolve or create an IdentityAccount\n (keyed as \"stgm_pc|{org}|{user_id}\").\n\n Must be unique and stable within the org — the same user_id presented\n via any PlatformClient in the same org resolves to the same identity.\n Changing this value for the same user creates a new identity account.",
+          "description": "Platform's stable user identifier for the end user. Used together with\n the PlatformClient's owning org to resolve or create an IdentityAccount\n (keyed as \"stgm_pc|{org}|{user_id}\").\n\n Must be unique and stable within the org — the same user_id presented\n via any PlatformClient in the same org resolves to the same identity.\n Changing this value for the same user creates a new identity account.\n It must not contain the separator character '|'.",
           "required": false,
           "validation": {
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 256
           }
         },
         {
@@ -317,8 +318,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "User's email address. Used for profile enrichment when JIT-provisioning\n an identity account. Updated on each token mint if the account exists.",
-          "required": false
+          "description": "User's email address, asserted by the platform. Used for profile\n enrichment when JIT-provisioning an identity account; later mints do not\n change the stored profile.",
+          "required": false,
+          "validation": {
+            "maxLength": 320
+          }
         },
         {
           "name": "UserName",
@@ -327,8 +331,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "User's display name. Used for profile enrichment when JIT-provisioning\n an identity account. Updated on each token mint if the account exists.",
-          "required": false
+          "description": "User's display name, asserted by the platform. Used for profile\n enrichment when JIT-provisioning an identity account; later mints do not\n change the stored profile.",
+          "required": false,
+          "validation": {
+            "maxLength": 256
+          }
         },
         {
           "name": "OrgId",

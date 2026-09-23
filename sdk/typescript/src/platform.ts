@@ -24,6 +24,13 @@ export interface ServerInfo {
   readonly edition: ServerEdition;
   /** Semantic version of the server binary. */
   readonly version: string;
+  /**
+   * Whether the server authenticates its callers. `false` on a server that
+   * trusts every request (the default single-operator posture), where
+   * features that hand out credentials only a verifying server honours —
+   * minting PlatformClient user tokens — are unavailable.
+   */
+  readonly authenticationRequired: boolean;
 }
 
 /**
@@ -42,7 +49,8 @@ export class PlatformClient {
   }
 
   /**
-   * Retrieve the connected server's edition and version.
+   * Retrieve the connected server's edition, version and authentication
+   * posture.
    *
    * Maps the proto {@link ServerEdition} to a {@link DeploymentMode}
    * through {@link deploymentModeOf}:
@@ -60,6 +68,7 @@ export class PlatformClient {
         deploymentMode: deploymentModeOf(resp.edition),
         edition: resp.edition,
         version: resp.version,
+        authenticationRequired: resp.authenticationRequired,
       };
     } catch (e) {
       throw wrapError(e);
