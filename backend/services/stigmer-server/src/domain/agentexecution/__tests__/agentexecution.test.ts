@@ -12,8 +12,9 @@
  *     byte-for-byte (sub-project DD-001: faithful-port + OSS issue);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
  *     rule (Go get_agent_usage_report_test.go case-for-case);
- *   - list/listBySession filter semantics over seeded rows and the
- *     total_pages placeholder;
+ *   - list/listBySession filter semantics over seeded rows; list's cursor
+ *     pages (newest created first, one organization, a token refused on
+ *     another request) and listBySession returning its parent whole;
  *   - update's status-clearing standard build and delete's audit-trail
  *     return, over the wire;
  *   - the populated getExecutionSummary arm (phase counts, active count,
@@ -28,6 +29,7 @@ import path from "node:path";
 
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -146,6 +148,7 @@ function seedInput(overrides?: {
   phase?: ExecutionPhase;
   startedAt?: string;
   completedAt?: string;
+  createdAtMs?: number;
 }): MessageInitShape<typeof AgentExecutionSchema> & {
   metadata: { id: string };
 } {
@@ -170,6 +173,12 @@ function seedInput(overrides?: {
       phase: overrides?.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
       startedAt: overrides?.startedAt ?? "",
       completedAt: overrides?.completedAt ?? "",
+      audit:
+        overrides?.createdAtMs === undefined
+          ? undefined
+          : {
+              specAudit: { createdAt: timestampFromMs(overrides.createdAtMs) },
+            },
     },
   };
 }
@@ -322,7 +331,7 @@ describe("get / list / listBySession over the wire", () => {
     expect(got.spec?.message).toBe("Say hello.");
   });
 
-  it("list returns every row with the total_pages placeholder, filtered by phase on request", async () => {
+  it("list with no page_size returns every row whole (total_pages 1), filtered by phase on request", async () => {
     const completed = await seed(
       seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
     );
@@ -358,6 +367,79 @@ describe("get / list / listBySession over the wire", () => {
     const ids = result.entries.map((e) => e.metadata?.id);
     expect(ids).toContain(inSession);
     expect(ids).not.toContain(outOfSession);
+  });
+
+  it("list pages one organization newest created first, with a token until the last page", async () => {
+    const org = "paging-org";
+    const base = Date.parse("2026-09-01T00:00:00Z");
+    const newestFirst: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      newestFirst.unshift(
+        await seed(seedInput({ org, createdAtMs: base + i * 1000 })),
+      );
+    }
+    await seed(seedInput({ org: "other-org", createdAtMs: base + 10_000 }));
+
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.list({ org, pageSize: 2, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(2);
+      expect(page.totalPages).toBe(page.nextPageToken === "" ? 1 : 0);
+      walked.push(...page.entries.map((e) => e.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(walked).toEqual(newestFirst);
+  });
+
+  it("list refuses a page_token issued for another request, and a negative page_size", async () => {
+    const org = "token-org";
+    await seed(
+      seedInput({ org, createdAtMs: Date.parse("2026-09-02T00:00:00Z") }),
+    );
+    await seed(
+      seedInput({ org, createdAtMs: Date.parse("2026-09-02T00:00:01Z") }),
+    );
+    const first = await query.list({ org, pageSize: 1 });
+    expect(first.nextPageToken).not.toBe("");
+
+    const replayed = await expectCode(
+      () =>
+        query.list({
+          org,
+          phase: ExecutionPhase.EXECUTION_FAILED,
+          pageSize: 1,
+          pageToken: first.nextPageToken,
+        }),
+      Code.InvalidArgument,
+    );
+    expect(replayed.rawMessage).toBe(
+      "page_token was issued for a different request",
+    );
+    await expectCode(
+      () => query.list({ org, pageToken: "not-a-token" }),
+      Code.InvalidArgument,
+    );
+    await expectCode(
+      () => query.list({ org, pageSize: -1 }),
+      Code.InvalidArgument,
+    );
+  });
+
+  it("listBySession returns the session's executions whole, whatever page_size says", async () => {
+    const ids = new Set<string>();
+    for (let i = 0; i < 3; i++) {
+      ids.add(await seed(seedInput({ sessionId: "ses_whole" })));
+    }
+
+    const result = await query.listBySession({
+      sessionId: "ses_whole",
+      pageSize: 1,
+    });
+    expect(new Set(result.entries.map((e) => e.metadata!.id))).toEqual(ids);
+    expect(result.nextPageToken).toBe("");
+    expect(result.totalPages).toBe(1);
   });
 });
 

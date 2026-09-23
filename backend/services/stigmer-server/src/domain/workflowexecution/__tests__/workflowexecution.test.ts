@@ -9,10 +9,11 @@
  *
  * Load-bearing pins the zero-record conformance arm cannot cover:
  *   - list's legacy-phase fallback vs filter.phases precedence, the T13
- *     structured filter over seeded rows, the started_at-descending sort
- *     default, and the total_pages placeholder;
+ *     structured filter over seeded rows, the newest-created default
+ *     order and its cursor pages (a token refused on another request),
+ *     and a non-default sort answering its first page with no token;
  *   - listByWorkflow matching EITHER spec.workflow_id or
- *     spec.workflow_instance_id;
+ *     spec.workflow_instance_id, and paging the workflow's runs;
  *   - getEventLog cursor pagination over REAL persisted events: has_more
  *     from the +1 fetch, latest_sequence, the 500 cap, the multi-type
  *     in-memory filter, and the malformed-record skip;
@@ -20,7 +21,8 @@
  *     avg duration, failure ranks, cost breakdown, workflow scoping,
  *     time-window cutoff);
  *   - listPendingApprovals projection (task_name not task_id; requester
- *     from spec audit) and its pre-truncation total_count;
+ *     from spec audit), its pre-truncation total_count, and its cursor
+ *     splitting one execution's waiting tasks across pages;
  *   - update's status-clearing standard build and delete's audit-trail
  *     return, over the wire.
  */
@@ -246,7 +248,10 @@ function eventRecord(
 
 describe("get / list / listByWorkflow over the wire", () => {
   it("get answers NotFound for an unknown id", async () => {
-    await expectCode(() => query.get({ value: "wfexec_missing" }), Code.NotFound);
+    await expectCode(
+      () => query.get({ value: "wfexec_missing" }),
+      Code.NotFound,
+    );
   });
 
   it("get round-trips a seeded execution", async () => {
@@ -269,9 +274,7 @@ describe("get / list / listByWorkflow over the wire", () => {
         (entry) => entry.status?.phase === ExecutionPhase.EXECUTION_FAILED,
       ),
     ).toBe(true);
-    expect(legacy.entries.map((entry) => entry.metadata?.id)).toContain(
-      failed,
-    );
+    expect(legacy.entries.map((entry) => entry.metadata?.id)).toContain(failed);
     expect(legacy.totalPages).toBe(1);
 
     // filter.phases supersedes the legacy field: a COMPLETED filter with a
@@ -288,17 +291,115 @@ describe("get / list / listByWorkflow over the wire", () => {
     ).toBe(true);
   });
 
-  it("list defaults to started_at descending", async () => {
-    const early = await seed(
-      seedInput({ startedAt: "2026-05-23T10:00:00Z" }),
+  it("list defaults to newest created first, so a queued run leads", async () => {
+    const org = "order-org";
+    const started = await seed(
+      seedInput({
+        org,
+        startedAt: "2026-05-23T14:00:00Z",
+        createdAtMs: Date.parse("2026-05-23T09:00:00Z"),
+      }),
     );
-    const late = await seed(seedInput({ startedAt: "2026-05-23T14:00:00Z" }));
+    const queued = await seed(
+      seedInput({
+        org,
+        phase: ExecutionPhase.EXECUTION_PENDING,
+        createdAtMs: Date.parse("2026-05-23T10:00:00Z"),
+      }),
+    );
 
-    const result = await query.list({});
-    const positions = new Map(
-      result.entries.map((entry, index) => [entry.metadata?.id, index]),
+    const result = await query.list({ org });
+    expect(result.entries.map((entry) => entry.metadata?.id)).toEqual([
+      queued,
+      started,
+    ]);
+  });
+
+  it("list pages newest created first with no gap or duplicate, and refuses a token on another request", async () => {
+    const org = "paging-org";
+    const base = Date.parse("2026-09-01T00:00:00Z");
+    const newestFirst: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      newestFirst.unshift(
+        await seed(seedInput({ org, createdAtMs: base + i * 1000 })),
+      );
+    }
+    await seed(seedInput({ org: "other-org", createdAtMs: base + 10_000 }));
+
+    const walked: string[] = [];
+    let pageToken = "";
+    let firstToken = "";
+    do {
+      const page = await query.list({ org, pageSize: 2, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(2);
+      expect(page.totalPages).toBe(page.nextPageToken === "" ? 1 : 0);
+      walked.push(...page.entries.map((entry) => entry.metadata!.id));
+      firstToken = firstToken === "" ? page.nextPageToken : firstToken;
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(walked).toEqual(newestFirst);
+
+    const replayed = await expectCode(
+      () =>
+        query.list({ org: "other-org", pageSize: 2, pageToken: firstToken }),
+      Code.InvalidArgument,
     );
-    expect(positions.get(late)).toBeLessThan(positions.get(early)!);
+    expect(replayed.rawMessage).toBe(
+      "page_token was issued for a different request",
+    );
+  });
+
+  it("a sort other than creation sorts the whole set and returns its first page with no token", async () => {
+    const org = "sorted-org";
+    const hours = ["10", "12", "14"];
+    for (const hour of hours) {
+      await seed(
+        seedInput({
+          org,
+          startedAt: `2026-05-23T${hour}:00:00Z`,
+          createdAtMs: Date.parse(`2026-05-20T${hour}:00:00Z`),
+        }),
+      );
+    }
+
+    const page = await query.list({
+      org,
+      pageSize: 2,
+      sortField: ExecutionSortField.STARTED_AT,
+      sortAscending: true,
+    });
+    expect(page.entries.map((entry) => entry.status?.startedAt)).toEqual([
+      "2026-05-23T10:00:00Z",
+      "2026-05-23T12:00:00Z",
+    ]);
+    expect(page.nextPageToken).toBe("");
+  });
+
+  it("listByWorkflow pages the workflow's runs", async () => {
+    const base = Date.parse("2026-09-03T00:00:00Z");
+    const newestFirst: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      newestFirst.unshift(
+        await seed(
+          seedInput({ workflowId: "wf_paged", createdAtMs: base + i * 1000 }),
+        ),
+      );
+    }
+
+    const first = await query.listByWorkflow({
+      workflowId: "wf_paged",
+      pageSize: 2,
+    });
+    expect(first.nextPageToken).not.toBe("");
+    const second = await query.listByWorkflow({
+      workflowId: "wf_paged",
+      pageSize: 2,
+      pageToken: first.nextPageToken,
+    });
+    expect(second.nextPageToken).toBe("");
+    expect(
+      [...first.entries, ...second.entries].map((entry) => entry.metadata?.id),
+    ).toEqual(newestFirst);
   });
 
   it("listByWorkflow requires workflow_id and matches either spec reference", async () => {
@@ -343,12 +444,17 @@ describe("getEventLog over the wire (CW-7 pagination contract)", () => {
     const records: WorkflowExecutionEventRecord[] = [];
     for (let sequence = 1; sequence <= 5; sequence++) {
       records.push(
-        eventRecord(id, sequence, WorkflowEventType.task_started, `t${sequence}`),
+        eventRecord(
+          id,
+          sequence,
+          WorkflowEventType.task_started,
+          `t${sequence}`,
+        ),
       );
     }
-    expect(
-      await server.store.appendWorkflowExecutionEvents(id, records),
-    ).toBe(5);
+    expect(await server.store.appendWorkflowExecutionEvents(id, records)).toBe(
+      5,
+    );
 
     const page1 = await query.getEventLog({ executionId: id, pageSize: 2 });
     expect(page1.events).toHaveLength(2);
@@ -360,10 +466,7 @@ describe("getEventLog over the wire (CW-7 pagination contract)", () => {
       pageSize: 2,
       afterSequence: page1.latestSequence,
     });
-    expect(page2.events.map((event) => event.sequenceNumber)).toEqual([
-      3n,
-      4n,
-    ]);
+    expect(page2.events.map((event) => event.sequenceNumber)).toEqual([3n, 4n]);
     expect(page2.hasMore).toBe(true);
 
     const page3 = await query.getEventLog({
@@ -444,7 +547,10 @@ describe("getEventLog over the wire (CW-7 pagination contract)", () => {
     ]);
     const tailPage = await query.getEventLog({ executionId: tail });
     expect(tailPage.events.map((event) => event.sequenceNumber)).toEqual([1n]);
-    expect(tailPage.latestSequence, "malformed rows never advance the cursor").toBe(1n);
+    expect(
+      tailPage.latestSequence,
+      "malformed rows never advance the cursor",
+    ).toBe(1n);
   });
 
   it("caps page_size at 500 and defaults to 100", async () => {
@@ -548,7 +654,10 @@ describe("getExecutionSummary over the wire", () => {
     });
     expect(windowed.totalCount).toBe(0);
     expect(windowed.successRate).toBe(-1);
-    expect(windowed.totalCost, "zero cost summary is ALWAYS present").toBeDefined();
+    expect(
+      windowed.totalCost,
+      "zero cost summary is ALWAYS present",
+    ).toBeDefined();
     expect(windowed.avgDuration, "no completed runs → absent").toBeUndefined();
 
     const allTime = await query.getExecutionSummary({
@@ -603,9 +712,9 @@ describe("listPendingApprovals over the wire", () => {
     expect(entry?.workflowName).toBe("Approval Flow");
     expect(entry?.requester).toBe("usr_seeder");
     expect(entry?.uiHint).toBe("approval-form");
-    expect(
-      result.entries.some((item) => item.taskName === "paused-gate"),
-    ).toBe(false);
+    expect(result.entries.some((item) => item.taskName === "paused-gate")).toBe(
+      false,
+    );
   });
 
   it("total_count is the pre-truncation total", async () => {
@@ -620,6 +729,54 @@ describe("listPendingApprovals over the wire", () => {
     const page = await query.listPendingApprovals({ org: ORG, pageSize: 1 });
     expect(page.entries).toHaveLength(1);
     expect(page.totalCount).toBeGreaterThanOrEqual(3);
+  });
+
+  it("pages newest execution first, then each execution's waiting tasks in order, across page boundaries", async () => {
+    const org = "approvals-paging-org";
+    const waiting = (taskName: string) => ({
+      taskName,
+      status: WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL,
+    });
+    const older = await seed(
+      seedInput({
+        org,
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        createdAtMs: Date.parse("2026-09-04T00:00:00Z"),
+        tasks: [waiting("older-gate")],
+      }),
+    );
+    const newer = await seed(
+      seedInput({
+        org,
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        createdAtMs: Date.parse("2026-09-04T00:00:01Z"),
+        tasks: [waiting("first-gate"), waiting("second-gate")],
+      }),
+    );
+
+    const walked: Array<[string, string]> = [];
+    let pageToken = "";
+    do {
+      const page = await query.listPendingApprovals({
+        org,
+        pageSize: 1,
+        pageToken,
+      });
+      expect(page.totalCount).toBe(3);
+      walked.push(
+        ...page.entries.map((entry): [string, string] => [
+          entry.executionId,
+          entry.taskName,
+        ]),
+      );
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(walked).toEqual([
+      [newer, "first-gate"],
+      [newer, "second-gate"],
+      [older, "older-gate"],
+    ]);
   });
 });
 
@@ -717,7 +874,9 @@ describe("subscribe over the wire (streaming smoke through the real transport)",
       }
     }, Code.InvalidArgument);
     await expectCode(async () => {
-      for await (const _ of query.subscribe({ executionId: "wfexec_missing" })) {
+      for await (const _ of query.subscribe({
+        executionId: "wfexec_missing",
+      })) {
         break;
       }
     }, Code.NotFound);
@@ -1256,7 +1415,10 @@ describe("submitFileDecision over the wire (propagation through the REAL in-proc
     const changeSet = child.status?.fileChangeSets.find(
       (cs) => cs.id === changeSetId,
     );
-    expect(changeSet?.decisions, "the child recorded the decision").toHaveLength(1);
+    expect(
+      changeSet?.decisions,
+      "the child recorded the decision",
+    ).toHaveLength(1);
   });
 
   it("the child's actionable rejection PROPAGATES unchanged (the file-decision asymmetry)", async () => {

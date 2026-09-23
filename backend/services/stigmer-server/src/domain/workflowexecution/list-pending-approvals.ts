@@ -65,7 +65,7 @@ export async function listPendingApprovals(
   req: ListPendingApprovalsRequest,
   identity: CallerIdentity,
 ): Promise<PendingApprovalsList> {
-  // Census lane 8 (20260830.01): the org's executions that CAN carry a
+  // Census lane 8: the org's executions that CAN carry a
   // pending approval (in progress, a task waiting) through the list index,
   // then the scope — the last per-row predicate, so a composed driver is
   // asked about a handful of rows — before the approvals projection and
