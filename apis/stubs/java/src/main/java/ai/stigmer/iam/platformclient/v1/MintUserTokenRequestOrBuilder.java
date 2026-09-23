@@ -63,6 +63,7 @@ public interface MintUserTokenRequestOrBuilder extends
    * Must be unique and stable within the org — the same user_id presented
    * via any PlatformClient in the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
+   * It must not contain the separator character '|'.
    * </pre>
    *
    * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -78,6 +79,7 @@ public interface MintUserTokenRequestOrBuilder extends
    * Must be unique and stable within the org — the same user_id presented
    * via any PlatformClient in the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
+   * It must not contain the separator character '|'.
    * </pre>
    *
    * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -88,21 +90,23 @@ public interface MintUserTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * User's email address. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's email address, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_email = 4 [json_name = "userEmail"];</code>
+   * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
    * @return The userEmail.
    */
   java.lang.String getUserEmail();
   /**
    * <pre>
-   * User's email address. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's email address, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_email = 4 [json_name = "userEmail"];</code>
+   * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
    * @return The bytes for userEmail.
    */
   com.google.protobuf.ByteString
@@ -110,21 +114,23 @@ public interface MintUserTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * User's display name. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's display name, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_name = 5 [json_name = "userName"];</code>
+   * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
    * @return The userName.
    */
   java.lang.String getUserName();
   /**
    * <pre>
-   * User's display name. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's display name, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_name = 5 [json_name = "userName"];</code>
+   * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
    * @return The bytes for userName.
    */
   com.google.protobuf.ByteString

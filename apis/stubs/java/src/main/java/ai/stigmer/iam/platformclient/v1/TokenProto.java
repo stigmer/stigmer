@@ -58,45 +58,46 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
       "\n,ai/stigmer/iam/platformclient/v1/token" +
       ".proto\022 ai.stigmer.iam.platformclient.v1" +
       "\032+ai/stigmer/commons/rpc/method_options." +
-      "proto\032\033buf/validate/validate.proto\"\337\001\n\024M" +
+      "proto\032\033buf/validate/validate.proto\"\366\001\n\024M" +
       "intUserTokenRequest\022$\n\tclient_id\030\001 \001(\tB\007" +
       "\272H\004r\002\020\001R\010clientId\022,\n\rclient_secret\030\002 \001(\t" +
-      "B\007\272H\004r\002\020\001R\014clientSecret\022 \n\007user_id\030\003 \001(\t" +
-      "B\007\272H\004r\002\020\001R\006userId\022\035\n\nuser_email\030\004 \001(\tR\tu" +
-      "serEmail\022\033\n\tuser_name\030\005 \001(\tR\010userName\022\025\n" +
-      "\006org_id\030\006 \001(\tR\005orgId\"x\n\025MintUserTokenRes" +
-      "ponse\022!\n\014access_token\030\001 \001(\tR\013accessToken" +
-      "\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022\035\n\nexpir" +
-      "es_in\030\003 \001(\005R\texpiresIn\"\373\003\n\025MintGuestToke" +
-      "nRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022\033\n\004s" +
-      "lug\030\002 \001(\tB\007\272H\004r\002\020\001R\004slug\022&\n\017guest_cookie" +
-      "_id\030\003 \001(\tR\rguestCookieId\022\330\002\n\014embed_origi" +
-      "n\030\004 \001(\tB\264\002\272H\260\002\272\001\254\002\n\023embed_origin.format\022" +
-      "wembed_origin must be empty, \"null\", or " +
-      "an exact web origin like https://example" +
-      ".com (no path, query, or trailing slash)" +
-      "\032\233\001this == \'\' || this == \'null\' || this." +
-      "matches(\'^https?://[A-Za-z0-9]([A-Za-z0-" +
-      "9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z" +
-      "0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$\')R\013" +
-      "embedOrigin\022\'\n\nlink_token\030\005 \001(\tB\010\272H\005r\003\030\200" +
-      "\001R\tlinkToken\"\241\001\n\026MintGuestTokenResponse\022" +
-      "!\n\014access_token\030\001 \001(\tR\013accessToken\022\035\n\nto" +
-      "ken_type\030\002 \001(\tR\ttokenType\022\035\n\nexpires_in\030" +
-      "\003 \001(\005R\texpiresIn\022&\n\017guest_cookie_id\030\004 \001(" +
-      "\tR\rguestCookieId2\264\002\n\035PlatformClientToken" +
-      "Controller\022\206\001\n\rmintUserToken\0226.ai.stigme" +
-      "r.iam.platformclient.v1.MintUserTokenReq" +
-      "uest\0327.ai.stigmer.iam.platformclient.v1." +
-      "MintUserTokenResponse\"\004\310\270\030\001\022\211\001\n\016mintGues" +
-      "tToken\0227.ai.stigmer.iam.platformclient.v" +
-      "1.MintGuestTokenRequest\0328.ai.stigmer.iam" +
-      ".platformclient.v1.MintGuestTokenRespons" +
-      "e\"\004\310\270\030\001B\261\001B\nTokenProtoP\001\242\002\004ASIP\252\002 Ai.Sti" +
-      "gmer.Iam.Platformclient.V1\312\002 Ai\\Stigmer\\" +
-      "Iam\\Platformclient\\V1\342\002,Ai\\Stigmer\\Iam\\P" +
-      "latformclient\\V1\\GPBMetadata\352\002$Ai::Stigm" +
-      "er::Iam::Platformclient::V1b\006proto3"
+      "B\007\272H\004r\002\020\001R\014clientSecret\022#\n\007user_id\030\003 \001(\t" +
+      "B\n\272H\007r\005\020\001\030\200\002R\006userId\022\'\n\nuser_email\030\004 \001(\t" +
+      "B\010\272H\005r\003\030\300\002R\tuserEmail\022%\n\tuser_name\030\005 \001(\t" +
+      "B\010\272H\005r\003\030\200\002R\010userName\022\025\n\006org_id\030\006 \001(\tR\005or" +
+      "gId\"x\n\025MintUserTokenResponse\022!\n\014access_t" +
+      "oken\030\001 \001(\tR\013accessToken\022\035\n\ntoken_type\030\002 " +
+      "\001(\tR\ttokenType\022\035\n\nexpires_in\030\003 \001(\005R\texpi" +
+      "resIn\"\373\003\n\025MintGuestTokenRequest\022\031\n\003org\030\001" +
+      " \001(\tB\007\272H\004r\002\020\001R\003org\022\033\n\004slug\030\002 \001(\tB\007\272H\004r\002\020" +
+      "\001R\004slug\022&\n\017guest_cookie_id\030\003 \001(\tR\rguestC" +
+      "ookieId\022\330\002\n\014embed_origin\030\004 \001(\tB\264\002\272H\260\002\272\001\254" +
+      "\002\n\023embed_origin.format\022wembed_origin mus" +
+      "t be empty, \"null\", or an exact web orig" +
+      "in like https://example.com (no path, qu" +
+      "ery, or trailing slash)\032\233\001this == \'\' || " +
+      "this == \'null\' || this.matches(\'^https?:" +
+      "//[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?" +
+      "(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9]" +
+      ")?)*(:[0-9]{1,5})?$\')R\013embedOrigin\022\'\n\nli" +
+      "nk_token\030\005 \001(\tB\010\272H\005r\003\030\200\001R\tlinkToken\"\241\001\n\026" +
+      "MintGuestTokenResponse\022!\n\014access_token\030\001" +
+      " \001(\tR\013accessToken\022\035\n\ntoken_type\030\002 \001(\tR\tt" +
+      "okenType\022\035\n\nexpires_in\030\003 \001(\005R\texpiresIn\022" +
+      "&\n\017guest_cookie_id\030\004 \001(\tR\rguestCookieId2" +
+      "\264\002\n\035PlatformClientTokenController\022\206\001\n\rmi" +
+      "ntUserToken\0226.ai.stigmer.iam.platformcli" +
+      "ent.v1.MintUserTokenRequest\0327.ai.stigmer" +
+      ".iam.platformclient.v1.MintUserTokenResp" +
+      "onse\"\004\310\270\030\001\022\211\001\n\016mintGuestToken\0227.ai.stigm" +
+      "er.iam.platformclient.v1.MintGuestTokenR" +
+      "equest\0328.ai.stigmer.iam.platformclient.v" +
+      "1.MintGuestTokenResponse\"\004\310\270\030\001B\261\001B\nToken" +
+      "ProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platform" +
+      "client.V1\312\002 Ai\\Stigmer\\Iam\\Platformclien" +
+      "t\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\V1\\" +
+      "GPBMetadata\352\002$Ai::Stigmer::Iam::Platform" +
+      "client::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

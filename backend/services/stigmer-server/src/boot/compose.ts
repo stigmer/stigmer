@@ -144,6 +144,7 @@ import {
 import type { SecretCodec } from "../encryption/codec.js";
 import { getOrCreateNamedKey } from "../encryption/key-manager.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
+import { resolvePlatformTokenKeys } from "../platformtoken/key-ring.js";
 import { registerActivityServices } from "../query/activity/controller.js";
 import { ActivityHandler } from "../query/activity/handler.js";
 import { registerSearchServices } from "../query/search/controller.js";
@@ -203,6 +204,7 @@ import {
 } from "../transport/console/handler.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
+import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
 import type { ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
 import type { InProcessClients } from "./inprocess.js";
@@ -689,6 +691,26 @@ export async function composeServer(
     writeVersion:
       writeVersionValue === "" ? DEFAULT_WRITE_VERSION : writeVersionValue,
     registeredCodecs: [...secretCodecs.keys()].sort(),
+  });
+  // The platform-token key ring joins the FATAL side of the asymmetry:
+  // under an authentication posture a server that cannot sign or verify
+  // its own tokens would refuse every PlatformClient-minted caller, and an
+  // explicitly configured key that does not load is configuration the
+  // operator meant (the ladder's rule). No posture, no ring
+  // (resolvePlatformTokenKeys carries the four arms).
+  const platformTokenKeys = resolvePlatformTokenKeys({
+    requireAuthentication,
+    supplied: extensions.drivers.platformTokenKeys,
+    edition: extensions.edition,
+  });
+  logger.info("platform-token keys resolved", {
+    source:
+      platformTokenKeys === undefined
+        ? "none (no authentication posture)"
+        : extensions.drivers.platformTokenKeys !== undefined
+          ? "extension"
+          : "open-source ladder",
+    signing: platformTokenKeys?.signer !== undefined,
   });
   // Stage: temporal (#18). Construction is sync and connection-free —
   // initialConnect/startWorkers/startHealthMonitor run in start(), all
@@ -1549,6 +1571,7 @@ export async function composeServer(
       runnerAuthService: runnerCredentials,
       edition: extensions.edition,
       version: options.version ?? SERVER_VERSION,
+      authenticationRequired: requireAuthentication,
       // The built-in `absent` answer installs here, at the consumer, when
       // no unit registered a license-status provider: open source and the
       // cloud hold no key, and only an Enterprise unit ever has one.
@@ -1559,10 +1582,9 @@ export async function composeServer(
     // Extension services register after the whole OSS set, inside the ONE
     // routes closure — so the serving router AND the in-process transport
     // see them by construction (blueprint §2a; DD-002's parity doctrine
-    // extends to extension services unchanged).
-    for (const registerExtensionServices of extensions.services) {
-      registerExtensionServices(router);
-    }
+    // extends to extension services unchanged). A registration that would
+    // shadow a route already served is a boot throw (route-shadowing.ts).
+    registerExtensionServicesUnshadowed(router, extensions.services);
   };
   const inProcessWiring = createInProcessClients(routes, logger);
   inProcess = inProcessWiring.clients;

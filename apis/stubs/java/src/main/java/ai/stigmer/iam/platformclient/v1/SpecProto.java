@@ -46,7 +46,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "tions.proto\032\'ai/stigmer/commons/apiresou" +
       "rce/io.proto\032\034ai/stigmer/iam/v1/enum.pro" +
       "to\032\033buf/validate/validate.proto\032\037google/" +
-      "protobuf/timestamp.proto\"\254\005\n\022PlatformCli" +
+      "protobuf/timestamp.proto\"\257\010\n\022PlatformCli" +
       "entSpec\022!\n\tclient_id\030\001 \001(\tB\004\310\205,\001R\010client" +
       "Id\0222\n\022client_secret_hash\030\002 \001(\tB\004\310\205,\001R\020cl" +
       "ientSecretHash\0223\n\022secret_fingerprint\030\003 \001" +
@@ -63,12 +63,22 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "rceReferenceBx\272Hq\222\001n\"l\272\001i\n\025environment_r" +
       "efs.kind\022?environment_refs must referenc" +
       "e resources with kind=environment\032\017this." +
-      "kind == 53\340\205,5R\017environmentRefsB\260\001B\tSpec" +
-      "ProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platform" +
-      "client.V1\312\002 Ai\\Stigmer\\Iam\\Platformclien" +
-      "t\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\V1\\" +
-      "GPBMetadata\352\002$Ai::Stigmer::Iam::Platform" +
-      "client::V1b\006proto3"
+      "kind == 53\340\205,5R\017environmentRefs:\200\003\272H\374\002\032\333" +
+      "\001\n2platform_client.auto_grant_requires_a" +
+      "uto_provision\022lauto_grant_on_org require" +
+      "s auto_provision_accounts: only an accou" +
+      "nt the client provisions receives the gr" +
+      "ant\0327!this.auto_grant_on_org || this.aut" +
+      "o_provision_accounts\032\233\001\n)platform_client" +
+      ".auto_grant_role_not_owner\022Sauto_grant_r" +
+      "ole cannot be owner; organization owners" +
+      "hip must be assigned explicitly\032\031this.au" +
+      "to_grant_role != 1B\260\001B\tSpecProtoP\001\242\002\004ASI" +
+      "P\252\002 Ai.Stigmer.Iam.Platformclient.V1\312\002 A" +
+      "i\\Stigmer\\Iam\\Platformclient\\V1\342\002,Ai\\Sti" +
+      "gmer\\Iam\\Platformclient\\V1\\GPBMetadata\352\002" +
+      "$Ai::Stigmer::Iam::Platformclient::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -96,6 +106,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.computed);
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

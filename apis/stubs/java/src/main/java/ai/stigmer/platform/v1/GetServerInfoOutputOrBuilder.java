@@ -48,4 +48,19 @@ public interface GetServerInfoOutputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getVersionBytes();
+
+  /**
+   * <pre>
+   * Whether the server authenticates its callers.
+   *
+   * False when the server trusts every request (no identity verifier is
+   * configured, the default single-operator posture). Features that hand out
+   * credentials only a verifying server honours — minting PlatformClient user
+   * tokens — are unavailable then.
+   * </pre>
+   *
+   * <code>bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+   * @return The authenticationRequired.
+   */
+  boolean getAuthenticationRequired();
 }

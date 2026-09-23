@@ -36,10 +36,11 @@ const (
 	// Account provisioned via a PlatformClient's mintUserToken endpoint.
 	//
 	// The idp_id for these accounts uses the composite encoding
-	// "stgm_pc|{platform_client_id}|{external_user_id}", where platform_client_id
-	// is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id
-	// is the user identifier supplied by the platform builder. The composite is
-	// globally unique by construction — no additional scope field is needed.
+	// "stgm_pc|{org}|{external_user_id}", where org is the owning organization of
+	// the PlatformClient that minted the token and external_user_id is the user
+	// identifier supplied by the platform builder. Every PlatformClient of one
+	// organization therefore resolves the same user to the same account. The
+	// "stgm_pc|" prefix is reserved: no other provisioning mode may use it.
 	//
 	// Unlike federated accounts, PlatformClient is not an ongoing authentication
 	// authority. Stigmer signs its own JWTs for these users; the PlatformClient

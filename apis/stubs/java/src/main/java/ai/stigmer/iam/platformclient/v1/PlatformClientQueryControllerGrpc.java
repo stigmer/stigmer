@@ -192,8 +192,8 @@ public final class PlatformClientQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/acme-dashboard" to the full
      * PlatformClient resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the resolved client is authorized exactly as get is —
+     * can_view on the platform client, with get's refusal copy.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -204,10 +204,11 @@ public final class PlatformClientQueryControllerGrpc {
     /**
      * <pre>
      * List all platform clients belonging to an organization.
-     * Returns every PlatformClient whose metadata.org matches the input org.
-     * Typically a small set per org, so results are not paginated.
+     * Returns the PlatformClients of the input org that the caller may view,
+     * newest first. Typically a small set per org, so results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: Requires can_view permission on the organization resource;
+     * the result is then narrowed to the clients a get would return.
      * </pre>
      */
     default void listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request,
@@ -268,8 +269,8 @@ public final class PlatformClientQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/acme-dashboard" to the full
      * PlatformClient resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the resolved client is authorized exactly as get is —
+     * can_view on the platform client, with get's refusal copy.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -281,10 +282,11 @@ public final class PlatformClientQueryControllerGrpc {
     /**
      * <pre>
      * List all platform clients belonging to an organization.
-     * Returns every PlatformClient whose metadata.org matches the input org.
-     * Typically a small set per org, so results are not paginated.
+     * Returns the PlatformClients of the input org that the caller may view,
+     * newest first. Typically a small set per org, so results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: Requires can_view permission on the organization resource;
+     * the result is then narrowed to the clients a get would return.
      * </pre>
      */
     public void listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request,
@@ -331,8 +333,8 @@ public final class PlatformClientQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/acme-dashboard" to the full
      * PlatformClient resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the resolved client is authorized exactly as get is —
+     * can_view on the platform client, with get's refusal copy.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -343,10 +345,11 @@ public final class PlatformClientQueryControllerGrpc {
     /**
      * <pre>
      * List all platform clients belonging to an organization.
-     * Returns every PlatformClient whose metadata.org matches the input org.
-     * Typically a small set per org, so results are not paginated.
+     * Returns the PlatformClients of the input org that the caller may view,
+     * newest first. Typically a small set per org, so results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: Requires can_view permission on the organization resource;
+     * the result is then narrowed to the clients a get would return.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClients listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request) throws io.grpc.StatusException {
@@ -392,8 +395,8 @@ public final class PlatformClientQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/acme-dashboard" to the full
      * PlatformClient resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the resolved client is authorized exactly as get is —
+     * can_view on the platform client, with get's refusal copy.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -404,10 +407,11 @@ public final class PlatformClientQueryControllerGrpc {
     /**
      * <pre>
      * List all platform clients belonging to an organization.
-     * Returns every PlatformClient whose metadata.org matches the input org.
-     * Typically a small set per org, so results are not paginated.
+     * Returns the PlatformClients of the input org that the caller may view,
+     * newest first. Typically a small set per org, so results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: Requires can_view permission on the organization resource;
+     * the result is then narrowed to the clients a get would return.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClients listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request) {
@@ -454,8 +458,8 @@ public final class PlatformClientQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/acme-dashboard" to the full
      * PlatformClient resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the resolved client is authorized exactly as get is —
+     * can_view on the platform client, with get's refusal copy.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClient> getByReference(
@@ -467,10 +471,11 @@ public final class PlatformClientQueryControllerGrpc {
     /**
      * <pre>
      * List all platform clients belonging to an organization.
-     * Returns every PlatformClient whose metadata.org matches the input org.
-     * Typically a small set per org, so results are not paginated.
+     * Returns the PlatformClients of the input org that the caller may view,
+     * newest first. Typically a small set per org, so results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: Requires can_view permission on the organization resource;
+     * the result is then narrowed to the clients a get would return.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClients> listByOrg(

@@ -10,13 +10,17 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * a resource lifecycle. Instead, it issues Stigmer-signed JWTs on behalf
  * of platform builder users, authenticated via PlatformClient credentials
  * (client_id + client_secret).
- * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
- * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
- * that checks the Stigmer-issued signature and resolves the identity account.
+ * The minted JWT is signed by the server's own platform-token key, not by an
+ * external identity provider. The server verifies it on every request and
+ * refuses it once the PlatformClient that minted it is deleted. Minting
+ * requires a server that authenticates its callers; a server that trusts
+ * every request refuses it FAILED_PRECONDITION, because nothing would ever
+ * verify the token.
  * mintGuestToken is the credential-free exception: no client_id/client_secret.
  * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
  * hosted page, gated on an enabled public-audience AgentShare
- * (ai.stigmer.agentic.agentshare.v1).
+ * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+ * pages answer it UNIMPLEMENTED.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -156,13 +160,17 @@ public final class PlatformClientTokenControllerGrpc {
    * a resource lifecycle. Instead, it issues Stigmer-signed JWTs on behalf
    * of platform builder users, authenticated via PlatformClient credentials
    * (client_id + client_secret).
-   * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
-   * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
-   * that checks the Stigmer-issued signature and resolves the identity account.
+   * The minted JWT is signed by the server's own platform-token key, not by an
+   * external identity provider. The server verifies it on every request and
+   * refuses it once the PlatformClient that minted it is deleted. Minting
+   * requires a server that authenticates its callers; a server that trusts
+   * every request refuses it FAILED_PRECONDITION, because nothing would ever
+   * verify the token.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
    * hosted page, gated on an enabled public-audience AgentShare
-   * (ai.stigmer.agentic.agentshare.v1).
+   * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+   * pages answer it UNIMPLEMENTED.
    * </pre>
    */
   public interface AsyncService {
@@ -178,16 +186,17 @@ public final class PlatformClientTokenControllerGrpc {
      * getAccessToken callback) to authenticate API calls from the browser.
      * Authentication flow:
      * 1. Validate client_id + client_secret against stored hash
-     * 2. Resolve or JIT-provision the identity account for user_id
-     * 3. If auto_grant_on_org is enabled, grant the configured role
-     * 4. Sign a JWT with Stigmer's private key containing the user's identity
+     * 2. Resolve the identity account for user_id; on first use, provision it
+     *    (and grant auto_grant_role when auto_grant_on_org is enabled)
+     * 3. Sign a JWT with the server's platform-token key containing the user's identity
      * Error scenarios:
      * - UNAUTHENTICATED: Invalid client_id or client_secret
      * - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
-     *   is false, or the PlatformClient secret has expired
-     * - INTERNAL: Account provisioning could not be completed (for example, the
-     *   auto_grant_on_org role grant failed). No partial account is left behind
-     *   — the account is rolled back — so the request is safe to retry.
+     *   is false, the PlatformClient secret has expired, or the server does not
+     *   authenticate its callers
+     * - INTERNAL: Account provisioning could not be completed. No partial
+     *   account is left behind, so the request is safe to retry: a retry
+     *   completes the provisioning.
      * Origin enforcement (spec.allowed_origins) does NOT apply to this call:
      * minting is server-to-server, so there is no browser Origin to check.
      * It applies to the browser API calls that BEAR the minted token — when
@@ -234,13 +243,17 @@ public final class PlatformClientTokenControllerGrpc {
    * a resource lifecycle. Instead, it issues Stigmer-signed JWTs on behalf
    * of platform builder users, authenticated via PlatformClient credentials
    * (client_id + client_secret).
-   * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
-   * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
-   * that checks the Stigmer-issued signature and resolves the identity account.
+   * The minted JWT is signed by the server's own platform-token key, not by an
+   * external identity provider. The server verifies it on every request and
+   * refuses it once the PlatformClient that minted it is deleted. Minting
+   * requires a server that authenticates its callers; a server that trusts
+   * every request refuses it FAILED_PRECONDITION, because nothing would ever
+   * verify the token.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
    * hosted page, gated on an enabled public-audience AgentShare
-   * (ai.stigmer.agentic.agentshare.v1).
+   * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+   * pages answer it UNIMPLEMENTED.
    * </pre>
    */
   public static abstract class PlatformClientTokenControllerImplBase
@@ -260,13 +273,17 @@ public final class PlatformClientTokenControllerGrpc {
    * a resource lifecycle. Instead, it issues Stigmer-signed JWTs on behalf
    * of platform builder users, authenticated via PlatformClient credentials
    * (client_id + client_secret).
-   * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
-   * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
-   * that checks the Stigmer-issued signature and resolves the identity account.
+   * The minted JWT is signed by the server's own platform-token key, not by an
+   * external identity provider. The server verifies it on every request and
+   * refuses it once the PlatformClient that minted it is deleted. Minting
+   * requires a server that authenticates its callers; a server that trusts
+   * every request refuses it FAILED_PRECONDITION, because nothing would ever
+   * verify the token.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
    * hosted page, gated on an enabled public-audience AgentShare
-   * (ai.stigmer.agentic.agentshare.v1).
+   * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+   * pages answer it UNIMPLEMENTED.
    * </pre>
    */
   public static final class PlatformClientTokenControllerStub
@@ -293,16 +310,17 @@ public final class PlatformClientTokenControllerGrpc {
      * getAccessToken callback) to authenticate API calls from the browser.
      * Authentication flow:
      * 1. Validate client_id + client_secret against stored hash
-     * 2. Resolve or JIT-provision the identity account for user_id
-     * 3. If auto_grant_on_org is enabled, grant the configured role
-     * 4. Sign a JWT with Stigmer's private key containing the user's identity
+     * 2. Resolve the identity account for user_id; on first use, provision it
+     *    (and grant auto_grant_role when auto_grant_on_org is enabled)
+     * 3. Sign a JWT with the server's platform-token key containing the user's identity
      * Error scenarios:
      * - UNAUTHENTICATED: Invalid client_id or client_secret
      * - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
-     *   is false, or the PlatformClient secret has expired
-     * - INTERNAL: Account provisioning could not be completed (for example, the
-     *   auto_grant_on_org role grant failed). No partial account is left behind
-     *   — the account is rolled back — so the request is safe to retry.
+     *   is false, the PlatformClient secret has expired, or the server does not
+     *   authenticate its callers
+     * - INTERNAL: Account provisioning could not be completed. No partial
+     *   account is left behind, so the request is safe to retry: a retry
+     *   completes the provisioning.
      * Origin enforcement (spec.allowed_origins) does NOT apply to this call:
      * minting is server-to-server, so there is no browser Origin to check.
      * It applies to the browser API calls that BEAR the minted token — when
@@ -351,13 +369,17 @@ public final class PlatformClientTokenControllerGrpc {
    * a resource lifecycle. Instead, it issues Stigmer-signed JWTs on behalf
    * of platform builder users, authenticated via PlatformClient credentials
    * (client_id + client_secret).
-   * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
-   * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
-   * that checks the Stigmer-issued signature and resolves the identity account.
+   * The minted JWT is signed by the server's own platform-token key, not by an
+   * external identity provider. The server verifies it on every request and
+   * refuses it once the PlatformClient that minted it is deleted. Minting
+   * requires a server that authenticates its callers; a server that trusts
+   * every request refuses it FAILED_PRECONDITION, because nothing would ever
+   * verify the token.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
    * hosted page, gated on an enabled public-audience AgentShare
-   * (ai.stigmer.agentic.agentshare.v1).
+   * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+   * pages answer it UNIMPLEMENTED.
    * </pre>
    */
   public static final class PlatformClientTokenControllerBlockingV2Stub
@@ -384,16 +406,17 @@ public final class PlatformClientTokenControllerGrpc {
      * getAccessToken callback) to authenticate API calls from the browser.
      * Authentication flow:
      * 1. Validate client_id + client_secret against stored hash
-     * 2. Resolve or JIT-provision the identity account for user_id
-     * 3. If auto_grant_on_org is enabled, grant the configured role
-     * 4. Sign a JWT with Stigmer's private key containing the user's identity
+     * 2. Resolve the identity account for user_id; on first use, provision it
+     *    (and grant auto_grant_role when auto_grant_on_org is enabled)
+     * 3. Sign a JWT with the server's platform-token key containing the user's identity
      * Error scenarios:
      * - UNAUTHENTICATED: Invalid client_id or client_secret
      * - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
-     *   is false, or the PlatformClient secret has expired
-     * - INTERNAL: Account provisioning could not be completed (for example, the
-     *   auto_grant_on_org role grant failed). No partial account is left behind
-     *   — the account is rolled back — so the request is safe to retry.
+     *   is false, the PlatformClient secret has expired, or the server does not
+     *   authenticate its callers
+     * - INTERNAL: Account provisioning could not be completed. No partial
+     *   account is left behind, so the request is safe to retry: a retry
+     *   completes the provisioning.
      * Origin enforcement (spec.allowed_origins) does NOT apply to this call:
      * minting is server-to-server, so there is no browser Origin to check.
      * It applies to the browser API calls that BEAR the minted token — when
@@ -440,13 +463,17 @@ public final class PlatformClientTokenControllerGrpc {
    * a resource lifecycle. Instead, it issues Stigmer-signed JWTs on behalf
    * of platform builder users, authenticated via PlatformClient credentials
    * (client_id + client_secret).
-   * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
-   * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
-   * that checks the Stigmer-issued signature and resolves the identity account.
+   * The minted JWT is signed by the server's own platform-token key, not by an
+   * external identity provider. The server verifies it on every request and
+   * refuses it once the PlatformClient that minted it is deleted. Minting
+   * requires a server that authenticates its callers; a server that trusts
+   * every request refuses it FAILED_PRECONDITION, because nothing would ever
+   * verify the token.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
    * hosted page, gated on an enabled public-audience AgentShare
-   * (ai.stigmer.agentic.agentshare.v1).
+   * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+   * pages answer it UNIMPLEMENTED.
    * </pre>
    */
   public static final class PlatformClientTokenControllerBlockingStub
@@ -473,16 +500,17 @@ public final class PlatformClientTokenControllerGrpc {
      * getAccessToken callback) to authenticate API calls from the browser.
      * Authentication flow:
      * 1. Validate client_id + client_secret against stored hash
-     * 2. Resolve or JIT-provision the identity account for user_id
-     * 3. If auto_grant_on_org is enabled, grant the configured role
-     * 4. Sign a JWT with Stigmer's private key containing the user's identity
+     * 2. Resolve the identity account for user_id; on first use, provision it
+     *    (and grant auto_grant_role when auto_grant_on_org is enabled)
+     * 3. Sign a JWT with the server's platform-token key containing the user's identity
      * Error scenarios:
      * - UNAUTHENTICATED: Invalid client_id or client_secret
      * - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
-     *   is false, or the PlatformClient secret has expired
-     * - INTERNAL: Account provisioning could not be completed (for example, the
-     *   auto_grant_on_org role grant failed). No partial account is left behind
-     *   — the account is rolled back — so the request is safe to retry.
+     *   is false, the PlatformClient secret has expired, or the server does not
+     *   authenticate its callers
+     * - INTERNAL: Account provisioning could not be completed. No partial
+     *   account is left behind, so the request is safe to retry: a retry
+     *   completes the provisioning.
      * Origin enforcement (spec.allowed_origins) does NOT apply to this call:
      * minting is server-to-server, so there is no browser Origin to check.
      * It applies to the browser API calls that BEAR the minted token — when
@@ -529,13 +557,17 @@ public final class PlatformClientTokenControllerGrpc {
    * a resource lifecycle. Instead, it issues Stigmer-signed JWTs on behalf
    * of platform builder users, authenticated via PlatformClient credentials
    * (client_id + client_secret).
-   * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
-   * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
-   * that checks the Stigmer-issued signature and resolves the identity account.
+   * The minted JWT is signed by the server's own platform-token key, not by an
+   * external identity provider. The server verifies it on every request and
+   * refuses it once the PlatformClient that minted it is deleted. Minting
+   * requires a server that authenticates its callers; a server that trusts
+   * every request refuses it FAILED_PRECONDITION, because nothing would ever
+   * verify the token.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
    * hosted page, gated on an enabled public-audience AgentShare
-   * (ai.stigmer.agentic.agentshare.v1).
+   * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+   * pages answer it UNIMPLEMENTED.
    * </pre>
    */
   public static final class PlatformClientTokenControllerFutureStub
@@ -562,16 +594,17 @@ public final class PlatformClientTokenControllerGrpc {
      * getAccessToken callback) to authenticate API calls from the browser.
      * Authentication flow:
      * 1. Validate client_id + client_secret against stored hash
-     * 2. Resolve or JIT-provision the identity account for user_id
-     * 3. If auto_grant_on_org is enabled, grant the configured role
-     * 4. Sign a JWT with Stigmer's private key containing the user's identity
+     * 2. Resolve the identity account for user_id; on first use, provision it
+     *    (and grant auto_grant_role when auto_grant_on_org is enabled)
+     * 3. Sign a JWT with the server's platform-token key containing the user's identity
      * Error scenarios:
      * - UNAUTHENTICATED: Invalid client_id or client_secret
      * - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
-     *   is false, or the PlatformClient secret has expired
-     * - INTERNAL: Account provisioning could not be completed (for example, the
-     *   auto_grant_on_org role grant failed). No partial account is left behind
-     *   — the account is rolled back — so the request is safe to retry.
+     *   is false, the PlatformClient secret has expired, or the server does not
+     *   authenticate its callers
+     * - INTERNAL: Account provisioning could not be completed. No partial
+     *   account is left behind, so the request is safe to retry: a retry
+     *   completes the provisioning.
      * Origin enforcement (spec.allowed_origins) does NOT apply to this call:
      * minting is server-to-server, so there is no browser Origin to check.
      * It applies to the browser API calls that BEAR the minted token — when
