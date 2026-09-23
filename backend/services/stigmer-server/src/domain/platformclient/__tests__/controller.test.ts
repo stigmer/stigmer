@@ -11,6 +11,11 @@
  *   - the reserved slug is refused, the two auto-grant rules are refused on
  *     the contract, and a system-managed client refuses update, delete and
  *     rotate with the cloud's copy;
+ *   - create and update run the reference rule on `environment_refs`: a
+ *     bare slug is stored under the client's organization, a missing
+ *     environment is refused on either chain before anything is stored, and
+ *     another organization's environment is refused with the rule's one
+ *     sentence;
  *   - listByOrg answers the organization's clients, newest first.
  * Who may read a client is the enforcing lane's conformance suite's.
  */
@@ -20,11 +25,15 @@ import { clone, create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
+import type { PlatformClientSpec } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
@@ -32,6 +41,12 @@ import { SYSTEM_MANAGED_LABEL, RESERVED_LABEL_TRUE } from "../../../pipeline/api
 import { buildInterceptorChain } from "../../../pipeline/chain.js";
 import { createInProcessCallerInterceptor } from "../../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import {
+  missingReferencesMessage,
+  notAvailableReferenceMessage,
+  referenceTargetKind,
+} from "../../../pipeline/steps/references.js";
+import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { reservedSlugMessage, systemManagedMessage } from "../constants.js";
 import { registerPlatformClientServices } from "../controller.js";
@@ -40,6 +55,7 @@ import { newResourcePlatformClientStore } from "../resource-store.js";
 import type { PlatformClientStore } from "../store.js";
 
 let cleanup: () => void;
+let store: Store;
 let clients: PlatformClientStore;
 let command: Client<typeof PlatformClientCommandController>;
 let query: Client<typeof PlatformClientQueryController>;
@@ -47,11 +63,13 @@ let query: Client<typeof PlatformClientQueryController>;
 beforeEach(() => {
   const temp = tempStore();
   cleanup = () => temp.cleanup();
+  store = temp.store;
   clients = newResourcePlatformClientStore(temp.store);
   const transport = createRouterTransport(
     (router) =>
       registerPlatformClientServices(router, {
         clients,
+        store,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
@@ -86,6 +104,30 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
     throw error;
   }
   throw new Error("expected a ConnectError refusal");
+}
+
+async function seedEnvironment(org: string, slug: string): Promise<void> {
+  const id = `env_${org}_${slug}`;
+  await store.saveResource(
+    ApiResourceKind.environment,
+    id,
+    EnvironmentSchema,
+    create(EnvironmentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Environment",
+      metadata: { id, name: slug, slug, org, visibility: ApiResourceVisibility.visibility_org },
+    }),
+  );
+}
+
+function environmentRef(slug: string, org = "") {
+  return { org, slug, kind: ApiResourceKind.environment };
+}
+
+function environmentTarget() {
+  const entry = referenceTargetKind(ApiResourceKind.environment);
+  if (entry === undefined) throw new Error("environment is not a reference target kind");
+  return entry;
 }
 
 describe("PlatformClient chains", () => {
@@ -172,6 +214,57 @@ describe("PlatformClient chains", () => {
       command.create(input("No provision", { autoProvisionAccounts: false, autoGrantOnOrg: true })),
     );
     expect(noProvision.code).toBe(Code.InvalidArgument);
+  });
+
+  it("stores a bare environment slug under the client's organization", async () => {
+    await seedEnvironment("acme", "support-secrets");
+    const created = await command.create(
+      input("Dashboard", { environmentRefs: [environmentRef("support-secrets")] }),
+    );
+    const refsOf = (spec: PlatformClientSpec | undefined) =>
+      (spec?.environmentRefs ?? []).map((ref) => `${ref.org}/${ref.slug}`);
+    expect(refsOf(created.platformClient?.spec)).toEqual(["acme/support-secrets"]);
+    const id = created.platformClient?.metadata?.id ?? "";
+    expect(refsOf((await clients.findById(id))?.spec)).toEqual(["acme/support-secrets"]);
+  });
+
+  it("refuses a missing environment on create and on update, storing nothing", async () => {
+    const missing = missingReferencesMessage(environmentTarget(), [{ slug: "ghost", org: "acme" }]);
+
+    const onCreate = await refusal(
+      command.create(input("Dashboard", { environmentRefs: [environmentRef("ghost")] })),
+    );
+    expect(onCreate.code).toBe(Code.FailedPrecondition);
+    expect(onCreate.rawMessage).toBe(missing);
+    expect((await query.listByOrg({ org: "acme" })).entries).toEqual([]);
+
+    const created = await command.create(input("Dashboard"));
+    const stored = created.platformClient;
+    if (stored?.spec === undefined) throw new Error("create answered no spec");
+    const withGhost = clone(PlatformClientSchema, stored);
+    withGhost.spec = clone(PlatformClientSpecSchema, stored.spec);
+    withGhost.spec.environmentRefs = [create(ApiResourceReferenceSchema, environmentRef("ghost"))];
+    const onUpdate = await refusal(command.update(withGhost));
+    expect(onUpdate.code).toBe(Code.FailedPrecondition);
+    expect(onUpdate.rawMessage).toBe(missing);
+    expect((await clients.findById(stored.metadata?.id ?? ""))?.spec?.environmentRefs).toEqual([]);
+  });
+
+  it("refuses another organization's environment with the rule's one sentence", async () => {
+    await seedEnvironment("globex", "shared");
+    const foreign = await refusal(
+      command.create(
+        input("Dashboard", { environmentRefs: [environmentRef("shared", "globex")] }),
+      ),
+    );
+    expect(foreign.code).toBe(Code.FailedPrecondition);
+    expect(foreign.rawMessage).toBe(
+      notAvailableReferenceMessage(environmentTarget(), {
+        kind: ApiResourceKind.environment,
+        org: "globex",
+        slug: "shared",
+      }),
+    );
   });
 
   it("refuses to update, delete or rotate a system-managed client", async () => {

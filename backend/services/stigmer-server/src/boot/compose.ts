@@ -1329,6 +1329,7 @@ export async function composeServer(
     // mint then refuses).
     registerPlatformClientServices(router, {
       clients: platformClients,
+      store,
       logger,
       authorizer,
       authorizationLifecycle,

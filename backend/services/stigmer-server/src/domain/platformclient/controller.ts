@@ -14,6 +14,11 @@
  *     by rotateSecret (the client_id is permanent);
  *   - `system-share-client` refused on create, and the platform's
  *     system-managed clients refused on update, delete and rotate;
+ *   - the reference rule on `environment_refs` (NormalizeReferences, then
+ *     ValidateReferences) on create and update, which every chain that
+ *     stores a spec reference runs; it reads the environments from the
+ *     resource Store, not from the port, because a driver may keep client
+ *     rows in a table of its own while environments stay in the Store;
  *   - the stored hash cleared on EVERY response, deletes and rotations
  *     included — the model promises it is never returned
  *     (fga/model/iam/platform_client.fga), and no reader needs it;
@@ -79,9 +84,14 @@ import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import type { Store } from "../../store/interface.js";
 import {
   newCheckDuplicateStep,
   newDeleteClientStep,
@@ -106,6 +116,8 @@ import type { PlatformClientStore } from "./store.js";
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
   readonly clients: PlatformClientStore;
+  /** The resource store the reference rule reads the environments `environment_refs` names from. */
+  readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
@@ -139,7 +151,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 
 /**
  * Create — OAuthApp's chain with the reserved-slug refusal after the slug
- * resolves and the credentials generated after BuildNewState; the
+ * resolves, the reference rule where every sibling chain runs it, and the
+ * credentials generated only once the row is known to be storable; the
  * response carries the redacted client and the one look at its secret.
  */
 async function createClient(
@@ -164,6 +177,8 @@ async function createClient(
     .addStep(newCheckDuplicateStep(deps.clients))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newGenerateClientCredentialsStep())
     .addStep(newPersistNewClientStep(deps.clients))
     .addStep(
@@ -180,7 +195,8 @@ async function createClient(
 /**
  * Update — full spec replacement from the request (BuildUpdateState),
  * addressed by id or org-scoped slug; the platform's own clients refused
- * before any state is built; the credential fields kept from the row.
+ * before any state is built; the reference rule as on create; the
+ * credential fields kept from the row.
  */
 async function updateClient(
   deps: PlatformClientControllerDeps,
@@ -208,6 +224,8 @@ async function updateClient(
     )
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPreserveClientCredentialsStep())
     .addStep(newPersistUpdatedClientStep(deps.clients))
     .build()

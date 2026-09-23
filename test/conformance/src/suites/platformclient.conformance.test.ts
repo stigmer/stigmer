@@ -12,6 +12,9 @@
 //     client_id;
 //   - `system-share-client` is refused on create, the auto-grant rules are
 //     refused on the contract, and a deleted client is gone;
+//   - `environment_refs` is held to the reference rule every spec reference
+//     is: a missing environment of the client's organization is refused
+//     FAILED_PRECONDITION with the rule's copy, the slug named;
 //   - on a server that trusts every request, mintUserToken is refused
 //     FAILED_PRECONDITION — nothing there would verify the token.
 //
@@ -223,6 +226,31 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
         }),
       Code.InvalidArgument,
       "a client that would auto-grant without provisioning",
+    );
+  });
+
+  it("an environment reference must name an existing environment of the client's organization", async () => {
+    const org = await organization();
+    const err = await expectGrpcCode(
+      () =>
+        clients.platformClientCommand.create({
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "PlatformClient",
+          metadata: { name: uniqueName("ghost-env"), org },
+          spec: {
+            autoProvisionAccounts: true,
+            environmentRefs: [
+              { kind: ApiResourceKind.environment, slug: "ghost-environment" },
+            ],
+          },
+        }),
+      Code.FailedPrecondition,
+      "create a client naming a missing environment",
+    );
+    expect(err.rawMessage).toBe(
+      `referenced environment(s) not found: 'ghost-environment' (org: ${org}).` +
+        " Verify the slug and org are correct." +
+        " Use 'stigmer list environments' to list available environments.",
     );
   });
 
