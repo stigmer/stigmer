@@ -137,11 +137,10 @@ function rowKey(row: VendorPluginRow): string {
 }
 
 /**
- * The marketplace's plugin order: the defaults first, as listed, then every
- * other plugin by name. The storefront shows entries in this order and
- * nothing sorts after it, so the order is a decision written once here.
+ * The marketplace's plugin order: by name. The storefront shows entries in
+ * this order and nothing sorts after it, so the order is a decision written
+ * once here.
  */
-export function marketplaceOrder(names: ReadonlySet<string>, defaults: readonly string[]): readonly string[] {
-  const rest = [...names].filter((name) => !defaults.includes(name)).sort(comparePaths);
-  return [...defaults.filter((name) => names.has(name)), ...rest];
+export function marketplaceOrder(names: ReadonlySet<string>): readonly string[] {
+  return [...names].sort(comparePaths);
 }
