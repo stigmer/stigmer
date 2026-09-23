@@ -3,9 +3,10 @@
 // the context and then resolved by every command; a slug the backend does not
 // list among the caller's own is refused as not found and the config file is
 // left byte-for-byte as it was; an empty slug clears the context without
-// asking the backend; no `--org` at all is a usage error. A real Connect
-// backend over h2c serves findMyOrganizations; the config file (HOME
-// redirected) points a selfhost backend at it.
+// asking the backend; no `--org` at all is a usage error. And `context show`
+// names the active backend, not the legacy local/cloud switch the file also
+// carries. A real Connect backend over h2c serves findMyOrganizations; the
+// config file (HOME redirected) points a selfhost backend at it.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import {
@@ -69,6 +70,8 @@ beforeEach(() => {
   writeFileSync(
     configFile(),
     [
+      "backend:",
+      "  type: cloud",
       "backends:",
       "  team:",
       "    type: selfhost",
@@ -92,20 +95,30 @@ function configFile(): string {
 interface RunOutcome {
   readonly exitCode: number;
   readonly message: string;
+  readonly stdout: string;
 }
 
 async function run(...args: string[]): Promise<RunOutcome> {
+  return runContext("set", ...args);
+}
+
+async function runContext(...args: string[]): Promise<RunOutcome> {
   const program = buildProgram();
   program.exitOverride();
-  const outSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+  let stdout = "";
+  const outSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+    stdout += String(chunk);
+    return true;
+  });
   const errSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
   try {
-    await program.parseAsync(["node", "stigmer", "config", "context", "set", ...args]);
-    return { exitCode: ExitCode.Success, message: "" };
+    await program.parseAsync(["node", "stigmer", "config", "context", ...args]);
+    return { exitCode: ExitCode.Success, message: "", stdout };
   } catch (err) {
     return {
       exitCode: classify(err)?.exitCode ?? -1,
       message: err instanceof Error ? err.message : String(err),
+      stdout,
     };
   } finally {
     outSpy.mockRestore();
@@ -141,5 +154,18 @@ describe("config context set --org", () => {
     const outcome = await run();
     expect(outcome.exitCode).toBe(ExitCode.Usage);
     expect(outcome.message).toMatch(/--org is required/);
+  });
+});
+
+describe("config context show", () => {
+  it("names the active backend, not the legacy local/cloud switch", async () => {
+    await run("--org", "acme");
+    const outcome = await runContext("show", "--json");
+    expect(outcome.exitCode).toBe(ExitCode.Success);
+    const fields = JSON.parse(outcome.stdout).sections[0].fields as { key: string; value: string }[];
+    expect(fields).toEqual([
+      { key: "Organization", value: "acme" },
+      { key: "Backend", value: "team" },
+    ]);
   });
 });

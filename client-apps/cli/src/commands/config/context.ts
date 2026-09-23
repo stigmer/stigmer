@@ -36,7 +36,7 @@ export function addContextCommands(context: Command): void {
 function buildShow(config: Config): CommandResult {
   const organization = resolveContextOrganization(config) || "(not set)";
   const result = CommandResult.success("CLI context");
-  result.addSection("").field("Organization", organization).field("Backend", config.backend.type);
+  result.addSection("").field("Organization", organization).field("Backend", activeBackendName(config));
   return result;
 }
 
