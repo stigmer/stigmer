@@ -9,7 +9,8 @@ description:
 PlatformClient lets platform builders embed Stigmer into their products with
 minimal friction. Instead of setting up OIDC federation, you create a
 PlatformClient in the Stigmer Console, use its credentials from your backend to
-mint user-scoped JWTs, and pass those tokens to the React SDK.
+mint user-scoped JWTs, and pass those tokens to the React SDK. It works the same
+on Stigmer Cloud and on a self-hosted server with sign-in configured.
 
 ## When to use this
 
@@ -60,7 +61,13 @@ sequenceDiagram
 
 ## Prerequisites
 
-- A PlatformClient created in the Stigmer Console (IAM > Platform Clients).
+- A Stigmer server that authenticates its callers: Stigmer Cloud, or a
+  self-hosted server with sign-in configured (`STIGMER_OIDC_ISSUER`, see
+  [authentication](/docs/guides/self-hosting/authentication)). A server that
+  trusts every request refuses to mint tokens, because nothing there would
+  verify them.
+- A PlatformClient created in the Console (Settings > Platform Clients) by an
+  admin of your organization.
 - The `client_id` (permanent, safe for config files) and `client_secret` (shown
   once at creation).
 - Store `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET` as environment variables
@@ -200,7 +207,12 @@ PlatformClient to create accounts on first encounter:
   encounter.
 - **`auto_grant_on_org: true`** — grants a role on your organization
   immediately.
-- **`auto_grant_role`** — the role to grant (default: `viewer`).
+- **`auto_grant_role`** — the role to grant (default: `viewer`). `owner` is
+  refused: organization ownership is always assigned explicitly.
+
+These settings apply when an account is first provisioned. An account that
+already exists keeps the roles and profile it has: changing the settings later,
+or passing a different email or name in a later mint, does not update it.
 
 Identity resolution is **org-scoped**: the same `user_id` presented via any
 PlatformClient in your organization resolves to a single Stigmer identity. If
@@ -216,8 +228,11 @@ All SDKs return structured errors with actionable messages:
 | Error code            | When                                                                                     | What to do                                                                                          |
 | --------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`                                                   | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
-| `NOT_FOUND`           | User doesn't exist, automatic provisioning off                                           | Enable `auto_provision_accounts` or pre-create the account.                                         |
-| `FAILED_PRECONDITION` | Client secret expired                                                                    | Rotate the secret in the Console or CLI.                                                            |
+| `FAILED_PRECONDITION` | User doesn't exist, automatic provisioning off                                           | Enable `auto_provision_accounts` or pre-create the account.                                         |
+| `FAILED_PRECONDITION` | Client secret expired                                                                    | Extend or clear the PlatformClient's expiry in the Console; rotating alone does not extend it.      |
+| `FAILED_PRECONDITION` | The server trusts every request                                                          | Configure sign-in on the server (`STIGMER_OIDC_ISSUER`).                                            |
+| `INVALID_ARGUMENT`    | `org_id` names an organization other than the PlatformClient's                           | Leave `org_id` empty, or pass the PlatformClient's own organization.                                |
+| `UNAUTHENTICATED`     | An API call bearing a token whose PlatformClient was deleted                             | Mint a new token from an active PlatformClient.                                                     |
 | `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins` | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
 
 ## Security notes
@@ -225,11 +240,19 @@ All SDKs return structured errors with actionable messages:
 - The `client_secret` is a backend-only credential. Never include it in browser
   bundles, mobile apps, or client-side code.
 - Secret rotation invalidates the old secret immediately. There is no grace
-  period.
+  period. Tokens already minted stay valid until they expire (15 minutes);
+  delete the PlatformClient to revoke them on their next request.
 - The `client_id` is safe for configuration files, logs, and client-side code —
   it is not a secret.
-- Tokens are signed by Stigmer's private key and verified in-process. There is
-  no JWKS endpoint (yet).
+- Anyone who can create a PlatformClient in your organization (its admins) can
+  mint a token for any `user_id` in it. Treat PlatformClient administration as
+  you treat access to your users' accounts.
+- The email and name you pass to `mintUserToken` are your assertion. Stigmer
+  shows them and grants nothing because of them.
+- Tokens are signed by the server's own platform-token key and verified
+  in-process: Stigmer's key on Stigmer Cloud, and on a self-hosted server
+  `STIGMER_PLATFORM_TOKEN_KEY` or a key the server generates. There is no JWKS
+  endpoint (yet).
 - Use `allowed_origins` to restrict which browser origins can use tokens minted
   by this PlatformClient. Enforcement happens on the browser's API calls, not on
   `mintUserToken` (minting is server-to-server and carries no browser Origin):
@@ -255,9 +278,10 @@ Stigmer Console. If you rotated the secret, the previous one is no longer valid.
 
 ### Check if the user exists
 
-`NOT_FOUND` means the user doesn't have a Stigmer Identity Account and automatic
-provisioning is disabled. Enable `auto_provision_accounts` on the PlatformClient
-or create the account before calling `mintUserToken`.
+`FAILED_PRECONDITION` naming the user means the user doesn't have a Stigmer
+Identity Account and automatic provisioning is disabled. Enable
+`auto_provision_accounts` on the PlatformClient or create the account before
+calling `mintUserToken`.
 
 </Step>
 <Step>

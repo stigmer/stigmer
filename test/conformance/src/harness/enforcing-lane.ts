@@ -57,7 +57,7 @@ import type {
 } from "../targets/target";
 import { uniqueName, uniqueOrg } from "../support/naming";
 
-import type { ConformanceClients } from "./clients";
+import type { ConformanceClients, PresentingOptions } from "./clients";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
@@ -172,7 +172,7 @@ export interface PrimaryEnforcingLaneDeps {
   organizationIdOf(tenancy: TenancyContext): string;
   // Present where the harness holds the platform tenant's key.
   readonly directLoginTenant: DirectLoginTenant | undefined;
-  clientsPresenting(bearerToken: string): ConformanceClients;
+  clientsPresenting(bearerToken: string, options?: PresentingOptions): ConformanceClients;
 }
 
 export function newPrimaryEnforcingLane(
@@ -195,7 +195,7 @@ export function newPrimaryEnforcingLane(
       return member;
     },
     accountIdOf: whoAmIId,
-    clientsPresenting: (bearerToken) => deps.clientsPresenting(bearerToken),
+    clientsPresenting: (bearerToken, options) => deps.clientsPresenting(bearerToken, options),
   };
   const tenant = deps.directLoginTenant;
   if (tenant !== undefined) {
@@ -340,7 +340,7 @@ export async function newSiblingEnforcingLane(
       return person.clients;
     },
     accountIdOf: whoAmIId,
-    clientsPresenting: (bearerToken) => sibling.clientsPresenting(bearerToken),
+    clientsPresenting: (bearerToken, options) => sibling.clientsPresenting(bearerToken, options),
     async unprovisionedCaller() {
       return sibling.clientsPresenting(
         await issuer.mint({

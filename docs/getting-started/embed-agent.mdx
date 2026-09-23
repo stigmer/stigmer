@@ -204,9 +204,10 @@ exports the hooks these components are built on — start with
 
 ## Going to production
 
-Your local server accepts unauthenticated requests; Stigmer Cloud does not — and
-browsers must never hold API keys. In production, `getAccessToken` returns a
-real token per request. Two paths provide one:
+Your local server accepts unauthenticated requests; Stigmer Cloud and a
+self-hosted server with sign-in configured do not — and browsers must never hold
+API keys. In production, `getAccessToken` returns a real token per request. Two
+paths provide one:
 
 - **[Identity federation](/docs/guides/authentication/federation/overview)** —
   your users already sign in through an OIDC provider (Auth0, Okta, Cognito,

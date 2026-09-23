@@ -95,7 +95,7 @@ describe("BackendClient — the server's edition and what it serves (20260911.11
       transport: oss.transport,
     });
     expect(
-      await client.isResourceAvailable(ApiResourceKind.platform_client),
+      await client.isResourceAvailable(ApiResourceKind.subscription),
     ).toBe(false);
     expect(await client.isResourceAvailable(ApiResourceKind.agent)).toBe(true);
 
@@ -105,7 +105,7 @@ describe("BackendClient — the server's edition and what it serves (20260911.11
       transport: cloudServer.transport,
     });
     expect(
-      await onCloud.isResourceAvailable(ApiResourceKind.platform_client),
+      await onCloud.isResourceAvailable(ApiResourceKind.subscription),
     ).toBe(true);
   });
 
@@ -117,7 +117,7 @@ describe("BackendClient — the server's edition and what it serves (20260911.11
     });
     await client.connect();
     await client.isResourceAvailable(ApiResourceKind.agent);
-    await client.isResourceAvailable(ApiResourceKind.platform_client);
+    await client.isResourceAvailable(ApiResourceKind.subscription);
     const info = await client.serverInfo();
     expect(info.deploymentMode).toBe("local");
     expect(info.version).toBe("1.2.3");
@@ -135,7 +135,7 @@ describe("BackendClient — the server's edition and what it serves (20260911.11
     });
     await expect(client.serverInfo()).rejects.toThrow("server warming up");
     expect(
-      await client.isResourceAvailable(ApiResourceKind.platform_client),
+      await client.isResourceAvailable(ApiResourceKind.subscription),
     ).toBe(true);
     expect(server.asked(), "the rejection was not cached").toBe(2);
   });

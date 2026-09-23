@@ -272,6 +272,13 @@ From the boot that read the issuer, every request needs a credential:
   Settings → API Keys and `stigmer apikey create` mint them; deleting a key
   revokes it immediately, and a key with an expiration stops working on that
   date.
+- **Your product's users** can reach Stigmer through a
+  [PlatformClient](/docs/guides/authentication/platform-client/overview): an
+  admin creates one under Settings → Platform Clients, and your backend
+  exchanges its credentials for a 15-minute token per user. The server signs
+  those tokens with `STIGMER_PLATFORM_TOKEN_KEY` when you set it, or with a key
+  it generates into its data directory. A server without an issuer refuses to
+  mint them.
 - **Roles decide what a signed-in person may do.** Every Organization has four
   roles: owner, admin, member and viewer. Owners and admins manage the
   Organization's Agents, Workflows, Skills and MCP Servers and its members.

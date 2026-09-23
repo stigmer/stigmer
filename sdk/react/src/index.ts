@@ -23,6 +23,10 @@ export type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 // Portal container
 export { useStigmerPortalContainer } from "./portal-container.js";
 
+// Server identity: edition, version and authentication posture
+export { useServerInfo } from "./server-info.js";
+export type { UseServerInfoReturn } from "./server-info.js";
+
 // Deployment mode and resource availability
 export {
   DeploymentModeContext,

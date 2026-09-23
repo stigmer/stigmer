@@ -56,6 +56,9 @@ import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/ag
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
+import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
+import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
+import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { GitHubService } from "@stigmer/protos/ai/stigmer/platform/github/v1/service_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
@@ -135,6 +138,12 @@ export interface ConformanceClients {
   github: Client<typeof GitHubService>;
   oauthAppCommand: Client<typeof OAuthAppCommandController>;
   oauthAppQuery: Client<typeof OAuthAppQueryController>;
+  // PlatformClient, served by every edition: the CRUD controllers and the
+  // token service (mintUserToken; mintGuestToken where an edition hosts
+  // shared-agent pages).
+  platformClientCommand: Client<typeof PlatformClientCommandController>;
+  platformClientQuery: Client<typeof PlatformClientQueryController>;
+  platformClientToken: Client<typeof PlatformClientTokenController>;
 }
 
 export interface TransportOptions {
@@ -150,6 +159,10 @@ export interface TransportOptions {
   // backend services), whose absence of Origin never refuses.
   origin?: string;
 }
+
+// What a caller presenting a bearer may add: the browser context the
+// platform-client origin arm replays a leaked token from.
+export type PresentingOptions = Pick<TransportOptions, "origin">;
 
 export function createTransport(
   baseUrl: string,
@@ -274,5 +287,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     github: createClient(GitHubService, transport),
     oauthAppCommand: createClient(OAuthAppCommandController, transport),
     oauthAppQuery: createClient(OAuthAppQueryController, transport),
+    platformClientCommand: createClient(PlatformClientCommandController, transport),
+    platformClientQuery: createClient(PlatformClientQueryController, transport),
+    platformClientToken: createClient(PlatformClientTokenController, transport),
   };
 }

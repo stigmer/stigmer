@@ -48,6 +48,12 @@ secrets:
   # invisible exactly where a self-hoster needs it explicit). Never inline:
   # a values file gets committed; a key in it is .env in git.
   #
+  # The Secret MAY also carry STIGMER_PLATFORM_TOKEN_KEY (Base64 of a PKCS#8
+  # RSA private key), which signs the 15-minute user tokens PlatformClients
+  # mint when authentication is on. It is optional where the two above are
+  # not: losing it costs at most one token lifetime, so it has no backup
+  # story, and the server generates one on its claim when it is absent.
+  #
   #   kubectl create secret generic stigmer-secrets \
   #     --from-literal=STIGMER_ENCRYPTION_KEY=$(openssl rand -base64 32) \
   #     --from-literal=STIGMER_RUNNER_TOKEN_KEY=$(openssl rand -base64 32) \

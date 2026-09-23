@@ -218,6 +218,14 @@ describe("tier truthfulness against the empty composition", () => {
     );
     expect(served.has("iampolicy")).toBe(true);
   });
+
+  it("platform_client is open_source and served in the empty composition — the mint refuses without a posture, the kind does not", () => {
+    const served = servedKindSegments(server.routes);
+    expect(getKindMeta(ApiResourceKind.platform_client).tier).toBe(
+      ResourceTier.open_source,
+    );
+    expect(served.has("platformclient")).toBe(true);
+  });
 });
 
 describe("the check bites (mutation proofs over the same function)", () => {

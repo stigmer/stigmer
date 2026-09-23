@@ -52,6 +52,13 @@ runner authenticates with. Both are 32 random bytes, base64-encoded. Keep the
 Secret with your backups: without the encryption key, every encrypted value in
 the database is unreadable.
 
+The Secret may also carry `STIGMER_PLATFORM_TOKEN_KEY`, the RSA key that signs
+the short-lived user tokens PlatformClients mint once authentication is on
+(base64 of a PKCS#8 PEM:
+`openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | base64 | tr -d '\n'`).
+It is optional: without it the server generates one on its volume, and losing it
+only means tokens minted in the last 15 minutes are minted again.
+
 Then reach the console:
 
 ```bash
@@ -211,23 +218,23 @@ agent's tools do.
 Every key is documented in [`values.yaml`](values.yaml) with its reason; this is
 the map.
 
-| Key                                               | What it is                                                                                                                                                      |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fullnameOverride`                                | The name every Service takes; defaults to the release name.                                                                                                     |
-| `image`                                           | Registry, the two repositories (`stigmer-server`, `stigmer-runner`), tags (empty means this chart's version), pull policy, pull Secrets.                        |
-| `secrets`                                         | `existingSecret`, required: `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY`, and `POSTGRES_PASSWORD` when Postgres is bundled.                             |
-| `server`                                          | `publicUrl`, `artifactPublicUrl`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`. |
-| `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `resources`, `persistence`, `securityContext`, `extraEnv`.                                           |
-| `artifacts`                                       | `persistence` for the shared artifact disk.                                                                                                                     |
-| `terminationGracePeriodSeconds`                   | How long a stopping pod may drain (60 s; the runner finishes in-flight activities).                                                                             |
-| `waitForDependencies`                             | The init container that waits for Postgres and Temporal (`enabled`, `image`).                                                                                   |
-| `postgres`                                        | The bundled Postgres: `enabled`, `image`, `persistence`, `resources`.                                                                                           |
-| `externalDatabase`                                | `host`, `port`, `user`, `database`, `existingSecret`, `passwordKey` when Postgres is yours.                                                                     |
-| `temporal`                                        | The bundled Temporal: `enabled`, `image`, `resources`.                                                                                                          |
-| `externalTemporal`                                | `hostPort`, `namespace` when Temporal is yours.                                                                                                                 |
-| `service`                                         | `type` (ClusterIP).                                                                                                                                             |
-| `ingress`                                         | `enabled`, `className`, `api.{host,annotations,tlsSecretName}`, `artifacts.{host,annotations,tlsSecretName}`.                                                   |
-| `openfga`, `redis`, `openbao`, `licenseKeySecret` | Reserved for Stigmer Enterprise; refused in this version.                                                                                                       |
+| Key                                               | What it is                                                                                                                                                                  |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fullnameOverride`                                | The name every Service takes; defaults to the release name.                                                                                                                 |
+| `image`                                           | Registry, the two repositories (`stigmer-server`, `stigmer-runner`), tags (empty means this chart's version), pull policy, pull Secrets.                                    |
+| `secrets`                                         | `existingSecret`, required: `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY`, and `POSTGRES_PASSWORD` when Postgres is bundled; optional: `STIGMER_PLATFORM_TOKEN_KEY`. |
+| `server`                                          | `publicUrl`, `artifactPublicUrl`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`.             |
+| `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `resources`, `persistence`, `securityContext`, `extraEnv`.                                                       |
+| `artifacts`                                       | `persistence` for the shared artifact disk.                                                                                                                                 |
+| `terminationGracePeriodSeconds`                   | How long a stopping pod may drain (60 s; the runner finishes in-flight activities).                                                                                         |
+| `waitForDependencies`                             | The init container that waits for Postgres and Temporal (`enabled`, `image`).                                                                                               |
+| `postgres`                                        | The bundled Postgres: `enabled`, `image`, `persistence`, `resources`.                                                                                                       |
+| `externalDatabase`                                | `host`, `port`, `user`, `database`, `existingSecret`, `passwordKey` when Postgres is yours.                                                                                 |
+| `temporal`                                        | The bundled Temporal: `enabled`, `image`, `resources`.                                                                                                                      |
+| `externalTemporal`                                | `hostPort`, `namespace` when Temporal is yours.                                                                                                                             |
+| `service`                                         | `type` (ClusterIP).                                                                                                                                                         |
+| `ingress`                                         | `enabled`, `className`, `api.{host,annotations,tlsSecretName}`, `artifacts.{host,annotations,tlsSecretName}`.                                                               |
+| `openfga`, `redis`, `openbao`, `licenseKeySecret` | Reserved for Stigmer Enterprise; refused in this version.                                                                                                                   |
 
 Unknown keys are refused at install, so a typo fails loudly instead of doing
 nothing. Anything the chart does not model goes through `server.extraEnv` and
