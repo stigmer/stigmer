@@ -38,7 +38,10 @@ export function registerPlatformClientTokenService(
     mintUserToken: (request) => mintUserToken(deps.mint, request),
     mintGuestToken: (request, ctx) => {
       if (deps.guestTokenMinting === undefined) {
-        throw new ConnectError(GUEST_MINT_UNIMPLEMENTED_MESSAGE, Code.Unimplemented);
+        throw new ConnectError(
+          GUEST_MINT_UNIMPLEMENTED_MESSAGE,
+          Code.Unimplemented,
+        );
       }
       return deps.guestTokenMinting.mintGuestToken(request, ctx.requestHeader);
     },

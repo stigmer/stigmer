@@ -81,7 +81,10 @@ export function newPlatformClientOriginGuard(
         platformClientId,
         origin,
       });
-      throw new ConnectError(originRefusalMessage(origin), Code.PermissionDenied);
+      throw new ConnectError(
+        originRefusalMessage(origin),
+        Code.PermissionDenied,
+      );
     },
   };
 }
@@ -89,14 +92,20 @@ export function newPlatformClientOriginGuard(
 /** The minting client of an untyped platform user token; undefined for every other credential. */
 function mintingClientOf(caller: CallerIdentity): string | undefined {
   const payload = decodeVerifiedPlatformTokenPayload(caller.rawToken);
-  if (payload === undefined || stringClaim(payload, TOKEN_TYPE_CLAIM) !== undefined) {
+  if (
+    payload === undefined ||
+    stringClaim(payload, TOKEN_TYPE_CLAIM) !== undefined
+  ) {
     return undefined;
   }
   return stringClaim(payload, USER_TOKEN_CLAIMS.platformClientId);
 }
 
 /** The cloud's origin rule for a non-blank Origin (see the header). */
-function originAllowed(origin: string, allowed: ReadonlyArray<string>): boolean {
+function originAllowed(
+  origin: string,
+  allowed: ReadonlyArray<string>,
+): boolean {
   if (allowed.length === 0) {
     return true;
   }

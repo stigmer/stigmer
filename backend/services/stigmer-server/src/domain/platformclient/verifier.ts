@@ -31,7 +31,10 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import type { CallerIdentity, IdentityVerifier } from "../../extensions/identity.js";
+import type {
+  CallerIdentity,
+  IdentityVerifier,
+} from "../../extensions/identity.js";
 import {
   PLATFORM_TOKEN_ISSUER,
   platformTokenRefusalError,
@@ -80,7 +83,10 @@ export function newPlatformClientTokenVerifier(
         USER_TOKEN_CLAIMS.platformClientId,
       );
       if (platformClientId === undefined) {
-        throw new ConnectError(TOKEN_NAMES_NO_CLIENT_MESSAGE, Code.Unauthenticated);
+        throw new ConnectError(
+          TOKEN_NAMES_NO_CLIENT_MESSAGE,
+          Code.Unauthenticated,
+        );
       }
       if ((await deps.clients.findById(platformClientId)) === undefined) {
         throw new ConnectError(DELETED_CLIENT_MESSAGE, Code.Unauthenticated);

@@ -30,9 +30,13 @@ import {
 import { signPlatformToken, verifyPlatformToken } from "../envelope.js";
 
 function rsaPem(bits = 2048): { privateKeyPem: string; publicKeyPem: string } {
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: bits });
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+    modulusLength: bits,
+  });
   return {
-    privateKeyPem: privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
+    privateKeyPem: privateKey
+      .export({ format: "pem", type: "pkcs8" })
+      .toString(),
     publicKeyPem: publicKey.export({ format: "pem", type: "spki" }).toString(),
   };
 }
@@ -62,26 +66,35 @@ describe("platformTokenKeyRingFromPem", () => {
     if (!canSign(ring)) return;
     const token = signPlatformToken(ring, { sub: "ida_1" });
 
-    const verifyOnly = platformTokenKeyRingFromPem({ publicKeyPems: [pair.publicKeyPem] });
+    const verifyOnly = platformTokenKeyRingFromPem({
+      publicKeyPems: [pair.publicKeyPem],
+    });
     expect(canSign(verifyOnly)).toBe(false);
     expect(verifyPlatformToken(verifyOnly, token).outcome).toBe("verified");
   });
 
   it("refuses an empty verification set, a non-RSA key, an undersized key and a bad TTL", () => {
-    expect(() => platformTokenKeyRingFromPem({ publicKeyPems: [] })).toThrow(/at least one public key/);
+    expect(() => platformTokenKeyRingFromPem({ publicKeyPems: [] })).toThrow(
+      /at least one public key/,
+    );
 
     const ec = generateKeyPairSync("ec", { namedCurve: "P-256" })
       .publicKey.export({ format: "pem", type: "spki" })
       .toString();
-    expect(() => platformTokenKeyRingFromPem({ publicKeyPems: [ec] })).toThrow(/must be an RSA key/);
-
-    const small = rsaPem(1024);
-    expect(() => platformTokenKeyRingFromPem({ publicKeyPems: [small.publicKeyPem] })).toThrow(
-      /at least 2048 bits/,
+    expect(() => platformTokenKeyRingFromPem({ publicKeyPems: [ec] })).toThrow(
+      /must be an RSA key/,
     );
 
+    const small = rsaPem(1024);
     expect(() =>
-      platformTokenKeyRingFromPem({ publicKeyPems: [pair.publicKeyPem], ttlSeconds: 0 }),
+      platformTokenKeyRingFromPem({ publicKeyPems: [small.publicKeyPem] }),
+    ).toThrow(/at least 2048 bits/);
+
+    expect(() =>
+      platformTokenKeyRingFromPem({
+        publicKeyPems: [pair.publicKeyPem],
+        ttlSeconds: 0,
+      }),
     ).toThrow(/positive integer/);
   });
 
@@ -98,16 +111,23 @@ describe("platformTokenKeyRingFromPem", () => {
 describe("openSourcePlatformTokenKeyRing (the key-manager ladder)", () => {
   it("uses the env key when set, and refuses an env value that is not an RSA private key", () => {
     const env = {
-      [PLATFORM_TOKEN_KEY_ENV_VAR]: Buffer.from(pair.privateKeyPem).toString("base64"),
+      [PLATFORM_TOKEN_KEY_ENV_VAR]: Buffer.from(pair.privateKeyPem).toString(
+        "base64",
+      ),
     };
     const ring = openSourcePlatformTokenKeyRing({ env, homeDir: tempHome() });
     const token = signPlatformToken(ring, { sub: "ida_1" });
-    const expected = platformTokenKeyRingFromPem({ publicKeyPems: [pair.publicKeyPem] });
+    const expected = platformTokenKeyRingFromPem({
+      publicKeyPems: [pair.publicKeyPem],
+    });
     expect(verifyPlatformToken(expected, token).outcome).toBe("verified");
 
     expect(() =>
       openSourcePlatformTokenKeyRing({
-        env: { [PLATFORM_TOKEN_KEY_ENV_VAR]: Buffer.from("not a key").toString("base64") },
+        env: {
+          [PLATFORM_TOKEN_KEY_ENV_VAR]:
+            Buffer.from("not a key").toString("base64"),
+        },
         homeDir: tempHome(),
       }),
     ).toThrow(PLATFORM_TOKEN_KEY_ENV_VAR);
@@ -139,7 +159,9 @@ describe("openSourcePlatformTokenKeyRing (the key-manager ladder)", () => {
 });
 
 describe("resolvePlatformTokenKeys", () => {
-  const supplied = platformTokenKeyRingFromPem({ publicKeyPems: [pair.publicKeyPem] });
+  const supplied = platformTokenKeyRingFromPem({
+    publicKeyPems: [pair.publicKeyPem],
+  });
 
   it("composes no ring without an authentication posture, whatever is supplied", () => {
     expect(

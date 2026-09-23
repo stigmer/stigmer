@@ -20,7 +20,10 @@ describe("registerExtensionServicesUnshadowed", () => {
     router.service(PlatformClientTokenController, {});
     expect(() =>
       registerExtensionServicesUnshadowed(router, [
-        { unit: "cloud-iam", register: (r) => void r.service(PlatformClientTokenController, {}) },
+        {
+          unit: "cloud-iam",
+          register: (r) => void r.service(PlatformClientTokenController, {}),
+        },
       ]),
     ).toThrow(
       /extension 'cloud-iam' registers \/ai\.stigmer\.iam\.platformclient\.v1\.PlatformClientTokenController\/mintUserToken, which the core already serves/,
@@ -31,19 +34,31 @@ describe("registerExtensionServicesUnshadowed", () => {
     const router = createConnectRouter();
     expect(() =>
       registerExtensionServicesUnshadowed(router, [
-        { unit: "first", register: (r) => void r.service(OAuthAppQueryController, {}) },
-        { unit: "second", register: (r) => void r.rpc(OAuthAppQueryController.method.get, () => {
-          throw new Error("never called");
-        }) },
+        {
+          unit: "first",
+          register: (r) => void r.service(OAuthAppQueryController, {}),
+        },
+        {
+          unit: "second",
+          register: (r) =>
+            void r.rpc(OAuthAppQueryController.method.get, () => {
+              throw new Error("never called");
+            }),
+        },
       ]),
-    ).toThrow(/extension 'second' registers .*OAuthAppQueryController\/get, which extension 'first' already serves/);
+    ).toThrow(
+      /extension 'second' registers .*OAuthAppQueryController\/get, which extension 'first' already serves/,
+    );
   });
 
   it("registers distinct services from every unit", () => {
     const router = createConnectRouter();
     router.service(OAuthAppQueryController, {});
     registerExtensionServicesUnshadowed(router, [
-      { unit: "billing", register: (r) => void r.service(PlatformClientQueryController, {}) },
+      {
+        unit: "billing",
+        register: (r) => void r.service(PlatformClientQueryController, {}),
+      },
     ]);
     expect(router.handlers.map((handler) => handler.requestPath)).toContain(
       "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/listByOrg",

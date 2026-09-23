@@ -28,9 +28,13 @@ import { platformTokenKeyRingFromPem } from "../key-ring.js";
 import type { SigningPlatformTokenKeyRing } from "../key-ring.js";
 
 function pemPair(): { privateKeyPem: string; publicKeyPem: string } {
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+  });
   return {
-    privateKeyPem: privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
+    privateKeyPem: privateKey
+      .export({ format: "pem", type: "pkcs8" })
+      .toString(),
     publicKeyPem: publicKey.export({ format: "pem", type: "spki" }).toString(),
   };
 }
@@ -38,11 +42,13 @@ function pemPair(): { privateKeyPem: string; publicKeyPem: string } {
 const active = pemPair();
 const previous = pemPair();
 
-function signingRing(options: {
-  pair?: { privateKeyPem: string; publicKeyPem: string };
-  audience?: string;
-  ttlSeconds?: number;
-} = {}): SigningPlatformTokenKeyRing {
+function signingRing(
+  options: {
+    pair?: { privateKeyPem: string; publicKeyPem: string };
+    audience?: string;
+    ttlSeconds?: number;
+  } = {},
+): SigningPlatformTokenKeyRing {
   const pair = options.pair ?? active;
   const ring = platformTokenKeyRingFromPem({
     privateKeyPem: pair.privateKeyPem,
@@ -64,7 +70,11 @@ function base64UrlJson(value: object): string {
 describe("the platform-token envelope", () => {
   it("round-trips a signed token: the envelope's claims, then the lane's", () => {
     const ring = signingRing({ audience: "https://api.stigmer.ai" });
-    const token = signPlatformToken(ring, { sub: "ida_1", platform_client_id: "pcl_1" }, NOW);
+    const token = signPlatformToken(
+      ring,
+      { sub: "ida_1", platform_client_id: "pcl_1" },
+      NOW,
+    );
 
     const result = verifyPlatformToken(ring, token, NOW);
     expect(result.outcome).toBe("verified");
@@ -78,19 +88,35 @@ describe("the platform-token envelope", () => {
       aud: "https://api.stigmer.ai",
       platform_client_id: "pcl_1",
     });
-    const header = JSON.parse(Buffer.from(token.split(".")[0] ?? "", "base64url").toString());
-    expect(header).toEqual({ alg: "RS256", typ: "JWT", kid: "stigmer-signing-key-1" });
+    const header = JSON.parse(
+      Buffer.from(token.split(".")[0] ?? "", "base64url").toString(),
+    );
+    expect(header).toEqual({
+      alg: "RS256",
+      typ: "JWT",
+      kid: "stigmer-signing-key-1",
+    });
   });
 
   it("reads token_type as the lane discriminator", () => {
     const ring = signingRing();
-    const token = signPlatformToken(ring, { sub: "ida_guest", token_type: "guest" }, NOW);
+    const token = signPlatformToken(
+      ring,
+      { sub: "ida_guest", token_type: "guest" },
+      NOW,
+    );
     const result = verifyPlatformToken(ring, token, NOW);
-    expect(result.outcome === "verified" && result.token.tokenType).toBe("guest");
+    expect(result.outcome === "verified" && result.token.tokenType).toBe(
+      "guest",
+    );
   });
 
   it("verifies a token signed by the previous key while it is still accepted, whatever the kid says", () => {
-    const old = signPlatformToken(signingRing({ pair: previous }), { sub: "ida_1" }, NOW);
+    const old = signPlatformToken(
+      signingRing({ pair: previous }),
+      { sub: "ida_1" },
+      NOW,
+    );
     const ring = platformTokenKeyRingFromPem({
       privateKeyPem: active.privateKeyPem,
       kid: "stigmer-signing-key-1",
@@ -101,7 +127,11 @@ describe("the platform-token envelope", () => {
 
   it("refuses `alg: none` and an HMAC token keyed with the public key as a bad signature", () => {
     const ring = signingRing();
-    const payload = base64UrlJson({ iss: "stigmer", sub: "ida_1", exp: NOW.getTime() / 1000 + 60 });
+    const payload = base64UrlJson({
+      iss: "stigmer",
+      sub: "ida_1",
+      exp: NOW.getTime() / 1000 + 60,
+    });
 
     const unsigned = `${base64UrlJson({ alg: "none", typ: "JWT" })}.${payload}.`;
     expect(verifyPlatformToken(ring, unsigned, NOW)).toEqual({
@@ -113,14 +143,20 @@ describe("the platform-token envelope", () => {
     const forged = createHmac("sha256", active.publicKeyPem)
       .update(`${hmacHeader}.${payload}`)
       .digest("base64url");
-    expect(verifyPlatformToken(ring, `${hmacHeader}.${payload}.${forged}`, NOW)).toEqual({
+    expect(
+      verifyPlatformToken(ring, `${hmacHeader}.${payload}.${forged}`, NOW),
+    ).toEqual({
       outcome: "refused",
       refusal: "signature",
     });
   });
 
   it("refuses a token signed by a key the ring does not hold", () => {
-    const stranger = signPlatformToken(signingRing({ pair: pemPair() }), { sub: "ida_1" }, NOW);
+    const stranger = signPlatformToken(
+      signingRing({ pair: pemPair() }),
+      { sub: "ida_1" },
+      NOW,
+    );
     expect(verifyPlatformToken(signingRing(), stranger, NOW)).toEqual({
       outcome: "refused",
       refusal: "signature",
@@ -140,7 +176,9 @@ describe("the platform-token envelope", () => {
   it("tolerates a missing aud and refuses one that names another audience", () => {
     const noAudience = signPlatformToken(signingRing(), { sub: "ida_1" }, NOW);
     const expecting = signingRing({ audience: "https://api.stigmer.ai" });
-    expect(verifyPlatformToken(expecting, noAudience, NOW).outcome).toBe("verified");
+    expect(verifyPlatformToken(expecting, noAudience, NOW).outcome).toBe(
+      "verified",
+    );
 
     const elsewhere = signPlatformToken(
       signingRing({ audience: "https://staging.stigmer.ai" }),
@@ -164,7 +202,9 @@ describe("the platform-token envelope", () => {
 
   it("answers foreign for anything that is not a stigmer-issued three-part JWT", () => {
     const ring = signingRing();
-    expect(verifyPlatformToken(ring, "stk_an_api_key", NOW).outcome).toBe("foreign");
+    expect(verifyPlatformToken(ring, "stk_an_api_key", NOW).outcome).toBe(
+      "foreign",
+    );
     expect(verifyPlatformToken(ring, "a.b", NOW).outcome).toBe("foreign");
     const otherIssuer = `${base64UrlJson({ alg: "RS256" })}.${base64UrlJson({ iss: "https://issuer.example", sub: "x" })}.sig`;
     expect(verifyPlatformToken(ring, otherIssuer, NOW).outcome).toBe("foreign");
@@ -173,9 +213,9 @@ describe("the platform-token envelope", () => {
   });
 
   it("refuses a lane claim that collides with an envelope claim", () => {
-    expect(() => signPlatformToken(signingRing(), { sub: "ida_1", exp: 1 }, NOW)).toThrow(
-      /belongs to the envelope/,
-    );
+    expect(() =>
+      signPlatformToken(signingRing(), { sub: "ida_1", exp: 1 }, NOW),
+    ).toThrow(/belongs to the envelope/);
   });
 
   it("maps every refusal to UNAUTHENTICATED with the cloud verifier's copy", () => {

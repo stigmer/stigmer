@@ -55,7 +55,9 @@ import { hashClientSecret } from "../credentials.js";
 import { mintUserToken, platformClientSubject } from "../mint.js";
 import type { PlatformClientMintDeps } from "../mint.js";
 
-const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
 const PUBLIC_PEM = publicKey.export({ format: "pem", type: "spki" }).toString();
 const RING = platformTokenKeyRingFromPem({
   privateKeyPem: privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
@@ -64,13 +66,15 @@ const RING = platformTokenKeyRingFromPem({
 const NOW = new Date("2026-09-23T10:00:00Z");
 const SECRET = "stgm_cs_the-secret";
 
-function platformClient(spec: Partial<{
-  autoProvisionAccounts: boolean;
-  autoGrantOnOrg: boolean;
-  autoGrantRole: IamRole;
-  neverExpires: boolean;
-  expiresAt: Date;
-}> = {}): PlatformClient {
+function platformClient(
+  spec: Partial<{
+    autoProvisionAccounts: boolean;
+    autoGrantOnOrg: boolean;
+    autoGrantRole: IamRole;
+    neverExpires: boolean;
+    expiresAt: Date;
+  }> = {},
+): PlatformClient {
   return create(PlatformClientSchema, {
     metadata: { id: "pcl_dashboard", org: "acme", slug: "dashboard" },
     spec: {
@@ -80,7 +84,9 @@ function platformClient(spec: Partial<{
       autoGrantOnOrg: spec.autoGrantOnOrg ?? false,
       autoGrantRole: spec.autoGrantRole ?? IamRole.iam_role_unspecified,
       neverExpires: spec.neverExpires ?? false,
-      ...(spec.expiresAt !== undefined ? { expiresAt: timestampFromDate(spec.expiresAt) } : {}),
+      ...(spec.expiresAt !== undefined
+        ? { expiresAt: timestampFromDate(spec.expiresAt) }
+        : {}),
     },
   });
 }
@@ -88,17 +94,22 @@ function platformClient(spec: Partial<{
 interface Harness {
   readonly deps: PlatformClientMintDeps;
   readonly events: string[];
-  readonly created: Array<{ input: CreateAccountInput; caller: CallerIdentity }>;
+  readonly created: Array<{
+    input: CreateAccountInput;
+    caller: CallerIdentity;
+  }>;
   readonly granted: Array<{ spec: IamPolicySpec; caller: CallerIdentity }>;
   readonly accounts: Map<string, IdentityAccount>;
 }
 
-function harness(options: {
-  client?: PlatformClient;
-  keys?: PlatformTokenKeyRing | undefined;
-  failGrant?: boolean;
-  failCreate?: "fault" | "lost-race";
-} = {}): Harness {
+function harness(
+  options: {
+    client?: PlatformClient;
+    keys?: PlatformTokenKeyRing | undefined;
+    failGrant?: boolean;
+    failCreate?: "fault" | "lost-race";
+  } = {},
+): Harness {
   const client = options.client ?? platformClient();
   const events: string[] = [];
   const created: Harness["created"] = [];
@@ -128,7 +139,10 @@ function harness(options: {
       events.push("create");
       const account = create(IdentityAccountSchema, {
         metadata: { id: accountIdFor(input.spec.idpId), name: input.name },
-        spec: { ...input.spec, provisioningMode: IdentityAccountProvisioningMode.platform_client },
+        spec: {
+          ...input.spec,
+          provisioningMode: IdentityAccountProvisioningMode.platform_client,
+        },
       });
       if (options.failCreate === "fault") throw new Error("account store down");
       if (options.failCreate === "lost-race") {
@@ -147,7 +161,16 @@ function harness(options: {
   return { deps, events, created, granted, accounts };
 }
 
-function request(overrides: Partial<{ clientSecret: string; clientId: string; userId: string; orgId: string; userEmail: string; userName: string }> = {}) {
+function request(
+  overrides: Partial<{
+    clientSecret: string;
+    clientId: string;
+    userId: string;
+    orgId: string;
+    userEmail: string;
+    userName: string;
+  }> = {},
+) {
   return create(MintUserTokenRequestSchema, {
     clientId: overrides.clientId ?? "stgm_cid_dashboard",
     clientSecret: overrides.clientSecret ?? SECRET,
@@ -172,18 +195,27 @@ const SUBJECT = platformClientSubject("acme", "user-7");
 
 describe("mintUserToken — the server and the client", () => {
   it("refuses without a ring and with a verify-only ring, before reading any credential", async () => {
-    const unposed = await refusal(mintUserToken(harness({ keys: undefined }).deps, request()));
+    const unposed = await refusal(
+      mintUserToken(harness({ keys: undefined }).deps, request()),
+    );
     expect(unposed.code).toBe(Code.FailedPrecondition);
     expect(unposed.rawMessage).toBe(MINTING_REQUIRES_AUTHENTICATION_MESSAGE);
 
-    const verifyOnly = platformTokenKeyRingFromPem({ publicKeyPems: [PUBLIC_PEM] });
-    const disabled = await refusal(mintUserToken(harness({ keys: verifyOnly }).deps, request()));
+    const verifyOnly = platformTokenKeyRingFromPem({
+      publicKeyPems: [PUBLIC_PEM],
+    });
+    const disabled = await refusal(
+      mintUserToken(harness({ keys: verifyOnly }).deps, request()),
+    );
     expect(disabled.code).toBe(Code.FailedPrecondition);
     expect(disabled.rawMessage).toBe(MINTING_DISABLED_MESSAGE);
   });
 
   it("answers an unknown client_id and a wrong secret with one UNAUTHENTICATED copy", async () => {
-    for (const bad of [request({ clientId: "stgm_cid_unknown" }), request({ clientSecret: "stgm_cs_wrong" })]) {
+    for (const bad of [
+      request({ clientId: "stgm_cid_unknown" }),
+      request({ clientSecret: "stgm_cs_wrong" }),
+    ]) {
       const denied = await refusal(mintUserToken(harness().deps, bad));
       expect(denied.code).toBe(Code.Unauthenticated);
       expect(denied.rawMessage).toBe(INVALID_CLIENT_CREDENTIALS_MESSAGE);
@@ -193,27 +225,36 @@ describe("mintUserToken — the server and the client", () => {
   it("refuses an expired secret; an unset or never-expiring one mints", async () => {
     const past = new Date(NOW.getTime() - 1000);
     const expired = await refusal(
-      mintUserToken(harness({ client: platformClient({ expiresAt: past }) }).deps, request()),
+      mintUserToken(
+        harness({ client: platformClient({ expiresAt: past }) }).deps,
+        request(),
+      ),
     );
     expect(expired.code).toBe(Code.FailedPrecondition);
     expect(expired.rawMessage).toBe(EXPIRED_CLIENT_SECRET_MESSAGE);
 
     await mintUserToken(harness({ client: platformClient() }).deps, request());
     await mintUserToken(
-      harness({ client: platformClient({ expiresAt: past, neverExpires: true }) }).deps,
+      harness({
+        client: platformClient({ expiresAt: past, neverExpires: true }),
+      }).deps,
       request(),
     );
   });
 
   it("refuses an org_id other than the owning organization, and accepts it or empty", async () => {
-    const other = await refusal(mintUserToken(harness().deps, request({ orgId: "globex" })));
+    const other = await refusal(
+      mintUserToken(harness().deps, request({ orgId: "globex" })),
+    );
     expect(other.code).toBe(Code.InvalidArgument);
     expect(other.rawMessage).toBe(organizationMismatchMessage("acme"));
     await mintUserToken(harness().deps, request({ orgId: "acme" }));
   });
 
   it("refuses a user_id carrying the separator", async () => {
-    const denied = await refusal(mintUserToken(harness().deps, request({ userId: "a|b" })));
+    const denied = await refusal(
+      mintUserToken(harness().deps, request({ userId: "a|b" })),
+    );
     expect(denied.code).toBe(Code.InvalidArgument);
   });
 });
@@ -225,13 +266,18 @@ describe("mintUserToken — the user", () => {
       SUBJECT,
       create(IdentityAccountSchema, {
         metadata: { id: "ida_existing" },
-        spec: { idpId: SUBJECT, provisioningMode: IdentityAccountProvisioningMode.platform_client },
+        spec: {
+          idpId: SUBJECT,
+          provisioningMode: IdentityAccountProvisioningMode.platform_client,
+        },
       }),
     );
     const minted = await mintUserToken(h.deps, request());
     expect(h.events).toEqual([]);
     const verified = verifyPlatformToken(RING, minted.accessToken, NOW);
-    expect(verified.outcome === "verified" && verified.token.subject).toBe("ida_existing");
+    expect(verified.outcome === "verified" && verified.token.subject).toBe(
+      "ida_existing",
+    );
   });
 
   it("refuses an account under the subject that no platform client provisioned", async () => {
@@ -240,7 +286,10 @@ describe("mintUserToken — the user", () => {
       SUBJECT,
       create(IdentityAccountSchema, {
         metadata: { id: "ida_direct" },
-        spec: { idpId: SUBJECT, provisioningMode: IdentityAccountProvisioningMode.direct },
+        spec: {
+          idpId: SUBJECT,
+          provisioningMode: IdentityAccountProvisioningMode.direct,
+        },
       }),
     );
     const denied = await refusal(mintUserToken(h.deps, request()));
@@ -249,7 +298,9 @@ describe("mintUserToken — the user", () => {
   });
 
   it("refuses an unknown user when the client does not provision", async () => {
-    const h = harness({ client: platformClient({ autoProvisionAccounts: false }) });
+    const h = harness({
+      client: platformClient({ autoProvisionAccounts: false }),
+    });
     const denied = await refusal(mintUserToken(h.deps, request()));
     expect(denied.code).toBe(Code.FailedPrecondition);
     expect(denied.rawMessage).toBe(noAccountMessage("user-7", "acme"));
@@ -257,7 +308,12 @@ describe("mintUserToken — the user", () => {
   });
 
   it("grants first on the derived id, then creates the account as the client with the cloud's shape", async () => {
-    const h = harness({ client: platformClient({ autoGrantOnOrg: true, autoGrantRole: IamRole.member }) });
+    const h = harness({
+      client: platformClient({
+        autoGrantOnOrg: true,
+        autoGrantRole: IamRole.member,
+      }),
+    });
     const minted = await mintUserToken(h.deps, request());
 
     expect(h.events).toEqual(["grant", "create"]);
@@ -274,7 +330,10 @@ describe("mintUserToken — the user", () => {
 
     const creation = h.created[0];
     expect(creation?.caller.identityId).toBe("pcl_dashboard");
-    expect(creation?.input.provisioning).toEqual({ mode: "platform_client", org: "acme" });
+    expect(creation?.input.provisioning).toEqual({
+      mode: "platform_client",
+      org: "acme",
+    });
     expect(creation?.input.name).toBe("pat@example.com");
     expect(creation?.input.spec).toMatchObject({
       idpId: SUBJECT,
@@ -305,7 +364,10 @@ describe("mintUserToken — the user", () => {
     expect(h.granted[0]?.spec.relation).toBe("viewer");
 
     const owner = harness({
-      client: platformClient({ autoGrantOnOrg: true, autoGrantRole: IamRole.owner }),
+      client: platformClient({
+        autoGrantOnOrg: true,
+        autoGrantRole: IamRole.owner,
+      }),
     });
     const denied = await refusal(mintUserToken(owner.deps, request()));
     expect(denied.code).toBe(Code.InvalidArgument);
@@ -313,7 +375,10 @@ describe("mintUserToken — the user", () => {
   });
 
   it("writes nothing when the grant fails, and says the request is safe to retry", async () => {
-    const h = harness({ client: platformClient({ autoGrantOnOrg: true }), failGrant: true });
+    const h = harness({
+      client: platformClient({ autoGrantOnOrg: true }),
+      failGrant: true,
+    });
     const failed = await refusal(mintUserToken(h.deps, request()));
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).toBe(PROVISIONING_FAILED_MESSAGE);
@@ -322,13 +387,20 @@ describe("mintUserToken — the user", () => {
   });
 
   it("leaves the grant when the create fails, and the next mint completes the account", async () => {
-    const failing = harness({ client: platformClient({ autoGrantOnOrg: true }), failCreate: "fault" });
-    await expect(mintUserToken(failing.deps, request())).rejects.toThrow("account store down");
+    const failing = harness({
+      client: platformClient({ autoGrantOnOrg: true }),
+      failCreate: "fault",
+    });
+    await expect(mintUserToken(failing.deps, request())).rejects.toThrow(
+      "account store down",
+    );
     expect(failing.events).toEqual(["grant", "create"]);
 
     const retry = harness({ client: platformClient({ autoGrantOnOrg: true }) });
     await mintUserToken(retry.deps, request());
-    expect(retry.granted[0]?.spec.principal?.id).toBe(failing.granted[0]?.spec.principal?.id);
+    expect(retry.granted[0]?.spec.principal?.id).toBe(
+      failing.granted[0]?.spec.principal?.id,
+    );
     expect(retry.created).toHaveLength(1);
   });
 
@@ -336,6 +408,8 @@ describe("mintUserToken — the user", () => {
     const h = harness({ failCreate: "lost-race" });
     const minted = await mintUserToken(h.deps, request());
     const verified = verifyPlatformToken(RING, minted.accessToken, NOW);
-    expect(verified.outcome === "verified" && verified.token.subject).toBe(accountIdFor(SUBJECT));
+    expect(verified.outcome === "verified" && verified.token.subject).toBe(
+      accountIdFor(SUBJECT),
+    );
   });
 });

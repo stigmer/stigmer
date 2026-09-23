@@ -166,9 +166,15 @@ async function createClient(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof PlatformClientSchema>("platformclient-create", deps.logger)
+  await newPipeline<typeof PlatformClientSchema>(
+    "platformclient-create",
+    deps.logger,
+  )
     .addStep(
-      newAuthorizeStep(PlatformClientCommandController.method.create, deps.authorizer),
+      newAuthorizeStep(
+        PlatformClientCommandController.method.create,
+        deps.authorizer,
+      ),
     )
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
@@ -182,7 +188,10 @@ async function createClient(
     .addStep(newGenerateClientCredentialsStep())
     .addStep(newPersistNewClientStep(deps.clients))
     .addStep(
-      newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger),
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
     )
     .build()
     .execute(reqCtx);
@@ -209,9 +218,15 @@ async function updateClient(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof PlatformClientSchema>("platformclient-update", deps.logger)
+  await newPipeline<typeof PlatformClientSchema>(
+    "platformclient-update",
+    deps.logger,
+  )
     .addStep(
-      newAuthorizeStep(PlatformClientCommandController.method.update, deps.authorizer),
+      newAuthorizeStep(
+        PlatformClientCommandController.method.update,
+        deps.authorizer,
+      ),
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
@@ -257,7 +272,10 @@ async function deleteClient(
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
   await newPipeline<DeleteInput>("platformclient-delete", deps.logger)
     .addStep(
-      newAuthorizeStep(PlatformClientCommandController.method.delete, deps.authorizer),
+      newAuthorizeStep(
+        PlatformClientCommandController.method.delete,
+        deps.authorizer,
+      ),
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingClientForDeleteStep<DeleteInput>(deps.clients))
@@ -265,7 +283,9 @@ async function deleteClient(
       newRefuseSystemManagedStep<DeleteInput>("deleted", EXISTING_RESOURCE_KEY),
     )
     .addStep(newDeleteClientStep<DeleteInput>(deps.clients))
-    .addStep(newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return redactPlatformClient(storedClientOf(reqCtx, EXISTING_RESOURCE_KEY));
@@ -281,7 +301,8 @@ async function rotateSecret(
   id: PlatformClientId,
   ctx: HandlerContext,
 ): Promise<PlatformClientCreateResponse> {
-  type RotateInput = typeof PlatformClientCommandController.method.rotateSecret.input;
+  type RotateInput =
+    typeof PlatformClientCommandController.method.rotateSecret.input;
   const reqCtx = new RequestContext(
     PlatformClientCommandController.method.rotateSecret.input,
     id,
@@ -297,13 +318,17 @@ async function rotateSecret(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetClientStep<RotateInput>(deps.clients))
-    .addStep(newRefuseSystemManagedStep<RotateInput>("rotated", TARGET_RESOURCE_KEY))
+    .addStep(
+      newRefuseSystemManagedStep<RotateInput>("rotated", TARGET_RESOURCE_KEY),
+    )
     .addStep(newRotateClientCredentialsStep<RotateInput>())
     .addStep(newPersistTargetClientStep<RotateInput>(deps.clients))
     .build()
     .execute(reqCtx);
   return create(PlatformClientCreateResponseSchema, {
-    platformClient: redactPlatformClient(storedClientOf(reqCtx, TARGET_RESOURCE_KEY)),
+    platformClient: redactPlatformClient(
+      storedClientOf(reqCtx, TARGET_RESOURCE_KEY),
+    ),
     clientSecret: parkedClientSecret(reqCtx),
   });
 }
@@ -321,7 +346,12 @@ async function get(
     kindOf(ctx),
   );
   await newPipeline<GetInput>("platformclient-get", deps.logger)
-    .addStep(newAuthorizeStep(PlatformClientQueryController.method.get, deps.authorizer))
+    .addStep(
+      newAuthorizeStep(
+        PlatformClientQueryController.method.get,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetClientStep<GetInput>(deps.clients))
     .build()
@@ -341,10 +371,9 @@ async function getByReference(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof PlatformClientQueryController.method.getByReference.input>(
-    "platformclient-get-by-reference",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof PlatformClientQueryController.method.getByReference.input
+  >("platformclient-get-by-reference", deps.logger)
     .addStep(
       newAuthorizeStep(
         PlatformClientQueryController.method.getByReference,
@@ -382,12 +411,14 @@ async function listByOrg(
     caller,
     kindOf(ctx),
   );
-  await newPipeline<typeof PlatformClientQueryController.method.listByOrg.input>(
-    "platformclient-list-by-org",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof PlatformClientQueryController.method.listByOrg.input
+  >("platformclient-list-by-org", deps.logger)
     .addStep(
-      newAuthorizeStep(PlatformClientQueryController.method.listByOrg, deps.authorizer),
+      newAuthorizeStep(
+        PlatformClientQueryController.method.listByOrg,
+        deps.authorizer,
+      ),
     )
     .addStep(newValidateProtoStep())
     .build()

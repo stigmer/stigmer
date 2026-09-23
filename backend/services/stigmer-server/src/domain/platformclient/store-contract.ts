@@ -126,7 +126,10 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
     async ({ store }) => {
       await store.save(ACME_DASHBOARD);
       assert.equal(await store.findById("pcl_contract_nobody"), undefined);
-      assert.equal(await store.findByClientId("stgm_cid_contract_nobody"), undefined);
+      assert.equal(
+        await store.findByClientId("stgm_cid_contract_nobody"),
+        undefined,
+      );
       assert.equal(await store.findByOrgAndSlug("acme", "nobody"), undefined);
       assert.equal(
         await store.findByOrgAndSlug("globex", "dashboard"),
@@ -244,13 +247,19 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
     async ({ store }) => {
       await store.save(ACME_DASHBOARD);
       await store.deleteById("pcl_contract_acme_dashboard");
-      assert.equal(await store.findById("pcl_contract_acme_dashboard"), undefined);
+      assert.equal(
+        await store.findById("pcl_contract_acme_dashboard"),
+        undefined,
+      );
       assert.equal(
         await store.findByClientId("stgm_cid_contract_acme_dashboard"),
         undefined,
         "a deleted client's client_id must stop resolving: the mint and the verifier read it",
       );
-      assert.equal(await store.findByOrgAndSlug("acme", "dashboard"), undefined);
+      assert.equal(
+        await store.findByOrgAndSlug("acme", "dashboard"),
+        undefined,
+      );
       await store.save(ACME_DASHBOARD);
       await store.deleteById("pcl_contract_nobody");
     },
@@ -278,7 +287,10 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
       const ids = (await store.findByOrg("acme"))
         .map((client) => client.metadata?.id ?? "")
         .sort();
-      assert.deepEqual(ids, ["pcl_contract_acme_dashboard", "pcl_contract_acme_mobile"]);
+      assert.deepEqual(ids, [
+        "pcl_contract_acme_dashboard",
+        "pcl_contract_acme_mobile",
+      ]);
       assert.deepEqual(await store.findByOrg("initech"), []);
     },
   ],

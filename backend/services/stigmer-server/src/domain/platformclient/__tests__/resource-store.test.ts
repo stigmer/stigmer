@@ -115,15 +115,22 @@ describe.each([sqliteFixture, postgresFixture])(
           const clients = newResourcePlatformClientStore(opened.store);
           await clients.save(
             create(PlatformClientSchema, {
-              metadata: { id: "pcl_acme_dashboard", org: "acme", slug: "dashboard", name: "d" },
+              metadata: {
+                id: "pcl_acme_dashboard",
+                org: "acme",
+                slug: "dashboard",
+                name: "d",
+              },
               spec: { clientId: "stgm_cid_acme_dashboard" },
             }),
           );
-          expect(await clients.findByOrgAndSlug("", "dashboard")).toBeUndefined();
+          expect(
+            await clients.findByOrgAndSlug("", "dashboard"),
+          ).toBeUndefined();
           expect(await clients.findByOrgAndSlug("acme", "")).toBeUndefined();
-          expect((await clients.findByOrgAndSlug("acme", "dashboard"))?.metadata?.id).toBe(
-            "pcl_acme_dashboard",
-          );
+          expect(
+            (await clients.findByOrgAndSlug("acme", "dashboard"))?.metadata?.id,
+          ).toBe("pcl_acme_dashboard");
         } finally {
           await opened.close();
         }

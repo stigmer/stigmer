@@ -109,8 +109,7 @@ export function platformTokenKeyRingFromPem(
       `public key ${index + 1}`,
     ),
   );
-  const ttlSeconds =
-    material.ttlSeconds ?? DEFAULT_PLATFORM_TOKEN_TTL_SECONDS;
+  const ttlSeconds = material.ttlSeconds ?? DEFAULT_PLATFORM_TOKEN_TTL_SECONDS;
   if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) {
     throw new Error(
       `platform-token TTL must be a positive integer number of seconds, got ${ttlSeconds}`,
@@ -125,7 +124,10 @@ export function platformTokenKeyRingFromPem(
     return base;
   }
   const privateKey = requireRsa(
-    parseKey(() => createPrivateKey(material.privateKeyPem ?? ""), "private key"),
+    parseKey(
+      () => createPrivateKey(material.privateKeyPem ?? ""),
+      "private key",
+    ),
     "private key",
   );
   const derivedPublic = spkiOf(createPublicKey(privateKey));

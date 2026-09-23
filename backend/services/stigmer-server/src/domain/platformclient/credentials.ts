@@ -38,7 +38,8 @@ export function generateClientId(): string {
 
 export function generateClientSecret(): string {
   return (
-    CLIENT_SECRET_PREFIX + randomBytes(CLIENT_SECRET_BYTES).toString("base64url")
+    CLIENT_SECRET_PREFIX +
+    randomBytes(CLIENT_SECRET_BYTES).toString("base64url")
   );
 }
 
@@ -61,5 +62,7 @@ export function secretMatchesHash(secret: string, storedHash: string): boolean {
   }
   const presented = Buffer.from(hashClientSecret(secret), "utf8");
   const stored = Buffer.from(storedHash, "utf8");
-  return presented.length === stored.length && timingSafeEqual(presented, stored);
+  return (
+    presented.length === stored.length && timingSafeEqual(presented, stored)
+  );
 }

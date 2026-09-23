@@ -49,7 +49,11 @@ export type PlatformTokenClaimValue = string | number | boolean;
 /** The claims the envelope owns; a lane may not set them. */
 const ENVELOPE_CLAIMS = new Set(["iss", "iat", "exp", "jti", "aud"]);
 
-export type PlatformTokenRefusal = "signature" | "expired" | "audience" | "subject";
+export type PlatformTokenRefusal =
+  | "signature"
+  | "expired"
+  | "audience"
+  | "subject";
 
 /** Wire copy, byte-pinned: the cloud verifier's sentences since the Java issuer. */
 export const PLATFORM_TOKEN_REFUSAL_MESSAGES: Readonly<
@@ -117,7 +121,9 @@ export function verifyPlatformToken(
   if (decoded === undefined || decoded.payload.iss !== PLATFORM_TOKEN_ISSUER) {
     return { outcome: "foreign" };
   }
-  const signingInput = Buffer.from(`${decoded.encodedHeader}.${decoded.encodedPayload}`);
+  const signingInput = Buffer.from(
+    `${decoded.encodedHeader}.${decoded.encodedPayload}`,
+  );
   const signatureValid = ring.verificationKeys.some((key) =>
     verify("sha256", signingInput, key, decoded.signature),
   );
@@ -129,7 +135,11 @@ export function verifyPlatformToken(
     return { outcome: "refused", refusal: "expired" };
   }
   const aud = decoded.payload.aud;
-  if (ring.audience !== "" && aud !== undefined && !audienceMatches(aud, ring.audience)) {
+  if (
+    ring.audience !== "" &&
+    aud !== undefined &&
+    !audienceMatches(aud, ring.audience)
+  ) {
     return { outcome: "refused", refusal: "audience" };
   }
   const sub = decoded.payload.sub;
@@ -147,8 +157,13 @@ export function verifyPlatformToken(
 }
 
 /** The UNAUTHENTICATED error a verifier answers for a refused platform token. */
-export function platformTokenRefusalError(refusal: PlatformTokenRefusal): ConnectError {
-  return new ConnectError(PLATFORM_TOKEN_REFUSAL_MESSAGES[refusal], Code.Unauthenticated);
+export function platformTokenRefusalError(
+  refusal: PlatformTokenRefusal,
+): ConnectError {
+  return new ConnectError(
+    PLATFORM_TOKEN_REFUSAL_MESSAGES[refusal],
+    Code.Unauthenticated,
+  );
 }
 
 /**
@@ -190,7 +205,8 @@ function decode(token: string): DecodedToken | undefined {
   if (parts.length !== 3) {
     return undefined;
   }
-  const [encodedHeader = "", encodedPayload = "", encodedSignature = ""] = parts;
+  const [encodedHeader = "", encodedPayload = "", encodedSignature = ""] =
+    parts;
   const header = parseJsonObject(encodedHeader);
   const payload = parseJsonObject(encodedPayload);
   if (header === undefined || payload === undefined) {
@@ -206,7 +222,9 @@ function decode(token: string): DecodedToken | undefined {
 
 function parseJsonObject(segment: string): Record<string, unknown> | undefined {
   try {
-    const value: unknown = JSON.parse(Buffer.from(segment, "base64url").toString("utf8"));
+    const value: unknown = JSON.parse(
+      Buffer.from(segment, "base64url").toString("utf8"),
+    );
     return typeof value === "object" && value !== null && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : undefined;

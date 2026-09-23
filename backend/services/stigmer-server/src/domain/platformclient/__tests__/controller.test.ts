@@ -19,7 +19,12 @@
  *   - listByOrg answers the organization's clients, newest first.
  * Who may read a client is the enforcing lane's conformance suite's.
  */
-import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
+import {
+  Code,
+  ConnectError,
+  createClient,
+  createRouterTransport,
+} from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
 import { clone, create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -37,7 +42,10 @@ import type { PlatformClientSpec } from "@stigmer/protos/ai/stigmer/iam/platform
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
-import { SYSTEM_MANAGED_LABEL, RESERVED_LABEL_TRUE } from "../../../pipeline/apiresource-labels.js";
+import {
+  SYSTEM_MANAGED_LABEL,
+  RESERVED_LABEL_TRUE,
+} from "../../../pipeline/apiresource-labels.js";
 import { buildInterceptorChain } from "../../../pipeline/chain.js";
 import { createInProcessCallerInterceptor } from "../../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
@@ -77,7 +85,10 @@ beforeEach(() => {
       }),
     {
       router: {
-        interceptors: buildInterceptorChain(silentLogger, createInProcessCallerInterceptor()),
+        interceptors: buildInterceptorChain(
+          silentLogger,
+          createInProcessCallerInterceptor(),
+        ),
       },
     },
   );
@@ -87,7 +98,10 @@ beforeEach(() => {
 
 afterEach(() => cleanup());
 
-function input(name: string, spec: MessageInitShape<typeof PlatformClientSpecSchema> = {}) {
+function input(
+  name: string,
+  spec: MessageInitShape<typeof PlatformClientSpecSchema> = {},
+) {
   return create(PlatformClientSchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "PlatformClient",
@@ -115,7 +129,13 @@ async function seedEnvironment(org: string, slug: string): Promise<void> {
     create(EnvironmentSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Environment",
-      metadata: { id, name: slug, slug, org, visibility: ApiResourceVisibility.visibility_org },
+      metadata: {
+        id,
+        name: slug,
+        slug,
+        org,
+        visibility: ApiResourceVisibility.visibility_org,
+      },
     }),
   );
 }
@@ -126,7 +146,8 @@ function environmentRef(slug: string, org = "") {
 
 function environmentTarget() {
   const entry = referenceTargetKind(ApiResourceKind.environment);
-  if (entry === undefined) throw new Error("environment is not a reference target kind");
+  if (entry === undefined)
+    throw new Error("environment is not a reference target kind");
   return entry;
 }
 
@@ -137,18 +158,27 @@ describe("PlatformClient chains", () => {
     expect(id).toMatch(/^pcl_/);
     expect(created.clientSecret).toMatch(/^stgm_cs_/);
     expect(created.platformClient?.spec?.clientSecretHash).toBe("");
-    expect(created.platformClient?.spec?.secretFingerprint).toBe(created.clientSecret.slice(-6));
+    expect(created.platformClient?.spec?.secretFingerprint).toBe(
+      created.clientSecret.slice(-6),
+    );
 
     expect((await clients.findById(id))?.spec?.clientSecretHash).toBe(
       hashClientSecret(created.clientSecret),
     );
     expect((await query.get({ value: id })).spec?.clientSecretHash).toBe("");
     expect(
-      (await query.getByReference({ org: "acme", slug: "dashboard", kind: ApiResourceKind.platform_client }))
-        .spec?.clientSecretHash,
+      (
+        await query.getByReference({
+          org: "acme",
+          slug: "dashboard",
+          kind: ApiResourceKind.platform_client,
+        })
+      ).spec?.clientSecretHash,
     ).toBe("");
     const listed = await query.listByOrg({ org: "acme" });
-    expect(listed.entries.map((entry) => entry.spec?.clientSecretHash)).toEqual([""]);
+    expect(listed.entries.map((entry) => entry.spec?.clientSecretHash)).toEqual(
+      [""],
+    );
   });
 
   it("update keeps the credentials, addressed by id or by slug", async () => {
@@ -175,9 +205,10 @@ describe("PlatformClient chains", () => {
     const viaSlug = await command.update(bySlug);
     expect(viaSlug.metadata?.id).toBe(stored?.metadata?.id);
     expect(viaSlug.spec?.clientId).toBe(clientId);
-    expect((await clients.findById(stored?.metadata?.id ?? ""))?.spec?.clientSecretHash).toBe(
-      hashClientSecret(created.clientSecret),
-    );
+    expect(
+      (await clients.findById(stored?.metadata?.id ?? ""))?.spec
+        ?.clientSecretHash,
+    ).toBe(hashClientSecret(created.clientSecret));
   });
 
   it("rotateSecret replaces the secret under the same client_id, and the row follows", async () => {
@@ -186,8 +217,12 @@ describe("PlatformClient chains", () => {
     const rotated = await command.rotateSecret({ value: id });
 
     expect(rotated.clientSecret).not.toBe(created.clientSecret);
-    expect(rotated.platformClient?.spec?.clientId).toBe(created.platformClient?.spec?.clientId);
-    expect(rotated.platformClient?.spec?.secretFingerprint).toBe(rotated.clientSecret.slice(-6));
+    expect(rotated.platformClient?.spec?.clientId).toBe(
+      created.platformClient?.spec?.clientId,
+    );
+    expect(rotated.platformClient?.spec?.secretFingerprint).toBe(
+      rotated.clientSecret.slice(-6),
+    );
     expect(rotated.platformClient?.spec?.clientSecretHash).toBe("");
     expect((await clients.findById(id))?.spec?.clientSecretHash).toBe(
       hashClientSecret(rotated.clientSecret),
@@ -196,22 +231,36 @@ describe("PlatformClient chains", () => {
 
   it("refuses the reserved slug and the two auto-grant rules", async () => {
     const reserved = await refusal(
-      command.create(create(PlatformClientSchema, {
-        apiVersion: "iam.stigmer.ai/v1",
-        kind: "PlatformClient",
-        metadata: { name: "System Share Client", org: "acme" },
-      })),
+      command.create(
+        create(PlatformClientSchema, {
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "PlatformClient",
+          metadata: { name: "System Share Client", org: "acme" },
+        }),
+      ),
     );
     expect(reserved.code).toBe(Code.InvalidArgument);
-    expect(reserved.rawMessage).toBe(reservedSlugMessage("system-share-client"));
+    expect(reserved.rawMessage).toBe(
+      reservedSlugMessage("system-share-client"),
+    );
 
     const owner = await refusal(
-      command.create(input("Owner grant", { autoGrantOnOrg: true, autoGrantRole: IamRole.owner })),
+      command.create(
+        input("Owner grant", {
+          autoGrantOnOrg: true,
+          autoGrantRole: IamRole.owner,
+        }),
+      ),
     );
     expect(owner.code).toBe(Code.InvalidArgument);
 
     const noProvision = await refusal(
-      command.create(input("No provision", { autoProvisionAccounts: false, autoGrantOnOrg: true })),
+      command.create(
+        input("No provision", {
+          autoProvisionAccounts: false,
+          autoGrantOnOrg: true,
+        }),
+      ),
     );
     expect(noProvision.code).toBe(Code.InvalidArgument);
   });
@@ -219,20 +268,30 @@ describe("PlatformClient chains", () => {
   it("stores a bare environment slug under the client's organization", async () => {
     await seedEnvironment("acme", "support-secrets");
     const created = await command.create(
-      input("Dashboard", { environmentRefs: [environmentRef("support-secrets")] }),
+      input("Dashboard", {
+        environmentRefs: [environmentRef("support-secrets")],
+      }),
     );
     const refsOf = (spec: PlatformClientSpec | undefined) =>
       (spec?.environmentRefs ?? []).map((ref) => `${ref.org}/${ref.slug}`);
-    expect(refsOf(created.platformClient?.spec)).toEqual(["acme/support-secrets"]);
+    expect(refsOf(created.platformClient?.spec)).toEqual([
+      "acme/support-secrets",
+    ]);
     const id = created.platformClient?.metadata?.id ?? "";
-    expect(refsOf((await clients.findById(id))?.spec)).toEqual(["acme/support-secrets"]);
+    expect(refsOf((await clients.findById(id))?.spec)).toEqual([
+      "acme/support-secrets",
+    ]);
   });
 
   it("refuses a missing environment on create and on update, storing nothing", async () => {
-    const missing = missingReferencesMessage(environmentTarget(), [{ slug: "ghost", org: "acme" }]);
+    const missing = missingReferencesMessage(environmentTarget(), [
+      { slug: "ghost", org: "acme" },
+    ]);
 
     const onCreate = await refusal(
-      command.create(input("Dashboard", { environmentRefs: [environmentRef("ghost")] })),
+      command.create(
+        input("Dashboard", { environmentRefs: [environmentRef("ghost")] }),
+      ),
     );
     expect(onCreate.code).toBe(Code.FailedPrecondition);
     expect(onCreate.rawMessage).toBe(missing);
@@ -243,18 +302,25 @@ describe("PlatformClient chains", () => {
     if (stored?.spec === undefined) throw new Error("create answered no spec");
     const withGhost = clone(PlatformClientSchema, stored);
     withGhost.spec = clone(PlatformClientSpecSchema, stored.spec);
-    withGhost.spec.environmentRefs = [create(ApiResourceReferenceSchema, environmentRef("ghost"))];
+    withGhost.spec.environmentRefs = [
+      create(ApiResourceReferenceSchema, environmentRef("ghost")),
+    ];
     const onUpdate = await refusal(command.update(withGhost));
     expect(onUpdate.code).toBe(Code.FailedPrecondition);
     expect(onUpdate.rawMessage).toBe(missing);
-    expect((await clients.findById(stored.metadata?.id ?? ""))?.spec?.environmentRefs).toEqual([]);
+    expect(
+      (await clients.findById(stored.metadata?.id ?? ""))?.spec
+        ?.environmentRefs,
+    ).toEqual([]);
   });
 
   it("refuses another organization's environment with the rule's one sentence", async () => {
     await seedEnvironment("globex", "shared");
     const foreign = await refusal(
       command.create(
-        input("Dashboard", { environmentRefs: [environmentRef("shared", "globex")] }),
+        input("Dashboard", {
+          environmentRefs: [environmentRef("shared", "globex")],
+        }),
       ),
     );
     expect(foreign.code).toBe(Code.FailedPrecondition);
@@ -298,17 +364,25 @@ describe("PlatformClient chains", () => {
   });
 
   it("listByOrg answers the organization's clients newest first", async () => {
-    for (const [id, seconds] of [["pcl_older", 1_000], ["pcl_newer", 2_000]] as const) {
+    for (const [id, seconds] of [
+      ["pcl_older", 1_000],
+      ["pcl_newer", 2_000],
+    ] as const) {
       await clients.save(
         create(PlatformClientSchema, {
           metadata: { id, name: id, org: "acme", slug: id },
           spec: { clientId: `stgm_cid_${id}` },
-          status: { audit: { specAudit: { createdAt: { seconds: BigInt(seconds) } } } },
+          status: {
+            audit: { specAudit: { createdAt: { seconds: BigInt(seconds) } } },
+          },
         }),
       );
     }
     const listed = await query.listByOrg({ org: "acme" });
-    expect(listed.entries.map((entry) => entry.metadata?.id)).toEqual(["pcl_newer", "pcl_older"]);
+    expect(listed.entries.map((entry) => entry.metadata?.id)).toEqual([
+      "pcl_newer",
+      "pcl_older",
+    ]);
     expect((await query.listByOrg({ org: "globex" })).entries).toEqual([]);
   });
 

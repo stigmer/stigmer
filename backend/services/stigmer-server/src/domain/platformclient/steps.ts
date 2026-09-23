@@ -125,12 +125,17 @@ export function newRefuseReservedSlugStep(): ClientStep {
 }
 
 /** Rejects a create whose slug the organization already holds. */
-export function newCheckDuplicateStep(clients: PlatformClientStore): ClientStep {
+export function newCheckDuplicateStep(
+  clients: PlatformClientStore,
+): ClientStep {
   return {
     name: "CheckDuplicate",
     async execute(ctx: ClientContext): Promise<void> {
       const metadata = requireMetadata(ctx, "duplicate check");
-      const existing = await clients.findByOrgAndSlug(metadata.org, metadata.slug);
+      const existing = await clients.findByOrgAndSlug(
+        metadata.org,
+        metadata.slug,
+      );
       if (existing !== undefined) {
         throw alreadyExistsError(
           PLATFORM_CLIENT_KIND_NAME,
@@ -157,7 +162,9 @@ export function newGenerateClientCredentialsStep(): ClientStep {
 }
 
 /** Saves the new client through the port; a held slug or client_id is ALREADY_EXISTS. */
-export function newPersistNewClientStep(clients: PlatformClientStore): ClientStep {
+export function newPersistNewClientStep(
+  clients: PlatformClientStore,
+): ClientStep {
   return {
     name: "Persist",
     async execute(ctx: ClientContext): Promise<void> {
@@ -183,7 +190,9 @@ export function newPersistNewClientStep(clients: PlatformClientStore): ClientSte
 // ---------------------------------------------------------------------------
 
 /** Loads the client by id, else by org-scoped slug (the id written back), into EXISTING_RESOURCE_KEY. */
-export function newLoadExistingClientStep(clients: PlatformClientStore): ClientStep {
+export function newLoadExistingClientStep(
+  clients: PlatformClientStore,
+): ClientStep {
   return {
     name: "LoadExisting",
     async execute(ctx: ClientContext): Promise<void> {
@@ -201,7 +210,9 @@ export function newLoadExistingClientStep(clients: PlatformClientStore): ClientS
         }
         metadata.id = existing.metadata?.id ?? "";
       } else {
-        throw invalidArgumentError("resource id or slug is required for update");
+        throw invalidArgumentError(
+          "resource id or slug is required for update",
+        );
       }
       ctx.set(EXISTING_RESOURCE_KEY, existing);
     },
@@ -251,7 +262,9 @@ export function newRefuseSystemManagedStep<Desc extends DescMessage>(
     name: "RefuseSystemManaged",
     execute(ctx: RequestContext<Desc>): void {
       const client = storedClientOf(ctx, key);
-      if (client.metadata?.labels[SYSTEM_MANAGED_LABEL] === RESERVED_LABEL_TRUE) {
+      if (
+        client.metadata?.labels[SYSTEM_MANAGED_LABEL] === RESERVED_LABEL_TRUE
+      ) {
         throw failedPreconditionError(systemManagedMessage(verb));
       }
     },
@@ -331,7 +344,12 @@ export function newRotateClientCredentialsStep<
       spec.secretFingerprint = secretFingerprint(secret);
       // The row is its own "existing": the creation stamp is read before
       // the fresh audit block replaces it.
-      updateAuditFields(PlatformClientSchema, client, client, ctx.callerIdentity);
+      updateAuditFields(
+        PlatformClientSchema,
+        client,
+        client,
+        ctx.callerIdentity,
+      );
       ctx.set(CLIENT_SECRET_PLAINTEXT_KEY, secret);
     },
   };
@@ -410,7 +428,9 @@ export function storedClientOf<Desc extends DescMessage>(
   const client = ctx.get(key) as PlatformClient | undefined;
   if (client === undefined) {
     throw internalError(
-      new Error(`no platform client under '${key}' — its load step must run first`),
+      new Error(
+        `no platform client under '${key}' — its load step must run first`,
+      ),
       "platform client chain ordering",
     );
   }
@@ -420,7 +440,10 @@ export function storedClientOf<Desc extends DescMessage>(
 function requireMetadata(ctx: ClientContext, operation: string) {
   const metadata = metadataOf(ctx.newState);
   if (metadata === undefined) {
-    throw internalError(new Error("platform client metadata is nil"), operation);
+    throw internalError(
+      new Error("platform client metadata is nil"),
+      operation,
+    );
   }
   return metadata;
 }
@@ -439,7 +462,9 @@ function requireResourceId<Desc extends DescMessage>(
   const id = ctx.get(RESOURCE_ID_KEY);
   if (typeof id !== "string" || id === "") {
     throw internalError(
-      new Error("resource id not found in context (the delete handler sets it)"),
+      new Error(
+        "resource id not found in context (the delete handler sets it)",
+      ),
       "platform client delete ordering",
     );
   }

@@ -10,7 +10,14 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
-import { computed, declareKind, direct, from, objectOf, union } from "./rewrite.js";
+import {
+  computed,
+  declareKind,
+  direct,
+  from,
+  objectOf,
+  union,
+} from "./rewrite.js";
 
 export const platformClientDeclaration = declareKind({
   kind: ApiResourceKind.platform_client,

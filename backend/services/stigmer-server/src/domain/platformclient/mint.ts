@@ -66,7 +66,10 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError } from "../../pipeline/errors.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { validator } from "../../pipeline/steps/validation.js";
-import { canSign, type PlatformTokenKeyRing } from "../../platformtoken/key-ring.js";
+import {
+  canSign,
+  type PlatformTokenKeyRing,
+} from "../../platformtoken/key-ring.js";
 import { signPlatformToken } from "../../platformtoken/envelope.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import { organizationRole } from "../iampolicy/specs.js";
@@ -154,7 +157,12 @@ export async function mintUserToken(
     email: request.userEmail,
     name: request.userName,
   };
-  const accountId = await resolveOrProvisionAccount(deps, client, owningOrg, user);
+  const accountId = await resolveOrProvisionAccount(
+    deps,
+    client,
+    owningOrg,
+    user,
+  );
 
   const accessToken = signPlatformToken(
     keys,
@@ -191,7 +199,10 @@ async function authenticateClient(
   }
   if (
     client === undefined ||
-    !secretMatchesHash(request.clientSecret, client.spec?.clientSecretHash ?? "")
+    !secretMatchesHash(
+      request.clientSecret,
+      client.spec?.clientSecretHash ?? "",
+    )
   ) {
     throw new ConnectError(
       INVALID_CLIENT_CREDENTIALS_MESSAGE,
@@ -271,7 +282,10 @@ function platformClientAccountId(
   user: EndUser,
   org: string,
 ): string {
-  if (account.spec?.provisioningMode !== IdentityAccountProvisioningMode.platform_client) {
+  if (
+    account.spec?.provisioningMode !==
+    IdentityAccountProvisioningMode.platform_client
+  ) {
     throw new ConnectError(
       foreignAccountMessage(user.externalUserId, org),
       Code.FailedPrecondition,
@@ -286,7 +300,11 @@ function platformClientAccountId(
  * the email, else the external id; first and last name split from the
  * display name at its first space, else the email's local part.
  */
-function accountInput(idpId: string, org: string, user: EndUser): CreateAccountInput {
+function accountInput(
+  idpId: string,
+  org: string,
+  user: EndUser,
+): CreateAccountInput {
   const input: CreateAccountInput = {
     name: user.email !== "" ? user.email : user.externalUserId,
     spec: create(IdentityAccountSpecSchema, {
@@ -335,37 +353,54 @@ async function grantAutoRole(
     throw new ConnectError(OWNER_AUTO_GRANT_MESSAGE, Code.InvalidArgument);
   }
   const role =
-    configured === IamRole.iam_role_unspecified ? DEFAULT_AUTO_GRANT_ROLE : configured;
+    configured === IamRole.iam_role_unspecified
+      ? DEFAULT_AUTO_GRANT_ROLE
+      : configured;
   try {
     await deps.grantPath.grant(organizationRole(accountId, role, org), actor);
   } catch (error) {
-    deps.logger.error("platform client auto-grant failed; nothing was provisioned", {
-      accountId,
-      platformClientId: client.metadata?.id ?? "",
-      error: error instanceof Error ? error.message : String(error),
-    });
+    deps.logger.error(
+      "platform client auto-grant failed; nothing was provisioned",
+      {
+        accountId,
+        platformClientId: client.metadata?.id ?? "",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
     throw new ConnectError(PROVISIONING_FAILED_MESSAGE, Code.Internal);
   }
 }
 
 /** `stgm_pc|<org>|<user_id>`, each part non-blank and free of the separator. */
-export function platformClientSubject(org: string, externalUserId: string): string {
+export function platformClientSubject(
+  org: string,
+  externalUserId: string,
+): string {
   requireSubjectPart("org", org);
   requireSubjectPart("externalUserId", externalUserId);
   return `${PLATFORM_CLIENT_SUBJECT_PREFIX}${org}${SUBJECT_SEPARATOR}${externalUserId}`;
 }
 
-function requireSubjectPart(part: "org" | "externalUserId", value: string): void {
+function requireSubjectPart(
+  part: "org" | "externalUserId",
+  value: string,
+): void {
   if (value.trim() === "") {
     throw new ConnectError(blankSubjectPartMessage(part), Code.InvalidArgument);
   }
   if (value.includes(SUBJECT_SEPARATOR)) {
-    throw new ConnectError(subjectSeparatorMessage(part, value), Code.InvalidArgument);
+    throw new ConnectError(
+      subjectSeparatorMessage(part, value),
+      Code.InvalidArgument,
+    );
   }
 }
 
 /** The cloud's name split: the display name at its first space, else the email's local part. */
-function splitName(name: string, email: string): { firstName: string; lastName: string } {
+function splitName(
+  name: string,
+  email: string,
+): { firstName: string; lastName: string } {
   if (name !== "") {
     const space = name.indexOf(" ");
     return space > 0

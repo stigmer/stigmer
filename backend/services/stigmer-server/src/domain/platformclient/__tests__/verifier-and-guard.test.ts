@@ -30,7 +30,9 @@ import { DELETED_CLIENT_MESSAGE, originRefusalMessage } from "../constants.js";
 import { newPlatformClientOriginGuard } from "../origin-guard.js";
 import { newPlatformClientTokenVerifier } from "../verifier.js";
 
-const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
 const built = platformTokenKeyRingFromPem({
   privateKeyPem: privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
   publicKeyPems: [publicKey.export({ format: "pem", type: "spki" }).toString()],
@@ -62,7 +64,12 @@ function userToken(claims: Record<string, string> = {}): string {
 }
 
 function callerWith(rawToken: string): CallerIdentity {
-  return { identityId: "ida_pat", callerClass: "user", issuer: "stigmer", rawToken };
+  return {
+    identityId: "ida_pat",
+    callerClass: "user",
+    issuer: "stigmer",
+    rawToken,
+  };
 }
 
 async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
@@ -78,7 +85,10 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
 describe("the PlatformClient user-token verifier", () => {
   it("stamps the account the token was minted for as a user, with the asserted profile", async () => {
     const token = userToken();
-    const identity = await newPlatformClientTokenVerifier({ keys: ring, clients: storeOf(client()) }).verify(token);
+    const identity = await newPlatformClientTokenVerifier({
+      keys: ring,
+      clients: storeOf(client()),
+    }).verify(token);
     expect(identity).toEqual({
       identityId: "ida_pat",
       callerClass: "user",
@@ -90,30 +100,45 @@ describe("the PlatformClient user-token verifier", () => {
   });
 
   it("passes a foreign token and a typed platform token to the next verifier", async () => {
-    const verifier = newPlatformClientTokenVerifier({ keys: ring, clients: storeOf(client()) });
+    const verifier = newPlatformClientTokenVerifier({
+      keys: ring,
+      clients: storeOf(client()),
+    });
     expect(await verifier.verify("stk_api_key")).toBeNull();
-    expect(await verifier.verify(userToken({ token_type: "guest" }))).toBeNull();
+    expect(
+      await verifier.verify(userToken({ token_type: "guest" })),
+    ).toBeNull();
   });
 
   it("refuses a deleted client's token with the liveness copy, and a token naming no client", async () => {
     const gone = await refusal(
-      newPlatformClientTokenVerifier({ keys: ring, clients: storeOf(undefined) }).verify(userToken()),
+      newPlatformClientTokenVerifier({
+        keys: ring,
+        clients: storeOf(undefined),
+      }).verify(userToken()),
     );
     expect(gone.code).toBe(Code.Unauthenticated);
     expect(gone.rawMessage).toBe(DELETED_CLIENT_MESSAGE);
 
     const unnamed = await refusal(
-      newPlatformClientTokenVerifier({ keys: ring, clients: storeOf(client()) }).verify(
-        signPlatformToken(ring, { sub: "ida_pat" }),
-      ),
+      newPlatformClientTokenVerifier({
+        keys: ring,
+        clients: storeOf(client()),
+      }).verify(signPlatformToken(ring, { sub: "ida_pat" })),
     );
     expect(unnamed.code).toBe(Code.Unauthenticated);
   });
 
   it("lets a store fault propagate instead of reading it as a revocation", async () => {
-    const failing = { findById: vi.fn(async () => { throw new Error("database down"); }) };
+    const failing = {
+      findById: vi.fn(async () => {
+        throw new Error("database down");
+      }),
+    };
     await expect(
-      newPlatformClientTokenVerifier({ keys: ring, clients: failing }).verify(userToken()),
+      newPlatformClientTokenVerifier({ keys: ring, clients: failing }).verify(
+        userToken(),
+      ),
     ).rejects.toThrow("database down");
   });
 });
@@ -125,12 +150,19 @@ describe("the PlatformClient origin guard", () => {
     const clients = storeOf(client(["https://app.example"]));
     const guard = newPlatformClientOriginGuard({ clients, logger: silent });
     await guard.guard(callerWith(userToken()), method, new Headers());
-    await guard.guard(callerWith(userToken()), method, new Headers({ origin: "  " }));
+    await guard.guard(
+      callerWith(userToken()),
+      method,
+      new Headers({ origin: "  " }),
+    );
     expect(clients.findById).not.toHaveBeenCalled();
   });
 
   it("passes an open allowlist and a listed origin, compared case-insensitively", async () => {
-    await newPlatformClientOriginGuard({ clients: storeOf(client()), logger: silent }).guard(
+    await newPlatformClientOriginGuard({
+      clients: storeOf(client()),
+      logger: silent,
+    }).guard(
       callerWith(userToken()),
       method,
       new Headers({ origin: "https://anywhere.example" }),
@@ -138,7 +170,11 @@ describe("the PlatformClient origin guard", () => {
     await newPlatformClientOriginGuard({
       clients: storeOf(client(["https://app.example"])),
       logger: silent,
-    }).guard(callerWith(userToken()), method, new Headers({ origin: "https://APP.example" }));
+    }).guard(
+      callerWith(userToken()),
+      method,
+      new Headers({ origin: "https://APP.example" }),
+    );
   });
 
   it("refuses an unlisted origin and the opaque origin with the cloud's copy", async () => {
@@ -161,7 +197,11 @@ describe("the PlatformClient origin guard", () => {
     const foreign = new Headers({ origin: "https://evil.example" });
     await guard.guard(callerWith("stk_api_key"), method, foreign);
     await guard.guard(callerWith(""), method, foreign);
-    await guard.guard(callerWith(userToken({ token_type: "guest" })), method, foreign);
+    await guard.guard(
+      callerWith(userToken({ token_type: "guest" })),
+      method,
+      foreign,
+    );
     expect(clients.findById).not.toHaveBeenCalled();
   });
 });

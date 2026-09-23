@@ -68,19 +68,28 @@ describe("the create path's platform-client arm", () => {
     const account = await createAccount(
       {
         name: "pat@example.com",
-        spec: create(IdentityAccountSpecSchema, { idpId: SUBJECT, email: "pat@example.com" }),
+        spec: create(IdentityAccountSpecSchema, {
+          idpId: SUBJECT,
+          email: "pat@example.com",
+        }),
         provisioning: { mode: "platform_client", org: "acme" },
       },
       CLIENT,
     );
     expect(account.metadata?.id).toBe(accountIdFor(SUBJECT));
     expect(account.metadata?.org).toBe("acme");
-    expect(account.spec?.provisioningMode).toBe(IdentityAccountProvisioningMode.platform_client);
-    expect(account.status?.audit?.specAudit?.createdBy?.id).toBe("pcl_dashboard");
+    expect(account.spec?.provisioningMode).toBe(
+      IdentityAccountProvisioningMode.platform_client,
+    );
+    expect(account.status?.audit?.specAudit?.createdBy?.id).toBe(
+      "pcl_dashboard",
+    );
 
     expect(await accounts.findDirectByIdpId(SUBJECT)).toBeUndefined();
     expect(await accounts.findDirectByEmail("pat@example.com")).toBeUndefined();
-    expect((await accounts.findByIdpId(SUBJECT))?.metadata?.id).toBe(accountIdFor(SUBJECT));
+    expect((await accounts.findByIdpId(SUBJECT))?.metadata?.id).toBe(
+      accountIdFor(SUBJECT),
+    );
   });
 
   it("refuses a direct account under the reserved subject prefix, writing nothing", async () => {

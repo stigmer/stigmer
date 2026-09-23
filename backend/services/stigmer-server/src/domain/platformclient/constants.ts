@@ -73,7 +73,9 @@ export const OWNER_AUTO_GRANT_MESSAGE =
 export const PROVISIONING_FAILED_MESSAGE =
   "Account provisioning failed. No partial account was left behind; the request is safe to retry.";
 
-export function blankSubjectPartMessage(part: "org" | "externalUserId"): string {
+export function blankSubjectPartMessage(
+  part: "org" | "externalUserId",
+): string {
   return `${part} must not be null or blank`;
 }
 
@@ -84,7 +86,10 @@ export function subjectSeparatorMessage(
   return `${part} must not contain the separator character '|': ${value}`;
 }
 
-export function foreignAccountMessage(externalUserId: string, org: string): string {
+export function foreignAccountMessage(
+  externalUserId: string,
+  org: string,
+): string {
   return `User '${externalUserId}' in organization '${org}' resolves to an account no platform client provisioned — refusing to mint a token for it`;
 }
 

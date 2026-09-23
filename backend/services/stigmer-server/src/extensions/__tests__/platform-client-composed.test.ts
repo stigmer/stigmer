@@ -40,7 +40,10 @@ import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
-import { DELETED_CLIENT_MESSAGE, originRefusalMessage } from "../../domain/platformclient/constants.js";
+import {
+  DELETED_CLIENT_MESSAGE,
+  originRefusalMessage,
+} from "../../domain/platformclient/constants.js";
 import { signPlatformToken } from "../../platformtoken/envelope.js";
 import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
 import type { SigningPlatformTokenKeyRing } from "../../platformtoken/key-ring.js";
@@ -58,7 +61,9 @@ const FOUNDER = "fake|pc-founder";
 const OUTSIDER = "fake|pc-outsider";
 const ORG = "pc-org";
 
-const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
 const built = platformTokenKeyRingFromPem({
   privateKeyPem: privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
   publicKeyPems: [publicKey.export({ format: "pem", type: "spki" }).toString()],
@@ -89,12 +94,17 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
   let server: ComposedServer;
   let port: number;
 
-  const asFounder = (): Transport => transportFor(port, fakeJwt(FOUNDER, "founder@example.com"));
-  const asOutsider = (): Transport => transportFor(port, fakeJwt(OUTSIDER, "outsider@example.com"));
+  const asFounder = (): Transport =>
+    transportFor(port, fakeJwt(FOUNDER, "founder@example.com"));
+  const asOutsider = (): Transport =>
+    transportFor(port, fakeJwt(OUTSIDER, "outsider@example.com"));
   const presenting = (token: string, origin?: string): Transport =>
     createGrpcTransport({
       baseUrl: `http://127.0.0.1:${port}`,
-      interceptors: [bearer(token), ...(origin !== undefined ? [browserOrigin(origin)] : [])],
+      interceptors: [
+        bearer(token),
+        ...(origin !== undefined ? [browserOrigin(origin)] : []),
+      ],
     });
 
   beforeAll(async () => {
@@ -114,14 +124,20 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     });
     port = await server.start();
 
-    await createClient(IdentityAccountCommandController, asFounder()).provisionMyAccount({});
+    await createClient(
+      IdentityAccountCommandController,
+      asFounder(),
+    ).provisionMyAccount({});
     await createClient(OrganizationCommandController, asFounder()).create({
       apiVersion: "tenancy.stigmer.ai/v1",
       kind: "Organization",
       metadata: { name: ORG, slug: ORG, org: "" },
       spec: { description: ORG },
     });
-    await createClient(IdentityAccountCommandController, asOutsider()).provisionMyAccount({});
+    await createClient(
+      IdentityAccountCommandController,
+      asOutsider(),
+    ).provisionMyAccount({});
   });
 
   afterAll(async () => {
@@ -130,10 +146,16 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
   });
 
   async function createPlatformClient(allowedOrigins: string[] = []) {
-    const created = await createClient(PlatformClientCommandController, asFounder()).create({
+    const created = await createClient(
+      PlatformClientCommandController,
+      asFounder(),
+    ).create({
       apiVersion: "iam.stigmer.ai/v1",
       kind: "PlatformClient",
-      metadata: { name: `client-${Math.random().toString(36).slice(2, 8)}`, org: ORG },
+      metadata: {
+        name: `client-${Math.random().toString(36).slice(2, 8)}`,
+        org: ORG,
+      },
       spec: {
         autoProvisionAccounts: true,
         autoGrantOnOrg: true,
@@ -149,8 +171,14 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     };
   }
 
-  async function mint(client: { clientId: string; clientSecret: string }, userId: string) {
-    const minted = await createClient(PlatformClientTokenController, transportFor(port)).mintUserToken({
+  async function mint(
+    client: { clientId: string; clientSecret: string },
+    userId: string,
+  ) {
+    const minted = await createClient(
+      PlatformClientTokenController,
+      transportFor(port),
+    ).mintUserToken({
       clientId: client.clientId,
       clientSecret: client.clientSecret,
       userId,
@@ -164,19 +192,36 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     const client = await createPlatformClient();
     const token = await mint(client, "user-1");
 
-    const me = await createClient(IdentityAccountQueryController, presenting(token)).whoAmI({});
+    const me = await createClient(
+      IdentityAccountQueryController,
+      presenting(token),
+    ).whoAmI({});
     expect(me.metadata?.id).toBe(accountIdFor(`stgm_pc|${ORG}|user-1`));
 
-    const mine = await createClient(OrganizationQueryController, presenting(token)).findMyOrganizations({});
-    expect(mine.entries.map((organization) => organization.metadata?.slug)).toEqual([ORG]);
+    const mine = await createClient(
+      OrganizationQueryController,
+      presenting(token),
+    ).findMyOrganizations({});
+    expect(
+      mine.entries.map((organization) => organization.metadata?.slug),
+    ).toEqual([ORG]);
   });
 
   it("claims only its lane: the unit's tokens still pass, and a typed platform token is refused as unclaimed", async () => {
-    await createClient(OrganizationQueryController, asFounder()).findMyOrganizations({});
+    await createClient(
+      OrganizationQueryController,
+      asFounder(),
+    ).findMyOrganizations({});
 
-    const guest = signPlatformToken(RING, { sub: "ida_guest", token_type: "guest" });
+    const guest = signPlatformToken(RING, {
+      sub: "ida_guest",
+      token_type: "guest",
+    });
     const refused = await refusal(
-      createClient(OrganizationQueryController, presenting(guest)).findMyOrganizations({}),
+      createClient(
+        OrganizationQueryController,
+        presenting(guest),
+      ).findMyOrganizations({}),
     );
     expect(refused.code).toBe(Code.Unauthenticated);
   });
@@ -186,24 +231,43 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     const token = await mint(client, "user-2");
 
     const denied = await refusal(
-      createClient(OrganizationQueryController, presenting(token, "https://evil.example")).findMyOrganizations({}),
+      createClient(
+        OrganizationQueryController,
+        presenting(token, "https://evil.example"),
+      ).findMyOrganizations({}),
     );
     expect(denied.code).toBe(Code.PermissionDenied);
-    expect(denied.rawMessage).toBe(originRefusalMessage("https://evil.example"));
+    expect(denied.rawMessage).toBe(
+      originRefusalMessage("https://evil.example"),
+    );
 
-    await createClient(OrganizationQueryController, presenting(token)).findMyOrganizations({});
-    await createClient(OrganizationQueryController, presenting(token, "https://app.example")).findMyOrganizations({});
+    await createClient(
+      OrganizationQueryController,
+      presenting(token),
+    ).findMyOrganizations({});
+    await createClient(
+      OrganizationQueryController,
+      presenting(token, "https://app.example"),
+    ).findMyOrganizations({});
   });
 
   it("refuses a deleted client's token on the next request with the liveness copy", async () => {
     const client = await createPlatformClient();
     const token = await mint(client, "user-3");
-    await createClient(OrganizationQueryController, presenting(token)).findMyOrganizations({});
+    await createClient(
+      OrganizationQueryController,
+      presenting(token),
+    ).findMyOrganizations({});
 
-    await createClient(PlatformClientCommandController, asFounder()).delete({ resourceId: client.id });
+    await createClient(PlatformClientCommandController, asFounder()).delete({
+      resourceId: client.id,
+    });
 
     const denied = await refusal(
-      createClient(OrganizationQueryController, presenting(token)).findMyOrganizations({}),
+      createClient(
+        OrganizationQueryController,
+        presenting(token),
+      ).findMyOrganizations({}),
     );
     expect(denied.code).toBe(Code.Unauthenticated);
     expect(denied.rawMessage).toBe(DELETED_CLIENT_MESSAGE);
