@@ -36,9 +36,18 @@ breaking:
   # block lets that one pull request through and nothing else, and the pull
   # request that follows the merge removes it, because main then has no
   # such field for a deletion to be measured against.
+  #
+  # GetServerInfoOutput.authentication_required gains explicit presence
+  # before any release carries it, so a console can tell a server that
+  # predates the field (absent: posture unknown) from one that trusts every
+  # request (false). Same wire bytes; only the generated accessors change.
+  # The same rule applies: this block covers that one pull request, and the
+  # pull request that follows the merge removes the entry.
   ignore_only:
     ENUM_VALUE_NO_DELETE:
       - ai/stigmer/iam/v1/enum.proto
     FIELD_NO_DELETE:
       - ai/stigmer/search/v1/io.proto
       - ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto
+    FIELD_SAME_CARDINALITY:
+      - ai/stigmer/platform/v1/server_info.proto

@@ -216,7 +216,7 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     const guest = signPlatformToken(RING, {
       sub: "ida_guest",
       token_type: "guest",
-    });
+    }).token;
     const refused = await refusal(
       createClient(
         OrganizationQueryController,

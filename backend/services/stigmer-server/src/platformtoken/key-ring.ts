@@ -39,10 +39,11 @@ export const PLATFORM_TOKEN_KEY_ENV_VAR = "STIGMER_PLATFORM_TOKEN_KEY";
 export const PLATFORM_TOKEN_KEY_FILE_NAME = "platform-token.key";
 
 /**
- * A signed token's lifetime: the cloud's user-token lifetime since the
- * Java issuer (STIGMER_JWT_USER_TOKEN_TTL_SECONDS' default). It bounds how
- * long a token outlives a rotated secret or a lost key; a deleted client's
- * tokens stop at the next request regardless (the verifier's liveness).
+ * The default lifetime of a signed token: the cloud's user-token lifetime
+ * since the Java issuer (STIGMER_JWT_USER_TOKEN_TTL_SECONDS' default). It
+ * bounds how long a user token outlives a rotated secret or a lost key; a
+ * deleted client's tokens stop at the next request regardless (the
+ * verifier's liveness).
  */
 export const DEFAULT_PLATFORM_TOKEN_TTL_SECONDS = 900;
 
@@ -62,6 +63,11 @@ export interface PlatformTokenKeyRing {
   readonly verificationKeys: ReadonlyArray<KeyObject>;
   /** Stamped as `aud` and checked when present; "" means none. */
   readonly audience: string;
+  /**
+   * The lifetime of a token signed without one of its own: the user
+   * token's. A lane that lives longer or shorter passes its own to
+   * `signPlatformToken`.
+   */
   readonly ttlSeconds: number;
 }
 

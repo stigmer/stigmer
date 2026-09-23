@@ -29,8 +29,12 @@ export interface ServerInfo {
    * trusts every request (the default single-operator posture), where
    * features that hand out credentials only a verifying server honours —
    * minting PlatformClient user tokens — are unavailable.
+   *
+   * `undefined` when the server predates the field, so its posture is
+   * unknown: offer the feature and let the server's own answer decide.
+   * Only an explicit `false` means the feature is unavailable.
    */
-  readonly authenticationRequired: boolean;
+  readonly authenticationRequired: boolean | undefined;
 }
 
 /**

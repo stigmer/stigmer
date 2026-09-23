@@ -25,13 +25,17 @@ export interface UseServerInfoReturn {
  * does. The deployment mode stays a provider prop (`StigmerProvider`'s
  * `deploymentMode`), because every tier gate reads it on first render.
  *
+ * A console ships on its own schedule, so it can meet a server older than
+ * itself: `authenticationRequired` is `undefined` there, and only an
+ * explicit `false` means the server trusts every request.
+ *
  * Cached across mounts under a {@link FetchCacheProvider}: the answer is a
  * property of the server, so a revisit renders it immediately.
  *
  * @example
  * ```tsx
  * const { serverInfo } = useServerInfo();
- * const canMint = serverInfo?.authenticationRequired === true;
+ * const trustsEveryRequest = serverInfo?.authenticationRequired === false;
  * ```
  */
 export function useServerInfo(): UseServerInfoReturn {

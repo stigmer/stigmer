@@ -85,7 +85,8 @@ import { formatObjectRef } from "./tuples.js";
  * their rows live in its own tables, out of its probe's reach; matching
  * the set here keeps the wire identical across editions (an unknown
  * platform client's id is PERMISSION_DENIED with the annotation's copy in
- * both). Nothing pins the two sets together mechanically: a kind that
+ * both). The cloud's model drift test pins every kind here inside its
+ * `PROBE_EXEMPT_KINDS`, which is why this set is exported; a kind that
  * moves into open source joins this set in the same change.
  *
  * `iam_policy` is reachable as a target through the IamPolicy RPCs' own

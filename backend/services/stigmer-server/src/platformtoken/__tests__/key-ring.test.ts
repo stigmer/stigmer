@@ -64,7 +64,7 @@ describe("platformTokenKeyRingFromPem", () => {
     });
     expect(canSign(ring)).toBe(true);
     if (!canSign(ring)) return;
-    const token = signPlatformToken(ring, { sub: "ida_1" });
+    const token = signPlatformToken(ring, { sub: "ida_1" }).token;
 
     const verifyOnly = platformTokenKeyRingFromPem({
       publicKeyPems: [pair.publicKeyPem],
@@ -116,7 +116,7 @@ describe("openSourcePlatformTokenKeyRing (the key-manager ladder)", () => {
       ),
     };
     const ring = openSourcePlatformTokenKeyRing({ env, homeDir: tempHome() });
-    const token = signPlatformToken(ring, { sub: "ida_1" });
+    const token = signPlatformToken(ring, { sub: "ida_1" }).token;
     const expected = platformTokenKeyRingFromPem({
       publicKeyPems: [pair.publicKeyPem],
     });
@@ -143,7 +143,7 @@ describe("openSourcePlatformTokenKeyRing (the key-manager ladder)", () => {
     }
     const second = openSourcePlatformTokenKeyRing({ env: {}, homeDir: home });
     expect(second.signer.kid).toBe(first.signer.kid);
-    const token = signPlatformToken(first, { sub: "ida_1" });
+    const token = signPlatformToken(first, { sub: "ida_1" }).token;
     expect(verifyPlatformToken(second, token).outcome).toBe("verified");
   });
 

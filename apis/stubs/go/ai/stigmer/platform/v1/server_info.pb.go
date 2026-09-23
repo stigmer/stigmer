@@ -153,7 +153,12 @@ type GetServerInfoOutput struct {
 	// configured, the default single-operator posture). Features that hand out
 	// credentials only a verifying server honours — minting PlatformClient user
 	// tokens — are unavailable then.
-	AuthenticationRequired bool `protobuf:"varint,3,opt,name=authentication_required,json=authenticationRequired,proto3" json:"authentication_required,omitempty"`
+	//
+	// Every server that knows the field sets it, true or false. Absent means
+	// the server predates it and its posture is unknown: a client offers the
+	// feature and lets the server's own answer decide, rather than reading an
+	// older server as one that trusts every request.
+	AuthenticationRequired *bool `protobuf:"varint,3,opt,name=authentication_required,json=authenticationRequired,proto3,oneof" json:"authentication_required,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -203,8 +208,8 @@ func (x *GetServerInfoOutput) GetVersion() string {
 }
 
 func (x *GetServerInfoOutput) GetAuthenticationRequired() bool {
-	if x != nil {
-		return x.AuthenticationRequired
+	if x != nil && x.AuthenticationRequired != nil {
+		return *x.AuthenticationRequired
 	}
 	return false
 }
@@ -820,11 +825,12 @@ var File_ai_stigmer_platform_v1_server_info_proto protoreflect.FileDescriptor
 const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\n" +
 	"(ai/stigmer/platform/v1/server_info.proto\x12\x16ai.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/platform/v1/license.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
-	"\x12GetServerInfoInput\"\xa9\x01\n" +
+	"\x12GetServerInfoInput\"\xca\x01\n" +
 	"\x13GetServerInfoOutput\x12?\n" +
 	"\aedition\x18\x01 \x01(\x0e2%.ai.stigmer.platform.v1.ServerEditionR\aedition\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion\x127\n" +
-	"\x17authentication_required\x18\x03 \x01(\bR\x16authenticationRequired\"\x17\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12<\n" +
+	"\x17authentication_required\x18\x03 \x01(\bH\x00R\x16authenticationRequired\x88\x01\x01B\x1a\n" +
+	"\x18_authentication_required\"\x17\n" +
 	"\x15GetLicenseStatusInput\"\xe5\x01\n" +
 	"\x16GetLicenseStatusOutput\x12:\n" +
 	"\x05state\x18\x01 \x01(\x0e2$.ai.stigmer.platform.v1.LicenseStateR\x05state\x12=\n" +
@@ -931,6 +937,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 		return
 	}
 	file_ai_stigmer_platform_v1_license_proto_init()
+	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[1].OneofWrappers = []any{}
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6].OneofWrappers = []any{
 		(*GetRunnerScopedTokenInput_AgentExecutionId)(nil),
 		(*GetRunnerScopedTokenInput_WorkflowExecutionId)(nil),

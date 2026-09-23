@@ -13,6 +13,12 @@
  * claims it — open source verifies only the untyped PlatformClient lane
  * (domain/platformclient/verifier.ts); the typed lanes stay the cloud's.
  *
+ * A token's lifetime is the lane's to choose: the ring carries the default
+ * (the user token's), and a lane that lives longer or shorter — the cloud's
+ * sandbox tokens outlive a user token sixteen-fold — says so per token.
+ * Either way the envelope alone computes `exp` and hands the expiry back,
+ * so no lane re-derives it beside the claim it signed.
+ *
  * Verification is the cloud verifier's, exactly (its verifiers/jwt.ts and
  * platform-token.ts), because the tokens in the field were accepted by it:
  *   - A token that is not a three-part JWT with `iss: "stigmer"` is
@@ -78,17 +84,32 @@ export type PlatformTokenVerification =
   | { readonly outcome: "refused"; readonly refusal: PlatformTokenRefusal }
   | { readonly outcome: "verified"; readonly token: VerifiedPlatformToken };
 
+/** How one token is signed; every field defaults to the ring's answer. */
+export interface PlatformTokenSigningOptions {
+  /** The signing instant (`iat`); defaults to the wall clock. */
+  readonly now?: Date;
+  /** This token's lifetime in whole seconds; defaults to the ring's `ttlSeconds`. */
+  readonly ttlSeconds?: number;
+}
+
+/** A signed token and the instant its `exp` claim names. */
+export interface SignedPlatformToken {
+  readonly token: string;
+  readonly expiresAt: Date;
+}
+
 /**
  * Signs `claims` inside the envelope: header `{alg, typ, kid}`, then `iss`,
- * `iat`, `exp` (iat + the ring's TTL), `jti` and `aud` when the ring has
- * one, then the lane's claims. Throws when a lane claim collides with an
- * envelope claim — a programming error, never a request's.
+ * `iat`, `exp` (iat + the lifetime), `jti` and `aud` when the ring has one,
+ * then the lane's claims. Throws when a lane claim collides with an
+ * envelope claim, or when a lifetime is not a positive whole number of
+ * seconds — programming errors, never a request's.
  */
 export function signPlatformToken(
   ring: SigningPlatformTokenKeyRing,
   claims: Readonly<Record<string, PlatformTokenClaimValue>>,
-  now: Date = new Date(),
-): string {
+  options: PlatformTokenSigningOptions = {},
+): SignedPlatformToken {
   for (const name of Object.keys(claims)) {
     if (ENVELOPE_CLAIMS.has(name)) {
       throw new Error(
@@ -96,19 +117,29 @@ export function signPlatformToken(
       );
     }
   }
-  const issuedAt = Math.floor(now.getTime() / 1000);
+  const ttlSeconds = options.ttlSeconds ?? ring.ttlSeconds;
+  if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) {
+    throw new Error(
+      `platform-token lifetime must be a positive integer number of seconds, got ${ttlSeconds}`,
+    );
+  }
+  const issuedAt = Math.floor((options.now ?? new Date()).getTime() / 1000);
+  const expiresAtSeconds = issuedAt + ttlSeconds;
   const header = { alg: "RS256", typ: "JWT", kid: ring.signer.kid };
   const payload = {
     iss: PLATFORM_TOKEN_ISSUER,
     iat: issuedAt,
-    exp: issuedAt + ring.ttlSeconds,
+    exp: expiresAtSeconds,
     jti: randomUUID(),
     ...(ring.audience !== "" ? { aud: ring.audience } : {}),
     ...claims,
   };
   const signingInput = `${base64UrlJson(header)}.${base64UrlJson(payload)}`;
   const signature = sign("sha256", Buffer.from(signingInput), ring.signer.key);
-  return `${signingInput}.${signature.toString("base64url")}`;
+  return {
+    token: `${signingInput}.${signature.toString("base64url")}`,
+    expiresAt: new Date(expiresAtSeconds * 1000),
+  };
 }
 
 /** Verifies a bearer token against the ring (see the header for the order). */
