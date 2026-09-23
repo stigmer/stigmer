@@ -22,8 +22,8 @@ apiVersion: v2
 name: stigmer
 description: Stigmer open source on Kubernetes — the server with the console, the runner, and Postgres and Temporal bundled or yours. The compose stack, translated.
 type: application
-version: 3.26.0
-appVersion: "3.26.0"
+version: 3.27.0
+appVersion: "3.27.0"
 kubeVersion: ">=1.27.0-0"
 home: https://stigmer.ai
 sources:
