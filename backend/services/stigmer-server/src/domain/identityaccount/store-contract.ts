@@ -109,6 +109,31 @@ function federatedAccount(overrides: {
   });
 }
 
+/**
+ * A platform-client end user as the mint provisions it: the reserved
+ * composite subject, mode `platform_client`, the owning organization, and
+ * the derived id of its subject (the id every subject lookup reads).
+ */
+function platformClientAccount(overrides: {
+  idpId: string;
+  email: string;
+}): IdentityAccount {
+  return create(IdentityAccountSchema, {
+    apiVersion: "iam.stigmer.ai/v1",
+    kind: "IdentityAccount",
+    metadata: {
+      id: accountIdFor(overrides.idpId),
+      name: overrides.email,
+      org: "acme",
+    },
+    spec: {
+      idpId: overrides.idpId,
+      email: overrides.email,
+      provisioningMode: IdentityAccountProvisioningMode.platform_client,
+    },
+  });
+}
+
 /** A direct account with no subject — the row no lookup could ever reach. */
 function subjectlessDirectAccount(): IdentityAccount {
   return create(IdentityAccountSchema, {
@@ -354,6 +379,32 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
         (await store.findByIdpId("auth0|fed"))?.spec?.provisioningMode,
         IdentityAccountProvisioningMode.federated,
         "the any-mode subject lookup must answer the federated account",
+      );
+    },
+  ],
+  [
+    "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
+    async ({ store }) => {
+      await store.save(
+        platformClientAccount({
+          idpId: "stgm_pc|acme|user-7",
+          email: "pat@example.com",
+        }),
+      );
+      assert.equal(
+        await store.findDirectByIdpId("stgm_pc|acme|user-7"),
+        undefined,
+        "the direct-subject lookup must not resolve to an account a platform client provisioned",
+      );
+      assert.equal(
+        await store.findDirectByEmail("pat@example.com"),
+        undefined,
+        "the direct-email lookup must not answer an email a platform asserted",
+      );
+      assert.equal(
+        (await store.findByIdpId("stgm_pc|acme|user-7"))?.spec?.provisioningMode,
+        IdentityAccountProvisioningMode.platform_client,
+        "the any-mode subject lookup — the mint's — must answer the platform-client account",
       );
     },
   ],

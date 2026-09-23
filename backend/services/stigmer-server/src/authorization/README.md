@@ -24,7 +24,7 @@ editions; the cloud stores what open source computes.
   (`this` with its type restrictions, `computed`, `from`, `union`), the
   builders, and `declareKind`, which refuses a transcript that cannot be right
   at module load.
-- `model/<kind>.ts` — one transcript per open-source kind (twenty-three), the
+- `model/<kind>.ts` — one transcript per open-source kind (twenty-four), the
   `.fga` file's relations in the file's order, its path in the header.
   `model/index.ts` registers them in `fga.mod` order and answers by kind or by
   FGA type name. Two relations no row carries as a `kind_meta` fact have a

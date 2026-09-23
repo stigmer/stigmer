@@ -10,9 +10,14 @@
  * allowed_origins, oss#375). Java separates the two classes the same way.
  *
  * List point — guards concatenate in unit order and run in composed
- * order; the first throw wins. OSS composes zero guards, so with none
- * registered the serving chain behaves byte-identically to before the
- * point existed (the conformance rosters pin that).
+ * order; the first throw wins. Open source's own guards run first (the
+ * verifier list's "OSS entries first" rule): today the PlatformClient
+ * origin guard (domain/platformclient/origin-guard.ts), composed only
+ * under an authentication posture, where PlatformClient tokens exist.
+ * Liveness is not a guard in open source: the PlatformClient verifier
+ * refuses a deleted client's tokens itself, so verifier-only lanes (the
+ * extension HTTP edges) refuse them too. With no posture and no unit
+ * guards, the serving chain runs no guard at all.
  *
  * The in-process exemption is STRUCTURAL, not policed: guards are a
  * parameter of the serving chain's identity source only

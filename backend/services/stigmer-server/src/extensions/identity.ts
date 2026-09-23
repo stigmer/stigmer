@@ -23,10 +23,12 @@
  * known classes from the type surface).
  *
  * `internal` is ratified contract with a structural guarantee: it is
- * minted ONLY by the in-process chain's identity interceptor
- * (boot/inprocess.ts). No IdentityVerifier may produce it — the serving
- * chain always overwrites the position-1 identity from the wire, so a
- * spoofed internal class cannot enter through a transport.
+ * minted ONLY by server code, in pipeline/interceptors/auth.ts — the
+ * in-process chain's identity interceptor (boot/inprocess.ts) and
+ * `serverActingFor`, the server acting for a principal it authenticated
+ * itself (the PlatformClient mint). No IdentityVerifier may produce it —
+ * the serving chain always overwrites the position-1 identity from the
+ * wire, so a spoofed internal class cannot enter through a transport.
  */
 export type CallerClass =
   | "user"

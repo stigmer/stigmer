@@ -110,6 +110,26 @@ export function isMachineSubject(idpId: string): boolean {
   return idpId.endsWith(MACHINE_ACCOUNT_SUFFIX);
 }
 
+/**
+ * The subject namespace of PlatformClient end users:
+ * `stgm_pc|<org>|<external_user_id>` (the composite every client of one
+ * organization resolves a user to; domain/platformclient/mint.ts builds
+ * it). Reserved in both directions, because derived account ids make every
+ * subject one namespace: a direct account may not take a `stgm_pc|`
+ * subject (an issuer emitting one would otherwise provision an account the
+ * mint then resolves), and the mint refuses a `stgm_pc|` account in any
+ * other mode.
+ */
+export const PLATFORM_CLIENT_SUBJECT_PREFIX = "stgm_pc|";
+
+export function isPlatformClientSubject(idpId: string): boolean {
+  return idpId.startsWith(PLATFORM_CLIENT_SUBJECT_PREFIX);
+}
+
+export function reservedSubjectMessage(idpId: string): string {
+  return `subject '${idpId}' uses the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix reserved for accounts a platform client provisions`;
+}
+
 // ---------------------------------------------------------------------------
 // Byte-pinned copy (the cloud handlers' sentences, moved as-is).
 // ---------------------------------------------------------------------------

@@ -74,11 +74,27 @@ export class UserInfoFetchError extends Error {
   }
 }
 
+/**
+ * How the account being created was provisioned — the one input that
+ * decides its backend-assigned fields (steps.ts AssignBackendFields):
+ *   - `direct`: the platform's own subject (a first sign-in, the boot
+ *     operator, a machine account created over the RPC). Its subject may
+ *     not use the `stgm_pc|` prefix platform-client accounts reserve.
+ *   - `platform_client`: an end user a PlatformClient's mint provisioned
+ *     (domain/platformclient/mint.ts). Its subject is the reserved
+ *     composite, and it belongs to the client's owning organization, which
+ *     only this arm carries.
+ */
+export type AccountProvisioning =
+  | { readonly mode: "direct" }
+  | { readonly mode: "platform_client"; readonly org: string };
+
 /** What a caller of the create path supplies: the rest is the chain's. */
 export interface CreateAccountInput {
   /** `metadata.name`; the chain defaults an empty one. */
   readonly name: string;
   readonly spec: IdentityAccountSpec;
+  readonly provisioning: AccountProvisioning;
 }
 
 /**
@@ -152,6 +168,7 @@ export function newDirectAccountProvisioner(
             pictureUrl: profile.pictureUrl,
           }),
         ),
+        provisioning: { mode: "direct" },
       };
 
       try {

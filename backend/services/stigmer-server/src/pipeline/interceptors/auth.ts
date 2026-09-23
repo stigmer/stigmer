@@ -217,6 +217,33 @@ export function trustedLocalIdentityFor(operator: {
 }
 
 /**
+ * The server acting for a principal it has authenticated some other way —
+ * the one construction of an `internal` caller outside the in-process
+ * transport's own stamp. Its consumer is the PlatformClient mint
+ * (domain/platformclient/mint.ts): the request is public and tokenless
+ * (so the chain stamped the trusted-local operator), the client proved
+ * itself with its secret, and the end-user account and role the mint
+ * creates must name the CLIENT as their actor, never the operator.
+ * `internal` because the server is the one acting — the create path's
+ * Authorize skips it, as for every server-composed request — and never
+ * reachable from the wire: no verifier produces it, and the serving
+ * chassis overwrites position 1 on every request.
+ */
+export function serverActingFor(principalId: string): CallerIdentity {
+  if (principalId === "") {
+    throw new Error(
+      "the server acts for a named principal — refusing to build an internal caller with none",
+    );
+  }
+  return {
+    identityId: principalId,
+    callerClass: "internal",
+    issuer: "",
+    rawToken: "",
+  };
+}
+
+/**
  * The serving chain's position-1 identity source: walks the composed
  * verifiers in order (OSS entries first, extension entries after, in
  * extension-unit order — registry contract), stamps the claimed identity

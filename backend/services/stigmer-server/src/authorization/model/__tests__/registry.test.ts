@@ -34,6 +34,7 @@ const DECLARED_KINDS = [
   ApiResourceKind.iam_policy,
   ApiResourceKind.api_key,
   ApiResourceKind.oauth_app,
+  ApiResourceKind.platform_client,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
   ApiResourceKind.agent_channel,
@@ -88,6 +89,13 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
     "can_view_access",
   ],
   oauth_app: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  platform_client: [
     "can_view",
     "can_edit",
     "can_delete",
@@ -262,7 +270,6 @@ describe("the built-in model's registry", () => {
     for (const unserved of [
       ApiResourceKind.platform,
       ApiResourceKind.identity_provider,
-      ApiResourceKind.platform_client,
       ApiResourceKind.invitation,
     ]) {
       expect(declarationFor(unserved), kindEnumName(unserved)).toBeUndefined();

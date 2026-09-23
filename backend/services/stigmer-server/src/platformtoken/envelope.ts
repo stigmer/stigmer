@@ -151,6 +151,23 @@ export function platformTokenRefusalError(refusal: PlatformTokenRefusal): Connec
   return new ConnectError(PLATFORM_TOKEN_REFUSAL_MESSAGES[refusal], Code.Unauthenticated);
 }
 
+/**
+ * The payload of a platform token WITHOUT verifying it — for a caller
+ * guard reading the claims of a token the verifier chain already verified
+ * on this request (caller-guards.ts: guards decode `rawToken`). Undefined
+ * for anything that is not a platform token, an API key or an empty
+ * trusted-local token included. Never a substitute for
+ * `verifyPlatformToken`.
+ */
+export function decodeVerifiedPlatformTokenPayload(
+  token: string,
+): Readonly<Record<string, unknown>> | undefined {
+  const decoded = decode(token);
+  return decoded !== undefined && decoded.payload.iss === PLATFORM_TOKEN_ISSUER
+    ? decoded.payload
+    : undefined;
+}
+
 /** A payload claim when it is a non-empty string; undefined otherwise. */
 export function stringClaim(
   payload: Readonly<Record<string, unknown>>,

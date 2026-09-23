@@ -22,12 +22,14 @@
  *     with an empty `idp_id` is refused, since no lookup could reach it;
  *   - `update` replaces, never creates: an unknown id writes nothing;
  *   - `deleteById` of an unknown id resolves;
- *   - `findDirectByIdpId` answers only non-federated accounts (the
- *     platform's own subjects) — a customer's federated IdP may mint the
- *     same `auth0|…` shape and the platform lane must never resolve to it;
+ *   - `findDirectByIdpId` answers only the platform's own subjects —
+ *     never a federated account (a customer's federated IdP may mint the
+ *     same `auth0|…` shape and the platform lane must never resolve to it)
+ *     and never a platform-client end user (its subject is the mint's);
  *   - `findDirectByEmail` answers direct accounts only, by exact match:
  *     federation legitimately duplicates emails, so the email axis is
- *     non-unique;
+ *     non-unique, and a platform-client account's email is one its
+ *     platform asserted, so no email lookup may answer it;
  *   - `findByIds` answers one row per distinct id, in first-occurrence
  *     order, and skips unknown ids;
  *   - a typed not-found reads as `undefined`; any other storage failure
@@ -59,7 +61,7 @@ export interface IdentityAccountStore {
   findById(id: string): Promise<IdentityAccount | undefined>;
   /** Any provisioning mode — the getByIdpId RPC's lookup. */
   findByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
-  /** Non-federated accounts only — the verifiers' and whoAmI's lookup. */
+  /** The platform's own subjects only (no federated, no platform-client) — the verifiers' and whoAmI's lookup. */
   findDirectByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
   /** Direct accounts only, exact match — the getByEmail RPC's lookup. */
   findDirectByEmail(email: string): Promise<IdentityAccount | undefined>;

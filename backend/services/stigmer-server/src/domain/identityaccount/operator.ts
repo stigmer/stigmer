@@ -83,6 +83,7 @@ export async function ensureOperatorAccount(
             email: operator.email,
           }),
         ),
+        provisioning: { mode: "direct" },
       },
       caller,
     );
