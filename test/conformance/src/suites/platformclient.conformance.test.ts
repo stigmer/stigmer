@@ -86,9 +86,15 @@ async function platformClient(org: string): Promise<ProvisionedPlatformClient> {
   return client;
 }
 
-function expectRedacted(client: PlatformClient | undefined, where: string): void {
+function expectRedacted(
+  client: PlatformClient | undefined,
+  where: string,
+): void {
   expect(client, `${where} must answer the client`).toBeDefined();
-  expect(client?.spec?.clientSecretHash, `${where} must never return the secret hash`).toBe("");
+  expect(
+    client?.spec?.clientSecretHash,
+    `${where} must never return the secret hash`,
+  ).toBe("");
 }
 
 describe("PlatformClient conformance — CRUD on the primary", () => {
@@ -99,11 +105,18 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
 
     expect(client.id).toMatch(/^pcl_/);
     expect(client.credentials.clientId).toMatch(/^stgm_cid_[A-Za-z0-9_-]{43}$/);
-    expect(client.credentials.clientSecret).toMatch(/^stgm_cs_[A-Za-z0-9_-]{64}$/);
-    expect(created?.spec?.secretFingerprint).toBe(client.credentials.clientSecret.slice(-6));
+    expect(client.credentials.clientSecret).toMatch(
+      /^stgm_cs_[A-Za-z0-9_-]{64}$/,
+    );
+    expect(created?.spec?.secretFingerprint).toBe(
+      client.credentials.clientSecret.slice(-6),
+    );
     expectRedacted(created, "create");
 
-    expectRedacted(await clients.platformClientQuery.get({ value: client.id }), "get");
+    expectRedacted(
+      await clients.platformClientQuery.get({ value: client.id }),
+      "get",
+    );
     expectRedacted(
       await clients.platformClientQuery.getByReference({
         org,
@@ -113,7 +126,9 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
       "getByReference",
     );
     const listed = await clients.platformClientQuery.listByOrg({ org });
-    const entry = listed.entries.find((candidate) => candidate.metadata?.id === client.id);
+    const entry = listed.entries.find(
+      (candidate) => candidate.metadata?.id === client.id,
+    );
     expectRedacted(entry, "listByOrg");
   });
 
@@ -137,7 +152,9 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
 
     expect(updated.spec?.allowedOrigins).toEqual(["https://app.example"]);
     expect(updated.spec?.clientId).toBe(client.credentials.clientId);
-    expect(updated.spec?.secretFingerprint).toBe(client.credentials.clientSecret.slice(-6));
+    expect(updated.spec?.secretFingerprint).toBe(
+      client.credentials.clientSecret.slice(-6),
+    );
     expectRedacted(updated, "update");
   });
 
@@ -145,12 +162,18 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     const org = await organization();
     const client = await platformClient(org);
 
-    const rotated = await clients.platformClientCommand.rotateSecret({ value: client.id });
+    const rotated = await clients.platformClientCommand.rotateSecret({
+      value: client.id,
+    });
 
     expect(rotated.clientSecret).toMatch(/^stgm_cs_[A-Za-z0-9_-]{64}$/);
     expect(rotated.clientSecret).not.toBe(client.credentials.clientSecret);
-    expect(rotated.platformClient?.spec?.clientId).toBe(client.credentials.clientId);
-    expect(rotated.platformClient?.spec?.secretFingerprint).toBe(rotated.clientSecret.slice(-6));
+    expect(rotated.platformClient?.spec?.clientId).toBe(
+      client.credentials.clientId,
+    );
+    expect(rotated.platformClient?.spec?.secretFingerprint).toBe(
+      rotated.clientSecret.slice(-6),
+    );
     expectRedacted(rotated.platformClient, "rotateSecret");
   });
 
@@ -162,7 +185,11 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
         clients.platformClientCommand.create({
           apiVersion: "iam.stigmer.ai/v1",
           kind: "PlatformClient",
-          metadata: { name: "System Share Client", org, slug: "system-share-client" },
+          metadata: {
+            name: "System Share Client",
+            org,
+            slug: "system-share-client",
+          },
           spec: {},
         }),
       Code.InvalidArgument,
@@ -203,12 +230,16 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     const org = await organization();
     const client = await platformClient(org);
 
-    const deleted = await clients.platformClientCommand.delete({ resourceId: client.id });
+    const deleted = await clients.platformClientCommand.delete({
+      resourceId: client.id,
+    });
     expect(deleted.metadata?.id).toBe(client.id);
     expectRedacted(deleted, "delete");
 
     const listed = await clients.platformClientQuery.listByOrg({ org });
-    expect(listed.entries.map((entry) => entry.metadata?.id)).not.toContain(client.id);
+    expect(listed.entries.map((entry) => entry.metadata?.id)).not.toContain(
+      client.id,
+    );
   });
 });
 

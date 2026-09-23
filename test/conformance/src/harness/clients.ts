@@ -287,7 +287,10 @@ export function makeClients(transport: Transport): ConformanceClients {
     github: createClient(GitHubService, transport),
     oauthAppCommand: createClient(OAuthAppCommandController, transport),
     oauthAppQuery: createClient(OAuthAppQueryController, transport),
-    platformClientCommand: createClient(PlatformClientCommandController, transport),
+    platformClientCommand: createClient(
+      PlatformClientCommandController,
+      transport,
+    ),
     platformClientQuery: createClient(PlatformClientQueryController, transport),
     platformClientToken: createClient(PlatformClientTokenController, transport),
   };

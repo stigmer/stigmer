@@ -67,7 +67,7 @@ sequenceDiagram
   trusts every request refuses to mint tokens, because nothing there would
   verify them.
 - A PlatformClient created in the Console (Settings > Platform Clients) by an
-  admin of your organization.
+  administrator of your Organization.
 - The `client_id` (permanent, safe for config files) and `client_secret` (shown
   once at creation).
 - Store `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET` as environment variables
@@ -208,7 +208,7 @@ PlatformClient to create accounts on first encounter:
 - **`auto_grant_on_org: true`** — grants a role on your organization
   immediately.
 - **`auto_grant_role`** — the role to grant (default: `viewer`). `owner` is
-  refused: organization ownership is always assigned explicitly.
+  refused: Organization ownership is always assigned explicitly.
 
 These settings apply when an account is first provisioned. An account that
 already exists keeps the roles and profile it has: changing the settings later,
@@ -231,7 +231,7 @@ All SDKs return structured errors with actionable messages:
 | `FAILED_PRECONDITION` | User doesn't exist, automatic provisioning off                                           | Enable `auto_provision_accounts` or pre-create the account.                                         |
 | `FAILED_PRECONDITION` | Client secret expired                                                                    | Extend or clear the PlatformClient's expiry in the Console; rotating alone does not extend it.      |
 | `FAILED_PRECONDITION` | The server trusts every request                                                          | Configure sign-in on the server (`STIGMER_OIDC_ISSUER`).                                            |
-| `INVALID_ARGUMENT`    | `org_id` names an organization other than the PlatformClient's                           | Leave `org_id` empty, or pass the PlatformClient's own organization.                                |
+| `INVALID_ARGUMENT`    | `org_id` names an Organization other than the PlatformClient's                           | Leave `org_id` empty, or pass the PlatformClient's own Organization.                                |
 | `UNAUTHENTICATED`     | An API call bearing a token whose PlatformClient was deleted                             | Mint a new token from an active PlatformClient.                                                     |
 | `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins` | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
 
@@ -244,9 +244,9 @@ All SDKs return structured errors with actionable messages:
   delete the PlatformClient to revoke them on their next request.
 - The `client_id` is safe for configuration files, logs, and client-side code —
   it is not a secret.
-- Anyone who can create a PlatformClient in your organization (its admins) can
-  mint a token for any `user_id` in it. Treat PlatformClient administration as
-  you treat access to your users' accounts.
+- Anyone who can create a PlatformClient in your Organization (its
+  administrators) can mint a token for any `user_id` in it. Treat PlatformClient
+  administration as you treat access to your users' accounts.
 - The email and name you pass to `mintUserToken` are your assertion. Stigmer
   shows them and grants nothing because of them.
 - Tokens are signed by the server's own platform-token key and verified

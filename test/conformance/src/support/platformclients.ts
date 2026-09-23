@@ -59,7 +59,12 @@ export async function createPlatformClient(
   const id = created.platformClient?.metadata?.id ?? "";
   const slug = created.platformClient?.metadata?.slug ?? "";
   const clientId = created.platformClient?.spec?.clientId ?? "";
-  if (id === "" || slug === "" || clientId === "" || created.clientSecret === "") {
+  if (
+    id === "" ||
+    slug === "" ||
+    clientId === "" ||
+    created.clientSecret === ""
+  ) {
     throw new Error(
       `PlatformClient create for ${options.name} returned no usable id, slug or credentials`,
     );

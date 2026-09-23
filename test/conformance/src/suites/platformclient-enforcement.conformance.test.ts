@@ -190,7 +190,9 @@ describe.skipIf(!enforcementServed)(
         Code.PermissionDenied,
         "leaked-token replay from a foreign browser origin",
       );
-      expect(denied.rawMessage).toBe(originRefusalMessage("https://evil.example"));
+      expect(denied.rawMessage).toBe(
+        originRefusalMessage("https://evil.example"),
+      );
 
       // The listed origin passes, compared case-insensitively.
       await lane
@@ -209,7 +211,9 @@ describe.skipIf(!enforcementServed)(
         uniqueName("enforcement-user"),
       );
 
-      await lane.clientsPresenting(token).organizationQuery.findMyOrganizations({});
+      await lane
+        .clientsPresenting(token)
+        .organizationQuery.findMyOrganizations({});
     });
   },
 );
@@ -224,22 +228,33 @@ describe.skipIf(!enforcementServed)(
       const userId = uniqueName("enforcement-user");
 
       const first = await lane.accountIdOf(
-        lane.clientsPresenting(await mintUserToken(lane.clients, dashboard.credentials, userId)),
+        lane.clientsPresenting(
+          await mintUserToken(lane.clients, dashboard.credentials, userId),
+        ),
       );
       const again = await lane.accountIdOf(
-        lane.clientsPresenting(await mintUserToken(lane.clients, dashboard.credentials, userId)),
+        lane.clientsPresenting(
+          await mintUserToken(lane.clients, dashboard.credentials, userId),
+        ),
       );
       const viaMobile = await lane.accountIdOf(
-        lane.clientsPresenting(await mintUserToken(lane.clients, mobile.credentials, userId)),
+        lane.clientsPresenting(
+          await mintUserToken(lane.clients, mobile.credentials, userId),
+        ),
       );
 
       expect(again, "a repeat mint must resolve the same account").toBe(first);
-      expect(viaMobile, "another client of the organization must resolve the same account").toBe(first);
+      expect(
+        viaMobile,
+        "another client of the organization must resolve the same account",
+      ).toBe(first);
     });
 
     it("an auto-provisioned user holds the auto-grant role on the owning organization and sees it alone", async () => {
       const context = await tenancy();
-      const client = await platformClient(context.org, { autoGrantRole: IamRole.member });
+      const client = await platformClient(context.org, {
+        autoGrantRole: IamRole.member,
+      });
       const token = await mintUserToken(
         lane.clients,
         client.credentials,
@@ -249,9 +264,9 @@ describe.skipIf(!enforcementServed)(
       const mine = await lane
         .clientsPresenting(token)
         .organizationQuery.findMyOrganizations({});
-      expect(mine.entries.map((organization) => organization.metadata?.slug)).toEqual([
-        context.org,
-      ]);
+      expect(
+        mine.entries.map((organization) => organization.metadata?.slug),
+      ).toEqual([context.org]);
     });
 
     it("a wrong secret and an org_id other than the owning organization are refused with the pinned copy", async () => {
@@ -262,7 +277,10 @@ describe.skipIf(!enforcementServed)(
         () =>
           mintUserToken(
             lane.clients,
-            { clientId: client.credentials.clientId, clientSecret: "stgm_cs_not-the-secret" },
+            {
+              clientId: client.credentials.clientId,
+              clientSecret: "stgm_cs_not-the-secret",
+            },
             uniqueName("enforcement-user"),
           ),
         Code.Unauthenticated,
@@ -274,7 +292,10 @@ describe.skipIf(!enforcementServed)(
         () =>
           mintUserToken(
             lane.clients,
-            { clientId: "stgm_cid_unknown", clientSecret: client.credentials.clientSecret },
+            {
+              clientId: "stgm_cid_unknown",
+              clientSecret: client.credentials.clientSecret,
+            },
             uniqueName("enforcement-user"),
           ),
         Code.Unauthenticated,
@@ -284,18 +305,27 @@ describe.skipIf(!enforcementServed)(
 
       const otherOrg = await expectGrpcCode(
         () =>
-          mintUserToken(lane.clients, client.credentials, uniqueName("enforcement-user"), {
-            orgId: `${context.org}-elsewhere`,
-          }),
+          mintUserToken(
+            lane.clients,
+            client.credentials,
+            uniqueName("enforcement-user"),
+            {
+              orgId: `${context.org}-elsewhere`,
+            },
+          ),
         Code.InvalidArgument,
         "mint confirming an organization the client does not belong to",
       );
-      expect(otherOrg.rawMessage).toBe(organizationMismatchMessage(context.org));
+      expect(otherOrg.rawMessage).toBe(
+        organizationMismatchMessage(context.org),
+      );
     });
 
     it("a client that does not provision users refuses an unknown user", async () => {
       const context = await tenancy();
-      const client = await platformClient(context.org, { autoProvisionAccounts: false });
+      const client = await platformClient(context.org, {
+        autoProvisionAccounts: false,
+      });
       const userId = uniqueName("enforcement-user");
 
       const refused = await expectGrpcCode(
@@ -318,11 +348,18 @@ describe.skipIf(!enforcementServed)(
       const rotated = await lane.clients.platformClientCommand.rotateSecret({
         value: client.id,
       });
-      expect(rotated.platformClient?.spec?.clientId).toBe(client.credentials.clientId);
+      expect(rotated.platformClient?.spec?.clientId).toBe(
+        client.credentials.clientId,
+      );
       expect(rotated.clientSecret).not.toBe(client.credentials.clientSecret);
 
       const stale = await expectGrpcCode(
-        () => mintUserToken(lane.clients, client.credentials, uniqueName("enforcement-user")),
+        () =>
+          mintUserToken(
+            lane.clients,
+            client.credentials,
+            uniqueName("enforcement-user"),
+          ),
         Code.Unauthenticated,
         "mint with the secret the rotation replaced",
       );
@@ -330,10 +367,15 @@ describe.skipIf(!enforcementServed)(
 
       await mintUserToken(
         lane.clients,
-        { clientId: client.credentials.clientId, clientSecret: rotated.clientSecret },
+        {
+          clientId: client.credentials.clientId,
+          clientSecret: rotated.clientSecret,
+        },
         uniqueName("enforcement-user"),
       );
-      await lane.clientsPresenting(token).organizationQuery.findMyOrganizations({});
+      await lane
+        .clientsPresenting(token)
+        .organizationQuery.findMyOrganizations({});
     });
   },
 );
@@ -355,7 +397,9 @@ describe.skipIf(!enforcementServed)(
         Code.PermissionDenied,
         "an outsider reading a platform client by reference",
       );
-      expect(byReference.rawMessage).toBe("unauthorized to view platform client");
+      expect(byReference.rawMessage).toBe(
+        "unauthorized to view platform client",
+      );
 
       const listed = await expectGrpcCode(
         () => outsider.platformClientQuery.listByOrg({ org: context.org }),
@@ -372,11 +416,20 @@ describe.skipIf(!enforcementServed)(
       const client = await platformClient(context.org);
       const member = await lane.provisionMember(context);
 
-      const asMember = await member.platformClientQuery.listByOrg({ org: context.org });
-      expect(asMember.entries, "a member has no access to a credential").toEqual([]);
+      const asMember = await member.platformClientQuery.listByOrg({
+        org: context.org,
+      });
+      expect(
+        asMember.entries,
+        "a member has no access to a credential",
+      ).toEqual([]);
 
-      const asOwner = await lane.clients.platformClientQuery.listByOrg({ org: context.org });
-      const listed = asOwner.entries.find((entry) => entry.metadata?.id === client.id);
+      const asOwner = await lane.clients.platformClientQuery.listByOrg({
+        org: context.org,
+      });
+      const listed = asOwner.entries.find(
+        (entry) => entry.metadata?.id === client.id,
+      );
       expect(listed, "the owner lists the client it created").toBeDefined();
       expect(listed?.spec?.clientSecretHash).toBe("");
     });

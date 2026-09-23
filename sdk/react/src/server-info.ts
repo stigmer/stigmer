@@ -36,7 +36,11 @@ export interface UseServerInfoReturn {
  */
 export function useServerInfo(): UseServerInfoReturn {
   const stigmer = useStigmer();
-  const { data: serverInfo, isLoading, error } = useFetch<ServerInfo | null>(
+  const {
+    data: serverInfo,
+    isLoading,
+    error,
+  } = useFetch<ServerInfo | null>(
     () => stigmer.platform.getServerInfo(),
     [stigmer],
     null,

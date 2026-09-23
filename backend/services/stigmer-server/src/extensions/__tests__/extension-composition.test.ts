@@ -549,8 +549,9 @@ describe("extension composition (require-authentication posture)", () => {
     // composes its Authorizer, and with it the runner-subject verifier
     // between the API-key lane and the unit's own (runnerauth/
     // runner-subject-verifier.ts). A unit with its own Authorizer gets
-    // neither (runner-subject-composed.test.ts pins that chain).
-    expect(parsed.verifiers).toBe("apikey, runner, fake-verifier");
+    // neither (runner-subject-composed.test.ts pins that chain). The
+    // PlatformClient lane rides the posture itself, ahead of both.
+    expect(parsed.verifiers).toBe("apikey, platform-client, runner, fake-verifier");
   });
 
   it("a declared posture whose unit registers no verifier of its own is a boot throw naming the unit — the API-key lane alone cannot bootstrap", async () => {

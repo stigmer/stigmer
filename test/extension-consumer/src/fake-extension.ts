@@ -261,7 +261,9 @@ const consumerPlatformClientStore: PlatformClientStore = {
     const id = client.metadata?.id ?? "";
     if (consumerPlatformClients.has(id)) {
       return Promise.reject(
-        new DuplicatePlatformClientError(`platform client '${id}' already exists`),
+        new DuplicatePlatformClientError(
+          `platform client '${id}' already exists`,
+        ),
       );
     }
     consumerPlatformClients.set(id, client);
@@ -288,7 +290,8 @@ const consumerPlatformClientStore: PlatformClientStore = {
   findByOrgAndSlug: (org, slug) =>
     Promise.resolve(
       [...consumerPlatformClients.values()].find(
-        (client) => client.metadata?.org === org && client.metadata?.slug === slug,
+        (client) =>
+          client.metadata?.org === org && client.metadata?.slug === slug,
       ),
     ),
   findByOrg: (org) =>
@@ -336,7 +339,11 @@ export function mintConsumerGuestToken(shareId: string): string {
   }
   return signPlatformToken(
     { ...consumerPlatformTokenKeys, signer: consumerPlatformTokenKeys.signer },
-    { sub: "ida_consumer_guest", [TOKEN_TYPE_CLAIM]: "guest", share_id: shareId },
+    {
+      sub: "ida_consumer_guest",
+      [TOKEN_TYPE_CLAIM]: "guest",
+      share_id: shareId,
+    },
   );
 }
 
@@ -361,7 +368,9 @@ const consumerGuestTokenVerifier: IdentityVerifier = {
         });
       default: {
         const exhaustive: never = result;
-        return Promise.reject(new Error(`unknown outcome ${String(exhaustive)}`));
+        return Promise.reject(
+          new Error(`unknown outcome ${String(exhaustive)}`),
+        );
       }
     }
   },

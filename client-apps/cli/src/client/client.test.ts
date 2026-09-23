@@ -94,9 +94,9 @@ describe("BackendClient — the server's edition and what it serves (20260911.11
       config: cloud("t"),
       transport: oss.transport,
     });
-    expect(
-      await client.isResourceAvailable(ApiResourceKind.subscription),
-    ).toBe(false);
+    expect(await client.isResourceAvailable(ApiResourceKind.subscription)).toBe(
+      false,
+    );
     expect(await client.isResourceAvailable(ApiResourceKind.agent)).toBe(true);
 
     const cloudServer = serverAnswering(ServerEdition.cloud);
@@ -134,9 +134,9 @@ describe("BackendClient — the server's edition and what it serves (20260911.11
       transport: server.transport,
     });
     await expect(client.serverInfo()).rejects.toThrow("server warming up");
-    expect(
-      await client.isResourceAvailable(ApiResourceKind.subscription),
-    ).toBe(true);
+    expect(await client.isResourceAvailable(ApiResourceKind.subscription)).toBe(
+      true,
+    );
     expect(server.asked(), "the rejection was not cached").toBe(2);
   });
 });
