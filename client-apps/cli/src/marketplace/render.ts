@@ -114,8 +114,6 @@ export function renderMarketplaceShow(
   if (tree.marketplace.owner?.name !== undefined)
     about.field("Owner", tree.marketplace.owner.name);
   about.field("Format", tree.marketplace.path);
-  if (tree.marketplace.defaults.length > 0)
-    about.field("Defaults", tree.marketplace.defaults.join(", "));
 
   const plugins = result.addSection("Plugins");
   for (const entry of entries) {
@@ -146,7 +144,6 @@ export function renderMarketplaceShow(
       ...(tree.marketplace.owner !== undefined && {
         owner: tree.marketplace.owner,
       }),
-      defaults: tree.marketplace.defaults,
     },
     plugins: entries,
     warnings: tree.warnings,

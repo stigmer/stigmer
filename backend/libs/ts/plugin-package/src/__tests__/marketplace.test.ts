@@ -82,7 +82,6 @@ describe("the Stigmer file (root marketplace.json)", () => {
           { name: "alpha", source: "./alpha" },
           { name: "beta", source: "beta/", description: "Beta, described by the catalogue." },
         ],
-        defaults: ["beta", "alpha"],
       },
       { alpha, beta },
     ),
@@ -92,7 +91,7 @@ describe("the Stigmer file (root marketplace.json)", () => {
     expect(kindsOf(outcome)).toEqual({ errors: [], warnings: [] });
   });
 
-  it("carries identity, dialect, path, entries in file order and defaults in install order", () => {
+  it("carries identity, dialect, path and entries in file order", () => {
     const marketplace = accepted(outcome);
     expect(marketplace.name).toBe("stigmer");
     expect(marketplace.description).toBe("The official catalogue.");
@@ -103,7 +102,15 @@ describe("the Stigmer file (root marketplace.json)", () => {
       { name: "alpha", dir: "alpha" },
       { name: "beta", dir: "beta", description: "Beta, described by the catalogue." },
     ]);
-    expect(marketplace.defaults).toEqual(["beta", "alpha"]);
+  });
+
+  it("ignores a `defaults` list, the retired install-unasked field, whatever it holds", () => {
+    for (const defaults of [["alpha"], ["gamma"], 7]) {
+      const read = readMarketplace(tree(STIGMER_FILE, { name: "acme", plugins: [{ name: "alpha", source: "./alpha" }], defaults }, { alpha }));
+      expect(kindsOf(read)).toEqual({ errors: [], warnings: [] });
+      expect(accepted(read).plugins).toEqual([{ name: "alpha", dir: "alpha" }]);
+      expect(Object.keys(accepted(read))).not.toContain("defaults");
+    }
   });
 
   it("offers the tree root itself when the source is '.' (a single-plugin marketplace)", () => {
@@ -148,7 +155,6 @@ describe("the Claude Code file (.claude-plugin/marketplace.json)", () => {
     expect(marketplace.description).toBe("Acme's plugins");
     expect(marketplace.owner).toEqual({ name: "Acme", email: "plugins@acme.example" });
     expect(marketplace.plugins).toEqual([{ name: "alpha", dir: "plugins/alpha", description: "Alpha." }]);
-    expect(marketplace.defaults).toEqual([]);
     const messages = outcome.warnings.map((w) => w.message);
     expect(messages).toContain(
       "plugin 'remote' in '.claude-plugin/marketplace.json' has source 'github', a form Stigmer does not fetch (only a directory inside the marketplace); not offered",
@@ -175,13 +181,12 @@ describe("the Codex file (.agents/plugins/marketplace.json)", () => {
     ),
   );
 
-  it("reads local sources and maps INSTALLED_BY_DEFAULT onto defaults; the display name is not a description", () => {
+  it("reads local sources and offers an INSTALLED_BY_DEFAULT entry like any other; the display name is not a description", () => {
     expect(kindsOf(outcome)).toEqual({ errors: [], warnings: [] });
     const marketplace = accepted(outcome);
     expect(marketplace.dialect).toBe("codex");
     expect(marketplace.description).toBeUndefined();
     expect(marketplace.plugins.map((p) => p.dir)).toEqual(["plugins/alpha", "plugins/beta"]);
-    expect(marketplace.defaults).toEqual(["alpha"]);
   });
 });
 
@@ -218,7 +223,6 @@ describe("the Cursor file, verbatim from cursor/plugins at c1c0a32, over a parti
       dir: "third_party/github",
       description: "Manage repos, issues, pull requests, and Actions.",
     });
-    expect(marketplace.defaults).toEqual([]);
     expect(outcome.warnings).toHaveLength(73);
     expect(new Set(outcome.warnings.map((w) => w.kind))).toEqual(new Set(["entry-directory-missing"]));
   });
@@ -328,11 +332,6 @@ const ERROR_CASES: Record<MarketplaceErrorKind, Case> = {
     kinds: errors("entry-source-escapes-root"),
     message: "'marketplace.json' plugin 'alpha' has source '../alpha' outside the marketplace root; a source is a directory inside the marketplace",
   },
-  "default-unknown": {
-    files: tree(STIGMER_FILE, { name: "acme", plugins: [{ name: "alpha", source: "./alpha" }], defaults: ["gamma"] }, { alpha }),
-    kinds: errors("default-unknown"),
-    message: "'marketplace.json' names 'gamma' as a default but lists no plugin of that name",
-  },
 };
 
 const WARNING_CASES: Record<MarketplaceWarningKind, Case> = {
@@ -376,10 +375,4 @@ describe("adversarial marketplaces: one fixture per warning kind", () => {
       expect(findingOf(outcome.warnings, kind).message).toBe(testCase.message);
     });
   }
-
-  it("a default whose entry was dropped disappears with the entry's warning, never as a second finding", () => {
-    const outcome = readMarketplace(tree(STIGMER_FILE, { name: "acme", plugins: [{ name: "alpha", source: "./alpha" }], defaults: ["alpha"] }));
-    expect(kindsOf(outcome)).toEqual(warnings("entry-directory-missing"));
-    expect(accepted(outcome).defaults).toEqual([]);
-  });
 });

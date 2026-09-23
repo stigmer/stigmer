@@ -7,9 +7,14 @@
  * a tree that carries two dialects' files describes one catalogue twice);
  * parse it under the marketplace cap; read the dialect's shape into the one
  * normalised shape; validate names and sources; drop the entries the tree
- * cannot install, each with its own warning; resolve the defaults. Findings
- * are collected and the read continues, so the outcome names every problem
- * at once, and the marketplace is returned only when nothing refused.
+ * cannot install, each with its own warning. Findings are collected and the
+ * read continues, so the outcome names every problem at once, and the
+ * marketplace is returned only when nothing refused.
+ *
+ * A catalogue installs nothing by itself: a field a dialect uses to name
+ * entries a client installs unasked (Codex's `INSTALLED_BY_DEFAULT` policy,
+ * or a `defaults` list) is not read, so a file that still carries one reads
+ * the same as a file without it.
  *
  * Sources. Every dialect names a plugin's directory relative to the
  * marketplace root (Claude and Codex with a `./` prefix, Cursor without,
@@ -35,16 +40,13 @@
  */
 
 import { hasPluginManifest, isValidPluginName } from "../detect.js";
-import { describeValue, isJsonObject, isStringArray, type JsonObject } from "../documents.js";
+import { describeValue, isJsonObject, type JsonObject } from "../documents.js";
 import { decodeUtf8, isContainedPath, PLUGIN_DOCUMENT_LIMITS, PluginFileIndex, type PluginFiles } from "../files.js";
 import { MARKETPLACE_LOCATIONS, MarketplaceFindings } from "./messages.js";
 import type { Marketplace, MarketplaceDialect, MarketplaceEntry, MarketplaceOwner, MarketplaceReadOutcome } from "./outcome.js";
 
 /** The precedence the reader applies when a tree carries more than one marketplace file. */
 const DIALECT_PRECEDENCE: readonly MarketplaceDialect[] = ["stigmer", "claude", "cursor", "codex"];
-
-/** Codex's per-entry install policy that marks a default. */
-const CODEX_INSTALLED_BY_DEFAULT = "INSTALLED_BY_DEFAULT";
 
 /** True when the tree holds any of the four marketplace files; the CLI's routing test. */
 export function hasMarketplaceFile(paths: Iterable<string>): boolean {
@@ -88,7 +90,6 @@ function read(files: PluginFiles, verify: "tree" | "file"): MarketplaceReadOutco
   const name = readName(object, path, findings);
   const raw = readEntries(object, dialect, path, findings);
   const entries = verify === "tree" ? offeredEntries(raw, index, path, findings) : declaredEntries(raw);
-  const defaults = resolveDefaults(object, raw, entries, dialect, path, findings);
 
   if (findings.errors.length > 0 || name === undefined) return refused(findings);
 
@@ -101,7 +102,6 @@ function read(files: PluginFiles, verify: "tree" | "file"): MarketplaceReadOutco
     dialect,
     path,
     plugins: entries,
-    defaults,
   };
   return { ok: true, marketplace, warnings: findings.warnings };
 }
@@ -214,7 +214,6 @@ interface RawEntry {
   readonly name: string;
   readonly dir: string | undefined;
   readonly description?: string;
-  readonly installedByDefault: boolean;
 }
 
 function readEntries(object: JsonObject, dialect: MarketplaceDialect, path: string, findings: MarketplaceFindings): readonly RawEntry[] {
@@ -256,7 +255,6 @@ function readEntries(object: JsonObject, dialect: MarketplaceDialect, path: stri
       name,
       dir: resolveSource(item["source"], name, pluginRoot, path, findings),
       ...(description !== undefined && { description }),
-      installedByDefault: dialect === "codex" && codexInstalledByDefault(item),
     });
   });
   return entries;
@@ -270,11 +268,6 @@ function claudePluginRoot(object: JsonObject): string {
   if (root === undefined) return "";
   const resolved = relativeDirectory(root);
   return resolved.ok ? resolved.dir : "";
-}
-
-function codexInstalledByDefault(item: JsonObject): boolean {
-  const policy = item["policy"];
-  return isJsonObject(policy) && policy["installation"] === CODEX_INSTALLED_BY_DEFAULT;
 }
 
 /**
@@ -392,50 +385,4 @@ function declaredEntries(raw: readonly RawEntry[]): readonly MarketplaceEntry[] 
 function childFilesOf(index: PluginFileIndex, dir: string): readonly string[] {
   const prefix = dir === "" ? "" : `${dir}/`;
   return index.filesUnder(dir).map((file) => file.slice(prefix.length));
-}
-
-/**
- * The defaults, in install order: Stigmer's `defaults` list, or Codex's
- * `INSTALLED_BY_DEFAULT` entries in file order. A default that names no
- * listed entry refuses the file; a default whose entry the tree could not
- * offer is dropped silently, because that entry's own warning already says
- * why it is missing.
- */
-function resolveDefaults(
-  object: JsonObject,
-  raw: readonly RawEntry[],
-  offered: readonly MarketplaceEntry[],
-  dialect: MarketplaceDialect,
-  path: string,
-  findings: MarketplaceFindings,
-): readonly string[] {
-  const listed = new Set(raw.map((entry) => entry.name));
-  const offeredNames = new Set(offered.map((entry) => entry.name));
-
-  let named: readonly string[];
-  if (dialect === "stigmer") {
-    const value = object["defaults"];
-    if (value === undefined) {
-      named = [];
-    } else if (!isStringArray(value)) {
-      findings.error("marketplace-field-type", { path, subject: "defaults", detail: "an array of strings" });
-      named = [];
-    } else {
-      named = value;
-    }
-  } else if (dialect === "codex") {
-    named = raw.filter((entry) => entry.installedByDefault).map((entry) => entry.name);
-  } else {
-    named = [];
-  }
-
-  const defaults: string[] = [];
-  for (const name of named) {
-    if (!listed.has(name)) {
-      findings.error("default-unknown", { path, subject: name });
-      continue;
-    }
-    if (offeredNames.has(name) && !defaults.includes(name)) defaults.push(name);
-  }
-  return defaults;
 }

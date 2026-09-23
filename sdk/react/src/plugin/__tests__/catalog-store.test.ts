@@ -18,7 +18,7 @@ import type { KnownMarketplace, MarketplaceSource } from "../sources/types.js";
 function opened(name: string): OpenedMarketplace {
   return {
     tree: { describe: name, files: [], fetchFile: () => Promise.reject(new Error("unused")), fileUrl: (path) => path },
-    marketplace: { name, dialect: "cursor", path: ".cursor-plugin/marketplace.json", plugins: [], defaults: [] },
+    marketplace: { name, dialect: "cursor", path: ".cursor-plugin/marketplace.json", plugins: [] },
     warnings: [],
   };
 }

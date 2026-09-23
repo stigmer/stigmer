@@ -42,7 +42,6 @@ const ERROR_MESSAGES: Readonly<Record<MarketplaceErrorKind, Sentence>> = {
   "entry-source-missing": (c) => `${q(c.path)} plugin ${q(c.subject)} has no 'source'`,
   "entry-source-escapes-root": (c) =>
     `${q(c.path)} plugin ${q(c.subject)} has source ${q(c.detail)} outside the marketplace root; a source is a directory inside the marketplace`,
-  "default-unknown": (c) => `${q(c.path)} names ${q(c.subject)} as a default but lists no plugin of that name`,
 };
 
 const WARNING_MESSAGES: Readonly<Record<MarketplaceWarningKind, Sentence>> = {
