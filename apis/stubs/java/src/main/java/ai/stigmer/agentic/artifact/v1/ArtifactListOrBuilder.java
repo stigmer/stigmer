@@ -12,7 +12,7 @@ public interface ArtifactListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of pages available for this query.
+   * Always 1: an execution's artifacts are returned whole.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -22,7 +22,7 @@ public interface ArtifactListOrBuilder extends
 
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -31,7 +31,7 @@ public interface ArtifactListOrBuilder extends
       getEntriesList();
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -39,7 +39,7 @@ public interface ArtifactListOrBuilder extends
   ai.stigmer.agentic.artifact.v1.Artifact getEntries(int index);
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -47,7 +47,7 @@ public interface ArtifactListOrBuilder extends
   int getEntriesCount();
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -56,7 +56,7 @@ public interface ArtifactListOrBuilder extends
       getEntriesOrBuilderList();
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>

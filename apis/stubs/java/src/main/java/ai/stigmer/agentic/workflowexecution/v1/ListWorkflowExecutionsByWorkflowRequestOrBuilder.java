@@ -38,20 +38,18 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
 
   /**
    * <pre>
-   * Maximum number of executions to return per page.
-   *
-   * &#64;internal
-   * Default: 50. Maximum: 100 (backend enforces this limit).
+   * The most executions to return, at most 100; zero returns them all.
    * </pre>
    *
-   * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   int getPageSize();
 
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -60,7 +58,8 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   java.lang.String getPageToken();
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -104,7 +103,9 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
 
   /**
    * <pre>
-   * Sort field. When unspecified, defaults to started_at descending.
+   * Sort field: unspecified is newest created first and pages by
+   * page_token, any other sorts the whole matching set and returns its
+   * first page_size entries with no token.
    *
    * &#64;since T13 (Execution History)
    * </pre>
@@ -115,7 +116,9 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   int getSortFieldValue();
   /**
    * <pre>
-   * Sort field. When unspecified, defaults to started_at descending.
+   * Sort field: unspecified is newest created first and pages by
+   * page_token, any other sorts the whole matching set and returns its
+   * first page_size entries with no token.
    *
    * &#64;since T13 (Execution History)
    * </pre>
@@ -128,6 +131,7 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * When true, sorts in ascending order. Default (false) is descending.
+   * Read only with a sort field other than the default.
    *
    * &#64;since T13 (Execution History)
    * </pre>

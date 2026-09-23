@@ -72,9 +72,9 @@ func (x *ArtifactId) GetValue() string {
 // ArtifactList contains a paginated list of artifacts.
 type ArtifactList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages available for this query.
+	// Always 1: an execution's artifacts are returned whole.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// Artifacts in the current page, sorted by created_at descending.
+	// The execution's artifacts, newest first.
 	Entries       []*Artifact `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -188,10 +188,13 @@ type ListArtifactsByExecutionRequest struct {
 	// AgentExecution ID to list artifacts for.
 	// Format: "aex_{unique-suffix}"
 	AgentExecutionId string `protobuf:"bytes,2,opt,name=agent_execution_id,json=agentExecutionId,proto3" json:"agent_execution_id,omitempty"`
-	// Maximum number of artifacts to return per page.
-	// Default: 50. Maximum: 100.
+	// Not read: an execution's artifacts are returned whole.
+	//
+	// Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
 	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Opaque pagination token from a previous response.
+	// Not read: an execution's artifacts are returned whole.
+	//
+	// Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
 	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -241,6 +244,7 @@ func (x *ListArtifactsByExecutionRequest) GetAgentExecutionId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
 func (x *ListArtifactsByExecutionRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
@@ -248,6 +252,7 @@ func (x *ListArtifactsByExecutionRequest) GetPageSize() int32 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
 func (x *ListArtifactsByExecutionRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
@@ -504,13 +509,13 @@ const file_ai_stigmer_agentic_artifact_v1_io_proto_rawDesc = "" +
 	"\x13CreateArtifactInput\x12H\n" +
 	"\x04spec\x18\x01 \x01(\v2,.ai.stigmer.agentic.artifact.v1.ArtifactSpecB\x06\xbaH\x03\xc8\x01\x01R\x04spec\x12'\n" +
 	"\acontent\x18\x02 \x01(\fB\r\xbaH\n" +
-	"\xc8\x01\x01z\x05\x18\x80\x80\x80\x19R\acontent\"\xbf\x01\n" +
+	"\xc8\x01\x01z\x05\x18\x80\x80\x80\x19R\acontent\"\xc7\x01\n" +
 	"\x1fListArtifactsByExecutionRequest\x122\n" +
 	"\x15workflow_execution_id\x18\x01 \x01(\tR\x13workflowExecutionId\x12,\n" +
-	"\x12agent_execution_id\x18\x02 \x01(\tR\x10agentExecutionId\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\x12agent_execution_id\x18\x02 \x01(\tR\x10agentExecutionId\x12\x1f\n" +
+	"\tpage_size\x18\x03 \x01(\x05B\x02\x18\x01R\bpageSize\x12!\n" +
 	"\n" +
-	"page_token\x18\x04 \x01(\tR\tpageToken\"b\n" +
+	"page_token\x18\x04 \x01(\tB\x02\x18\x01R\tpageToken\"b\n" +
 	"\x19GetArtifactContentRequest\x12(\n" +
 	"\vartifact_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"artifactId\x12\x1b\n" +

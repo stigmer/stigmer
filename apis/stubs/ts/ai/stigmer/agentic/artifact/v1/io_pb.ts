@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/artifact/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_artifact_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MSIjCgpBcnRpZmFjdElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXgoMQXJ0aWZhY3RMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjkKB2VudHJpZXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3QieQoTQ3JlYXRlQXJ0aWZhY3RJbnB1dBJCCgRzcGVjGAEgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0U3BlY0IGukgDyAEBEh4KB2NvbnRlbnQYAiABKAxCDbpICsgBAXoFGICAgBkigwEKH0xpc3RBcnRpZmFjdHNCeUV4ZWN1dGlvblJlcXVlc3QSHQoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAEgASgJEhoKEmFnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSEgoKcGFnZV90b2tlbhgEIAEoCSJMChlHZXRBcnRpZmFjdENvbnRlbnRSZXF1ZXN0EhwKC2FydGlmYWN0X2lkGAEgASgJQge6SARyAhABEhEKCW1heF9ieXRlcxgCIAEoAyJwChpHZXRBcnRpZmFjdENvbnRlbnRSZXNwb25zZRIPCgdjb250ZW50GAEgASgMEhQKDGNvbnRlbnRfdHlwZRgCIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAMgASgDEhEKCXRydW5jYXRlZBgEIAEoCCJhChNBcnRpZmFjdERvd25sb2FkVXJsEgsKA3VybBgBIAEoCRITCgt0dGxfc2Vjb25kcxgCIAEoBRISCgpzaXplX2J5dGVzGAMgASgDEhQKDGNvbnRlbnRfdHlwZRgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_spec, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MSIjCgpBcnRpZmFjdElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXgoMQXJ0aWZhY3RMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjkKB2VudHJpZXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3QieQoTQ3JlYXRlQXJ0aWZhY3RJbnB1dBJCCgRzcGVjGAEgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0U3BlY0IGukgDyAEBEh4KB2NvbnRlbnQYAiABKAxCDbpICsgBAXoFGICAgBkiiwEKH0xpc3RBcnRpZmFjdHNCeUV4ZWN1dGlvblJlcXVlc3QSHQoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAEgASgJEhoKEmFnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCRIVCglwYWdlX3NpemUYAyABKAVCAhgBEhYKCnBhZ2VfdG9rZW4YBCABKAlCAhgBIkwKGUdldEFydGlmYWN0Q29udGVudFJlcXVlc3QSHAoLYXJ0aWZhY3RfaWQYASABKAlCB7pIBHICEAESEQoJbWF4X2J5dGVzGAIgASgDInAKGkdldEFydGlmYWN0Q29udGVudFJlc3BvbnNlEg8KB2NvbnRlbnQYASABKAwSFAoMY29udGVudF90eXBlGAIgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYAyABKAMSEQoJdHJ1bmNhdGVkGAQgASgIImEKE0FydGlmYWN0RG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEhMKC3R0bF9zZWNvbmRzGAIgASgFEhIKCnNpemVfYnl0ZXMYAyABKAMSFAoMY29udGVudF90eXBlGAQgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_spec, file_buf_validate_validate]);
 
 /**
  * ArtifactId wraps an artifact identifier.
@@ -46,14 +46,14 @@ export const ArtifactIdSchema: GenMessage<ArtifactId> = /*@__PURE__*/
  */
 export type ArtifactList = Message<"ai.stigmer.agentic.artifact.v1.ArtifactList"> & {
   /**
-   * Total number of pages available for this query.
+   * Always 1: an execution's artifacts are returned whole.
    *
    * @generated from field: int32 total_pages = 1;
    */
   totalPages: number;
 
   /**
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    *
    * @generated from field: repeated ai.stigmer.agentic.artifact.v1.Artifact entries = 2;
    */
@@ -118,17 +118,18 @@ export type ListArtifactsByExecutionRequest = Message<"ai.stigmer.agentic.artifa
   agentExecutionId: string;
 
   /**
-   * Maximum number of artifacts to return per page.
-   * Default: 50. Maximum: 100.
+   * Not read: an execution's artifacts are returned whole.
    *
-   * @generated from field: int32 page_size = 3;
+   * @generated from field: int32 page_size = 3 [deprecated = true];
+   * @deprecated
    */
   pageSize: number;
 
   /**
-   * Opaque pagination token from a previous response.
+   * Not read: an execution's artifacts are returned whole.
    *
-   * @generated from field: string page_token = 4;
+   * @generated from field: string page_token = 4 [deprecated = true];
+   * @deprecated
    */
   pageToken: string;
 };

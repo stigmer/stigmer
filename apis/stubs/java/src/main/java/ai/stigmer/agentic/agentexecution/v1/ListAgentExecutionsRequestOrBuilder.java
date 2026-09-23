@@ -12,17 +12,18 @@ public interface ListAgentExecutionsRequestOrBuilder extends
 
   /**
    * <pre>
-   * Maximum number of executions to return per page.
+   * The most executions to return, at most 100; zero returns them all.
    * </pre>
    *
-   * <code>int32 page_size = 1 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   int getPageSize();
 
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -31,7 +32,8 @@ public interface ListAgentExecutionsRequestOrBuilder extends
   java.lang.String getPageToken();
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -111,9 +113,8 @@ public interface ListAgentExecutionsRequestOrBuilder extends
    *
    * &#64;internal
    * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior, and the OSS single-user edition treats org filtering as a
-   * no-op. Filtering happens in the query/list step of each edition's
-   * handler, never client-side.
+   * behavior. Every edition honours it in the store's indexed read, never
+   * client-side.
    * </pre>
    *
    * <code>string org = 5 [json_name = "org"];</code>
@@ -131,9 +132,8 @@ public interface ListAgentExecutionsRequestOrBuilder extends
    *
    * &#64;internal
    * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior, and the OSS single-user edition treats org filtering as a
-   * no-op. Filtering happens in the query/list step of each edition's
-   * handler, never client-side.
+   * behavior. Every edition honours it in the store's indexed read, never
+   * client-side.
    * </pre>
    *
    * <code>string org = 5 [json_name = "org"];</code>

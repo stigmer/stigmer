@@ -26,10 +26,10 @@ message ArtifactId {
 //
 // @since T07 (Artifact Store)
 message ArtifactList {
-  // Total number of pages available for this query.
+  // Always 1: an execution's artifacts are returned whole.
   int32 total_pages = 1;
 
-  // Artifacts in the current page, sorted by created_at descending.
+  // The execution's artifacts, newest first.
   repeated Artifact entries = 2;
 }
 
@@ -83,12 +83,11 @@ message ListArtifactsByExecutionRequest {
   // Format: "aex_{unique-suffix}"
   string agent_execution_id = 2;
 
-  // Maximum number of artifacts to return per page.
-  // Default: 50. Maximum: 100.
-  int32 page_size = 3;
+  // Not read: an execution's artifacts are returned whole.
+  int32 page_size = 3 [deprecated = true];
 
-  // Opaque pagination token from a previous response.
-  string page_token = 4;
+  // Not read: an execution's artifacts are returned whole.
+  string page_token = 4 [deprecated = true];
 }
 
 // GetArtifactContentRequest reads the raw content of an artifact.

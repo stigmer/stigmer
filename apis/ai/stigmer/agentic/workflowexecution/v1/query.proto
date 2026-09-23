@@ -116,16 +116,19 @@ service WorkflowExecutionQueryController {
   // visibility and their own runs admit.
   //
   // Pagination:
-  // - page_size: Maximum number of results to return (default: 50, max: 100)
-  // - page_token: Opaque token from previous response for next page
-  // - Returns total_pages count for UI pagination
+  // - page_size: zero returns every execution; a positive size at most that
+  //   many, and at most 100
+  // - page_token: the previous response's next_page_token, the other
+  //   fields unchanged
+  // - next_page_token: set while more may follow; a page may be short
   //
   // Filtering:
   // - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
   // - tags: Filter by resource tags (AND logic - must match all tags)
   //
   // Sorting:
-  // Results are sorted by created_at descending (newest first).
+  // Results are sorted by created_at descending (newest first); another
+  // sort_field sorts the whole matching set and returns no token.
   //
   // Use Cases:
   //
@@ -152,8 +155,8 @@ service WorkflowExecutionQueryController {
   // Error Cases:
   //
   // - INVALID_ARGUMENT:
-  //   - page_size is negative or exceeds maximum
-  //   - Invalid page_token (expired, corrupted)
+  //   - page_size is negative
+  //   - page_token is malformed, or was issued for a different request
   //
   // Example Request (Filter for failed executions):
   // {
@@ -164,7 +167,7 @@ service WorkflowExecutionQueryController {
   //
   // Example Response:
   // {
-  //   "total_pages": 3,
+  //   "next_page_token": "…",
   //   "entries": [
   //     {
   //       "metadata": { "id": "wfx_failed-1", ... },
@@ -192,11 +195,14 @@ service WorkflowExecutionQueryController {
   // 2. Results are filtered to only include executions user can access
   //
   // Pagination:
-  // - page_size: Maximum number of results to return (default: 50, max: 100)
-  // - page_token: Opaque token from previous response for next page
+  // - page_size: zero returns every execution; a positive size at most that
+  //   many, and at most 100
+  // - page_token: the previous response's next_page_token, the other
+  //   fields unchanged
   //
   // Sorting:
-  // Results are sorted by created_at descending (newest first).
+  // Results are sorted by created_at descending (newest first); another
+  // sort_field sorts the whole matching set and returns no token.
   //
   // Use Cases:
   //
@@ -224,7 +230,8 @@ service WorkflowExecutionQueryController {
   //
   // - INVALID_ARGUMENT:
   //   - workflow_id is empty or invalid format
-  //   - page_size is negative or exceeds maximum
+  //   - page_size is negative
+  //   - page_token is malformed, or was issued for a different request
   //
   // - PERMISSION_DENIED:
   //   - User doesn't have access to the referenced Workflow/WorkflowInstance
@@ -240,7 +247,7 @@ service WorkflowExecutionQueryController {
   //
   // Example Response:
   // {
-  //   "total_pages": 5,
+  //   "next_page_token": "…",
   //   "entries": [
   //     {
   //       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
@@ -536,7 +543,7 @@ service WorkflowExecutionQueryController {
   //
   // 2. Approval Queue:
   //    - Reviewers see all pending approvals in one view
-  //    - Sorted by urgency (closest to timeout first)
+  //    - The newest execution's approvals first, paged by page_token
   //
   // @since T14 (Dashboard Integration)
   rpc listPendingApprovals(ListPendingApprovalsRequest) returns (PendingApprovalsList) {

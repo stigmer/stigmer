@@ -1672,8 +1672,8 @@ ListAgentExecutionsRequest specifies parameters for listing executions.
 
 <TypeTable
   type={{
-    pageSize: { type: "number", description: "Maximum number of executions to return per page." },
-    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+    pageSize: { type: "number", description: "The most executions to return, at most 100; zero returns them all." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     phase: { type: "ExecutionPhase", description: "Filter by execution phase (optional).", typeDescriptionLink: "#executionphase" },
     tags: { type: "string[]", description: "Filter by tags (optional)." },
     org: { type: "string", description: "Organization slug to scope the results to." },
@@ -1682,12 +1682,13 @@ ListAgentExecutionsRequest specifies parameters for listing executions.
 
 ### AgentExecutionList
 
-AgentExecutionList contains a paginated list of agent executions.
+AgentExecutionList contains one page of agent executions, newest first.
 
 <TypeTable
   type={{
-    totalPages: { type: "number", description: "Total number of pages available." },
-    entries: { type: "AgentExecutionInput[]", description: "Agent executions in the current page.", typeDescriptionLink: "#agentexecutioninput" },
+    totalPages: { type: "number", description: "Not computed for this list: 1 when the response holds every execution, 0 when next_page_token is set." },
+    entries: { type: "AgentExecutionInput[]", description: "Agent executions in this page, newest first.", typeDescriptionLink: "#agentexecutioninput" },
+    nextPageToken: { type: "string", description: "Set when more executions may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -1698,8 +1699,8 @@ ListAgentExecutionsBySessionRequest lists all executions in a session.
 <TypeTable
   type={{
     sessionId: { type: "string", description: "Session ID to filter by.", required: true },
-    pageSize: { type: "number", description: "Maximum number of executions to return per page." },
-    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+    pageSize: { type: "number", description: "Not read: a session's executions are returned whole." },
+    pageToken: { type: "string", description: "Not read: a session's executions are returned whole." },
   }}
 />
 

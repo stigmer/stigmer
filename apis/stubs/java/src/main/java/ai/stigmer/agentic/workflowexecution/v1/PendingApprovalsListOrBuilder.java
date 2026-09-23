@@ -11,24 +11,49 @@ public interface PendingApprovalsListOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.agentic.workflowexecution.v1.PendingApproval> 
       getEntriesList();
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.agentic.workflowexecution.v1.PendingApproval getEntries(int index);
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.PendingApprovalOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.agentic.workflowexecution.v1.PendingApprovalOrBuilder getEntriesOrBuilder(
@@ -46,7 +71,8 @@ public interface PendingApprovalsListOrBuilder extends
 
   /**
    * <pre>
-   * Pagination token for the next page. Empty when no more pages exist.
+   * Set when more approvals follow: pass it as page_token to continue.
+   * Empty when no more pages exist.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -55,7 +81,8 @@ public interface PendingApprovalsListOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Pagination token for the next page. Empty when no more pages exist.
+   * Set when more approvals follow: pass it as page_token to continue.
+   * Empty when no more pages exist.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>

@@ -135,7 +135,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of sessions to return per page.",
+          "description": "The most sessions to return, at most 100; zero returns them all.",
           "required": false
         },
         {
@@ -145,7 +145,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Token for pagination, obtained from previous response.",
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
           "required": false
         },
         {
@@ -160,12 +160,22 @@
           },
           "description": "Filter by tags (optional).",
           "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the results to.\n\n When set, only sessions of that organization are returned — the\n org-context view a console needs. When empty, results are bounded only\n by the caller's view permissions, which for a member of several\n organizations spans all of them.",
+          "required": false
         }
       ]
     },
     {
       "name": "SessionList",
-      "description": "SessionList contains a paginated list of sessions.",
+      "description": "SessionList contains one page of sessions, newest first.",
       "protoType": "ai.stigmer.agentic.session.v1.SessionList",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
@@ -176,7 +186,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Total number of pages available.",
+          "description": "Not computed for this list: 1 when the response holds every session,\n 0 when next_page_token is set. Follow next_page_token instead.",
           "required": false
         },
         {
@@ -190,7 +200,17 @@
               "messageType": "Session"
             }
           },
-          "description": "Sessions in the current page.",
+          "description": "Sessions in this page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more sessions may follow: pass it as page_token to continue.\n A page may hold fewer sessions than page_size, even none, and still\n carry a token. Empty when the list is complete.",
           "required": false
         }
       ]
@@ -221,7 +241,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of sessions to return per page.",
+          "description": "The most sessions to return, at most 100; zero returns them all.",
           "required": false
         },
         {
@@ -231,7 +251,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Token for pagination, obtained from previous response.",
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
           "required": false
         }
       ]
@@ -262,7 +282,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of sessions to return per page.",
+          "description": "The most sessions to return, at most 100; zero returns them all.",
           "required": false
         },
         {
@@ -272,7 +292,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Token for pagination, obtained from previous response.",
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
           "required": false
         }
       ]

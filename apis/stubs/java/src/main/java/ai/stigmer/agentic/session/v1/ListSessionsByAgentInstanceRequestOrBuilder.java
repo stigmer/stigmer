@@ -32,17 +32,18 @@ public interface ListSessionsByAgentInstanceRequestOrBuilder extends
 
   /**
    * <pre>
-   * Maximum number of sessions to return per page.
+   * The most sessions to return, at most 100; zero returns them all.
    * </pre>
    *
-   * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   int getPageSize();
 
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -51,7 +52,8 @@ public interface ListSessionsByAgentInstanceRequestOrBuilder extends
   java.lang.String getPageToken();
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>

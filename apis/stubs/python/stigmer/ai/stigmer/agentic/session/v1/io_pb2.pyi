@@ -21,22 +21,26 @@ class AgentId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class SessionList(_message.Message):
-    __slots__ = ("total_pages", "entries")
+    __slots__ = ("total_pages", "entries", "next_page_token")
     TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     total_pages: int
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Session]
-    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.Session, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.Session, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListSessionsRequest(_message.Message):
-    __slots__ = ("page_size", "page_token", "tags")
+    __slots__ = ("page_size", "page_token", "tags", "org")
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     TAGS_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     page_size: int
     page_token: str
     tags: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ...) -> None: ...
+    org: str
+    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., org: _Optional[str] = ...) -> None: ...
 
 class ListSessionsByAgentInstanceRequest(_message.Message):
     __slots__ = ("agent_instance_id", "page_size", "page_token")
