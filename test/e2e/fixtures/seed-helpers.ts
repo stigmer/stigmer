@@ -7,12 +7,12 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 const DEFAULT_ORG = "default";
 
 /**
- * The system org the CLI's bootstrap creates (OSS is operationally
- * single-tenant on `"stigmer"` — see `identity.SystemOrg` in stigmer-server
- * and `local/system-org.ts` in the CLI). E2E specs that exercise system-org
- * behavior seed here and point the console's active org at it.
+ * The organization `stigmer up` and `stigmer bootstrap` create: the one a
+ * local or selfhost CLI falls back to when none is named (`DEFAULT_LOCAL_ORG`
+ * in the CLI's config resolver). E2E specs that exercise it seed here and
+ * point the console's active org at it.
  */
-const SYSTEM_ORG = "stigmer";
+export const BOOTSTRAP_ORG = "stigmer";
 
 /**
  * Ensures the OSS `default` organization exists on a freshly-booted stack.
@@ -40,20 +40,19 @@ export async function ensureDefaultOrg(client: Stigmer): Promise<void> {
 }
 
 /**
- * Ensures the `stigmer` system Organization exists. The e2e stack boots
- * a raw server that no CLI bootstrap has run against (`stigmer up` and
- * `stigmer bootstrap` normally create it), so specs that need it create
- * it explicitly — idempotent, like {@link ensureDefaultOrg}.
+ * Ensures {@link BOOTSTRAP_ORG} exists. The e2e stack boots a raw server
+ * that no CLI bootstrap has run against, so specs that need it create it
+ * explicitly — idempotent, like {@link ensureDefaultOrg}.
  */
-export async function ensureSystemOrg(client: Stigmer): Promise<void> {
+export async function ensureBootstrapOrg(client: Stigmer): Promise<void> {
   const existing = await client.organization.findMyOrganizations();
-  if (existing.entries.some((o) => o.metadata?.slug === SYSTEM_ORG)) return;
+  if (existing.entries.some((o) => o.metadata?.slug === BOOTSTRAP_ORG)) return;
 
   try {
     await client.organization.create({
       name: "Stigmer",
-      slug: SYSTEM_ORG,
-      org: SYSTEM_ORG,
+      slug: BOOTSTRAP_ORG,
+      org: BOOTSTRAP_ORG,
     });
   } catch (err) {
     // Parallel workers race the same check-then-create; a loser sees

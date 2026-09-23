@@ -8,14 +8,15 @@
 # backups or scaling, and an upgrade kills in-flight runs. The production
 # self-host shape is docker-compose.yml (and, later, the Helm chart).
 #
-# What this image IS: a pre-warmed `stigmer up`. The CLI acquires the server,
-# the runner and the plugin catalogue on a laptop's first `up` into
-# ~/.stigmer/runtimes/<version>/node_modules/@stigmer/…, and downloads the
-# Temporal CLI into ~/.stigmer/bin. Here those acquisitions are already done,
-# read-only, off the data volume: the same npm packages, installed into the
-# same layout under /opt/stigmer, and the composition `stigmer up` runs
-# (server, runner, Temporal, the bootstrap; see client-apps/cli/src/local/) runs
-# here in the foreground. There is no second launcher.
+# What this image IS: a pre-warmed `stigmer up`. The CLI acquires the server
+# and the runner on a laptop's first `up` (and the plugin catalogue on its
+# first `stigmer install`) into ~/.stigmer/runtimes/<version>/node_modules/
+# @stigmer/…, and downloads the Temporal CLI into ~/.stigmer/bin. Here those
+# acquisitions are already done, read-only, off the data volume: the same npm
+# packages, installed into the same layout under /opt/stigmer, and the
+# composition `stigmer up` runs (server, runner, Temporal, the bootstrap; see
+# client-apps/cli/src/local/) runs here in the foreground. There is no second
+# launcher.
 #
 # Build (scripts/stage-all-in-one.mjs stages the packages and the Temporal
 # binary for THIS host's arch into ./stage; the smoke and CI do the same):

@@ -1,11 +1,12 @@
 // Resolution and on-demand acquisition of the official marketplace.
 //
 // The official catalogue (`plugins/` in the OSS repository, published as
-// `@stigmer/plugins`) is the content `stigmer up` bootstraps a backend with,
-// so it follows the server's and the runner's rule: acquired at the CLI's OWN
-// version, so the plugins a fresh install gets match the control plane that
-// installs them. A lean `npx @stigmer/cli` does not carry the content; it is fetched
-// once into ~/.stigmer/runtimes/<version>/ like the server and the runner.
+// `@stigmer/plugins`) is what `stigmer install <name>` reads when no other
+// marketplace is named, so it follows the server's and the runner's rule:
+// acquired at the CLI's OWN version, so the plugins it installs match the
+// control plane that serves them. A lean `npx @stigmer/cli` does not carry the
+// content; it is fetched once, the first time an install needs it, into
+// ~/.stigmer/runtimes/<version>/ like the server and the runner.
 //
 // Two sources, tried in order (mirrors runtime/server.ts and runtime/runner.ts):
 //   1. A repo-tree checkout (dev): `<repo>/plugins`, the tree itself.

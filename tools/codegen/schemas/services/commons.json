@@ -47,7 +47,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization that owns this resource.\n In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,\n then the configured context); the CLI's bootstrap creates the \"stigmer\"\n organization on every start and installs the default plugins into it.\n In Cloud Mode: Required and enforced by the Authorization Service.\n All resources belong to exactly one organization.",
+          "description": "Organization that owns this resource.\n In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,\n then the configured context, then the \"stigmer\" organization, which the\n CLI's bootstrap creates).\n In Cloud Mode: Required and enforced by the Authorization Service.\n All resources belong to exactly one organization.",
           "required": false
         },
         {

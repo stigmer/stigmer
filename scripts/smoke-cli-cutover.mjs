@@ -72,7 +72,7 @@ const slimDir = join(
   "dist-slim",
 );
 
-/** The system org — created by `stigmer up`'s bootstrap itself. */
+/** The org `stigmer up`'s bootstrap creates — the CLI's fallback on a local backend. */
 const ORG = "stigmer";
 const UP_TIMEOUT_MS = 300_000; // first `up` may download the Temporal CLI
 const RUN_TIMEOUT_MS = 120_000;
