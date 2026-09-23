@@ -3,7 +3,8 @@
 import { useCallback, useId, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
-import { hasGrantableRoles } from "@stigmer/sdk";
+import { ApiResourceKind, hasGrantableRoles, hasTeamGrantableRoles } from "@stigmer/sdk";
+import { useResourceAvailable } from "../deployment-mode.js";
 import { PeopleWithAccess } from "../iam-policy/PeopleWithAccess.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
 import type {
@@ -46,6 +47,8 @@ export interface ManageAccessDialogProps {
  * - **People with access** — only when the resource kind has grantable roles
  *   (`hasGrantableRoles`, proto-generated single source of truth). Delegates
  *   to {@link PeopleWithAccess}, which gates grant/revoke on `can_grant_access`.
+ *   Titled *People and teams with access* where the edition serves teams and
+ *   the kind accepts a team grant.
  * - **Extra section** — only when provided.
  *
  * The body mounts lazily (only while `open`) so its access-list fetch never
@@ -88,6 +91,11 @@ export function ManageAccessDialog({
   }, [onOpenChange]);
 
   const showPeople = hasGrantableRoles(resource.kind);
+  const teamsServed = useResourceAvailable(ApiResourceKind.team);
+  const peopleTitle =
+    teamsServed && hasTeamGrantableRoles(resource.kind)
+      ? "People and teams with access"
+      : "People with access";
 
   return (
     <DialogShell
@@ -146,7 +154,7 @@ export function ManageAccessDialog({
             )}
 
             {showPeople && (
-              <AccessSection title="People with access">
+              <AccessSection title={peopleTitle}>
                 <PeopleWithAccess
                   resource={{
                     kind: resource.kindString,

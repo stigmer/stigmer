@@ -1057,6 +1057,7 @@ export {
   useDeleteIamPolicy,
   useRevokeOrgAccess,
   useShareFlow,
+  useGranteeCandidates,
   useCheckPermission,
   RoleSelector,
   PrincipalPicker,
@@ -1087,7 +1088,12 @@ export type {
   PermissionCheckResource,
   RoleSelectorProps,
   PrincipalPickerProps,
-  SelectedPrincipal,
+  SelectedGrantee,
+  GranteeCandidate,
+  PersonCandidate,
+  TeamCandidate,
+  UseGranteeCandidatesOptions,
+  UseGranteeCandidatesReturn,
   ProviderBadgeProps,
   GrantAccessFormProps,
   PeopleWithAccessProps,
@@ -1295,6 +1301,7 @@ export { InvitationsSection } from "./settings/index.js";
 export { IdentityProvidersSection } from "./settings/index.js";
 export type { IdentityProvidersSectionProps } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
+export { TeamsSection } from "./settings/index.js";
 export { OAuthAppsSection } from "./settings/index.js";
 export { ChannelAppsSection } from "./settings/index.js";
 export { UsageSection } from "./settings/index.js";
@@ -1441,6 +1448,32 @@ export type {
   IdentityProviderDetailPanelProps,
   SsoLoginPromptProps,
 } from "./identity-provider/index.js";
+
+// Teams — an organization's named groups of people that access is shared
+// with as one (Enterprise and Cloud editions)
+export {
+  useTeamList,
+  useTeam,
+  useCreateTeam,
+  useUpdateTeam,
+  useDeleteTeam,
+  TeamListPanel,
+  CreateTeamForm,
+  TEAM_DESCRIPTION_MAX_LENGTH,
+  TeamMembersPanel,
+  TeamDetailPanel,
+} from "./team/index.js";
+export type {
+  UseTeamListReturn,
+  UseTeamReturn,
+  UseCreateTeamReturn,
+  UseUpdateTeamReturn,
+  UseDeleteTeamReturn,
+  TeamListPanelProps,
+  CreateTeamFormProps,
+  TeamMembersPanelProps,
+  TeamDetailPanelProps,
+} from "./team/index.js";
 
 // Invitation — data hooks, behavior hooks, and feature components for org invite links
 export {

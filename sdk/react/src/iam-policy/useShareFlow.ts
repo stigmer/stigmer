@@ -1,15 +1,41 @@
 "use client";
 
+/**
+ * The share flow for one resource: who has access, and granting or removing
+ * a person or a team.
+ *
+ * Grantees are `Grantee` values from `@stigmer/sdk` and reach the wire only
+ * through `granteeRef`, so a team is always `team:<id>#member` and no caller
+ * spells the qualifier. Removing a grantee revokes EVERY role it holds
+ * directly on the resource, read from the access list this hook already
+ * holds: a grantee listed once can hold two roles (a team on an agent
+ * channel is `participant` and `viewer`), and a remove that revoked one of
+ * them would leave the row standing.
+ *
+ * `canShareWithTeams` is two questions answered together: does the
+ * connected edition serve teams, and does this resource kind accept a team
+ * grant at all. Both come from generated tables, so the answer matches what
+ * the server's grant step accepts.
+ */
 import { useCallback, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import {
   IamPolicySpecSchema,
   ApiResourceRefSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import { iamRoleToString } from "@stigmer/sdk";
+import {
+  getTeamGrantableRoles,
+  granteeFromView,
+  granteeKey,
+  granteeRef,
+  iamRoleToString,
+  type Grantee,
+} from "@stigmer/sdk";
+import { useResourceAvailable } from "../deployment-mode.js";
+import { toError } from "../internal/toError.js";
 import { useResourceAccess, type ResourceAccessRef } from "./useResourceAccess.js";
 import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
 import { useDeleteIamPolicy } from "./useDeleteIamPolicy.js";
@@ -27,7 +53,7 @@ export interface ShareFlowResource {
 
 /** Return value of {@link useShareFlow}. */
 export interface UseShareFlowReturn {
-  /** Principals with their role grants on the resource. */
+  /** Grantees with their role grants on the resource. */
   readonly accessList: readonly PrincipalAccess[];
   /** Whether the initial access list is loading. */
   readonly isLoading: boolean;
@@ -35,18 +61,25 @@ export interface UseShareFlowReturn {
   readonly isRefetching: boolean;
   /** Error from the last access list fetch, or `null`. */
   readonly fetchError: Error | null;
-  /** Roles that can be granted on this resource kind. */
+  /** Roles a person can be granted on this resource kind. */
   readonly grantableRoles: readonly IamRole[];
   /** Whether the resource kind supports role grants. */
   readonly hasGrantableRoles: boolean;
-  /** Grant a principal access with the specified role. */
-  readonly grantAccess: (principalId: string, role: string) => Promise<void>;
+  /** Roles a team can be granted on this resource kind. */
+  readonly teamGrantableRoles: readonly IamRole[];
+  /**
+   * Whether this resource can be shared with a team here: the edition
+   * serves teams and the kind accepts a team grant.
+   */
+  readonly canShareWithTeams: boolean;
+  /** Grant a person or a team the given role. */
+  readonly grant: (grantee: Grantee, role: IamRole) => Promise<void>;
   /** Whether a grant operation is in flight. */
   readonly isGranting: boolean;
   /** Error from the last grant attempt, or `null`. */
   readonly grantError: Error | null;
-  /** Revoke a principal's role on this resource. */
-  readonly revokeAccess: (principalId: string, role: string) => Promise<void>;
+  /** Revoke every role the grantee holds directly on the resource. */
+  readonly revoke: (grantee: Grantee) => Promise<void>;
   /** Whether a revoke operation is in flight. */
   readonly isRevoking: boolean;
   /** Error from the last revoke attempt, or `null`. */
@@ -72,16 +105,16 @@ export interface UseShareFlowReturn {
  * @example
  * ```tsx
  * const share = useShareFlow({
- *   kind: "session",
- *   id: sessionId,
- *   resourceKind: ApiResourceKind.session,
+ *   kind: "agent",
+ *   id: agentId,
+ *   resourceKind: ApiResourceKind.agent,
  * });
  *
- * // Render access list
- * share.accessList.map(entry => ...);
- *
- * // Grant viewer access
- * await share.grantAccess(userId, "viewer");
+ * await share.grant(personGrantee(accountId), IamRole.viewer);
+ * if (share.canShareWithTeams) {
+ *   await share.grant(teamGrantee(teamId), IamRole.viewer);
+ * }
+ * await share.revoke(teamGrantee(teamId));
  * ```
  */
 export function useShareFlow(
@@ -100,83 +133,124 @@ export function useShareFlow(
     refetch,
   } = useResourceAccess(accessRef);
 
+  const resourceKind = resource?.resourceKind ?? null;
   const { roles: grantableRoles, hasRoles: hasGrantableRoles } =
-    useGrantableRoles(resource?.resourceKind ?? null);
+    useGrantableRoles(resourceKind);
+  const teamsServed = useResourceAvailable(ApiResourceKind.team);
+  const teamGrantableRoles = useMemo(
+    () => (resourceKind === null ? [] : getTeamGrantableRoles(resourceKind)),
+    [resourceKind],
+  );
+  const canShareWithTeams = teamsServed && teamGrantableRoles.length > 0;
 
   const { create: createPolicy, isCreating: isGranting, error: grantError, clearError: clearGrantError } =
     useCreateIamPolicy();
 
-  const { remove: removePolicy, isDeleting: isRevoking, error: revokeError, clearError: clearRevokeError } =
-    useDeleteIamPolicy();
+  const { remove: removePolicy } = useDeleteIamPolicy();
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<Error | null>(null);
 
   const resourceRef = useRef(resource);
   resourceRef.current = resource;
+  const accessListRef = useRef(accessList);
+  accessListRef.current = accessList;
 
-  const grantAccess = useCallback(
-    async (principalId: string, role: string) => {
+  const grant = useCallback(
+    async (grantee: Grantee, role: IamRole) => {
       const res = resourceRef.current;
       if (!res) return;
 
-      const spec = create(IamPolicySpecSchema, {
-        principal: create(ApiResourceRefSchema, {
-          kind: "identity_account",
-          id: principalId,
+      await createPolicy(
+        create(IamPolicySpecSchema, {
+          principal: granteeRef(grantee),
+          resource: create(ApiResourceRefSchema, { kind: res.kind, id: res.id }),
+          relation: iamRoleToString(role),
         }),
-        resource: create(ApiResourceRefSchema, {
-          kind: res.kind,
-          id: res.id,
-        }),
-        relation: role,
-      });
-
-      await createPolicy(spec);
+      );
       refetch();
     },
     [createPolicy, refetch],
   );
 
-  const revokeAccess = useCallback(
-    async (principalId: string, role: string) => {
+  const revoke = useCallback(
+    async (grantee: Grantee) => {
       const res = resourceRef.current;
       if (!res) return;
 
-      const spec = create(IamPolicySpecSchema, {
-        principal: create(ApiResourceRefSchema, {
-          kind: "identity_account",
-          id: principalId,
-        }),
-        resource: create(ApiResourceRefSchema, {
-          kind: res.kind,
-          id: res.id,
-        }),
-        relation: role,
-      });
+      const key = granteeKey(grantee);
+      const relations = accessListRef.current
+        .filter((entry) => {
+          const listed = entry.principal ? granteeFromView(entry.principal) : undefined;
+          return listed !== undefined && granteeKey(listed) === key;
+        })
+        .flatMap((entry) => entry.roles)
+        .filter((grantOnRow) => !grantOnRow.isInherited && grantOnRow.role?.code)
+        .map((grantOnRow) => grantOnRow.role?.code ?? "");
 
-      await removePolicy(spec);
-      refetch();
+      setIsRevoking(true);
+      setRevokeError(null);
+      try {
+        for (const relation of new Set(relations)) {
+          await removePolicy(
+            create(IamPolicySpecSchema, {
+              principal: granteeRef(grantee),
+              resource: create(ApiResourceRefSchema, { kind: res.kind, id: res.id }),
+              relation,
+            }),
+          );
+        }
+      } catch (err) {
+        setRevokeError(toError(err));
+        throw err;
+      } finally {
+        setIsRevoking(false);
+        refetch();
+      }
     },
     [removePolicy, refetch],
   );
 
   const clearErrors = useCallback(() => {
     clearGrantError();
-    clearRevokeError();
-  }, [clearGrantError, clearRevokeError]);
+    setRevokeError(null);
+  }, [clearGrantError]);
 
-  return {
-    accessList,
-    isLoading,
-    isRefetching,
-    fetchError,
-    grantableRoles,
-    hasGrantableRoles,
-    grantAccess,
-    isGranting,
-    grantError,
-    revokeAccess,
-    isRevoking,
-    revokeError,
-    refetch,
-    clearErrors,
-  };
+  return useMemo(
+    () => ({
+      accessList,
+      isLoading,
+      isRefetching,
+      fetchError,
+      grantableRoles,
+      hasGrantableRoles,
+      teamGrantableRoles,
+      canShareWithTeams,
+      grant,
+      isGranting,
+      grantError,
+      revoke,
+      isRevoking,
+      revokeError,
+      refetch,
+      clearErrors,
+    }),
+    [
+      accessList,
+      isLoading,
+      isRefetching,
+      fetchError,
+      grantableRoles,
+      hasGrantableRoles,
+      teamGrantableRoles,
+      canShareWithTeams,
+      grant,
+      isGranting,
+      grantError,
+      revoke,
+      isRevoking,
+      revokeError,
+      refetch,
+      clearErrors,
+    ],
+  );
 }

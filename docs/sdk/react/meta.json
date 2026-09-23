@@ -28,6 +28,7 @@
     "models",
     "---Identity & Access---",
     "organization",
+    "team",
     "iam-policy",
     "access",
     "identity-provider",

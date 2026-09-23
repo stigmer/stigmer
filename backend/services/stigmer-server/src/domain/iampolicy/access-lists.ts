@@ -23,8 +23,14 @@
  * driver, or an account or team whose row is gone — renders as kind/id
  * with the id standing in as the display name, the Java `enrich()`
  * fallback shape.
+ *
+ * Every entry names its grantee exactly as the rows hold it: kind, id AND
+ * the relation qualifier (`team:<id>#member`), and entries group by all
+ * three. A revoke matches the qualifier exactly (grant-path.ts
+ * `findByTriple`), so a list that dropped it would hand the console a
+ * grantee whose revoke finds no row and succeeds having deleted nothing.
  */
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -148,19 +154,24 @@ export async function buildPrincipalAccessList(
     if (principal === undefined) {
       continue;
     }
-    const key = `${principal.kind}:${principal.id}`;
+    const key = `${principal.kind}:${principal.id}#${principal.relation}`;
     let entry = grouped.get(key);
     if (entry === undefined) {
+      const view = enriched.get(`${principal.kind}:${principal.id}`);
       entry = {
-        // The Java enrich() fallback shape for unresolved principals of
-        // ANY kind: kind/id with the id standing in as the display name.
-        principal:
-          enriched.get(key) ??
-          create(ApiResourceRefViewSchema, {
-            kind: principal.kind,
-            id: principal.id,
-            name: principal.id,
-          }),
+        // A resolved view is shared by every qualifier of one grantee, so
+        // each entry stamps its own copy. The Java enrich() fallback shape
+        // for unresolved principals of ANY kind: kind/id with the id
+        // standing in as the display name.
+        principal: withRelation(
+          view ??
+            create(ApiResourceRefViewSchema, {
+              kind: principal.kind,
+              id: principal.id,
+              name: principal.id,
+            }),
+          principal.relation,
+        ),
         roles: [],
       };
       grouped.set(key, entry);
@@ -221,6 +232,15 @@ async function resolvePrincipalViews(
     }
   }
   return views;
+}
+
+function withRelation(
+  view: ApiResourceRefView,
+  relation: string,
+): ApiResourceRefView {
+  const stamped = clone(ApiResourceRefViewSchema, view);
+  stamped.relation = relation;
+  return stamped;
 }
 
 function buildGrant(

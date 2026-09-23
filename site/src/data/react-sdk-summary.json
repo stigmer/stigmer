@@ -137,7 +137,7 @@
       "slug": "iam-policy",
       "title": "IAM Policy",
       "description": "Hooks and components for access control bindings, role assignment, and org membership.",
-      "hooks": 10,
+      "hooks": 11,
       "components": 8
     },
     {
@@ -271,7 +271,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 13
+      "components": 14
     },
     {
       "slug": "sharing",
@@ -300,6 +300,13 @@
       "description": "",
       "hooks": 0,
       "components": 1
+    },
+    {
+      "slug": "team",
+      "title": "team",
+      "description": "",
+      "hooks": 5,
+      "components": 4
     },
     {
       "slug": "usage",

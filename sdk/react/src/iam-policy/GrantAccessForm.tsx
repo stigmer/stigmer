@@ -1,17 +1,36 @@
 "use client";
 
+/**
+ * The grant form: choose who (a person, or a team where the resource can be
+ * shared with teams) and which role, then create the IAM policy.
+ *
+ * The role list follows the chosen grantee: a team is offered only the
+ * kind's team roles. Switching the choice from a person to a team clears a
+ * role the team cannot hold instead of submitting it for the server to
+ * refuse. The policy's grantee is built only through `granteeRef`, so a
+ * team always reaches the wire as its members.
+ */
 import { useCallback, useState, type FormEvent } from "react";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
-import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import {
+  ApiResourceRefSchema,
+  IamPolicySpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, iamRoleToString } from "@stigmer/sdk";
+import {
+  getUserMessage,
+  granteeRef,
+  iamRoleToString,
+  isRoleGrantable,
+  isRoleTeamGrantable,
+  type Grantee,
+} from "@stigmer/sdk";
 import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
 import { RoleSelector } from "./RoleSelector.js";
-import { PrincipalPicker, type SelectedPrincipal } from "./PrincipalPicker.js";
+import { PrincipalPicker, type SelectedGrantee } from "./PrincipalPicker.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link GrantAccessForm}. */
@@ -23,12 +42,17 @@ export interface GrantAccessFormProps {
   /** ID of the resource being granted access to. */
   readonly resourceId: string;
   /**
-   * Organization whose members can be granted access. Drives the
-   * {@link PrincipalPicker} typeahead.
+   * Organization whose people (and teams) can be granted access. Drives
+   * the {@link PrincipalPicker} typeahead.
    */
   readonly orgId: string;
-  /** Principal IDs that already have access (shown disabled in the picker). */
-  readonly excludePrincipalIds?: readonly string[];
+  /**
+   * Offer the organization's teams beside its people. Set it where the
+   * resource can be shared with a team (`useShareFlow().canShareWithTeams`).
+   */
+  readonly includeTeams?: boolean;
+  /** Grantees that already have access (shown disabled in the picker). */
+  readonly excludeGrantees?: readonly Grantee[];
   /** Fired after a policy is successfully created. */
   readonly onGranted?: (policy: IamPolicy) => void;
   /** Fired when the user cancels. */
@@ -38,24 +62,19 @@ export interface GrantAccessFormProps {
 }
 
 /**
- * Form for granting an organization member access to a resource.
- *
- * Lets the user pick a **person** from the org's member list (by name or
- * email, disambiguating identity sources) via {@link PrincipalPicker}, choose
- * a **role** from the resource's grantable roles, and creates the IAM policy
- * binding. The resolved `identity_account` ID is carried internally — the user
- * never types or sees raw account IDs.
+ * Form for granting a person or a team access to a resource.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * @example
  * ```tsx
  * <GrantAccessForm
- *   resourceKind={ApiResourceKind.organization}
- *   resourceKindString="organization"
- *   resourceId="org-abc123"
- *   orgId="org-abc123"
- *   onGranted={(policy) => refetchAccessList()}
+ *   resourceKind={ApiResourceKind.agent}
+ *   resourceKindString="agent"
+ *   resourceId={agentId}
+ *   orgId={orgId}
+ *   includeTeams={share.canShareWithTeams}
+ *   onGranted={() => share.refetch()}
  *   onCancel={() => setShowForm(false)}
  * />
  * ```
@@ -65,7 +84,8 @@ export function GrantAccessForm({
   resourceKindString,
   resourceId,
   orgId,
-  excludePrincipalIds,
+  includeTeams = false,
+  excludeGrantees,
   onGranted,
   onCancel,
   className,
@@ -73,24 +93,35 @@ export function GrantAccessForm({
   const { create: createPolicy, isCreating, error, clearError } =
     useCreateIamPolicy();
 
-  const [principal, setPrincipal] = useState<SelectedPrincipal | null>(null);
+  const [grantee, setGrantee] = useState<SelectedGrantee | null>(null);
   const [selectedRole, setSelectedRole] = useState<IamRole | null>(null);
 
-  const canSubmit =
-    principal !== null && selectedRole !== null && !isCreating;
+  const chooseGrantee = useCallback(
+    (next: SelectedGrantee | null) => {
+      setGrantee(next);
+      setSelectedRole((role) => {
+        if (role === null || next === null) return role;
+        const holdable =
+          next.kind === "team"
+            ? isRoleTeamGrantable(resourceKind, role)
+            : isRoleGrantable(resourceKind, role);
+        return holdable ? role : null;
+      });
+    },
+    [resourceKind],
+  );
+
+  const canSubmit = grantee !== null && selectedRole !== null && !isCreating;
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
-      if (!canSubmit || selectedRole === null || principal === null) return;
+      if (!canSubmit || selectedRole === null || grantee === null) return;
 
       clearError();
       try {
         const spec = create(IamPolicySpecSchema, {
-          principal: create(ApiResourceRefSchema, {
-            kind: "identity_account",
-            id: principal.id,
-          }),
+          principal: granteeRef(grantee.grantee),
           resource: create(ApiResourceRefSchema, {
             kind: resourceKindString,
             id: resourceId,
@@ -106,7 +137,7 @@ export function GrantAccessForm({
     [
       canSubmit,
       selectedRole,
-      principal,
+      grantee,
       resourceKindString,
       resourceId,
       createPolicy,
@@ -118,18 +149,18 @@ export function GrantAccessForm({
   return (
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <div className="stg:space-y-3">
-        {/* Principal picker (org-member typeahead) */}
         <PrincipalPicker
           orgId={orgId}
-          value={principal}
-          onChange={setPrincipal}
-          excludePrincipalIds={excludePrincipalIds}
+          value={grantee}
+          onChange={chooseGrantee}
+          includeTeams={includeTeams}
+          excludeGrantees={excludeGrantees}
           disabled={isCreating}
         />
 
-        {/* Role selector */}
         <RoleSelector
           kind={resourceKind}
+          granteeKind={grantee?.kind ?? "identity_account"}
           selected={selectedRole}
           onSelect={setSelectedRole}
           disabled={isCreating}
@@ -174,4 +205,3 @@ export function GrantAccessForm({
     </form>
   );
 }
-

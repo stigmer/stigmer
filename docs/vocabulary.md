@@ -67,6 +67,7 @@ definitions, API names, and examples follow below.
 | **Harness**       | execution engine      | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
 | **Approval flow** | approval flow         | approval flow                          | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
 | **Organization**  | Organization          | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
+| **Team**          | teams                 | ---                                    | Team                | Team, `kind: team`                     | Team           |
 | **Environment**   | Environment           | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
 | **Preference**    | preferences           | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
 
@@ -694,6 +695,32 @@ Stigmer without creating Stigmer-native accounts.
   site, say "your users sign in with their existing credentials" without naming
   the mechanism. In quickstart, avoid unless the tutorial covers federation
   setup.
+
+---
+
+#### Team
+
+A named group of an Organization's people that access is shared with as one.
+Sharing an Agent, a Workflow or another resource with a Team gives every member
+of the Team that access; joining the Team grants it, and leaving the Team or the
+Organization takes it away.
+
+- **Capitalize**: Yes, when referring to the Stigmer resource. "Your team" in
+  its everyday sense stays lowercase.
+- **API surface**: `kind: team`, prefix `tm`. proto: `iam/team/v1/spec.proto`. A
+  membership is an IAM Policy granting `member` on the Team; a share with a Team
+  names it as `team:<id>#member`.
+- **Key fields**: `description`. The members are the access list on the Team,
+  not a field.
+- **Editions**: Stigmer Enterprise and Cloud. The open-source edition shares
+  resources with people and with the whole Organization.
+- **Context rule**: On the sales site, say "share with your teams." In concepts
+  and how-to, capitalize as "Team." In reference, use `Team`. In quickstart,
+  avoid unless the tutorial covers access management.
+- **Note**: A Team's members are always members of its Organization; removing
+  someone from the Organization removes them from every Team at once. Slack
+  calls a workspace a "team", so an Agent Channel's `status.slack.team_id` names
+  a Slack workspace; it is never a Stigmer Team.
 
 ---
 

@@ -17,6 +17,7 @@ import {
   OrgPreferencesSection,
   OrgProfileSection,
   PlatformClientsSection,
+  TeamsSection,
   UsageSection,
 } from "@stigmer/react";
 import { AppShell } from "./shell/AppShell";
@@ -320,6 +321,7 @@ const routes: RouteObject[] = [
               { path: "api-keys", element: <ApiKeysSection /> },
               { path: "environments", element: <EnvironmentsSection /> },
               { path: "members", element: <MembersSection /> },
+              { path: "teams", element: <TeamsSection /> },
               { path: "org-profile", element: <OrgProfileSection /> },
               { path: "org-preferences", element: <OrgPreferencesSection /> },
               {

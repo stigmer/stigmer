@@ -44,9 +44,18 @@ export {
 export { RoleSelector, type RoleSelectorProps } from "./RoleSelector.js";
 
 export {
+  useGranteeCandidates,
+  type GranteeCandidate,
+  type PersonCandidate,
+  type TeamCandidate,
+  type UseGranteeCandidatesOptions,
+  type UseGranteeCandidatesReturn,
+} from "./useGranteeCandidates.js";
+
+export {
   PrincipalPicker,
   type PrincipalPickerProps,
-  type SelectedPrincipal,
+  type SelectedGrantee,
 } from "./PrincipalPicker.js";
 
 export {

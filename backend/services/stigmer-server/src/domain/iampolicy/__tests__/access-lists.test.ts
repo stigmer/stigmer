@@ -291,4 +291,34 @@ describe("buildPrincipalAccessList", () => {
       ["team", "tm_gone"],
     ]);
   });
+
+  it("names every grantee with the relation qualifier its rows hold, and never merges two qualifiers of one grantee", async () => {
+    const store = fakeIamPolicyStore();
+    const agent = { kind: "agent", id: "agt_1" };
+    await store.save(row(triple({ kind: "identity_account", id: "ida_alice" }, "viewer", agent)));
+    await store.save(
+      row(triple({ kind: "team", id: "tm_sre", relation: "member" }, "viewer", agent)),
+    );
+    // Not a shape the grant step admits today; the grouping must still
+    // keep a second qualifier apart so its revoke names the right row.
+    await store.save(
+      row(triple({ kind: "team", id: "tm_sre", relation: "maintainer" }, "viewer", agent)),
+    );
+    const teams: PrincipalDisplay = {
+      resolve: () =>
+        Promise.resolve(
+          new Map([
+            ["tm_sre", create(ApiResourceRefViewSchema, { kind: "team", id: "tm_sre", name: "SRE" })],
+          ]),
+        ),
+    };
+    const entries = await buildPrincipalAccessList(store, nobody, teams, [agent]);
+    expect(
+      entries.map((e) => [e.principal?.kind, e.principal?.id, e.principal?.relation, e.principal?.name]),
+    ).toEqual([
+      ["identity_account", "ida_alice", "", "ida_alice"],
+      ["team", "tm_sre", "member", "SRE"],
+      ["team", "tm_sre", "maintainer", "SRE"],
+    ]);
+  });
 });

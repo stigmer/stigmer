@@ -35,6 +35,11 @@ const SETTINGS_SECTIONS = [
     cloudGated: true,
   },
   {
+    path: "/settings/teams",
+    headingText: "Teams",
+    cloudGated: true,
+  },
+  {
     path: "/settings/invitations",
     headingText: "Invitations",
     cloudGated: true,
