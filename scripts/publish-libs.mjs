@@ -93,8 +93,8 @@ export const PACKAGES = [
   // @stigmer/plugins is the official plugin marketplace as a directory tree
   // (a root marketplace.json and one Agent Plugins package per entry); no
   // @stigmer/* deps, so its position is order-free. A published @stigmer/cli
-  // acquires it at its exact version for `stigmer up` and `stigmer bootstrap`,
-  // so it MUST publish too.
+  // acquires it at its exact version for `stigmer install`, and the console
+  // reads it at the server's version from the npm CDN, so it MUST publish too.
   "plugins",
   // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
   // above it, so it publishes last with its deps already resolved.

@@ -327,21 +327,11 @@ describe("McpServer OAuth conformance — initiate, DCR arm", () => {
 });
 
 describe("McpServer OAuth conformance — initiate, vendor arm", () => {
-  it("reports NotFound for an unresolvable oauth_app_ref", async () => {
-    const { org } = await target.provisionTenancy();
-    const server = await createOAuthMcpServer({
-      org,
-      name: uniqueName("vnoapp"),
-      oauthAppSlug: "does-not-exist",
-    });
-    const err = await expectGrpcCode(
-      () => clients.mcpServerCommand.initiateOAuthConnect({ mcpServerId: server.metadata!.id, org }),
-      Code.NotFound,
-      "initiate with unknown oauth_app",
-    );
-    expect(err.rawMessage).toBe("oauth_app not found: does-not-exist");
-  });
-
+  // A dangling oauth_app_ref has no wire path any more: the reference rule
+  // refuses a missing app when the server is written, and the OAuthApp
+  // delete refuses while a server references it. The initiate lane's
+  // NotFound for a stored row that dangles anyway is pinned server-side over
+  // a seeded row (domain/mcpserver/__tests__/oauth-handshake.test.ts).
   it("refuses a vendor-PENDING app with the manual-token alternative (pinned copy)", async () => {
     const { org } = await target.provisionTenancy();
     const app = await createVendorOAuthApp(org, uniqueName("vpending"), {

@@ -85,7 +85,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -208,7 +211,8 @@ async function createSession(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep());
+    .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store));
   // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4; Q2
   // ruling — see the create doc comment). Empty in OSS.
   for (const step of stepsForSlot<typeof SessionSchema>(
@@ -499,7 +503,9 @@ async function list(
       newAuthorizeStep(SessionQueryController.method.list, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListAllSessionsStep(deps.store, deps.logger, deps.listReadScope))
+    .addStep(
+      newListAllSessionsStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));
@@ -559,7 +565,9 @@ async function listByChannel(
     )
     .addStep(newValidateProtoStep())
     .addStep(newAuthorizeChannelAccessStep(deps.authorizer))
-    .addStep(newFilterByChannelStep(deps.store, deps.logger, deps.listReadScope))
+    .addStep(
+      newFilterByChannelStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));

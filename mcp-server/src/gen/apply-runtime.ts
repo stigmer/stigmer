@@ -3,7 +3,6 @@
 // Shared runtime helpers for the generated apply-input toProto bridges.
 
 import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 /**
  * Slugify a resource name: lowercase, collapse each run of non-alphanumeric
@@ -23,13 +22,6 @@ export function generateSlug(name: string): string {
     }
   }
   return out.replace(/^-+/, "").replace(/-+$/, "");
-}
-
-/** Map the PUBLIC/PRIVATE apply input string to the visibility enum. */
-export function visibilityFromString(s: string | undefined): ApiResourceVisibility {
-  if (s && s.toUpperCase() === "PUBLIC") return ApiResourceVisibility.visibility_public;
-  if (s && s.toUpperCase() === "PRIVATE") return ApiResourceVisibility.visibility_private;
-  return ApiResourceVisibility.api_resource_visibility_unspecified;
 }
 
 /**

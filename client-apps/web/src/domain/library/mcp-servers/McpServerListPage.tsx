@@ -1,13 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useMemo, useReducer, useState } from "react";
 import Link from "next/link";
 import { Plus, Upload, Server } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
-import {
-  readPersistedScope,
-  writePersistedScope,
-} from "@/domain/library/scope-persistence";
 import {
   ResourceWorkbench,
   McpServerConnectDialog,
@@ -62,17 +58,11 @@ export function McpServerListPage() {
   const stigmer = useStigmer();
   const { navigateToDetail } = useLibraryNavigation();
 
-  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("mcp-servers"));
   const [connectTarget, setConnectTarget] = useState<ConnectTarget | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   // Bumped after Apply YAML so the newly applied server appears without
   // a reload — the list refetches in place.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
-
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope("mcp-servers", newScope);
-  }, []);
 
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.mcpServer.list>[0]) =>
@@ -96,8 +86,6 @@ export function McpServerListPage() {
         listFn={listFn}
         org={org}
         columns={MCP_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}

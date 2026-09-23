@@ -41,7 +41,11 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 const KIND = "McpServer";
@@ -128,7 +132,11 @@ function serverInput(overrides?: {
   };
 }
 
-async function expectCode(promise: Promise<unknown>, code: Code, arm: string): Promise<ConnectError> {
+async function expectCode(
+  promise: Promise<unknown>,
+  code: Code,
+  arm: string,
+): Promise<ConnectError> {
   try {
     await promise;
   } catch (error) {
@@ -157,7 +165,10 @@ async function seedCapabilities(
     serverId,
     McpServerSchema,
   );
-  const patched = fromBinary(McpServerSchema, toBinary(McpServerSchema, stored));
+  const patched = fromBinary(
+    McpServerSchema,
+    toBinary(McpServerSchema, stored),
+  );
   patched.status ??= create(McpServerStatusSchema, {});
   patched.status.discoveredCapabilities = create(DiscoveredCapabilitiesSchema, {
     tools: tools.map((name) => ({ name })),
@@ -176,13 +187,19 @@ describe("CRUD", () => {
     const created = await command.create(serverInput({ name: "GitHub Tools" }));
     expect(created.metadata?.id).toMatch(/^mcp_[0-9a-z]{26}$/);
     expect(created.metadata?.slug).toBe("github-tools");
-    expect(created.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    expect(created.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
   });
 
   it("rejects a duplicate create by slug within the org; a different org reuses the slug", async () => {
     const name = `Dup Target ${++counter}`;
     await command.create(serverInput({ name }));
-    await expectCode(command.create(serverInput({ name })), Code.AlreadyExists, "duplicate create");
+    await expectCode(
+      command.create(serverInput({ name })),
+      Code.AlreadyExists,
+      "duplicate create",
+    );
     const other = await command.create(serverInput({ name, org: "other-org" }));
     expect(other.metadata?.org).toBe("other-org");
   });
@@ -201,10 +218,17 @@ describe("CRUD", () => {
   it("get and getByReference resolve the same resource; unknowns answer NotFound", async () => {
     const created = await command.create(serverInput());
     const byId = await query.get({ value: created.metadata!.id });
-    const byRef = await query.getByReference({ org: ORG, slug: created.metadata!.slug });
+    const byRef = await query.getByReference({
+      org: ORG,
+      slug: created.metadata!.slug,
+    });
     expect(byId.metadata?.id).toBe(created.metadata?.id);
     expect(byRef.metadata?.id).toBe(created.metadata?.id);
-    await expectCode(query.get({ value: "mcps_missing" }), Code.NotFound, "get unknown");
+    await expectCode(
+      query.get({ value: "mcps_missing" }),
+      Code.NotFound,
+      "get unknown",
+    );
     await expectCode(
       query.getByReference({ org: ORG, slug: "never-created" }),
       Code.NotFound,
@@ -216,7 +240,11 @@ describe("CRUD", () => {
     const created = await command.create(serverInput());
     const deleted = await command.delete({ resourceId: created.metadata!.id });
     expect(deleted.metadata?.id).toBe(created.metadata?.id);
-    await expectCode(query.get({ value: created.metadata!.id }), Code.NotFound, "get after delete");
+    await expectCode(
+      query.get({ value: created.metadata!.id }),
+      Code.NotFound,
+      "get after delete",
+    );
   });
 
   it("update of a non-existent server and delete of a non-existent server answer NotFound; delete with an empty id is InvalidArgument", async () => {
@@ -233,7 +261,11 @@ describe("CRUD", () => {
       Code.NotFound,
       "delete non-existent",
     );
-    await expectCode(command.delete({}), Code.InvalidArgument, "delete empty id");
+    await expectCode(
+      command.delete({}),
+      Code.InvalidArgument,
+      "delete empty id",
+    );
   });
 });
 
@@ -244,13 +276,17 @@ describe("updateVisibility (no conformance coverage for this domain — the D4-d
       resourceId: created.metadata!.id,
       visibility: ApiResourceVisibility.visibility_private,
     });
-    expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+    expect(updated.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
+    );
     expect(updated.spec?.description).toBe(created.spec?.description);
     // A visibility change is a STATUS mutation: status_audit re-stamped
     // (updated event, fresh timestamp bounds are creation-or-later),
     // spec_audit byte-untouched.
     expect(updated.status?.audit?.statusAudit?.event).toBe("updated");
-    expect(updated.status?.audit?.specAudit).toEqual(created.status?.audit?.specAudit);
+    expect(updated.status?.audit?.specAudit).toEqual(
+      created.status?.audit?.specAudit,
+    );
   });
 
   it("answers NotFound for an unknown id", async () => {
@@ -296,7 +332,9 @@ describe("ValidateDefaultEnabledTools (#402)", () => {
   it("accepts names the server exposes; skips when the list is empty or the server never connected", async () => {
     // Never connected: any names pass (no authoritative toolset yet).
     const fresh = await command.create(serverInput());
-    const freshUpdate = await command.update(updateInput(fresh, ["anything-goes"]));
+    const freshUpdate = await command.update(
+      updateInput(fresh, ["anything-goes"]),
+    );
     expect(freshUpdate.spec?.defaultEnabledTools).toEqual(["anything-goes"]);
 
     // Connected: valid names pass.
@@ -308,7 +346,11 @@ describe("ValidateDefaultEnabledTools (#402)", () => {
 
   it("rejects unknown tools and resource templates with the byte-pinned teaching copy", async () => {
     const created = await command.create(serverInput());
-    await seedCapabilities(created.metadata!.id, ["search", "fetch"], ["files"]);
+    await seedCapabilities(
+      created.metadata!.id,
+      ["search", "fetch"],
+      ["files"],
+    );
 
     const err = await expectCode(
       command.update(updateInput(created, ["serch", "files"])),
@@ -334,7 +376,10 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
       OAuthAppSchema,
       create(OAuthAppSchema, {
         metadata: { id, org: ORG, slug, name: slug },
-        spec: { vendorApprovalStatus: approval, vendorApprovalDocsUrl: docsUrl },
+        spec: {
+          vendorApprovalStatus: approval,
+          vendorApprovalDocsUrl: docsUrl,
+        },
       }),
     );
   }
@@ -346,14 +391,25 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
   });
 
   it("a missing OAuthApp skips enrichment (the initiate path owns refusing)", async () => {
-    const created = await command.create(serverInput({ oauthAppSlug: "never-applied" }));
+    // The app must exist when the server is written (the reference rule);
+    // a reference dangles when its target leaves afterwards.
+    await seedOAuthApp("never-applied", VendorApprovalStatus.UNSPECIFIED, "");
+    const created = await command.create(
+      serverInput({ oauthAppSlug: "never-applied" }),
+    );
+    await server.store.deleteResource(
+      ApiResourceKind.oauth_app,
+      "oaa_neverapplied",
+    );
     const got = await query.get({ value: created.metadata!.id });
     expect(got.status?.oauthStatus).toBeUndefined();
   });
 
   it("nothing-to-report means ABSENT — presence itself is the SDK's signal", async () => {
     await seedOAuthApp("plain-app", VendorApprovalStatus.UNSPECIFIED, "");
-    const created = await command.create(serverInput({ oauthAppSlug: "plain-app" }));
+    const created = await command.create(
+      serverInput({ oauthAppSlug: "plain-app" }),
+    );
     const got = await query.get({ value: created.metadata!.id });
     expect(got.status?.oauthStatus).toBeUndefined();
   });
@@ -363,24 +419,42 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
   // alone must enrich (Go enrich_oauth_status_test.go's docs-only and
   // status-only arms — the executable spec of the #523 shared contract).
   it("a docs URL ALONE enriches, even with an UNSPECIFIED approval status", async () => {
-    await seedOAuthApp("docs-only-app", VendorApprovalStatus.UNSPECIFIED, "https://vendor.example/setup");
-    const created = await command.create(serverInput({ oauthAppSlug: "docs-only-app" }));
+    await seedOAuthApp(
+      "docs-only-app",
+      VendorApprovalStatus.UNSPECIFIED,
+      "https://vendor.example/setup",
+    );
+    const created = await command.create(
+      serverInput({ oauthAppSlug: "docs-only-app" }),
+    );
     const got = await query.get({ value: created.metadata!.id });
-    expect(got.status?.oauthStatus?.vendorApprovalStatus).toBe(VendorApprovalStatus.UNSPECIFIED);
-    expect(got.status?.oauthStatus?.vendorApprovalDocsUrl).toBe("https://vendor.example/setup");
+    expect(got.status?.oauthStatus?.vendorApprovalStatus).toBe(
+      VendorApprovalStatus.UNSPECIFIED,
+    );
+    expect(got.status?.oauthStatus?.vendorApprovalDocsUrl).toBe(
+      "https://vendor.example/setup",
+    );
   });
 
   it("a non-default approval status ALONE enriches — REJECTED and even APPROVED are reported", async () => {
     await seedOAuthApp("rejected-app", VendorApprovalStatus.REJECTED, "");
-    const rejected = await command.create(serverInput({ oauthAppSlug: "rejected-app" }));
+    const rejected = await command.create(
+      serverInput({ oauthAppSlug: "rejected-app" }),
+    );
     const gotRejected = await query.get({ value: rejected.metadata!.id });
-    expect(gotRejected.status?.oauthStatus?.vendorApprovalStatus).toBe(VendorApprovalStatus.REJECTED);
+    expect(gotRejected.status?.oauthStatus?.vendorApprovalStatus).toBe(
+      VendorApprovalStatus.REJECTED,
+    );
     expect(gotRejected.status?.oauthStatus?.vendorApprovalDocsUrl).toBe("");
 
     await seedOAuthApp("approved-app", VendorApprovalStatus.APPROVED, "");
-    const approved = await command.create(serverInput({ oauthAppSlug: "approved-app" }));
+    const approved = await command.create(
+      serverInput({ oauthAppSlug: "approved-app" }),
+    );
     const gotApproved = await query.get({ value: approved.metadata!.id });
-    expect(gotApproved.status?.oauthStatus?.vendorApprovalStatus).toBe(VendorApprovalStatus.APPROVED);
+    expect(gotApproved.status?.oauthStatus?.vendorApprovalStatus).toBe(
+      VendorApprovalStatus.APPROVED,
+    );
   });
 
   it("an auth block WITHOUT an oauth_app_ref (the DCR arm) is untouched", async () => {
@@ -391,8 +465,14 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
   });
 
   it("a gating approval status or docs URL enriches BOTH read paths, response-only", async () => {
-    await seedOAuthApp("gated-app", VendorApprovalStatus.PENDING, "https://vendor.example/approval");
-    const created = await command.create(serverInput({ oauthAppSlug: "gated-app" }));
+    await seedOAuthApp(
+      "gated-app",
+      VendorApprovalStatus.PENDING,
+      "https://vendor.example/approval",
+    );
+    const created = await command.create(
+      serverInput({ oauthAppSlug: "gated-app" }),
+    );
 
     for (const loaded of [
       await query.get({ value: created.metadata!.id }),
@@ -430,7 +510,12 @@ describe("org-OAuth-app surface — UNIMPLEMENTED by design (#558, DD-019)", () 
     expect(getErr.rawMessage).toBe("method GetOrgOAuthApp not implemented");
 
     const setErr = await expectCode(
-      command.setOrgOAuthApp({ resourceId: "mcps_test", org: ORG, clientId: "x", clientSecret: "y" }),
+      command.setOrgOAuthApp({
+        resourceId: "mcps_test",
+        org: ORG,
+        clientId: "x",
+        clientSecret: "y",
+      }),
       Code.Unimplemented,
       "setOrgOAuthApp",
     );
@@ -441,6 +526,8 @@ describe("org-OAuth-app surface — UNIMPLEMENTED by design (#558, DD-019)", () 
       Code.Unimplemented,
       "deleteOrgOAuthApp",
     );
-    expect(deleteErr.rawMessage).toBe("method DeleteOrgOAuthApp not implemented");
+    expect(deleteErr.rawMessage).toBe(
+      "method DeleteOrgOAuthApp not implemented",
+    );
   });
 });

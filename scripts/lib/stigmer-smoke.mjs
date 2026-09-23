@@ -137,14 +137,14 @@ export async function assertArtifactLane(artifactBaseUrl) {
 /**
  * The organization a fresh backend is bootstrapped with, read back the way
  * `stigmer up` decides whether to create it: the `stigmer` organization
- * among the caller's own (the CLI's `ensureSystemOrg` asks
+ * among the caller's own (the CLI's `bootstrapBackend` asks
  * findMyOrganizations and matches the slug). The bootstrap runs a few
  * seconds after SERVING, from the daemon's onStarted, and creating this
  * organization is the whole of it — a fresh install needs no default
  * content, because a session with no agent runs the built-in assistant.
  * Resolves to the organization's id.
  */
-export async function waitForSystemOrganization(baseUrl, timeoutMs, { slug = "stigmer" } = {}) {
+export async function waitForBootstrapOrganization(baseUrl, timeoutMs, { slug = "stigmer" } = {}) {
   return pollUntil(`organization '${slug}' present`, timeoutMs, async () => {
     const list = await connectJson(
       baseUrl,

@@ -94,9 +94,15 @@ import { metadataOf, parentIdOf } from "./shapes.js";
  * validation).
  *
  * The org floor: kinds flagged defaults_to_org_visibility (blueprints —
- * shared org assets) keep the org-viewer shape at public and platform
- * levels, so sharing a blueprint beyond the org never hides it from its
- * own org's catalog (ListObjects suppresses the public wildcard).
+ * shared org assets) keep the org-viewer shape at the platform level, so
+ * sharing a blueprint beyond the org never hides it from its own org's
+ * catalog.
+ *
+ * The retired public level has no shape here. No stored row holds it once
+ * the store migration has run, so no transition FROM it reaches this
+ * policy; a deployment that still holds public rows must move them through
+ * updateVisibility on the release that knew the level, whose reconciler
+ * deletes the wildcard grant, before it runs this one.
  */
 export function visibilityShapesFor(
   kind: ApiResourceKind,
@@ -110,14 +116,6 @@ export function visibilityShapesFor(
     case ApiResourceVisibility.visibility_org:
       if (config?.supportsOrg === true) {
         shapes.add("org-viewer");
-      }
-      break;
-    case ApiResourceVisibility.visibility_public:
-      if (config?.supportsPublic === true) {
-        shapes.add("public-viewer");
-        if (orgFloor) {
-          shapes.add("org-viewer");
-        }
       }
       break;
     case ApiResourceVisibility.visibility_platform:

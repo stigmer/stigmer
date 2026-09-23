@@ -1,5 +1,5 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/workflow-execution-sharing.fga.yaml
-# at commit b87dd1170 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#765 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for workflow_execution sharing and run observability.
@@ -173,8 +173,6 @@ tests:
       # never alice's run history.
       - user: identity_account:vera
         object: workflow_instance:inst1
-        context:
-          allow: false
         assertions:
           can_view: true
       - user: identity_account:vera

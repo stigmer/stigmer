@@ -1075,7 +1075,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     });
   });
 
-  it("updateVisibility fires the set-diff transition (org→public keeps the floor)", async () => {
+  it("updateVisibility fires the set-diff transition (org→private deletes the org shape)", async () => {
     const command = createClient(AgentCommandController, portTransport);
     const agent = await command.create(
       create(AgentSchema, {
@@ -1092,12 +1092,12 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     visibilityEvents.length = 0;
     await command.updateVisibility({
       resourceId: agent.metadata?.id ?? "",
-      visibility: ApiResourceVisibility.visibility_public,
+      visibility: ApiResourceVisibility.visibility_private,
     });
     expect(visibilityEvents).toHaveLength(1);
     const event = visibilityEvents[0]!;
-    expect(event.shapesToCreate).toEqual(["public-viewer"]);
-    expect(event.shapesToDelete).toEqual([]);
+    expect(event.shapesToCreate).toEqual([]);
+    expect(event.shapesToDelete).toEqual(["org-viewer"]);
   });
 
   it("delete fires the cleanup event; a cleanup failure never fails the delete", async () => {

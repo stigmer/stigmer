@@ -61,7 +61,6 @@ async function search(
     kinds: request.kinds.map((kind) => ApiResourceKind[kind] ?? String(kind)),
     query: request.query,
     org: request.org,
-    exclude_public: request.excludePublic,
   });
 
   try {

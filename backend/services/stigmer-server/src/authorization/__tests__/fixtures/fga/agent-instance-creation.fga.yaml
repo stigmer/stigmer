@@ -1,5 +1,5 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/agent-instance-creation.fga.yaml
-# at commit 4c03c38d2 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#765 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for agent-instance creation: two halves, asked together by
@@ -8,15 +8,15 @@
 # agent may instantiate it). The organization half is
 # can_create_agent_instance: member on the organization the instance is
 # created IN, which is the caller's own, not the agent's: a personal
-# instance of another organization's public agent lives in the caller's
-# organization (the marketplace case), so the agent's permission alone
-# would let a row be planted in any organization named on the request.
+# instance of another organization's platform-visible agent lives in the
+# caller's organization (the tenant-family case), so the agent's permission
+# alone would let a row be planted in any organization named on the request.
 #
 # What these pin: owners, admins and members hold the organization half;
 # a viewer-role account may run an org-visible agent (the agent half) and
 # still lacks the organization half; a guest holds neither; an outsider
-# holds neither; and the marketplace case passes on the caller's own
-# organization while the agent half comes from the public wildcard.
+# holds neither; and the tenant-family case passes on the caller's own
+# organization while the agent half comes from the platform_viewer grant.
 #
 # Run: fga model test --tests agent-instance-creation.fga.yaml
 
@@ -47,6 +47,15 @@ tuples:
     relation: member
     object: organization:consumer
 
+  # acme owns identity_provider:idp1, which manages consumer: the two are
+  # one tenant family, the audience a platform-visible agent reaches.
+  - user: organization:acme
+    relation: organization
+    object: identity_provider:idp1
+  - user: organization:consumer
+    relation: managed_org
+    object: identity_provider:idp1
+
   # An ORG-visible agent in acme, authored by oscar.
   - user: organization:acme
     relation: organization
@@ -66,7 +75,7 @@ tuples:
     relation: owner
     object: agent:secret-bot
 
-  # A PUBLIC marketplace agent in acme (the conditional wildcard plus the
+  # A PLATFORM-visible agent in acme (the platform_viewer grant plus the
   # org floor tuple the visibility writer emits).
   - user: organization:acme
     relation: organization
@@ -74,12 +83,9 @@ tuples:
   - user: identity_account:oscar
     relation: owner
     object: agent:open-bot
-  - user: identity_account:*
-    relation: viewer
+  - user: identity_provider:idp1#platform_user
+    relation: platform_viewer
     object: agent:open-bot
-    condition:
-      name: allow_public
-      context: {}
   - user: organization:acme#viewer
     relation: viewer
     object: agent:open-bot
@@ -121,8 +127,6 @@ tests:
     check:
       - user: identity_account:dave
         object: agent:team-bot
-        context:
-          allow: false
         assertions:
           can_create_instance: true
           can_execute: true
@@ -131,8 +135,6 @@ tests:
     check:
       - user: identity_account:vera
         object: agent:team-bot
-        context:
-          allow: false
         assertions:
           can_create_instance: true
       - user: identity_account:vera
@@ -144,35 +146,25 @@ tests:
     check:
       - user: identity_account:oscar
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_create_instance: true
       - user: identity_account:olivia
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_create_instance: true
       - user: identity_account:dave
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_create_instance: false
       - user: identity_account:mia
         object: agent:secret-bot
-        context:
-          allow: false
         assertions:
           can_create_instance: false
 
-  - name: the marketplace case, the agent half from the wildcard and the organization half at home
+  - name: the tenant-family case, the agent half from platform_viewer and the organization half at home
     check:
       - user: identity_account:mia
         object: agent:open-bot
-        context:
-          allow: true
         assertions:
           can_create_instance: true
       - user: identity_account:mia

@@ -4,7 +4,10 @@
  * idempotent, a mid-chain database resumes (v1 → v2 picks up the sweep
  * index), and concurrent first boots serialize on the advisory lock
  * instead of racing the chain — the multi-instance failure class sqlite's
- * single-file lock never had.
+ * single-file lock never had. v5, the chain's first row-decoding step,
+ * moves every row of the seven kinds that held the retired public level to
+ * org and leaves every other row's bytes as they were; a row it cannot
+ * decode fails the step and leaves the database at v4.
  *
  * Gated on TEST_DATABASE_URL (see support.ts): visible skips without a
  * database, always exercised in CI via the ci.stigmer-server service
@@ -14,7 +17,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import pg from "pg";
 
-import { CURRENT_SCHEMA_VERSION } from "../migrations.js";
+import { create, fromJson, toBinary } from "@bufbuild/protobuf";
+import type { DescMessage } from "@bufbuild/protobuf";
+
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+
+import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
+import { CURRENT_SCHEMA_VERSION, SCHEMA_VERSION_5 } from "../migrations.js";
 import { PostgresStore } from "../store.js";
 import {
   createTestDatabase,
@@ -105,7 +115,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         await client.query(`DROP INDEX idx_wfee_created_at`);
         await client.query(`DROP INDEX idx_oauth_grant_resource`);
         await client.query(
-          `DELETE FROM schema_version WHERE version IN (2, 3, 4)`,
+          `DELETE FROM schema_version WHERE version IN (2, 3, 4, 5)`,
         );
         await client.query(
           `INSERT INTO resources (kind, id, data) VALUES ('project', 'prj_seeded', '\\x00'), ('organization', 'acme', '\\x00')`,
@@ -120,9 +130,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         const remaining = await client.query(
           `SELECT kind, id FROM resources ORDER BY kind`,
         );
-        expect(remaining.rows, "v4 removed the Project row and kept the rest").toEqual([
-          { kind: "organization", id: "acme" },
-        ]);
+        expect(
+          remaining.rows,
+          "v4 removed the Project row and kept the rest",
+        ).toEqual([{ kind: "organization", id: "acme" }]);
         const projectAudit = await client.query(
           `SELECT count(*)::int AS n FROM resource_audit WHERE kind = 'project'`,
         );
@@ -189,6 +200,176 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       } finally {
         await client.end();
       }
+    });
+
+    describe("v5: the retired public level leaves every row", () => {
+      /** A row of `schema` carrying only the envelope every kind shares, at `visibility`. */
+      function envelopeBytes(
+        schema: DescMessage,
+        id: string,
+        visibility: ApiResourceVisibility,
+      ): Buffer {
+        return Buffer.from(
+          toBinary(
+            schema,
+            fromJson(schema, {
+              metadata: {
+                id,
+                name: id,
+                slug: id,
+                org: "acme",
+                visibility: ApiResourceVisibility[visibility],
+              },
+            }),
+          ),
+        );
+      }
+
+      function agentBytes(
+        id: string,
+        visibility: ApiResourceVisibility,
+      ): Buffer {
+        return Buffer.from(
+          toBinary(
+            AgentSchema,
+            create(AgentSchema, {
+              apiVersion: "agentic.stigmer.ai/v1",
+              kind: "Agent",
+              metadata: { id, name: id, slug: id, org: "acme", visibility },
+              spec: { instructions: "a conformant instruction body" },
+            }),
+          ),
+        );
+      }
+
+      /** Opens the store once (the chain replays), then rewinds to v4 for the seeding. */
+      async function v4Client(): Promise<pg.Client> {
+        const store = await PostgresStore.open(db.databaseUrl);
+        await store.close();
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        await client.query(`DELETE FROM schema_version WHERE version = $1`, [
+          SCHEMA_VERSION_5,
+        ]);
+        return client;
+      }
+
+      async function row(
+        client: pg.Client,
+        kind: string,
+        id: string,
+      ): Promise<{ data: Buffer; updated_at: Date }> {
+        const result = await client.query<{ data: Buffer; updated_at: Date }>(
+          `SELECT data, updated_at FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        return result.rows[0]!;
+      }
+
+      it("moves a public row of every kind in the frozen table to org, and leaves an org row and a private row byte-for-byte", async () => {
+        const client = await v4Client();
+        const seededAt = new Date("2026-09-01T00:00:00Z");
+        try {
+          for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
+            await client.query(
+              `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+              [
+                entry.kind,
+                `${entry.kind}_public`,
+                envelopeBytes(
+                  entry.schema,
+                  `${entry.kind}_public`,
+                  ApiResourceVisibility.visibility_public,
+                ),
+                seededAt,
+              ],
+            );
+          }
+          const orgBytes = agentBytes(
+            "agt_org",
+            ApiResourceVisibility.visibility_org,
+          );
+          const privateBytes = agentBytes(
+            "agt_private",
+            ApiResourceVisibility.visibility_private,
+          );
+          await client.query(
+            `INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent', 'agt_org', $1, $3), ('agent', 'agt_private', $2, $3)`,
+            [orgBytes, privateBytes, seededAt],
+          );
+
+          const reopened = await PostgresStore.open(db.databaseUrl);
+          await reopened.close();
+
+          const version = await client.query(
+            `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+          );
+          expect(Number((version.rows[0] as { version: string }).version)).toBe(
+            CURRENT_SCHEMA_VERSION,
+          );
+          for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
+            const moved = await row(client, entry.kind, `${entry.kind}_public`);
+            expect(
+              moved.data.equals(
+                envelopeBytes(
+                  entry.schema,
+                  `${entry.kind}_public`,
+                  ApiResourceVisibility.visibility_org,
+                ),
+              ),
+              entry.kind,
+            ).toBe(true);
+            expect(
+              moved.updated_at.getTime(),
+              `${entry.kind} updated_at bumped`,
+            ).toBeGreaterThan(seededAt.getTime());
+          }
+          const org = await row(client, "agent", "agt_org");
+          expect(org.data.equals(orgBytes)).toBe(true);
+          expect(org.updated_at.getTime()).toBe(seededAt.getTime());
+          const priv = await row(client, "agent", "agt_private");
+          expect(priv.data.equals(privateBytes)).toBe(true);
+          expect(priv.updated_at.getTime()).toBe(seededAt.getTime());
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a row of a table kind that does not decode fails the step, names the row, and leaves the database at v4 with every row untouched", async () => {
+        const client = await v4Client();
+        try {
+          const publicBytes = agentBytes(
+            "agt_public",
+            ApiResourceVisibility.visibility_public,
+          );
+          await client.query(
+            `INSERT INTO resources (kind, id, data) VALUES ('agent', 'agt_public', $1), ('agent', 'agt_broken', '\\xffffff'), ('session', 'ses_opaque', '\\xffff')`,
+            [publicBytes],
+          );
+
+          await expect(PostgresStore.open(db.databaseUrl)).rejects.toThrow(
+            /migrate to v5: .*agent 'agt_broken' cannot be moved off the retired public level/,
+          );
+
+          const version = await client.query(
+            `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+          );
+          expect(Number((version.rows[0] as { version: string }).version)).toBe(
+            SCHEMA_VERSION_5 - 1,
+          );
+          expect(
+            (await row(client, "agent", "agt_public")).data.equals(publicBytes),
+          ).toBe(true);
+          // A kind outside the frozen table is never decoded, whatever it holds.
+          expect(
+            (await row(client, "session", "ses_opaque")).data.equals(
+              Buffer.from([0xff, 0xff]),
+            ),
+          ).toBe(true);
+        } finally {
+          await client.end();
+        }
+      });
     });
   },
 );

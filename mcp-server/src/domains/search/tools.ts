@@ -41,7 +41,6 @@ interface SearchArgs {
   readonly kinds?: string[];
   readonly query?: string;
   readonly org?: string;
-  readonly excludePublic?: boolean;
   readonly pageSize?: number;
   readonly pageNum?: number;
 }
@@ -70,10 +69,6 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
           .string()
           .optional()
           .describe("Organization slug to scope the search. Empty searches all accessible orgs."),
-        exclude_public: z
-          .boolean()
-          .optional()
-          .describe("Exclude public/platform resources from results."),
         page_size: z.number().int().optional().describe("Results per page (default 20, max 100)."),
         page_num: z.number().int().optional().describe("Page number (1-indexed, default 1)."),
       },
@@ -84,7 +79,6 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
           kinds: args.kinds,
           query: args.query,
           org: args.org,
-          excludePublic: args.exclude_public,
           pageSize: args.page_size,
           pageNum: args.page_num,
         }),
@@ -102,7 +96,6 @@ async function search(serverAddress: string, token: string, args: SearchArgs): P
       kinds,
       query: args.query ?? "",
       org: args.org ?? "",
-      excludePublic: args.excludePublic ?? false,
     };
     // Attach pagination only when explicitly requested, letting the server apply
     // its own defaults otherwise (Go does the same).

@@ -32,7 +32,7 @@ export function registerInstall(program: Command): void {
     )
     .option(
       "--visibility <level>",
-      "visibility for the plugin and everything it installs (private, org, public, platform)",
+      "visibility for the plugin and everything it installs (private, org, platform)",
     )
     .option(
       "-m, --message <message>",

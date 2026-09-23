@@ -256,7 +256,7 @@ const FILTER_OPTIONS: readonly {
 /**
  * Segmented control for the server-evaluated list filter. Renders as a
  * WAI-ARIA Radio Group with roving tabindex and arrow-key navigation —
- * the `ScopeToggle` pattern (its second sighting; extract a shared
+ * the `ViewSwitcher` pattern (its second sighting; extract a shared
  * primitive if a third segmented control appears).
  *
  * "Needs human" is exactly the nav badge's predicate (DD-011 D-f/D-g),

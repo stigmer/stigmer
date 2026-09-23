@@ -344,7 +344,6 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_public: true
         supports_platform: true
         defaults_to_org_visibility: true
       }
@@ -411,7 +410,6 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_public: true
         supports_platform: true
         defaults_to_org_visibility: true
       }
@@ -437,7 +435,6 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_public: true
         supports_platform: true
         defaults_to_org_visibility: true
       }
@@ -464,10 +461,7 @@ enum ApiResourceKind {
       // platform is deliberately absent: instances are tenant-isolated.
       // System-managed default instances ignore visibility entirely — their
       // access tracks the parent agent via the default_of FGA relation.
-      visibility: {
-        supports_org: true
-        supports_public: true
-      }
+      visibility: {supports_org: true}
       additional_parents: [
         {
           kind: "agent"
@@ -579,7 +573,6 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_public: true
         supports_platform: true
         defaults_to_org_visibility: true
       }
@@ -603,14 +596,11 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      // Mirrors agent_instance: org/public are enum-driven; platform is
-      // deliberately absent (tenant isolation). Without this config the
-      // reconciler would silently skip org/public viewer tuples for
-      // workflow instances (the pre-2026-06 P0 gap).
-      visibility: {
-        supports_org: true
-        supports_public: true
-      }
+      // Mirrors agent_instance: org is enum-driven; platform is deliberately
+      // absent (tenant isolation). Without this config the reconciler would
+      // silently skip org viewer tuples for workflow instances (the
+      // pre-2026-06 P0 gap).
+      visibility: {supports_org: true}
       additional_parents: [
         {
           kind: "workflow"
@@ -814,7 +804,6 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {
         supports_org: true
-        supports_public: true
         supports_platform: true
         defaults_to_org_visibility: true
       }

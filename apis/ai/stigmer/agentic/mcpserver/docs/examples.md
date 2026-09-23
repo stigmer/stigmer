@@ -212,9 +212,9 @@ spec:
 
 ---
 
-## Public Marketplace McpServer
+## Catalogue McpServer (carried in a plugin)
 
-A fully-featured MCP server published to the marketplace. Designed to be referenced by agents from any organization.
+A fully-featured MCP server as Stigmer's catalogue ships it. It reaches an organization as a member of the plugin that carries it: the installed copy belongs to the installing organization and takes the visibility chosen at install (organization by default), so agents there reference their own copy.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -222,7 +222,6 @@ kind: McpServer
 metadata:
   name: Slack
   org: stigmer
-  visibility: visibility_public
   labels:
     category: communication
     tier: production
@@ -270,11 +269,11 @@ spec:
         is_secret: false
 ```
 
-Key characteristics of marketplace McpServers:
-- `metadata.org` is set explicitly to the publishing organization (`stigmer`).
-- `metadata.visibility` is `visibility_public` — any organization can reference this server.
-- `metadata.annotations` include support and documentation URLs for marketplace users.
-- `env_spec` descriptions are precise — marketplace users need to know exactly what credentials to provide and what permissions they require.
+Key characteristics of catalogue McpServers:
+- `metadata.org` names the authoring organization (`stigmer`); on install the copy belongs to the installing organization.
+- `metadata.visibility` is not declared — the installed copy takes the level chosen at install, organization by default.
+- `metadata.annotations` include support and documentation URLs for the installing organization.
+- `env_spec` descriptions are precise — an installing organization needs to know exactly what credentials to provide and what permissions they require.
 
 ---
 

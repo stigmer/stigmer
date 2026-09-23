@@ -17,9 +17,7 @@
  *   2. A kind this edition does not serve is `deny` (`kindServedByEdition`,
  *      the predicate 2b's `checkMyPermission` arm 1 uses, so the console
  *      and the server agree by construction). `platform` is the one that
- *      arrives, through `can_set_public_visibility` — under the built-in
- *      posture nobody sets public visibility, the model's own reason for
- *      making it a platform operator's act.
+ *      can arrive, through an operator capability no self-host holds.
  *   3. The caller as a person (person.ts) and one derived tuple source for
  *      them; the target loaded ONCE through the source's memoised loader,
  *      so the read that decides not-found is the read the derivation
@@ -31,11 +29,9 @@
  *      member cannot learn which account ids exist. Present or exempt, the
  *      row is then evaluated: the cloud asks OpenFGA whether or not the row
  *      exists, and so does this driver.
- *   5. `checkRelation` with the point-check context (`allow: true`: a
- *      public resource reads for any authenticated caller, the cloud's
- *      posture). True is `allow`; false is `deny` with an EMPTY reason, so
- *      the method annotation's byte-pinned `error_msg` wins on the wire,
- *      exactly the cloud's genuine-denial path.
+ *   5. `checkRelation`. True is `allow`; false is `deny` with an EMPTY
+ *      reason, so the method annotation's byte-pinned `error_msg` wins on
+ *      the wire, exactly the cloud's genuine-denial path.
  *
  * Faults. Everything past the pre-checks runs under one guard: a store
  * fault, a person that names nobody (`personFor`), an evaluation fault
@@ -185,7 +181,6 @@ export function newBuiltInAuthorizer(deps: BuiltInAuthorizerDeps): Authorizer {
           object,
           relation,
           person,
-          { allow: true },
         );
         if (allowed) {
           return { kind: "allow" };

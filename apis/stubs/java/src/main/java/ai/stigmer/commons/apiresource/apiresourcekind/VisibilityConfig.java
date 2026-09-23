@@ -14,12 +14,16 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  *
  * - visibility_private: no visibility tuple (owner + explicit grants only)
  * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#member
- * - visibility_public:  resource#viewer&#64;identity_account:* (conditional
- * wildcard gated by allow_public)
  * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
  * (the "private catalog" primitive: grants access to
  * all members of all platform_managed orgs linked to
  * the owning org's IdentityProvider)
+ *
+ * Every level but private is bounded by an organization or by the identity
+ * provider that links a set of organizations. There is no level a resource
+ * can hold that makes it readable to every account on the server; sharing
+ * across organizations that share no identity provider is done by
+ * packaging the resource as a plugin and installing a copy.
  *
  * Kinds WITHOUT a visibility config accept only visibility_private (or
  * unspecified) — they are personal or org-structural resources whose access
@@ -27,10 +31,10 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * tuples (session, environment, executions, etc.).
  *
  * Current classification:
- * - Blueprint kinds (agent, skill, workflow, mcp_server):
- * private, org, public, platform
+ * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
+ * private, org, platform
  * - Instance kinds (agent_instance, workflow_instance):
- * private, org, public — platform is deliberately excluded to preserve
+ * private, org — platform is deliberately excluded to preserve
  * tenant isolation: each managed org instantiates shared blueprints
  * inside its own boundary. (System-managed DEFAULT instances opt out of
  * visibility entirely: their access tracks the parent blueprint
@@ -82,22 +86,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigProto.internal_static_ai_stigmer_commons_apiresource_apiresourcekind_VisibilityConfig_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
             ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.class, ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.Builder.class);
-  }
-
-  public static final int SUPPORTS_PUBLIC_FIELD_NUMBER = 1;
-  private boolean supportsPublic_ = false;
-  /**
-   * <pre>
-   * Whether resources of this kind can be set to visibility_public.
-   * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
-   * </pre>
-   *
-   * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
-   * @return The supportsPublic.
-   */
-  @java.lang.Override
-  public boolean getSupportsPublic() {
-    return supportsPublic_;
   }
 
   public static final int SUPPORTS_PLATFORM_FIELD_NUMBER = 2;
@@ -155,12 +143,12 @@ private static final long serialVersionUID = 0L;
    * explicit opt-in, never a surprise.
    *
    * The flag carries a second, coupled semantic for the same kinds — the
-   * ORG FLOOR: when visibility is platform or public, the org viewer tuple
-   * is written IN ADDITION to the level's own tuple. Sharing a blueprint
-   * beyond the org must never make it less visible to the owning org's own
-   * members (org-scoped listings resolve through FGA ListObjects with the
-   * public wildcard suppressed, so the explicit org tuple is what keeps
-   * shared blueprints listable at home).
+   * ORG FLOOR: when visibility is platform, the org viewer tuple is written
+   * IN ADDITION to the level's own tuple. Sharing a blueprint beyond the
+   * org must never make it less visible to the owning org's own members
+   * (org-scoped listings resolve through FGA ListObjects on the org tuple,
+   * so the explicit org tuple is what keeps shared blueprints listable at
+   * home).
    *
    * Instance kinds deliberately leave this false: instances are personal
    * resources (configuration, secrets) that must start private, and their
@@ -194,9 +182,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (supportsPublic_ != false) {
-      output.writeBool(1, supportsPublic_);
-    }
     if (supportsPlatform_ != false) {
       output.writeBool(2, supportsPlatform_);
     }
@@ -215,10 +200,6 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (supportsPublic_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(1, supportsPublic_);
-    }
     if (supportsPlatform_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(2, supportsPlatform_);
@@ -246,8 +227,6 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig other = (ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig) obj;
 
-    if (getSupportsPublic()
-        != other.getSupportsPublic()) return false;
     if (getSupportsPlatform()
         != other.getSupportsPlatform()) return false;
     if (getSupportsOrg()
@@ -265,9 +244,6 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + SUPPORTS_PUBLIC_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getSupportsPublic());
     hash = (37 * hash) + SUPPORTS_PLATFORM_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getSupportsPlatform());
@@ -383,12 +359,16 @@ private static final long serialVersionUID = 0L;
    *
    * - visibility_private: no visibility tuple (owner + explicit grants only)
    * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#member
-   * - visibility_public:  resource#viewer&#64;identity_account:* (conditional
-   * wildcard gated by allow_public)
    * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
    * (the "private catalog" primitive: grants access to
    * all members of all platform_managed orgs linked to
    * the owning org's IdentityProvider)
+   *
+   * Every level but private is bounded by an organization or by the identity
+   * provider that links a set of organizations. There is no level a resource
+   * can hold that makes it readable to every account on the server; sharing
+   * across organizations that share no identity provider is done by
+   * packaging the resource as a plugin and installing a copy.
    *
    * Kinds WITHOUT a visibility config accept only visibility_private (or
    * unspecified) — they are personal or org-structural resources whose access
@@ -396,10 +376,10 @@ private static final long serialVersionUID = 0L;
    * tuples (session, environment, executions, etc.).
    *
    * Current classification:
-   * - Blueprint kinds (agent, skill, workflow, mcp_server):
-   * private, org, public, platform
+   * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
+   * private, org, platform
    * - Instance kinds (agent_instance, workflow_instance):
-   * private, org, public — platform is deliberately excluded to preserve
+   * private, org — platform is deliberately excluded to preserve
    * tenant isolation: each managed org instantiates shared blueprints
    * inside its own boundary. (System-managed DEFAULT instances opt out of
    * visibility entirely: their access tracks the parent blueprint
@@ -444,7 +424,6 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      supportsPublic_ = false;
       supportsPlatform_ = false;
       supportsOrg_ = false;
       defaultsToOrgVisibility_ = false;
@@ -482,15 +461,12 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.supportsPublic_ = supportsPublic_;
-      }
-      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.supportsPlatform_ = supportsPlatform_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.supportsOrg_ = supportsOrg_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.defaultsToOrgVisibility_ = defaultsToOrgVisibility_;
       }
     }
@@ -507,9 +483,6 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig other) {
       if (other == ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.getDefaultInstance()) return this;
-      if (other.getSupportsPublic() != false) {
-        setSupportsPublic(other.getSupportsPublic());
-      }
       if (other.getSupportsPlatform() != false) {
         setSupportsPlatform(other.getSupportsPlatform());
       }
@@ -545,24 +518,19 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 8: {
-              supportsPublic_ = input.readBool();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 8
             case 16: {
               supportsPlatform_ = input.readBool();
-              bitField0_ |= 0x00000002;
+              bitField0_ |= 0x00000001;
               break;
             } // case 16
             case 24: {
               supportsOrg_ = input.readBool();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 24
             case 32: {
               defaultsToOrgVisibility_ = input.readBool();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 32
             default: {
@@ -581,53 +549,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     private int bitField0_;
-
-    private boolean supportsPublic_ ;
-    /**
-     * <pre>
-     * Whether resources of this kind can be set to visibility_public.
-     * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
-     * </pre>
-     *
-     * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
-     * @return The supportsPublic.
-     */
-    @java.lang.Override
-    public boolean getSupportsPublic() {
-      return supportsPublic_;
-    }
-    /**
-     * <pre>
-     * Whether resources of this kind can be set to visibility_public.
-     * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
-     * </pre>
-     *
-     * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
-     * @param value The supportsPublic to set.
-     * @return This builder for chaining.
-     */
-    public Builder setSupportsPublic(boolean value) {
-
-      supportsPublic_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether resources of this kind can be set to visibility_public.
-     * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
-     * </pre>
-     *
-     * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearSupportsPublic() {
-      bitField0_ = (bitField0_ & ~0x00000001);
-      supportsPublic_ = false;
-      onChanged();
-      return this;
-    }
 
     private boolean supportsPlatform_ ;
     /**
@@ -662,7 +583,7 @@ private static final long serialVersionUID = 0L;
     public Builder setSupportsPlatform(boolean value) {
 
       supportsPlatform_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -679,7 +600,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearSupportsPlatform() {
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000001);
       supportsPlatform_ = false;
       onChanged();
       return this;
@@ -720,7 +641,7 @@ private static final long serialVersionUID = 0L;
     public Builder setSupportsOrg(boolean value) {
 
       supportsOrg_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -738,7 +659,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearSupportsOrg() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       supportsOrg_ = false;
       onChanged();
       return this;
@@ -759,12 +680,12 @@ private static final long serialVersionUID = 0L;
      * explicit opt-in, never a surprise.
      *
      * The flag carries a second, coupled semantic for the same kinds — the
-     * ORG FLOOR: when visibility is platform or public, the org viewer tuple
-     * is written IN ADDITION to the level's own tuple. Sharing a blueprint
-     * beyond the org must never make it less visible to the owning org's own
-     * members (org-scoped listings resolve through FGA ListObjects with the
-     * public wildcard suppressed, so the explicit org tuple is what keeps
-     * shared blueprints listable at home).
+     * ORG FLOOR: when visibility is platform, the org viewer tuple is written
+     * IN ADDITION to the level's own tuple. Sharing a blueprint beyond the
+     * org must never make it less visible to the owning org's own members
+     * (org-scoped listings resolve through FGA ListObjects on the org tuple,
+     * so the explicit org tuple is what keeps shared blueprints listable at
+     * home).
      *
      * Instance kinds deliberately leave this false: instances are personal
      * resources (configuration, secrets) that must start private, and their
@@ -797,12 +718,12 @@ private static final long serialVersionUID = 0L;
      * explicit opt-in, never a surprise.
      *
      * The flag carries a second, coupled semantic for the same kinds — the
-     * ORG FLOOR: when visibility is platform or public, the org viewer tuple
-     * is written IN ADDITION to the level's own tuple. Sharing a blueprint
-     * beyond the org must never make it less visible to the owning org's own
-     * members (org-scoped listings resolve through FGA ListObjects with the
-     * public wildcard suppressed, so the explicit org tuple is what keeps
-     * shared blueprints listable at home).
+     * ORG FLOOR: when visibility is platform, the org viewer tuple is written
+     * IN ADDITION to the level's own tuple. Sharing a blueprint beyond the
+     * org must never make it less visible to the owning org's own members
+     * (org-scoped listings resolve through FGA ListObjects on the org tuple,
+     * so the explicit org tuple is what keeps shared blueprints listable at
+     * home).
      *
      * Instance kinds deliberately leave this false: instances are personal
      * resources (configuration, secrets) that must start private, and their
@@ -821,7 +742,7 @@ private static final long serialVersionUID = 0L;
     public Builder setDefaultsToOrgVisibility(boolean value) {
 
       defaultsToOrgVisibility_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -839,12 +760,12 @@ private static final long serialVersionUID = 0L;
      * explicit opt-in, never a surprise.
      *
      * The flag carries a second, coupled semantic for the same kinds — the
-     * ORG FLOOR: when visibility is platform or public, the org viewer tuple
-     * is written IN ADDITION to the level's own tuple. Sharing a blueprint
-     * beyond the org must never make it less visible to the owning org's own
-     * members (org-scoped listings resolve through FGA ListObjects with the
-     * public wildcard suppressed, so the explicit org tuple is what keeps
-     * shared blueprints listable at home).
+     * ORG FLOOR: when visibility is platform, the org viewer tuple is written
+     * IN ADDITION to the level's own tuple. Sharing a blueprint beyond the
+     * org must never make it less visible to the owning org's own members
+     * (org-scoped listings resolve through FGA ListObjects on the org tuple,
+     * so the explicit org tuple is what keeps shared blueprints listable at
+     * home).
      *
      * Instance kinds deliberately leave this false: instances are personal
      * resources (configuration, secrets) that must start private, and their
@@ -860,7 +781,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearDefaultsToOrgVisibility() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       defaultsToOrgVisibility_ = false;
       onChanged();
       return this;

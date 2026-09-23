@@ -50,10 +50,6 @@ export function ReviewStep({
           <SummaryItem label="Name" value={data.name} />
           <SummaryItem label="Slug" value={data.slug} mono />
           <SummaryItem label="Organization" value={org} mono />
-          <SummaryItem
-            label="Visibility"
-            value={data.visibility === "public" ? "Public" : "Private"}
-          />
           {data.description && (
             <SummaryItem
               label="Description"

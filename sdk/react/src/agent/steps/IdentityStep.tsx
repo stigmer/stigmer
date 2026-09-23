@@ -2,7 +2,6 @@
 
 import { useCallback, useId } from "react";
 import { cn } from "@stigmer/theme";
-import { UNSTYLED_FIELDSET } from "../../internal/element-resets.js";
 import { generateSlug } from "../../internal/slug.js";
 import type { AgentWizardData } from "./types.js";
 
@@ -19,7 +18,9 @@ const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
  * Wizard step 1: Agent identity and instructions.
  *
  * Collects: name (required), slug (auto-derived), description,
- * icon URL, visibility, and the instructions textarea.
+ * icon URL, and the instructions textarea. Visibility is not chosen
+ * here: a new agent takes its kind's default level, and the detail
+ * page's `ResourceVisibilityControl` is the one home of the choice.
  *
  * The slug auto-derives from the name until the user manually edits it.
  * Follows the same pattern as `CreateOrganizationForm`.
@@ -151,52 +152,26 @@ export function IdentityStep({
         />
       </div>
 
-      {/* Icon URL + Visibility (same row) */}
-      <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
-        <div className="stg:space-y-1.5">
-          <label
-            htmlFor={`${baseId}-icon`}
-            className="stg:text-sm stg:font-medium stg:text-foreground"
-          >
-            Icon URL
-          </label>
-          <input
-            id={`${baseId}-icon`}
-            type="url"
-            value={data.iconUrl}
-            onChange={(e) => updateData({ iconUrl: e.target.value })}
-            placeholder="https://example.com/icon.png"
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          />
-        </div>
-
-        <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
-          <legend className="stg:text-sm stg:font-medium stg:text-foreground">
-            Visibility
-          </legend>
-          <div className="stg:flex stg:gap-2">
-            {/* The radio-group name is minted per mount: a hardcoded name
-                would merge two mounted wizards into one keyboard group. */}
-            <VisibilityOption
-              name={`${baseId}-visibility`}
-              value="private"
-              label="Private"
-              checked={data.visibility === "private"}
-              onChange={() => updateData({ visibility: "private" })}
-            />
-            <VisibilityOption
-              name={`${baseId}-visibility`}
-              value="public"
-              label="Public"
-              checked={data.visibility === "public"}
-              onChange={() => updateData({ visibility: "public" })}
-            />
-          </div>
-        </fieldset>
+      {/* Icon URL */}
+      <div className="stg:space-y-1.5">
+        <label
+          htmlFor={`${baseId}-icon`}
+          className="stg:text-sm stg:font-medium stg:text-foreground"
+        >
+          Icon URL
+        </label>
+        <input
+          id={`${baseId}-icon`}
+          type="url"
+          value={data.iconUrl}
+          onChange={(e) => updateData({ iconUrl: e.target.value })}
+          placeholder="https://example.com/icon.png"
+          className={cn(
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          )}
+        />
       </div>
 
       {/* Instructions */}
@@ -224,44 +199,5 @@ export function IdentityStep({
         />
       </div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Visibility radio option
-// ---------------------------------------------------------------------------
-
-function VisibilityOption({
-  name,
-  value,
-  label,
-  checked,
-  onChange,
-}: {
-  readonly name: string;
-  readonly value: string;
-  readonly label: string;
-  readonly checked: boolean;
-  readonly onChange: () => void;
-}) {
-  return (
-    <label
-      className={cn(
-        "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-md stg:border stg:px-3 stg:py-1.5 stg:text-sm stg:transition-colors",
-        checked
-          ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
-          : "stg:border-input stg:bg-input-bg stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
-      )}
-    >
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={checked}
-        onChange={onChange}
-        className="stg:sr-only"
-      />
-      {label}
-    </label>
   );
 }

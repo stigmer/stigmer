@@ -21,14 +21,17 @@ McpServer ──► Referenced by Agent ──► Resolved by AgentInstance ─�
 | **AgentInstance** | Binds an Agent to an Environment — provides the actual credentials and secrets required by each referenced McpServer. |
 | **Agent Runner** | Resolves each McpServer reference at execution time, retrieves secrets from the Environment, and starts or connects to the server process. |
 
-The McpServer resource itself contains **no secrets** — only the schema of what credentials are needed (`env_spec`). Actual values are supplied at runtime through the AgentInstance's environment binding. This makes McpServer definitions safe to store in version control and share publicly.
+The McpServer resource itself contains **no secrets** — only the schema of what credentials are needed (`env_spec`). Actual values are supplied at runtime through the AgentInstance's environment binding. This makes McpServer definitions safe to store in version control and to carry in a plugin.
 
 ## Visibility and Ownership
 
-McpServers support two visibility levels:
+McpServers take one of three visibility levels:
 
-- `visibility_private` (default) — only members of the owning organization can access the resource.
-- `visibility_public` — discoverable and usable by anyone on the platform. Used for publishing to the marketplace (e.g., `stigmer/github`, `stigmer/web-search`).
+- `visibility_org` (default) — every member of the owning organization can read and use the server.
+- `visibility_private` — the creator and anyone granted access directly.
+- `visibility_platform` — every organization the owning organization manages through its identity provider. Offered only to an organization that operates one.
+
+Nothing is readable outside the organization otherwise. A server another organization built (e.g. the `github` server from Stigmer's catalogue) reaches yours as a plugin you install; the installed copy is your organization's own.
 
 Every McpServer belongs to exactly one organization. The `org` field in metadata identifies the owning organization. The canonical reference format is `org/slug` (e.g., `stigmer/github`, `acme-corp/internal-db`).
 

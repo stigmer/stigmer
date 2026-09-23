@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import { assertConsoleServed, waitForSystemOrganization } from "./stigmer-smoke.mjs";
+import { assertConsoleServed, waitForBootstrapOrganization } from "./stigmer-smoke.mjs";
 
 const TRUSTED_LOCAL_DOCUMENT = {
   apiUrl: "",
@@ -193,7 +193,7 @@ test("waits until the `stigmer` organization is among the caller's, then yields 
     { entries: [OTHER_ORG, STIGMER_ORG] },
   ]);
   try {
-    const id = await waitForSystemOrganization(lane.baseUrl, 10_000, {});
+    const id = await waitForBootstrapOrganization(lane.baseUrl, 10_000, {});
     assert.equal(id, "org_stigmer_0001");
     assert.equal(lane.calls(), 3);
   } finally {
@@ -206,7 +206,7 @@ test("matches the organization by slug, never by name", async () => {
     { entries: [{ metadata: { id: "org_x", slug: "not-it", name: "stigmer" } }] },
   ]);
   try {
-    await assert.rejects(waitForSystemOrganization(lane.baseUrl, 2_500, {}), /organization 'stigmer' present/);
+    await assert.rejects(waitForBootstrapOrganization(lane.baseUrl, 2_500, {}), /organization 'stigmer' present/);
   } finally {
     await lane.close();
   }

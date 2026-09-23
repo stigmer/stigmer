@@ -150,11 +150,11 @@ describe("resolveOrganization", () => {
     );
   });
 
-  it("defaults to the system org in local mode when nothing is configured", () => {
+  it("defaults to the stigmer org in local mode when nothing is configured", () => {
     expect(resolveOrganization(localConfig())).toBe("stigmer");
   });
 
-  it("defaults to the system org on a selfhost backend (it IS the OSS server)", () => {
+  it("defaults to the stigmer org on a selfhost backend (it IS the OSS server)", () => {
     expect(resolveOrganization(selfhostConfig())).toBe("stigmer");
   });
 

@@ -368,8 +368,8 @@ function usePluginCount(org: string | null, options?: UsePluginCountOptions): Us
 
 Data hook that fetches a paginated list of installed plugins for the
 Library. Wraps `stigmer.plugin.list()` (the search-backed listing every
-indexed kind shares) with pagination, scope filtering and text search;
-the consumer owns page state, query debouncing and scope toggling.
+indexed kind shares) with pagination and text search over the
+organization's plugins; the consumer owns page state and query debouncing.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -1488,7 +1488,6 @@ Options for [`usePluginCount`](#useplugincount).
   type={{
     query: { type: "string", description: "Text query to filter plugins before counting." },
     refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
-    scope: { type: "ResourceListScope", description: "Which plugins are counted; see UsePluginListOptions.scope." },
   }}
 />
 
@@ -1502,7 +1501,6 @@ Options for [`usePluginList`](#usepluginlist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum plugins per page." },
     query: { type: "string", description: "Text query to filter plugins by name, description or keywords." },
-    scope: { type: "ResourceListScope", description: "Controls which plugins are visible.  - `\"org\"` — only plugins installed in the given organization. - `\"all\"` — includes public plugins other organizations installed." },
   }}
 />
 

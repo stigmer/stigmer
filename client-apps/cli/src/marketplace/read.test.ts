@@ -1,6 +1,6 @@
 // Pins the CLI's edge for the marketplace reader: a tree read through the one
 // walker, the refusal shape, entry lookup and directory resolution, and the
-// official tree in this repository reading clean with an empty defaults list.
+// official tree in this repository reading clean.
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -81,14 +81,13 @@ describe("findEntry and entryDirectory", () => {
 });
 
 describe("the official tree in this repository", () => {
-  it("reads clean through the CLI walker and installs nothing by default", () => {
+  it("reads clean through the CLI walker", () => {
     const official = resolveOfficialMarketplace();
     expect(official.source).toBe("repo");
     const tree = readMarketplaceTree(official.dir);
     expect(tree.marketplace.name).toBe("stigmer");
     expect(tree.marketplace.dialect).toBe("stigmer");
     expect(tree.warnings).toEqual([]);
-    expect(tree.marketplace.defaults).toEqual([]);
     expect(findEntry(tree.marketplace, "linear")?.dir).toBe("linear");
   });
 });

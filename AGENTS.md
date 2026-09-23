@@ -53,7 +53,8 @@ skill" when it could be misread.
 - `test/conformance/`: the cross-edition gRPC contract suite; `test/e2e/`:
   Playwright; `test/extension-consumer/`.
 - `plugins/`: the official plugin marketplace, published as `@stigmer/plugins`;
-  what `stigmer up` and `stigmer bootstrap` install by default.
+  what `stigmer install` and the console's Marketplace offer when no other
+  source is named. Nothing in it is installed unasked.
 - `docs/` and `site/`: documentation content (MDX, Vale, Prettier) and the
   Fumadocs site; `demos/`: Scenar tours; `docs-agent/`: the Ask AI agent.
 - `deploy/`: Helm chart and all-in-one image; `examples/`; `marketing/`;

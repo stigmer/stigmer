@@ -820,20 +820,14 @@ export class SqliteStore implements Store {
     const kindPlaceholders = query.kinds.map(() => "?").join(",");
     const kindArgs = [...query.kinds];
 
-    // The scope-filter fragments, byte-identical to Go's buildScopeFilter:
-    // org (strict or public-widened) and the independent public subtraction.
+    // The scope-filter fragments: the org filter, strict (a row is in the
+    // requested org or it is not; visibility never widens or narrows the
+    // scope), then the authorized-id allowlist.
     const scopeClauses: string[] = [];
     const scopeArgs: string[] = [];
     if (query.orgFilter !== "") {
-      scopeClauses.push(
-        query.crossOrgPublic
-          ? `AND (org = ? OR visibility = 'visibility_public')`
-          : `AND org = ?`,
-      );
+      scopeClauses.push(`AND org = ?`);
       scopeArgs.push(query.orgFilter);
-    }
-    if (query.excludePublic) {
-      scopeClauses.push(`AND visibility != 'visibility_public'`);
     }
     if (query.authorizedIdsByKind !== undefined) {
       // The 20260830.01 scoping arm: per-kind resource_id allowlists.

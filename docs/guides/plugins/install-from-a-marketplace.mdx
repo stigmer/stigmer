@@ -15,9 +15,9 @@ a source offers by name, and the plugin lands exactly as if you had
 Stigmer's official catalogue is the one source built in. It is published with
 each release and curated: every plugin in it is one Stigmer may ship and one
 whose tools Stigmer can connect to, either copied from a vendor's public set
-under its licence or written by Stigmer for a vendor's public MCP endpoint. A
-fresh `stigmer up` installs its default set, which is where the `assistant`
-Agent a new install answers with comes from.
+under its licence or written by Stigmer for a vendor's public MCP endpoint.
+Nothing in it is installed unasked: a new install answers with the built-in
+assistant, and you install the plugins you want.
 
 ## Install from the official catalogue
 
@@ -26,16 +26,14 @@ stigmer marketplace show stigmer
 ```
 
 ```text
-✓ Marketplace 'stigmer' offers 80 plugins
+✓ Marketplace 'stigmer' offers 79 plugins
 
 Marketplace
   Name      stigmer
   Source    built in
   Format    marketplace.json
-  Defaults  assistant
 
 Plugins
-  - assistant@1.0.0  General-purpose AI assistant: the agent a fresh Stigmer answers with until you pick another.
   - linear@1.0.0     Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace. Sign in with your Linear account.
   - notion@1.0.0     Notion's hosted MCP server: search, read and write the pages and databases your account can reach. Sign in with your Notion account.
   ...
@@ -196,31 +194,16 @@ CLI pushes from it. Two consequences follow:
   on the server. The plugins you installed from it stay until you
   `stigmer delete plugin` them.
 
-## The official catalogue and `stigmer up`
+## Where the official catalogue comes from
 
-The official catalogue ships with the CLI: the `plugins/` tree of the Stigmer
-repository when you run from a checkout, and the `@stigmer/plugins` package at
-the CLI's own version otherwise, so the content a fresh install bootstraps with
-matches the server that installs it. Its marketplace file names a `defaults`
-list, and `stigmer up` installs those into the system Organization on every
-start: a default that is already installed at the same content is skipped, one
-whose content changed with a new CLI release is upgraded, so a second `up`
-pushes nothing.
-
-Today the default set is one plugin, `assistant`, the Agent a fresh install
-answers with. `stigmer marketplace show stigmer` lists what the official
-catalogue offers; `stigmer install stigmer/<name>` installs one of them into
-your own Organization.
-
-<Callout type="info">
-  Upgrading a local stack that predates plugins installs the official
-  catalogue's defaults first, then retires the system content an older release
-  installed. The `assistant` plugin takes over the existing `assistant` Agent in
-  place: same ID, same personal instance, and every Session bound to it
-  continues. The other Agents, Skills, MCP Servers and Workflows are removed,
-  except any that one of your own Agents still references, and `stigmer up`
-  reports what went, what is now the plugin's, and what it kept and why.
-</Callout>
+The official catalogue ships with each release: the `plugins/` tree of the
+Stigmer repository when you run the CLI from a checkout, and the
+`@stigmer/plugins` package at the CLI's own version otherwise, fetched the first
+time an install needs it, so what you install matches the server that installs
+it. The console reads the same package at the server's version.
+`stigmer marketplace show stigmer` lists what the official catalogue offers;
+`stigmer install stigmer/<name>` installs one of them into your own
+Organization.
 
 ## Limits, stated
 

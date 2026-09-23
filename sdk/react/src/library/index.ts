@@ -4,9 +4,6 @@ export {
   useBreadcrumbOverride,
 } from "./LibraryBreadcrumbContext.js";
 
-export { ScopeToggle } from "./ScopeToggle.js";
-export type { ScopeToggleProps } from "./ScopeToggle.js";
-
 export { ResourceCountCard } from "./ResourceCountCard.js";
 export type { ResourceCountCardProps } from "./ResourceCountCard.js";
 
@@ -64,13 +61,11 @@ export type {
 export {
   blueprintVisibilityLevels,
   instanceVisibilityLevels,
-  PUBLIC_LOCKED_REASON,
   visibilityLabel,
   visibilityOption,
 } from "./visibilityLevels.js";
 export type {
   BlueprintVisibilityLevelsContext,
-  InstanceVisibilityLevelsContext,
   VisibilityLevelOption,
 } from "./visibilityLevels.js";
 
@@ -82,9 +77,6 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./useUpdateVisibility.js";
-
-export { useCanSetPublicVisibility } from "./useCanSetPublicVisibility.js";
-export type { UseCanSetPublicVisibilityReturn } from "./useCanSetPublicVisibility.js";
 
 export { InstanceVisibilitySelector } from "./InstanceVisibilitySelector.js";
 export type { InstanceVisibilitySelectorProps } from "./InstanceVisibilitySelector.js";

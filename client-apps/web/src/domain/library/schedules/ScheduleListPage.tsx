@@ -70,8 +70,7 @@ export function ScheduleListPage() {
       {/*
         Schedules are the one Library kind listed via the direct query
         (full protos with live status), not the search service — hence
-        searchable={false} (no server text search) and no Org/All scope
-        toggle (schedules are never public/cross-org).
+        searchable={false} (no server text search).
       */}
       <ResourceWorkbench<Schedule>
         refetchToken={refetchToken}

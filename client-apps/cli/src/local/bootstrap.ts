@@ -1,173 +1,98 @@
-// What makes a backend a ready Stigmer: the system org exists and the
-// official marketplace's default plugins are installed into it, public.
-// `stigmer up` runs this against the local server it just started;
-// `stigmer bootstrap` runs the same two phases against whatever backend the
-// CLI is pointed at, for a raw self-hosted server or the platform's daily
-// lane. One definition, so a laptop, a container and the hosted platform
-// cannot drift in what "ready" means.
+// What makes a backend ready for the CLI: the organization it falls back to
+// on a local or selfhost backend (DEFAULT_LOCAL_ORG, `stigmer`) exists.
+// Nothing is installed into it: a session with no agent runs the built-in
+// assistant, so a fresh install needs no default content. `stigmer up` runs
+// this against the local server it just started; `stigmer bootstrap` runs it
+// against whatever backend the CLI is pointed at, a raw self-hosted server.
+// One definition, so a laptop, a container and a raw server cannot drift in
+// what "ready" means.
 //
-// Two phases, and the order matters:
+// "Ensure" is find-then-create with the race closed by the server: two
+// launchers racing the same check see one `already-exists`, and that IS the
+// desired end state, so it is reported as `present`, never rethrown. Any
+// other refusal propagates with the server's sentence; the caller decides
+// how loud to be.
 //
-//   1. prepare: resolve the official marketplace (acquiring `@stigmer/plugins`
-//      at the CLI's version on a release's first run) and prepare every
-//      default. No backend is touched.
-//   2. run: ensure the system org, then push the prepared defaults, each
-//      skipped when the backend already holds it at the same digest. The
-//      push adopts a system-content row it replaces in place (a default
-//      agent an earlier release seeded keeps its id, its instances and every
-//      conversation bound to them), so nothing here ever deletes a row.
+// The create carries no label. Writing a label in the reserved `stigmer.ai/`
+// namespace needs a platform permission that a self-hosted server with
+// authentication on grants to nobody, and nothing reads one on an
+// organization (stigmer/stigmer#1192). Organizations created by older CLIs
+// keep the `stigmer.ai/system` label they were given; it is inert.
 //
-// Inside `up` both phases are best-effort with their own warning naming the
-// retry, because the stack is already serving by the time either runs and a
-// seeding failure must never tear it down. Both `up` shapes (detached
-// and foreground) call this one function, and both seed the local server
-// `up` just started, never the active backend context: a CLI pointed at
-// cloud still gets its local stack seeded, and never has system resources
-// applied to its cloud org. The client is pinned to a fresh local config
-// (localhost:SERVER_PORT) with no auth, the trusted-local identity.
+// Inside `up` the bootstrap is best-effort with one warning naming the
+// retry, because the stack is already serving and a failure here must never
+// tear it down. Both `up` shapes (detached and foreground) call the same
+// function, and both target the local server `up` just started, never the
+// active backend context: a CLI pointed at a remote backend still gets its
+// local stack bootstrapped and never creates an organization elsewhere. The
+// client is pinned to a fresh local config (localhost:SERVER_PORT) with no
+// auth, the trusted-local identity.
 
-import type { Stigmer } from "@stigmer/sdk";
+import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
+import { type Stigmer, StigmerError } from "@stigmer/sdk";
 import type { BackendClient } from "../client/index.js";
+import { DEFAULT_LOCAL_ORG } from "../config/resolve.js";
 import { log } from "../logger.js";
-import type { ResolveOfficialOptions } from "../marketplace/official.js";
-import type {
-  DefaultPluginsResult,
-  InstallingVerb,
-  PreparedDefault,
-} from "./plugins/defaults.js";
-import { type EnsureSystemOrgOutcome, SYSTEM_ORG } from "./system-org.js";
 
 export type Say = (line: string) => void;
 
-/** Everything phase 2 needs, gathered without a backend. */
-export interface PreparedBootstrap {
-  readonly defaults: readonly PreparedDefault[];
-}
-
-export interface BootstrapResult {
-  readonly org: EnsureSystemOrgOutcome;
-  readonly plugins: DefaultPluginsResult;
-}
-
-export interface PrepareBootstrapOptions {
-  /** How the official tree is found (injectable for tests). */
-  readonly official?: ResolveOfficialOptions;
-}
-
-/** Phase 1. Throws when the catalogue cannot be resolved or a default cannot be prepared. */
-export async function prepareBootstrap(
-  options: PrepareBootstrapOptions = {},
-): Promise<PreparedBootstrap> {
-  const { prepareDefaultPlugins } = await import("./plugins/defaults.js");
-  return { defaults: await prepareDefaultPlugins(options.official) };
-}
+export type BootstrapOutcome = "present" | "created";
 
 /**
- * Phase 2. Throws when the system org cannot be ensured; a default that
- * fails to land is reported in the result, not thrown, so the caller can
- * name each one. `verb` is the command running this, stamped into each
- * installed plugin's version message.
+ * Make sure the organization the CLI falls back to exists on the backend
+ * `stigmer` is bound to: what `stigmer bootstrap` runs. Idempotent; a lost
+ * create race counts as `present`.
  */
-export async function runBootstrap(
-  stigmer: Stigmer,
-  prepared: PreparedBootstrap,
-  say: Say,
-  verb: InstallingVerb,
-): Promise<BootstrapResult> {
-  const [{ ensureSystemOrg }, { installPreparedDefaults }] = await Promise.all(
-    [import("./system-org.js"), import("./plugins/defaults.js")],
-  );
-  const org = await ensureSystemOrg(stigmer);
-  if (org === "created") say(`Created the '${SYSTEM_ORG}' organization`);
-  const plugins = await installPreparedDefaults(
-    { stigmer, info: say, verb },
-    prepared.defaults,
-    SYSTEM_ORG,
-  );
-  return { org, plugins };
+export async function bootstrapBackend(stigmer: Stigmer): Promise<BootstrapOutcome> {
+  const mine = await stigmer.organization.findMyOrganizations();
+  if (mine.entries.some((org) => org.metadata?.slug === DEFAULT_LOCAL_ORG)) {
+    return "present";
+  }
+  try {
+    // Organizations are self-owning: the org field is the slug itself, the
+    // shape the console's create form and the e2e harness both use.
+    await stigmer.organization.create({
+      name: "Stigmer",
+      slug: DEFAULT_LOCAL_ORG,
+      org: DEFAULT_LOCAL_ORG,
+      description: "The organization the Stigmer CLI uses when none is named",
+      managementMode: ManagementMode.self_managed,
+    });
+    return "created";
+  } catch (error) {
+    if (error instanceof StigmerError && error.code === "already-exists") {
+      return "present";
+    }
+    throw error;
+  }
 }
 
-/** Both phases, against the backend `stigmer` is bound to: what `stigmer bootstrap` runs. */
-export async function bootstrapBackend(
-  stigmer: Stigmer,
-  say: Say,
-  options: PrepareBootstrapOptions = {},
-): Promise<BootstrapResult> {
-  return runBootstrap(
-    stigmer,
-    await prepareBootstrap(options),
-    say,
-    "stigmer bootstrap",
-  );
-}
-
-/** Seams of the local bootstrap, injectable for tests; the defaults are the real phases over the real local client. */
+/** Seams of the local bootstrap, injectable for tests; the defaults are the real act over the real local client. */
 export interface BootstrapDeps {
   readonly client?: BackendClient;
   readonly say?: Say;
-  readonly prepare?: () => Promise<PreparedBootstrap>;
-  readonly run?: (
-    stigmer: Stigmer,
-    prepared: PreparedBootstrap,
-    say: Say,
-  ) => Promise<BootstrapResult>;
+  readonly bootstrap?: (stigmer: Stigmer) => Promise<BootstrapOutcome>;
 }
 
 const sayToStderr: Say = (line) => {
   process.stderr.write(`${line}\n`);
 };
 
-/** What `stigmer up` does once the local server answers. Never throws past its own warnings. */
-export async function bootstrapLocalBackend(
-  deps: BootstrapDeps = {},
-): Promise<void> {
+/** What `stigmer up` does once the local server answers. Never throws past its own warning. */
+export async function bootstrapLocalBackend(deps: BootstrapDeps = {}): Promise<void> {
   const client = deps.client ?? (await freshLocalClient());
   const say = deps.say ?? sayToStderr;
 
-  let prepared: PreparedBootstrap;
+  let outcome: BootstrapOutcome;
   try {
-    prepared = await (deps.prepare ?? prepareBootstrap)();
-  } catch (err) {
-    log.warn("bootstrap preparation failed", { error: String(err) });
-    say(
-      "Warning: could not prepare the default plugins, so the local backend was not bootstrapped. Run 'stigmer up' again to retry.",
-    );
-    return;
-  }
-
-  let result: BootstrapResult;
-  try {
-    result = await (deps.run ?? runLocalBootstrap)(
-      client.stigmer,
-      prepared,
-      say,
-    );
+    outcome = await (deps.bootstrap ?? bootstrapBackend)(client.stigmer);
   } catch (err) {
     log.warn("bootstrap failed", { error: String(err) });
-    say(
-      "Warning: failed to bootstrap the local backend. Run 'stigmer up' again to retry.",
-    );
+    say("Warning: failed to bootstrap the local backend. Run 'stigmer up' again to retry.");
     return;
   }
-  log.debug("bootstrap complete", {
-    org: result.org,
-    outcomes: result.plugins.outcomes,
-  });
-  for (const name of result.plugins.failed) {
-    say(
-      `Warning: failed to install default plugin '${name}'. Run 'stigmer bootstrap' to retry.`,
-    );
-  }
-}
-
-// Phase 2 in the seam's shape, naming the verb: everything this file's
-// local bootstrap installs was installed by `stigmer up`.
-function runLocalBootstrap(
-  stigmer: Stigmer,
-  prepared: PreparedBootstrap,
-  say: Say,
-): Promise<BootstrapResult> {
-  return runBootstrap(stigmer, prepared, say, "stigmer up");
+  log.debug("bootstrap complete", { org: outcome });
+  if (outcome === "created") say(`Created the '${DEFAULT_LOCAL_ORG}' organization`);
 }
 
 async function freshLocalClient(): Promise<BackendClient> {

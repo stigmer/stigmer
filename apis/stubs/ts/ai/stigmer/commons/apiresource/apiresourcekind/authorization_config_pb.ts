@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto.
  */
 export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config: GenFile = /*@__PURE__*/
-  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIoABChBWaXNpYmlsaXR5Q29uZmlnEhcKD3N1cHBvcnRzX3B1YmxpYxgBIAEoCBIZChFzdXBwb3J0c19wbGF0Zm9ybRgCIAEoCBIUCgxzdXBwb3J0c19vcmcYAyABKAgSIgoaZGVmYXVsdHNfdG9fb3JnX3Zpc2liaWxpdHkYBCABKAgiSgoUUGFyZW50UmVsYXRpb25Db25maWcSDAoEa2luZBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCRISCgpzcGVjX2ZpZWxkGAMgASgJIq4EChNBdXRob3JpemF0aW9uQ29uZmlnEloKCnNjb3BlX3R5cGUYASABKA4yRi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkF1dGhvcml6YXRpb25TY29wZVR5cGUSWAoKb3duZXJfdHlwZRgCIAEoDjJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuT3duZXJBdHRyaWJ1dGlvblR5cGUSVAoGcGFyZW50GAMgASgLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJgChJhZGRpdGlvbmFsX3BhcmVudHMYBCADKAsyRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlBhcmVudFJlbGF0aW9uQ29uZmlnElQKCnZpc2liaWxpdHkYBSABKAsyQC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlZpc2liaWxpdHlDb25maWcSHgoWcmVxdWlyZXNfY3JlYXRvcl90dXBsZRgGIAEoCBIzCg9ncmFudGFibGVfcm9sZXMYByADKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlKoUCChZBdXRob3JpemF0aW9uU2NvcGVUeXBlEigKJEFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9VTlNQRUNJRklFRBAAEiUKIUFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9QTEFURk9STRABEikKJUFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PUkdBTklaQVRJT04QAhIjCh9BVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUEFSRU5UEAMSJwojQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX09XTkVSX09OTFkQBBIhCh1BVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfTk9ORRAFKskBChRPd25lckF0dHJpYnV0aW9uVHlwZRImCiJPV05FUl9BVFRSSUJVVElPTl9UWVBFX1VOU1BFQ0lGSUVEEAASIQodT1dORVJfQVRUUklCVVRJT05fVFlQRV9ESVJFQ1QQARIkCiBPV05FUl9BVFRSSUJVVElPTl9UWVBFX0lOSEVSSVRFRBACEh8KG09XTkVSX0FUVFJJQlVUSU9OX1RZUEVfU0VMRhADEh8KG09XTkVSX0FUVFJJQlVUSU9OX1RZUEVfTk9ORRAEQhpCGEF1dGhvcml6YXRpb25Db25maWdQcm90b2IGcHJvdG8z", [file_ai_stigmer_iam_v1_enum]);
+  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIn4KEFZpc2liaWxpdHlDb25maWcSGQoRc3VwcG9ydHNfcGxhdGZvcm0YAiABKAgSFAoMc3VwcG9ydHNfb3JnGAMgASgIEiIKGmRlZmF1bHRzX3RvX29yZ192aXNpYmlsaXR5GAQgASgISgQIARACUg9zdXBwb3J0c19wdWJsaWMiSgoUUGFyZW50UmVsYXRpb25Db25maWcSDAoEa2luZBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCRISCgpzcGVjX2ZpZWxkGAMgASgJIq4EChNBdXRob3JpemF0aW9uQ29uZmlnEloKCnNjb3BlX3R5cGUYASABKA4yRi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkF1dGhvcml6YXRpb25TY29wZVR5cGUSWAoKb3duZXJfdHlwZRgCIAEoDjJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuT3duZXJBdHRyaWJ1dGlvblR5cGUSVAoGcGFyZW50GAMgASgLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJgChJhZGRpdGlvbmFsX3BhcmVudHMYBCADKAsyRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlBhcmVudFJlbGF0aW9uQ29uZmlnElQKCnZpc2liaWxpdHkYBSABKAsyQC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlZpc2liaWxpdHlDb25maWcSHgoWcmVxdWlyZXNfY3JlYXRvcl90dXBsZRgGIAEoCBIzCg9ncmFudGFibGVfcm9sZXMYByADKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlKoUCChZBdXRob3JpemF0aW9uU2NvcGVUeXBlEigKJEFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9VTlNQRUNJRklFRBAAEiUKIUFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9QTEFURk9STRABEikKJUFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PUkdBTklaQVRJT04QAhIjCh9BVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUEFSRU5UEAMSJwojQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX09XTkVSX09OTFkQBBIhCh1BVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfTk9ORRAFKskBChRPd25lckF0dHJpYnV0aW9uVHlwZRImCiJPV05FUl9BVFRSSUJVVElPTl9UWVBFX1VOU1BFQ0lGSUVEEAASIQodT1dORVJfQVRUUklCVVRJT05fVFlQRV9ESVJFQ1QQARIkCiBPV05FUl9BVFRSSUJVVElPTl9UWVBFX0lOSEVSSVRFRBACEh8KG09XTkVSX0FUVFJJQlVUSU9OX1RZUEVfU0VMRhADEh8KG09XTkVSX0FUVFJJQlVUSU9OX1RZUEVfTk9ORRAEQhpCGEF1dGhvcml6YXRpb25Db25maWdQcm90b2IGcHJvdG8z", [file_ai_stigmer_iam_v1_enum]);
 
 /**
  * Visibility configuration: the set of visibility levels a resource kind
@@ -22,12 +22,16 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  *
  * - visibility_private: no visibility tuple (owner + explicit grants only)
  * - visibility_org:     resource#viewer@organization:<org>#member
- * - visibility_public:  resource#viewer@identity_account:* (conditional
- *                       wildcard gated by allow_public)
  * - visibility_platform: resource#platform_viewer@identity_provider:<idp>#platform_user
  *                       (the "private catalog" primitive: grants access to
  *                       all members of all platform_managed orgs linked to
  *                       the owning org's IdentityProvider)
+ *
+ * Every level but private is bounded by an organization or by the identity
+ * provider that links a set of organizations. There is no level a resource
+ * can hold that makes it readable to every account on the server; sharing
+ * across organizations that share no identity provider is done by
+ * packaging the resource as a plugin and installing a copy.
  *
  * Kinds WITHOUT a visibility config accept only visibility_private (or
  * unspecified) — they are personal or org-structural resources whose access
@@ -35,10 +39,10 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  * tuples (session, environment, executions, etc.).
  *
  * Current classification:
- * - Blueprint kinds (agent, skill, workflow, mcp_server):
- *     private, org, public, platform
+ * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
+ *     private, org, platform
  * - Instance kinds (agent_instance, workflow_instance):
- *     private, org, public — platform is deliberately excluded to preserve
+ *     private, org — platform is deliberately excluded to preserve
  *     tenant isolation: each managed org instantiates shared blueprints
  *     inside its own boundary. (System-managed DEFAULT instances opt out of
  *     visibility entirely: their access tracks the parent blueprint
@@ -52,14 +56,6 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  * @generated from message ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig
  */
 export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig"> & {
-  /**
-   * Whether resources of this kind can be set to visibility_public.
-   * FGA tuple: resource#viewer@identity_account:* (gated by allow_public)
-   *
-   * @generated from field: bool supports_public = 1;
-   */
-  supportsPublic: boolean;
-
   /**
    * Whether resources of this kind can be set to visibility_platform.
    * FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
@@ -96,12 +92,12 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    * explicit opt-in, never a surprise.
    *
    * The flag carries a second, coupled semantic for the same kinds — the
-   * ORG FLOOR: when visibility is platform or public, the org viewer tuple
-   * is written IN ADDITION to the level's own tuple. Sharing a blueprint
-   * beyond the org must never make it less visible to the owning org's own
-   * members (org-scoped listings resolve through FGA ListObjects with the
-   * public wildcard suppressed, so the explicit org tuple is what keeps
-   * shared blueprints listable at home).
+   * ORG FLOOR: when visibility is platform, the org viewer tuple is written
+   * IN ADDITION to the level's own tuple. Sharing a blueprint beyond the
+   * org must never make it less visible to the owning org's own members
+   * (org-scoped listings resolve through FGA ListObjects on the org tuple,
+   * so the explicit org tuple is what keeps shared blueprints listable at
+   * home).
    *
    * Instance kinds deliberately leave this false: instances are personal
    * resources (configuration, secrets) that must start private, and their

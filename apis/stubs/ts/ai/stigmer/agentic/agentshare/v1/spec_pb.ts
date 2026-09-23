@@ -31,10 +31,10 @@ export type AgentShareSpec = Message<"ai.stigmer.agentic.agentshare.v1.AgentShar
   /**
    * Reference to the agent this share distributes.
    *
-   * The referenced agent may live in another organization when it is
-   * marketplace-public: the share then offers that agent from this share's
-   * org, billed to this share's org, with tool credentials bound from this
-   * share's org. Cross-org shares must have a public audience.
+   * The referenced agent must live in this share's organization: a share
+   * offers an agent its own organization owns, billed to that organization,
+   * with tool credentials bound from it. To share another organization's
+   * agent, install the plugin that carries it and share the installed copy.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1;
    */

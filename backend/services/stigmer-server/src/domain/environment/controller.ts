@@ -63,7 +63,6 @@ import {
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
-import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -97,7 +96,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -244,6 +246,7 @@ async function update(
     .addStep(newPreserveRedactedSecretsStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newDestroyDroppedEnvironmentSecretsStep(deps.secretService, deps.logger),
@@ -398,12 +401,6 @@ async function updateVisibility(
     // After load, per the cross-edition error precedence: unknown id +
     // bad level = NOT_FOUND on both editions.
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_ENVIRONMENT_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newValidateEnvironmentShareRestrictionStep())
     .addStep(newSetEnvironmentVisibilityStep())
     .addStep(newPersistEnvironmentForVisibilityUpdateStep(deps.store))

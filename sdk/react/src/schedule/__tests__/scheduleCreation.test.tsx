@@ -244,18 +244,6 @@ describe("ScheduleForm", () => {
     expect((submit as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("locks the agent picker to org scope (no Org/All toggle)", async () => {
-    const client = createClient();
-    render(<ScheduleForm org="isc" />, { wrapper: wrapper(client) });
-
-    fireEvent.click(screen.getByText("Choose an agent…"));
-    await screen.findByRole("option", { name: /Fee Reminder/ });
-
-    expect(
-      screen.queryByRole("radiogroup", { name: "Resource scope" }),
-    ).toBeNull();
-  });
-
   it("submits the generated cron, browser time zone, and staged-disabled default", async () => {
     const apply = vi.fn().mockResolvedValue(CREATED);
     const client = createClient({ apply });

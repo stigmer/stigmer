@@ -77,7 +77,6 @@ import {
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
-import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newCleanupIamPoliciesStep,
   newRecordVisibilityBeforeUpdateStep,
@@ -450,12 +449,6 @@ async function updateVisibility(
     )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_SKILL_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newSetVisibilityStep())
     .addStep(newPersistSkillForVisibilityUpdateStep(deps.store))
     .addStep(

@@ -106,7 +106,7 @@ const AGENT = {
     org: "acme",
     slug: "support-agent",
     name: "Support Agent",
-    visibility: ApiResourceVisibility.visibility_public,
+    visibility: ApiResourceVisibility.visibility_org,
   },
   spec: { mcpServerUsages: [] },
 } as never;
@@ -204,16 +204,14 @@ describe("AgentShareList", () => {
     expect(screen.getByText("Paused")).toBeTruthy();
   });
 
-  it("marks another org's channel of this agent as cross-org", async () => {
-    const client = createMockStigmer({
-      getByAgent: withShares(
-        makeShare({ id: "ash_ext", org: "consumer-org" }),
-      ),
-    });
+  it("scopes the list to the agent's own organization — a share lives where its agent lives", async () => {
+    const getByAgent = withShares(makeShare());
+    const client = createMockStigmer({ getByAgent });
     await renderList(client);
 
-    expect(screen.getByText("Cross-org")).toBeTruthy();
-    expect(screen.getByText("/chat/consumer-org/support-agent")).toBeTruthy();
+    expect(getByAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "agt_1", org: "acme" }),
+    );
   });
 
   it("shows the empty state with a create call-to-action when allowed", async () => {

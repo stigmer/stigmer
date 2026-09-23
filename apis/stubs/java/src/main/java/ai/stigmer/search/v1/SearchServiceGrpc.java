@@ -20,7 +20,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Authorization is handled programmatically in the handler (not via
  * declarative authorization options like domain services):
  * 1. Call FGA to get authorized resource IDs per requested kind
- * 2. Apply filters (org, query, exclude_public) against authorized set
+ * 2. Apply filters (org, query) against authorized set
  * 3. Return only resources the caller has can_view permission on
  * Usage Patterns (all via single RPC):
  * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
@@ -146,7 +146,7 @@ public final class SearchServiceGrpc {
    * Authorization is handled programmatically in the handler (not via
    * declarative authorization options like domain services):
    * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query, exclude_public) against authorized set
+   * 2. Apply filters (org, query) against authorized set
    * 3. Return only resources the caller has can_view permission on
    * Usage Patterns (all via single RPC):
    * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
@@ -206,7 +206,7 @@ public final class SearchServiceGrpc {
    * Authorization is handled programmatically in the handler (not via
    * declarative authorization options like domain services):
    * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query, exclude_public) against authorized set
+   * 2. Apply filters (org, query) against authorized set
    * 3. Return only resources the caller has can_view permission on
    * Usage Patterns (all via single RPC):
    * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
@@ -243,7 +243,7 @@ public final class SearchServiceGrpc {
    * Authorization is handled programmatically in the handler (not via
    * declarative authorization options like domain services):
    * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query, exclude_public) against authorized set
+   * 2. Apply filters (org, query) against authorized set
    * 3. Return only resources the caller has can_view permission on
    * Usage Patterns (all via single RPC):
    * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
@@ -315,7 +315,7 @@ public final class SearchServiceGrpc {
    * Authorization is handled programmatically in the handler (not via
    * declarative authorization options like domain services):
    * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query, exclude_public) against authorized set
+   * 2. Apply filters (org, query) against authorized set
    * 3. Return only resources the caller has can_view permission on
    * Usage Patterns (all via single RPC):
    * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
@@ -386,7 +386,7 @@ public final class SearchServiceGrpc {
    * Authorization is handled programmatically in the handler (not via
    * declarative authorization options like domain services):
    * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query, exclude_public) against authorized set
+   * 2. Apply filters (org, query) against authorized set
    * 3. Return only resources the caller has can_view permission on
    * Usage Patterns (all via single RPC):
    * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
@@ -457,7 +457,7 @@ public final class SearchServiceGrpc {
    * Authorization is handled programmatically in the handler (not via
    * declarative authorization options like domain services):
    * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query, exclude_public) against authorized set
+   * 2. Apply filters (org, query) against authorized set
    * 3. Return only resources the caller has can_view permission on
    * Usage Patterns (all via single RPC):
    * - List agents in org:    {kinds: [agent], org: "acme", query: ""}

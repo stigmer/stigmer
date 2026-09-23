@@ -1529,9 +1529,9 @@ const { instances, isLoading } = useWorkflowInstances(workflow.metadata?.id, vie
 
 Data hook that fetches a paginated list of workflows for the Workflows section.
 
-Wraps `stigmer.workflow.list()` with pagination, scope filtering,
-and text search. All parameters are externally controlled — the
-consumer manages page state, query debouncing, and scope toggling.
+Wraps `stigmer.workflow.list()` with pagination and text search over
+the organization's workflows. All parameters are externally
+controlled — the consumer manages page state and query debouncing.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -1566,7 +1566,6 @@ function useWorkflowList(org: string | null, options?: UseWorkflowListOptions): 
 const { workflows, totalCount, isLoading } = useWorkflowList("acme", {
   page: 1,
   pageSize: 20,
-  scope: "org",
 });
 ```
 
@@ -3608,7 +3607,6 @@ Options for [`useWorkflowCount`](#useworkflowcount).
   type={{
     query: { type: "string", description: "Text query to filter workflows before counting." },
     refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
-    scope: { type: "ResourceListScope", description: "Controls which workflows are counted.  - `\"org\"` — only workflows owned by the given organization. - `\"all\"` — includes public/platform workflows." },
   }}
 />
 
@@ -3739,7 +3737,6 @@ Options for [`useWorkflowList`](#useworkflowlist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum workflows per page." },
     query: { type: "string", description: "Text query to filter workflows by name, description, or tags." },
-    scope: { type: "ResourceListScope", description: "Controls which workflows are visible.  - `\"org\"` — only workflows owned by the given organization. - `\"all\"` — includes public/platform workflows." },
   }}
 />
 

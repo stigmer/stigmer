@@ -38,43 +38,10 @@ test.describe("Visual Regression - Authorization Components", () => {
         );
       }
     });
-
-    test("visibility toggle - public confirmation prompt", async ({
-      page,
-    }) => {
-      await page.goto("/library/agents");
-      await page.waitForLoadState("networkidle");
-
-      const firstAgent = page.locator('[role="listitem"]').first();
-      if (!(await firstAgent.isVisible())) {
-        test.skip();
-        return;
-      }
-      await firstAgent.click();
-      await page.waitForLoadState("networkidle");
-
-      const radiogroup = page.getByRole("radiogroup", {
-        name: "Resource visibility",
-      });
-      if (!(await radiogroup.isVisible())) {
-        test.skip();
-        return;
-      }
-
-      const publicOption = radiogroup.getByRole("radio", { name: /Public/i });
-      await publicOption.click();
-
-      // Capture the toggle + confirmation prompt together
-      const container = radiogroup.locator("..");
-      await expect(container).toHaveScreenshot(
-        "visibility-toggle-confirm-public.png",
-        { maxDiffPixelRatio: 0.02 },
-      );
-    });
   });
 
   test.describe("Instance Visibility Selector", () => {
-    test("3-way selector in default state", async ({ page }) => {
+    test("selector in default state", async ({ page }) => {
       await page.goto("/library/workflows");
       await page.waitForLoadState("networkidle");
 

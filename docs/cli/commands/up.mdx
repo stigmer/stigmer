@@ -15,10 +15,11 @@ cloud account needed.
 
 On first run the CLI acquires the `stigmer-server` and runner packages at the
 matching version, then bootstraps the backend: it creates the `stigmer`
-organization. Nothing else is installed: a conversation started with no agent
-runs the built-in assistant, so a fresh install answers its first message at
-once. An install seeded by an earlier release keeps its `assistant` agent as an
-ordinary agent beside the built-in one; every conversation with it continues.
+organization, the one the CLI uses when a command names none. Nothing else is
+installed: a conversation started with no agent runs the built-in assistant, so
+a fresh install answers its first message at once. An install seeded by an
+earlier release keeps its `assistant` agent as an ordinary agent beside the
+built-in one; every conversation with it continues.
 
 Use `stigmer up server` to start only the control plane (Temporal and
 `stigmer-server`) when you manage your own runners — for example, the desktop
@@ -112,13 +113,13 @@ stigmer up server [flags]
 
 ## Related commands
 
-| Command                            | Description                              |
-| ---------------------------------- | ---------------------------------------- |
-| [`stigmer down`](./down)           | Stop the local stack                     |
-| [`stigmer status`](./status)       | Show local stack status                  |
-| [`stigmer logs`](./logs)           | View logs from the local stack           |
-| [`stigmer setup`](./setup)         | Configure the LLM provider               |
-| [`stigmer bootstrap`](./bootstrap) | Bootstrap a backend `up` does not manage |
+| Command                            | Description                                     |
+| ---------------------------------- | ----------------------------------------------- |
+| [`stigmer down`](./down)           | Stop the local stack                            |
+| [`stigmer status`](./status)       | Show local stack status                         |
+| [`stigmer logs`](./logs)           | View logs from the local stack                  |
+| [`stigmer setup`](./setup)         | Configure the LLM provider                      |
+| [`stigmer bootstrap`](./bootstrap) | Bootstrap a raw self-hosted server the same way |
 
 ## See also
 

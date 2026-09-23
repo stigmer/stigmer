@@ -55,7 +55,8 @@ catalogue you add, declares the servers it needs; installing it creates them in
 your Organization, marked as the plugin's, beside the Agent that uses them when
 the plugin carries one, and ready to list on your own Agents when it does not.
 You connect a server once and Stigmer discovers its tools. A server another
-Organization publishes as public can be referenced by your Agents as well.
+Organization owns is yours to use only through a Plugin, or when that
+Organization is a platform sharing it with the Organizations it manages.
 
 A remote (HTTP) server works in any Session, local or cloud-hosted. A stdio
 server (a local subprocess launched through `npx` or `uvx`) runs only on a local
@@ -76,7 +77,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: order-management-api
-  visibility: visibility_public
+  visibility: visibility_org
 spec:
   description: >
     Connects to the order management system. Provides tools for looking up

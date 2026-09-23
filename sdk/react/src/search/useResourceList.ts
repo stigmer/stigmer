@@ -4,15 +4,6 @@ import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useFetch } from "../internal/useFetch.js";
 
-/**
- * Scope controls resource listing boundaries.
- *
- * - `"org"` — resources owned by the active organization (public and private).
- * - `"all"` — resources owned by the active organization plus public resources
- *   from other organizations.
- */
-export type ResourceListScope = "org" | "all";
-
 export interface UseResourceListOptions {
   /** Maximum results per page. @default 20 */
   readonly pageSize?: number;
@@ -20,16 +11,6 @@ export interface UseResourceListOptions {
   readonly page?: number;
   /** Text query to filter results. No debouncing is applied — the consumer controls timing. */
   readonly query?: string;
-  /**
-   * Controls resource visibility scope.
-   *
-   * - `"org"` — all resources owned by the given organization, regardless of visibility.
-   * - `"all"` — all resources owned by the given organization plus public resources
-   *   from other organizations.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
 }
 
 export interface UseResourceListReturn {
@@ -59,15 +40,17 @@ const INITIAL_DATA: ResourceListData = {
 };
 
 /**
- * Internal hook that provides paginated, scope-aware resource listing.
+ * Internal hook that provides paginated resource listing over one
+ * organization's rows (what the caller may read there; the server applies
+ * the read scope, never the client).
  *
  * Powers the public resource list hooks (`useAgentList`, `useSkillList`,
  * `useMcpServerList`) — not exported from the public API.
  *
  * Unlike {@link useResourceSearch} which manages its own debounced query
  * state for picker/type-ahead UX, this hook accepts all parameters
- * externally, giving the consumer full control over query timing,
- * pagination state, and scope toggling.
+ * externally, giving the consumer full control over query timing and
+ * pagination state.
  */
 export function useResourceList(
   listFn: (params: ListParams) => Promise<ListResult>,
@@ -77,7 +60,6 @@ export function useResourceList(
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
   const page = options?.page ?? DEFAULT_PAGE;
   const query = options?.query;
-  const scope = options?.scope ?? "org";
 
   const { data, isLoading, isRefetching, error, refetch } = useFetch<ResourceListData>(
     org
@@ -85,8 +67,6 @@ export function useResourceList(
           const params: ListParams = {
             org,
             query: query || undefined,
-            excludePublic: false,
-            crossOrgPublic: scope === "all",
             page: { num: page, size: pageSize },
           };
           const result = await listFn(params);
@@ -97,7 +77,7 @@ export function useResourceList(
           };
         }
       : null,
-    [listFn, org, query, scope, page, pageSize],
+    [listFn, org, query, page, pageSize],
     INITIAL_DATA,
   );
 

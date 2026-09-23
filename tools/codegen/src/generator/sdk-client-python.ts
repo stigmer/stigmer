@@ -704,8 +704,6 @@ function generatePythonSearchList(buf: string[], cfg: SdkResourceConfig): void {
   buf.push(`                kinds=[api_resource_kind_pb2.ApiResourceKind.${cfg.resourceKind}],\n`);
   buf.push("                query=params.query,\n");
   buf.push("                org=params.org,\n");
-  buf.push("                exclude_public=params.exclude_public,\n");
-  buf.push("                cross_org_public=params.cross_org_public,\n");
   buf.push("            )\n");
   buf.push("            if params.page is not None:\n");
   buf.push("                req.page.CopyFrom(pagination_pb2.PageInfo(\n");
@@ -1219,8 +1217,6 @@ class ListParams:
 
     org: str = ""
     query: str = ""
-    exclude_public: bool = False
-    cross_org_public: bool = False
     page: Page | None = None
 
 

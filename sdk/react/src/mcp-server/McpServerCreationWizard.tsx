@@ -82,7 +82,7 @@ const STEPS: WizardStepDef<McpServerWizardData>[] = [
  * Multi-step wizard for creating a new MCP server blueprint.
  *
  * Three steps:
- * 1. **Identity & Transport** — name, slug, description, visibility, transport config
+ * 1. **Identity & Transport** — name, slug, description, icon, transport config
  * 2. **Environment & Auth** — env var declarations, OAuth auth configuration (all optional)
  * 3. **Review & Create** — YAML preview + submission
  *

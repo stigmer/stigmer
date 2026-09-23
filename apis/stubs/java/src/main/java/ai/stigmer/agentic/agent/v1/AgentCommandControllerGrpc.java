@@ -278,20 +278,16 @@ public final class AgentCommandControllerGrpc {
      * Update the visibility of an existing agent.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make an agent publicly accessible or to revoke public access without
-     * sending the entire agent resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the agent without sending the entire agent
+     * resource (avoiding read-modify-write races).
+     * Raising the level is refused while a skill, MCP server or agent the
+     * agent references is less visible than the requested level: what a
+     * person can run they must also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the agent for private/org/platform
-     * transitions. Escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition; the
-     * operator acts on the owner's request, so resource can_edit is not
-     * also required). Downgrade from PUBLIC: can_edit OR the platform
-     * permission. The annotation below carries the baseline can_edit gate;
-     * the public-escalation overlay is enforced by the handler pipeline
-     * (AuthorizeVisibilityTransitionStep), not by this annotation.
+     * Authorization: can_edit on the agent for every transition. The level
+     * itself is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind); the reference floor is a pipeline step on
+     * this chain, not an annotation.
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -305,8 +301,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -404,20 +401,16 @@ public final class AgentCommandControllerGrpc {
      * Update the visibility of an existing agent.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make an agent publicly accessible or to revoke public access without
-     * sending the entire agent resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the agent without sending the entire agent
+     * resource (avoiding read-modify-write races).
+     * Raising the level is refused while a skill, MCP server or agent the
+     * agent references is less visible than the requested level: what a
+     * person can run they must also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the agent for private/org/platform
-     * transitions. Escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition; the
-     * operator acts on the owner's request, so resource can_edit is not
-     * also required). Downgrade from PUBLIC: can_edit OR the platform
-     * permission. The annotation below carries the baseline can_edit gate;
-     * the public-escalation overlay is enforced by the handler pipeline
-     * (AuthorizeVisibilityTransitionStep), not by this annotation.
+     * Authorization: can_edit on the agent for every transition. The level
+     * itself is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind); the reference floor is a pipeline step on
+     * this chain, not an annotation.
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -432,8 +425,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -515,20 +509,16 @@ public final class AgentCommandControllerGrpc {
      * Update the visibility of an existing agent.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make an agent publicly accessible or to revoke public access without
-     * sending the entire agent resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the agent without sending the entire agent
+     * resource (avoiding read-modify-write races).
+     * Raising the level is refused while a skill, MCP server or agent the
+     * agent references is less visible than the requested level: what a
+     * person can run they must also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the agent for private/org/platform
-     * transitions. Escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition; the
-     * operator acts on the owner's request, so resource can_edit is not
-     * also required). Downgrade from PUBLIC: can_edit OR the platform
-     * permission. The annotation below carries the baseline can_edit gate;
-     * the public-escalation overlay is enforced by the handler pipeline
-     * (AuthorizeVisibilityTransitionStep), not by this annotation.
+     * Authorization: can_edit on the agent for every transition. The level
+     * itself is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind); the reference floor is a pipeline step on
+     * this chain, not an annotation.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -542,8 +532,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -624,20 +615,16 @@ public final class AgentCommandControllerGrpc {
      * Update the visibility of an existing agent.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make an agent publicly accessible or to revoke public access without
-     * sending the entire agent resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the agent without sending the entire agent
+     * resource (avoiding read-modify-write races).
+     * Raising the level is refused while a skill, MCP server or agent the
+     * agent references is less visible than the requested level: what a
+     * person can run they must also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the agent for private/org/platform
-     * transitions. Escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition; the
-     * operator acts on the owner's request, so resource can_edit is not
-     * also required). Downgrade from PUBLIC: can_edit OR the platform
-     * permission. The annotation below carries the baseline can_edit gate;
-     * the public-escalation overlay is enforced by the handler pipeline
-     * (AuthorizeVisibilityTransitionStep), not by this annotation.
+     * Authorization: can_edit on the agent for every transition. The level
+     * itself is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind); the reference floor is a pipeline step on
+     * this chain, not an annotation.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -651,8 +638,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and
@@ -736,20 +724,16 @@ public final class AgentCommandControllerGrpc {
      * Update the visibility of an existing agent.
      * This is a targeted metadata update — it only modifies metadata.visibility,
      * leaving spec, status, and other metadata fields untouched. Use this to
-     * make an agent publicly accessible or to revoke public access without
-     * sending the entire agent resource (avoiding read-modify-write races).
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
+     * widen or narrow who can read the agent without sending the entire agent
+     * resource (avoiding read-modify-write races).
+     * Raising the level is refused while a skill, MCP server or agent the
+     * agent references is less visible than the requested level: what a
+     * person can run they must also be able to read.
      * &#64;internal
-     * Authorization: can_edit on the agent for private/org/platform
-     * transitions. Escalation to PUBLIC instead requires
-     * can_set_public_visibility on platform:stigmer (cloud edition; the
-     * operator acts on the owner's request, so resource can_edit is not
-     * also required). Downgrade from PUBLIC: can_edit OR the platform
-     * permission. The annotation below carries the baseline can_edit gate;
-     * the public-escalation overlay is enforced by the handler pipeline
-     * (AuthorizeVisibilityTransitionStep), not by this annotation.
+     * Authorization: can_edit on the agent for every transition. The level
+     * itself is checked against the kind's VisibilityConfig (visibility_public
+     * is refused for every kind); the reference floor is a pipeline step on
+     * this chain, not an annotation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> updateVisibility(
@@ -764,8 +748,9 @@ public final class AgentCommandControllerGrpc {
      * Deletion also removes the agent's system-managed default instance and
      * every AgentShare in the agent's own organization referencing it, so a
      * later agent created at the same org/slug starts clean. Personal
-     * instances, sessions, and other organizations' shares of this agent are
-     * not deleted — external shares stop resolving instead.
+     * instances and sessions are not deleted, nor is a share written in
+     * another organization before sharing across organizations was retired;
+     * such a share stops resolving instead.
      * &#64;internal
      * Cascade order is children-before-parent so a mid-failure retry
      * converges. Shares are matched by spec.agent_ref (org + agent slug) and

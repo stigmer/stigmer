@@ -17,7 +17,7 @@ No sign-in: like `stigmer up`, the container trusts every caller. Keep the ports
 
 ## What the image is
 
-A pre-warmed `stigmer up`. On a laptop, the CLI's first `up` acquires `@stigmer/server-slim`, `@stigmer/runner-slim` and `@stigmer/plugins` into `~/.stigmer/runtimes/<version>/node_modules/@stigmer/…` and downloads the Temporal CLI into `~/.stigmer/bin`. This image has those acquisitions already done, read-only, off the data volume:
+A pre-warmed `stigmer up`. On a laptop, the CLI's first `up` acquires `@stigmer/server-slim` and `@stigmer/runner-slim` (and its first `stigmer install` acquires `@stigmer/plugins`) into `~/.stigmer/runtimes/<version>/node_modules/@stigmer/…` and downloads the Temporal CLI into `~/.stigmer/bin`. This image has those acquisitions already done, read-only, off the data volume:
 
 - `/opt/stigmer/runtimes/<version>/` — the same npm packages (plus the CLI itself), installed into the same layout; `STIGMER_RUNTIMES_DIR` points the CLI's acquirers here, and they find everything present.
 - `/opt/stigmer/bin/temporal` — the Temporal CLI, downloaded and checksum-verified by the CLI's own downloader; `STIGMER_TEMPORAL_BIN` points the manager here.

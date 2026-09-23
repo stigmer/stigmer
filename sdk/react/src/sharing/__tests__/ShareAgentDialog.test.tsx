@@ -298,30 +298,30 @@ describe("ShareAgentDialog", () => {
       expect(screen.queryByText(/pick a different slug/i)).toBeNull();
     });
 
-    it("surfaces other server refusals verbatim (e.g. non-public dependencies)", async () => {
+    it("surfaces other server refusals verbatim (e.g. a permission the caller lacks)", async () => {
       const apply = vi
         .fn()
         .mockRejectedValue(
           new StigmerError(
-            "failed-precondition",
-            "cannot share acme/support-agent across organizations: it references resources that are not public: skill acme/internal-kb",
-            Code.FailedPrecondition,
+            "permission-denied",
+            "creating a share needs can_create_agent_share on organization acme",
+            Code.PermissionDenied,
           ),
         );
-      renderOpenDialog(createMockStigmer({ apply }), { shareOrg: "consumer-org" });
+      renderOpenDialog(createMockStigmer({ apply }));
 
       fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
 
       expect(
-        await screen.findByText(/resources that are not public/i),
+        await screen.findByText(/needs can_create_agent_share/i),
       ).toBeTruthy();
     });
 
-    it("cross-org create: qualifies the agent, names the paying org, creates in the viewer's org", async () => {
+    it("creates the share in the agent's own organization and names it as the paying org", async () => {
       const apply = vi.fn().mockResolvedValue({
         metadata: {
-          id: "ash_ext",
-          org: "consumer-org",
+          id: "ash_new",
+          org: "acme",
           slug: "support-agent",
           name: "Support Agent",
         },
@@ -330,10 +330,8 @@ describe("ShareAgentDialog", () => {
           enabled: true,
         },
       });
-      renderOpenDialog(createMockStigmer({ apply }), { shareOrg: "consumer-org" });
+      renderOpenDialog(createMockStigmer({ apply }));
 
-      // The header names whose blueprint this channel serves.
-      expect(screen.getByText("acme/support-agent")).toBeTruthy();
       // The create copy names the org that owns and pays for the channel.
       expect(screen.getByText(/credits/)).toBeTruthy();
 
@@ -341,17 +339,16 @@ describe("ShareAgentDialog", () => {
 
       await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
       const input = apply.mock.calls[0][0] as AgentShareInput;
-      expect(input.org).toBe("consumer-org");
+      expect(input.org).toBe("acme");
       expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
 
-      // The editor shows the sharing org's URL; cross-org shares are
-      // public-audience only, so no audience selector is offered.
+      // The editor shows the agent org's URL and offers the audience choice.
       await waitFor(() =>
         expect(
-          screen.getByText("https://app.example.com/chat/consumer-org/support-agent"),
+          screen.getByText("https://app.example.com/chat/acme/support-agent"),
         ).toBeTruthy(),
       );
-      expect(screen.queryByRole("radiogroup", { hidden: true })).toBeNull();
+      expect(screen.getByRole("radiogroup", { hidden: true })).toBeTruthy();
     });
   });
 
@@ -497,46 +494,39 @@ describe("ShareAgentDialog", () => {
     });
   });
 
-  describe("cross-org edit mode (share org differs from the agent's — decision 013)", () => {
-    const externalShare = {
-      metadata: {
-        id: "ash_ext",
-        org: "consumer-org",
-        slug: "support-agent",
-        name: "Support Agent",
-      },
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: true,
-      },
-    } as never;
-
-    it("qualifies the agent in the header and hides the audience selector", () => {
-      renderOpenDialog(createMockStigmer(), { share: externalShare });
-
-      // The header names whose blueprint this channel serves.
-      expect(screen.getByText("acme/support-agent")).toBeTruthy();
-      // Cross-org shares are public-audience only — no choice to offer.
-      expect(screen.queryByRole("radiogroup", { hidden: true })).toBeNull();
-    });
-
-    it("builds the link and billing line from the sharing org", () => {
-      renderOpenDialog(createMockStigmer(), { share: externalShare });
-
-      expect(
-        screen.getByText("https://app.example.com/chat/consumer-org/support-agent"),
-      ).toBeTruthy();
-      // Who-pays names the sharing org, not the agent's.
-      expect(screen.getByText("consumer-org")).toBeTruthy();
-    });
-
-    it("same-org dialogs are unchanged when the share org equals the agent's", () => {
+  describe("edit mode identity", () => {
+    it("names the agent in the header, offers the audience choice, and builds the link from the share's own org", () => {
       renderOpenDialog(createMockStigmer(), {
         share: makeShare({ enabled: true }),
       });
 
       expect(screen.getByText("Support Agent")).toBeTruthy();
       expect(screen.getByRole("radiogroup", { hidden: true })).toBeTruthy();
+      expect(
+        screen.getByText("https://app.example.com/chat/acme/support-agent"),
+      ).toBeTruthy();
+    });
+
+    it("edits a share written in another organization before the retirement by its own identity", () => {
+      // Such a row no longer serves, but an edit must still address the
+      // row that exists rather than re-home it under the agent's org.
+      const legacyShare = {
+        metadata: {
+          id: "ash_ext",
+          org: "consumer-org",
+          slug: "support-agent",
+          name: "Support Agent",
+        },
+        spec: {
+          agentRef: { org: "acme", slug: "support-agent" },
+          enabled: true,
+        },
+      } as never;
+      renderOpenDialog(createMockStigmer(), { share: legacyShare });
+
+      expect(
+        screen.getByText("https://app.example.com/chat/consumer-org/support-agent"),
+      ).toBeTruthy();
     });
   });
 

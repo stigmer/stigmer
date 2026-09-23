@@ -9,9 +9,9 @@ description: "search resources by text query (supported types: agent, workflow)"
 Search for resources matching a text query.
 
 `stigmer search` performs a full-text search across resource names,
-descriptions, and tags. Results are sorted by relevance score. By default, the
-search includes public platform resources — use `--exclude-public` to see only
-your own.
+descriptions, and tags. Results are sorted by relevance score and cover the
+resources you can read: your organization's, and the platform-visible ones
+shared with it.
 
 ## Usage
 
@@ -28,22 +28,18 @@ stigmer search agents "code review"
 # Search for workflows
 stigmer search workflows "deploy"
 
-# Exclude public/platform resources
-stigmer search agents "api" --exclude-public
-
 # Output as JSON for scripting
 stigmer search workflows "data" --output json
 ```
 
 ## Options
 
-| Flag               | Type     | Default | Description                         |
-| ------------------ | -------- | ------- | ----------------------------------- |
-| `--exclude-public` | `bool`   |         | exclude public/platform resources   |
-| `--json`           | `bool`   |         | shorthand for --output json         |
-| `--output`, `-o`   | `string` |         | output format: table, json, or yaml |
-| `--page`           | `string` | `1`     | page number (1-indexed)             |
-| `--page-size`      | `string` | `20`    | results per page (max 100)          |
+| Flag             | Type     | Default | Description                         |
+| ---------------- | -------- | ------- | ----------------------------------- |
+| `--json`         | `bool`   |         | shorthand for --output json         |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml |
+| `--page`         | `string` | `1`     | page number (1-indexed)             |
+| `--page-size`    | `string` | `20`    | results per page (max 100)          |
 
 ### Supported resource types
 

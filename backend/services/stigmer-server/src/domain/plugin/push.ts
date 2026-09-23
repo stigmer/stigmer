@@ -94,7 +94,6 @@ import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source
 import { generateSlug } from "../../pipeline/steps/slug.js";
 import { rejectUnsupportedVisibility } from "../../pipeline/steps/validate-visibility.js";
 import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
-import { requireOperatorMaySetPublic } from "../../pipeline/steps/visibility-gates.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { openPluginArchive } from "./archive.js";
@@ -493,30 +492,23 @@ export function newPlanMaterializationStep(
 
 /**
  * GuardPluginVisibility — the requested level must be one the plugin and
- * every planned member kind support, and PUBLIC needs the operator grant
- * (the one owner of that question, shared with every other create door).
- * Each member's own chain will check again in-process; refusing here keeps
- * the head from being written before the answer is known.
+ * every planned member kind support: the push chain's counterpart of the
+ * ValidateVisibility step on the resource create chains, asked here for
+ * the head and for each member kind before anything is written, so a
+ * plugin cannot be installed at a level one of its members may not hold.
+ * Each member's own chain checks again in-process; refusing here keeps the
+ * head from being written before the answer is known.
  */
-export function newGuardPluginVisibilityStep(
-  authorizer: Authorizer,
-): PipelineStep<PushDesc> {
+export function newGuardPluginVisibilityStep(): PipelineStep<PushDesc> {
   return {
     name: "GuardPluginVisibility",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
+    execute(ctx: RequestContext<PushDesc>): void {
       const level = requestedVisibility(ctx);
       const plan = ctx.get(PLUGIN_PLAN_KEY) as MaterializationPlan;
       rejectUnsupportedVisibility(ctx.apiResourceKind, level);
       for (const kind of new Set(plan.members.map((member) => member.kind))) {
         rejectUnsupportedVisibility(kind, level);
       }
-      if (level !== ApiResourceVisibility.visibility_public) {
-        return;
-      }
-      if (ctx.callerIdentity.callerClass === "internal") {
-        return;
-      }
-      await requireOperatorMaySetPublic(authorizer, ctx.callerIdentity);
     },
   };
 }

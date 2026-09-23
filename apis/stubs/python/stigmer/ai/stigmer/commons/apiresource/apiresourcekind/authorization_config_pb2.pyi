@@ -37,16 +37,14 @@ OWNER_ATTRIBUTION_TYPE_SELF: OwnerAttributionType
 OWNER_ATTRIBUTION_TYPE_NONE: OwnerAttributionType
 
 class VisibilityConfig(_message.Message):
-    __slots__ = ("supports_public", "supports_platform", "supports_org", "defaults_to_org_visibility")
-    SUPPORTS_PUBLIC_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("supports_platform", "supports_org", "defaults_to_org_visibility")
     SUPPORTS_PLATFORM_FIELD_NUMBER: _ClassVar[int]
     SUPPORTS_ORG_FIELD_NUMBER: _ClassVar[int]
     DEFAULTS_TO_ORG_VISIBILITY_FIELD_NUMBER: _ClassVar[int]
-    supports_public: bool
     supports_platform: bool
     supports_org: bool
     defaults_to_org_visibility: bool
-    def __init__(self, supports_public: bool = ..., supports_platform: bool = ..., supports_org: bool = ..., defaults_to_org_visibility: bool = ...) -> None: ...
+    def __init__(self, supports_platform: bool = ..., supports_org: bool = ..., defaults_to_org_visibility: bool = ...) -> None: ...
 
 class ParentRelationConfig(_message.Message):
     __slots__ = ("kind", "relation", "spec_field")

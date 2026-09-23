@@ -95,8 +95,8 @@ interface SkillMetadata {
   /**
    * Declared access level, parsed from the optional `visibility:` frontmatter
    * key. `undefined` when omitted — the skill keeps whatever the server already
-   * has (default PRIVATE for new skills). This is the declarative replacement
-   * for the Go CLI's `--public-skills` flag.
+   * has (the kind's default for new skills). The level is declared with the
+   * skill so a push carries it, rather than a second command after.
    */
   readonly visibility?: ApiResourceVisibility;
 }
@@ -143,20 +143,28 @@ export function parseSkillMetadataContent(content: string): SkillMetadata {
   return { name, visibility: parseVisibility(parsed.visibility, SKILL_FILE) };
 }
 
-// Friendly frontmatter spellings → proto enum. Both the short form (`public`)
-// and the canonical enum name (`visibility_public`) are accepted so authors can
+// Friendly frontmatter spellings → proto enum. Both the short form (`org`)
+// and the canonical enum name (`visibility_org`) are accepted so authors can
 // copy either from docs or from generated YAML. `unspecified`/empty is treated
 // as "not declared" (returns undefined) so we never emit a no-op update.
 const VISIBILITY_ALIASES: ReadonlyMap<string, ApiResourceVisibility> = new Map([
   ["private", ApiResourceVisibility.visibility_private],
   ["visibility_private", ApiResourceVisibility.visibility_private],
-  ["public", ApiResourceVisibility.visibility_public],
-  ["visibility_public", ApiResourceVisibility.visibility_public],
   ["org", ApiResourceVisibility.visibility_org],
   ["visibility_org", ApiResourceVisibility.visibility_org],
   ["platform", ApiResourceVisibility.visibility_platform],
   ["visibility_platform", ApiResourceVisibility.visibility_platform],
 ]);
+
+/**
+ * The spellings of the retired public level. They are refused like any
+ * unknown value, with one extra clause: an author who wrote `public` meant
+ * something the platform no longer offers, and the error should say so
+ * rather than read as a typo.
+ */
+const RETIRED_VISIBILITY_SPELLINGS: ReadonlySet<string> = new Set(["public", "visibility_public"]);
+
+const VALID_VISIBILITY_VALUES = "Valid values: private, org, platform.";
 
 /**
  * Map an optional `visibility` frontmatter value to the proto enum. Returns
@@ -170,12 +178,16 @@ export function parseVisibility(value: unknown, source = SKILL_FILE): ApiResourc
   }
   const key = value.trim().toLowerCase();
   if (key === "" || key === "unspecified" || key === "api_resource_visibility_unspecified") return undefined;
+  if (RETIRED_VISIBILITY_SPELLINGS.has(key)) {
+    throw new UsageError(
+      `invalid 'visibility' value '${value}' in ${source}: the public level is retired\n\n` +
+        "Resources are shared across organizations through plugins, or through the\n" +
+        `platform level between organizations linked by one identity provider. ${VALID_VISIBILITY_VALUES}`,
+    );
+  }
   const mapped = VISIBILITY_ALIASES.get(key);
   if (mapped === undefined) {
-    throw new UsageError(
-      `invalid 'visibility' value '${value}' in ${source}\n\n` +
-        "Valid values: private, public, org, platform.",
-    );
+    throw new UsageError(`invalid 'visibility' value '${value}' in ${source}\n\n${VALID_VISIBILITY_VALUES}`);
   }
   return mapped;
 }
@@ -485,10 +497,9 @@ export async function pushSkillFromArchive(
 /**
  * Apply the SKILL.md-declared visibility after a push. The push RPC carries
  * artifact + provenance but not access level (visibility is metadata, not part
- * of the versioned content), so we follow it with a single UpdateVisibility RPC
- * — the declarative equivalent of the Go CLI's post-push `--public-skills`
- * sweep. No-ops (undefined visibility, or the server already matching) are
- * skipped so an unchanged skill costs nothing extra.
+ * of the versioned content), so we follow it with a single UpdateVisibility RPC.
+ * No-ops (undefined visibility, or the server already matching) are skipped
+ * so an unchanged skill costs nothing extra.
  */
 async function applyDeclaredVisibility(
   client: Stigmer,

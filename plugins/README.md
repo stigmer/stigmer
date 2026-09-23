@@ -3,20 +3,20 @@
 Stigmer's **official plugin marketplace**: a directory tree with a root
 `marketplace.json` and one Agent Plugins package per entry. It is what
 `stigmer install <name>` and `stigmer marketplace show stigmer` read when no
-other marketplace is named. Its `defaults` list is empty: a fresh Stigmer
+other marketplace is named. Nothing in it is installed unasked: a fresh Stigmer
 answers with the built-in assistant, which is the runner's own prompt and no
-plugin's, so nothing is installed for a first message to work.
+plugin's, so a first message needs no plugin.
 
 The tree follows the convention Cursor (`cursor/plugins`), Claude Code
 (`anthropics/claude-code`) and Codex publish: the marketplace file at the root,
 each plugin in its own folder, nothing else needed. The CLI reads all four
-dialects; this file is the Stigmer dialect, the one with a `defaults` list.
+dialects; this file is the Stigmer dialect, which the CLI looks for first.
 
 ## Layout
 
 ```text
 plugins/
-  marketplace.json        the catalogue: name, owner, plugins[], defaults[]
+  marketplace.json        the catalogue: name, owner, plugins[]
   vendor.json             where every vendored folder came from; the strikes
   NOTICE                  the attribution for the vendored folders, generated
   linear/                 an authored plugin for a vendor's public MCP endpoint
@@ -34,8 +34,8 @@ plugins/
 names its folder, and `stage-content.mjs` copies exactly the listed folders into
 `dist/`, so a folder that is not listed never reaches npm and a listed folder
 that is missing fails the build. Its `plugins` list is written by the sync
-(every vendored row plus every authored folder, the defaults first, then by
-name) and checked by the suite, so the file and the tree cannot disagree.
+(every vendored row plus every authored folder, by name) and checked by the
+suite, so the file and the tree cannot disagree.
 
 ## Two kinds of plugin
 
@@ -182,9 +182,9 @@ because a pull request opened with the workflow token runs no checks.
 
 `scripts/publish-libs.mjs` publishes `dist/` as `@stigmer/plugins` at every
 release, in lockstep with `@stigmer/cli`. A released CLI acquires the package at
-its own version into `~/.stigmer/runtimes/<version>/` on the first `stigmer up`,
-so the content a fresh install bootstraps with matches the control plane that
-installs it; from a checkout, the CLI reads this tree directly. The all-in-one
+its own version into `~/.stigmer/runtimes/<version>/` the first time
+`stigmer install` needs it, so what it installs matches the control plane that
+serves it; from a checkout, the CLI reads this tree directly. The all-in-one
 image bakes the package the same way it bakes the server and the runner.
 
 Every consumer of a release reads the packed tree, and npm decides what a

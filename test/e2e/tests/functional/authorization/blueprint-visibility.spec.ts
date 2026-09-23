@@ -43,7 +43,7 @@ test.describe("Blueprint Visibility", () => {
       // The inline control is now a read-only badge naming the current level.
       await expect(
         page
-          .getByText(/^(Private|Organization|Public|Platform)$/)
+          .getByText(/^(Private|Organization|Platform)$/)
           .first(),
       ).toBeVisible();
     });
@@ -72,7 +72,7 @@ test.describe("Blueprint Visibility", () => {
       }
     });
 
-    test("escalating to public asks for confirmation", async ({ page }) => {
+    test("the visibility control never offers Public", async ({ page }) => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
@@ -87,14 +87,10 @@ test.describe("Blueprint Visibility", () => {
         });
         if (await control.isVisible()) {
           await control.click();
-          const publicOption = page.getByRole("option", { name: /Public/i });
-          if (await publicOption.isVisible()) {
-            await publicOption.click();
-            // Escalation requires explicit confirmation before applying.
-            await expect(
-              page.getByRole("button", { name: /Make Public/i }),
-            ).toBeVisible();
-          }
+          // The public level is retired: the ladder is Private / Organization
+          // [/ Platform], and no row offers the retired level.
+          await expect(page.getByRole("option", { name: /^Private/i })).toBeVisible();
+          await expect(page.getByRole("option", { name: /^Public/i })).toHaveCount(0);
         }
       }
     });
@@ -114,25 +110,6 @@ test.describe("Blueprint Visibility", () => {
       const dialog = await openManageAccessFromKebab(page);
       if (dialog) {
         await expect(dialog.getByText("General access")).toBeVisible();
-      }
-    });
-  });
-
-  test.describe("Scope filter respects visibility", () => {
-    test("org-only scope hides public marketplace resources", async ({
-      page,
-    }) => {
-      await page.goto("/library/agents");
-      await page.waitForLoadState("networkidle");
-
-      const scopeToggle = page.getByRole("radiogroup", {
-        name: /scope/i,
-      });
-
-      if (await scopeToggle.isVisible()) {
-        const orgOption = scopeToggle.getByRole("radio", { name: /org/i });
-        await orgOption.click();
-        await page.waitForLoadState("networkidle");
       }
     });
   });

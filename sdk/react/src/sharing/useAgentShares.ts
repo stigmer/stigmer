@@ -31,15 +31,15 @@ export interface UseAgentSharesReturn {
  * origins, visitor messages, tool credentials, link token).
  *
  * Sharing is channel configuration, not agent behavior (decision 011):
- * an agent can carry N shares, each with its own URL, billing org, and
- * credentials (decision 011 D3 + decision 013 cross-org shares).
+ * an agent can carry N shares, each with its own URL, audience and
+ * credentials (decision 011 D3), all in the agent's own organization.
  *
  * Pass `org` to scope the list to one organization's channels — the
- * org-context view a console tab needs. Permissions alone cannot provide
- * this scope: a member of several orgs can view all of their orgs'
- * channels of the agent, so the unscoped list merges them. The server
+ * agent's organization is the one a console tab asks for. The server
  * applies the scope (it only ever narrows the permission-bounded view);
- * omit `org` for the full permission-bounded list.
+ * omit `org` for the full permission-bounded list, which for a member of
+ * several organizations may also carry shares written before sharing
+ * across organizations was retired.
  *
  * Pass an empty `agentId` to skip fetching (stable no-op) — useful
  * while the agent is still loading.

@@ -610,7 +610,7 @@ test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra n
 # The official plugin marketplace (plugins/) read through
 # @stigmer/plugin-package, the reader the CLI and the server use: the
 # marketplace file, the pin file, the notice and the tree agree, every
-# offered plugin installs under its own name, the defaults are the file's.
+# offered plugin installs under its own name.
 # Deterministic, network-free; runs on every plugins/** PR. The typecheck
 # covers the catalogue's own tooling (plugins/scripts) and the suite; a
 # script nobody typechecks is a gate nobody hears. The build stages the

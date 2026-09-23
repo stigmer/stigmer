@@ -211,10 +211,12 @@ public interface SearchResultOrBuilder extends
 
   /**
    * <pre>
-   * Resource visibility: public or private.
+   * Resource visibility, as stored on the resource's metadata.
    *
-   * - visibility_private: Only org members can access
-   * - visibility_public: Anyone can read (e.g., marketplace resources)
+   * - visibility_private: the owner and explicit grants
+   * - visibility_org: every member of the owning organization
+   * - visibility_platform: members of the organizations linked by the
+   * owning organization's identity provider
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 8 [json_name = "visibility"];</code>
@@ -223,10 +225,12 @@ public interface SearchResultOrBuilder extends
   int getVisibilityValue();
   /**
    * <pre>
-   * Resource visibility: public or private.
+   * Resource visibility, as stored on the resource's metadata.
    *
-   * - visibility_private: Only org members can access
-   * - visibility_public: Anyone can read (e.g., marketplace resources)
+   * - visibility_private: the owner and explicit grants
+   * - visibility_org: every member of the owning organization
+   * - visibility_platform: members of the organizations linked by the
+   * owning organization's identity provider
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 8 [json_name = "visibility"];</code>

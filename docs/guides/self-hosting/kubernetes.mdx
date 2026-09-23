@@ -138,9 +138,10 @@ kubectl -n stigmer port-forward svc/stigmer 7234:7234 7235:7235
 ```
 
 Open [http://localhost:7234](http://localhost:7234). The console asks you to
-create an Organization: a fresh install has none yet. Leave it there; the next
-steps bootstrap one from the CLI. Download links the platform mints point at
-port 7235, which the same port-forward carries.
+create an Organization: a fresh install has none yet. Create one for your team
+and note its slug, the short name under its display name; everything on this
+page lands in it. Download links the platform mints point at port 7235, which
+the same port-forward carries.
 
 Leave the port-forward running in its terminal. It stops whenever the pod is
 recreated, which every `helm upgrade` that changes a setting does; start it
@@ -149,50 +150,33 @@ again with the same command.
 ### Connect the CLI
 
 Through the port-forward, the cluster's server answers on your laptop's
-port 7234. Tell the CLI where it is, as a named backend, then switch to it:
+port 7234. Tell the CLI where it is, as a named backend, switch to it, and point
+it at the Organization you created:
 
 ```bash
 stigmer config backend add mycluster --endpoint localhost:7234
 stigmer config backend use mycluster
+stigmer config context set --org <your-org-slug>
 ```
+
+The last command checks that you belong to the Organization before it saves it,
+so a mistyped slug is refused on the spot. Every `apply`, `run` and `get` on
+this page now lands where the console looks; `--org <slug>` on a command, or
+`STIGMER_ORG_ID` set for the process, points one command at another
+Organization.
 
 A named backend keeps its own address and, later, its own API key, so switching
 between this cluster, your laptop and Stigmer Cloud is one command. The
-[`stigmer config`](/docs/cli/commands/config) reference lists every backend
-command. Every command on this page lands in the Organization the next step
-creates, the CLI's default; `--org <slug>` on a command, or `STIGMER_ORG_ID` set
-for the process, points it at another Organization.
+[`stigmer config`](/docs/cli/commands/config) reference lists every backend and
+context command, and [Organizations](/docs/concepts/organizations) explains how
+more than one fits together.
 
-### Bootstrap the backend
-
-Bootstrap the backend. It creates the `stigmer` Organization and installs the
-official marketplace's default Plugins into it — the same bootstrap `stigmer up`
-performs on your laptop. Today the default Plugin is the `assistant` Agent.
-`stigmer` is also the Organization the CLI uses when you don't name one, so
-every `apply`, `run` and `get` on this page lands where the console looks. The
-command is safe to run again; a ready backend reports every default as up to
-date. The first run for a CLI version fetches the catalogue with `npm`, so run
-it from a machine with `npm` installed and the npm registry reachable:
-
-```bash
-stigmer bootstrap
-```
-
-The command prints what it did: the Organization `created`, then one line per
-default Plugin, `assistant` reading `installed`. Reload the console: it opens on
-the workbench, with the `assistant` Agent already there. The
-[`stigmer bootstrap`](/docs/cli/commands/bootstrap) reference has the flags;
-[Organizations](/docs/concepts/organizations) explains how more than one fits
-together.
-
-<Callout type="warn">
-  **Run this step before you turn authentication on.** The default Plugins are
-  platform-managed content (Public, with platform labels), and a self-hosted
-  server with authentication on accepts platform-managed content from nobody: a
-  cluster that turned authentication on first can't be bootstrapped, and a
-  bootstrapped cluster can't take a newer catalogue
-  ([stigmer#1192](https://github.com/stigmer/stigmer/issues/1192)). A re-run
-  with the same CLI version stays harmless.
+<Callout type="info">
+  Setting a cluster up from a script, with no browser? Skip the console step and
+  the context command, and run [`stigmer
+  bootstrap`](/docs/cli/commands/bootstrap). It creates the `stigmer`
+  Organization, the one the CLI uses when you name none. It works whether
+  authentication is on or not, and running it again changes nothing.
 </Callout>
 
 ### Run your first Agent
@@ -219,8 +203,8 @@ stigmer run my-first-agent -m "What can you help me with?"
 
 The Agent responds in your terminal. The run traveled from the CLI through the
 port-forward to the server, through Temporal, and executed inside the runner
-container on your cluster: the whole stack, end to end. `stigmer list agents`
-shows both: yours, and the `assistant` Agent the bootstrap installed.
+container on your cluster: the whole stack, end to end. Reload the console: your
+Agent is on the workbench.
 
 </Steps>
 

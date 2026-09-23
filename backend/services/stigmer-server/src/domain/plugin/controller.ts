@@ -103,7 +103,6 @@ import {
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import type { VersionHistoryBinding } from "../../pipeline/steps/version-history.js";
-import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
 import type {
@@ -223,7 +222,7 @@ async function push(
     .addStep(newParseOverlayDocumentsStep())
     .addStep(newSanitizePluginMetadataStep(deps.authorizer))
     .addStep(newPlanMaterializationStep(deps.store, deps.authorizer))
-    .addStep(newGuardPluginVisibilityStep(deps.authorizer))
+    .addStep(newGuardPluginVisibilityStep())
     .addStep(newResolveConvergenceStep())
     .build()
     .execute(reqCtx);
@@ -357,12 +356,6 @@ async function updateVisibility(
     .addStep(newLoadPluginByIdStep(deps.store, UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_PLUGIN_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newSetPluginVisibilityStep())
     .addStep(
       newPersistPluginStep(

@@ -63,7 +63,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, 1–63 characters. This is what agents use in `mcp_server_ref.slug`. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Recommended | Organization that owns this McpServer. Set automatically from `context.organization` if omitted during apply. |
-| `metadata.visibility` | No | `visibility_private` (default): only org members can access. `visibility_public`: anyone can discover and reference this server (used for marketplace publishing). Write access always requires org membership. |
+| `metadata.visibility` | No | `visibility_org` (default): every member of the owning organization can read and use it. `visibility_private`: the creator and anyone granted access directly. `visibility_platform`: every organization the owning organization manages through its identity provider. Write access always requires org membership; an agent may not be more visible than the servers it references. |
 | `metadata.labels` | No | Key-value pairs for filtering and organization (e.g., `category: vcs`). |
 | `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
 | `metadata.tags` | No | String array for categorization and search. |
@@ -72,17 +72,23 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 ### Visibility
 
 ```yaml
-# Private McpServer (default) — only your org can access it
+# Organization McpServer (default) — every member of acme-corp can use it
 metadata:
   name: internal-database
   org: acme-corp
+  visibility: visibility_org
+
+# Private McpServer — the creator and anyone granted access directly
+metadata:
+  name: my-scratch-db
+  org: acme-corp
   visibility: visibility_private
 
-# Public McpServer — discoverable and referenceable by any org
+# Platform McpServer — every organization acme-cloud manages can reference it
 metadata:
-  name: github
-  org: stigmer
-  visibility: visibility_public
+  name: tenant-directory
+  org: acme-cloud
+  visibility: visibility_platform
 ```
 
 ### Canonical Reference Format

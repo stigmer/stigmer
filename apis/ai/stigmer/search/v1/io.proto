@@ -65,16 +65,14 @@ message SearchRequest {
     (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*$"
   ];
 
-  // Exclude public/platform resources from results.
-  //
-  // Default: false (include public resources).
-  //
-  // When true: Only return resources from organizations the caller
-  // is a member of. Excludes platform-provided public resources
-  // like "stigmer/web-search".
-  //
-  // Useful when users want to see only their own resources.
-  bool exclude_public = 4;
+  // 4 was exclude_public and 6 was cross_org_public, the two switches of
+  // the retired visibility_public level: one dropped public rows from a
+  // result, the other admitted other organizations' public rows beside
+  // the org filter. Results are always the caller's authorized rows within
+  // the org filter, so neither switch has a meaning left; the numbers and
+  // names are reserved so no later field inherits them.
+  reserved 4, 6;
+  reserved "exclude_public", "cross_org_public";
 
   // Pagination parameters.
   //
@@ -83,18 +81,6 @@ message SearchRequest {
   //
   // If not provided, defaults to page 1 with 20 items.
   ai.stigmer.commons.rpc.PageInfo page = 5;
-
-  // Include public resources from organizations other than the org filter.
-  //
-  // Only meaningful when org is non-empty. When true, the result set includes:
-  // 1. All authorized resources from the specified org (any visibility)
-  // 2. All authorized public resources from other orgs
-  //
-  // Use case: "All" scope in library views — shows the user's org resources
-  // plus marketplace/public resources from other organizations.
-  //
-  // Default: false (only resources matching the org filter are returned).
-  bool cross_org_public = 6;
 }
 
 // SearchResponse contains paginated search results with metadata.
@@ -205,10 +191,12 @@ message SearchResult {
   // Truncation for display is a presentation concern (CLI/UI responsibility).
   string description = 7;
 
-  // Resource visibility: public or private.
+  // Resource visibility, as stored on the resource's metadata.
   //
-  // - visibility_private: Only org members can access
-  // - visibility_public: Anyone can read (e.g., marketplace resources)
+  // - visibility_private: the owner and explicit grants
+  // - visibility_org: every member of the owning organization
+  // - visibility_platform: members of the organizations linked by the
+  //   owning organization's identity provider
   ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 8;
 
   // User-provided tags for categorization and filtering.

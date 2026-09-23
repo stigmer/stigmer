@@ -54,18 +54,14 @@ export const WorkflowInstanceCommandController = {
     /**
      * Update the visibility of an existing workflow instance.
      *
-     * Changes who can view this instance and its executions. Supports the full
-     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
-     * PUBLIC (all authenticated users).
+     * Changes who can view this instance and its executions. Supports PRIVATE
+     * (owner only) and ORG (all org members); instances never take the
+     * platform level (tenant isolation).
      *
      * For workflow instances, visibility has cascading effects on execution
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     *
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
-     * Un-publishing and all other levels stay self-service.
      *
      * @generated from rpc ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController.updateVisibility
      */
@@ -84,7 +80,7 @@ export const WorkflowInstanceCommandController = {
      * other users' run history — that requires this opt-in.
      *
      * Supported levels: PRIVATE (only the user who ran each execution) and
-     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * ORGANIZATION (all org members). Platform is unsupported.
      *
      * @generated from rpc ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController.updateExecutionVisibility
      */

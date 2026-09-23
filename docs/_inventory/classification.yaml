@@ -748,9 +748,10 @@ pages:
     diataxis: how-to
     teaches:
       Run the production one-server stack (server, Postgres, Temporal, runner)
-      with Docker Compose, every setting a line in .env; connect the CLI as a
-      named backend, bootstrap the backend (the stigmer Organization and the
-      default Plugins, before authentication is on) and run a first Agent; then
+      with Docker Compose, every setting a line in .env; create the team's
+      Organization in the console, connect the CLI as a named backend pointed
+      at it (or bootstrap the stigmer Organization from a script) and run a
+      first Agent; then
       put a TLS proxy in front and turn authentication on from .env — with
       sign-in off-by-default stated up front.
     medium: diagram
@@ -766,9 +767,9 @@ pages:
       Install the complete stack on a Kubernetes cluster with the Helm chart on
       one rule, every setting is a line in your values file — create the
       Secrets, write the values file and install, reach the console through a
-      port-forward, connect the CLI as a named backend, bootstrap the backend
-      (the stigmer Organization and the default Plugins, before authentication
-      is on) and run a first Agent, add the two-host Ingress, turn
+      port-forward and create the team's Organization there, connect the CLI
+      as a named backend pointed at it (or bootstrap the stigmer Organization
+      from a script) and run a first Agent, add the two-host Ingress, turn
       authentication on, bring your own Postgres and Temporal, back up and
       upgrade — with the no-auth trust model stated up front.
     medium: none

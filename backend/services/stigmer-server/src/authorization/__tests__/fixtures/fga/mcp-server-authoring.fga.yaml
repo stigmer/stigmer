@@ -1,5 +1,5 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/mcp-server-authoring.fga.yaml
-# at commit 4c03c38d2 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#765 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for MCP-server authoring: an MCP server is an organization's
@@ -88,24 +88,18 @@ tests:
     check:
       - user: identity_account:dave
         object: mcp_server:github
-        context:
-          allow: false
         assertions:
           can_view: true
           can_connect: true
           can_edit: false
       - user: identity_account:vera
         object: mcp_server:github
-        context:
-          allow: false
         assertions:
           can_view: true
           can_connect: true
           can_edit: false
       - user: identity_account:mallory
         object: mcp_server:github
-        context:
-          allow: false
         assertions:
           can_view: false
           can_connect: false
@@ -114,30 +108,22 @@ tests:
     check:
       - user: identity_account:oscar
         object: mcp_server:vault
-        context:
-          allow: false
         assertions:
           can_view: true
           can_connect: true
           can_edit: true
       - user: identity_account:olivia
         object: mcp_server:vault
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
       - user: identity_account:dave
         object: mcp_server:vault
-        context:
-          allow: false
         assertions:
           can_view: false
           can_connect: false
       - user: identity_account:vera
         object: mcp_server:vault
-        context:
-          allow: false
         assertions:
           can_view: false
           can_connect: false

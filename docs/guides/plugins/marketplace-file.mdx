@@ -27,14 +27,18 @@ The file is JSON, at most 1 MiB.
 
 ## The shape every dialect reduces to
 
-| Field                   | Meaning                                                                                                                                                                                                                     |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                  | The marketplace's identifier: lowercase letters, digits, `.` and `-`, at most 64 characters. The default name `stigmer marketplace add` records it under, and the prefix in `stigmer install <name>/<plugin>`.              |
-| `description`           | One line about the catalogue. Stigmer's file carries it at the top level; Cursor's and Claude Code's under `metadata.description`; Codex carries none.                                                                      |
-| `owner`                 | `{ name, email, url }`, all optional.                                                                                                                                                                                       |
-| `plugins[]`             | The entries, in file order. Each has a `name` (the plugin name rule, unique in the file) and a `source`.                                                                                                                    |
-| `plugins[].description` | The catalogue's own one line for the entry; `stigmer marketplace show` prefers the plugin manifest's description when the entry has one.                                                                                    |
-| `defaults[]`            | The entries a fresh install bootstraps with, in install order. Stigmer's file names them outright; a Codex entry with `policy.installation: INSTALLED_BY_DEFAULT` counts as one; Cursor and Claude Code have no equivalent. |
+| Field                   | Meaning                                                                                                                                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                  | The marketplace's identifier: lowercase letters, digits, `.` and `-`, at most 64 characters. The default name `stigmer marketplace add` records it under, and the prefix in `stigmer install <name>/<plugin>`. |
+| `description`           | One line about the catalogue. Stigmer's file carries it at the top level; Cursor's and Claude Code's under `metadata.description`; Codex carries none.                                                         |
+| `owner`                 | `{ name, email, url }`, all optional.                                                                                                                                                                          |
+| `plugins[]`             | The entries, in file order. Each has a `name` (the plugin name rule, unique in the file) and a `source`.                                                                                                       |
+| `plugins[].description` | The catalogue's own one line for the entry; `stigmer marketplace show` prefers the plugin manifest's description when the entry has one.                                                                       |
+
+A marketplace installs nothing by itself: every entry waits for someone to run
+`stigmer install` or pick it in the console. A field that names entries to
+install unasked, such as Codex's `policy.installation: INSTALLED_BY_DEFAULT` or
+the `defaults` list older Stigmer files carried, is read past.
 
 ### Sources
 
@@ -79,8 +83,10 @@ warnings so its publisher hears about the one.
   "name": "stigmer",
   "description": "Stigmer's official plugin catalogue.",
   "owner": { "name": "Stigmer", "url": "https://stigmer.ai" },
-  "plugins": [{ "name": "assistant", "source": "./assistant" }],
-  "defaults": ["assistant"]
+  "plugins": [
+    { "name": "linear", "source": "./linear" },
+    { "name": "thermos", "source": "./thermos" }
+  ]
 }
 ```
 

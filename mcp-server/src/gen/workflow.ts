@@ -3,7 +3,7 @@
 // Flattened apply-input zod schema + toProto bridge for the Workflow resource.
 // Source proto package: ai.stigmer.agentic.workflow.v1
 
-import { generateSlug, visibilityFromString, enumFromString, toTimestamp } from "./apply-runtime.js";
+import { generateSlug, enumFromString, toTimestamp } from "./apply-runtime.js";
 import { create, fromJson, toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -36,6 +36,7 @@ import { CatchBlockSchema, TryTaskConfigSchema } from "@stigmer/protos/ai/stigme
 import { ValidationRuleSchema, ValidateTaskConfigSchema, ValidationFailPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/validate_pb";
 import { DurationSchema, WaitTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/wait_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
@@ -45,7 +46,7 @@ export const WorkflowInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
   org: z.string().describe("Organization that owns this resource (e.g. acme)."),
-  visibility: z.string().optional().describe("Resource visibility: PRIVATE or PUBLIC. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged."),
+  visibility: z.string().optional().describe("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_platform."),
   labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description for UI and marketplace display."),
@@ -111,13 +112,13 @@ const WorkspaceEntryInputSchema = z.object({
 type WorkspaceEntryInput = z.infer<typeof WorkspaceEntryInputSchema>;
 
 const EnvironmentRefInputSchema = z.object({
-  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."),
+  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is a platform that shares the resource with yours (visibility_platform)."),
   slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
 });
 type EnvironmentRefInput = z.infer<typeof EnvironmentRefInputSchema>;
 
 const AgentCallTaskConfigInputSchema = z.object({
-  agent: z.string().describe("Agent reference in 'org/slug' or 'slug' format. - 'slug' only: uses the workflow's organization - 'org/slug': explicit organization reference Examples: 'code-reviewer', 'stigmer/code-reviewer', 'acme/data-analyst' Required field."),
+  agent: z.string().describe("Agent to invoke, as 'slug', 'org/slug', or a value holding a runtime expression. - 'slug': an agent of the organization the workflow runs in; checked when the workflow is saved, against the workflow's own organization - 'org/slug': that organization's agent; checked when the workflow is saved, and another organization's agent must be shared at platform visibility - a value holding '${ ... }', '${.env_vars.KEY}' or '${.secrets.KEY}': resolved to 'slug' or 'org/slug' when the task runs, and read as the person who ran the workflow Examples: 'code-reviewer', 'acme/data-analyst', '${.env_vars.TEAM_ORG}/assistant' Required field."),
   message: z.string().describe("Instructions/prompt to send to the agent. Supports interpolation of workflow variables using JQ expressions. Example: 'Analyze this code: ${ $context.fetchCode.body }' Required field."),
   env: z.record(z.string()).optional().describe("Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {'GITHUB_TOKEN': '${ .secrets.GH_TOKEN }'} Optional."),
   run_config: z.lazy(() => RunConfigInputSchema).optional().describe("Per-call model choice and run bounds. Unset fields inherit the platform defaults."),
@@ -492,7 +493,7 @@ export function workflowInputToProto(input: WorkflowInput): Workflow {
       name: input.name,
       slug,
       org: input.org,
-      ...(input.visibility !== undefined && { visibility: visibilityFromString(input.visibility) }),
+      ...(input.visibility !== undefined && { visibility: enumFromString(ApiResourceVisibility, input.visibility) as ApiResourceVisibility }),
       ...(input.labels !== undefined && { labels: input.labels }),
       ...(input.tags !== undefined && { tags: input.tags }),
     }),

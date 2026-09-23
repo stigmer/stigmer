@@ -253,13 +253,13 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
      * &#64;internal
-     * Authorization: can_edit on the plugin for private/org/platform
-     * transitions; escalation to PUBLIC requires can_set_public_visibility on
-     * platform:stigmer. The fan-out to members rides each kind's own
-     * updateVisibility chain in-process as the caller.
+     * Authorization: can_edit on the plugin for every transition. The level
+     * is checked against the plugin's and every member kind's VisibilityConfig
+     * (visibility_public is refused for every kind). The fan-out to members
+     * rides each kind's own updateVisibility chain in-process as the caller,
+     * skills and MCP servers before the agents and workflows that reference
+     * them, so every member meets its reference floor.
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -368,13 +368,13 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
      * &#64;internal
-     * Authorization: can_edit on the plugin for private/org/platform
-     * transitions; escalation to PUBLIC requires can_set_public_visibility on
-     * platform:stigmer. The fan-out to members rides each kind's own
-     * updateVisibility chain in-process as the caller.
+     * Authorization: can_edit on the plugin for every transition. The level
+     * is checked against the plugin's and every member kind's VisibilityConfig
+     * (visibility_public is refused for every kind). The fan-out to members
+     * rides each kind's own updateVisibility chain in-process as the caller,
+     * skills and MCP servers before the agents and workflows that reference
+     * them, so every member meets its reference floor.
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -469,13 +469,13 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
      * &#64;internal
-     * Authorization: can_edit on the plugin for private/org/platform
-     * transitions; escalation to PUBLIC requires can_set_public_visibility on
-     * platform:stigmer. The fan-out to members rides each kind's own
-     * updateVisibility chain in-process as the caller.
+     * Authorization: can_edit on the plugin for every transition. The level
+     * is checked against the plugin's and every member kind's VisibilityConfig
+     * (visibility_public is refused for every kind). The fan-out to members
+     * rides each kind's own updateVisibility chain in-process as the caller,
+     * skills and MCP servers before the agents and workflows that reference
+     * them, so every member meets its reference floor.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -568,13 +568,13 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
      * &#64;internal
-     * Authorization: can_edit on the plugin for private/org/platform
-     * transitions; escalation to PUBLIC requires can_set_public_visibility on
-     * platform:stigmer. The fan-out to members rides each kind's own
-     * updateVisibility chain in-process as the caller.
+     * Authorization: can_edit on the plugin for every transition. The level
+     * is checked against the plugin's and every member kind's VisibilityConfig
+     * (visibility_public is refused for every kind). The fan-out to members
+     * rides each kind's own updateVisibility chain in-process as the caller,
+     * skills and MCP servers before the agents and workflows that reference
+     * them, so every member meets its reference floor.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -669,13 +669,13 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
-     * every org boundary, so it is granted by the platform team on request.
      * &#64;internal
-     * Authorization: can_edit on the plugin for private/org/platform
-     * transitions; escalation to PUBLIC requires can_set_public_visibility on
-     * platform:stigmer. The fan-out to members rides each kind's own
-     * updateVisibility chain in-process as the caller.
+     * Authorization: can_edit on the plugin for every transition. The level
+     * is checked against the plugin's and every member kind's VisibilityConfig
+     * (visibility_public is refused for every kind). The fan-out to members
+     * rides each kind's own updateVisibility chain in-process as the caller,
+     * skills and MCP servers before the agents and workflows that reference
+     * them, so every member meets its reference floor.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> updateVisibility(

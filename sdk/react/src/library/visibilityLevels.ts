@@ -5,7 +5,7 @@ import type { DeploymentMode } from "@stigmer/sdk";
  * A selectable visibility level: label, explanation, and escalation copy.
  *
  * Options are always declared in escalation order (least to most exposed:
- * private < org < platform < public); {@link VisibilitySelector} derives
+ * private < org < platform); {@link VisibilitySelector} derives
  * "is this an escalation?" from array position, and shows
  * {@link confirmPrompt} before applying one.
  */
@@ -20,7 +20,7 @@ export interface VisibilityLevelOption {
    * least-exposed level (de-escalation never confirms — revoking access is
    * always safe).
    *
-   * Levels that expand access far beyond the owning org carry a
+   * Levels that expand access beyond the owning org carry a
    * {@link confirmDialog} instead; see the severity ladder on
    * {@link VisibilityLevelOption}.
    */
@@ -28,7 +28,7 @@ export interface VisibilityLevelOption {
   /**
    * Heavy confirmation shown as a modal {@link ConfirmDialog} when the user
    * escalates TO this level. Reserved for levels that expose the resource
-   * beyond the owning organization (platform, public), where a blocking,
+   * beyond the owning organization (platform), where a blocking,
    * audience-naming confirmation is warranted.
    *
    * The selector derives escalation severity purely from this data:
@@ -37,34 +37,27 @@ export interface VisibilityLevelOption {
    * component.
    */
   readonly confirmDialog?: {
-    /** Modal title, phrased as a question (e.g. "Make this public?"). */
+    /** Modal title, phrased as a question (e.g. "Share with your whole platform?"). */
     readonly title: string;
     /** Body copy that names the exact audience and the consequence. */
     readonly description: string;
   };
-  /** Color treatment for the selected segment and the confirmation prompt. */
+  /**
+   * Color treatment for the selected segment and the confirmation prompt.
+   * `"public"` is the tone of the retired level: never offered, rendered
+   * only for a stored value from before the retirement (see
+   * {@link visibilityOption}).
+   */
   readonly tone: "private" | "org" | "platform" | "public";
   /**
    * When present, the level cannot be selected by the current caller and the
    * row renders locked (disabled, lock affordance) with this copy explaining
-   * why and what to do instead. Computed by the level builders from caller
-   * context — the component stays free of per-level branching, exactly like
-   * the confirmation ladder.
-   *
-   * Today's only locked level is Public in the cloud edition for callers
-   * without `can_set_public_visibility` (publishing is operator-granted);
-   * the backend independently enforces the same gate.
+   * why and what to do instead. The component stays free of per-level
+   * branching, exactly like the confirmation ladder: a consumer that builds
+   * its own option list decides which levels its caller may enter.
    */
   readonly lockedReason?: string;
 }
-
-/**
- * The locked-row copy for a caller who may not set PUBLIC visibility. Names
- * the path forward (ask the platform team) rather than a bare "disabled" —
- * the option stays discoverable even though it is not self-service.
- */
-export const PUBLIC_LOCKED_REASON =
-  "Public listing is granted by the platform team — contact us to publish this resource.";
 
 const PRIVATE_OPTION: VisibilityLevelOption = {
   value: ApiResourceVisibility.visibility_private,
@@ -93,114 +86,76 @@ const PLATFORM_OPTION: VisibilityLevelOption = {
   tone: "platform",
 };
 
-const PUBLIC_OPTION: VisibilityLevelOption = {
+/**
+ * The retired public level, rendered for a stored value and never offered.
+ *
+ * The server refuses `visibility_public` at every door and moves every
+ * stored row that held it to `visibility_org` on upgrade, so a live row
+ * carries this value only on a server not yet upgraded. A badge that met
+ * it and fell through to "Private" would lie, so the value keeps a
+ * truthful rendering; no level list returns it.
+ */
+const RETIRED_PUBLIC_OPTION: VisibilityLevelOption = {
   value: ApiResourceVisibility.visibility_public,
   label: "Public",
-  description: "Anyone on Stigmer",
-  confirmDialog: {
-    title: "Make this public?",
-    description:
-      "Anyone signed in to Stigmer will be able to view and use this resource. You can return it to a narrower visibility at any time.",
-  },
+  description:
+    "Retired level — this resource becomes visible to your organization on upgrade",
   tone: "public",
 };
 
 /**
  * Inputs that gate which levels a blueprint selector offers.
  *
- * Mirrors the backend's per-kind `VisibilityConfig` plus runtime context the
- * proto cannot know:
- *
- * - `deploymentMode`: the open-source edition (`local`) is single-user and
- *   performs no org/platform visibility gating, so only Private/Public are
- *   meaningful there. Enterprise and Cloud share the org/FGA model, so the
- *   full ladder is offered in both (editions program, DD-001).
- * - `hasIdentityProvider`: `visibility_platform` requires the owning org to
- *   operate an IdentityProvider — the backend rejects it otherwise
- *   (`ValidateVisibilityStep`), so the option only renders when the signal
- *   is present (use `useSsoProvider`, the permission-free lookup).
- * - `canSetPublicVisibility`: entering PUBLIC is operator-gated in the
- *   cloud edition; when the caller lacks the grant the Public option
- *   renders locked instead of disappearing (use
- *   `useCanSetPublicVisibility`, which is always `true` in local mode).
+ * Mirrors the backend's per-kind `VisibilityConfig` plus the one runtime
+ * fact the proto cannot know: `visibility_platform` requires the owning
+ * org to operate an IdentityProvider — the backend rejects it otherwise
+ * (`ValidateVisibilityStep`), so the option only renders when the signal
+ * is present (use `useSsoProvider`, the permission-free lookup; the
+ * open-source edition serves no IdentityProvider kind, so the signal is
+ * never present there).
  */
 export interface BlueprintVisibilityLevelsContext {
-  readonly deploymentMode: DeploymentMode;
   readonly hasIdentityProvider: boolean;
-  readonly canSetPublicVisibility: boolean;
 }
 
 /**
- * The PUBLIC option, locked with {@link PUBLIC_LOCKED_REASON} when the
- * caller may not publish. Locked rather than hidden: the level (and the
- * path to it) stays discoverable, matching how the option keeps rendering
- * as the current state on already-public resources.
- */
-function publicOption(canSetPublicVisibility: boolean): VisibilityLevelOption {
-  return canSetPublicVisibility
-    ? PUBLIC_OPTION
-    : { ...PUBLIC_OPTION, lockedReason: PUBLIC_LOCKED_REASON };
-}
-
-/**
- * The levels a blueprint (agent, skill, workflow, mcp_server) selector
- * offers, in escalation order.
- *
- * Cloud and Enterprise: Private / Organization [/ Platform] / Public —
- * Organization is the creation default (blueprints are shared org assets;
- * Private is an explicit opt-in). Local: Private / Public.
+ * The levels a blueprint (agent, skill, workflow, mcp_server, plugin)
+ * selector offers, in escalation order: Private / Organization
+ * [/ Platform]. Organization is the creation default (blueprints are
+ * shared org assets; Private is an explicit opt-in).
  */
 export function blueprintVisibilityLevels(
   context: BlueprintVisibilityLevelsContext,
 ): readonly VisibilityLevelOption[] {
-  const publicLevel = publicOption(context.canSetPublicVisibility);
-  if (context.deploymentMode === "local") {
-    return [PRIVATE_OPTION, publicLevel];
-  }
   return context.hasIdentityProvider
-    ? [PRIVATE_OPTION, ORG_OPTION, PLATFORM_OPTION, publicLevel]
-    : [PRIVATE_OPTION, ORG_OPTION, publicLevel];
-}
-
-/**
- * Inputs that gate the instance level set — only the publish gate; the set
- * itself is fixed (instances have no platform level and no deployment-mode
- * collapse).
- */
-export interface InstanceVisibilityLevelsContext {
-  readonly canSetPublicVisibility: boolean;
+    ? [PRIVATE_OPTION, ORG_OPTION, PLATFORM_OPTION]
+    : [PRIVATE_OPTION, ORG_OPTION];
 }
 
 /**
  * The levels an instance (agent_instance, workflow_instance) selector
- * offers, in escalation order: Private / Organization / Public.
+ * offers, in escalation order: Private / Organization.
  *
  * Platform is deliberately absent — instances are tenant-isolated by
  * design (each managed org instantiates shared blueprints inside its own
  * boundary). Descriptions are execution-oriented because org visibility on
  * an instance is about who can run it and see its executions.
  */
-export function instanceVisibilityLevels(
-  context: InstanceVisibilityLevelsContext,
-): readonly VisibilityLevelOption[] {
+export function instanceVisibilityLevels(): readonly VisibilityLevelOption[] {
   return [
     PRIVATE_OPTION,
     {
       ...ORG_OPTION,
       description: "All org members can view executions",
     },
-    {
-      ...publicOption(context.canSetPublicVisibility),
-      description: "All authenticated users can view",
-    },
   ];
 }
 
 /**
  * The levels an environment selector offers, in escalation order:
- * Private / Organization. Broader levels are structurally absent —
- * secret values never leave the org boundary (the backend rejects
- * public/platform via the kind's VisibilityConfig).
+ * Private / Organization. The platform level is structurally absent —
+ * secret values never leave the org boundary (the backend rejects it via
+ * the kind's VisibilityConfig).
  *
  * Org sharing on an environment carries credential semantics, so the
  * copy names both effects: members get redacted view, and executions
@@ -237,7 +192,8 @@ export function environmentVisibilityLevels(
  * Canonical option for a visibility value, independent of any kind's offered
  * list. Used to render the current level even when it is not offerable in
  * the current context (e.g. a platform-shared blueprint whose org no longer
- * operates an IdentityProvider) — the state must stay legible.
+ * operates an IdentityProvider, or a row still carrying the retired public
+ * level) — the state must stay legible.
  */
 export function visibilityOption(
   visibility: ApiResourceVisibility,
@@ -248,7 +204,7 @@ export function visibilityOption(
     case ApiResourceVisibility.visibility_platform:
       return PLATFORM_OPTION;
     case ApiResourceVisibility.visibility_public:
-      return PUBLIC_OPTION;
+      return RETIRED_PUBLIC_OPTION;
     default:
       return PRIVATE_OPTION;
   }

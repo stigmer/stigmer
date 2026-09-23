@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useResourceList, type ResourceListScope } from "../search/index.js";
+import { useResourceList } from "../search/index.js";
 
 /** Options for {@link useAgentList}. */
 export interface UseAgentListOptions {
@@ -13,15 +13,6 @@ export interface UseAgentListOptions {
   readonly page?: number;
   /** Text query to filter agents by name, description, or tags. */
   readonly query?: string;
-  /**
-   * Controls which agents are visible.
-   *
-   * - `"org"` — only agents owned by the given organization.
-   * - `"all"` — includes public/platform agents (e.g. `stigmer/agent-creator`).
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
 }
 
 /** Return value of {@link useAgentList}. */
@@ -45,9 +36,9 @@ export interface UseAgentListReturn {
 /**
  * Data hook that fetches a paginated list of agents for the Library.
  *
- * Wraps `stigmer.agent.list()` with pagination, scope filtering,
- * and text search. All parameters are externally controlled — the
- * consumer manages page state, query debouncing, and scope toggling.
+ * Wraps `stigmer.agent.list()` with pagination and text search over the
+ * organization's agents. All parameters are externally controlled — the
+ * consumer manages page state and query debouncing.
  *
  * For picker/type-ahead search with internal debouncing and query
  * state management, use {@link useAgentSearch} instead.
@@ -59,14 +50,7 @@ export interface UseAgentListReturn {
  * const { agents, totalCount, isLoading } = useAgentList("acme", {
  *   page: 1,
  *   pageSize: 20,
- *   scope: "org",
  * });
- * ```
- *
- * @example
- * ```tsx
- * // Show all agents including public/platform ones
- * const { agents } = useAgentList("acme", { scope: "all" });
  * ```
  */
 export function useAgentList(

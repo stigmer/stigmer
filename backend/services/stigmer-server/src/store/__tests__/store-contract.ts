@@ -934,8 +934,6 @@ export function describeStoreContract(
         kinds: ["agent"],
         terms: ["kubernetes"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -959,8 +957,6 @@ export function describeStoreContract(
         kinds: ["agent"],
         terms: ["kuber"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -970,8 +966,6 @@ export function describeStoreContract(
         kinds: ["agent"],
         terms: ["kubernetes", "deployment"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -981,8 +975,6 @@ export function describeStoreContract(
         kinds: ["agent"],
         terms: ["kubernetes", "absent"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -1008,8 +1000,6 @@ export function describeStoreContract(
         kinds: ["agent"],
         terms: ["NEAR", "plain"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -1039,8 +1029,6 @@ export function describeStoreContract(
         kinds: ["agent", "workflow"],
         terms: ["scoped"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         authorizedIdsByKind: new Map([["agent", new Set(["agt-mine"])]]),
         limit: 20,
         offset: 0,
@@ -1056,8 +1044,6 @@ export function describeStoreContract(
         kinds: ["agent", "workflow"],
         terms: ["scoped"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         authorizedIdsByKind: new Map([
           ["agent", new Set<string>()],
           ["workflow", new Set(["wfl-any"])],
@@ -1072,8 +1058,6 @@ export function describeStoreContract(
         kinds: ["agent", "workflow"],
         terms: ["scoped"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         authorizedIdsByKind: new Map([
           ["agent", new Set<string>()],
           ["workflow", new Set<string>()],
@@ -1089,15 +1073,13 @@ export function describeStoreContract(
         kinds: ["agent", "workflow"],
         terms: ["scoped"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
       expect(unscoped.totalCount).toBe(3);
     });
 
-    it("org scoping: strict filter, cross-org public widening, and the public subtraction", async () => {
+    it("org scoping is strict: the visibility column never widens or narrows the org filter", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
         "agt-mine",
@@ -1105,11 +1087,11 @@ export function describeStoreContract(
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-public",
+        "agt-platform",
         entry({
           name: "searchable beta",
           org: "globex",
-          visibility: "visibility_public",
+          visibility: "visibility_platform",
         }),
       );
       await fx.store.upsertSearchIndex(
@@ -1122,37 +1104,20 @@ export function describeStoreContract(
         kinds: ["agent"],
         terms: ["searchable"],
         orgFilter: "acme",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
       expect(strict.hits.map((hit) => hit.resourceId)).toEqual(["agt-mine"]);
 
-      const widened = await fx.store.querySearchIndex({
-        kinds: ["agent"],
-        terms: ["searchable"],
-        orgFilter: "acme",
-        crossOrgPublic: true,
-        excludePublic: false,
-        limit: 20,
-        offset: 0,
-      });
-      expect(new Set(widened.hits.map((hit) => hit.resourceId))).toEqual(
-        new Set(["agt-mine", "agt-public"]),
-      );
-
-      const noPublic = await fx.store.querySearchIndex({
+      const unscoped = await fx.store.querySearchIndex({
         kinds: ["agent"],
         terms: ["searchable"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: true,
         limit: 20,
         offset: 0,
       });
-      expect(new Set(noPublic.hits.map((hit) => hit.resourceId))).toEqual(
-        new Set(["agt-mine", "agt-foreign"]),
+      expect(new Set(unscoped.hits.map((hit) => hit.resourceId))).toEqual(
+        new Set(["agt-mine", "agt-platform", "agt-foreign"]),
       );
     });
 
@@ -1172,8 +1137,6 @@ export function describeStoreContract(
         kinds: ["agent"],
         terms: undefined,
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -1203,8 +1166,6 @@ export function describeStoreContract(
         kinds: ["organization"],
         terms: ["original"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -1214,8 +1175,6 @@ export function describeStoreContract(
         kinds: ["organization"],
         terms: ["renamed"],
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -1226,8 +1185,6 @@ export function describeStoreContract(
         kinds: ["organization"],
         terms: undefined,
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });
@@ -1243,8 +1200,6 @@ export function describeStoreContract(
         kinds: ["organization"],
         terms: undefined,
         orgFilter: "",
-        crossOrgPublic: false,
-        excludePublic: false,
         limit: 20,
         offset: 0,
       });

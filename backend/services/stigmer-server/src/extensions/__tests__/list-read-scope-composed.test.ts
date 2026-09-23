@@ -10,7 +10,7 @@
  *     narrows, blank spans orgs — lane 6),
  *   - activity.listRecentActivity (enumeration verb, two kinds — lane 22),
  *   - search (enumeration verb feeding the engine allowlist, and the
- *     crossOrgPublic bypass where FGA is never consulted — lane 21),
+ *     proof that no request shape bypasses it — lane 21),
  *   - the OUTAGE arm: a throwing scope answers the sanitized INTERNAL,
  *     never an empty (or full!) list;
  *   - the SERVER'S OWN reads over `inProcessTransport` (stigmer#1207):
@@ -277,20 +277,23 @@ describe("list read scope (composed server, fake scope)", () => {
     ]);
   });
 
-  it("search narrows through the engine allowlist; crossOrgPublic bypasses the scope (lane 21)", async () => {
+  it("search narrows through the engine allowlist on every request shape — nothing bypasses the scope (lane 21)", async () => {
     allowed = new Set(["agt_mine"]);
     const search = createClient(SearchService, transport);
     const scoped = await search.search({ query: "scopedagent" });
     expect(scoped.entries.map((e) => e.id)).toEqual(["agt_mine"]);
 
-    // The Java bypass: public-widened discovery never consults FGA.
+    // The org-filtered shape asks the scope too: the one request shape
+    // that once skipped it (the retired public level's cross-organization
+    // discovery) no longer exists on the wire.
     seenKinds.length = 0;
-    await search.search({
+    const orgScoped = await search.search({
+      kinds: [ApiResourceKind.agent],
       query: "scopedagent",
       org: "acme",
-      crossOrgPublic: true,
     });
-    expect(seenKinds).toEqual([]);
+    expect(orgScoped.entries.map((e) => e.id)).toEqual(["agt_mine"]);
+    expect(seenKinds).toEqual([ApiResourceKind.agent]);
   });
 
   it("a scope outage answers the sanitized INTERNAL — never an unscoped or empty success", async () => {

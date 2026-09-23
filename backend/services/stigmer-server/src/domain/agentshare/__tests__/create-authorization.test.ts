@@ -1,10 +1,12 @@
 /**
- * Pins the create lane's two-arm consent bar (steps.ts,
- * resolveShareCreateTargets), the Java handler's: a same-org share asks
- * can_edit on the referenced agent; a cross-org share asks can_execute on
- * the agent and then can_create_agent_share on the SHARING organization,
- * agent first; each question carries its byte-pinned copy; a missing
- * referenced agent throws.
+ * Pins the create lane's two questions (steps.ts, resolveShareCreateTargets):
+ * can_edit on the referenced agent, then can_create_agent_share on the
+ * share's organization, in that order, each with its byte-pinned copy. A
+ * share's agent lives in the share's organization (the resolve step refuses
+ * anything else before this runs), so the two bars are one organization's:
+ * sharing puts the agent in front of a wider audience (an editor's act) and
+ * spends the organization's credits on the open internet (an admin's). A
+ * missing referenced agent throws.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -24,15 +26,15 @@ import {
 } from "../steps.js";
 
 const agent = create(AgentSchema, {
-  metadata: { id: "agt_01public", name: "helper", org: "publisher-org" },
+  metadata: { id: "agt_01helper", name: "helper", org: "publisher-org" },
 });
 
-function ctxFor(shareOrg: string, agentOrg: string, stash = true) {
+function ctxFor(shareOrg: string, stash = true) {
   const ctx = new RequestContext(
     AgentShareSchema,
     create(AgentShareSchema, {
       metadata: { name: "helper", org: shareOrg },
-      spec: { agentRef: { org: agentOrg, slug: "helper" } },
+      spec: { agentRef: { org: shareOrg, slug: "helper" } },
     }),
     testCallerIdentity(),
     ApiResourceKind.agent_share,
@@ -44,33 +46,18 @@ function ctxFor(shareOrg: string, agentOrg: string, stash = true) {
 }
 
 describe("resolveShareCreateTargets", () => {
-  it("a same-org share asks can_edit on the referenced agent", () => {
-    expect(
-      resolveShareCreateTargets(ctxFor("publisher-org", "publisher-org")),
-    ).toEqual([
+  it("asks can_edit on the referenced agent, then can_create_agent_share on the share's organization", () => {
+    expect(resolveShareCreateTargets(ctxFor("publisher-org"))).toEqual([
       {
         permission: IamPermission.can_edit,
         resourceKind: ApiResourceKind.agent,
-        resourceId: "agt_01public",
-        deniedMessage: SHARE_AGENT_DENIED_MESSAGE,
-      },
-    ]);
-  });
-
-  it("a cross-org share asks can_execute on the agent, then can_create_agent_share on the sharing organization", () => {
-    expect(
-      resolveShareCreateTargets(ctxFor("consumer-org", "publisher-org")),
-    ).toEqual([
-      {
-        permission: IamPermission.can_execute,
-        resourceKind: ApiResourceKind.agent,
-        resourceId: "agt_01public",
+        resourceId: "agt_01helper",
         deniedMessage: SHARE_AGENT_DENIED_MESSAGE,
       },
       {
         permission: IamPermission.can_create_agent_share,
         resourceKind: ApiResourceKind.organization,
-        resourceId: "consumer-org",
+        resourceId: "publisher-org",
         deniedMessage: SHARE_ORGANIZATION_DENIED_MESSAGE,
       },
     ]);
@@ -78,9 +65,7 @@ describe("resolveShareCreateTargets", () => {
 
   it("a missing referenced agent is a broken chain invariant and throws", () => {
     expect(() =>
-      resolveShareCreateTargets(
-        ctxFor("publisher-org", "publisher-org", false),
-      ),
+      resolveShareCreateTargets(ctxFor("publisher-org", false)),
     ).toThrow("referenced agent not found in context");
   });
 });

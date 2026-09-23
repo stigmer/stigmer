@@ -142,9 +142,9 @@ stigmer apply prod-instance.yaml
 
 ---
 
-## Cross-Org Workflow Reference
+## Instance of a Platform Workflow
 
-Reference a public workflow from another organization. The workflow must have `metadata.visibility: visibility_public`.
+Instantiate a workflow a platform organization shares with yours at `visibility_platform`. The instance is your organization's own: it runs with your environments, inside your boundary.
 
 ```yaml
 api_version: agentic.stigmer.ai/v1
@@ -153,8 +153,8 @@ metadata:
   name: security-scan-instance
   org: acme-corp
 spec:
-  workflow_id: wfl_01stigmersecurityscan  # public workflow from stigmer org
-  description: "Runs the shared stigmer security scan workflow against our repos"
+  workflow_id: wfl_01acmecloudsecurityscan  # platform workflow shared by acme-cloud
+  description: "Runs the platform's security scan workflow against our repos"
   env_refs:
     - slug: github-acme-token
     - slug: security-api-creds

@@ -5,19 +5,19 @@
  *
  * Every entry is read through `preparePluginFromTree`, the one preparation
  * the CLI and the console install through (ignore rules, the reader, the
- * archive and its digest), so what passes here is what `stigmer up` and
- * `stigmer install` will accept, ignore files inside vendored trees
+ * archive and its digest), so what passes here is what `stigmer install`
+ * and the console will accept, ignore files inside vendored trees
  * included. Pins: the file reads clean; every directory that carries a
- * plugin manifest is listed once, in the ruled order (the defaults first,
- * then by name); the defaults are the file's; the tree partitions into
+ * plugin manifest is listed once, in the ruled order (by name); the tree
+ * partitions into
  * vendored folders (one `vendor.json` row each, its licence file present,
  * no guide file inside, digesting to exactly what the row pins, read with
  * no errors and only the warnings a copy cannot avoid) and authored plugins (the open format, Stigmer's name, a
  * display name, no warnings at all); a struck entry has no folder;
  * `NOTICE` and `marketplace.json` are exactly what the sync derives from
- * the pins and the tree; the defaults list is empty and no plugin carries
- * the retired default-agent label; every agent overlay names its own
- * plugin. There
+ * the pins and the tree, so it names no entry a client installs unasked;
+ * no plugin carries the retired default-agent label; every agent overlay
+ * names its own plugin. There
  * are no snapshot files: a change in what the catalogue offers is a change
  * someone wrote down here.
  */
@@ -91,16 +91,7 @@ describe("marketplace.json", () => {
     const listed = marketplace.plugins.map((entry) => entry.dir);
     expect(new Set(listed).size).toBe(listed.length);
     expect([...listed].sort(comparePaths)).toEqual(folders);
-    expect(listed).toEqual(marketplaceOrder(new Set(folders), marketplace.defaults));
-  });
-
-  it("installs nothing by default: a fresh Stigmer answers with the built-in assistant, not a plugin", () => {
-    const file = JSON.parse(readFileSync(join(CATALOGUE_ROOT, "marketplace.json"), "utf8")) as { defaults: string[] };
-    expect(marketplace.defaults).toEqual(file.defaults);
-    expect(marketplace.defaults).toEqual([]);
-    for (const name of marketplace.defaults) {
-      expect(marketplace.plugins.map((entry) => entry.name)).toContain(name);
-    }
+    expect(listed).toEqual(marketplaceOrder(new Set(folders)));
   });
 
   it("is exactly what the sync derives from the tree, so a hand edit and the tool cannot disagree", () => {

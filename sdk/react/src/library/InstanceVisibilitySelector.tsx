@@ -5,7 +5,6 @@ import {
   VisibilitySelector,
   type VisibilitySelectorMode,
 } from "./VisibilitySelector.js";
-import { useCanSetPublicVisibility } from "./useCanSetPublicVisibility.js";
 import { instanceVisibilityLevels } from "./visibilityLevels.js";
 
 /** Props for {@link InstanceVisibilitySelector}. */
@@ -15,7 +14,7 @@ export interface InstanceVisibilitySelectorProps {
   /**
    * Called when the user selects (and, for escalations in `"manage"` mode,
    * confirms) a visibility change. Escalating to Organization shows a light
-   * inline confirm; escalating to Public opens a blocking confirm dialog.
+   * inline confirm.
    */
   readonly onVisibilityChange: (v: ApiResourceVisibility) => void;
   /**
@@ -36,8 +35,8 @@ export interface InstanceVisibilitySelectorProps {
 /**
  * Visibility selector for instances (AgentInstance, WorkflowInstance):
  * {@link VisibilitySelector} preconfigured with the instance level set
- * (Private / Organization / Public — platform is excluded by design to
- * preserve tenant isolation).
+ * (Private / Organization — platform is excluded by design to preserve
+ * tenant isolation).
  *
  * For workflow instances, ORG visibility has cascading effects: all org
  * members automatically see all executions via FGA inheritance (zero
@@ -70,16 +69,10 @@ export function InstanceVisibilitySelector({
   disabled = false,
   className,
 }: InstanceVisibilitySelectorProps) {
-  // Public is operator-granted in the cloud edition; the hook resolves the
-  // caller's grant here so every consumer (create dialogs, list rows) gets
-  // the locked Public row without wiring anything.
-  const canSetPublic = useCanSetPublicVisibility();
   return (
     <VisibilitySelector
       visibility={visibility}
-      options={instanceVisibilityLevels({
-        canSetPublicVisibility: canSetPublic.allowed,
-      })}
+      options={instanceVisibilityLevels()}
       onVisibilityChange={onVisibilityChange}
       mode={mode}
       isPending={isPending}

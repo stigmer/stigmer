@@ -2,8 +2,7 @@
  * Pins the built-in Authorizer arm by arm, on both store drivers, against
  * the cloud's driver it mirrors (stigmer-cloud src/authorizer/
  * fga-authorizer.ts): the four pre-check denials with the Java copy; the
- * unserved-kind denial (the server-side half of "nobody sets public
-visibility on a self-host"); not-found for a
+ * unserved-kind denial (a platform capability no self-host holds); not-found for a
  * missing target and a DENIAL for a missing row of an exempt kind (the
  * cloud's probe scope, so account ids cannot be enumerated); allow and
  * deny from the model over a seeded organization — the owner, an admin, a
@@ -226,9 +225,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         await grant(orgRole(FOUNDER.accountId, "owner", "acme"));
         await grant(orgRole(ADMIN.accountId, "admin", "acme"));
         await grant(orgRole(MEMBER.accountId, "member", "acme"));
-        // The founder's blueprints: one private, one org-visible, one
-        // public; the org-visible one stamped with the founder's RAW
-        // subject (a row a 3.14.x verifier wrote), the others with the id.
+        // The founder's blueprints: one private, one org-visible, and one
+        // still carrying the retired public level (a row the store
+        // migration has not met); the org-visible one stamped with the
+        // founder's RAW subject (a row a 3.14.x verifier wrote), the
+        // others with the id.
         await seed("agent", "agt_private", {
           org: "acme",
           visibility: ApiResourceVisibility.visibility_private,
@@ -291,10 +292,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             UNKNOWN_KIND_DENY_REASON,
           ],
           [
-            "a kind this edition does not serve (platform — nobody sets public visibility)",
+            "a kind this edition does not serve (platform — nobody holds an operator capability)",
             resolved(FOUNDER),
             check(
-              IamPermission.can_set_public_visibility,
+              IamPermission.can_view_provider_standing,
               ApiResourceKind.platform,
               "stigmer",
             ),
@@ -469,7 +470,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
         });
 
-        it("an unprovisioned subject reads a PUBLIC agent (the point-check context honours the wildcard) and nothing private", async () => {
+        it("an unprovisioned subject reads nothing — not a private agent, and not a row still carrying the retired public level, which grants no one anything", async () => {
           const auth = authorizer();
           expect(
             await auth.authorize(
@@ -480,7 +481,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
                 "agt_public",
               ),
             ),
-          ).toEqual({ kind: "allow" });
+          ).toEqual({ kind: "deny", reason: "" });
           expect(
             await auth.authorize(
               idpShaped(STRANGER),

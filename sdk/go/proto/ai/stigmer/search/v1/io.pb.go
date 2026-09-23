@@ -68,36 +68,15 @@ type SearchRequest struct {
 	// - Empty: Search all organizations the caller has access to
 	// - Non-empty: Search only within the specified organization
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
-	// Exclude public/platform resources from results.
-	//
-	// Default: false (include public resources).
-	//
-	// When true: Only return resources from organizations the caller
-	// is a member of. Excludes platform-provided public resources
-	// like "stigmer/web-search".
-	//
-	// Useful when users want to see only their own resources.
-	ExcludePublic bool `protobuf:"varint,4,opt,name=exclude_public,json=excludePublic,proto3" json:"exclude_public,omitempty"`
 	// Pagination parameters.
 	//
 	// - num: Page number (1-indexed). Default: 1
 	// - size: Items per page. Default: 20, Maximum: 100
 	//
 	// If not provided, defaults to page 1 with 20 items.
-	Page *rpc.PageInfo `protobuf:"bytes,5,opt,name=page,proto3" json:"page,omitempty"`
-	// Include public resources from organizations other than the org filter.
-	//
-	// Only meaningful when org is non-empty. When true, the result set includes:
-	// 1. All authorized resources from the specified org (any visibility)
-	// 2. All authorized public resources from other orgs
-	//
-	// Use case: "All" scope in library views — shows the user's org resources
-	// plus marketplace/public resources from other organizations.
-	//
-	// Default: false (only resources matching the org filter are returned).
-	CrossOrgPublic bool `protobuf:"varint,6,opt,name=cross_org_public,json=crossOrgPublic,proto3" json:"cross_org_public,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	Page          *rpc.PageInfo `protobuf:"bytes,5,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SearchRequest) Reset() {
@@ -151,25 +130,11 @@ func (x *SearchRequest) GetOrg() string {
 	return ""
 }
 
-func (x *SearchRequest) GetExcludePublic() bool {
-	if x != nil {
-		return x.ExcludePublic
-	}
-	return false
-}
-
 func (x *SearchRequest) GetPage() *rpc.PageInfo {
 	if x != nil {
 		return x.Page
 	}
 	return nil
-}
-
-func (x *SearchRequest) GetCrossOrgPublic() bool {
-	if x != nil {
-		return x.CrossOrgPublic
-	}
-	return false
 }
 
 // SearchResponse contains paginated search results with metadata.
@@ -307,10 +272,12 @@ type SearchResult struct {
 	//
 	// May be empty if the resource has no description.
 	Description string `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
-	// Resource visibility: public or private.
+	// Resource visibility, as stored on the resource's metadata.
 	//
-	// - visibility_private: Only org members can access
-	// - visibility_public: Anyone can read (e.g., marketplace resources)
+	//   - visibility_private: the owner and explicit grants
+	//   - visibility_org: every member of the owning organization
+	//   - visibility_platform: members of the organizations linked by the
+	//     owning organization's identity provider
 	Visibility apiresource.ApiResourceVisibility `protobuf:"varint,8,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	// User-provided tags for categorization and filtering.
 	Tags []string `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty"`
@@ -466,15 +433,13 @@ var File_ai_stigmer_search_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1dai/stigmer/search/v1/io.proto\x12\x14ai.stigmer.search.v1\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcd\x02\n" +
+	"\x1dai/stigmer/search/v1/io.proto\x12\x14ai.stigmer.search.v1\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaa\x02\n" +
 	"\rSearchRequest\x12d\n" +
 	"\x05kinds\x18\x01 \x03(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindB\r\xbaH\n" +
 	"\x92\x01\a\"\x05\x82\x01\x02\x10\x01R\x05kinds\x12\x1e\n" +
 	"\x05query\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\x05query\x12/\n" +
-	"\x03org\x18\x03 \x01(\tB\x1d\xbaH\x1ar\x18\x18?2\x14^$|^[a-z][a-z0-9-]*$R\x03org\x12%\n" +
-	"\x0eexclude_public\x18\x04 \x01(\bR\rexcludePublic\x124\n" +
-	"\x04page\x18\x05 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12(\n" +
-	"\x10cross_org_public\x18\x06 \x01(\bR\x0ecrossOrgPublic\"\xaf\x02\n" +
+	"\x03org\x18\x03 \x01(\tB\x1d\xbaH\x1ar\x18\x18?2\x14^$|^[a-z][a-z0-9-]*$R\x03org\x124\n" +
+	"\x04page\x18\x05 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04pageJ\x04\b\x04\x10\x05J\x04\b\x06\x10\aR\x0eexclude_publicR\x10cross_org_public\"\xaf\x02\n" +
 	"\x0eSearchResponse\x12<\n" +
 	"\aentries\x18\x01 \x03(\v2\".ai.stigmer.search.v1.SearchResultR\aentries\x12\\\n" +
 	"\x0ecounts_by_kind\x18\x02 \x03(\v26.ai.stigmer.search.v1.SearchResponse.CountsByKindEntryR\fcountsByKind\x12\x1f\n" +

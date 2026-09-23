@@ -53,10 +53,6 @@ import {
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
-  newAuthorizeVisibilityTransitionStep,
-  newGuardPublicVisibilityStep,
-} from "../../pipeline/steps/visibility-gates.js";
-import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
@@ -85,7 +81,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -196,9 +195,9 @@ async function createInstance(
     )
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newGuardPublicVisibilityStep(deps.authorizer))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -243,6 +242,7 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(deps.store, agentInstanceSearchExtractor, deps.logger),
@@ -383,12 +383,6 @@ async function updateVisibility(
     )
     .addStep(newRejectDefaultInstanceVisibilityUpdateStep(deps.store))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newAuthorizeVisibilityTransitionStep(
-        UPDATE_VISIBILITY_INSTANCE_KEY,
-        deps.authorizer,
-      ),
-    )
     .addStep(newSetInstanceVisibilityStep())
     .addStep(newPersistInstanceForVisibilityUpdateStep(deps.store))
     .addStep(

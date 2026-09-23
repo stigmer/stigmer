@@ -1,13 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useMemo, useReducer } from "react";
 import Link from "next/link";
 import { Plus, Sparkles, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
-import {
-  readPersistedScope,
-  writePersistedScope,
-} from "@/domain/library/scope-persistence";
 import {
   ResourceWorkbench,
   ActionMenu,
@@ -60,7 +56,6 @@ export function SkillListPage() {
   const { navigateToDetail } = useLibraryNavigation();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("skills"));
   // Bumped after a delete to refetch the list in place — no remount
   // flash, pagination and sort preserved.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
@@ -86,11 +81,6 @@ export function SkillListPage() {
     [confirm, stigmer],
   );
 
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope("skills", newScope);
-  }, []);
-
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.skill.list>[0]) =>
       stigmer.skill.list(params),
@@ -111,8 +101,6 @@ export function SkillListPage() {
         listFn={listFn}
         org={org}
         columns={SKILL_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}

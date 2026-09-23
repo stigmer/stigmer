@@ -8,8 +8,8 @@
  * strikes carry forward and a `--strike` joins them; the tree plan copies
  * every row, deletes a row that is gone, and refuses a row that would land
  * on a folder the sync did not write; a source's commit stays where it was
- * when neither its bytes nor its rows moved; the marketplace order is the
- * defaults first, then by name, rendered one entry per line; the notice
+ * when neither its bytes nor its rows moved; the marketplace order is by
+ * name, rendered one entry per line; the notice
  * names every source, commit, folder, path and licence file; the refresh
  * pull request's body carries the decision sections in the report's order
  * and the folders that moved, never the catalogue tables; a copied tree is
@@ -148,16 +148,13 @@ describe("settleCommits", () => {
 });
 
 describe("the marketplace rendering", () => {
-  it("orders the defaults first as listed, then every other name", () => {
-    expect(marketplaceOrder(new Set(["zoom", "assistant", "linear", "gong"]), ["assistant"])).toEqual(["assistant", "gong", "linear", "zoom"]);
-    expect(marketplaceOrder(new Set(["b", "a"]), ["missing"])).toEqual(["a", "b"]);
+  it("orders every name by name", () => {
+    expect(marketplaceOrder(new Set(["zoom", "linear", "gong"]))).toEqual(["gong", "linear", "zoom"]);
   });
 
   it("keeps the head a person wrote and renders one entry per line", () => {
-    const text = renderMarketplace(
-      { name: "stigmer", description: "The catalogue.", owner: { name: "Stigmer", url: "https://stigmer.ai" }, defaults: ["assistant"] },
-      new Set(["linear", "assistant"]),
-    );
+    const head = { name: "stigmer", description: "The catalogue.", owner: { name: "Stigmer", url: "https://stigmer.ai" } };
+    const text = renderMarketplace(head, new Set(["linear", "gong"]));
     expect(text).toBe(
       [
         "{",
@@ -165,15 +162,14 @@ describe("the marketplace rendering", () => {
         '  "description": "The catalogue.",',
         '  "owner": {"name":"Stigmer","url":"https://stigmer.ai"},',
         '  "plugins": [',
-        '    { "name": "assistant", "source": "./assistant" },',
+        '    { "name": "gong", "source": "./gong" },',
         '    { "name": "linear", "source": "./linear" }',
-        "  ],",
-        '  "defaults": ["assistant"]',
+        "  ]",
         "}",
         "",
       ].join("\n"),
     );
-    expect(readMarketplaceHead(text, "marketplace.json")).toEqual({ name: "stigmer", description: "The catalogue.", owner: { name: "Stigmer", url: "https://stigmer.ai" }, defaults: ["assistant"] });
+    expect(readMarketplaceHead(text, "marketplace.json")).toEqual(head);
   });
 });
 

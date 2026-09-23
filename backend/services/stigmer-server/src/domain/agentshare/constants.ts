@@ -17,10 +17,12 @@ export const SHARE_LINK_TOKEN_BYTES = 20;
  * resolveShareDefaultsStep, byte-pinned. The share's org appears in the
  * hosted chat URL and is the billing org, so it can never be inferred.
  */
-export const ORG_REQUIRED_MESSAGE = "metadata.org is required for an agent share";
+export const ORG_REQUIRED_MESSAGE =
+  "metadata.org is required for an agent share";
 
 /** InvalidArgument copy when spec.agent_ref.slug is absent — Go, pinned. */
-export const AGENT_REF_SLUG_REQUIRED_MESSAGE = "spec.agent_ref.slug is required";
+export const AGENT_REF_SLUG_REQUIRED_MESSAGE =
+  "spec.agent_ref.slug is required";
 
 /**
  * InvalidArgument copy for BOTH profile lanes when org is absent — Go
@@ -28,34 +30,20 @@ export const AGENT_REF_SLUG_REQUIRED_MESSAGE = "spec.agent_ref.slug is required"
  * Anti-enumeration: an empty org would mean "match slug across all orgs"
  * on a public endpoint.
  */
-export const ORG_REQUIRED_FOR_LOOKUP_MESSAGE = "org is required for shared agent lookup";
+export const ORG_REQUIRED_FOR_LOOKUP_MESSAGE =
+  "org is required for shared agent lookup";
 
 /**
- * FailedPrecondition copy for an org-audience cross-org share (decision
- * 013 D3) — Go validateCrossOrgShare AND validateShareUpdateStep (update
- * replaces the spec wholesale and must not open a side door), byte-pinned.
+ * FailedPrecondition copy when spec.agent_ref names another organization's
+ * agent — the schedule's and the channel's same-organization sentence in
+ * the share's own words. A share offers an agent its own organization
+ * owns; to share another organization's agent, install the plugin that
+ * carries it and share the installed copy.
  */
-export function crossOrgAudienceMessage(agentOrg: string): string {
+export function sameOrgInvariantMessage(refOrg: string): string {
   return (
-    "a cross-org share must have a public audience — org-audience shares " +
-    `are limited to the agent's own organization (${agentOrg})`
-  );
-}
-
-/**
- * FailedPrecondition copy naming every non-public dependency blocking a
- * cross-org share (decision 013 D5) — Go validateCrossOrgShare,
- * byte-pinned. Blockers are deduped, formatted "<kind> <org>/<slug>", and
- * sorted, so the refusal is deterministic.
- */
-export function crossOrgBlockersMessage(
-  agentOrg: string,
-  agentSlug: string,
-  blockers: readonly string[],
-): string {
-  return (
-    `cannot share ${agentOrg}/${agentSlug} across organizations: ` +
-    `it references resources that are not public: ${blockers.join(", ")}`
+    "spec.agent_ref.org must match metadata.org — a share must live in " +
+    `the referenced agent's organization (${refOrg})`
   );
 }
 

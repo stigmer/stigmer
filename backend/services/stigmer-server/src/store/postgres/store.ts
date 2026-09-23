@@ -814,20 +814,13 @@ export class PostgresStore implements Store {
     // right side").
     const kindParam = `${push(query.kinds as string[])}::text[]`;
 
-    // The scope-filter fragments — same composition as the sqlite driver's
-    // port of Go's buildScopeFilter: org (strict or public-widened) and
-    // the independent public subtraction.
+    // The scope-filter fragments — same composition as the sqlite driver:
+    // the org filter, strict (visibility never widens or narrows the
+    // scope), then the authorized-id allowlist.
     const scopeClauses: string[] = [];
     if (query.orgFilter !== "") {
       const orgParam = push(query.orgFilter);
-      scopeClauses.push(
-        query.crossOrgPublic
-          ? `AND (org = ${orgParam} OR visibility = 'visibility_public')`
-          : `AND org = ${orgParam}`,
-      );
-    }
-    if (query.excludePublic) {
-      scopeClauses.push(`AND visibility != 'visibility_public'`);
+      scopeClauses.push(`AND org = ${orgParam}`);
     }
     if (query.authorizedIdsByKind !== undefined) {
       // The 20260830.01 scoping arm: per-kind resource_id allowlists.

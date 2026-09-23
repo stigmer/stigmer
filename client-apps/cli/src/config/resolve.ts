@@ -8,7 +8,6 @@
 
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { SERVER_PORT } from "../local/constants.js";
-import { SYSTEM_ORG } from "../local/system-org.js";
 import { type Config, activeBackend, isCloudMode } from "./config.js";
 
 const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
@@ -17,13 +16,14 @@ const DEFAULT_LOCAL_ENDPOINT = "localhost:7234";
 /** Well-known URL for the Stigmer Cloud web console. */
 export const DEFAULT_CLOUD_CONSOLE_URL = "https://app.stigmer.ai";
 
-// Local mode is single-tenant: the bootstrap `stigmer up` runs creates the
-// system org and installs the default plugins into it, so bare-slug
-// `get`/`run`/`apply` in local mode fall back to that org when nothing else
-// is configured. The same holds for selfhost backends — they ARE the OSS
-// server. Cloud mode has no implicit org — the caller must select one
-// (flag/env/context/login).
-const DEFAULT_LOCAL_ORG = SYSTEM_ORG;
+/**
+ * The organization a local or selfhost backend falls back to when nothing
+ * names one, so bare-slug `get`/`run`/`apply` resolve without ceremony.
+ * `stigmer up` creates it on the local stack and `stigmer bootstrap` on a raw
+ * self-hosted server (local/bootstrap.ts). Cloud mode has no implicit org —
+ * the caller must select one (flag/env/context/login).
+ */
+export const DEFAULT_LOCAL_ORG = "stigmer";
 
 /**
  * Resolve the server endpoint.

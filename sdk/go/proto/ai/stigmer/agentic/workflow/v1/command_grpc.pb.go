@@ -46,12 +46,12 @@ type WorkflowCommandControllerClient interface {
 	//
 	// This is a targeted metadata update — it only modifies metadata.visibility,
 	// leaving spec, status, and other metadata fields untouched. Use this to
-	// make a workflow publicly accessible or to revoke public access without
-	// sending the entire workflow resource (avoiding read-modify-write races).
+	// widen or narrow who can read the workflow without sending the entire
+	// workflow resource (avoiding read-modify-write races).
 	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
+	// Raising the level is refused while an agent an agent_call task names is
+	// less visible than the requested level: what a person can run they must
+	// also be able to read.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Workflow, error)
 	// Delete a workflow.
 	Delete(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
@@ -177,12 +177,12 @@ type WorkflowCommandControllerServer interface {
 	//
 	// This is a targeted metadata update — it only modifies metadata.visibility,
 	// leaving spec, status, and other metadata fields untouched. Use this to
-	// make a workflow publicly accessible or to revoke public access without
-	// sending the entire workflow resource (avoiding read-modify-write races).
+	// widen or narrow who can read the workflow without sending the entire
+	// workflow resource (avoiding read-modify-write races).
 	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
+	// Raising the level is refused while an agent an agent_call task names is
+	// less visible than the requested level: what a person can run they must
+	// also be able to read.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Workflow, error)
 	// Delete a workflow.
 	Delete(context.Context, *WorkflowId) (*Workflow, error)

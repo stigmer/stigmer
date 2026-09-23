@@ -257,8 +257,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization that owns this resource.
    * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
-   * then the configured context); the CLI's bootstrap creates the "stigmer"
-   * organization on every start and installs the default plugins into it.
+   * then the configured context, then the "stigmer" organization, which the
+   * CLI's bootstrap creates).
    * In Cloud Mode: Required and enforced by the Authorization Service.
    * All resources belong to exactly one organization.
    * </pre>
@@ -283,8 +283,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization that owns this resource.
    * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
-   * then the configured context); the CLI's bootstrap creates the "stigmer"
-   * organization on every start and installs the default plugins into it.
+   * then the configured context, then the "stigmer" organization, which the
+   * CLI's bootstrap creates).
    * In Cloud Mode: Required and enforced by the Authorization Service.
    * All resources belong to exactly one organization.
    * </pre>
@@ -311,9 +311,12 @@ private static final long serialVersionUID = 0L;
   private int visibility_ = 0;
   /**
    * <pre>
-   * Visibility controls who can access this resource.
-   * - PRIVATE: Only members of the owning organization can access.
-   * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+   * Visibility controls who can read this resource.
+   * - PRIVATE: the owner and explicit grants.
+   * - ORG: every member of the owning organization.
+   * - PLATFORM: members of the organizations linked by the owning
+   * organization's identity provider (blueprint kinds only).
+   * Write access always requires membership of the owning organization.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    *
@@ -334,9 +337,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Visibility controls who can access this resource.
-   * - PRIVATE: Only members of the owning organization can access.
-   * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+   * Visibility controls who can read this resource.
+   * - PRIVATE: the owner and explicit grants.
+   * - ORG: every member of the owning organization.
+   * - PLATFORM: members of the organizations linked by the owning
+   * organization's identity provider (blueprint kinds only).
+   * Write access always requires membership of the owning organization.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    *
@@ -1584,8 +1590,8 @@ java.lang.String defaultValue) {
      * <pre>
      * Organization that owns this resource.
      * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
-     * then the configured context); the CLI's bootstrap creates the "stigmer"
-     * organization on every start and installs the default plugins into it.
+     * then the configured context, then the "stigmer" organization, which the
+     * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1609,8 +1615,8 @@ java.lang.String defaultValue) {
      * <pre>
      * Organization that owns this resource.
      * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
-     * then the configured context); the CLI's bootstrap creates the "stigmer"
-     * organization on every start and installs the default plugins into it.
+     * then the configured context, then the "stigmer" organization, which the
+     * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1635,8 +1641,8 @@ java.lang.String defaultValue) {
      * <pre>
      * Organization that owns this resource.
      * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
-     * then the configured context); the CLI's bootstrap creates the "stigmer"
-     * organization on every start and installs the default plugins into it.
+     * then the configured context, then the "stigmer" organization, which the
+     * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1657,8 +1663,8 @@ java.lang.String defaultValue) {
      * <pre>
      * Organization that owns this resource.
      * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
-     * then the configured context); the CLI's bootstrap creates the "stigmer"
-     * organization on every start and installs the default plugins into it.
+     * then the configured context, then the "stigmer" organization, which the
+     * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1676,8 +1682,8 @@ java.lang.String defaultValue) {
      * <pre>
      * Organization that owns this resource.
      * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
-     * then the configured context); the CLI's bootstrap creates the "stigmer"
-     * organization on every start and installs the default plugins into it.
+     * then the configured context, then the "stigmer" organization, which the
+     * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
      * All resources belong to exactly one organization.
      * </pre>
@@ -1699,9 +1705,12 @@ java.lang.String defaultValue) {
     private int visibility_ = 0;
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1722,9 +1731,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1750,9 +1762,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1775,9 +1790,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *
@@ -1803,9 +1821,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Visibility controls who can access this resource.
-     * - PRIVATE: Only members of the owning organization can access.
-     * - PUBLIC: Anyone can access (read). Write access still requires org membership.
+     * Visibility controls who can read this resource.
+     * - PRIVATE: the owner and explicit grants.
+     * - ORG: every member of the owning organization.
+     * - PLATFORM: members of the organizations linked by the owning
+     * organization's identity provider (blueprint kinds only).
+     * Write access always requires membership of the owning organization.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      *

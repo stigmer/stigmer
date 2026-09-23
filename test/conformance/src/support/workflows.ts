@@ -589,9 +589,10 @@ export const AGENT_CALL_AFTER_TASK_NAME = "afterAgent";
 export interface AgentCallWorkflowOptions {
   org: string;
   name: string;
-  // Slug of the agent the agent_call task invokes (Agent.metadata.slug). The
+  // The agent_call task's `agent` string: usually a bare Agent.metadata.slug,
+  // or any form the contract allows ("org/slug", a runtime expression). The
   // server converts it to the CNCF `with.agent` ref and the runner creates a
-  // child AgentExecution for it in the workflow's org.
+  // child AgentExecution in the organization the execution runs in.
   agentSlug: string;
   // The message handed to the child agent. agent_call.message is an expression
   // (is_expression), and a constant string is a valid expression; the default

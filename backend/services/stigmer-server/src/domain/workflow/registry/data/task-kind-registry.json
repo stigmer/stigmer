@@ -1362,7 +1362,7 @@
         {
           "name": "agent",
           "displayName": "Agent",
-          "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
+          "description": "Agent to invoke, as \"slug\", \"org/slug\", or a value holding a runtime expression. - \"slug\": an agent of the organization the workflow runs in; checked when the workflow is saved, against the workflow's own organization - \"org/slug\": that organization's agent; checked when the workflow is saved, and another organization's agent must be shared at platform visibility - a value holding \"${ ... }\", \"${.env_vars.KEY}\" or \"${.secrets.KEY}\": resolved to \"slug\" or \"org/slug\" when the task runs, and read as the person who ran the workflow Examples: \"code-reviewer\", \"acme/data-analyst\", \"${.env_vars.TEAM_ORG}/assistant\" Required field.",
           "type": "string",
           "required": true,
           "groupId": "core",
@@ -1470,7 +1470,7 @@
         "additionalProperties": false,
         "properties": {
           "agent": {
-            "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
+            "description": "Agent to invoke, as \"slug\", \"org/slug\", or a value holding a runtime expression. - \"slug\": an agent of the organization the workflow runs in; checked when the workflow is saved, against the workflow's own organization - \"org/slug\": that organization's agent; checked when the workflow is saved, and another organization's agent must be shared at platform visibility - a value holding \"${ ... }\", \"${.env_vars.KEY}\" or \"${.secrets.KEY}\": resolved to \"slug\" or \"org/slug\" when the task runs, and read as the person who ran the workflow Examples: \"code-reviewer\", \"acme/data-analyst\", \"${.env_vars.TEAM_ORG}/assistant\" Required field.",
             "maxLength": 127,
             "minLength": 1,
             "type": "string"
@@ -1525,7 +1525,7 @@
                   "type": "string"
                 },
                 "org": {
-                  "description": "Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\". When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources).",
+                  "description": "Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\". When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is a platform that shares the resource with yours (visibility_platform).",
                   "maxLength": 63,
                   "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
                   "type": "string"

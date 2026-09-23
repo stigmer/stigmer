@@ -4,9 +4,8 @@
  * read by whoever the visibility axis lets in. The `organization#member`
  * and `organization#viewer` usersets on `viewer` are the org-visibility
  * tuple's two shapes (the cloud writes `#viewer` since cloud#257; `#member`
- * is the legacy shape it still honours), the conditional wildcard is the
- * public level, and `platform_viewer` is an identity-provider userset no
- * open-source tuple ever names.
+ * is the legacy shape it still honours), and `platform_viewer` is an
+ * identity-provider userset no open-source tuple ever names.
  */
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -17,7 +16,6 @@ import {
   direct,
   from,
   objectOf,
-  publicWith,
   union,
   usersetOf,
 } from "./rewrite.js";
@@ -44,7 +42,6 @@ export const agentDeclaration = declareKind({
       union(
         direct(
           objectOf("identity_account"),
-          publicWith("identity_account", "allow_public"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
         ),

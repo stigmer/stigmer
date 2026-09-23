@@ -108,8 +108,6 @@ describe("createScheduleListFn", () => {
       org: "acme",
       // No server-side text search for schedules — ignored by contract.
       query: "ignored",
-      excludePublic: false,
-      crossOrgPublic: false,
       page: { num: 1, size: 20 },
     });
 

@@ -7,9 +7,10 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * McpServerQueryController provides read operations for MCP server resources.
  * &#64;internal
  * Authorization model:
- * - Platform-scoped: Anyone can view (public marketplace)
- * - Organization-scoped: Org members can view
- * - Identity-account-scoped: Only the owner can view
+ * - visibility_platform: members of the organizations the owning org's
+ *   identity provider links can view
+ * - visibility_org: org members can view
+ * - visibility_private: the owner and explicit grants can view
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -208,9 +209,10 @@ public final class McpServerQueryControllerGrpc {
    * McpServerQueryController provides read operations for MCP server resources.
    * &#64;internal
    * Authorization model:
-   * - Platform-scoped: Anyone can view (public marketplace)
-   * - Organization-scoped: Org members can view
-   * - Identity-account-scoped: Only the owner can view
+   * - visibility_platform: members of the organizations the owning org's
+   *   identity provider links can view
+   * - visibility_org: org members can view
+   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public interface AsyncService {
@@ -299,9 +301,10 @@ public final class McpServerQueryControllerGrpc {
    * McpServerQueryController provides read operations for MCP server resources.
    * &#64;internal
    * Authorization model:
-   * - Platform-scoped: Anyone can view (public marketplace)
-   * - Organization-scoped: Org members can view
-   * - Identity-account-scoped: Only the owner can view
+   * - visibility_platform: members of the organizations the owning org's
+   *   identity provider links can view
+   * - visibility_org: org members can view
+   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static abstract class McpServerQueryControllerImplBase
@@ -318,9 +321,10 @@ public final class McpServerQueryControllerGrpc {
    * McpServerQueryController provides read operations for MCP server resources.
    * &#64;internal
    * Authorization model:
-   * - Platform-scoped: Anyone can view (public marketplace)
-   * - Organization-scoped: Org members can view
-   * - Identity-account-scoped: Only the owner can view
+   * - visibility_platform: members of the organizations the owning org's
+   *   identity provider links can view
+   * - visibility_org: org members can view
+   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerStub
@@ -424,9 +428,10 @@ public final class McpServerQueryControllerGrpc {
    * McpServerQueryController provides read operations for MCP server resources.
    * &#64;internal
    * Authorization model:
-   * - Platform-scoped: Anyone can view (public marketplace)
-   * - Organization-scoped: Org members can view
-   * - Identity-account-scoped: Only the owner can view
+   * - visibility_platform: members of the organizations the owning org's
+   *   identity provider links can view
+   * - visibility_org: org members can view
+   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerBlockingV2Stub
@@ -526,9 +531,10 @@ public final class McpServerQueryControllerGrpc {
    * McpServerQueryController provides read operations for MCP server resources.
    * &#64;internal
    * Authorization model:
-   * - Platform-scoped: Anyone can view (public marketplace)
-   * - Organization-scoped: Org members can view
-   * - Identity-account-scoped: Only the owner can view
+   * - visibility_platform: members of the organizations the owning org's
+   *   identity provider links can view
+   * - visibility_org: org members can view
+   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerBlockingStub
@@ -628,9 +634,10 @@ public final class McpServerQueryControllerGrpc {
    * McpServerQueryController provides read operations for MCP server resources.
    * &#64;internal
    * Authorization model:
-   * - Platform-scoped: Anyone can view (public marketplace)
-   * - Organization-scoped: Org members can view
-   * - Identity-account-scoped: Only the owner can view
+   * - visibility_platform: members of the organizations the owning org's
+   *   identity provider links can view
+   * - visibility_org: org members can view
+   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerFutureStub

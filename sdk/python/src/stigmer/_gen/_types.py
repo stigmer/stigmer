@@ -58,8 +58,6 @@ class ListParams:
 
     org: str = ""
     query: str = ""
-    exclude_public: bool = False
-    cross_org_public: bool = False
     page: Page | None = None
 
 

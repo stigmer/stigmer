@@ -2,21 +2,12 @@
 
 import { useCallback } from "react";
 import { useStigmer } from "../hooks.js";
-import { useResourceCount, type ResourceListScope } from "../search/index.js";
+import { useResourceCount } from "../search/index.js";
 
 /** Options for {@link useSkillCount}. */
 export interface UseSkillCountOptions {
   /** Text query to filter skills before counting. */
   readonly query?: string;
-  /**
-   * Controls which skills are counted.
-   *
-   * - `"org"` — only skills owned by the given organization.
-   * - `"all"` — includes public/platform skills.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
   /** Opaque token that forces a recount when its value changes. */
   readonly refetchToken?: unknown;
 }
@@ -50,12 +41,6 @@ export interface UseSkillCountReturn {
  * @example
  * ```tsx
  * const { count, isLoading } = useSkillCount("acme");
- * ```
- *
- * @example
- * ```tsx
- * // Count all accessible skills including public/platform ones
- * const { count } = useSkillCount("acme", { scope: "all" });
  * ```
  */
 export function useSkillCount(

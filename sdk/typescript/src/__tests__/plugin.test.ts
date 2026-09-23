@@ -75,7 +75,7 @@ describe("RoutedPluginClient.push size routing", () => {
       create(PushPluginRequestSchema, {
         org: "acme",
         artifact,
-        visibility: ApiResourceVisibility.visibility_public,
+        visibility: ApiResourceVisibility.visibility_org,
         message: "big",
       }),
     );
@@ -86,7 +86,7 @@ describe("RoutedPluginClient.push size routing", () => {
     const pushed = captured.pushes[0]!;
     expect(pushed.artifact.length).toBe(0);
     expect(pushed.artifactUploadRef).toBe("sau_p");
-    expect(pushed.visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(pushed.visibility).toBe(ApiResourceVisibility.visibility_org);
     expect(pushed.message).toBe("big");
   });
 });
