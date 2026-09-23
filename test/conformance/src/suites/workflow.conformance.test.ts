@@ -12,6 +12,17 @@
 // proto failures → InvalidArgument, and (stigmer#805) Layer-2 typed-config
 // constraint violations → structured INVALID with the cross-edition lockstep
 // error rendering.
+//
+// The agent_call reference arm pins the reference rule over the `agent`
+// string at write, in both editions: another organization's agent only at
+// platform visibility, refused otherwise with the one cross-organization
+// sentence; a value holding a runtime expression saved untouched with no
+// agent behind it, because it names its agent only when the task runs; and
+// a bare slug judged in the workflow's own organization with its floor
+// capped at org, at the spec door and at the escalation door, while a
+// literal naming the same agent keeps the uncapped floor. What a runtime
+// expression may reach when it resolves is the runner-as-subject execution
+// suite's arm.
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
@@ -23,9 +34,16 @@ import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeWorkflowInstance } from "../support/workflowinstances";
-import { WORKFLOW_API_VERSION, WORKFLOW_KIND, makeWorkflow, makeWorkflowSpec } from "../support/workflows";
+import {
+  WORKFLOW_API_VERSION,
+  WORKFLOW_KIND,
+  makeAgentCallWorkflow,
+  makeWorkflow,
+  makeWorkflowSpec,
+} from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -680,6 +698,98 @@ describe("Workflow conformance — updateVisibility", () => {
         }),
       Code.NotFound,
       "updateVisibility unknown id",
+    );
+  });
+});
+
+describe("Workflow conformance — agent_call references at write", () => {
+  async function createAgent(org: string, visibility?: ApiResourceVisibility) {
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    if (visibility !== undefined) {
+      await clients.agentCommand.updateVisibility({ resourceId: agent.metadata!.id, visibility });
+    }
+    return agent;
+  }
+
+  /** Applies the one-task agent_call workflow `name` in `org`; repeated applies address the same row. */
+  async function applyCalling(org: string, name: string, agent: string, track = true) {
+    const workflow = await clients.workflowCommand.apply(makeAgentCallWorkflow({ org, name, agentSlug: agent }));
+    if (track) {
+      fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
+    }
+    return workflow;
+  }
+
+  const floorSentence = (org: string, slug: string, target: string, resource: string) =>
+    `referenced agent '${org}/${slug}' is ${target} while this resource is ${resource}; ` +
+    "a resource may not be more visible than the agents it runs with. " +
+    "Widen the referenced resource's visibility or narrow this one.";
+
+  it("another organization's agent is admitted at platform visibility and refused otherwise with one sentence", async () => {
+    const { org } = await target.provisionTenancy();
+    const { org: otherOrg } = await target.provisionTenancy();
+    const shared = await createAgent(otherOrg, ApiResourceVisibility.visibility_platform);
+    const internal = await createAgent(otherOrg);
+
+    const admitted = await applyCalling(org, uniqueName("wf"), `${otherOrg}/${shared.metadata!.slug}`);
+    expect(admitted.metadata?.id).toMatch(/^wfl_/);
+
+    const refused = await expectGrpcCode(
+      () => applyCalling(org, uniqueName("wf"), `${otherOrg}/${internal.metadata!.slug}`, false),
+      Code.FailedPrecondition,
+      "a workflow calling another organization's org-visible agent",
+    );
+    expect(refused.rawMessage).toBe(
+      `referenced agent '${otherOrg}/${internal.metadata!.slug}' is not available to this organization; ` +
+        "another organization's resource can be referenced only when that organization shares it at platform visibility.",
+    );
+  });
+
+  it("a value holding a runtime expression saves untouched with no agent behind it", async () => {
+    const { org } = await target.provisionTenancy();
+    for (const agent of ["${.env_vars.TEAM_ORG}/assistant", '${ "no-such-org/no-such-agent" }']) {
+      const saved = await applyCalling(org, uniqueName("wf"), agent);
+      const config = saved.spec?.tasks[0]?.taskConfig as { agent?: unknown } | undefined;
+      expect(config?.agent, "the stored task names its agent as written").toBe(agent);
+    }
+  });
+
+  it("a bare slug is judged in the workflow's organization with its floor capped at org, at both doors; a literal keeps the full floor", async () => {
+    const { org } = await target.provisionTenancy();
+    const team = await createAgent(org);
+    const slug = team.metadata!.slug;
+    const name = uniqueName("wf");
+
+    // The escalation door: raising a workflow that calls an org-visible agent by bare slug.
+    const created = await applyCalling(org, name, slug);
+    const raised = await clients.workflowCommand.updateVisibility({
+      resourceId: created.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_platform,
+    });
+    expect(raised.metadata?.visibility).toBe(ApiResourceVisibility.visibility_platform);
+
+    // The spec door: re-applied at platform visibility, the bare slug still passes...
+    const reapplied = await applyCalling(org, name, slug, false);
+    expect(reapplied.metadata?.visibility).toBe(ApiResourceVisibility.visibility_platform);
+
+    // ...and a literal naming the same agent is a fixed row every organization's runs read.
+    const literal = await expectGrpcCode(
+      () => applyCalling(org, name, `${org}/${slug}`, false),
+      Code.FailedPrecondition,
+      "a platform-visible workflow calling an org-visible agent by literal",
+    );
+    expect(literal.rawMessage).toBe(floorSentence(org, slug, "visibility_org", "visibility_platform"));
+
+    // The cap is org, not a pass: a private agent stays below it.
+    const mine = await createAgent(org, ApiResourceVisibility.visibility_private);
+    const privateCall = await expectGrpcCode(
+      () => applyCalling(org, name, mine.metadata!.slug, false),
+      Code.FailedPrecondition,
+      "a platform-visible workflow calling a private agent by bare slug",
+    );
+    expect(privateCall.rawMessage).toBe(
+      floorSentence(org, mine.metadata!.slug, "visibility_private", "visibility_platform"),
     );
   });
 });
