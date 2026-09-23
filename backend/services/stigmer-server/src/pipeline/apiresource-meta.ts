@@ -201,6 +201,27 @@ export function grantableRolesFor(
 }
 
 /**
+ * The roles a TEAM may be granted on a resource of `kind` according to the
+ * contract — `kind_meta.authorization.team_grantable_roles`, a subset of
+ * `grantableRolesFor(kind)` (the subset is pinned by a test, never assumed
+ * here). Empty for every kind a team cannot be granted access to, and for
+ * `organization`, so an edition that grants only on organizations grants
+ * nothing to a team. Total, never a throw, for the same reason as
+ * `grantableRolesFor`.
+ */
+export function teamGrantableRolesFor(
+  kind: ApiResourceKind,
+): ReadonlyArray<IamRole> {
+  const valueDesc = kindValueDescriptor(kind);
+  if (valueDesc === undefined || !hasOption(valueDesc, kind_meta)) {
+    return [];
+  }
+  return (
+    getOption(valueDesc, kind_meta).authorization?.teamGrantableRoles ?? []
+  );
+}
+
+/**
  * Whether an edition serves a tier: the tier names the MINIMUM edition,
  * the editions are ordered oss < enterprise < cloud (each composes the
  * previous one's units), so a tier admits its own edition and every one

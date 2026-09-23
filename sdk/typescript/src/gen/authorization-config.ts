@@ -17,6 +17,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.identity_provider, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.oauth_app, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.platform_client, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.team, [IamRole.member]],
   [ApiResourceKind.organization, [IamRole.owner, IamRole.admin, IamRole.member, IamRole.viewer]],
   [ApiResourceKind.agent, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.session, [IamRole.owner, IamRole.viewer]],
@@ -33,4 +34,27 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.artifact, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.schedule, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.owner, IamRole.viewer]],
+]);
+
+/**
+ * Roles that can be granted on each resource kind to a team, so every
+ * member of the team holds the role.
+ *
+ * Source of truth: api_resource_kind.proto — team_grantable_roles in each
+ * kind's AuthorizationConfig, always a subset of grantable_roles.
+ *
+ * Kinds not in this map cannot be shared with a team. Teams are served by
+ * the Enterprise and Cloud editions.
+ */
+export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> = new Map([
+  [ApiResourceKind.agent, [IamRole.viewer]],
+  [ApiResourceKind.skill, [IamRole.viewer]],
+  [ApiResourceKind.mcp_server, [IamRole.viewer]],
+  [ApiResourceKind.agent_instance, [IamRole.viewer]],
+  [ApiResourceKind.agent_channel, [IamRole.viewer, IamRole.participant]],
+  [ApiResourceKind.workflow, [IamRole.viewer]],
+  [ApiResourceKind.workflow_instance, [IamRole.viewer]],
+  [ApiResourceKind.workflow_execution, [IamRole.viewer]],
+  [ApiResourceKind.schedule, [IamRole.viewer]],
+  [ApiResourceKind.plugin, [IamRole.viewer]],
 ]);

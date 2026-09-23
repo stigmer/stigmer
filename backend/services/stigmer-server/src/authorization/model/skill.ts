@@ -3,7 +3,8 @@
  * `can_use` and `can_clone` rather than `can_execute`. Only `can_view`,
  * `can_edit`, `can_delete`, `can_grant_access` and `can_view_access` are
  * in the wire's IamPermission vocabulary; the others are the model's and
- * are carried so the transcript is the file.
+ * are carried so the transcript is the file. `team#member` on `viewer` is
+ * the Enterprise team grant, which no open-source tuple ever names.
  */
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -42,6 +43,7 @@ export const skillDeclaration = declareKind({
           objectOf("identity_account"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
+          usersetOf("team", "member"),
         ),
         computed("owner"),
         computed("platform_viewer"),

@@ -32,6 +32,7 @@ public class GeneratedClient {
     public final SessionClient session;
     public final SkillClient skill;
     public final SubscriptionClient subscription;
+    public final TeamClient team;
     public final WorkflowClient workflow;
     public final WorkflowExecutionClient workflowExecution;
     public final WorkflowInstanceClient workflowInstance;
@@ -63,6 +64,7 @@ public class GeneratedClient {
         this.session = new SessionClient(channel);
         this.skill = newSkillClient(channel);
         this.subscription = new SubscriptionClient(channel);
+        this.team = new TeamClient(channel);
         this.workflow = new WorkflowClient(channel);
         this.workflowExecution = new WorkflowExecutionClient(channel);
         this.workflowInstance = new WorkflowInstanceClient(channel);

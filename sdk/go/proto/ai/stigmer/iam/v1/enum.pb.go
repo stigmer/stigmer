@@ -143,6 +143,8 @@ const (
 	// Organization-level permission to create an agent instance in the
 	// organization.
 	IamPermission_can_create_agent_instance IamPermission = 44
+	// Organization-level permission to create a team in the organization.
+	IamPermission_can_create_team IamPermission = 45
 )
 
 // Enum value maps for IamPermission.
@@ -188,6 +190,7 @@ var (
 		42: "can_issue_license",
 		43: "can_create_mcp_server",
 		44: "can_create_agent_instance",
+		45: "can_create_team",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -230,6 +233,7 @@ var (
 		"can_issue_license":            42,
 		"can_create_mcp_server":        43,
 		"can_create_agent_instance":    44,
+		"can_create_team":              45,
 	}
 )
 
@@ -339,7 +343,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xd4\b\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe9\b\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -381,7 +385,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x10can_manage_plans\x10)\x12\x15\n" +
 	"\x11can_issue_license\x10*\x12\x19\n" +
 	"\x15can_create_mcp_server\x10+\x12\x1d\n" +
-	"\x19can_create_agent_instance\x10,\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x19can_create_agent_instance\x10,\x12\x13\n" +
+	"\x0fcan_create_team\x10-\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
 	"\"\x04\b'\x10'*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*b\n" +
 	"\aIamRole\x12\x18\n" +

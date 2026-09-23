@@ -163,6 +163,9 @@ export type {
 export { iamPolicyStoreContract } from "./domain/iampolicy/store-contract.js";
 export type { PolicyGrantScope } from "./extensions/policy-grant-scope.js";
 export type { AuthorizationQueryEngine } from "./extensions/authorization-queries.js";
+// How an access list names a grantee that is not a person
+// (drivers.principalDisplay): a team, in the editions that serve teams.
+export type { PrincipalDisplay } from "./extensions/principal-display.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
@@ -233,8 +236,14 @@ export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-calle
 // through the REAL boundary mechanism, never a re-derivation.
 export type { VisitorErrorPolicy } from "./pipeline/interceptors/error-boundary.js";
 export { createErrorBoundaryInterceptor } from "./pipeline/interceptors/error-boundary.js";
+// The tuple lifecycle's resolution, for a kind a composition serves outside
+// the generic chains (a cloud-served create): `resolveResourceCreatedEvent`
+// derives the creation event from the kind's `kind_meta` exactly as the
+// shared CreateAuthorizationTuples step does, so the driver sees one shape
+// whichever chain created the row.
 export {
   diffVisibilityShapes,
+  resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "./pipeline/steps/authorization-tuples.js";
 

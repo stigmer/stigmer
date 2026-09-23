@@ -32,6 +32,7 @@ import (
 	invitationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1"
 	oauthappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
 	platformclientv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1"
+	teamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/team/v1"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1"
 )
 
@@ -163,6 +164,11 @@ func SkillInputFromProto(p *skillv1.Skill) *SkillInput {
 // SubscriptionInputFromProto creates a SubscriptionInput from a proto Subscription resource.
 func SubscriptionInputFromProto(p *subscriptionv1.Subscription) *SubscriptionInput {
 	return gen.SubscriptionInputFromProto(p)
+}
+
+// TeamInputFromProto creates a TeamInput from a proto Team resource.
+func TeamInputFromProto(p *teamv1.Team) *TeamInput {
+	return gen.TeamInputFromProto(p)
 }
 
 // WorkflowInputFromProto creates a WorkflowInput from a proto Workflow resource.

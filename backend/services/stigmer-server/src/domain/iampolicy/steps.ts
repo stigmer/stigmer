@@ -30,17 +30,32 @@
  *      intersection — the cloud's second copy listing it. Intersecting is
  *      what keeps a scope from WIDENING the contract by accident;
  *   5. the PRINCIPAL (Q-S9-2, 2026-09-14; constants.ts
- *      USER_GRANT_PRINCIPAL_KINDS): a person grants roles to people — the
- *      identity account — and to nothing else. A row whose principal is a
+ *      USER_GRANT_PRINCIPAL_KINDS): a person grants roles to people and to
+ *      teams of people, and to nothing else. A row whose principal is a
  *      resource is a structural link (the hierarchy walk's parent edge),
  *      which is `bootstrapPolicy`'s to write; through this lane it would
  *      let a right on one organization read another's members. Last, so
  *      every answer the cloud's create gives today is unchanged and only
- *      the row it should never have written is refused.
+ *      the row it should never have written is refused. A person names no
+ *      relation qualifier: `identity_account:<id>#<anything>` names
+ *      nobody, and OpenFGA would refuse the tuple after the row was
+ *      written, a grant on paper that is denied in practice.
+ *
+ * A TEAM principal takes its own list in place of arm 4: the kind's
+ * `team_grantable_roles` ∩ scope, never the person list, because a team
+ * is granted only what its members could each be granted and never
+ * ownership. It must name the team's members (`TEAM_MEMBERS_RELATION`).
+ * A kind that lists no team role refuses a team whatever the role, so
+ * open source (organization-only scope, and `organization` lists none)
+ * grants a team nothing without a branch of its own. Whether the team
+ * exists and belongs to the resource's organization needs a read, which
+ * this synchronous step does not make: that is the
+ * `iam-policy-create:pre-side-effect-gate` slot's, spliced after it.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { RevokeOrgAccessInputSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import type {
@@ -51,15 +66,23 @@ import type {
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { PolicyGrantScope } from "../../extensions/policy-grant-scope.js";
-import { grantableRolesFor } from "../../pipeline/apiresource-meta.js";
+import {
+  grantableRolesFor,
+  kindEnumName,
+  teamGrantableRolesFor,
+} from "../../pipeline/apiresource-meta.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
-  USER_GRANT_PRINCIPAL_KINDS,
+  TEAM_MEMBERS_RELATION,
   noGrantableRolesMessage,
+  personQualifierMessage,
   principalNotGrantableMessage,
   roleNotGrantableMessage,
+  teamNotGrantableMessage,
+  teamQualifierMessage,
+  teamRoleNotGrantableMessage,
 } from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
 import {
@@ -94,6 +117,11 @@ export function newValidateGrantableRoleStep(
           Code.Unimplemented,
         );
       }
+      const principal = spec.principal;
+      if (principal?.kind === TEAM_KIND_NAME) {
+        requireTeamGrant(spec.relation, principal.relation, kind, kindName, scoped);
+        return;
+      }
       const grantable = contract.filter((role) => scoped.has(role));
       if (!grantable.some((role) => IamRole[role] === spec.relation)) {
         throw new ConnectError(
@@ -105,16 +133,61 @@ export function newValidateGrantableRoleStep(
           Code.InvalidArgument,
         );
       }
-      const principalKindName = spec.principal?.kind ?? "";
+      const principalKindName = principal?.kind ?? "";
       const principalKind = requireKnownPrincipalKind(principalKindName);
-      if (!USER_GRANT_PRINCIPAL_KINDS.includes(principalKind)) {
+      if (principalKind !== ApiResourceKind.identity_account) {
         throw new ConnectError(
           principalNotGrantableMessage(principalKindName),
           Code.InvalidArgument,
         );
       }
+      const qualifier = principal?.relation ?? "";
+      if (qualifier !== "") {
+        throw new ConnectError(
+          personQualifierMessage(qualifier),
+          Code.InvalidArgument,
+        );
+      }
     },
   };
+}
+
+/** The wire name of the team kind, as an `ApiResourceRef.kind` carries it. */
+const TEAM_KIND_NAME = kindEnumName(ApiResourceKind.team);
+
+/**
+ * The team arm of ValidateGrantableRole (the module header): the role
+ * against the kind's team list narrowed by the scope, then the qualifier.
+ */
+function requireTeamGrant(
+  role: string,
+  qualifier: string,
+  kind: ApiResourceKind,
+  kindName: string,
+  scoped: ReadonlySet<IamRole>,
+): void {
+  const teamGrantable = teamGrantableRolesFor(kind).filter((r) =>
+    scoped.has(r),
+  );
+  if (teamGrantable.length === 0) {
+    throw new ConnectError(
+      teamNotGrantableMessage(kindName),
+      Code.InvalidArgument,
+    );
+  }
+  if (!teamGrantable.some((r) => IamRole[r] === role)) {
+    throw new ConnectError(
+      teamRoleNotGrantableMessage(
+        role,
+        kindName,
+        teamGrantable.map((r) => IamRole[r]),
+      ),
+      Code.InvalidArgument,
+    );
+  }
+  if (qualifier !== TEAM_MEMBERS_RELATION) {
+    throw new ConnectError(teamQualifierMessage(qualifier), Code.InvalidArgument);
+  }
 }
 
 /** Grant the spec as the chain's caller; the row (fresh or held) is the result. */

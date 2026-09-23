@@ -6,7 +6,8 @@
  * audience through `execution_viewer from workflow_instance`, standing on
  * the `workflow_instance` link the derivation writes from
  * `spec.workflow_instance_id`. No `can_delete`: run history outlives its
- * instance by design.
+ * instance by design. The per-run grant may name an Enterprise team
+ * (`team#member`), which no open-source tuple ever does.
  */
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -18,6 +19,7 @@ import {
   from,
   objectOf,
   union,
+  usersetOf,
 } from "./rewrite.js";
 
 export const workflowExecutionDeclaration = declareKind({
@@ -31,7 +33,7 @@ export const workflowExecutionDeclaration = declareKind({
     [
       "viewer",
       union(
-        direct(objectOf("identity_account")),
+        direct(objectOf("identity_account"), usersetOf("team", "member")),
         computed("owner"),
         from("execution_viewer", "workflow_instance"),
       ),

@@ -15,7 +15,10 @@
  *     and never appear here;
  *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
  *     new sentences (the two edition refusals, the unknown permission, the
- *     unknown principal kind, the malformed triple);
+ *     unknown principal kind, the malformed triple, the four principal
+ *     refusals a team grantee brought);
+ *   - `USER_GRANT_PRINCIPAL_KINDS` — a person and a team, and no kind the
+ *     hierarchy walk would read as a structural parent;
  *   - the canonical text's one weakness and its closure (slice 2 ruling
  *     Q-S2-1): `ApiResourceRef` fields carry no character pattern, so an
  *     id or relation holding `:`, `#` or `@` could spell another triple's
@@ -44,10 +47,14 @@ import {
   malformedTripleField,
   malformedTripleMessage,
   noGrantableRolesMessage,
+  personQualifierMessage,
   policyIdFor,
   policyNotFoundMessage,
   principalNotGrantableMessage,
   roleNotGrantableMessage,
+  teamNotGrantableMessage,
+  teamQualifierMessage,
+  teamRoleNotGrantableMessage,
   unknownPermissionMessage,
   unknownPrincipalKindMessage,
   unknownResourceKindMessage,
@@ -310,11 +317,11 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
 });
 
 describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to (Q-S9-2)", () => {
-  it("is exactly the identity account: a role names a person; `team` is not an ApiResourceKind, so no wire spec can name it", () => {
+  it("is exactly a person and a team of people — the one vocabulary the writer admits and the reader treats as no structural parent", () => {
     expect([...USER_GRANT_PRINCIPAL_KINDS]).toEqual([
       ApiResourceKind.identity_account,
+      ApiResourceKind.team,
     ]);
-    expect(ApiResourceKind).not.toHaveProperty("team");
   });
 
   it("names no kind the hierarchy walk would read as a structural parent", () => {
@@ -370,7 +377,22 @@ describe("byte-pinned copy", () => {
 
   it("spells the principal refusal in the role sentence's shape, listing the grantable principal kinds", () => {
     expect(principalNotGrantableMessage("organization")).toBe(
-      "Principal kind 'organization' cannot be granted a role. Grantable principal kinds: [identity_account]",
+      "Principal kind 'organization' cannot be granted a role. Grantable principal kinds: [identity_account, team]",
+    );
+  });
+
+  it("spells the four team-era principal refusals, each naming what to fix", () => {
+    expect(personQualifierMessage("member")).toBe(
+      "Principal kind 'identity_account' takes no relation; got 'member'",
+    );
+    expect(teamQualifierMessage("admin")).toBe(
+      "A team principal must name the relation 'member' (the team's members); got 'admin'",
+    );
+    expect(teamNotGrantableMessage("session")).toBe(
+      "A team cannot be granted access to resource kind 'session'.",
+    );
+    expect(teamRoleNotGrantableMessage("owner", "agent", ["viewer"])).toBe(
+      "Role 'owner' cannot be granted to a team on resource kind 'agent'. Roles a team can hold: [viewer]",
     );
   });
 

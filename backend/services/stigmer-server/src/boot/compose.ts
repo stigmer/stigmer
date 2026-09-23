@@ -1264,6 +1264,8 @@ export async function composeServer(
       grantScope:
         extensions.drivers.policyGrantScope ?? newOrganizationOnlyGrantScope(),
       queries: extensions.drivers.authorizationQueries,
+      principalDisplay: extensions.drivers.principalDisplay,
+      gateSteps: extensions.gateSteps,
       edition: extensions.edition,
       logger,
     });

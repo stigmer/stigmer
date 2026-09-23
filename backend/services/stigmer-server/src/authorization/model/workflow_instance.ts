@@ -14,6 +14,10 @@
  * admits — and `private` or unset derives nothing, so each run stays its
  * triggerer's. The cloud has no writer for this tuple today; this
  * edition enforces the field as the contract states it.
+ *
+ * `team#member` on `viewer` is the Enterprise team grant, which no
+ * open-source tuple ever names; `execution_viewer` is not a grantable role
+ * and admits no team.
  */
 import { isMessage } from "@bufbuild/protobuf";
 
@@ -85,6 +89,7 @@ export const workflowInstanceDeclaration = declareKind({
           objectOf("identity_account"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
+          usersetOf("team", "member"),
         ),
         computed("owner"),
         from("viewer", "default_of"),

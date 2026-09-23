@@ -465,8 +465,17 @@ type AuthorizationConfig struct {
 	// (agent_execution), is self-owned (identity_account), or has no
 	// authorization (platform, api_resource_version).
 	GrantableRoles []v1.IamRole `protobuf:"varint,7,rep,packed,name=grantable_roles,json=grantableRoles,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"grantable_roles,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Roles that can be granted on this resource kind to a team, so that every
+	// member of the team holds the role.
+	//
+	// A subset of grantable_roles: a team is granted only what a person could
+	// be granted, and never ownership, which records who created a resource.
+	// Empty means a team cannot be granted access to the kind. Teams are an
+	// Enterprise and Cloud feature; the open-source server grants no role to a
+	// team.
+	TeamGrantableRoles []v1.IamRole `protobuf:"varint,8,rep,packed,name=team_grantable_roles,json=teamGrantableRoles,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"team_grantable_roles,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *AuthorizationConfig) Reset() {
@@ -548,6 +557,13 @@ func (x *AuthorizationConfig) GetGrantableRoles() []v1.IamRole {
 	return nil
 }
 
+func (x *AuthorizationConfig) GetTeamGrantableRoles() []v1.IamRole {
+	if x != nil {
+		return x.TeamGrantableRoles
+	}
+	return nil
+}
+
 var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
@@ -561,7 +577,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +
 	"\n" +
-	"spec_field\x18\x03 \x01(\tR\tspecField\"\x91\x05\n" +
+	"spec_field\x18\x03 \x01(\tR\tspecField\"\xdf\x05\n" +
 	"\x13AuthorizationConfig\x12e\n" +
 	"\n" +
 	"scope_type\x18\x01 \x01(\x0e2F.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeTypeR\tscopeType\x12c\n" +
@@ -573,7 +589,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"visibility\x18\x05 \x01(\v2@.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfigR\n" +
 	"visibility\x124\n" +
 	"\x16requires_creator_tuple\x18\x06 \x01(\bR\x14requiresCreatorTuple\x12C\n" +
-	"\x0fgrantable_roles\x18\a \x03(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x0egrantableRoles*\x85\x02\n" +
+	"\x0fgrantable_roles\x18\a \x03(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x0egrantableRoles\x12L\n" +
+	"\x14team_grantable_roles\x18\b \x03(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x12teamGrantableRoles*\x85\x02\n" +
 	"\x16AuthorizationScopeType\x12(\n" +
 	"$AUTHORIZATION_SCOPE_TYPE_UNSPECIFIED\x10\x00\x12%\n" +
 	"!AUTHORIZATION_SCOPE_TYPE_PLATFORM\x10\x01\x12)\n" +
@@ -618,11 +635,12 @@ var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 	3, // 3: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.additional_parents:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig
 	2, // 4: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.visibility:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig
 	5, // 5: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.grantable_roles:type_name -> ai.stigmer.iam.v1.IamRole
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	5, // 6: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.team_grantable_roles:type_name -> ai.stigmer.iam.v1.IamRole
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_init() }

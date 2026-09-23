@@ -4,7 +4,8 @@
  * between owner and viewer: the conversation-participation role
  * (reply and takeover without configuration authority), grantable as a
  * role on this kind alone. Every owner participates; every participant
- * views.
+ * views. Both grantable relations may name an Enterprise team
+ * (`team#member`), which no open-source tuple ever does.
  */
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -16,6 +17,7 @@ import {
   from,
   objectOf,
   union,
+  usersetOf,
 } from "./rewrite.js";
 
 export const agentChannelDeclaration = declareKind({
@@ -33,11 +35,17 @@ export const agentChannelDeclaration = declareKind({
     ],
     [
       "participant",
-      union(direct(objectOf("identity_account")), computed("owner")),
+      union(
+        direct(objectOf("identity_account"), usersetOf("team", "member")),
+        computed("owner"),
+      ),
     ],
     [
       "viewer",
-      union(direct(objectOf("identity_account")), computed("participant")),
+      union(
+        direct(objectOf("identity_account"), usersetOf("team", "member")),
+        computed("participant"),
+      ),
     ],
     ["can_view", computed("viewer")],
     ["can_edit", computed("owner")],

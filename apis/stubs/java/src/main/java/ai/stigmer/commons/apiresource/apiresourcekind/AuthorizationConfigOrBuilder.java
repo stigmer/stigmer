@@ -279,4 +279,113 @@ public interface AuthorizationConfigOrBuilder extends
    * @return The enum numeric value on the wire of grantableRoles at the given index.
    */
   int getGrantableRolesValue(int index);
+
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @return A list containing the teamGrantableRoles.
+   */
+  java.util.List<ai.stigmer.iam.v1.IamRole> getTeamGrantableRolesList();
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @return The count of teamGrantableRoles.
+   */
+  int getTeamGrantableRolesCount();
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @param index The index of the element to return.
+   * @return The teamGrantableRoles at the given index.
+   */
+  ai.stigmer.iam.v1.IamRole getTeamGrantableRoles(int index);
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @return A list containing the enum numeric values on the wire for teamGrantableRoles.
+   */
+  java.util.List<java.lang.Integer>
+  getTeamGrantableRolesValueList();
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @param index The index of the value to return.
+   * @return The enum numeric value on the wire of teamGrantableRoles at the given index.
+   */
+  int getTeamGrantableRolesValue(int index);
 }

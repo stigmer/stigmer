@@ -5,7 +5,9 @@
  * and `organization#viewer` usersets on `viewer` are the org-visibility
  * tuple's two shapes (the cloud writes `#viewer` since cloud#257; `#member`
  * is the legacy shape it still honours), and `platform_viewer` is an
- * identity-provider userset no open-source tuple ever names.
+ * identity-provider userset no open-source tuple ever names. `team#member`
+ * is the Enterprise team grant; open source serves no team, so no tuple
+ * here ever names one.
  */
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -44,6 +46,7 @@ export const agentDeclaration = declareKind({
           objectOf("identity_account"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
+          usersetOf("team", "member"),
         ),
         computed("owner"),
         computed("platform_viewer"),

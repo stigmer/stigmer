@@ -85,6 +85,7 @@ private static final long serialVersionUID = 0L;
     ownerType_ = 0;
     additionalParents_ = java.util.Collections.emptyList();
     grantableRoles_ = emptyIntList();
+    teamGrantableRoles_ = emptyIntList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -464,6 +465,145 @@ private static final long serialVersionUID = 0L;
   }
   private int grantableRolesMemoizedSerializedSize;
 
+  public static final int TEAM_GRANTABLE_ROLES_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.Internal.IntList teamGrantableRoles_ =
+      emptyIntList();
+  private static final     com.google.protobuf.Internal.IntListAdapter.IntConverter<
+      ai.stigmer.iam.v1.IamRole> teamGrantableRoles_converter_ =
+          new com.google.protobuf.Internal.IntListAdapter.IntConverter<
+              ai.stigmer.iam.v1.IamRole>() {
+            public ai.stigmer.iam.v1.IamRole convert(int from) {
+              ai.stigmer.iam.v1.IamRole result = ai.stigmer.iam.v1.IamRole.forNumber(from);
+              return result == null ? ai.stigmer.iam.v1.IamRole.UNRECOGNIZED : result;
+            }
+          };
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @return A list containing the teamGrantableRoles.
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.iam.v1.IamRole> getTeamGrantableRolesList() {
+    return new com.google.protobuf.Internal.IntListAdapter<
+        ai.stigmer.iam.v1.IamRole>(teamGrantableRoles_, teamGrantableRoles_converter_);
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @return The count of teamGrantableRoles.
+   */
+  @java.lang.Override
+  public int getTeamGrantableRolesCount() {
+    return teamGrantableRoles_.size();
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @param index The index of the element to return.
+   * @return The teamGrantableRoles at the given index.
+   */
+  @java.lang.Override
+  public ai.stigmer.iam.v1.IamRole getTeamGrantableRoles(int index) {
+    return teamGrantableRoles_converter_.convert(teamGrantableRoles_.getInt(index));
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @return A list containing the enum numeric values on the wire for teamGrantableRoles.
+   */
+  @java.lang.Override
+  public java.util.List<java.lang.Integer>
+  getTeamGrantableRolesValueList() {
+    return teamGrantableRoles_;
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind to a team, so that every
+   * member of the team holds the role.
+   *
+   * A subset of grantable_roles: a team is granted only what a person could
+   * be granted, and never ownership, which records who created a resource.
+   * Empty means a team cannot be granted access to the kind. Teams are an
+   * Enterprise and Cloud feature; the open-source server grants no role to a
+   * team.
+   *
+   * &#64;internal
+   * Each value is a relation whose type restriction in the FGA model lists
+   * `team#member` beside `identity_account`; the server's model transcripts
+   * are held equal to this list by a test.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+   * @param index The index of the value to return.
+   * @return The enum numeric value on the wire of teamGrantableRoles at the given index.
+   */
+  @java.lang.Override
+  public int getTeamGrantableRolesValue(int index) {
+    return teamGrantableRoles_.getInt(index);
+  }
+  private int teamGrantableRolesMemoizedSerializedSize;
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -503,6 +643,13 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < grantableRoles_.size(); i++) {
       output.writeEnumNoTag(grantableRoles_.getInt(i));
+    }
+    if (getTeamGrantableRolesList().size() > 0) {
+      output.writeUInt32NoTag(66);
+      output.writeUInt32NoTag(teamGrantableRolesMemoizedSerializedSize);
+    }
+    for (int i = 0; i < teamGrantableRoles_.size(); i++) {
+      output.writeEnumNoTag(teamGrantableRoles_.getInt(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -554,6 +701,18 @@ private static final long serialVersionUID = 0L;
           .computeUInt32SizeNoTag(dataSize);
       }grantableRolesMemoizedSerializedSize = dataSize;
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < teamGrantableRoles_.size(); i++) {
+        dataSize += com.google.protobuf.CodedOutputStream
+          .computeEnumSizeNoTag(teamGrantableRoles_.getInt(i));
+      }
+      size += dataSize;
+      if (!getTeamGrantableRolesList().isEmpty()) {  size += 1;
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt32SizeNoTag(dataSize);
+      }teamGrantableRolesMemoizedSerializedSize = dataSize;
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -586,6 +745,7 @@ private static final long serialVersionUID = 0L;
     if (getRequiresCreatorTuple()
         != other.getRequiresCreatorTuple()) return false;
     if (!grantableRoles_.equals(other.grantableRoles_)) return false;
+    if (!teamGrantableRoles_.equals(other.teamGrantableRoles_)) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -619,6 +779,10 @@ private static final long serialVersionUID = 0L;
     if (getGrantableRolesCount() > 0) {
       hash = (37 * hash) + GRANTABLE_ROLES_FIELD_NUMBER;
       hash = (53 * hash) + grantableRoles_.hashCode();
+    }
+    if (getTeamGrantableRolesCount() > 0) {
+      hash = (37 * hash) + TEAM_GRANTABLE_ROLES_FIELD_NUMBER;
+      hash = (53 * hash) + teamGrantableRoles_.hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -833,6 +997,7 @@ private static final long serialVersionUID = 0L;
       }
       requiresCreatorTuple_ = false;
       grantableRoles_ = emptyIntList();
+      teamGrantableRoles_ = emptyIntList();
       return this;
     }
 
@@ -905,6 +1070,10 @@ private static final long serialVersionUID = 0L;
         grantableRoles_.makeImmutable();
         result.grantableRoles_ = grantableRoles_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        teamGrantableRoles_.makeImmutable();
+        result.teamGrantableRoles_ = teamGrantableRoles_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -969,6 +1138,17 @@ private static final long serialVersionUID = 0L;
         } else {
           ensureGrantableRolesIsMutable();
           grantableRoles_.addAll(other.grantableRoles_);
+        }
+        onChanged();
+      }
+      if (!other.teamGrantableRoles_.isEmpty()) {
+        if (teamGrantableRoles_.isEmpty()) {
+          teamGrantableRoles_ = other.teamGrantableRoles_;
+          teamGrantableRoles_.makeImmutable();
+          bitField0_ |= 0x00000080;
+        } else {
+          ensureTeamGrantableRolesIsMutable();
+          teamGrantableRoles_.addAll(other.teamGrantableRoles_);
         }
         onChanged();
       }
@@ -1056,6 +1236,22 @@ private static final long serialVersionUID = 0L;
               input.popLimit(limit);
               break;
             } // case 58
+            case 64: {
+              int tmpRaw = input.readEnum();
+              ensureTeamGrantableRolesIsMutable();
+              teamGrantableRoles_.addInt(tmpRaw);
+              break;
+            } // case 64
+            case 66: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              ensureTeamGrantableRolesIsMutable();
+              while (input.getBytesUntilLimit() > 0) {
+                teamGrantableRoles_.addInt(input.readEnum());
+              }
+              input.popLimit(limit);
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2269,6 +2465,336 @@ private static final long serialVersionUID = 0L;
       ensureGrantableRolesIsMutable();
       for (int value : values) {
         grantableRoles_.addInt(value);
+      }
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.Internal.IntList teamGrantableRoles_ = emptyIntList();
+    private void ensureTeamGrantableRolesIsMutable() {
+      if (!teamGrantableRoles_.isModifiable()) {
+        teamGrantableRoles_ = makeMutableCopy(teamGrantableRoles_);
+      }
+      bitField0_ |= 0x00000080;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @return A list containing the teamGrantableRoles.
+     */
+    public java.util.List<ai.stigmer.iam.v1.IamRole> getTeamGrantableRolesList() {
+      return new com.google.protobuf.Internal.IntListAdapter<
+          ai.stigmer.iam.v1.IamRole>(teamGrantableRoles_, teamGrantableRoles_converter_);
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @return The count of teamGrantableRoles.
+     */
+    public int getTeamGrantableRolesCount() {
+      return teamGrantableRoles_.size();
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param index The index of the element to return.
+     * @return The teamGrantableRoles at the given index.
+     */
+    public ai.stigmer.iam.v1.IamRole getTeamGrantableRoles(int index) {
+      return teamGrantableRoles_converter_.convert(teamGrantableRoles_.getInt(index));
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param index The index to set the value at.
+     * @param value The teamGrantableRoles to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTeamGrantableRoles(
+        int index, ai.stigmer.iam.v1.IamRole value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureTeamGrantableRolesIsMutable();
+      teamGrantableRoles_.setInt(index, value.getNumber());
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param value The teamGrantableRoles to add.
+     * @return This builder for chaining.
+     */
+    public Builder addTeamGrantableRoles(ai.stigmer.iam.v1.IamRole value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureTeamGrantableRolesIsMutable();
+      teamGrantableRoles_.addInt(value.getNumber());
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param values The teamGrantableRoles to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllTeamGrantableRoles(
+        java.lang.Iterable<? extends ai.stigmer.iam.v1.IamRole> values) {
+      ensureTeamGrantableRolesIsMutable();
+      for (ai.stigmer.iam.v1.IamRole value : values) {
+        teamGrantableRoles_.addInt(value.getNumber());
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTeamGrantableRoles() {
+      teamGrantableRoles_ = emptyIntList();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @return A list containing the enum numeric values on the wire for teamGrantableRoles.
+     */
+    public java.util.List<java.lang.Integer>
+    getTeamGrantableRolesValueList() {
+      teamGrantableRoles_.makeImmutable();
+      return teamGrantableRoles_;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of teamGrantableRoles at the given index.
+     */
+    public int getTeamGrantableRolesValue(int index) {
+      return teamGrantableRoles_.getInt(index);
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param index The index to set the value at.
+     * @param value The enum numeric value on the wire for teamGrantableRoles to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTeamGrantableRolesValue(
+        int index, int value) {
+      ensureTeamGrantableRolesIsMutable();
+      teamGrantableRoles_.setInt(index, value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param value The enum numeric value on the wire for teamGrantableRoles to add.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder addTeamGrantableRolesValue(int value) {
+      ensureTeamGrantableRolesIsMutable();
+      teamGrantableRoles_.addInt(value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind to a team, so that every
+     * member of the team holds the role.
+     *
+     * A subset of grantable_roles: a team is granted only what a person could
+     * be granted, and never ownership, which records who created a resource.
+     * Empty means a team cannot be granted access to the kind. Teams are an
+     * Enterprise and Cloud feature; the open-source server grants no role to a
+     * team.
+     *
+     * &#64;internal
+     * Each value is a relation whose type restriction in the FGA model lists
+     * `team#member` beside `identity_account`; the server's model transcripts
+     * are held equal to this list by a test.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
+     * @param values The enum numeric values on the wire for teamGrantableRoles to add.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder addAllTeamGrantableRolesValue(
+        java.lang.Iterable<java.lang.Integer> values) {
+      ensureTeamGrantableRolesIsMutable();
+      for (int value : values) {
+        teamGrantableRoles_.addInt(value);
       }
       onChanged();
       return this;

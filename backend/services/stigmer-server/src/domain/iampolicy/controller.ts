@@ -31,9 +31,11 @@
  *     triple — strictly safer than the cloud's silent default instance.
  *   - `create` validates the role BEFORE it writes (the cloud's order): a
  *     held row under a role the kind does not grant is refused, never
- *     answered as a duplicate. It also grants to PEOPLE only (Q-S9-2,
- *     2026-09-14): a principal that is not an identity account is
- *     INVALID_ARGUMENT — a row naming a resource as its principal is the
+ *     answered as a duplicate. It also grants to PEOPLE and TEAMS only
+ *     (Q-S9-2, 2026-09-14): any other principal is INVALID_ARGUMENT, and a
+ *     team only on the roles its kind lets a team hold (steps.ts) and,
+ *     where an edition serves teams, only a team the create gate slot
+ *     admits — a row naming a resource as its principal is the
  *     structural link the hierarchy walk follows, `bootstrapPolicy`'s to
  *     write, and through this lane would have let a right on one
  *     organization list another's members. The cloud's create had the
@@ -136,9 +138,12 @@ import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/serve
 import type { Logger } from "../../boot/logger.js";
 import type { AuthorizationQueryEngine } from "../../extensions/authorization-queries.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { isPlatformPipelineCaller } from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { PolicyGrantScope } from "../../extensions/policy-grant-scope.js";
+import type { PrincipalDisplay } from "../../extensions/principal-display.js";
 import {
   kindByEnumName,
   kindEnumName,
@@ -209,6 +214,10 @@ export interface IamPolicyControllerDeps {
   readonly grantScope: PolicyGrantScope;
   /** The composed query engine — undefined = the tuple-half RPCs refuse UNIMPLEMENTED. */
   readonly queries: AuthorizationQueryEngine | undefined;
+  /** The composed principal display — undefined = a non-person grantee renders in the id fallback shape. */
+  readonly principalDisplay: PrincipalDisplay | undefined;
+  /** The merged gate steps; `create` splices `iam-policy-create:pre-side-effect-gate`. */
+  readonly gateSteps: ResolvedGateSteps;
   /** The served edition — `checkMyPermission`'s first arm reads a kind's tier against it. */
   readonly edition: ServerEdition;
   readonly logger: Logger;
@@ -285,7 +294,10 @@ function guardSystemRpc(method: DescMethod, caller: CallerIdentity): void {
 // The command chains
 // ---------------------------------------------------------------------------
 
-/** `create`: the wire refusal, then Authorize → ValidateProto → ValidateGrantableRole → Grant. */
+/**
+ * `create`: the wire refusal, then Authorize → ValidateProto →
+ * ValidateGrantableRole → [iam-policy-create:pre-side-effect-gate] → Grant.
+ */
 function createPolicy(
   deps: IamPolicyControllerDeps,
   spec: IamPolicySpec,
@@ -303,8 +315,8 @@ function createPolicy(
 
 /**
  * The grant chain both `create` and `bootstrapPolicy` run; only the user
- * lane validates the role — bootstrap writes structural relations no
- * scope would admit.
+ * lane validates the role and runs the create gate slot — bootstrap writes
+ * structural relations no scope would admit and no edition gates.
  */
 async function grantThroughChain(
   deps: IamPolicyControllerDeps,
@@ -327,6 +339,12 @@ async function grantThroughChain(
     .addStep(newValidateProtoStep());
   if (validateRole) {
     pipeline.addStep(newValidateGrantableRoleStep(deps.grantScope));
+    for (const step of stepsForSlot<typeof IamPolicySpecSchema>(
+      deps.gateSteps,
+      "iam-policy-create:pre-side-effect-gate",
+    )) {
+      pipeline.addStep(step);
+    }
   }
   await pipeline.addStep(newGrantStep(deps.grantPath)).build().execute(reqCtx);
   return policyResultOf(reqCtx, method);
@@ -600,7 +618,12 @@ async function listResourceAccessByPrincipal(
       resource.id,
       input.includeInherited,
     );
-    return buildPrincipalAccessList(deps.policies, displayResolver, hierarchy);
+    return buildPrincipalAccessList(
+      deps.policies,
+      displayResolver,
+      deps.principalDisplay,
+      hierarchy,
+    );
   }, "failed to list resource access");
   return create(ResourceAccessByPrincipalListSchema, {
     entries: [...entries],

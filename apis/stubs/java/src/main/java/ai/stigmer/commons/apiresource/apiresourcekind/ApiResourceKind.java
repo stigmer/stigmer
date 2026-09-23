@@ -89,6 +89,14 @@ public enum ApiResourceKind
   platform_client(23),
   /**
    * <pre>
+   * Named group of an organization's people that access is shared with as one.
+   * </pre>
+   *
+   * <code>team = 24 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  team(24),
+  /**
+   * <pre>
    * Top-level tenant that owns and manages resources.
    *
    * Organization is the one resource whose metadata.id equals its metadata.slug
@@ -386,6 +394,14 @@ public enum ApiResourceKind
   public static final int platform_client_VALUE = 23;
   /**
    * <pre>
+   * Named group of an organization's people that access is shared with as one.
+   * </pre>
+   *
+   * <code>team = 24 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int team_VALUE = 24;
+  /**
+   * <pre>
    * Top-level tenant that owns and manages resources.
    *
    * Organization is the one resource whose metadata.id equals its metadata.slug
@@ -632,6 +648,7 @@ public enum ApiResourceKind
       case 21: return identity_provider;
       case 22: return oauth_app;
       case 23: return platform_client;
+      case 24: return team;
       case 30: return organization;
       case 31: return platform;
       case 40: return agent;

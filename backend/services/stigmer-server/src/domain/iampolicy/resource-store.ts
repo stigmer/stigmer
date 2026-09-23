@@ -54,13 +54,10 @@ const KIND = ApiResourceKind.iam_policy;
  * principal half is derived from the user lane's grantee vocabulary
  * (constants.ts USER_GRANT_PRINCIPAL_KINDS; Q-S9-2) so the writer's "who a
  * person may grant to" and the reader's "what is a person, not a parent"
- * are one definition; `team` stays for the cloud's Java-era rows (not an
- * ApiResourceKind, so no wire spec names it).
+ * are one definition: the identity account and the team.
  */
-const NON_STRUCTURAL_PRINCIPAL_KINDS: ReadonlyArray<string> = [
-  ...USER_GRANT_PRINCIPAL_KINDS.map((kind) => kindEnumName(kind)),
-  "team",
-];
+const NON_STRUCTURAL_PRINCIPAL_KINDS: ReadonlyArray<string> =
+  USER_GRANT_PRINCIPAL_KINDS.map((kind) => kindEnumName(kind));
 const NON_STRUCTURAL_RELATIONS: ReadonlyArray<string> = ["owner", "creator"];
 
 export function newResourceIamPolicyStore(store: Store): IamPolicyStore {

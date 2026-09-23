@@ -69,9 +69,8 @@ public enum IamRole
    * &#64;internal
    * channel-conversations DD-010. Grantable only on agent_channel — the
    * second kind-scoped role after organization's admin/member; the
-   * grantable_roles subsetting is the mechanism, not a new one. Team
-   * usersets ([team#member]) are the named widening the day a team FGA
-   * type lands.
+   * grantable_roles subsetting is the mechanism, not a new one. A team may
+   * hold it too (agent_channel's team_grantable_roles).
    * </pre>
    *
    * <code>participant = 5;</code>
@@ -134,9 +133,8 @@ public enum IamRole
    * &#64;internal
    * channel-conversations DD-010. Grantable only on agent_channel — the
    * second kind-scoped role after organization's admin/member; the
-   * grantable_roles subsetting is the mechanism, not a new one. Team
-   * usersets ([team#member]) are the named widening the day a team FGA
-   * type lands.
+   * grantable_roles subsetting is the mechanism, not a new one. A team may
+   * hold it too (agent_channel's team_grantable_roles).
    * </pre>
    *
    * <code>participant = 5;</code>

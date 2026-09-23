@@ -353,6 +353,19 @@ public enum IamPermission
    * <code>can_create_agent_instance = 44;</code>
    */
   can_create_agent_instance(44),
+  /**
+   * <pre>
+   * Organization-level permission to create a team in the organization.
+   *
+   * &#64;internal
+   * Admin-level: a team is a group access is shared with, and who may define
+   * one is the organization's administrators' decision, like who may grant
+   * access. The Team kind is served by the Enterprise and Cloud editions.
+   * </pre>
+   *
+   * <code>can_create_team = 45;</code>
+   */
+  can_create_team(45),
   UNRECOGNIZED(-1),
   ;
 
@@ -693,6 +706,19 @@ public enum IamPermission
    * <code>can_create_agent_instance = 44;</code>
    */
   public static final int can_create_agent_instance_VALUE = 44;
+  /**
+   * <pre>
+   * Organization-level permission to create a team in the organization.
+   *
+   * &#64;internal
+   * Admin-level: a team is a group access is shared with, and who may define
+   * one is the organization's administrators' decision, like who may grant
+   * access. The Team kind is served by the Enterprise and Cloud editions.
+   * </pre>
+   *
+   * <code>can_create_team = 45;</code>
+   */
+  public static final int can_create_team_VALUE = 45;
 
 
   public final int getNumber() {
@@ -759,6 +785,7 @@ public enum IamPermission
       case 42: return can_issue_license;
       case 43: return can_create_mcp_server;
       case 44: return can_create_agent_instance;
+      case 45: return can_create_team;
       default: return null;
     }
   }

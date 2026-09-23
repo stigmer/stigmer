@@ -3,7 +3,8 @@
  * without `can_create_instance` (a workflow instance is created through
  * the workflow-instance lane, gated by the organization). Kept as its own
  * transcript, not a shared "blueprint" helper, so the file-by-file drift
- * compare sees exactly this file's lines.
+ * compare sees exactly this file's lines. `team#member` on `viewer` is the
+ * Enterprise team grant, which no open-source tuple ever names.
  */
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -42,6 +43,7 @@ export const workflowDeclaration = declareKind({
           objectOf("identity_account"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
+          usersetOf("team", "member"),
         ),
         computed("owner"),
         computed("platform_viewer"),

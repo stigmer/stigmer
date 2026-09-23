@@ -34,6 +34,7 @@ type SessionClient = gen.SessionClient
 // (push routing over the artifact transfer lane, #675) takes the name so
 // client.Skill and the exported type agree.
 type SubscriptionClient = gen.SubscriptionClient
+type TeamClient = gen.TeamClient
 type WorkflowClient = gen.WorkflowClient
 type WorkflowExecutionClient = gen.WorkflowExecutionClient
 type WorkflowInstanceClient = gen.WorkflowInstanceClient
@@ -104,6 +105,7 @@ type AgentInvocationInput = gen.AgentInvocationInput
 type SessionInput = gen.SessionInput
 type SkillInput = gen.SkillInput
 type SubscriptionInput = gen.SubscriptionInput
+type TeamInput = gen.TeamInput
 type WorkflowInput = gen.WorkflowInput
 type WorkflowDocumentInput = gen.WorkflowDocumentInput
 type WorkflowTaskInput = gen.WorkflowTaskInput

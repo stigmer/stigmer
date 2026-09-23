@@ -30,6 +30,7 @@ from ._schedule import ScheduleClient
 from ._session import SessionClient
 from ._skill import SkillClient
 from ._subscription import SubscriptionClient
+from ._team import TeamClient
 from ._workflow import WorkflowClient
 from ._workflowexecution import WorkflowExecutionClient
 from ._workflowinstance import WorkflowInstanceClient
@@ -65,6 +66,7 @@ class GeneratedClient:
         self.sessions = SessionClient(channel)
         self.skills = SkillClient(channel)
         self.subscriptions = SubscriptionClient(channel)
+        self.teams = TeamClient(channel)
         self.workflows = WorkflowClient(channel)
         self.workflow_executions = WorkflowExecutionClient(channel)
         self.workflow_instances = WorkflowInstanceClient(channel)

@@ -1,0 +1,22 @@
+{
+  "name": "TeamSpec",
+  "kind": "TEAM_SPEC",
+  "description": "TeamSpec is the user-provided configuration of a team.\n\n A team's name and handle live in its metadata (name, slug); the spec\n carries only what describes the team to the people choosing it. Who is in\n the team is not part of the spec: membership is granted and revoked as\n access, one person at a time, so it is visible and audited the way every\n other grant is.",
+  "protoType": "ai.stigmer.iam.team.v1.TeamSpec",
+  "protoFile": "apis/ai/stigmer/iam/team/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "What the team is for, shown where people pick a team to share with.",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      }
+    }
+  ]
+}
