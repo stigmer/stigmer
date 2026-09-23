@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Activity } from "lucide-react";
 import {
+  Button,
   WorkflowExecutionPhaseBadge,
   useActiveOrgSlug,
   useWorkflowExecutionList,
@@ -10,7 +11,15 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 export default function WorkflowExecutionListPage() {
   const navigate = useNavigate();
   const org = useActiveOrgSlug();
-  const { executions, isLoading, error } = useWorkflowExecutionList({
+  const {
+    executions,
+    isLoading,
+    error,
+    hasMore,
+    loadMore,
+    isLoadingMore,
+    loadMoreError,
+  } = useWorkflowExecutionList({
     pageSize: 50,
     org,
   });
@@ -114,6 +123,25 @@ export default function WorkflowExecutionListPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!isLoading && !error && hasMore && (
+        <div className="mt-3 flex flex-col items-center gap-1">
+          {loadMoreError && (
+            <p className="text-xs text-destructive">
+              Failed to load more executions ({loadMoreError.message}). Select
+              Show more to try again.
+            </p>
+          )}
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore ? "Loading…" : "Show more"}
+          </Button>
         </div>
       )}
     </>

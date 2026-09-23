@@ -619,14 +619,14 @@ const { fileChanges, hasFileChanges } = useSessionFileChanges(allExecutions);
 
 ### useSessionList
 
-Data hook that fetches a paginated list of `Session` entries.
+Data hook that lists `Session` entries newest first, one page at a
+time.
 
-Org scoping is handled at the transport level (auth context),
-consistent with other data hooks. Call `refetch()` to re-query
-after creating a session or navigating between views.
-
-Returns up to `pageSize` sessions (default 50). Full cursor-based
-pagination can be added later without breaking the return type.
+The first `pageSize` sessions (default 50) load on mount; `loadMore()`
+appends the next page while `hasMore` is true. Pass `org` to list one
+organization's sessions; without it the list spans every organization
+the caller can view. Call `refetch()` to re-query after creating a
+session or navigating between views.
 
 **Signature**
 
@@ -645,16 +645,22 @@ function useSessionList(options?: UseSessionListOptions): UseSessionListReturn
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    hasMore: { type: "boolean", description: "`true` while more sessions exist beyond what is loaded." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` page is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the session list from the server." },
-    sessions: { type: "readonly Session[]", description: "The fetched list of Sessions, empty while loading or on error." },
+    loadMore: { type: "() => void", description: "Load the next page of older sessions. No-op while one is loading." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`. Cleared on retry." },
+    refetch: { type: "() => void", description: "Re-fetch the first page (after creating a session, say); loaded older pages stay." },
+    sessions: { type: "readonly Session[]", description: "Sessions newest first: the first page, then every page loaded since. Empty while loading or on error." },
   }}
 />
 
 ```tsx
 function SessionSidebar() {
-  const { sessions, isLoading, refetch } = useSessionList({ pageSize: 25 });
+  const org = useActiveOrgSlug();
+  const { sessions, isLoading, hasMore, loadMore, isLoadingMore } =
+    useSessionList({ org, pageSize: 25 });
 
   if (isLoading) return <Skeleton />;
 
@@ -662,9 +668,12 @@ function SessionSidebar() {
     <ul>
       {sessions.map((s) => (
         <li key={s.metadata?.id}>
-          {s.status?.subject ?? "Untitled"}
+          {s.spec?.subject || "Untitled"}
         </li>
       ))}
+      {hasMore && (
+        <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>
+      )}
     </ul>
   );
 }
@@ -1975,7 +1984,8 @@ Options for [`useSessionList`](#usesessionlist).
 
 <TypeTable
   type={{
-    pageSize: { type: "number", description: "Maximum sessions to return. Defaults to 50." },
+    org: { type: "string | null", description: "Organization slug to list the sessions of. When omitted, the list spans every organization the caller can view. Console pages should pass the active org (`useActiveOrgSlug()`)." },
+    pageSize: { type: "number", description: "Sessions per page, the first and each `loadMore`. Defaults to 50; the server caps it at 100." },
     tags: { type: "string[]", description: "Optional tag filter." },
   }}
 />

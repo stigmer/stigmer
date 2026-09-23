@@ -360,59 +360,82 @@ try {
 
 ## Pagination
 
-List methods accept `pageSize` and `pageToken` parameters and return a
-paginated result with `totalPages` and an `entries` array.
+The lists that grow without bound (sessions, agent executions and workflow
+executions) page by cursor, newest first. Pass `pageSize` (at most 100; zero
+returns the whole list) and read `nextPageToken` from the result. Pass that
+token back as `pageToken` to get the next page. An empty token means you have
+the whole list. A page can hold fewer entries than `pageSize` and still carry a
+token, so keep going until the token is empty. The server does not count pages:
+`totalPages` is 1 on the last page and 0 while a token follows.
+
+Other list methods page by number through `pageInfo`, as their reference pages
+show.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.session.list({
-  pageSize: 25,
-  pageToken: "",
-});
-
-console.log(`Total pages: ${result.totalPages}`);
-for (const session of result.entries) {
-  console.log(session.metadata?.name);
-}
+let pageToken = "";
+do {
+  const page = await stigmer.session.list({ org: "acme", pageSize: 25, pageToken });
+  for (const session of page.entries) {
+    console.log(session.metadata?.name);
+  }
+  pageToken = page.nextPageToken;
+} while (pageToken !== "");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
-    PageSize: 25,
-})
-if err != nil {
-    log.Fatal(err)
-}
-
-fmt.Printf("Total pages: %d\n", result.GetTotalPages())
-for _, s := range result.GetEntries() {
-    fmt.Println(s.GetName())
+pageToken := ""
+for {
+    page, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
+        Org:       "acme",
+        PageSize:  25,
+        PageToken: pageToken,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    for _, s := range page.GetEntries() {
+        fmt.Println(s.GetMetadata().GetName())
+    }
+    pageToken = page.GetNextPageToken()
+    if pageToken == "" {
+        break
+    }
 }
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.sessions.list(ListSessionsRequest(
-    page_size=25,
-))
-
-print(f"Total pages: {result.total_pages}")
-for session in result.entries:
-    print(session.name)
+page_token = ""
+while True:
+    page = client.sessions.list(ListSessionsRequest(
+        org="acme",
+        page_size=25,
+        page_token=page_token,
+    ))
+    for session in page.entries:
+        print(session.metadata.name)
+    page_token = page.next_page_token
+    if not page_token:
+        break
 ```
 </Tab>
 <Tab value="Java">
 ```java
-var result = client.sessions().list(ListSessionsRequest.builder()
-    .pageSize(25)
-    .build());
-
-System.out.println("Total pages: " + result.getTotalPages());
-for (var session : result.getEntries()) {
-    System.out.println(session.getName());
-}
+var pageToken = "";
+do {
+    var page = client.sessions().list(ListSessionsRequest.builder()
+        .org("acme")
+        .pageSize(25)
+        .pageToken(pageToken)
+        .build());
+    for (var session : page.getEntries()) {
+        System.out.println(session.getMetadata().getName());
+    }
+    pageToken = page.getNextPageToken();
+} while (!pageToken.isEmpty());
 ```
 </Tab>
 </SDKTabs>

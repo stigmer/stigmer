@@ -27,6 +27,7 @@ import {
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import type { OutputFormat } from "../output/index.js";
+import { readCursorPages } from "./cursor-pages.js";
 import type { ResourceResult } from "./get-bindings.js";
 import { obj, renderListMessage, str, type TableShape } from "./render.js";
 
@@ -125,29 +126,34 @@ export async function getExecution(client: Stigmer, id: string): Promise<Resourc
 }
 
 /**
- * List agent executions for the current context, paginated by `limit`.
+ * List the newest `limit` agent executions for the current context, reading
+ * as many pages as that takes.
  *
  * `org` scopes results to that organization; empty means permission-bounded
  * (all orgs the caller can view — the OSS single-tenant behavior).
  */
 export async function listAgentExecutions(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
-  const message = await client.agentExecution.list(
-    create(ListAgentExecutionsRequestSchema, { pageSize: limit, org }),
+  const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+    client.agentExecution.list(create(ListAgentExecutionsRequestSchema, { pageSize, pageToken, org })),
   );
-  return { schema: AgentExecutionListSchema, message };
+  return { schema: AgentExecutionListSchema, message: create(AgentExecutionListSchema, { entries, totalPages: 1 }) };
 }
 
 /**
- * List workflow executions for the current context, paginated by `limit`.
+ * List the newest `limit` workflow executions for the current context,
+ * reading as many pages as that takes.
  *
  * `org` scopes results to that organization; empty means permission-bounded
  * (all orgs the caller can view — the OSS single-tenant behavior).
  */
 export async function listWorkflowExecutions(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
-  const message = await client.workflowExecution.list(
-    create(ListWorkflowExecutionsRequestSchema, { pageSize: limit, org }),
+  const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+    client.workflowExecution.list(create(ListWorkflowExecutionsRequestSchema, { pageSize, pageToken, org })),
   );
-  return { schema: WorkflowExecutionListSchema, message };
+  return {
+    schema: WorkflowExecutionListSchema,
+    message: create(WorkflowExecutionListSchema, { entries, totalPages: 1 }),
+  };
 }
 
 const AGENT_EXECUTION_TABLE: TableShape = {
