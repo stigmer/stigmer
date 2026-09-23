@@ -5,7 +5,8 @@
  * task config, through the `reference_kind` field option); each clause on
  * each kind — no org refused, a same-organization target must exist, the
  * floor applies to the kinds the run reads as the person and to no other,
- * a cross-organization target is admitted only at platform visibility with
+ * a relative reference's floor is capped at org and its target must still
+ * exist in the resource's organization, a cross-organization target is admitted only at platform visibility with
  * ONE sentence whether it is missing or merely not shared; the MCP-server
  * copy that predates the rule is byte-identical and its siblings take its
  * shape; the walk reads a reference's kind from its field, not from the
@@ -287,6 +288,39 @@ describe("checkReference", () => {
         ref(K.mcp_server, "acme", "github"),
       ),
     ).toEqual({ kind: "below-floor", targetVisibility: V.visibility_org });
+  });
+
+  it("(ii) a relative reference's floor is capped at org: a platform resource may run with its organization's org-visible target, never a private one, and the target must exist", () => {
+    const relative = (slug: string): SpecReference => ({
+      ...ref(K.mcp_server, "acme", slug),
+      resolvesIn: "running-organization",
+    });
+    const privateTarget: SpecReference = {
+      ...ref(K.skill, "acme", "my-skill"),
+      resolvesIn: "running-organization",
+    };
+    const ACME_PLATFORM: ReferenceParent = {
+      org: "acme",
+      visibility: V.visibility_platform,
+    };
+    expect(checkReference(targets, ACME_PLATFORM, relative("github"))).toEqual({
+      kind: "ok",
+    });
+    expect(checkReference(targets, ACME_PLATFORM, privateTarget)).toEqual({
+      kind: "below-floor",
+      targetVisibility: V.visibility_private,
+    });
+    expect(checkReference(targets, ACME_PLATFORM, relative("ghost"))).toEqual({
+      kind: "missing",
+    });
+    // Below the cap the resource's own level decides, as for any reference.
+    expect(checkReference(targets, ACME_ORG, privateTarget)).toEqual({
+      kind: "below-floor",
+      targetVisibility: V.visibility_private,
+    });
+    expect(checkReference(targets, ACME_PRIVATE, privateTarget)).toEqual({
+      kind: "ok",
+    });
   });
 
   it("(ii) the floor does not apply to what the server resolves on the run's behalf", () => {

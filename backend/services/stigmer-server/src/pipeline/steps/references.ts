@@ -28,7 +28,8 @@
  *        channel apps are resolved by the server on the run's behalf and
  *        never read by the person, so their level is not a leak the floor
  *        closes, and an org-visible instance may hold a private personal
- *        environment as it always has.
+ *        environment as it always has. A RELATIVE reference (below) is
+ *        compared against the resource's level capped at org.
  *   (iii) Another organization: the target must exist AND be
  *        platform-visible, answered with ONE sentence that does not say
  *        which failed. The caller has no standing to learn what another
@@ -48,14 +49,32 @@
  * the rule must agree with the runtime. A reference with an empty slug is
  * unset and skipped (the field-level CEL rules own "required").
  *
+ * A reference is RELATIVE when it names no organization of its own and
+ * the runtime resolves it in the organization the resource RUNS in, not
+ * the one it is stored in. Exactly one exists: a workflow `agent_call`
+ * task's bare slug (domain/workflow/agent-call-references.ts), which the
+ * runner resolves in the execution's organization; any workflow a person
+ * may execute can run from another organization by id. The rule judges
+ * it in the resource's own organization — the one its author can see, so
+ * the target must exist there — and caps its floor at org: only the
+ * running organization's own people ever read a target through it, and
+ * they can read an org-visible one. The cap changes nothing for a
+ * private or org resource and lets a platform-visible workflow call its
+ * organization's org-visible agent. A value fixed only at run (an
+ * `agent_call` agent holding a runtime expression) is not a reference at
+ * all: the collector yields nothing for it, and the run reads the
+ * resolved target as the person the run acts as, as it reads every
+ * id-bound binding.
+ *
  * The floor has a second door. Raising a resource's level through
  * updateVisibility could open the same gap a create cannot, so
  * GuardReferenceFloorOnEscalation runs on the two chains whose rows carry
  * run-read references (agent, workflow) after ValidateVisibilityUpdate:
  * when the requested level is above the stored one, every run-read
- * reference the STORED row carries must be at least the requested level,
- * judged by the same function over the same collectors, else the
- * escalation is refused naming the dependencies. Only the floor is asked at
+ * reference the STORED row carries must be at least the requested level
+ * (a relative one, at least the requested level capped at org), judged by
+ * the same function over the same collectors, else the escalation is
+ * refused naming the dependencies. Only the floor is asked at
  * that door — a dependency that has since left or stopped being shared was
  * judged when the row was written and is the run's to refuse.
  *
@@ -182,6 +201,13 @@ export interface SpecReference {
   readonly kind: ApiResourceKind;
   readonly slug: string;
   readonly org: string;
+  /**
+   * Present only on a RELATIVE reference (the module header): `org` is the
+   * resource's own, filled by the collector, and the runtime resolves the
+   * slug in the organization the resource runs in. The generic walker
+   * never sets it; only the `agent_call` collector does.
+   */
+  readonly resolvesIn?: "running-organization";
 }
 
 /** The resource the references belong to, as the rule needs it. */
@@ -279,11 +305,29 @@ export function checkReference(
   const entry = referenceTargetKind(ref.kind);
   if (
     entry?.readByRun === true &&
-    visibilityRank(target) < visibilityRank(parent.visibility)
+    visibilityRank(target) < visibilityRank(floorOf(parent, ref))
   ) {
     return { kind: "below-floor", targetVisibility: target };
   }
   return { kind: "ok" };
+}
+
+/**
+ * The level a same-organization target must reach: the resource's own,
+ * capped at org for a relative reference (the module header).
+ */
+function floorOf(
+  parent: ReferenceParent,
+  ref: SpecReference,
+): ApiResourceVisibility {
+  if (
+    ref.resolvesIn === "running-organization" &&
+    visibilityRank(parent.visibility) >
+      visibilityRank(ApiResourceVisibility.visibility_org)
+  ) {
+    return ApiResourceVisibility.visibility_org;
+  }
+  return parent.visibility;
 }
 
 /**
