@@ -235,7 +235,12 @@ async function harness(options: {
         gateSteps: new Map(
           options.createGate === undefined
             ? []
-            : [["iam-policy-create:pre-side-effect-gate", [options.createGate]]],
+            : [
+                [
+                  "iam-policy-create:pre-side-effect-gate",
+                  [options.createGate],
+                ],
+              ],
         ),
         edition: options.edition ?? ServerEdition.oss,
         logger: silent,

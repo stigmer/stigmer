@@ -47,7 +47,10 @@ import {
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import type { PrincipalDisplay } from "../../extensions/principal-display.js";
-import { kindByEnumName, kindEnumName } from "../../pipeline/apiresource-meta.js";
+import {
+  kindByEnumName,
+  kindEnumName,
+} from "../../pipeline/apiresource-meta.js";
 import { assignableRelations, roleInfoFromRelation } from "./roles.js";
 import type { IamPolicyStore } from "./store.js";
 

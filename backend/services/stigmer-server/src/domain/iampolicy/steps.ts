@@ -119,7 +119,13 @@ export function newValidateGrantableRoleStep(
       }
       const principal = spec.principal;
       if (principal?.kind === TEAM_KIND_NAME) {
-        requireTeamGrant(spec.relation, principal.relation, kind, kindName, scoped);
+        requireTeamGrant(
+          spec.relation,
+          principal.relation,
+          kind,
+          kindName,
+          scoped,
+        );
         return;
       }
       const grantable = contract.filter((role) => scoped.has(role));
@@ -186,7 +192,10 @@ function requireTeamGrant(
     );
   }
   if (qualifier !== TEAM_MEMBERS_RELATION) {
-    throw new ConnectError(teamQualifierMessage(qualifier), Code.InvalidArgument);
+    throw new ConnectError(
+      teamQualifierMessage(qualifier),
+      Code.InvalidArgument,
+    );
   }
 }
 

@@ -391,9 +391,9 @@ describe("declareKind validates a transcript at load", () => {
         ),
       ),
     ).toThrow("nests and inside or");
-    expect(() => declare(intersection(direct(objectOf("identity_account"))))).toThrow(
-      "fewer than two members",
-    );
+    expect(() =>
+      declare(intersection(direct(objectOf("identity_account")))),
+    ).toThrow("fewer than two members");
     expect(() =>
       declare(
         intersection(
