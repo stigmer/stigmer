@@ -82,11 +82,20 @@ export function TeamMembersPanel({ teamId, orgId, className }: TeamMembersPanelP
 
   return (
     <div className={cn("stg:space-y-3", className)}>
-      <p className="stg:text-xs stg:text-muted-foreground">
-        {isLoading
-          ? "Loading members..."
-          : `${accessList.length} ${accessList.length === 1 ? "member" : "members"}`}
-      </p>
+      <div className="stg:flex stg:items-center stg:gap-2">
+        <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Members</h4>
+        {!isLoading && accessList.length > 0 && (
+          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+            {accessList.length}
+          </span>
+        )}
+      </div>
+
+      {isLoading && <p className="stg:text-xs stg:text-muted-foreground">Loading members...</p>}
+
+      {!isLoading && !fetchError && accessList.length === 0 && (
+        <p className="stg:text-xs stg:text-muted-foreground">No one is in this team yet.</p>
+      )}
 
       {fetchError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
@@ -95,7 +104,9 @@ export function TeamMembersPanel({ teamId, orgId, className }: TeamMembersPanelP
       )}
 
       {!isLoading && accessList.length > 0 && (
-        <ul className={cn(UNSTYLED_LIST, "stg:space-y-1")} aria-label="Members">
+        // The rows inset their hover surface; the list steps out by the same
+        // amount so avatars line up with the heading and the picker.
+        <ul className={cn(UNSTYLED_LIST, "stg:-mx-2 stg:space-y-1")} aria-label="Members">
           {accessList.map((entry) => (
             <AccessRow
               key={accessEntryKey(entry)}
@@ -116,13 +127,14 @@ export function TeamMembersPanel({ teamId, orgId, className }: TeamMembersPanelP
       )}
 
       <PermissionGate resource={grantGate} relation="can_grant_access">
-        <div className="stg:flex stg:items-end stg:gap-2 stg:border-t stg:border-border stg:pt-3">
+        <div className="stg:flex stg:items-end stg:gap-2 stg:border-t stg:border-border stg:pt-4">
           <PrincipalPicker
             orgId={orgId}
             value={adding}
             onChange={setAdding}
             excludeGrantees={members}
             disabled={isGranting}
+            label="Add a person"
             autoFocus={false}
             className="stg:flex-1"
           />

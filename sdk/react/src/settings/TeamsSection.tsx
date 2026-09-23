@@ -84,8 +84,8 @@ export function TeamsSection() {
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Teams group people so agents, workflows and other resources can be
         shared with everyone in the team at once. Adding someone to a team
-        gives them everything shared with it; removing them, or their leaving
-        the organization, takes it away.
+        gives them everything shared with it. Removing them from the team, or
+        their leaving the organization, takes that access away.
       </p>
 
       {!teamsServed ? (

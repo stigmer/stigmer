@@ -111,8 +111,7 @@ export function TeamDetailPanel({
         />
       )}
 
-      <section aria-label="Members" className="stg:space-y-2">
-        <h4 className="stg:text-foreground stg:text-xs stg:font-semibold">Members</h4>
+      <section aria-label="Members">
         <TeamMembersPanel teamId={teamId} orgId={orgId} />
       </section>
 

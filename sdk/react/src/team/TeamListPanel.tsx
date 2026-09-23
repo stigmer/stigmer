@@ -11,7 +11,7 @@
  * count lives where the members do: on the team's own page.
  */
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { UsersRound } from "lucide-react";
+import { ChevronRight, UsersRound } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -99,6 +99,7 @@ export function TeamListPanel({
                   </span>
                 )}
               </span>
+              <ChevronRight className="stg:h-3.5 stg:w-3.5 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />
             </button>
           </li>
         );

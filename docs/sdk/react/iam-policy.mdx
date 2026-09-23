@@ -639,6 +639,7 @@ All visual properties flow through `--stgm-*` design tokens.
     disabled: { type: "boolean", description: "Disable the control." },
     excludeGrantees: { type: "readonly Grantee[]", description: "Grantees shown disabled because they already have access." },
     includeTeams: { type: "boolean", description: "Offer the organization's teams beside its people. Set it where the resource can be shared with a team (`useShareFlow().canShareWithTeams`)." },
+    label: { type: "string", description: "The field's label. Defaults to \"Person\", or \"Person or team\" when teams are offered; a surface whose heading already names the act (a team's \"Members\") says what the field does instead, e.g. \"Add a person\"." },
     onChange: { type: "(grantee: GranteeCandidate | null) => void", description: "Fired when the selection changes.", required: true },
     orgId: { type: "string", description: "Organization whose people (and teams) are selectable.", required: true },
     value: { type: "GranteeCandidate | null", description: "Currently selected grantee, or `null`. Controlled.", required: true },

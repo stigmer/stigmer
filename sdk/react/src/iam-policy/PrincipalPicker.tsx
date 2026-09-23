@@ -9,7 +9,10 @@
  * carried internally and never shown. Because email is not unique across
  * identity sources, a person shows a {@link ProviderBadge} when it
  * disambiguates. With teams offered, results come in two labelled groups,
- * People then Teams, and the arrow keys walk both as one list.
+ * Teams then People, and the arrow keys walk both as one list. Teams lead
+ * because an organization has few of them and many people: listed second,
+ * they would sit below the scroll in any organization of size, and sharing
+ * with a team is the act that scales.
  *
  * Grantees that already have access show disabled, so no one is granted
  * twice. Candidates come from lists the caller can already see
@@ -49,6 +52,12 @@ export interface PrincipalPickerProps {
   /** Disable the control. */
   readonly disabled?: boolean;
   /**
+   * The field's label. Defaults to "Person", or "Person or team" when teams
+   * are offered; a surface whose heading already names the act (a team's
+   * "Members") says what the field does instead, e.g. "Add a person".
+   */
+  readonly label?: string;
+  /**
    * Focus the search input on mount. Right where the picker opens on a
    * deliberate click (the grant form); turn it off where the picker is
    * always on screen, or it takes focus from the rest of the page.
@@ -70,6 +79,7 @@ export function PrincipalPicker({
   includeTeams = false,
   excludeGrantees,
   disabled = false,
+  label,
   autoFocus = true,
   className,
 }: PrincipalPickerProps) {
@@ -116,9 +126,9 @@ export function PrincipalPicker({
     };
   }, [people, teams, query]);
 
-  // One flat order for the keyboard: people, then teams, as rendered.
+  // One flat order for the keyboard: teams, then people, as rendered.
   const options = useMemo<readonly GranteeCandidate[]>(
-    () => [...matchingPeople, ...matchingTeams],
+    () => [...matchingTeams, ...matchingPeople],
     [matchingPeople, matchingTeams],
   );
 
@@ -152,7 +162,7 @@ export function PrincipalPicker({
     [options, activeIndex, commitSelection],
   );
 
-  const fieldLabel = includeTeams ? "Person or team" : "Person";
+  const fieldLabel = label ?? (includeTeams ? "Person or team" : "Person");
 
   if (value) {
     return (
@@ -303,11 +313,11 @@ export function PrincipalPicker({
 
             {!isLoading && !error && !nothingMatches && includeTeams && (
               <>
-                <OptionGroup label="People" count={matchingPeople.length}>
-                  {matchingPeople.map((person, index) => renderOption(person, index))}
-                </OptionGroup>
                 <OptionGroup label="Teams" count={matchingTeams.length}>
-                  {matchingTeams.map((team, index) => renderOption(team, matchingPeople.length + index))}
+                  {matchingTeams.map((team, index) => renderOption(team, index))}
+                </OptionGroup>
+                <OptionGroup label="People" count={matchingPeople.length}>
+                  {matchingPeople.map((person, index) => renderOption(person, matchingTeams.length + index))}
                 </OptionGroup>
               </>
             )}
