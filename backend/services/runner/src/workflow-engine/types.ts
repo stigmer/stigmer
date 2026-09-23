@@ -710,8 +710,10 @@ export type CallAgentFn = (
  * Agent call configuration — mirrors the proto `AgentCallTaskConfig`.
  * Parsed from the YAML `with:` block of a `call: agent` task.
  *
- * The agent may be referenced as "slug" (workflow's org) or "org/slug"
- * (explicit org); there is no separate org field.
+ * The agent may be referenced as "slug" (an agent of the organization the
+ * execution runs in) or "org/slug" (that organization's agent), or by a
+ * value holding a runtime expression that resolves to either when the task
+ * runs; there is no separate org field.
  */
 export interface AgentCallConfig {
   readonly agent: string;

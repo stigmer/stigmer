@@ -70,9 +70,12 @@ export async function callAgentAction(
     );
   }
 
-  // The execution is always created in the workflow's org — the workflow
-  // owner pays for the run. A cross-org agent reference ("org/slug") only
-  // changes where the agent blueprint is looked up, never the billing org.
+  // The child is always created in the organization the workflow
+  // execution runs in, which pays for the run; that is the workflow's own
+  // unless a person ran it from another organization by id. A bare slug
+  // names an agent of that same organization. An "org/slug" reference
+  // only changes where the agent blueprint is looked up, never the
+  // billing organization.
   const orgId = (runtimeEnv["__stigmer_org_id"] as string | undefined) ?? "";
 
   if (!orgId) {

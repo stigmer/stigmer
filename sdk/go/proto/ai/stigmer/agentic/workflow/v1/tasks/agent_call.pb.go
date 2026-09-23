@@ -29,10 +29,16 @@ const (
 // AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
 type AgentCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent reference in "org/slug" or "slug" format.
-	// - "slug" only: uses the workflow's organization
-	// - "org/slug": explicit organization reference
-	// Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
+	// Agent to invoke, as "slug", "org/slug", or a value holding a runtime expression.
+	//   - "slug": an agent of the organization the workflow runs in; checked when the
+	//     workflow is saved, against the workflow's own organization
+	//   - "org/slug": that organization's agent; checked when the workflow is saved,
+	//     and another organization's agent must be shared at platform visibility
+	//   - a value holding "${ ... }", "${.env_vars.KEY}" or "${.secrets.KEY}": resolved
+	//     to "slug" or "org/slug" when the task runs, and read as the person who ran
+	//     the workflow
+	//
+	// Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
 	// Required field.
 	Agent string `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
 	// Instructions/prompt to send to the agent.

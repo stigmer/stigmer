@@ -32,10 +32,15 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@
  */
 export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig"> & {
   /**
-   * Agent reference in "org/slug" or "slug" format.
-   * - "slug" only: uses the workflow's organization
-   * - "org/slug": explicit organization reference
-   * Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
+   * Agent to invoke, as "slug", "org/slug", or a value holding a runtime expression.
+   * - "slug": an agent of the organization the workflow runs in; checked when the
+   *   workflow is saved, against the workflow's own organization
+   * - "org/slug": that organization's agent; checked when the workflow is saved,
+   *   and another organization's agent must be shared at platform visibility
+   * - a value holding "${ ... }", "${.env_vars.KEY}" or "${.secrets.KEY}": resolved
+   *   to "slug" or "org/slug" when the task runs, and read as the person who ran
+   *   the workflow
+   * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
    * Required field.
    *
    * @generated from field: string agent = 1;
