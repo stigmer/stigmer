@@ -7,6 +7,7 @@ import {
   Brain,
   Building2,
   CreditCard,
+  FileBadge,
   KeyRound,
   Link,
   MessageSquare,
@@ -149,6 +150,12 @@ export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
       label: "Provider Standing",
       icon: Activity,
       requiredPermission: "can_view_provider_standing",
+    },
+    {
+      href: "/settings/licenses",
+      label: "Licenses",
+      icon: FileBadge,
+      requiredPermission: "can_issue_license",
     },
   ],
 };

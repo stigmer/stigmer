@@ -57,16 +57,23 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
     "can_view_provider_standing",
     { fail: "closed" },
   );
+  const licenses = useCheckPermission(
+    PLATFORM_RESOURCE,
+    "can_issue_license",
+    { fail: "closed" },
+  );
 
   const pricingAllowed = pricing.allowed;
   const cursorAccountsAllowed = cursorAccounts.allowed;
   const providerStandingAllowed = providerStanding.allowed;
+  const licensesAllowed = licenses.allowed;
 
   return useMemo(() => {
     const verdicts: Record<string, boolean> = {
       can_manage_model_pricing: pricingAllowed,
       can_manage_cursor_accounts: cursorAccountsAllowed,
       can_view_provider_standing: providerStandingAllowed,
+      can_issue_license: licensesAllowed,
     };
 
     const visibleItems = PLATFORM_SETTINGS_NAV_GROUP.items.filter(
@@ -84,5 +91,5 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
       ...SETTINGS_NAV_GROUPS,
       { ...PLATFORM_SETTINGS_NAV_GROUP, items: visibleItems },
     ];
-  }, [pricingAllowed, cursorAccountsAllowed, providerStandingAllowed]);
+  }, [pricingAllowed, cursorAccountsAllowed, providerStandingAllowed, licensesAllowed]);
 }

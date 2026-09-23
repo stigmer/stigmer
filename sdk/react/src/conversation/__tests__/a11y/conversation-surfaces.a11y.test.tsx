@@ -33,8 +33,8 @@ import {
   COLOR_MODES,
   auditA11y,
   renderAudited,
-  resetConversationAudit,
-} from "./harness.js";
+  resetAudit,
+} from "../../../__tests__/helpers/a11y-audit.js";
 
 const NOW = new Date("2026-08-07T12:00:00Z");
 const noop = () => {};
@@ -194,7 +194,7 @@ const timelineBaseProps = {
 };
 
 afterEach(() => {
-  resetConversationAudit();
+  resetAudit();
   vi.restoreAllMocks();
 });
 

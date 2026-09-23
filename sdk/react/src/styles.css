@@ -279,6 +279,20 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Native controls, their popups and scrollbars are drawn by the browser
+     from `color-scheme`, not from our tokens: without it every checkbox,
+     radio, date picker and select popup renders light inside a dark scope
+     (#1223). Both containers carry the resolved mode (the in-tree root and
+     the portal container), so both derive it here. Scoped to `.stgm`,
+     never `:root`: the host page's own scheme is the host's. */
+  .stgm[data-stgm-color-mode="light"] {
+    color-scheme: light;
+  }
+
+  .stgm[data-stgm-color-mode="dark"] {
+    color-scheme: dark;
+  }
+
   /* The provider's in-tree container ([data-stgm-root]) ships with NO
      layout styling — deliberately (#260, DD-019). A default
      `height: 100%` looks benign ("resolves to auto under auto-height
