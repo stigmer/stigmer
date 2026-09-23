@@ -62,7 +62,7 @@ private static final long serialVersionUID = 0L;
   private int totalPages_ = 0;
   /**
    * <pre>
-   * Total number of pages available for this query.
+   * Always 1: an execution's artifacts are returned whole.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -78,7 +78,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.artifact.v1.Artifact> entries_;
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -89,7 +89,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -101,7 +101,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -112,7 +112,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -123,7 +123,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Artifacts in the current page, sorted by created_at descending.
+   * The execution's artifacts, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -516,7 +516,7 @@ private static final long serialVersionUID = 0L;
     private int totalPages_ ;
     /**
      * <pre>
-     * Total number of pages available for this query.
+     * Always 1: an execution's artifacts are returned whole.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -528,7 +528,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of pages available for this query.
+     * Always 1: an execution's artifacts are returned whole.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -544,7 +544,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of pages available for this query.
+     * Always 1: an execution's artifacts are returned whole.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -571,7 +571,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -585,7 +585,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -599,7 +599,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -613,7 +613,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -634,7 +634,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -652,7 +652,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -672,7 +672,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -693,7 +693,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -711,7 +711,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -729,7 +729,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -748,7 +748,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -765,7 +765,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -782,7 +782,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -793,7 +793,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -807,7 +807,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -822,7 +822,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -833,7 +833,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>
@@ -845,7 +845,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Artifacts in the current page, sorted by created_at descending.
+     * The execution's artifacts, newest first.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.artifact.v1.Artifact entries = 2 [json_name = "entries"];</code>

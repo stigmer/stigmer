@@ -112,13 +112,18 @@ func (x *AgentId) GetValue() string {
 	return ""
 }
 
-// SessionList contains a paginated list of sessions.
+// SessionList contains one page of sessions, newest first.
 type SessionList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages available.
+	// Not computed for this list: 1 when the response holds every session,
+	// 0 when next_page_token is set. Follow next_page_token instead.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// Sessions in the current page.
-	Entries       []*Session `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Sessions in this page, newest first.
+	Entries []*Session `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more sessions may follow: pass it as page_token to continue.
+	// A page may hold fewer sessions than page_size, even none, and still
+	// carry a token. Empty when the list is complete.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -167,15 +172,30 @@ func (x *SessionList) GetEntries() []*Session {
 	return nil
 }
 
+func (x *SessionList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 // ListSessionsRequest specifies parameters for listing sessions.
 type ListSessionsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Maximum number of sessions to return per page.
+	// The most sessions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Token for pagination, obtained from previous response.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Filter by tags (optional).
-	Tags          []string `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty"`
+	Tags []string `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty"`
+	// Organization slug to scope the results to.
+	//
+	// When set, only sessions of that organization are returned — the
+	// org-context view a console needs. When empty, results are bounded only
+	// by the caller's view permissions, which for a member of several
+	// organizations spans all of them.
+	Org           string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -231,14 +251,22 @@ func (x *ListSessionsRequest) GetTags() []string {
 	return nil
 }
 
+func (x *ListSessionsRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
 // ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
 type ListSessionsByAgentInstanceRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent instance ID to filter by.
 	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
-	// Maximum number of sessions to return per page.
+	// The most sessions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Token for pagination, obtained from previous response.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -300,9 +328,10 @@ type ListSessionsByChannelRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent channel ID to filter by.
 	ChannelId string `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
-	// Maximum number of sessions to return per page.
+	// The most sessions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Token for pagination, obtained from previous response.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -422,25 +451,27 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\tSessionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"'\n" +
 	"\aAgentId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"p\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x98\x01\n" +
 	"\vSessionList\x12\x1f\n" +
 	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
 	"totalPages\x12@\n" +
-	"\aentries\x18\x02 \x03(\v2&.ai.stigmer.agentic.session.v1.SessionR\aentries\"e\n" +
-	"\x13ListSessionsRequest\x12\x1b\n" +
-	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\aentries\x18\x02 \x03(\v2&.ai.stigmer.agentic.session.v1.SessionR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x80\x01\n" +
+	"\x13ListSessionsRequest\x12$\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n" +
-	"\x04tags\x18\x03 \x03(\tR\x04tags\"\x94\x01\n" +
+	"\x04tags\x18\x03 \x03(\tR\x04tags\x12\x10\n" +
+	"\x03org\x18\x04 \x01(\tR\x03org\"\x9d\x01\n" +
 	"\"ListSessionsByAgentInstanceRequest\x122\n" +
-	"\x11agent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0fagentInstanceId\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\x11agent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0fagentInstanceId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"\x81\x01\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x8a\x01\n" +
 	"\x1cListSessionsByChannelRequest\x12%\n" +
 	"\n" +
-	"channel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"channel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\"O\n" +
 	"\x1bUpdateSessionSubjectRequest\x12\x16\n" +

@@ -87,10 +87,7 @@ export function useSessionExecutions(
       ? () =>
           stigmer.agentExecution
             .listBySession(
-              create(ListAgentExecutionsBySessionRequestSchema, {
-                sessionId,
-                pageSize: 100,
-              }),
+              create(ListAgentExecutionsBySessionRequestSchema, { sessionId }),
             )
             .then((result) => sortChronologically(result.entries))
       : null,

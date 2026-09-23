@@ -29,6 +29,7 @@ import {
   Harness,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionListSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { SessionList } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -42,26 +43,27 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
+import {
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
+import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
+import { agentExecutionListIndex } from "../agentexecution/list-index.js";
+import { sessionListIndex } from "./list-index.js";
 
 type SessionDesc = typeof SessionSchema;
 
 /** Context key for the list result (Go listResultKey). */
 export const LIST_RESULT_KEY = "listResult";
-
-/**
- * The session label the channel runtime stamps at create time to record
- * which agent channel originated the conversation. Mirrors
- * ChannelRuntimeConstants.CHANNEL_ID_METADATA_KEY in Stigmer Cloud.
- */
-const CHANNEL_ID_LABEL_KEY = "stigmer.ai/channel-id";
 
 // ---------------------------------------------------------------------------
 // ValidateHarnessImmutability — validate_harness_immutability.go: rejects
@@ -273,35 +275,33 @@ function isActiveExecutionPhase(phase: ExecutionPhase): boolean {
 }
 
 /**
- * Loads every agent execution whose spec.session_id matches the given
- * session; malformed rows warn and are skipped. Shared by the guard and
- * cascade steps (Go listExecutionsBySession).
+ * Every agent execution of the given session, through the list index's
+ * session key (exact whoever wrote the rows, store/interface.ts); malformed
+ * rows warn and are skipped. Shared by the guard and cascade steps (Go
+ * listExecutionsBySession).
  */
 async function listExecutionsBySession(
   store: Store,
   logger: Logger,
   sessionId: string,
 ): Promise<AgentExecution[]> {
-  let rows: Uint8Array[];
+  let rows: ListIndexRow[];
   try {
-    rows = await store.listResources(ApiResourceKind.agent_execution);
+    rows = await store.queryResources(agentExecutionListIndex, {
+      anyKey: [{ name: "session", value: sessionId }],
+    });
   } catch (error) {
     throw internalError(error, "failed to list agent executions");
   }
 
   const executions: AgentExecution[] = [];
-  for (const data of rows) {
-    let execution: AgentExecution;
+  for (const row of rows) {
     try {
-      execution = fromBinary(AgentExecutionSchema, data);
+      executions.push(fromBinary(AgentExecutionSchema, row.data));
     } catch (error) {
       logger.warn("Failed to unmarshal execution, skipping", {
         error: error instanceof Error ? error.message : String(error),
       });
-      continue;
-    }
-    if ((execution.spec?.sessionId ?? "") === sessionId) {
-      executions.push(execution);
     }
   }
   return executions;
@@ -427,19 +427,19 @@ function requireSessionId<Desc extends DescMessage>(
 }
 
 // ---------------------------------------------------------------------------
-// List steps — list.go and the steps/ package. Full scans with client-side
-// filtering, exactly Go (no pagination; no scope composed = no authorization
-// filtering, the OSS single-user posture). With a composed ListReadScope
-// (20260830.01) each lane narrows to the caller's authorized sessions —
+// List steps — list.go and the steps/ package. Each lane reads its page
+// through the list index (pipeline/steps/list-page.ts): the store narrows
+// by the request's organization or parent key and orders newest first
+// (spec-audit created_at, unstamped last, ties by id); the read scope, when
+// composed, narrows each batch to the caller's authorized sessions last —
 // the Java list handlers' FGA-ids pattern, guest cookie rule included
-// driver-side; the request org is deliberately NOT intersected (the Java
-// session lanes never consult it — census lanes 1–3).
+// driver-side. No scope composed = the OSS single-user posture, every
+// matching session.
 // ---------------------------------------------------------------------------
 
 /**
- * ListAllSessions — all sessions, newest first by spec-audit created_at
- * (seconds then nanos; timestamped entries before untimestamped ones).
- * Malformed rows warn and are skipped.
+ * ListAllSessions — one page of sessions, the request's organization when
+ * it names one, newest first. Malformed rows warn and are skipped.
  */
 export function newListAllSessionsStep(
   store: Store,
@@ -451,34 +451,30 @@ export function newListAllSessionsStep(
     async execute(
       ctx: RequestContext<typeof SessionQueryController.method.list.input>,
     ): Promise<void> {
-      const sessions = await restrictListByReadScope(
+      const input = ctx.input;
+      const page = await readSessionPage(
+        store,
+        logger,
         listReadScope,
         ctx.callerIdentity,
-        ApiResourceKind.session,
-        await loadAllSessions(store, logger, ctx.apiResourceKind),
-        "",
+        ctx.input,
+        {
+          query: { org: input.org },
+          fingerprint: {
+            lane: "session.list",
+            org: input.org,
+            tags: input.tags,
+          },
+        },
       );
-
-      sessions.sort((a, b) =>
-        compareCreatedAtDesc(
-          a.status?.audit?.specAudit?.createdAt,
-          b.status?.audit?.specAudit?.createdAt,
-        ),
-      );
-
-      logger.info("Loaded sessions from database", { count: sessions.length });
-
-      ctx.set(
-        LIST_RESULT_KEY,
-        create(SessionListSchema, { entries: sessions }),
-      );
+      ctx.set(LIST_RESULT_KEY, page);
     },
   };
 }
 
 /**
- * FilterByAgentInstance — steps/filter_by_agent_instance.go: sessions
- * whose spec.agent_instance_id matches. No sorting (Go doesn't sort here).
+ * FilterByAgentInstance — steps/filter_by_agent_instance.go: one page of
+ * the sessions whose spec.agent_instance_id matches, newest first.
  */
 export function newFilterByAgentInstanceStep(
   store: Store,
@@ -499,34 +495,22 @@ export function newFilterByAgentInstanceStep(
         throw invalidArgumentError("agent_instance_id is required");
       }
 
-      // The instance's sessions first, the scope last (census lane 2): a
-      // composed driver is asked about one instance's rows, not the kind.
-      const sessions = await loadAllSessions(
+      // The instance's sessions through its key, the scope last (census
+      // lane 2): a composed driver is asked about one instance's rows.
+      const page = await readSessionPage(
         store,
         logger,
-        ctx.apiResourceKind,
-      );
-      const filtered = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
-        ApiResourceKind.session,
-        sessions.filter(
-          (session) =>
-            (session.spec?.agentInstanceId ?? "") === agentInstanceId,
-        ),
-        "",
+        ctx.input,
+        {
+          query: {
+            anyKey: [{ name: "agent_instance", value: agentInstanceId }],
+          },
+          fingerprint: { lane: "session.listByAgentInstance", agentInstanceId },
+        },
       );
-
-      logger.info("Filtered sessions by agent instance", {
-        agentInstanceId,
-        totalSessions: sessions.length,
-        filteredSessions: filtered.length,
-      });
-
-      ctx.set(
-        LIST_RESULT_KEY,
-        create(SessionListSchema, { entries: filtered }),
-      );
+      ctx.set(LIST_RESULT_KEY, page);
     },
   };
 }
@@ -563,9 +547,9 @@ export function newAuthorizeChannelAccessStep(
 }
 
 /**
- * FilterByChannel — steps/filter_by_channel.go: sessions whose
- * metadata.labels carry the channel's stigmer.ai/channel-id stamp. No
- * sorting. Channel sessions are created by the cloud channel runtime
+ * FilterByChannel — steps/filter_by_channel.go: one page of the sessions
+ * whose metadata.labels carry the channel's stigmer.ai/channel-id stamp,
+ * newest first. Channel sessions are created by the cloud channel runtime
  * (Slack/WhatsApp inbound turns), which stamps the label at create time;
  * the OSS runtime has no channel broker, so this filter typically matches
  * nothing — the RPC exists for contract parity with Stigmer Cloud (which
@@ -589,63 +573,64 @@ export function newFilterByChannelStep(
         throw invalidArgumentError("channel_id is required");
       }
 
-      // The channel's sessions first, the scope last (census lane 3).
-      const sessions = await loadAllSessions(
+      // The channel's sessions through its key, the scope last (census lane 3).
+      const page = await readSessionPage(
         store,
         logger,
-        ctx.apiResourceKind,
-      );
-      const filtered = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
-        ApiResourceKind.session,
-        sessions.filter(
-          (session) =>
-            (session.metadata?.labels ?? {})[CHANNEL_ID_LABEL_KEY] ===
-            channelId,
-        ),
-        "",
+        ctx.input,
+        {
+          query: { anyKey: [{ name: "channel", value: channelId }] },
+          fingerprint: { lane: "session.listByChannel", channelId },
+        },
       );
-
-      logger.info("Filtered sessions by channel", {
-        channelId,
-        totalSessions: sessions.length,
-        filteredSessions: filtered.length,
-      });
-
-      ctx.set(
-        LIST_RESULT_KEY,
-        create(SessionListSchema, { entries: filtered }),
-      );
+      ctx.set(LIST_RESULT_KEY, page);
     },
   };
 }
 
-/** Full-scan session load shared by the list steps; malformed rows warn + skip. */
-async function loadAllSessions(
+/** The three session lanes' shared read: one page, the scope last, as a SessionList. */
+async function readSessionPage(
   store: Store,
   logger: Logger,
-  kind: ApiResourceKind,
-): Promise<Session[]> {
-  let rows: Uint8Array[];
-  try {
-    rows = await store.listResources(kind);
-  } catch (error) {
-    throw internalError(error, "failed to list sessions");
-  }
-
-  const sessions: Session[] = [];
-  for (const data of rows) {
-    let session: Session;
-    try {
-      session = fromBinary(SessionSchema, data);
-    } catch (error) {
-      logger.warn("Failed to unmarshal session, skipping", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      continue;
-    }
-    sessions.push(session);
-  }
-  return sessions;
+  listReadScope: ListReadScope | undefined,
+  caller: CallerIdentity,
+  request: ListPageRequest,
+  lane: {
+    readonly query: ListIndexQuery<"agent_instance" | "channel">;
+    readonly fingerprint: Readonly<Record<string, unknown>>;
+  },
+): Promise<SessionList> {
+  const page = await readListPage({
+    store,
+    declaration: sessionListIndex,
+    query: lane.query,
+    request,
+    fingerprint: listPageFingerprint(lane.fingerprint),
+    decode: (data) => {
+      try {
+        return fromBinary(SessionSchema, data);
+      } catch (error) {
+        logger.warn("Failed to unmarshal session, skipping", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return undefined;
+      }
+    },
+    scope: (sessions) =>
+      restrictListByReadScope(
+        listReadScope,
+        caller,
+        ApiResourceKind.session,
+        sessions,
+        "",
+      ),
+    failure: "failed to list sessions",
+  });
+  return create(SessionListSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+    totalPages: page.nextPageToken === "" ? 1 : 0,
+  });
 }

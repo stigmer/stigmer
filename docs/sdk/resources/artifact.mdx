@@ -393,8 +393,8 @@ ListArtifactsByExecutionRequest lists artifacts produced by a specific execution
   type={{
     workflowExecutionId: { type: "string", description: "WorkflowExecution ID to list artifacts for." },
     agentExecutionId: { type: "string", description: "AgentExecution ID to list artifacts for." },
-    pageSize: { type: "number", description: "Maximum number of artifacts to return per page." },
-    pageToken: { type: "string", description: "Opaque pagination token from a previous response." },
+    pageSize: { type: "number", description: "Not read: an execution's artifacts are returned whole." },
+    pageToken: { type: "string", description: "Not read: an execution's artifacts are returned whole." },
   }}
 />
 
@@ -404,8 +404,8 @@ ArtifactList contains a paginated list of artifacts.
 
 <TypeTable
   type={{
-    totalPages: { type: "number", description: "Total number of pages available for this query." },
-    entries: { type: "ArtifactInput[]", description: "Artifacts in the current page, sorted by created_at descending.", typeDescriptionLink: "#artifactinput" },
+    totalPages: { type: "number", description: "Always 1: an execution's artifacts are returned whole." },
+    entries: { type: "ArtifactInput[]", description: "The execution's artifacts, newest first.", typeDescriptionLink: "#artifactinput" },
   }}
 />
 

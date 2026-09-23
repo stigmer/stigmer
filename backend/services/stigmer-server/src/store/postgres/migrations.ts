@@ -1,7 +1,7 @@
 /**
  * Versioned schema migrations for the Postgres driver — an INDEPENDENT
  * chain starting at its own v1 (DD-010 §3). It deliberately does NOT
- * mirror sqlite's v1–v7: that chain's value is Go-DDL fidelity for adopted
+ * mirror sqlite's chain: that chain's value is Go-DDL fidelity for adopted
  * laptop databases, a concern Postgres cannot have (no Postgres database
  * predates this driver). Same runner discipline as sqlite/migrations.ts —
  * deliberate, versioned, each step in its own transaction, `schema_version`
@@ -50,9 +50,11 @@ export const SCHEMA_VERSION_3 = 3;
 export const SCHEMA_VERSION_4 = 4;
 /** v5: every row holding the retired public visibility level moved to org. */
 export const SCHEMA_VERSION_5 = 5;
+/** v6: the list index's columns, key table and indexes (DDL only). */
+export const SCHEMA_VERSION_6 = 6;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_5;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_6;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -63,11 +65,16 @@ export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_5;
 export const MIGRATION_LOCK_KEY = 0x5354474d5231n;
 
 /**
- * Applies all pending migrations in order, serialized across instances by
- * the advisory lock. Runs on a dedicated client (locks are session-scoped;
- * a pool query could release on a different session).
+ * Applies every pending migration up to `targetVersion` in order — all of
+ * them unless a test builds the database a given step starts from —
+ * serialized across instances by the advisory lock. Runs on a dedicated
+ * client (locks are session-scoped; a pool query could release on a
+ * different session).
  */
-export async function runMigrations(client: PoolClient): Promise<void> {
+export async function runMigrations(
+  client: PoolClient,
+  targetVersion: number = CURRENT_SCHEMA_VERSION,
+): Promise<void> {
   await client.query("SELECT pg_advisory_lock($1)", [MIGRATION_LOCK_KEY]);
   try {
     await client.query(`
@@ -87,10 +94,11 @@ export async function runMigrations(client: PoolClient): Promise<void> {
       [SCHEMA_VERSION_3, migrateToV3],
       [SCHEMA_VERSION_4, migrateToV4],
       [SCHEMA_VERSION_5, migrateToV5],
+      [SCHEMA_VERSION_6, migrateToV6],
     ];
 
     for (const [version, migrate] of chain) {
-      if (currentVersion < version) {
+      if (currentVersion < version && version <= targetVersion) {
         await applyInTransaction(client, version, migrate);
       }
     }
@@ -361,4 +369,58 @@ async function migrateToV5(client: PoolClient): Promise<void> {
       }
     }
   }
+}
+
+/**
+ * v6: the list index (../list-index.ts) — schema only. Every existing row
+ * arrives with its stamp NULL, which makes it unproven, so the store's
+ * reconciliation at open derives its facts with the code that runs and
+ * reads stay exact until it has; a migration that decoded rows here would
+ * freeze today's declarations into the chain (the v5 step freezes its
+ * kind table for the same reason, public-visibility-retired.ts).
+ *
+ * - `list_org` and `list_created_at` are the order's inputs, byte-collated
+ *   (`COLLATE "C"`) so the database sorts them the way list-index.ts
+ *   compares them when it merges unproven rows in; `id` is compared under
+ *   the same collation in the index expressions and the queries.
+ * - `list_index_revision` is the declaration revision the facts were
+ *   derived under; `list_indexed_at` is the `updated_at` they were derived
+ *   from. A writer that does not know these columns leaves them behind as
+ *   it bumps `updated_at`, which is exactly what marks its row unproven.
+ * - `resource_list_keys` holds one row per (resource, key) with the
+ *   creation instant copied in, so a parent's rows are one range of one
+ *   index. It carries no foreign key: every indexed read joins
+ *   `resources`, so a key row whose resource is gone matches nothing.
+ * - The partial index holds only unproven rows (none in steady state), so
+ *   finding them is never a scan of the kind.
+ */
+async function migrateToV6(client: PoolClient): Promise<void> {
+  await client.query(`
+    ALTER TABLE resources
+      ADD COLUMN list_org TEXT COLLATE "C",
+      ADD COLUMN list_created_at TEXT COLLATE "C",
+      ADD COLUMN list_index_revision INTEGER,
+      ADD COLUMN list_indexed_at timestamptz;
+
+    CREATE INDEX idx_resources_list_org
+      ON resources (kind, list_org, list_created_at, (id COLLATE "C"));
+    CREATE INDEX idx_resources_list_created
+      ON resources (kind, list_created_at, (id COLLATE "C"));
+    CREATE INDEX idx_resources_list_revision
+      ON resources (kind, list_index_revision);
+    CREATE INDEX idx_resources_list_unproven
+      ON resources (kind, id) WHERE list_indexed_at IS DISTINCT FROM updated_at;
+
+    CREATE TABLE resource_list_keys (
+      kind TEXT NOT NULL,
+      id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      created_at TEXT COLLATE "C" NOT NULL,
+      PRIMARY KEY (kind, id, key)
+    );
+
+    CREATE INDEX idx_resource_list_keys_lookup
+      ON resource_list_keys (kind, key, value, created_at, (id COLLATE "C"));
+  `);
 }

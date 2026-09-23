@@ -12,7 +12,8 @@ public interface AgentExecutionListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of pages available.
+   * Not computed for this list: 1 when the response holds every execution,
+   * 0 when next_page_token is set. Follow next_page_token instead.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -22,7 +23,7 @@ public interface AgentExecutionListOrBuilder extends
 
   /**
    * <pre>
-   * Agent executions in the current page.
+   * Agent executions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentExecution entries = 2 [json_name = "entries"];</code>
@@ -31,7 +32,7 @@ public interface AgentExecutionListOrBuilder extends
       getEntriesList();
   /**
    * <pre>
-   * Agent executions in the current page.
+   * Agent executions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentExecution entries = 2 [json_name = "entries"];</code>
@@ -39,7 +40,7 @@ public interface AgentExecutionListOrBuilder extends
   ai.stigmer.agentic.agentexecution.v1.AgentExecution getEntries(int index);
   /**
    * <pre>
-   * Agent executions in the current page.
+   * Agent executions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentExecution entries = 2 [json_name = "entries"];</code>
@@ -47,7 +48,7 @@ public interface AgentExecutionListOrBuilder extends
   int getEntriesCount();
   /**
    * <pre>
-   * Agent executions in the current page.
+   * Agent executions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentExecution entries = 2 [json_name = "entries"];</code>
@@ -56,11 +57,37 @@ public interface AgentExecutionListOrBuilder extends
       getEntriesOrBuilderList();
   /**
    * <pre>
-   * Agent executions in the current page.
+   * Agent executions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentExecution entries = 2 [json_name = "entries"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.AgentExecutionOrBuilder getEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Set when more executions may follow: pass it as page_token to
+   * continue. A page may hold fewer executions than page_size, even none,
+   * and still carry a token. Empty when the list is complete, and always
+   * empty from listBySession, which returns a session's executions whole.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  java.lang.String getNextPageToken();
+  /**
+   * <pre>
+   * Set when more executions may follow: pass it as page_token to
+   * continue. A page may hold fewer executions than page_size, even none,
+   * and still carry a token. Empty when the list is complete, and always
+   * empty from listBySession, which returns a session's executions whole.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

@@ -1,8 +1,12 @@
 /**
  * ListPendingApprovals — ports list_pending_approvals.go (T14 dashboard):
- * scans IN_PROGRESS executions for tasks in WORKFLOW_TASK_WAITING_APPROVAL
- * and projects them into PendingApproval entries. total_count is the
- * pre-truncation total; only the entries list is trimmed to the page.
+ * reads the org's IN_PROGRESS executions for tasks in
+ * WORKFLOW_TASK_WAITING_APPROVAL and projects them into PendingApproval
+ * entries, newest execution first. total_count is the whole set's; the
+ * entries are one page (default 20, at most 100), continued by a token
+ * whose position is an execution's list-index cursor plus the approval's
+ * place among its waiting tasks — stable while approvals land and resolve
+ * between pages, where an offset would skip or repeat them.
  */
 import { create } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
@@ -29,14 +33,25 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
+import { invalidArgumentError } from "../../pipeline/errors.js";
+import {
+  decodeListPageToken,
+  encodeListPageToken,
+  listPageFingerprint,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageTokenCursor } from "../../pipeline/steps/list-page.js";
 import type { Store } from "../../store/interface.js";
+import {
+  compareListIndexOrder,
+  listIndexInstant,
+} from "../../store/list-index.js";
 
 import {
   DEFAULT_PENDING_APPROVALS_PAGE_SIZE,
   MAX_PENDING_APPROVALS_PAGE_SIZE,
 } from "./constants.js";
 import { parseRfc3339Ms } from "./execution-filter.js";
-import { loadAllWorkflowExecutions } from "./queries.js";
+import { loadWorkflowExecutions } from "./queries.js";
 
 export interface PendingApprovalsDeps {
   readonly store: Store;
@@ -50,44 +65,68 @@ export async function listPendingApprovals(
   req: ListPendingApprovalsRequest,
   identity: CallerIdentity,
 ): Promise<PendingApprovalsList> {
-  // Census lane 8 (20260830.01): the scope narrows the EXECUTIONS — before
-  // the approvals projection and its pagination, the Java
-  // WorkflowExecutionListPendingApprovalsHandler order — and the request
-  // org narrows when non-blank (blank = permission-bounded across orgs).
-  // It runs over the executions that CAN carry a pending approval (in
-  // progress, a task waiting) rather than the org's whole history: the
-  // predicate is per-row, so the scope is last (stigmer-cloud 20260913.04
-  // T02) and a composed driver is asked about a handful of rows.
+  // Census lane 8: the org's executions that CAN carry a
+  // pending approval (in progress, a task waiting) through the list index,
+  // then the scope — the last per-row predicate, so a composed driver is
+  // asked about a handful of rows — before the approvals projection and
+  // its pagination, the Java WorkflowExecutionListPendingApprovalsHandler
+  // order.
+  if (req.pageSize < 0) {
+    throw invalidArgumentError("page_size must not be negative");
+  }
+  const fingerprint = listPageFingerprint({
+    lane: "workflowExecution.listPendingApprovals",
+    org: req.org,
+  });
+  const after =
+    req.pageToken === ""
+      ? undefined
+      : decodeListPageToken(req.pageToken, fingerprint);
+
   const executions = await restrictListByReadScope(
     deps.listReadScope,
     identity,
     ApiResourceKind.workflow_execution,
     (
-      await loadAllWorkflowExecutions(
+      await loadWorkflowExecutions(
         deps.store,
         deps.logger,
+        { org: req.org },
         "failed to list workflow executions for pending approvals",
       )
     ).filter(mayHavePendingApproval),
-    req.org,
+    "",
   );
 
   let pageSize = req.pageSize;
-  if (pageSize <= 0) {
+  if (pageSize === 0) {
     pageSize = DEFAULT_PENDING_APPROVALS_PAGE_SIZE;
   }
   if (pageSize > MAX_PENDING_APPROVALS_PAGE_SIZE) {
     pageSize = MAX_PENDING_APPROVALS_PAGE_SIZE;
   }
 
-  let approvals: PendingApproval[] = [];
+  // Newest execution first (the index's order), an execution's waiting
+  // tasks in their order; each approval's position is its execution's
+  // cursor and its place among that execution's waiting tasks.
+  const approvals: Array<{
+    readonly approval: PendingApproval;
+    readonly at: ListPageTokenCursor & { readonly position: number };
+  }> = [];
   for (const execution of executions) {
+    const cursor = {
+      createdAt: listIndexInstant(
+        execution.status?.audit?.specAudit?.createdAt,
+      ),
+      id: execution.metadata?.id ?? "",
+    };
+    let position = 0;
     for (const task of execution.status?.tasks ?? []) {
       if (task.status !== WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL) {
         continue;
       }
-      approvals.push(
-        create(PendingApprovalSchema, {
+      approvals.push({
+        approval: create(PendingApprovalSchema, {
           executionId: execution.metadata?.id ?? "",
           workflowName: execution.metadata?.name ?? "",
           // task_name, not task_id: the composite task_id ("gate:2")
@@ -98,19 +137,37 @@ export async function listPendingApprovals(
           requestedAt: parseTimestampString(task.startedAt),
           uiHint: task.uiHint,
         }),
-      );
+        at: { cursor, position },
+      });
+      position += 1;
     }
   }
 
-  const totalCount = approvals.length;
-  if (approvals.length > pageSize) {
-    approvals = approvals.slice(0, pageSize);
-  }
+  const start =
+    after === undefined
+      ? 0
+      : approvals.findIndex((a) => comesAfter(a.at, after));
+  const remaining = start < 0 ? [] : approvals.slice(start);
+  const page = remaining.slice(0, pageSize);
+  const last = page[page.length - 1];
 
   return create(PendingApprovalsListSchema, {
-    entries: approvals,
-    totalCount,
+    entries: page.map((a) => a.approval),
+    totalCount: approvals.length,
+    nextPageToken:
+      remaining.length > pageSize && last !== undefined
+        ? encodeListPageToken(last.at.cursor, fingerprint, last.at.position)
+        : "",
   });
+}
+
+/** Whether an approval comes strictly after a token's position. */
+function comesAfter(
+  at: ListPageTokenCursor & { readonly position: number },
+  after: ListPageTokenCursor,
+): boolean {
+  const order = compareListIndexOrder(at.cursor, after.cursor);
+  return order > 0 || (order === 0 && at.position > (after.position ?? -1));
 }
 
 /** Go parseTimestampString: RFC3339 or nothing (nil on parse failure). */

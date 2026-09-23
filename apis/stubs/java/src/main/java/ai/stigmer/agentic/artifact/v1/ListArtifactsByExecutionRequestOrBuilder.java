@@ -56,32 +56,37 @@ public interface ListArtifactsByExecutionRequestOrBuilder extends
 
   /**
    * <pre>
-   * Maximum number of artifacts to return per page.
-   * Default: 50. Maximum: 100.
+   * Not read: an execution's artifacts are returned whole.
    * </pre>
    *
-   * <code>int32 page_size = 3 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_size is deprecated.
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=86
    * @return The pageSize.
    */
-  int getPageSize();
+  @java.lang.Deprecated int getPageSize();
 
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * Not read: an execution's artifacts are returned whole.
    * </pre>
    *
-   * <code>string page_token = 4 [json_name = "pageToken"];</code>
+   * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
    * @return The pageToken.
    */
-  java.lang.String getPageToken();
+  @java.lang.Deprecated java.lang.String getPageToken();
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * Not read: an execution's artifacts are returned whole.
    * </pre>
    *
-   * <code>string page_token = 4 [json_name = "pageToken"];</code>
+   * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
    * @return The bytes for pageToken.
    */
-  com.google.protobuf.ByteString
+  @java.lang.Deprecated com.google.protobuf.ByteString
       getPageTokenBytes();
 }

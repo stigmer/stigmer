@@ -169,13 +169,19 @@ func (x *SessionId) GetValue() string {
 	return ""
 }
 
-// AgentExecutionList contains a paginated list of agent executions.
+// AgentExecutionList contains one page of agent executions, newest first.
 type AgentExecutionList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages available.
+	// Not computed for this list: 1 when the response holds every execution,
+	// 0 when next_page_token is set. Follow next_page_token instead.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// Agent executions in the current page.
-	Entries       []*AgentExecution `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Agent executions in this page, newest first.
+	Entries []*AgentExecution `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more executions may follow: pass it as page_token to
+	// continue. A page may hold fewer executions than page_size, even none,
+	// and still carry a token. Empty when the list is complete, and always
+	// empty from listBySession, which returns a session's executions whole.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -224,12 +230,20 @@ func (x *AgentExecutionList) GetEntries() []*AgentExecution {
 	return nil
 }
 
+func (x *AgentExecutionList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 // ListAgentExecutionsRequest specifies parameters for listing executions.
 type ListAgentExecutionsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Maximum number of executions to return per page.
+	// The most executions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Token for pagination, obtained from previous response.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Filter by execution phase (optional).
 	Phase ExecutionPhase `protobuf:"varint,3,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ExecutionPhase" json:"phase,omitempty"`
@@ -312,13 +326,20 @@ func (x *ListAgentExecutionsRequest) GetOrg() string {
 }
 
 // ListAgentExecutionsBySessionRequest lists all executions in a session.
+//
+// A session's executions are returned whole, newest first: a conversation
+// is read as one, and every consumer of this list needs all of it.
 type ListAgentExecutionsBySessionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session ID to filter by.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Maximum number of executions to return per page.
+	// Not read: a session's executions are returned whole.
+	//
+	// Deprecated: Marked as deprecated in ai/stigmer/agentic/agentexecution/v1/io.proto.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Token for pagination, obtained from previous response.
+	// Not read: a session's executions are returned whole.
+	//
+	// Deprecated: Marked as deprecated in ai/stigmer/agentic/agentexecution/v1/io.proto.
 	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -361,6 +382,7 @@ func (x *ListAgentExecutionsBySessionRequest) GetSessionId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in ai/stigmer/agentic/agentexecution/v1/io.proto.
 func (x *ListAgentExecutionsBySessionRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
@@ -368,6 +390,7 @@ func (x *ListAgentExecutionsBySessionRequest) GetPageSize() int32 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in ai/stigmer/agentic/agentexecution/v1/io.proto.
 func (x *ListAgentExecutionsBySessionRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
@@ -3295,24 +3318,25 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x10AgentExecutionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n" +
 	"\tSessionId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x85\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xad\x01\n" +
 	"\x12AgentExecutionList\x12\x1f\n" +
 	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
 	"totalPages\x12N\n" +
-	"\aentries\x18\x02 \x03(\v24.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\aentries\"\xca\x01\n" +
-	"\x1aListAgentExecutionsRequest\x12\x1b\n" +
-	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\aentries\x18\x02 \x03(\v24.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xd3\x01\n" +
+	"\x1aListAgentExecutionsRequest\x12$\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12J\n" +
 	"\x05phase\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n" +
 	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x10\n" +
-	"\x03org\x18\x05 \x01(\tR\x03org\"\x88\x01\n" +
+	"\x03org\x18\x05 \x01(\tR\x03org\"\x90\x01\n" +
 	"#ListAgentExecutionsBySessionRequest\x12%\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1f\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\x02\x18\x01R\bpageSize\x12!\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"\xa9\x01\n" +
+	"page_token\x18\x03 \x01(\tB\x02\x18\x01R\tpageToken\"\xa9\x01\n" +
 	"\x1fAgentExecutionUpdateStatusInput\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12Z\n" +
 	"\x06status\x18\x02 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\x91\x01\n" +

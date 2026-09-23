@@ -37,14 +37,15 @@ public interface ListPendingApprovalsRequestOrBuilder extends
    * Default: 20. Maximum: 100.
    * </pre>
    *
-   * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   int getPageSize();
 
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -53,7 +54,8 @@ public interface ListPendingApprovalsRequestOrBuilder extends
   java.lang.String getPageToken();
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>

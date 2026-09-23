@@ -15,8 +15,13 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import pg from "pg";
 
+import type { Store } from "../../interface.js";
+import { apiResourceKindName } from "../../proto-fields.js";
 import type { StoreContractFixture } from "../../__tests__/store-contract.js";
-import { describeStoreContract } from "../../__tests__/store-contract.js";
+import {
+  CONTRACT_STORE_OPTIONS,
+  describeStoreContract,
+} from "../../__tests__/store-contract.js";
 import { PostgresStore } from "../store.js";
 import {
   createTestDatabase,
@@ -26,6 +31,7 @@ import {
 
 const ALL_TABLES = [
   "resources",
+  "resource_list_keys",
   "resource_audit",
   "search_index",
   "bootstrap_state",
@@ -64,7 +70,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       await hooks.query(
         `TRUNCATE ${ALL_TABLES.join(", ")} RESTART IDENTITY CASCADE`,
       );
-      const store = await PostgresStore.open(db.databaseUrl);
+      const store = await PostgresStore.open(
+        db.databaseUrl,
+        undefined,
+        CONTRACT_STORE_OPTIONS,
+      );
+      const others: Store[] = [];
       return {
         store,
         async forceDedupeExpiry(id, expiresAtIso) {
@@ -79,7 +90,43 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           return Number((result.rows[0] as { count: string }).count);
         },
-        cleanup: () => store.close(),
+        async writeAsOlderBinary(kind, id, data) {
+          // The statement this driver ran before the list index existed.
+          await hooks.query(
+            `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())
+             ON CONFLICT (kind, id) DO UPDATE SET data = excluded.data, updated_at = now()`,
+            [apiResourceKindName(kind), id, Buffer.from(data)],
+          );
+        },
+        async countUnproven(kind, revision) {
+          const revisionArm =
+            revision === undefined
+              ? ""
+              : ` OR list_index_revision IS NULL OR list_index_revision <> $2`;
+          const result = await hooks.query(
+            `SELECT COUNT(*) AS count FROM resources
+             WHERE kind = $1 AND (list_indexed_at IS DISTINCT FROM updated_at${revisionArm})`,
+            revision === undefined
+              ? [apiResourceKindName(kind)]
+              : [apiResourceKindName(kind), revision],
+          );
+          return Number((result.rows[0] as { count: string }).count);
+        },
+        async openAnother(options) {
+          const other = await PostgresStore.open(
+            db.databaseUrl,
+            undefined,
+            options,
+          );
+          others.push(other);
+          return other;
+        },
+        async cleanup() {
+          for (const other of others) {
+            await other.close();
+          }
+          await store.close();
+        },
       };
     });
 

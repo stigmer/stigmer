@@ -35,6 +35,7 @@ private static final long serialVersionUID = 0L;
     pageToken_ = "";
     tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    org_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -59,10 +60,10 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * Maximum number of sessions to return per page.
+   * The most sessions to return, at most 100; zero returns them all.
    * </pre>
    *
-   * <code>int32 page_size = 1 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   @java.lang.Override
@@ -75,7 +76,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -96,7 +98,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -170,6 +173,63 @@ private static final long serialVersionUID = 0L;
     return tags_.getByteString(index);
   }
 
+  public static final int ORG_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object org_ = "";
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only sessions of that organization are returned — the
+   * org-context view a console needs. When empty, results are bounded only
+   * by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   * </pre>
+   *
+   * <code>string org = 4 [json_name = "org"];</code>
+   * @return The org.
+   */
+  @java.lang.Override
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      org_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only sessions of that organization are returned — the
+   * org-context view a console needs. When empty, results are bounded only
+   * by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   * </pre>
+   *
+   * <code>string org = 4 [json_name = "org"];</code>
+   * @return The bytes for org.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOrgBytes() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      org_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -192,6 +252,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < tags_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, tags_.getRaw(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, org_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -217,6 +280,9 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getTagsList().size();
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, org_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -238,6 +304,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getPageToken())) return false;
     if (!getTagsList()
         .equals(other.getTagsList())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -257,6 +325,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + TAGS_FIELD_NUMBER;
       hash = (53 * hash) + getTagsList().hashCode();
     }
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -396,6 +466,7 @@ private static final long serialVersionUID = 0L;
       pageToken_ = "";
       tags_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      org_ = "";
       return this;
     }
 
@@ -439,6 +510,9 @@ private static final long serialVersionUID = 0L;
         tags_.makeImmutable();
         result.tags_ = tags_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.org_ = org_;
+      }
     }
 
     @java.lang.Override
@@ -469,6 +543,11 @@ private static final long serialVersionUID = 0L;
           ensureTagsIsMutable();
           tags_.addAll(other.tags_);
         }
+        onChanged();
+      }
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -512,6 +591,11 @@ private static final long serialVersionUID = 0L;
               tags_.add(input.readStringRequireUtf8());
               break;
             } // case 26
+            case 34: {
+              org_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -532,10 +616,10 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * Maximum number of sessions to return per page.
+     * The most sessions to return, at most 100; zero returns them all.
      * </pre>
      *
-     * <code>int32 page_size = 1 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return The pageSize.
      */
     @java.lang.Override
@@ -544,10 +628,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum number of sessions to return per page.
+     * The most sessions to return, at most 100; zero returns them all.
      * </pre>
      *
-     * <code>int32 page_size = 1 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @param value The pageSize to set.
      * @return This builder for chaining.
      */
@@ -560,10 +644,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum number of sessions to return per page.
+     * The most sessions to return, at most 100; zero returns them all.
      * </pre>
      *
-     * <code>int32 page_size = 1 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearPageSize() {
@@ -576,7 +660,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -596,7 +681,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -617,7 +703,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -634,7 +721,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -648,7 +736,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 2 [json_name = "pageToken"];</code>
@@ -808,6 +897,123 @@ private static final long serialVersionUID = 0L;
       ensureTagsIsMutable();
       tags_.add(value);
       bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object org_ = "";
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only sessions of that organization are returned — the
+     * org-context view a console needs. When empty, results are bounded only
+     * by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     * </pre>
+     *
+     * <code>string org = 4 [json_name = "org"];</code>
+     * @return The org.
+     */
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        org_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only sessions of that organization are returned — the
+     * org-context view a console needs. When empty, results are bounded only
+     * by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     * </pre>
+     *
+     * <code>string org = 4 [json_name = "org"];</code>
+     * @return The bytes for org.
+     */
+    public com.google.protobuf.ByteString
+        getOrgBytes() {
+      java.lang.Object ref = org_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        org_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only sessions of that organization are returned — the
+     * org-context view a console needs. When empty, results are bounded only
+     * by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     * </pre>
+     *
+     * <code>string org = 4 [json_name = "org"];</code>
+     * @param value The org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrg(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      org_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only sessions of that organization are returned — the
+     * org-context view a console needs. When empty, results are bounded only
+     * by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     * </pre>
+     *
+     * <code>string org = 4 [json_name = "org"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only sessions of that organization are returned — the
+     * org-context view a console needs. When empty, results are bounded only
+     * by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     * </pre>
+     *
+     * <code>string org = 4 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      org_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

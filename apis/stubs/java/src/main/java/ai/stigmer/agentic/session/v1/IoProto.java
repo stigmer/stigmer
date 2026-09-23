@@ -75,26 +75,28 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "mer/agentic/session/v1/api.proto\032\033buf/va" +
       "lidate/validate.proto\")\n\tSessionId\022\034\n\005va" +
       "lue\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\'\n\007AgentId\022\034\n\005v" +
-      "alue\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"p\n\013SessionList" +
-      "\022\037\n\013total_pages\030\001 \001(\005R\ntotalPages\022@\n\007ent" +
-      "ries\030\002 \003(\0132&.ai.stigmer.agentic.session." +
-      "v1.SessionR\007entries\"e\n\023ListSessionsReque" +
-      "st\022\033\n\tpage_size\030\001 \001(\005R\010pageSize\022\035\n\npage_" +
-      "token\030\002 \001(\tR\tpageToken\022\022\n\004tags\030\003 \003(\tR\004ta" +
-      "gs\"\224\001\n\"ListSessionsByAgentInstanceReques" +
-      "t\0222\n\021agent_instance_id\030\001 \001(\tB\006\272H\003\310\001\001R\017ag" +
-      "entInstanceId\022\033\n\tpage_size\030\002 \001(\005R\010pageSi" +
-      "ze\022\035\n\npage_token\030\003 \001(\tR\tpageToken\"\201\001\n\034Li" +
-      "stSessionsByChannelRequest\022%\n\nchannel_id" +
-      "\030\001 \001(\tB\006\272H\003\310\001\001R\tchannelId\022\033\n\tpage_size\030\002" +
-      " \001(\005R\010pageSize\022\035\n\npage_token\030\003 \001(\tR\tpage" +
-      "Token\"O\n\033UpdateSessionSubjectRequest\022\026\n\002" +
-      "id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\030\n\007subject\030\002 \001(\tR\007s" +
-      "ubjectB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer" +
-      ".Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agentic" +
-      "\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Session" +
-      "\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::" +
-      "Session::V1b\006proto3"
+      "alue\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\230\001\n\013SessionLis" +
+      "t\022\037\n\013total_pages\030\001 \001(\005R\ntotalPages\022@\n\007en" +
+      "tries\030\002 \003(\0132&.ai.stigmer.agentic.session" +
+      ".v1.SessionR\007entries\022&\n\017next_page_token\030" +
+      "\003 \001(\tR\rnextPageToken\"\200\001\n\023ListSessionsReq" +
+      "uest\022$\n\tpage_size\030\001 \001(\005B\007\272H\004\032\002(\000R\010pageSi" +
+      "ze\022\035\n\npage_token\030\002 \001(\tR\tpageToken\022\022\n\004tag" +
+      "s\030\003 \003(\tR\004tags\022\020\n\003org\030\004 \001(\tR\003org\"\235\001\n\"List" +
+      "SessionsByAgentInstanceRequest\0222\n\021agent_" +
+      "instance_id\030\001 \001(\tB\006\272H\003\310\001\001R\017agentInstance" +
+      "Id\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize" +
+      "\022\035\n\npage_token\030\003 \001(\tR\tpageToken\"\212\001\n\034List" +
+      "SessionsByChannelRequest\022%\n\nchannel_id\030\001" +
+      " \001(\tB\006\272H\003\310\001\001R\tchannelId\022$\n\tpage_size\030\002 \001" +
+      "(\005B\007\272H\004\032\002(\000R\010pageSize\022\035\n\npage_token\030\003 \001(" +
+      "\tR\tpageToken\"O\n\033UpdateSessionSubjectRequ" +
+      "est\022\026\n\002id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\030\n\007subject\030\002" +
+      " \001(\tR\007subjectB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai." +
+      "Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\" +
+      "Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\" +
+      "Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::Ag" +
+      "entic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -119,13 +121,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionList_descriptor,
-        new java.lang.String[] { "TotalPages", "Entries", });
+        new java.lang.String[] { "TotalPages", "Entries", "NextPageToken", });
     internal_static_ai_stigmer_agentic_session_v1_ListSessionsRequest_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_session_v1_ListSessionsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_ListSessionsRequest_descriptor,
-        new java.lang.String[] { "PageSize", "PageToken", "Tags", });
+        new java.lang.String[] { "PageSize", "PageToken", "Tags", "Org", });
     internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_fieldAccessorTable = new

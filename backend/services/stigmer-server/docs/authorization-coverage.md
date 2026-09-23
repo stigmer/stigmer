@@ -135,7 +135,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | SessionCommandController.updateSubject | config: can_edit on session (field id), error_msg yes | direct: field-level read-modify-write (ports Go update_subject.go); authorizeDirect AFTER the load — the Java load-before-authorize order (#224) |
 | SessionCommandController.delete | config: can_delete on session (field value), error_msg yes | chain-with-Authorize |
 | SessionQueryController.get | config: can_view on session (field value), error_msg yes | chain-with-Authorize |
-| SessionQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the guest cookie rule is driver-internal) |
+| SessionQueryController.list | is_skip_authorization | chain-with-Authorize (the request org through the list index, paged; driver: ListReadScope — a composed scope narrows each batch to the caller's authorized rows; the guest cookie rule is driver-internal) |
 | SessionQueryController.listByAgentInstance | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | SessionQueryController.listByChannel | is_skip_authorization | chain-with-Authorize (guard: AuthorizeChannelAccess — can_view on the agent_channel before any session work, the Java two-stage shape; driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
@@ -253,8 +253,8 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | AgentExecutionCommandController.uploadAttachment | is_skip_authorization | direct (by design: a blob-store write whose returned storage_key is the capability token for the later create, which is where the execution is authorized) |
 | AgentExecutionCommandController.delete | config: can_edit on agent_execution (field value), error_msg yes | chain-with-Authorize |
 | AgentExecutionQueryController.get | config: can_view on agent_execution (field value), error_msg yes | chain-with-Authorize |
-| AgentExecutionQueryController.list | is_skip_authorization | direct (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the request org when non-blank; the guest cookie rule is driver-internal) |
-| AgentExecutionQueryController.listBySession | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the guest cookie rule is driver-internal) |
+| AgentExecutionQueryController.list | is_skip_authorization | chain-with-Authorize (the request org through the list index, paged, phase filter per batch; driver: ListReadScope — a composed scope narrows each batch to the caller's authorized rows; the guest cookie rule is driver-internal) |
+| AgentExecutionQueryController.listBySession | is_skip_authorization | chain-with-Authorize (the session's executions through the list index's session key, whole; driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the guest cookie rule is driver-internal) |
 | AgentExecutionQueryController.subscribe | config: can_view on agent_execution (field value), error_msg yes | direct: stream subscribe over broker (register-before-snapshot; server-stream generator cannot run inside the pipeline executor); authorizeDirect once at subscription start |
 | AgentExecutionQueryController.getArtifactDownloadUrl | config: can_view on agent_execution (field execution_id), error_msg yes | direct: authorizeDirect, then key-prefix / attachment-membership ownership check, then time-limited URL mint |
 | AgentExecutionQueryController.getArtifactContent | config: can_view on agent_execution (field execution_id), error_msg yes | direct: authorizeDirect, then key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
@@ -262,7 +262,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | AgentExecutionQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts) |
 | AgentExecutionQueryController.getAgentUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
 | AgentExecutionQueryController.getOrgUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
-| AgentExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard, a direct handler in Go as well (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the requested org — C2 Stage 4's ExecutionReadScope, absorbed by 20260830.01) |
+| AgentExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: the requested org's executions within the window, read through the list index, aggregated for the dashboard (driver: ListReadScope's restrict verb — a composed scope keeps the caller's authorized rows; none kept = the default instance) |
 
 ## 17. Workflow (`src/domain/workflow/controller.ts`)
 
@@ -312,13 +312,13 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | WorkflowExecutionCommandController.pause | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
 | WorkflowExecutionCommandController.resume | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
 | WorkflowExecutionQueryController.get | config: can_view on workflow_execution (field value), error_msg yes | chain-with-Authorize |
-| WorkflowExecutionQueryController.list | is_skip_authorization | direct: full-scan store read, malformed rows skipped (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the request org when non-blank) |
-| WorkflowExecutionQueryController.listByWorkflow | is_skip_authorization | direct: full-scan store read filtered by workflow (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| WorkflowExecutionQueryController.list | is_skip_authorization | direct: the request org through the list index, paged in the default order, malformed rows skipped (driver: ListReadScope — a composed scope narrows each batch to the caller's authorized rows) |
+| WorkflowExecutionQueryController.listByWorkflow | is_skip_authorization | direct: the workflow or instance key through the list index, paged in the default order (driver: ListReadScope — a composed scope narrows each batch to the caller's authorized rows) |
 | WorkflowExecutionQueryController.subscribe | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: stream subscribe over broker; authorizeDirect once at subscription start |
 | WorkflowExecutionQueryController.getEventLog | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: authorizeDirect, then cursor-paginated read over the event side table (no existence check by contract) |
 | WorkflowExecutionQueryController.subscribeEvents | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: authorizeDirect at subscription start, then event-log replay + poll stream (existence-checked NotFound before streaming) |
-| WorkflowExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the requested org, empty set = the default instance — C2 Stage 4's ExecutionReadScope, absorbed by 20260830.01) |
-| WorkflowExecutionQueryController.listPendingApprovals | is_skip_authorization | direct: scan of IN_PROGRESS executions for waiting-approval tasks (driver: ListReadScope — a composed scope narrows to the caller's authorized rows ∩ the request org, applied before the approvals projection) |
+| WorkflowExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: the requested org's executions within the window, read through the list index, aggregated for the dashboard (driver: ListReadScope's restrict verb — a composed scope keeps the caller's authorized rows; none kept = the default instance) |
+| WorkflowExecutionQueryController.listPendingApprovals | is_skip_authorization | direct: the request org's IN_PROGRESS executions with waiting-approval tasks, through the list index, paged by approval (driver: ListReadScope — a composed scope narrows those executions to the caller's authorized rows) |
 
 ## 20. McpServer (`src/domain/mcpserver/controller.ts` + connect.ts, start-connect.ts, initiate-oauth-connect.ts, complete-oauth-connect.ts, disconnect-oauth.ts, get-oauth-grant-status.ts)
 
@@ -390,7 +390,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| ActivityQueryController.listRecentActivity | is_skip_authorization | direct: CQRS recents read over listResources, the request's org merely narrowing (driver: ListReadScope — a composed scope narrows to the caller's authorized rows, both kinds narrowed to the caller's authorized ids) |
+| ActivityQueryController.listRecentActivity | is_skip_authorization | direct: CQRS recents read of the request org's sessions and workflow executions through the list index (driver: ListReadScope's restrict verb — a composed scope keeps the caller's authorized rows of each kind) |
 
 ## 25. GitHub (`src/domain/github/controller.ts`)
 

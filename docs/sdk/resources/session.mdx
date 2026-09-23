@@ -118,6 +118,7 @@ const result = await stigmer.session.list({
   pageSize: 0,
   pageToken: "...",
   tags: [],
+  org: "...",
 });
 ```
 </Tab>
@@ -127,6 +128,7 @@ result, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
   PageSize:  0,
   PageToken: "...",
   Tags:      []string{},
+  Org:       "...",
 })
 ```
 </Tab>
@@ -136,6 +138,7 @@ result = client.sessions.list(ListSessionsRequest(
     page_size=0,
     page_token="...",
     tags=[],
+    org="...",
 ))
 ```
 </Tab>
@@ -145,6 +148,7 @@ SessionList result = client.sessions().list(ListSessionsRequest.builder()
     .pageSize(0)
     .pageToken("...")
     .tags(List.of())
+    .org("...")
     .build());
 ```
 </Tab>
@@ -745,20 +749,22 @@ ListSessionsRequest specifies parameters for listing sessions.
 
 <TypeTable
   type={{
-    pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
-    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+    pageSize: { type: "number", description: "The most sessions to return, at most 100; zero returns them all." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     tags: { type: "string[]", description: "Filter by tags (optional)." },
+    org: { type: "string", description: "Organization slug to scope the results to." },
   }}
 />
 
 ### SessionList
 
-SessionList contains a paginated list of sessions.
+SessionList contains one page of sessions, newest first.
 
 <TypeTable
   type={{
-    totalPages: { type: "number", description: "Total number of pages available." },
-    entries: { type: "SessionInput[]", description: "Sessions in the current page.", typeDescriptionLink: "#sessioninput" },
+    totalPages: { type: "number", description: "Not computed for this list: 1 when the response holds every session, 0 when next_page_token is set." },
+    entries: { type: "SessionInput[]", description: "Sessions in this page, newest first.", typeDescriptionLink: "#sessioninput" },
+    nextPageToken: { type: "string", description: "Set when more sessions may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -769,8 +775,8 @@ ListSessionsByAgentInstanceRequest lists all sessions for a specific agent insta
 <TypeTable
   type={{
     agentInstanceId: { type: "string", description: "Agent instance ID to filter by.", required: true },
-    pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
-    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+    pageSize: { type: "number", description: "The most sessions to return, at most 100; zero returns them all." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -781,8 +787,8 @@ ListSessionsByChannelRequest lists the conversations an agent channel created.
 <TypeTable
   type={{
     channelId: { type: "string", description: "Agent channel ID to filter by.", required: true },
-    pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
-    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+    pageSize: { type: "number", description: "The most sessions to return, at most 100; zero returns them all." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 

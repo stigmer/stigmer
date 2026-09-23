@@ -12,11 +12,8 @@ public interface WorkflowExecutionListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of pages available for this query.
-   *
-   * &#64;internal
-   * Calculated as: ceil(total_matching_executions / page_size).
-   * May change between requests if results are created or deleted.
+   * Not computed for this list: 1 when the response holds every execution,
+   * 0 when next_page_token is set. Follow next_page_token instead.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -26,7 +23,8 @@ public interface WorkflowExecutionListOrBuilder extends
 
   /**
    * <pre>
-   * Workflow executions in the current page, sorted by created_at descending.
+   * Workflow executions in this page, newest created first unless another
+   * sort field was requested.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -35,7 +33,8 @@ public interface WorkflowExecutionListOrBuilder extends
       getEntriesList();
   /**
    * <pre>
-   * Workflow executions in the current page, sorted by created_at descending.
+   * Workflow executions in this page, newest created first unless another
+   * sort field was requested.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -43,7 +42,8 @@ public interface WorkflowExecutionListOrBuilder extends
   ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution getEntries(int index);
   /**
    * <pre>
-   * Workflow executions in the current page, sorted by created_at descending.
+   * Workflow executions in this page, newest created first unless another
+   * sort field was requested.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -51,7 +51,8 @@ public interface WorkflowExecutionListOrBuilder extends
   int getEntriesCount();
   /**
    * <pre>
-   * Workflow executions in the current page, sorted by created_at descending.
+   * Workflow executions in this page, newest created first unless another
+   * sort field was requested.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -60,11 +61,38 @@ public interface WorkflowExecutionListOrBuilder extends
       getEntriesOrBuilderList();
   /**
    * <pre>
-   * Workflow executions in the current page, sorted by created_at descending.
+   * Workflow executions in this page, newest created first unless another
+   * sort field was requested.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
    */
   ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionOrBuilder getEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Set when more executions may follow: pass it as page_token to
+   * continue. A page may hold fewer executions than page_size, even none,
+   * and still carry a token. Empty when the list is complete, and always
+   * empty under a sort field other than the default.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  java.lang.String getNextPageToken();
+  /**
+   * <pre>
+   * Set when more executions may follow: pass it as page_token to
+   * continue. A page may hold fewer executions than page_size, even none,
+   * and still carry a token. Empty when the list is complete, and always
+   * empty under a sort field other than the default.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

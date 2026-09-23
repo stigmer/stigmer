@@ -32,31 +32,37 @@ public interface ListAgentExecutionsBySessionRequestOrBuilder extends
 
   /**
    * <pre>
-   * Maximum number of executions to return per page.
+   * Not read: a session's executions are returned whole.
    * </pre>
    *
-   * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest.page_size is deprecated.
+   *     See ai/stigmer/agentic/agentexecution/v1/io.proto;l=74
    * @return The pageSize.
    */
-  int getPageSize();
+  @java.lang.Deprecated int getPageSize();
 
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * Not read: a session's executions are returned whole.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest.page_token is deprecated.
+   *     See ai/stigmer/agentic/agentexecution/v1/io.proto;l=77
    * @return The pageToken.
    */
-  java.lang.String getPageToken();
+  @java.lang.Deprecated java.lang.String getPageToken();
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
+   * Not read: a session's executions are returned whole.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest.page_token is deprecated.
+   *     See ai/stigmer/agentic/agentexecution/v1/io.proto;l=77
    * @return The bytes for pageToken.
    */
-  com.google.protobuf.ByteString
+  @java.lang.Deprecated com.google.protobuf.ByteString
       getPageTokenBytes();
 }

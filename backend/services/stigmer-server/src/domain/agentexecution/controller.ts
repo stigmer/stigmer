@@ -128,10 +128,8 @@ import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibil
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
   EXECUTION_LIST_KEY,
-  newApplyPhaseFilterStep,
   newBuildExecutionListResponseStep,
-  newQueryAllExecutionsStep,
-  newRestrictByReadScopeStep,
+  newQueryExecutionPageStep,
   newQueryExecutionsBySessionStep,
   newValidateListBySessionRequestStep,
   newValidateListRequestStep,
@@ -527,9 +525,9 @@ async function get(
 }
 
 /**
- * List — list.go: full scan, optional phase filter, no sorting, no
- * pagination (total_pages placeholder 1); the request org field is a
- * deliberate no-op on this single-tenant edition.
+ * List — list.go: one page of the request's org (or every org), newest
+ * first, the optional phase filter and the read scope per batch
+ * (steps.ts, QueryExecutionPage).
  */
 async function list(
   deps: AgentExecutionControllerDeps,
@@ -553,16 +551,16 @@ async function list(
       ),
     )
     .addStep(newValidateListRequestStep())
-    .addStep(newQueryAllExecutionsStep(deps.store, deps.logger))
-    .addStep(newApplyPhaseFilterStep(deps.logger))
-    .addStep(newRestrictByReadScopeStep(deps.listReadScope))
+    .addStep(
+      newQueryExecutionPageStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .addStep(newBuildExecutionListResponseStep())
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(EXECUTION_LIST_KEY));
 }
 
-/** ListBySession — list_by_session.go: spec.session_id equality filter. */
+/** ListBySession — list_by_session.go: the session's executions, whole, newest first. */
 async function listBySession(
   deps: AgentExecutionControllerDeps,
   req: ListAgentExecutionsBySessionRequest,

@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
    * Default: 20. Maximum: 100.
    * </pre>
    *
-   * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   @java.lang.Override
@@ -126,7 +126,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -147,7 +148,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -616,7 +618,7 @@ private static final long serialVersionUID = 0L;
      * Default: 20. Maximum: 100.
      * </pre>
      *
-     * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return The pageSize.
      */
     @java.lang.Override
@@ -630,7 +632,7 @@ private static final long serialVersionUID = 0L;
      * Default: 20. Maximum: 100.
      * </pre>
      *
-     * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @param value The pageSize to set.
      * @return This builder for chaining.
      */
@@ -648,7 +650,7 @@ private static final long serialVersionUID = 0L;
      * Default: 20. Maximum: 100.
      * </pre>
      *
-     * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearPageSize() {
@@ -661,7 +663,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -681,7 +684,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -702,7 +706,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -719,7 +724,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -733,7 +739,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>

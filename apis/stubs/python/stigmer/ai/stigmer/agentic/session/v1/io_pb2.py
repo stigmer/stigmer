@@ -26,7 +26,7 @@ from ai.stigmer.agentic.session.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/session/v1/io.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"p\n\x0bSessionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12@\n\x07\x65ntries\x18\x02 \x03(\x0b\x32&.ai.stigmer.agentic.session.v1.SessionR\x07\x65ntries\"e\n\x13ListSessionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\"\x94\x01\n\"ListSessionsByAgentInstanceRequest\x12\x32\n\x11\x61gent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0f\x61gentInstanceId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\x81\x01\n\x1cListSessionsByChannelRequest\x12%\n\nchannel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"O\n\x1bUpdateSessionSubjectRequest\x12\x16\n\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subjectB\xc5\x01\n!com.ai.stigmer.agentic.session.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/session/v1/io.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x98\x01\n\x0bSessionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12@\n\x07\x65ntries\x18\x02 \x03(\x0b\x32&.ai.stigmer.agentic.session.v1.SessionR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x80\x01\n\x13ListSessionsRequest\x12$\n\tpage_size\x18\x01 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\x12\x10\n\x03org\x18\x04 \x01(\tR\x03org\"\x9d\x01\n\"ListSessionsByAgentInstanceRequest\x12\x32\n\x11\x61gent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0f\x61gentInstanceId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\x8a\x01\n\x1cListSessionsByChannelRequest\x12%\n\nchannel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"O\n\x1bUpdateSessionSubjectRequest\x12\x16\n\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subjectB\xc5\x01\n!com.ai.stigmer.agentic.session.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,24 +38,30 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SESSIONID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
   _globals['_AGENTID'].fields_by_name['value']._loaded_options = None
   _globals['_AGENTID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_LISTSESSIONSREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTSESSIONSREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST'].fields_by_name['agent_instance_id']._loaded_options = None
   _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST'].fields_by_name['agent_instance_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_LISTSESSIONSBYCHANNELREQUEST'].fields_by_name['channel_id']._loaded_options = None
   _globals['_LISTSESSIONSBYCHANNELREQUEST'].fields_by_name['channel_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_LISTSESSIONSBYCHANNELREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTSESSIONSBYCHANNELREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_UPDATESESSIONSUBJECTREQUEST'].fields_by_name['id']._loaded_options = None
   _globals['_UPDATESESSIONSUBJECTREQUEST'].fields_by_name['id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_SESSIONID']._serialized_start=143
   _globals['_SESSIONID']._serialized_end=184
   _globals['_AGENTID']._serialized_start=186
   _globals['_AGENTID']._serialized_end=225
-  _globals['_SESSIONLIST']._serialized_start=227
-  _globals['_SESSIONLIST']._serialized_end=339
-  _globals['_LISTSESSIONSREQUEST']._serialized_start=341
-  _globals['_LISTSESSIONSREQUEST']._serialized_end=442
-  _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST']._serialized_start=445
-  _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST']._serialized_end=593
-  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_start=596
-  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_end=725
-  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_start=727
-  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_end=806
+  _globals['_SESSIONLIST']._serialized_start=228
+  _globals['_SESSIONLIST']._serialized_end=380
+  _globals['_LISTSESSIONSREQUEST']._serialized_start=383
+  _globals['_LISTSESSIONSREQUEST']._serialized_end=511
+  _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST']._serialized_start=514
+  _globals['_LISTSESSIONSBYAGENTINSTANCEREQUEST']._serialized_end=671
+  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_start=674
+  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_end=812
+  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_start=814
+  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_end=893
 # @@protoc_insertion_point(module_scope)

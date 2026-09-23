@@ -32,7 +32,7 @@ const (
 type ExecutionSortField int32
 
 const (
-	// Default: sort by started_at descending.
+	// Default: newest created first, the one order that pages.
 	ExecutionSortField_EXECUTION_SORT_FIELD_UNSPECIFIED ExecutionSortField = 0
 	// Sort by execution start time.
 	ExecutionSortField_EXECUTION_SORT_FIELD_STARTED_AT ExecutionSortField = 1
@@ -244,10 +244,17 @@ func (x *WorkflowId) GetValue() string {
 // WorkflowExecutionList contains a paginated list of workflow executions.
 type WorkflowExecutionList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages available for this query.
+	// Not computed for this list: 1 when the response holds every execution,
+	// 0 when next_page_token is set. Follow next_page_token instead.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// Workflow executions in the current page, sorted by created_at descending.
-	Entries       []*WorkflowExecution `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Workflow executions in this page, newest created first unless another
+	// sort field was requested.
+	Entries []*WorkflowExecution `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more executions may follow: pass it as page_token to
+	// continue. A page may hold fewer executions than page_size, even none,
+	// and still carry a token. Empty when the list is complete, and always
+	// empty under a sort field other than the default.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -296,12 +303,20 @@ func (x *WorkflowExecutionList) GetEntries() []*WorkflowExecution {
 	return nil
 }
 
+func (x *WorkflowExecutionList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 // ListWorkflowExecutionsRequest specifies parameters for listing workflow executions.
 type ListWorkflowExecutionsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Maximum number of executions to return per page.
+	// The most executions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Opaque pagination token from a previous response.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Filter by execution phase.
 	Phase ExecutionPhase `protobuf:"varint,3,opt,name=phase,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase" json:"phase,omitempty"`
@@ -314,11 +329,14 @@ type ListWorkflowExecutionsRequest struct {
 	//
 	// @since T13 (Execution History)
 	Filter *ExecutionFilterCriteria `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
-	// Sort field. When unspecified, defaults to started_at descending.
+	// Sort field: unspecified is newest created first and pages by
+	// page_token, any other sorts the whole matching set and returns its
+	// first page_size entries with no token.
 	//
 	// @since T13 (Execution History)
 	SortField ExecutionSortField `protobuf:"varint,6,opt,name=sort_field,json=sortField,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField" json:"sort_field,omitempty"`
 	// When true, sorts in ascending order. Default (false) is descending.
+	// Read only with a sort field other than the default.
 	//
 	// @since T13 (Execution History)
 	SortAscending bool `protobuf:"varint,7,opt,name=sort_ascending,json=sortAscending,proto3" json:"sort_ascending,omitempty"`
@@ -424,19 +442,23 @@ type ListWorkflowExecutionsByWorkflowRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workflow or WorkflowInstance ID to filter by.
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	// Maximum number of executions to return per page.
+	// The most executions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Opaque pagination token from a previous response.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Structured filter criteria for advanced filtering.
 	//
 	// @since T13 (Execution History)
 	Filter *ExecutionFilterCriteria `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
-	// Sort field. When unspecified, defaults to started_at descending.
+	// Sort field: unspecified is newest created first and pages by
+	// page_token, any other sorts the whole matching set and returns its
+	// first page_size entries with no token.
 	//
 	// @since T13 (Execution History)
 	SortField ExecutionSortField `protobuf:"varint,5,opt,name=sort_field,json=sortField,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField" json:"sort_field,omitempty"`
 	// When true, sorts in ascending order. Default (false) is descending.
+	// Read only with a sort field other than the default.
 	//
 	// @since T13 (Execution History)
 	SortAscending bool `protobuf:"varint,6,opt,name=sort_ascending,json=sortAscending,proto3" json:"sort_ascending,omitempty"`
@@ -2052,7 +2074,8 @@ type ListPendingApprovalsRequest struct {
 	//
 	// Default: 20. Maximum: 100.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Opaque pagination token from a previous response.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2234,15 +2257,18 @@ func (x *PendingApproval) GetUiHint() string {
 	return ""
 }
 
-// PendingApprovalsList contains a paginated list of pending approvals.
+// PendingApprovalsList contains one page of pending approvals.
 //
 // @since T14 (Dashboard Integration)
 type PendingApprovalsList struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Entries []*PendingApproval     `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Pending approvals in this page: the newest execution's first, and an
+	// execution's waiting tasks in their order.
+	Entries []*PendingApproval `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	// Total number of pending approvals matching the query (across all pages).
 	TotalCount int32 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
-	// Pagination token for the next page. Empty when no more pages exist.
+	// Set when more approvals follow: pass it as page_token to continue.
+	// Empty when no more pages exist.
 	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2308,13 +2334,14 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
 	"WorkflowId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8e\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xb6\x01\n" +
 	"\x15WorkflowExecutionList\x12\x1f\n" +
 	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
 	"totalPages\x12T\n" +
-	"\aentries\x18\x02 \x03(\v2:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\aentries\"\xad\x03\n" +
-	"\x1dListWorkflowExecutionsRequest\x12\x1b\n" +
-	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\aentries\x18\x02 \x03(\v2:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xb6\x03\n" +
+	"\x1dListWorkflowExecutionsRequest\x12$\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12M\n" +
 	"\x05phase\x18\x03 \x01(\x0e27.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n" +
@@ -2323,11 +2350,11 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"sort_field\x18\x06 \x01(\x0e2;.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortFieldR\tsortField\x12%\n" +
 	"\x0esort_ascending\x18\a \x01(\bR\rsortAscending\x12\x10\n" +
-	"\x03org\x18\b \x01(\tR\x03org\"\xeb\x02\n" +
+	"\x03org\x18\b \x01(\tR\x03org\"\xf4\x02\n" +
 	"'ListWorkflowExecutionsByWorkflowRequest\x12'\n" +
 	"\vworkflow_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"workflowId\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"workflowId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12X\n" +
 	"\x06filter\x18\x04 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaR\x06filter\x12Z\n" +
@@ -2449,10 +2476,10 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\rworkflow_slug\x18\x01 \x01(\tR\fworkflowSlug\x12#\n" +
 	"\rworkflow_name\x18\x02 \x01(\tR\fworkflowName\x12$\n" +
 	"\x0etotal_cost_usd\x18\x03 \x01(\x01R\ftotalCostUsd\x12'\n" +
-	"\x0fexecution_count\x18\x04 \x01(\x05R\x0eexecutionCount\"t\n" +
+	"\x0fexecution_count\x18\x04 \x01(\x05R\x0eexecutionCount\"}\n" +
 	"\x1bListPendingApprovalsRequest\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\"\xe1\x02\n" +
 	"\x0fPendingApproval\x12!\n" +

@@ -18,21 +18,29 @@ message SessionId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// AgentExecutionList contains a paginated list of agent executions.
+// AgentExecutionList contains one page of agent executions, newest first.
 message AgentExecutionList {
-  // Total number of pages available.
+  // Not computed for this list: 1 when the response holds every execution,
+  // 0 when next_page_token is set. Follow next_page_token instead.
   int32 total_pages = 1;
 
-  // Agent executions in the current page.
+  // Agent executions in this page, newest first.
   repeated AgentExecution entries = 2;
+
+  // Set when more executions may follow: pass it as page_token to
+  // continue. A page may hold fewer executions than page_size, even none,
+  // and still carry a token. Empty when the list is complete, and always
+  // empty from listBySession, which returns a session's executions whole.
+  string next_page_token = 3;
 }
 
 // ListAgentExecutionsRequest specifies parameters for listing executions.
 message ListAgentExecutionsRequest {
-  // Maximum number of executions to return per page.
-  int32 page_size = 1;
+  // The most executions to return, at most 100; zero returns them all.
+  int32 page_size = 1 [(buf.validate.field).int32.gte = 0];
 
-  // Token for pagination, obtained from previous response.
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
   string page_token = 2;
 
   // Filter by execution phase (optional).
@@ -50,22 +58,24 @@ message ListAgentExecutionsRequest {
   //
   // @internal
   // Optional by design: pre-existing callers rely on the permission-bounded
-  // behavior, and the OSS single-user edition treats org filtering as a
-  // no-op. Filtering happens in the query/list step of each edition's
-  // handler, never client-side.
+  // behavior. Every edition honours it in the store's indexed read, never
+  // client-side.
   string org = 5;
 }
 
 // ListAgentExecutionsBySessionRequest lists all executions in a session.
+//
+// A session's executions are returned whole, newest first: a conversation
+// is read as one, and every consumer of this list needs all of it.
 message ListAgentExecutionsBySessionRequest {
   // Session ID to filter by.
   string session_id = 1 [(buf.validate.field).required = true];
 
-  // Maximum number of executions to return per page.
-  int32 page_size = 2;
+  // Not read: a session's executions are returned whole.
+  int32 page_size = 2 [deprecated = true];
 
-  // Token for pagination, obtained from previous response.
-  string page_token = 3;
+  // Not read: a session's executions are returned whole.
+  string page_token = 3 [deprecated = true];
 }
 
 // Input message for updateStatus RPC.

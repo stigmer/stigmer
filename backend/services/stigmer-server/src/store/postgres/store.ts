@@ -64,8 +64,23 @@ import type {
   SignalDedupeStatus,
   SignalDedupeStore,
   Store,
+  StoreOpenOptions,
   WorkflowExecutionEventRecord,
 } from "../interface.js";
+import {
+  ListIndexRegistry,
+  assertListIndexLimit,
+  listIndexFactsOf,
+  matchesListIndexQuery,
+  mergeListIndexRows,
+  sameListKeyRows,
+} from "../list-index.js";
+import type {
+  ListIndexDeclaration,
+  ListIndexFacts,
+  ListIndexQuery,
+  ListIndexRow,
+} from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import type { StoreLogger } from "../logger.js";
 import {
@@ -85,6 +100,49 @@ import { normalizeTsRankScore, renderTsQueryExpression } from "./tsquery.js";
  */
 const TEXT_SEARCH_CONFIG = "english";
 
+/**
+ * The one upsert every resource write goes through: the row, its
+ * `updated_at`, and the list index's facts stamped with the SAME `now()`
+ * (constant within a transaction), so a later writer that bumps
+ * `updated_at` without knowing the index leaves the row unproven. An
+ * undeclared kind writes NULL facts and is stamped all the same, which
+ * keeps it out of the unproven partial index.
+ */
+const UPSERT_RESOURCE_SQL = `
+  INSERT INTO resources
+    (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+  VALUES ($1, $2, $3, now(), $4, $5, $6, now())
+  ON CONFLICT (kind, id) DO UPDATE SET
+    data = excluded.data,
+    updated_at = excluded.updated_at,
+    list_org = excluded.list_org,
+    list_created_at = excluded.list_created_at,
+    list_index_revision = excluded.list_index_revision,
+    list_indexed_at = excluded.list_indexed_at`;
+
+/**
+ * The rows of kind `$1` whose facts are not proven current under revision
+ * `$2` (list-index.ts), each arm one index range that fetches a row only
+ * when it matches: the stamp arm repeats the partial index's predicate
+ * verbatim (the only form the planner matches it in), the revision arms
+ * are three ranges of the revision index. A single OR over the revision
+ * is answered, without statistics, by visiting every heap row of the kind
+ * (measured), which grows with the kind; these arms are empty in steady
+ * state. They overlap (an unstamped row has no revision either), so the
+ * caller keeps one row per id.
+ */
+const UNPROVEN_ROWS_SQL = `
+  SELECT id, data FROM resources WHERE kind = $1 AND list_indexed_at IS DISTINCT FROM updated_at
+  UNION ALL
+  SELECT id, data FROM resources WHERE kind = $1 AND list_index_revision IS NULL
+  UNION ALL
+  SELECT id, data FROM resources WHERE kind = $1 AND list_index_revision < $2
+  UNION ALL
+  SELECT id, data FROM resources WHERE kind = $1 AND list_index_revision > $2`;
+
+/** How many unproven rows the reconciliation at open decodes per round trip. */
+const RECONCILE_BATCH = 500;
+
 export class PostgresStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly signalDedupe: SignalDedupeStore;
@@ -93,10 +151,16 @@ export class PostgresStore implements Store {
 
   private pool: Pool | undefined;
   private readonly logger: StoreLogger;
+  private readonly listIndexes: ListIndexRegistry;
 
-  private constructor(pool: Pool, logger: StoreLogger) {
+  private constructor(
+    pool: Pool,
+    logger: StoreLogger,
+    listIndexes: ListIndexRegistry,
+  ) {
     this.pool = pool;
     this.logger = logger;
+    this.listIndexes = listIndexes;
     this.bootstrapState = new PostgresBootstrapStateStore(() => this.open());
     this.signalDedupe = new PostgresSignalDedupeStore(
       () => this.open(),
@@ -110,14 +174,19 @@ export class PostgresStore implements Store {
 
   /**
    * Connects to databaseUrl, runs migrations (advisory-locked, so
-   * concurrent boots serialize), and returns the ready store. Any failure
-   * here is a loud boot throw — never a degraded server (the same posture
-   * as SqliteStore.open; the composition root does not catch it).
+   * concurrent boots serialize), reconciles the list index (derives the
+   * facts of every unproven row of a declared kind; compare-and-set, so
+   * replicas opening together cannot conflict), and returns the ready
+   * store. Any failure here is a loud boot throw — never a degraded server
+   * (the same posture as SqliteStore.open; the composition root does not
+   * catch it).
    */
   static async open(
     databaseUrl: string,
     logger: StoreLogger = NOOP_STORE_LOGGER,
+    options: StoreOpenOptions = {},
   ): Promise<PostgresStore> {
+    const listIndexes = new ListIndexRegistry(options.listIndexes ?? []);
     const pool = new pg.Pool({ connectionString: databaseUrl });
     // An idle pooled connection dropping (server restart, network blip)
     // emits 'error' on the pool; without a listener that is a process
@@ -140,7 +209,14 @@ export class PostgresStore implements Store {
     }
     client.release();
 
-    return new PostgresStore(pool, logger);
+    const store = new PostgresStore(pool, logger, listIndexes);
+    try {
+      await store.reconcileListIndexes();
+    } catch (error) {
+      await store.close();
+      throw error;
+    }
+    return store;
   }
 
   // ---------------------------------------------------------------------------
@@ -153,12 +229,31 @@ export class PostgresStore implements Store {
     schema: Desc,
     msg: MessageShape<Desc>,
   ): Promise<void> {
-    const data = toBinary(schema, msg);
-    await this.open().query(
-      `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())
-       ON CONFLICT (kind, id) DO UPDATE SET data = excluded.data, updated_at = now()`,
-      [apiResourceKindName(kind), id, Buffer.from(data)],
-    );
+    const data = Buffer.from(toBinary(schema, msg));
+    const kindName = apiResourceKindName(kind);
+    const facts = this.listIndexes.factsOf(kind, msg);
+    if (facts === undefined) {
+      await this.open().query(UPSERT_RESOURCE_SQL, [
+        kindName,
+        id,
+        data,
+        null,
+        null,
+        null,
+      ]);
+      return;
+    }
+    await this.withTransaction(async (client) => {
+      await client.query(UPSERT_RESOURCE_SQL, [
+        kindName,
+        id,
+        data,
+        facts.org,
+        facts.createdAt,
+        facts.revision,
+      ]);
+      await replaceListKeys(client, kindName, id, facts);
+    });
   }
 
   async getResource<Desc extends DescMessage>(
@@ -191,22 +286,49 @@ export class PostgresStore implements Store {
     // (interface.ts), so no caller I/O can extend the lock's hold time.
     return this.withTransaction(async (client) => {
       const result = await client.query(
-        `SELECT data FROM resources WHERE kind = $1 AND id = $2 FOR UPDATE`,
+        `SELECT data, list_indexed_at IS NOT DISTINCT FROM updated_at AS stamped, list_index_revision
+         FROM resources WHERE kind = $1 AND id = $2 FOR UPDATE`,
         [kindName, id],
       );
-      const row = result.rows[0] as { data: Uint8Array } | undefined;
+      const row = result.rows[0] as
+        | {
+            data: Uint8Array;
+            stamped: boolean;
+            list_index_revision: number | null;
+          }
+        | undefined;
       if (row === undefined) {
         throw new ResourceNotFoundError(`${kindName}/${id}`);
       }
 
       const msg = fromBinary(schema, row.data);
+      const before = this.listIndexes.factsOf(kind, msg);
       modify(msg);
+      const after = this.listIndexes.factsOf(kind, msg);
 
       const data = toBinary(schema, msg);
       await client.query(
-        `UPDATE resources SET data = $3, updated_at = now() WHERE kind = $1 AND id = $2`,
-        [kindName, id, Buffer.from(data)],
+        `UPDATE resources SET data = $3, updated_at = now(),
+           list_org = $4, list_created_at = $5, list_index_revision = $6, list_indexed_at = now()
+         WHERE kind = $1 AND id = $2`,
+        [
+          kindName,
+          id,
+          Buffer.from(data),
+          after?.org ?? null,
+          after?.createdAt ?? null,
+          after?.revision ?? null,
+        ],
       );
+      if (
+        after !== undefined &&
+        (!row.stamped ||
+          row.list_index_revision !== after.revision ||
+          before === undefined ||
+          !sameListKeyRows(before, after))
+      ) {
+        await replaceListKeys(client, kindName, id, after);
+      }
       return msg;
     });
   }
@@ -219,10 +341,73 @@ export class PostgresStore implements Store {
     return (result.rows as Array<{ data: Uint8Array }>).map((row) => row.data);
   }
 
+  async queryResources<K extends string>(
+    declaration: ListIndexDeclaration<K>,
+    query: ListIndexQuery<K>,
+  ): Promise<ListIndexRow[]> {
+    this.listIndexes.require(declaration);
+    assertListIndexLimit(query.limit);
+    if (query.anyKey !== undefined && query.anyKey.length === 0) {
+      return [];
+    }
+    const kindName = apiResourceKindName(declaration.kind);
+
+    // A key read is driven from the key table, ordered by that index's own
+    // columns, so the plan is one index range whatever the planner's
+    // statistics say (a freshly written table has none); several keys are
+    // one such read each, merged below. Without a key the organization
+    // index is the range.
+    const provenRows: ListIndexRow[] = [];
+    const reads =
+      query.anyKey === undefined
+        ? [provenReadSql(kindName, declaration.revision, query, undefined)]
+        : query.anyKey.map((key) =>
+            provenReadSql(kindName, declaration.revision, query, key),
+          );
+    for (const read of reads) {
+      const result = await this.open().query(read.sql, read.params);
+      for (const row of result.rows as Array<{
+        id: string;
+        data: Uint8Array;
+        created_at: string;
+      }>) {
+        provenRows.push({
+          id: row.id,
+          data: row.data,
+          cursor: { createdAt: row.created_at, id: row.id },
+        });
+      }
+    }
+
+    const unproven = await this.open().query(UNPROVEN_ROWS_SQL, [
+      kindName,
+      declaration.revision,
+    ]);
+    const unprovenRows: ListIndexRow[] = [];
+    for (const row of oneRowPerId(
+      unproven.rows as Array<{ id: string; data: Uint8Array }>,
+    )) {
+      const facts = await this.deriveAndRepair(declaration, row.id, row.data);
+      if (facts !== undefined && matchesListIndexQuery(row.id, facts, query)) {
+        unprovenRows.push({
+          id: row.id,
+          data: row.data,
+          cursor: { createdAt: facts.createdAt, id: row.id },
+        });
+      }
+    }
+    return mergeListIndexRows(provenRows, unprovenRows, query.limit);
+  }
+
   async deleteResource(kind: ApiResourceKind, id: string): Promise<void> {
+    const kindName = apiResourceKindName(kind);
     await this.open().query(
       `DELETE FROM resources WHERE kind = $1 AND id = $2`,
-      [apiResourceKindName(kind), id],
+      [kindName, id],
+    );
+    await this.open().query(
+      `DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`,
+      [kindName, id],
     );
   }
 
@@ -291,24 +476,55 @@ export class PostgresStore implements Store {
   ): Promise<boolean> {
     // BYTEA equality in the WHERE clause makes the compare-and-swap one
     // atomic statement: zero rows changed means the row moved on (or was
-    // deleted) since the read — a lost swap, never an upsert.
-    const result = await this.open().query(
-      `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3 AND data = $4`,
-      [
-        Buffer.from(newData),
-        apiResourceKindName(kind),
-        id,
-        Buffer.from(expectedData),
-      ],
-    );
-    return result.rowCount === 1;
+    // deleted) since the read — a lost swap, never an upsert. The new bytes'
+    // list facts ride the same statement; bytes a declared kind's schema
+    // cannot decode leave the row unproven (stamp NULL), for a read to skip.
+    const kindName = apiResourceKindName(kind);
+    const declaration = this.listIndexes.declarationOf(kind);
+    const facts =
+      declaration === undefined
+        ? undefined
+        : factsOfBytes(declaration, newData);
+    const swap = async (client: Pool | PoolClient): Promise<boolean> => {
+      const result = await client.query(
+        `UPDATE resources SET data = $1, updated_at = now(),
+           list_org = $5, list_created_at = $6, list_index_revision = $7,
+           list_indexed_at = CASE WHEN $8::boolean THEN now() ELSE NULL END
+         WHERE kind = $2 AND id = $3 AND data = $4`,
+        [
+          Buffer.from(newData),
+          kindName,
+          id,
+          Buffer.from(expectedData),
+          facts?.org ?? null,
+          facts?.createdAt ?? null,
+          facts?.revision ?? null,
+          declaration === undefined || facts !== undefined,
+        ],
+      );
+      return result.rowCount === 1;
+    };
+    if (facts === undefined) {
+      return swap(this.open());
+    }
+    return this.withTransaction(async (client) => {
+      const swapped = await swap(client);
+      if (swapped) {
+        await replaceListKeys(client, kindName, id, facts);
+      }
+      return swapped;
+    });
   }
 
   async deleteResourcesByKind(kind: ApiResourceKind): Promise<number> {
+    const kindName = apiResourceKindName(kind);
     const result = await this.open().query(
       `DELETE FROM resources WHERE kind = $1`,
-      [apiResourceKindName(kind)],
+      [kindName],
     );
+    await this.open().query(`DELETE FROM resource_list_keys WHERE kind = $1`, [
+      kindName,
+    ]);
     return result.rowCount ?? 0;
   }
 
@@ -318,11 +534,134 @@ export class PostgresStore implements Store {
   ): Promise<number> {
     // LIKE with the wildcard characters of the PREFIX escaped — sqlite's
     // GLOB has no LIKE-metacharacter hazard, this port must not either.
+    const params = [
+      apiResourceKindName(kind),
+      `${escapeLikePattern(idPrefix)}%`,
+    ];
     const result = await this.open().query(
       `DELETE FROM resources WHERE kind = $1 AND id LIKE $2 ESCAPE '\\'`,
-      [apiResourceKindName(kind), `${escapeLikePattern(idPrefix)}%`],
+      params,
+    );
+    await this.open().query(
+      `DELETE FROM resource_list_keys WHERE kind = $1 AND id LIKE $2 ESCAPE '\\'`,
+      params,
     );
     return result.rowCount ?? 0;
+  }
+
+  // ---------------------------------------------------------------------------
+  // The list index's repair (list-index.ts)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * An unproven row's facts, derived from its bytes, and the row repaired
+   * when those bytes are still the stored ones — the compare-and-set on
+   * `data` means a newer write is never overwritten, and two replicas
+   * repairing one row write the same facts. Undefined when the bytes do
+   * not decode; the row stays unproven and is skipped, as a lane skips it.
+   */
+  private async deriveAndRepair(
+    declaration: ListIndexDeclaration,
+    id: string,
+    data: Uint8Array,
+  ): Promise<ListIndexFacts | undefined> {
+    const kindName = apiResourceKindName(declaration.kind);
+    const facts = factsOfBytes(declaration, data);
+    if (facts === undefined) {
+      this.logger.warn(
+        "list index: an unproven row does not decode, skipping",
+        {
+          kind: kindName,
+          id,
+        },
+      );
+      return undefined;
+    }
+    try {
+      await this.withTransaction(async (client) => {
+        const result = await client.query(
+          `UPDATE resources SET list_org = $4, list_created_at = $5,
+             list_index_revision = $6, list_indexed_at = updated_at
+           WHERE kind = $1 AND id = $2 AND data = $3`,
+          [
+            kindName,
+            id,
+            Buffer.from(data),
+            facts.org,
+            facts.createdAt,
+            facts.revision,
+          ],
+        );
+        if (result.rowCount === 1) {
+          await replaceListKeys(client, kindName, id, facts);
+        }
+      });
+    } catch (error) {
+      // The facts are right whether or not they were written back; a
+      // failed repair only leaves the row for the next read to repair.
+      this.logger.warn("list index: repairing a row failed", {
+        kind: kindName,
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return facts;
+  }
+
+  /**
+   * Derives every unproven row of each declared kind, in id-keyed batches,
+   * and stamps every other kind's unstamped rows (they carry no facts), so
+   * the unproven set is empty when the server starts serving. Reads stay
+   * exact without it; it keeps them cheap.
+   */
+  private async reconcileListIndexes(): Promise<void> {
+    const declarations = this.listIndexes.declarations();
+    let reconciled = false;
+    for (const declaration of declarations) {
+      const kindName = apiResourceKindName(declaration.kind);
+      let after = "";
+      let derived = 0;
+      for (;;) {
+        const batch = await this.open().query(
+          `SELECT id, data FROM (${UNPROVEN_ROWS_SQL}) unproven WHERE id > $3
+           ORDER BY id LIMIT $4`,
+          [kindName, declaration.revision, after, RECONCILE_BATCH],
+        );
+        // Duplicates from overlapping arms sit side by side in id order and
+        // the next batch starts after the last id, so none is repaired twice
+        // across batches and the count still ends the loop.
+        const rows = batch.rows as Array<{ id: string; data: Uint8Array }>;
+        for (const row of oneRowPerId(rows)) {
+          if (
+            (await this.deriveAndRepair(declaration, row.id, row.data)) !==
+            undefined
+          ) {
+            derived += 1;
+          }
+          after = row.id;
+        }
+        if (rows.length < RECONCILE_BATCH) {
+          break;
+        }
+      }
+      if (derived > 0) {
+        this.logger.info("list index reconciled", {
+          kind: kindName,
+          rows: derived,
+        });
+        reconciled = true;
+      }
+    }
+    if (reconciled) {
+      // Every derived row's list columns changed at once; the planner's
+      // statistics for them are refreshed before the first read plans.
+      await this.open().query(`ANALYZE resources, resource_list_keys`);
+    }
+    await this.open().query(
+      `UPDATE resources SET list_indexed_at = updated_at
+       WHERE list_indexed_at IS DISTINCT FROM updated_at AND NOT (kind = ANY($1::text[]))`,
+      [declarations.map((d) => apiResourceKindName(d.kind))],
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -1377,6 +1716,123 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
       [cutoff],
     );
     return result.rowCount ?? 0;
+  }
+}
+
+/**
+ * A row's key rows made equal to its facts: one row per key the row
+ * names, the creation instant copied in so a parent's rows are one index
+ * range. Runs on the caller's transaction, beside the row write it
+ * belongs to.
+ */
+async function replaceListKeys(
+  client: PoolClient,
+  kindName: string,
+  id: string,
+  facts: ListIndexFacts,
+): Promise<void> {
+  await client.query(
+    `DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`,
+    [kindName, id],
+  );
+  if (facts.keys.length === 0) {
+    return;
+  }
+  const params: unknown[] = [kindName, id, facts.createdAt];
+  const tuples = facts.keys.map((entry) => {
+    params.push(entry.key, entry.value);
+    return `($1, $2, $${params.length - 1}, $${params.length}, $3)`;
+  });
+  await client.query(
+    `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ${tuples.join(", ")}`,
+    params,
+  );
+}
+
+/**
+ * One proven read of `queryResources`: through one key's index range when
+ * `key` is given (the key table drives, its copied creation instant is the
+ * order), else through the organization index. Only rows whose facts are
+ * proven current are returned; the unproven arm answers for the rest.
+ */
+function provenReadSql(
+  kindName: string,
+  revision: number,
+  query: ListIndexQuery,
+  key: { readonly name: string; readonly value: string } | undefined,
+): { sql: string; params: unknown[] } {
+  const params: unknown[] = [kindName, revision];
+  const param = (value: unknown): string => {
+    params.push(value);
+    return `$${params.length}`;
+  };
+  const created = key === undefined ? "r.list_created_at" : "k.created_at";
+  const id = key === undefined ? `r.id COLLATE "C"` : `k.id COLLATE "C"`;
+  const where = [
+    `r.list_indexed_at = r.updated_at`,
+    `r.list_index_revision = $2`,
+  ];
+  let from = `resources r`;
+  if (key === undefined) {
+    where.unshift(`r.kind = $1`);
+  } else {
+    // The row behind each key is fetched by primary key and nothing else:
+    // `OFFSET 0` keeps the subquery from being flattened, so a planner
+    // without statistics cannot reach it through the revision index
+    // instead (measured: a scan of the kind per key row).
+    from = `resource_list_keys k CROSS JOIN LATERAL (
+        SELECT id, data, updated_at, list_indexed_at, list_index_revision, list_org
+        FROM resources WHERE kind = k.kind AND id = k.id OFFSET 0
+      ) r`;
+    where.unshift(
+      `k.kind = $1`,
+      `k.key = ${param(key.name)}`,
+      `k.value = ${param(key.value)}`,
+    );
+  }
+  if (query.org !== undefined && query.org !== "") {
+    where.push(`r.list_org = ${param(query.org)}`);
+  }
+  if (query.createdAtOrAfter !== undefined) {
+    where.push(
+      `(${created} >= ${param(query.createdAtOrAfter)} OR ${created} = '')`,
+    );
+  }
+  if (query.after !== undefined) {
+    const afterCreated = param(query.after.createdAt);
+    const afterId = param(query.after.id);
+    where.push(
+      `(${created} < ${afterCreated} OR (${created} = ${afterCreated} AND ${id} < ${afterId}))`,
+    );
+  }
+  const limit = query.limit === undefined ? "" : ` LIMIT ${param(query.limit)}`;
+  return {
+    sql: `SELECT r.id, r.data, ${created} AS created_at FROM ${from}
+          WHERE ${where.join(" AND ")}
+          ORDER BY ${created} DESC, ${id} DESC${limit}`,
+    params,
+  };
+}
+
+/** Keeps the first row per id; the unproven arms overlap. */
+function oneRowPerId<T extends { readonly id: string }>(
+  rows: ReadonlyArray<T>,
+): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) =>
+    seen.has(row.id) ? false : (seen.add(row.id), true),
+  );
+}
+
+/** A declared kind's facts from stored bytes; undefined when they do not decode. */
+function factsOfBytes(
+  declaration: ListIndexDeclaration,
+  data: Uint8Array,
+): ListIndexFacts | undefined {
+  try {
+    return listIndexFactsOf(declaration, fromBinary(declaration.schema, data));
+  } catch {
+    return undefined;
   }
 }
 

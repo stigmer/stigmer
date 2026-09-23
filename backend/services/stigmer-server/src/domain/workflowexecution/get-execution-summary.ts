@@ -10,16 +10,15 @@
  * deliberately absent when nothing completed (an average over nothing is
  * not 0).
  *
- * With a composed ListReadScope (C2 Stage 4's ExecutionReadScope,
- * absorbed by 20260830.01 — the multi-tenant
- * edition), the scan narrows to the caller's authorized ids intersected
- * with the requested org (the Java GetExecutionSummary baseline: without
- * the org filter a member of several organizations sees every org's
- * numbers on every dashboard), and an EMPTY authorized set answers the
- * proto default instance — the conformance-pinned multi-tenant zero shape
- * (success_rate 0, NO cost summary) falls out of the scoping, never a
- * special case. No scope composed = the full scan above, byte-identical
- * (the request's org deliberately not consulted — single-user semantics).
+ * The rows are the requested org's, created within the time window, read
+ * through the list index (queries.ts) — every edition honours the org, so
+ * a member of several organizations never sees every org's numbers on
+ * every dashboard (the Java GetExecutionSummary baseline). With a composed
+ * ListReadScope those rows are offered to its restrict verb — exact, one
+ * read of the kind — and when the caller may see NONE of them the answer
+ * is the proto default instance: the conformance-pinned multi-tenant zero
+ * shape (success_rate 0, NO cost summary) falls out of the scoping, never
+ * a special case. No scope composed = every row of the org and window.
  *
  * Tie order in the two ranked lists is not wire-stable in Go (map
  * iteration feeds a stable sort), so ties here — deterministic first-seen
@@ -50,11 +49,13 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
+import { listIndexInstantOfMillis } from "../../store/list-index.js";
 
 import { parseRfc3339Ms } from "./execution-filter.js";
-import { loadAllWorkflowExecutions } from "./queries.js";
+import { loadWorkflowExecutions } from "./queries.js";
 
 const RANK_LIMIT = 10;
 
@@ -70,30 +71,36 @@ export async function getExecutionSummary(
   req: GetExecutionSummaryRequest,
   identity: CallerIdentity,
 ): Promise<ExecutionSummary> {
-  let executions = await loadAllWorkflowExecutions(
+  // The store's window is one millisecond wider than the loop's check
+  // below, which stays the authority: it only ever narrows the read.
+  const cutoffMs = resolveTimeCutoffMs(req.timeWindow);
+  let executions = await loadWorkflowExecutions(
     deps.store,
     deps.logger,
+    {
+      org: req.org,
+      ...(cutoffMs === undefined
+        ? {}
+        : { createdAtOrAfter: listIndexInstantOfMillis(cutoffMs - 1) }),
+    },
     "failed to list workflow executions for summary",
   );
 
   if (deps.listReadScope !== undefined) {
-    const authorizedIds = await deps.listReadScope.authorizedResourceIds(
+    executions = await restrictListByReadScope(
+      deps.listReadScope,
       identity,
       ApiResourceKind.workflow_execution,
+      executions,
+      "",
     );
-    if (authorizedIds.size === 0) {
+    if (executions.length === 0) {
       // The Java baseline's empty arm: the default instance, before any
       // aggregation — success_rate 0 and NO cost summary by construction.
       return create(ExecutionSummarySchema);
     }
-    executions = executions.filter(
-      (execution) =>
-        authorizedIds.has(execution.metadata?.id ?? "") &&
-        execution.metadata?.org === req.org,
-    );
   }
 
-  const cutoffMs = resolveTimeCutoffMs(req.timeWindow);
   const workflowFilter = req.workflowId;
 
   const phaseCounts: Record<number, number> = {};
@@ -203,9 +210,7 @@ export async function getExecutionSummary(
     for (const durationMs of completedDurationsMs) {
       totalMs += durationMs;
     }
-    summary.avgDuration = durationFromMs(
-      totalMs / completedDurationsMs.length,
-    );
+    summary.avgDuration = durationFromMs(totalMs / completedDurationsMs.length);
   }
 
   summary.topFailingWorkflows = buildFailureRanks(
@@ -255,7 +260,9 @@ function isActivePhase(phase: ExecutionPhase): boolean {
 }
 
 /** Go auditCreatedAt: nil timestamp → zero time (undefined here). */
-function auditCreatedAtMs(createdAt: Timestamp | undefined): number | undefined {
+function auditCreatedAtMs(
+  createdAt: Timestamp | undefined,
+): number | undefined {
   if (createdAt === undefined) {
     return undefined;
   }

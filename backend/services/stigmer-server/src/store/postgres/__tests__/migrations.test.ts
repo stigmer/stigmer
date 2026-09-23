@@ -7,7 +7,9 @@
  * single-file lock never had. v5, the chain's first row-decoding step,
  * moves every row of the seven kinds that held the retired public level to
  * org and leaves every other row's bytes as they were; a row it cannot
- * decode fails the step and leaves the database at v4.
+ * decode fails the step and leaves the database at v4. v6 adds the list
+ * index's table (its behaviour is the store contract's). A step's starting
+ * database is built by running the chain up to the step before it.
  *
  * Gated on TEST_DATABASE_URL (see support.ts): visible skips without a
  * database, always exercised in CI via the ci.stigmer-server service
@@ -24,13 +26,30 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
-import { CURRENT_SCHEMA_VERSION, SCHEMA_VERSION_5 } from "../migrations.js";
+import {
+  CURRENT_SCHEMA_VERSION,
+  SCHEMA_VERSION_1,
+  SCHEMA_VERSION_5,
+  runMigrations,
+} from "../migrations.js";
 import { PostgresStore } from "../store.js";
 import {
   createTestDatabase,
   testDatabaseAdminUrl,
   type TestDatabase,
 } from "./support.js";
+
+/** Builds the database a step starts from: the chain run up to `version`. */
+async function migrateTo(databaseUrl: string, version: number): Promise<void> {
+  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
+  const client = await pool.connect();
+  try {
+    await runMigrations(client, version);
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)(
   "postgres migrations",
@@ -71,6 +90,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "oauth_grant",
           "pending_oauth_state",
           "resource_audit",
+          "resource_list_keys",
           "resources",
           "schedule_runs",
           "schema_version",
@@ -102,21 +122,13 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
     });
 
     it("a v1 database resumes the chain on reopen: the v2/v3 indexes arrive and v4 removes the Project rows", async () => {
-      const store = await PostgresStore.open(db.databaseUrl);
-      await store.close();
-
-      // Rewind to a v1 database: drop exactly what v2+v4 created and their
-      // version rows — the state any pre-v2 deployment is actually in —
-      // and seed one row of the Project kind an earlier release wrote
+      // A v1 database — the state any pre-v2 deployment is actually in —
+      // seeded with one row of the Project kind an earlier release wrote
       // (the kind column holds the enum NAME) beside a row v4 must keep.
+      await migrateTo(db.databaseUrl, SCHEMA_VERSION_1);
       const client = new pg.Client({ connectionString: db.databaseUrl });
       await client.connect();
       try {
-        await client.query(`DROP INDEX idx_wfee_created_at`);
-        await client.query(`DROP INDEX idx_oauth_grant_resource`);
-        await client.query(
-          `DELETE FROM schema_version WHERE version IN (2, 3, 4, 5)`,
-        );
         await client.query(
           `INSERT INTO resources (kind, id, data) VALUES ('project', 'prj_seeded', '\\x00'), ('organization', 'acme', '\\x00')`,
         );
@@ -242,15 +254,11 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
       }
 
-      /** Opens the store once (the chain replays), then rewinds to v4 for the seeding. */
+      /** A v4 database, the one v5 starts from, and a client on it for the seeding. */
       async function v4Client(): Promise<pg.Client> {
-        const store = await PostgresStore.open(db.databaseUrl);
-        await store.close();
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_5 - 1);
         const client = new pg.Client({ connectionString: db.databaseUrl });
         await client.connect();
-        await client.query(`DELETE FROM schema_version WHERE version = $1`, [
-          SCHEMA_VERSION_5,
-        ]);
         return client;
       }
 

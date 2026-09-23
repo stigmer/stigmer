@@ -380,11 +380,20 @@ export { newResolveSlugStep } from "./pipeline/steps/slug.js";
 // The driver interfaces and the store-fault classes the ratified mapping
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
-export type { Store } from "./store/interface.js";
+export type { Store, StoreOpenOptions } from "./store/interface.js";
 export {
   AuditNotFoundError,
   ResourceNotFoundError,
 } from "./store/interface.js";
+// The list index's read shapes, which `Store.queryResources` speaks
+// (store/list-index.ts). Declaring an index stays internal: the list is
+// the composition root's (boot/list-indexes.ts), one per server.
+export type {
+  ListIndexCursor,
+  ListIndexDeclaration,
+  ListIndexQuery,
+  ListIndexRow,
+} from "./store/list-index.js";
 // The maintenance-surface row shape (20260830.04 Stage 1, ruling Q3):
 // what findResourcesRawOrderedAfter pages and what
 // replaceResourceDataIfUnchanged guards on — the secret-convergence
