@@ -77,7 +77,19 @@ export {
   getGrantableRoles,
   hasGrantableRoles,
   isRoleGrantable,
+  getTeamGrantableRoles,
+  hasTeamGrantableRoles,
+  isRoleTeamGrantable,
 } from "./authorization-config.js";
+export {
+  type Grantee,
+  type GranteeKind,
+  personGrantee,
+  teamGrantee,
+  granteeRef,
+  granteeFromView,
+  granteeKey,
+} from "./iam-principal.js";
 export {
   iamRoleToString,
   iamRoleFromString,
@@ -244,6 +256,11 @@ export {
   toIdentityProviderUpdateInput,
   type IdentityProviderInput,
 } from "./gen/identityprovider.js";
+export {
+  TeamClient,
+  toTeamUpdateInput,
+  type TeamInput,
+} from "./gen/team.js";
 export {
   OAuthAppClient,
   toOAuthAppUpdateInput,

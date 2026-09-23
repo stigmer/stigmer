@@ -31,6 +31,9 @@
  *     port, which kinds an edition grants on, and the tuple-half query
  *     engine only an authorization backend can answer) — landed with
  *     20260913.01, gate ruling Q-OR-10
+ *   - principal display (how an access list names a grantee that is not
+ *     a person: a team, in the editions that serve teams) — landed with
+ *     the Team kind
  *   - outbound egress (which addresses the control plane may dial when
  *     it reaches a URL a user supplied: the MCP endpoint it probes at save
  *     time and the login server it reaches on Sign in) — landed with the
@@ -70,6 +73,7 @@ import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
+import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 
@@ -233,6 +237,14 @@ export interface ExtensionDrivers {
    * with the edition reason — the identityFederation absent shape.
    */
   readonly authorizationQueries?: AuthorizationQueryEngine;
+  /**
+   * The principal display (single-instance point): how an access list
+   * names a grantee that is not a person — a team, in the editions that
+   * serve teams (extensions/principal-display.ts carries the contract).
+   * When absent, such a grantee renders by its id, the fallback shape
+   * every access list has always had.
+   */
+  readonly principalDisplay?: PrincipalDisplay;
   /**
    * The license-status provider (single-instance point): what license
    * this server holds, answered by PlatformQueryController.getLicenseStatus

@@ -28,6 +28,7 @@
     "session",
     "skill",
     "subscription",
+    "team",
     "workflow",
     "workflow-execution",
     "workflow-instance"

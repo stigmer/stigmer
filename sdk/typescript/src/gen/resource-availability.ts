@@ -20,6 +20,7 @@ export const KIND_TIERS: ReadonlyMap<ApiResourceKind, ResourceTier> = new Map([
   [ApiResourceKind.identity_provider, ResourceTier.enterprise],
   [ApiResourceKind.oauth_app, ResourceTier.open_source],
   [ApiResourceKind.platform_client, ResourceTier.open_source],
+  [ApiResourceKind.team, ResourceTier.enterprise],
   [ApiResourceKind.organization, ResourceTier.open_source],
   [ApiResourceKind.platform, ResourceTier.enterprise],
   [ApiResourceKind.agent, ResourceTier.open_source],

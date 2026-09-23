@@ -179,6 +179,41 @@ const { roles, hasRoles } = useGrantableRoles(ApiResourceKind.agent);
 ```
 
 
+### useGranteeCandidates
+
+Data hook for the share picker's candidates.
+
+**Signature**
+
+```tsx
+function useGranteeCandidates(options: UseGranteeCandidatesOptions): UseGranteeCandidatesReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseGranteeCandidatesOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseGranteeCandidatesReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "The first error either list reported, or `null`." },
+    isLoading: { type: "boolean", description: "`true` while either list is loading for the first time." },
+    people: { type: "readonly PersonCandidate[]", description: "" },
+    teams: { type: "readonly TeamCandidate[]", description: "" },
+  }}
+/>
+
+```tsx
+const { people, teams } = useGranteeCandidates({
+  orgId,
+  includeTeams: share.canShareWithTeams,
+});
+```
+
+
 ### usePrincipalsCount
 
 Data hook that fetches the count of principals with access to an
@@ -315,13 +350,14 @@ need a custom role picker UI; for the styled version, use
 **Signature**
 
 ```tsx
-function useRoleSelector(kind: ApiResourceKind | null, defaultRole?: IamRole): UseRoleSelectorReturn
+function useRoleSelector(kind: ApiResourceKind | null, defaultRole?: IamRole, granteeKind: "identity_account" | "team"): UseRoleSelectorReturn
 ```
 
 <TypeTable
   type={{
     kind: { type: "ApiResourceKind | null", description: "The resource kind to show grantable roles for, or `null`.", required: true },
     defaultRole: { type: "IamRole", description: "Optional initial selection." },
+    granteeKind: { type: "\"identity_account\" | \"team\"", description: "Who the role is for: a person (the default) may   hold any grantable role, a team only the kind's team roles.", required: true },
   }}
 />
 
@@ -376,11 +412,12 @@ function useShareFlow(resource: ShareFlowResource | null): UseShareFlowReturn
 
 <TypeTable
   type={{
-    accessList: { type: "readonly PrincipalAccess[]", description: "Principals with their role grants on the resource." },
+    accessList: { type: "readonly PrincipalAccess[]", description: "Grantees with their role grants on the resource." },
+    canShareWithTeams: { type: "boolean", description: "Whether this resource can be shared with a team here: the edition serves teams and the kind accepts a team grant." },
     clearErrors: { type: "() => void", description: "Clear all errors." },
     fetchError: { type: "Error | null", description: "Error from the last access list fetch, or `null`." },
-    grantableRoles: { type: "readonly IamRole[]", description: "Roles that can be granted on this resource kind." },
-    grantAccess: { type: "(principalId: string, role: string) => Promise<void>", description: "Grant a principal access with the specified role." },
+    grant: { type: "(grantee: Grantee, role: IamRole) => Promise<void>", description: "Grant a person or a team the given role." },
+    grantableRoles: { type: "readonly IamRole[]", description: "Roles a person can be granted on this resource kind." },
     grantError: { type: "Error | null", description: "Error from the last grant attempt, or `null`." },
     hasGrantableRoles: { type: "boolean", description: "Whether the resource kind supports role grants." },
     isGranting: { type: "boolean", description: "Whether a grant operation is in flight." },
@@ -388,23 +425,24 @@ function useShareFlow(resource: ShareFlowResource | null): UseShareFlowReturn
     isRefetching: { type: "boolean", description: "Whether a background refetch of the access list is in flight." },
     isRevoking: { type: "boolean", description: "Whether a revoke operation is in flight." },
     refetch: { type: "() => void", description: "Re-fetch the access list from the server." },
-    revokeAccess: { type: "(principalId: string, role: string) => Promise<void>", description: "Revoke a principal's role on this resource." },
+    revoke: { type: "(grantee: Grantee) => Promise<void>", description: "Revoke every role the grantee holds directly on the resource." },
     revokeError: { type: "Error | null", description: "Error from the last revoke attempt, or `null`." },
+    teamGrantableRoles: { type: "readonly IamRole[]", description: "Roles a team can be granted on this resource kind." },
   }}
 />
 
 ```tsx
 const share = useShareFlow({
-  kind: "session",
-  id: sessionId,
-  resourceKind: ApiResourceKind.session,
+  kind: "agent",
+  id: agentId,
+  resourceKind: ApiResourceKind.agent,
 });
 
-// Render access list
-share.accessList.map(entry => ...);
-
-// Grant viewer access
-await share.grantAccess(userId, "viewer");
+await share.grant(personGrantee(accountId), IamRole.viewer);
+if (share.canShareWithTeams) {
+  await share.grant(teamGrantee(teamId), IamRole.viewer);
+}
+await share.revoke(teamGrantee(teamId));
 ```
 
 
@@ -447,13 +485,7 @@ const myId = account?.metadata?.id;
 
 ### GrantAccessForm
 
-Form for granting an organization member access to a resource.
-
-Lets the user pick a **person** from the org's member list (by name or
-email, disambiguating identity sources) via [`PrincipalPicker`](#principalpicker), choose
-a **role** from the resource's grantable roles, and creates the IAM policy
-binding. The resolved `identity_account` ID is carried internally — the user
-never types or sees raw account IDs.
+Form for granting a person or a team access to a resource.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -462,10 +494,11 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    excludePrincipalIds: { type: "readonly string[]", description: "Principal IDs that already have access (shown disabled in the picker)." },
+    excludeGrantees: { type: "readonly Grantee[]", description: "Grantees that already have access (shown disabled in the picker)." },
+    includeTeams: { type: "boolean", description: "Offer the organization's teams beside its people. Set it where the resource can be shared with a team (`useShareFlow().canShareWithTeams`)." },
     onCancel: { type: "() => void", description: "Fired when the user cancels." },
     onGranted: { type: "(policy: IamPolicy) => void", description: "Fired after a policy is successfully created." },
-    orgId: { type: "string", description: "Organization whose members can be granted access. Drives the PrincipalPicker typeahead.", required: true },
+    orgId: { type: "string", description: "Organization whose people (and teams) can be granted access. Drives the PrincipalPicker typeahead.", required: true },
     resourceId: { type: "string", description: "ID of the resource being granted access to.", required: true },
     resourceKind: { type: "ApiResourceKind", description: "Resource kind being granted access to. Determines which roles appear.", required: true },
     resourceKindString: { type: "string", description: "Resource kind string (e.g. \"organization\") for the API resource ref.", required: true },
@@ -474,11 +507,12 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ```tsx
 <GrantAccessForm
-  resourceKind={ApiResourceKind.organization}
-  resourceKindString="organization"
-  resourceId="org-abc123"
-  orgId="org-abc123"
-  onGranted={(policy) => refetchAccessList()}
+  resourceKind={ApiResourceKind.agent}
+  resourceKindString="agent"
+  resourceId={agentId}
+  orgId={orgId}
+  includeTeams={share.canShareWithTeams}
+  onGranted={() => share.refetch()}
   onCancel={() => setShowForm(false)}
 />
 ```
@@ -516,14 +550,12 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### PeopleWithAccess
 
-The "people with access" body shared by [`SharePanel`](#sharepanel) and the unified
-Manage access dialog: the list of principals with their roles, plus the
-inline grant form.
+The list of grantees with their roles, plus the inline grant form.
 
 Reading the access list requires `can_view_access`; this component assumes
 the caller has already gated rendering on it (e.g. via `PermissionGate` or
 a parent trigger). Mutations are gated here, in proportion to the action:
-the grant form and per-row revoke buttons render only behind
+the grant form and per-row remove buttons render only behind
 `can_grant_access`, so a viewer sees *who* has access without being offered
 controls the server would reject. The backend remains the enforcer.
 
@@ -531,8 +563,8 @@ On the open-source edition (`"local"`) a resource that is not an
 organization is never shared with individual people — the server's grant
 scope admits organizations only, and `checkMyPermission` answers
 `can_grant_access` false for everything else — so the body is one honest
-sentence naming the editions that do share per resource, never "0 people
-with access" with no controls. This is a facility question answered by
+sentence naming the editions that do share per resource, never "0 with
+access" with no controls. This is a facility question answered by
 deployment mode, the pattern `useDeploymentMode` documents; the tier
 question ("is IAM served?") is yes in every edition.
 
@@ -543,7 +575,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    orgId: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the org-member typeahead in the grant form.", required: true },
+    orgId: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the people-and-teams typeahead in the grant form.", required: true },
     resource: { type: "ShareFlowResource", description: "The resource whose access list is shown.", required: true, typeDescriptionLink: "#shareflowresource" },
     resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup.", required: true },
     resourceKindString: { type: "string", description: "Resource kind string for the API ref (e.g. \"agent\", \"session\").", required: true },
@@ -594,21 +626,7 @@ what the client renders.
 
 ### PrincipalPicker
 
-Accessible combobox for picking an organization member to share with.
-
-Replaces raw account-ID entry: users type a name or email and choose a
-person from the org's member list. Because email is not unique across
-identity sources, each candidate shows a [`ProviderBadge`](#providerbadge) so accounts
-that share an email (e.g. a direct account and a federated one) can be told
-apart. The resolved `identity_account` ID is carried internally — the user
-never sees it.
-
-Members who already have access are shown disabled, so the same person is
-not granted twice.
-
-Search is over the org member list the caller can already see
-(`listResourceAccessByPrincipal` on the organization), so it introduces no
-new account-enumeration surface.
+Accessible combobox for picking a person or a team to share with.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -616,12 +634,15 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    autoFocus: { type: "boolean", description: "Focus the search input on mount. Right where the picker opens on a deliberate click (the grant form); turn it off where the picker is always on screen, or it takes focus from the rest of the page." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disable the control." },
-    excludePrincipalIds: { type: "readonly string[]", description: "Principal IDs to hide/disable because they already have access." },
-    onChange: { type: "(principal: SelectedPrincipal | null) => void", description: "Fired when the selection changes.", required: true },
-    orgId: { type: "string", description: "Organization whose members are selectable.", required: true },
-    value: { type: "SelectedPrincipal | null", description: "Currently selected principal, or `null`. Controlled.", required: true },
+    excludeGrantees: { type: "readonly Grantee[]", description: "Grantees shown disabled because they already have access." },
+    includeTeams: { type: "boolean", description: "Offer the organization's teams beside its people. Set it where the resource can be shared with a team (`useShareFlow().canShareWithTeams`)." },
+    label: { type: "string", description: "The field's label. Defaults to \"Person\", or \"Person or team\" when teams are offered; a surface whose heading already names the act (a team's \"Members\") says what the field does instead, e.g. \"Add a person\"." },
+    onChange: { type: "(grantee: GranteeCandidate | null) => void", description: "Fired when the selection changes.", required: true },
+    orgId: { type: "string", description: "Organization whose people (and teams) are selectable.", required: true },
+    value: { type: "GranteeCandidate | null", description: "Currently selected grantee, or `null`. Controlled.", required: true },
   }}
 />
 
@@ -663,6 +684,7 @@ All visual properties flow through `--stgm-*` design tokens.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultRole: { type: "IamRole", description: "Initial role to select (uncontrolled mode)." },
     disabled: { type: "boolean", description: "Disable all role options." },
+    granteeKind: { type: "\"identity_account\" | \"team\"", description: "Who the role is for. A team is offered only the kind's team roles. Defaults to a person." },
     kind: { type: "ApiResourceKind | null", description: "The resource kind whose grantable roles to display.", required: true },
     onSelect: { type: "(role: IamRole) => void", description: "Fired when the user selects a role." },
     selected: { type: "IamRole | null", description: "Externally controlled selected role — makes this a controlled component." },
@@ -727,6 +749,11 @@ Options for [`useCheckPermission`](#usecheckpermission).
 />
 
 
+### GranteeCandidate
+
+A person or a team the share can be granted to, discriminated by `kind`.
+
+
 ### PermissionCheckResource
 
 Resource reference for permission checks.
@@ -735,6 +762,21 @@ Resource reference for permission checks.
   type={{
     id: { type: "string", description: "Resource ID.", required: true },
     kind: { type: "string", description: "Resource kind (e.g. \"agent\", \"session\").", required: true },
+  }}
+/>
+
+
+### PersonCandidate
+
+A person the share can be granted to.
+
+<TypeTable
+  type={{
+    email: { type: "string", description: "Email address, when known.", required: true },
+    grantee: { type: "Grantee", description: "", required: true },
+    kind: { type: "\"identity_account\"", description: "", required: true },
+    name: { type: "string", description: "Display name, falling back to email, then id.", required: true },
+    view: { type: "ApiResourceRefView", description: "The full view, for the provider badge and avatar.", required: true },
   }}
 />
 
@@ -780,18 +822,9 @@ A single role option with display metadata.
 />
 
 
-### SelectedPrincipal
+### SelectedGrantee
 
-A principal selected through [`PrincipalPicker`](#principalpicker).
-
-<TypeTable
-  type={{
-    email: { type: "string", description: "Email address, if known.", required: true },
-    id: { type: "string", description: "identity_account ID (`ida_...`).", required: true },
-    name: { type: "string", description: "Display name (falls back to email, then ID).", required: true },
-    view: { type: "ApiResourceRefView", description: "Full view for richer rendering (avatar, provider).", required: true },
-  }}
-/>
+A grantee selected through [`PrincipalPicker`](#principalpicker).
 
 
 ### ShareFlowResource
@@ -803,6 +836,33 @@ Identifies a resource for the share flow.
     id: { type: "string", description: "Resource ID.", required: true },
     kind: { type: "string", description: "Resource kind string (e.g. \"agent\", \"session\").", required: true },
     resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup." },
+  }}
+/>
+
+
+### TeamCandidate
+
+A team the share can be granted to.
+
+<TypeTable
+  type={{
+    description: { type: "string", description: "The team's description, possibly empty.", required: true },
+    grantee: { type: "Grantee", description: "", required: true },
+    kind: { type: "\"team\"", description: "", required: true },
+    name: { type: "string", description: "The team's name.", required: true },
+    team: { type: "Team", description: "The full resource.", required: true },
+  }}
+/>
+
+
+### UseGranteeCandidatesOptions
+
+Options for [`useGranteeCandidates`](#usegranteecandidates).
+
+<TypeTable
+  type={{
+    includeTeams: { type: "boolean", description: "Offer the organization's teams too. Pass `false` where teams cannot be granted.", required: true },
+    orgId: { type: "string | null", description: "The organization whose people (and teams) are offered, or `null` to skip.", required: true },
   }}
 />
 

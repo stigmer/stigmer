@@ -28,6 +28,7 @@ from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
 from ._subscription import SubscriptionClient, SubscriptionInput
+from ._team import TeamClient, TeamInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput, WorkflowBudgetInput
 from ._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
 from ._workflowinstance import WorkflowInstanceClient, WorkflowInstanceInput
@@ -144,6 +145,8 @@ __all__ = [
     "SkillInput",
     "SubscriptionClient",
     "SubscriptionInput",
+    "TeamClient",
+    "TeamInput",
     "WorkflowClient",
     "WorkflowInput",
     "WorkflowDocumentInput",

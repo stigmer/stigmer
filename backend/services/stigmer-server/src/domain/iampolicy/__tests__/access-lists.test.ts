@@ -7,15 +7,19 @@
  * resolver answers and rendered as kind/id with the id as its name
  * everywhere else (the Java PrincipalEnricher fallback). Moved from the
  * cloud's iam/policy/access-lists.ts; the arms below are the Java
- * contract read from that file.
+ * contract read from that file. A grantee that is not a person (a team)
+ * is named by the composed principal display, one call per kind, keyed by
+ * kind and id so one kind's view never names another kind's id.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
+import type { PrincipalDisplay } from "../../../extensions/principal-display.js";
 import { buildPrincipalAccessList, resolveHierarchy } from "../access-lists.js";
 import type { PrincipalDisplayResolver } from "../access-lists.js";
 import { policyIdFor } from "../constants.js";
@@ -139,7 +143,7 @@ describe("buildPrincipalAccessList", () => {
       ),
     );
     expect(
-      await buildPrincipalAccessList(store, nobody, [
+      await buildPrincipalAccessList(store, nobody, undefined, [
         { kind: "agent", id: "a1" },
       ]),
     ).toEqual([]);
@@ -150,7 +154,7 @@ describe("buildPrincipalAccessList", () => {
     await store.save(row(orgRole("ida_bob", "member", "acme")));
     await store.save(row(orgRole("ida_alice", "owner", "acme")));
     await store.save(row(orgRole("ida_bob", "viewer", "acme")));
-    const entries = await buildPrincipalAccessList(store, nobody, [
+    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
       { kind: "organization", id: "acme" },
     ]);
     expect(entries.map((e) => e.principal?.id)).toEqual([
@@ -167,7 +171,7 @@ describe("buildPrincipalAccessList", () => {
   it("marks grants from a parent level as inherited and names the owning level", async () => {
     const store = fakeIamPolicyStore();
     await store.save(row(orgRole("ida_alice", "admin", "acme")));
-    const entries = await buildPrincipalAccessList(store, nobody, [
+    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
       { kind: "agent", id: "a1" },
       { kind: "organization", id: "acme" },
     ]);
@@ -190,7 +194,7 @@ describe("buildPrincipalAccessList", () => {
         }),
       ),
     );
-    const entries = await buildPrincipalAccessList(store, nobody, [
+    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
       { kind: "organization", id: "acme" },
     ]);
     expect(
@@ -228,11 +232,121 @@ describe("buildPrincipalAccessList", () => {
         );
       },
     };
-    const entries = await buildPrincipalAccessList(store, resolver, [
+    const entries = await buildPrincipalAccessList(store, resolver, undefined, [
       { kind: "organization", id: "acme" },
     ]);
     expect(asked).toEqual([["ida_alice", "ida_bob"]]);
     expect(entries.map((e) => e.principal?.name)).toEqual(["Alice", "ida_bob"]);
     expect(entries[0]?.principal?.email).toBe("alice@example.com");
+  });
+
+  it("names a team grantee through the composed principal display, once per kind, and never lends one kind's view to another kind's id", async () => {
+    const store = fakeIamPolicyStore();
+    // A person and a team that share an id string: the views must not cross.
+    await store.save(row(orgRole("shared_1", "viewer", "acme")));
+    await store.save(
+      row(
+        triple({ kind: "team", id: "shared_1", relation: "member" }, "viewer", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    );
+    await store.save(
+      row(
+        triple({ kind: "team", id: "tm_gone", relation: "member" }, "viewer", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    );
+    const asked: Array<[ApiResourceKind, string[]]> = [];
+    const teams: PrincipalDisplay = {
+      resolve: (kind, ids) => {
+        asked.push([kind, [...ids]]);
+        return Promise.resolve(
+          new Map([
+            [
+              "shared_1",
+              create(ApiResourceRefViewSchema, {
+                kind: "team",
+                id: "shared_1",
+                name: "Site Reliability",
+              }),
+            ],
+          ]),
+        );
+      },
+    };
+    const entries = await buildPrincipalAccessList(store, nobody, teams, [
+      { kind: "organization", id: "acme" },
+    ]);
+    expect(asked).toEqual([[ApiResourceKind.team, ["shared_1", "tm_gone"]]]);
+    expect(entries.map((e) => [e.principal?.kind, e.principal?.name])).toEqual([
+      ["identity_account", "shared_1"],
+      ["team", "Site Reliability"],
+      // A team the display does not know (deleted since) keeps the fallback.
+      ["team", "tm_gone"],
+    ]);
+  });
+
+  it("names every grantee with the relation qualifier its rows hold, and never merges two qualifiers of one grantee", async () => {
+    const store = fakeIamPolicyStore();
+    const agent = { kind: "agent", id: "agt_1" };
+    await store.save(
+      row(
+        triple({ kind: "identity_account", id: "ida_alice" }, "viewer", agent),
+      ),
+    );
+    await store.save(
+      row(
+        triple(
+          { kind: "team", id: "tm_sre", relation: "member" },
+          "viewer",
+          agent,
+        ),
+      ),
+    );
+    // Not a shape the grant step admits today; the grouping must still
+    // keep a second qualifier apart so its revoke names the right row.
+    await store.save(
+      row(
+        triple(
+          { kind: "team", id: "tm_sre", relation: "maintainer" },
+          "viewer",
+          agent,
+        ),
+      ),
+    );
+    const teams: PrincipalDisplay = {
+      resolve: () =>
+        Promise.resolve(
+          new Map([
+            [
+              "tm_sre",
+              create(ApiResourceRefViewSchema, {
+                kind: "team",
+                id: "tm_sre",
+                name: "SRE",
+              }),
+            ],
+          ]),
+        ),
+    };
+    const entries = await buildPrincipalAccessList(store, nobody, teams, [
+      agent,
+    ]);
+    expect(
+      entries.map((e) => [
+        e.principal?.kind,
+        e.principal?.id,
+        e.principal?.relation,
+        e.principal?.name,
+      ]),
+    ).toEqual([
+      ["identity_account", "ida_alice", "", "ida_alice"],
+      ["team", "tm_sre", "member", "SRE"],
+      ["team", "tm_sre", "maintainer", "SRE"],
+    ]);
   });
 });

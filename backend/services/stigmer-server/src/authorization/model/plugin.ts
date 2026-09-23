@@ -5,7 +5,9 @@
  * the org's members and viewers and the platform viewer. Its verbs are the blueprint set: `can_view`, `can_edit`
  * (visibility), `can_delete` (uninstall), `can_grant_access`,
  * `can_view_access`; `can_use` is carried as the model's word for
- * "install from" though no wire permission names it yet.
+ * "install from" though no wire permission names it yet. `team#member` on
+ * `viewer` is the Enterprise team grant, which no open-source tuple ever
+ * names.
  *
  * The members a plugin materialises are NOT reached through this type:
  * each is an ordinary skill, MCP server, agent or workflow with its own
@@ -48,6 +50,7 @@ export const pluginDeclaration = declareKind({
           objectOf("identity_account"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
+          usersetOf("team", "member"),
         ),
         computed("owner"),
         computed("platform_viewer"),

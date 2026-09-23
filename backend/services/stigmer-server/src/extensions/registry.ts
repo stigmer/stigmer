@@ -60,6 +60,7 @@ import type { LicenseStatusProvider } from "./license-status.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
+import type { PrincipalDisplay } from "./principal-display.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
@@ -289,6 +290,11 @@ export interface ResolvedExtensionDrivers {
    */
   readonly authorizationQueries: AuthorizationQueryEngine | undefined;
   /**
+   * The principal display — undefined = an access list names a grantee
+   * that is not a person by its id (the fallback shape).
+   */
+  readonly principalDisplay: PrincipalDisplay | undefined;
+  /**
    * The license-status provider — undefined = compose.ts installs the
    * built-in `absent` answer, so every edition serves getLicenseStatus.
    */
@@ -367,6 +373,8 @@ export function resolveExtensions(
   let policyGrantScopeDeclaredBy: string | undefined;
   let authorizationQueries: AuthorizationQueryEngine | undefined;
   let authorizationQueriesDeclaredBy: string | undefined;
+  let principalDisplay: PrincipalDisplay | undefined;
+  let principalDisplayDeclaredBy: string | undefined;
   let licenseStatus: LicenseStatusProvider | undefined;
   let licenseStatusDeclaredBy: string | undefined;
   let outboundEgress: OutboundEgressPolicy | undefined;
@@ -568,6 +576,16 @@ export function resolveExtensions(
       authorizationQueriesDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.principalDisplay !== undefined) {
+      if (principalDisplayDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a PrincipalDisplay, but '${principalDisplayDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      principalDisplay = unit.drivers.principalDisplay;
+      principalDisplayDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.licenseStatus !== undefined) {
       if (licenseStatusDeclaredBy !== undefined) {
         throw new Error(
@@ -748,6 +766,7 @@ export function resolveExtensions(
       iamPolicyStore,
       policyGrantScope,
       authorizationQueries,
+      principalDisplay,
       licenseStatus,
       outboundEgress,
       platformClientStore,

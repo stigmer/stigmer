@@ -72,6 +72,7 @@
   --color-secondary-foreground: var(--stgm-secondary-foreground);
   --color-muted: var(--stgm-muted);
   --color-muted-foreground: var(--stgm-muted-foreground);
+  --color-avatar: var(--stgm-avatar);
   --color-accent: var(--stgm-accent);
   --color-accent-foreground: var(--stgm-accent-foreground);
   --color-destructive: var(--stgm-destructive);

@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.team.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/iam/team/v1/api.proto";
+
+// TeamCommandController provides write operations for teams.
+//
+// Membership is not written here: a person joins a team when they are granted
+// the member role on it, through the IAM policy service, like any other grant.
+//
+// @internal
+// Served by the Enterprise and Cloud editions; the open-source server
+// registers no Team service.
+service TeamCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = team;
+
+  // Create a team in an organization.
+  //
+  // @internal
+  // Authorization: can_create_team on the organization (admin).
+  rpc create(Team) returns (Team) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_team;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create team in this organization";
+  }
+
+  // Update a team's name or description.
+  //
+  // @internal
+  // Authorization: can_edit on the team (the organization's admins).
+  rpc update(Team) returns (Team) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = team;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update team";
+  }
+
+  // Delete a team.
+  //
+  // Deleting a team removes its memberships and every share made with it.
+  //
+  // @internal
+  // Authorization: can_delete on the team (the organization's admins). The
+  // team's policies die as target and as principal through the resource
+  // lifecycle's delete cleanup.
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (Team) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = team;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete team";
+  }
+}

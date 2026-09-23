@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.team.v1;
+
+import "ai/stigmer/iam/team/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// Teams contains a list of team resources.
+message Teams {
+  // Team entries.
+  repeated Team entries = 1;
+}
+
+// ListTeamsByOrgInput names the organization whose teams are listed.
+message ListTeamsByOrgInput {
+  // Organization slug to list teams for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}

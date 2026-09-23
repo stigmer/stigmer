@@ -480,6 +480,9 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       "agent-execution-create:pre-side-effect-gate",
       "agent-execution-recover:pre-side-effect-gate",
       "agent-execution-submit-approval:gate",
+      // The eighth: the IamPolicy create chain before the write, where an
+      // edition that serves teams refuses a team it cannot admit.
+      "iam-policy-create:pre-side-effect-gate",
       // 20260911.11 Q-IA-9: the seventh ratified slot — after the account
       // persists inside provisionMyAccount, before the reply (the cloud's
       // personal-organization ensure and backfill ride it).

@@ -12,6 +12,8 @@
  * share-link visitor; no open-source lane mints one (claim check C5), so
  * the relation resolves to nothing and `can_create_session: member or
  * guest` is `member` here — the transcript still carries the line.
+ * `can_create_team` is carried the same way: open source serves no Team
+ * kind, so nothing here asks it.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -48,6 +50,7 @@ export const organizationDeclaration = declareKind({
     ["can_create_execution_in", union(computed("member"), computed("guest"))],
     ["can_create_agent_share", computed("admin")],
     ["can_create_agent_instance", computed("member")],
+    ["can_create_team", computed("admin")],
     ["can_grant_access", computed("admin")],
     ["can_view_access", computed("viewer")],
     ["can_view_billing", computed("viewer")],

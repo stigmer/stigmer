@@ -1,6 +1,6 @@
 /**
  * The evaluator — OpenFGA's check, over the built-in model and a tuple
- * source, small because the model uses four rewrite forms and nothing
+ * source, small because the model uses five rewrite forms and nothing
  * else (model/rewrite.ts). `checkRelation(object, relation, person)`
  * answers "does this person hold this relation on this object" the way
  * the cloud's engine answers it over stored tuples, so the two editions
@@ -20,6 +20,9 @@
  *   - `union`: the first true member wins; members are tried in the
  *     line's order, so the cheap arms the model lists first (the person's
  *     own owner tuple) are read before the hops.
+ *   - `intersection`: every member must hold; the first false member ends
+ *     the walk, so the direct arm the line lists first (the person's own
+ *     row) is read before the hop that bounds it.
  *
  * Bounds and faults. Every (object, relation) pair is resolved once per
  * check (the memo — a diamond such as `owner` reached through `viewer`
@@ -186,6 +189,14 @@ class Walk {
           }
         }
         return false;
+      }
+      case "intersection": {
+        for (const member of rewrite.members) {
+          if (!(await this.evaluate(member, object, relation, depth))) {
+            return false;
+          }
+        }
+        return true;
       }
       default: {
         const exhaustive: never = rewrite;

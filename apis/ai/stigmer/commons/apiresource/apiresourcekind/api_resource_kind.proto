@@ -275,6 +275,33 @@ enum ApiResourceKind {
     }
   }];
 
+  // IAM - Teams
+
+  // Named group of an organization's people that access is shared with as one.
+  team = 24 [(kind_meta) = {
+    group: iam
+    version: v1
+    name: "Team"
+    display_name: "Team"
+    id_prefix: "tm"
+    is_versioned: false
+    not_search_indexed: true
+    // Grouping people so access is shared with a team rather than person by
+    // person is fine-grained control a security team asks for; the
+    // open-source edition shares with people and with the whole
+    // organization.
+    tier: enterprise
+    authorization: {
+      // A team belongs to its organization; its membership is bounded by
+      // the organization's membership in the model.
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      // No owner: a team is the organization's, managed by its
+      // administrators. The creator is recorded in the audit trail.
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      grantable_roles: [member]
+    }
+  }];
+
   // Tenancy - Platform and organizational resources
 
   // Top-level tenant that owns and manages resources.
@@ -351,6 +378,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -417,6 +445,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -442,6 +471,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -473,6 +503,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -519,6 +550,10 @@ enum ApiResourceKind {
       // conversations without config authority. Grantable here only.
       grantable_roles: [
         owner,
+        viewer,
+        participant
+      ]
+      team_grantable_roles: [
         viewer,
         participant
       ]
@@ -580,6 +615,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -612,6 +648,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -646,6 +683,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -699,6 +737,9 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      // No team_grantable_roles: every organization viewer already reads
+      // every artifact (`viewer from organization`), and a team's members
+      // are organization viewers, so a team grant here would add nothing.
     }
   }];
 
@@ -740,6 +781,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 
@@ -811,6 +853,7 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      team_grantable_roles: [viewer]
     }
   }];
 

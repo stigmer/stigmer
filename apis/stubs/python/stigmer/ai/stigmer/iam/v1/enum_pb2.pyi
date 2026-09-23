@@ -46,6 +46,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_issue_license: _ClassVar[IamPermission]
     can_create_mcp_server: _ClassVar[IamPermission]
     can_create_agent_instance: _ClassVar[IamPermission]
+    can_create_team: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -95,6 +96,7 @@ can_manage_plans: IamPermission
 can_issue_license: IamPermission
 can_create_mcp_server: IamPermission
 can_create_agent_instance: IamPermission
+can_create_team: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

@@ -272,7 +272,7 @@ describe("the one writer is the one gate: nothing is read, written or notified f
     "admin",
     { kind: "organisation", id: "acme" },
   );
-  const unknownPrincipal = triple({ kind: "team", id: "tm_1" }, "viewer", {
+  const unknownPrincipal = triple({ kind: "group", id: "grp_1" }, "viewer", {
     kind: "agent",
     id: AGENT,
   });
@@ -280,7 +280,7 @@ describe("the one writer is the one gate: nothing is read, written or notified f
     kind: "organization",
     id: "acme#admin",
   });
-  const bothUnknown = triple({ kind: "team", id: "tm_1" }, "admin", {
+  const bothUnknown = triple({ kind: "group", id: "grp_1" }, "admin", {
     kind: "organisation",
     id: "acme",
   });
@@ -290,7 +290,7 @@ describe("the one writer is the one gate: nothing is read, written or notified f
     const { policies, path } = pathOver(recorded, recordingLifecycle(recorded));
     const refusals: ReadonlyArray<[IamPolicySpec, string]> = [
       [unknownResource, unknownResourceKindMessage("organisation")],
-      [unknownPrincipal, unknownPrincipalKindMessage("team")],
+      [unknownPrincipal, unknownPrincipalKindMessage("group")],
       [malformed, malformedTripleMessage("resource.id")],
       [bothUnknown, unknownResourceKindMessage("organisation")],
     ];

@@ -23,9 +23,12 @@
  *     annotation-driven check; the wire-kind refusals on every lane;
  *   - get loads before it authorizes (NOT_FOUND with no Authorizer call;
  *     the row's kind and id as the target); delete authorizes before it
- *     loads; create validates the role before it writes.
+ *     loads; create validates the role before it writes, then runs the
+ *     `iam-policy-create:pre-side-effect-gate` slot, whose refusal leaves
+ *     no row; bootstrapPolicy never runs that slot.
  */
 import { create } from "@bufbuild/protobuf";
+import type { DescMessage } from "@bufbuild/protobuf";
 import {
   Code,
   ConnectError,
@@ -59,6 +62,7 @@ import type {
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { PolicyGrantScope } from "../../../extensions/policy-grant-scope.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
+import type { PipelineStep } from "../../../pipeline/pipeline.js";
 import {
   callerIdentityKey,
   trustedLocalIdentityFor,
@@ -186,6 +190,7 @@ async function harness(options: {
   engine?: boolean;
   edition?: ServerEdition;
   scope?: PolicyGrantScope;
+  createGate?: PipelineStep<DescMessage>;
 }): Promise<Harness> {
   const policies = fakeIamPolicyStore();
   const accounts = fakeIdentityAccountStore();
@@ -226,6 +231,17 @@ async function harness(options: {
         authorizer,
         grantScope: options.scope ?? newOrganizationOnlyGrantScope(),
         queries: engine,
+        principalDisplay: undefined,
+        gateSteps: new Map(
+          options.createGate === undefined
+            ? []
+            : [
+                [
+                  "iam-policy-create:pre-side-effect-gate",
+                  [options.createGate],
+                ],
+              ],
+        ),
         edition: options.edition ?? ServerEdition.oss,
         logger: silent,
       });
@@ -876,6 +892,44 @@ describe("the write lanes' order", () => {
     expect(error.rawMessage).toBe(
       roleNotGrantableMessage("admin", "organization", ["viewer"]),
     );
+  });
+
+  it("create runs the iam-policy-create gate slot after the role check and before the write; a refusing gate leaves no row", async () => {
+    const seen: string[] = [];
+    const refusingGate: PipelineStep<DescMessage> = {
+      name: "RefuseForTest",
+      execute() {
+        seen.push("gate");
+        throw new ConnectError("refused by the gate", Code.FailedPrecondition);
+      },
+    };
+    const h = await harness({ caller: alice, createGate: refusingGate });
+    // A role the step refuses never reaches the gate.
+    await refusal(() => h.command.create(orgRole(ALICE_ID, "editor", "acme")));
+    expect(seen).toEqual([]);
+    const error = await refusal(() =>
+      h.command.create(orgRole(ALICE_ID, "member", "acme")),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe("refused by the gate");
+    expect(seen).toEqual(["gate"]);
+    expect(h.policies.rows.size).toBe(0);
+  });
+
+  it("bootstrapPolicy, the platform's structural lane, never runs the create gate slot", async () => {
+    const seen: string[] = [];
+    const h = await harness({
+      caller: internal,
+      createGate: {
+        name: "RecordForTest",
+        execute() {
+          seen.push("gate");
+        },
+      },
+    });
+    await h.command.bootstrapPolicy(orgRole(ALICE_ID, "member", "acme"));
+    expect(seen).toEqual([]);
+    expect(h.policies.rows.size).toBe(1);
   });
 });
 

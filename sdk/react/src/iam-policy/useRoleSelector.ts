@@ -5,9 +5,11 @@ import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apireso
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import {
   getGrantableRoles,
+  getTeamGrantableRoles,
   iamRoleDisplayName,
   iamRoleDescription,
   iamRoleToString,
+  type GranteeKind,
 } from "@stigmer/sdk";
 
 /** A single role option with display metadata. */
@@ -48,6 +50,8 @@ export interface UseRoleSelectorReturn {
  *
  * @param kind - The resource kind to show grantable roles for, or `null`.
  * @param defaultRole - Optional initial selection.
+ * @param granteeKind - Who the role is for: a person (the default) may
+ *   hold any grantable role, a team only the kind's team roles.
  *
  * @example
  * ```tsx
@@ -63,6 +67,7 @@ export interface UseRoleSelectorReturn {
 export function useRoleSelector(
   kind: ApiResourceKind | null,
   defaultRole?: IamRole,
+  granteeKind: GranteeKind = "identity_account",
 ): UseRoleSelectorReturn {
   const [selected, setSelected] = useState<IamRole | null>(
     defaultRole ?? null,
@@ -70,13 +75,15 @@ export function useRoleSelector(
 
   const options = useMemo<readonly RoleOption[]>(() => {
     if (kind === null) return [];
-    return getGrantableRoles(kind).map((role) => ({
+    const roles =
+      granteeKind === "team" ? getTeamGrantableRoles(kind) : getGrantableRoles(kind);
+    return roles.map((role) => ({
       role,
       label: iamRoleDisplayName(role),
       description: iamRoleDescription(role),
       value: iamRoleToString(role),
     }));
-  }, [kind]);
+  }, [kind, granteeKind]);
 
   const selectedValue = useMemo(
     () => (selected !== null ? iamRoleToString(selected) : ""),
@@ -86,12 +93,15 @@ export function useRoleSelector(
   const select = useCallback((role: IamRole) => setSelected(role), []);
   const clear = useCallback(() => setSelected(null), []);
 
-  return {
-    options,
-    selected,
-    selectedValue,
-    select,
-    clear,
-    hasOptions: options.length > 0,
-  };
+  return useMemo(
+    () => ({
+      options,
+      selected,
+      selectedValue,
+      select,
+      clear,
+      hasOptions: options.length > 0,
+    }),
+    [options, selected, selectedValue, select, clear],
+  );
 }

@@ -34,6 +34,15 @@
  * Non-transactional in the `org-create:post-persist` sense: a gate
  * failure fails the request, the row survives, the next call heals.
  *
+ * The eighth, `iam-policy-create:pre-side-effect-gate`: the IamPolicy
+ * `create` chain (the user grant lane), after ValidateGrantableRole and
+ * before Grant, so nothing is written when a gate refuses. It exists for
+ * the checks a grant needs that take a read, which the synchronous grant
+ * scope may not make: the Enterprise and Cloud editions refuse a team
+ * that does not exist, a team of another organization than the granted
+ * resource, and a team member who is not one of the organization's
+ * viewers. Never on `bootstrapPolicy`, the platform's structural lane.
+ *
  * Two enforcement layers, deliberately redundant, both derived from the
  * ONE literal tuple below (lockstep by construction):
  *   - GateSlotName (compile time): the union of declared slot literals.
@@ -71,6 +80,7 @@ export const GATE_SLOT_NAMES = [
   "org-create:post-persist",
   "sandbox-acquisition:gate",
   "identity-account-provision:post-persist",
+  "iam-policy-create:pre-side-effect-gate",
 ] as const;
 
 /** The declared slot-name union — a registration outside it fails tsc. */

@@ -23,6 +23,8 @@ export interface KindMetaEntry {
   enumNumber: number;
   tier: ResourceTier;
   grantableRoles: number[];
+  /** The roles a team may be granted on the kind (a subset of grantableRoles). */
+  teamGrantableRoles: number[];
 }
 
 /** kind_meta.name → kind_meta.id_prefix (port of buildIdPrefixMap). */
@@ -48,6 +50,7 @@ for (const value of ApiResourceKindSchema.values) {
     enumNumber: value.number,
     tier: meta.tier,
     grantableRoles: meta.authorization?.grantableRoles ?? [],
+    teamGrantableRoles: meta.authorization?.teamGrantableRoles ?? [],
   });
 }
 

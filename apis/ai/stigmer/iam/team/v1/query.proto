@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.team.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/iam/team/v1/api.proto";
+import "ai/stigmer/iam/team/v1/io.proto";
+
+// TeamQueryController provides read operations for teams.
+//
+// Every member of an organization can see its teams, so anyone who can share
+// a resource can pick a team to share it with. Who is in a team is read
+// through the IAM policy service's access list on the team.
+//
+// @internal
+// Served by the Enterprise and Cloud editions; the open-source server
+// registers no Team service.
+service TeamQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = team;
+
+  // Get a team by its unique identifier.
+  //
+  // @internal
+  // Authorization: can_view on the team (every organization viewer).
+  rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (Team) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = team;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view team";
+  }
+
+  // Get a team by its organization-scoped reference (org/slug).
+  //
+  // @internal
+  // The request carries a slug, not an id, so the handler resolves the
+  // reference first and then authorizes can_view on the resolved team, the
+  // check get makes.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Team) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List the teams of an organization.
+  //
+  // @internal
+  // Authorization: can_view on the organization. Every organization viewer
+  // sees every team, so the list needs no per-row scope.
+  rpc listByOrg(ListTeamsByOrgInput) returns (Teams) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list teams in this organization";
+  }
+}

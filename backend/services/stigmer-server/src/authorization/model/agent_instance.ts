@@ -6,7 +6,8 @@
  * viewer set (`viewer from default_of`; default-of.ts). `agent` is the
  * parent link written on every instance for tracking and walked by
  * nothing; `default_of` is the derived link written on the default
- * instance alone.
+ * instance alone. `team#member` on `viewer` is the Enterprise team grant,
+ * which no open-source tuple ever names.
  */
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
@@ -39,6 +40,7 @@ export const agentInstanceDeclaration = declareKind({
           objectOf("identity_account"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
+          usersetOf("team", "member"),
         ),
         computed("owner"),
         from("viewer", "default_of"),

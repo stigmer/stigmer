@@ -36,7 +36,9 @@
  * console and SDK show these sentences verbatim, so they are contract. The
  * new sentences are the two edition refusals (the federation shape), the
  * unknown permission, the unknown principal kind (the resource sentence's
- * shape) and the malformed triple.
+ * shape), the malformed triple, and the four principal refusals a team
+ * grantee brought (a person's qualifier, a team's qualifier, a kind no
+ * team may be granted, a role a team may not hold).
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
@@ -157,8 +159,8 @@ export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
 /**
  * The principal kinds a PERSON may grant a role to — the user `create`
  * lane's grantee vocabulary (2026-09-14, session 9 ruling Q-S9-2; the
- * security read's finding 41). A role names a person, so the one grantee
- * is the identity account. A row whose principal is a RESOURCE
+ * security read's finding 41): a person (the identity account) and a team
+ * of people. A row whose principal is a RESOURCE
  * (`organization:A#organization@platform_client:X`, `#managed_org`) is a
  * structural link, and structural links are `bootstrapPolicy`'s — the
  * platform's own lane, which skips role validation by design.
@@ -169,13 +171,26 @@ export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
  * two cannot drift), and the hierarchy walk follows it. Without the arm, a
  * person with `can_grant_access` on organization B could write
  * `organization:A#member@organization:B` and B's Members page, asked for
- * inherited access, would list A's people. The cloud's `create` had the
- * same gap; the store's exclusion also keeps the cloud's Java-era `team`,
- * which is not an ApiResourceKind and so no wire spec can name.
+ * inherited access, would list A's people.
+ *
+ * Each kind grants through its own list: a person the kind's
+ * `grantable_roles`, a team its `team_grantable_roles`, always as the
+ * team's members (`TEAM_MEMBERS_RELATION`). A kind that lists no team role
+ * — `organization` among them, so open source's organization-only scope —
+ * grants a team nothing.
  */
 export const USER_GRANT_PRINCIPAL_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.identity_account,
+  ApiResourceKind.team,
 ];
+
+/**
+ * The one relation a team principal names: the team's members. A grant to
+ * `team:<id>#member` is a grant to every member, and membership is bounded
+ * by organization membership in the model, so leaving the organization
+ * ends the grant with no cleanup.
+ */
+export const TEAM_MEMBERS_RELATION = "member";
 
 // ---------------------------------------------------------------------------
 // Byte-pinned copy (the cloud handlers' sentences, moved as-is).
@@ -247,6 +262,35 @@ export function unknownPrincipalKindMessage(kind: string): string {
 export function principalNotGrantableMessage(kind: string): string {
   const grantable = USER_GRANT_PRINCIPAL_KINDS.map((k) => kindEnumName(k));
   return `Principal kind '${kind}' cannot be granted a role. Grantable principal kinds: [${grantable.join(", ")}]`;
+}
+
+/**
+ * A person principal carrying a relation qualifier (INVALID_ARGUMENT). A
+ * person is granted a role directly; `identity_account:<id>#<relation>`
+ * names no one, and OpenFGA would refuse the tuple after the row was
+ * written.
+ */
+export function personQualifierMessage(relation: string): string {
+  return `Principal kind 'identity_account' takes no relation; got '${relation}'`;
+}
+
+/** A team principal naming a relation other than its members (INVALID_ARGUMENT). */
+export function teamQualifierMessage(relation: string): string {
+  return `A team principal must name the relation '${TEAM_MEMBERS_RELATION}' (the team's members); got '${relation}'`;
+}
+
+/** A team grant on a kind that lists no team role (INVALID_ARGUMENT). */
+export function teamNotGrantableMessage(kind: string): string {
+  return `A team cannot be granted access to resource kind '${kind}'.`;
+}
+
+/** A team grant of a role the kind does not let a team hold (INVALID_ARGUMENT); the list in kind_meta order. */
+export function teamRoleNotGrantableMessage(
+  role: string,
+  kind: string,
+  grantable: ReadonlyArray<string>,
+): string {
+  return `Role '${role}' cannot be granted to a team on resource kind '${kind}'. Roles a team can hold: [${grantable.join(", ")}]`;
 }
 
 /** A triple field holding a canonical-text delimiter (INVALID_ARGUMENT; Q-S2-1). */

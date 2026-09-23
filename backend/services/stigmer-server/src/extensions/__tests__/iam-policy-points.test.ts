@@ -15,6 +15,9 @@
  *     contextual checkMyPermission refuse UNIMPLEMENTED with the edition
  *     reason (the domain suite pins the refusal; this file pins the
  *     registry);
+ *   - `drivers.principalDisplay` — how an access list names a grantee
+ *     that is not a person (a team); single instance; absent = the id
+ *     fallback shape;
  *   - `ResourceAuthorizationLifecycle` gains the OPTIONAL `onPolicyGranted`
  *     and `onPolicyRevoked` (Q7 i): a unit's lifecycle that carries them
  *     resolves through the existing single-instance point with both hooks
@@ -26,6 +29,7 @@ import { describe, expect, it } from "vitest";
 import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
 import type { AuthorizationQueryEngine } from "../authorization-queries.js";
 import type { PolicyGrantScope } from "../policy-grant-scope.js";
+import type { PrincipalDisplay } from "../principal-display.js";
 import { resolveExtensions } from "../registry.js";
 import type { ResourceAuthorizationLifecycle } from "../resource-authorization.js";
 
@@ -121,6 +125,32 @@ describe("the authorizationQueries capability point", () => {
       ]),
     ).toThrowError(
       /extension 'engine-b' registers an AuthorizationQueryEngine, but 'engine-a' already did/,
+    );
+  });
+});
+
+describe("the principalDisplay driver point", () => {
+  const display: PrincipalDisplay = { resolve: unimplemented };
+
+  it("is undefined with no extensions — a non-person grantee renders by its id", () => {
+    expect(resolveExtensions([]).drivers.principalDisplay).toBeUndefined();
+  });
+
+  it("carries the one registered instance through", () => {
+    const resolved = resolveExtensions([
+      { name: "cloud-iam", drivers: { principalDisplay: display } },
+    ]);
+    expect(resolved.drivers.principalDisplay).toBe(display);
+  });
+
+  it("throws on a second registration, naming both units", () => {
+    expect(() =>
+      resolveExtensions([
+        { name: "display-a", drivers: { principalDisplay: display } },
+        { name: "display-b", drivers: { principalDisplay: display } },
+      ]),
+    ).toThrowError(
+      /extension 'display-b' registers a PrincipalDisplay, but 'display-a' already did/,
     );
   });
 });

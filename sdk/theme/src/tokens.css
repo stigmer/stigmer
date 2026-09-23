@@ -44,6 +44,11 @@
   --stgm-muted: oklch(0.94 0 0);
   /* Supporting text (captions, timestamps, the Thinking indicator). */
   --stgm-muted-foreground: oklch(0.5 0 0);
+  /* Avatar circle behind a person's initial or a team's glyph. Distinct from
+     --stgm-muted because an avatar sits on cards, dialogs and menus, where a
+     muted fill can equal the surface; the contrast contract holds it apart
+     from each in dark mode. */
+  --stgm-avatar: oklch(0.94 0 0);
   /* Hover/selection fill for menu items and list rows. */
   --stgm-accent: oklch(0.94 0 0);
   /* Text on accent-filled elements. */
@@ -265,6 +270,7 @@
   --stgm-secondary-foreground: oklch(0.985 0 0);
   --stgm-muted: oklch(0.269 0 0);
   --stgm-muted-foreground: oklch(0.75 0 0);
+  --stgm-avatar: oklch(0.34 0 0);
   --stgm-accent: oklch(0.371 0 0);
   --stgm-accent-foreground: oklch(0.985 0 0);
   /* Dark fills are lightened, so their foregrounds flip to near-black

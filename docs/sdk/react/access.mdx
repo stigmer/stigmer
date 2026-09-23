@@ -117,6 +117,8 @@ Each section renders only when it applies:
 - **People with access** — only when the resource kind has grantable roles
   (`hasGrantableRoles`, proto-generated single source of truth). Delegates
   to [`PeopleWithAccess`](/docs/sdk/react/iam-policy#peoplewithaccess), which gates grant/revoke on `can_grant_access`.
+  Titled *People and teams with access* where the edition serves teams and
+  the kind accepts a team grant.
 - **Extra section** — only when provided.
 
 The body mounts lazily (only while `open`) so its access-list fetch never

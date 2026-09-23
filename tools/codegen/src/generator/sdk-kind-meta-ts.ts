@@ -1,5 +1,6 @@
 // TypeScript files derived from ApiResourceKind kind_meta options: resource
-// availability (tier) and authorization config (grantable_roles). Port of
+// availability (tier) and authorization config (grantable_roles and
+// team_grantable_roles). Port of
 // sdk_kind_meta_ts.go; the data comes from @stigmer/protos' descriptors via
 // resource-kind.ts.
 
@@ -68,14 +69,40 @@ function generateTSAuthorizationConfig(outputDir: string, entries: ReturnType<ty
   buf.push(" */\n");
   buf.push("export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> = new Map([\n");
 
-  for (const entry of entries) {
-    if (entry.grantableRoles.length === 0) continue;
-    buf.push(`  [ApiResourceKind.${entry.enumName}, [`);
-    buf.push(entry.grantableRoles.map((role) => `IamRole.${iamRoleName(role)}`).join(", "));
-    buf.push("]],\n");
-  }
+  pushRoleMapEntries(buf, entries, (entry) => entry.grantableRoles);
+
+  buf.push("]);\n\n");
+
+  buf.push("/**\n");
+  buf.push(" * Roles that can be granted on each resource kind to a team, so every\n");
+  buf.push(" * member of the team holds the role.\n");
+  buf.push(" *\n");
+  buf.push(" * Source of truth: api_resource_kind.proto — team_grantable_roles in each\n");
+  buf.push(" * kind's AuthorizationConfig, always a subset of grantable_roles.\n");
+  buf.push(" *\n");
+  buf.push(" * Kinds not in this map cannot be shared with a team. Teams are served by\n");
+  buf.push(" * the Enterprise and Cloud editions.\n");
+  buf.push(" */\n");
+  buf.push("export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> = new Map([\n");
+
+  pushRoleMapEntries(buf, entries, (entry) => entry.teamGrantableRoles);
 
   buf.push("]);\n");
 
   fs.writeFileSync(path.join(outputDir, "authorization-config.ts"), buf.join(""));
+}
+
+/** One `[kind, [roles]]` line per kind with a non-empty role list, in enum-number order. */
+function pushRoleMapEntries(
+  buf: string[],
+  entries: ReturnType<typeof kindMetaEntries>,
+  rolesOf: (entry: ReturnType<typeof kindMetaEntries>[number]) => number[],
+): void {
+  for (const entry of entries) {
+    const roles = rolesOf(entry);
+    if (roles.length === 0) continue;
+    buf.push(`  [ApiResourceKind.${entry.enumName}, [`);
+    buf.push(roles.map((role) => `IamRole.${iamRoleName(role)}`).join(", "));
+    buf.push("]],\n");
+  }
 }

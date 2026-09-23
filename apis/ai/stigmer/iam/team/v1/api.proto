@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.team.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/team/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// Team is a named group of an organization's people that access is shared
+// with as one.
+//
+// Sharing an agent, a workflow or a channel with a team gives every member
+// the access the share names; someone who joins the team gains it and
+// someone who leaves the team, or leaves the organization, loses it at once.
+// A team belongs to its organization: only the organization's members can be
+// in it, and its administrators manage it.
+//
+// @internal
+// Served by the Enterprise and Cloud editions (tier enterprise). Membership
+// is bounded by organization membership inside the authorization model
+// (`define member: [identity_account] and viewer from organization`), so no
+// cleanup is needed when a person leaves the organization.
+message Team {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Team'];
+
+  // Standard resource metadata. metadata.org is the organization the team
+  // belongs to; metadata.name is the name people see.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided team configuration.
+  TeamSpec spec = 4;
+
+  // System-managed state: the audit trail.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

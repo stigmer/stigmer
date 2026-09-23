@@ -295,6 +295,7 @@
               "identity_provider",
               "oauth_app",
               "platform_client",
+              "team",
               "organization",
               "platform",
               "agent",
@@ -545,6 +546,11 @@
           "name": "platform_client",
           "number": 23,
           "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
         },
         {
           "name": "organization",

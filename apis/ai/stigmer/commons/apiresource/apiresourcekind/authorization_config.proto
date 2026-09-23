@@ -278,4 +278,19 @@ message AuthorizationConfig {
   // (agent_execution), is self-owned (identity_account), or has no
   // authorization (platform, api_resource_version).
   repeated ai.stigmer.iam.v1.IamRole grantable_roles = 7;
+
+  // Roles that can be granted on this resource kind to a team, so that every
+  // member of the team holds the role.
+  //
+  // A subset of grantable_roles: a team is granted only what a person could
+  // be granted, and never ownership, which records who created a resource.
+  // Empty means a team cannot be granted access to the kind. Teams are an
+  // Enterprise and Cloud feature; the open-source server grants no role to a
+  // team.
+  //
+  // @internal
+  // Each value is a relation whose type restriction in the FGA model lists
+  // `team#member` beside `identity_account`; the server's model transcripts
+  // are held equal to this list by a test.
+  repeated ai.stigmer.iam.v1.IamRole team_grantable_roles = 8;
 }

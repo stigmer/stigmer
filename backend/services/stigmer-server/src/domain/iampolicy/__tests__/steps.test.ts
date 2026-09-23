@@ -8,7 +8,10 @@
  * SCOPE lists none → UNIMPLEMENTED naming the editions that serve
  * per-resource grants; the role is not in proto ∩ scope → the cloud's
  * second copy listing the intersection in proto order. The intersection
- * is what keeps a scope from widening the contract by accident.
+ * is what keeps a scope from widening the contract by accident. A person
+ * names no relation qualifier; a team is granted only its kind's team
+ * roles (never ownership, never on a kind that lists none), always as its
+ * members, and nothing at all under open source's organization-only scope.
  *
  * Grant and Revoke are proven for the one thing a step adds over the
  * grant path: the result they leave under POLICY_RESULT_KEY (the revoke
@@ -30,9 +33,13 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import {
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   noGrantableRolesMessage,
+  personQualifierMessage,
   policyIdFor,
   principalNotGrantableMessage,
   roleNotGrantableMessage,
+  teamNotGrantableMessage,
+  teamQualifierMessage,
+  teamRoleNotGrantableMessage,
   unknownResourceKindMessage,
 } from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
@@ -188,6 +195,121 @@ describe("ValidateGrantableRole", () => {
         "viewer",
       ]),
     );
+  });
+
+  it("a person names no relation qualifier: identity_account:<id>#<anything> names nobody and would be a tuple OpenFGA refuses", async () => {
+    const error = await refusal(() =>
+      organizationOnly.execute(
+        contextOf(
+          triple(
+            { kind: "identity_account", id: "ida_bob", relation: "member" },
+            "viewer",
+            { kind: "organization", id: "acme" },
+          ),
+        ),
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe(personQualifierMessage("member"));
+  });
+
+  describe("a team principal", () => {
+    const team = { kind: "team", id: "tm_sre", relation: "member" };
+    const perResource = newValidateGrantableRoleStep(
+      scopeOf(
+        new Map([
+          [ApiResourceKind.agent, [IamRole.owner, IamRole.viewer]],
+          [
+            ApiResourceKind.agent_channel,
+            [IamRole.owner, IamRole.viewer, IamRole.participant],
+          ],
+          [ApiResourceKind.session, [IamRole.owner, IamRole.viewer]],
+          [
+            ApiResourceKind.organization,
+            [IamRole.owner, IamRole.admin, IamRole.member, IamRole.viewer],
+          ],
+        ]),
+      ),
+    );
+
+    it("is granted a role its kind's team_grantable_roles lists, as the team's members", () => {
+      expect(
+        perResource.execute(
+          contextOf(triple(team, "viewer", { kind: "agent", id: "agt_1" })),
+        ),
+      ).toBeUndefined();
+      expect(
+        perResource.execute(
+          contextOf(
+            triple(team, "participant", {
+              kind: "agent_channel",
+              id: "ach_1",
+            }),
+          ),
+        ),
+      ).toBeUndefined();
+    });
+
+    it("is never granted ownership, though a person could be: a team holds only its kind's team roles", async () => {
+      const error = await refusal(() =>
+        perResource.execute(
+          contextOf(triple(team, "owner", { kind: "agent", id: "agt_1" })),
+        ),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(
+        teamRoleNotGrantableMessage("owner", "agent", ["viewer"]),
+      );
+    });
+
+    it("is refused on a kind that lists no team role — a session stays personal, an organization role is no team's", async () => {
+      for (const [kind, id, role] of [
+        ["session", "ses_1", "viewer"],
+        ["organization", "acme", "member"],
+      ] as const) {
+        const error = await refusal(() =>
+          perResource.execute(contextOf(triple(team, role, { kind, id }))),
+        );
+        expect(error.code, kind).toBe(Code.InvalidArgument);
+        expect(error.rawMessage, kind).toBe(teamNotGrantableMessage(kind));
+      }
+    });
+
+    it("must name the team's members as its relation", async () => {
+      for (const relation of ["", "admin"]) {
+        const error = await refusal(() =>
+          perResource.execute(
+            contextOf(
+              triple({ ...team, relation }, "viewer", {
+                kind: "agent",
+                id: "agt_1",
+              }),
+            ),
+          ),
+        );
+        expect(error.code, relation).toBe(Code.InvalidArgument);
+        expect(error.rawMessage, relation).toBe(teamQualifierMessage(relation));
+      }
+    });
+
+    it("is granted nothing under open source's organization-only scope: per-resource grants are UNIMPLEMENTED, and the organization lists no team role", async () => {
+      const onAgent = await refusal(() =>
+        organizationOnly.execute(
+          contextOf(triple(team, "viewer", { kind: "agent", id: "agt_1" })),
+        ),
+      );
+      expect(onAgent.code).toBe(Code.Unimplemented);
+      const onOrganization = await refusal(() =>
+        organizationOnly.execute(
+          contextOf(
+            triple(team, "member", { kind: "organization", id: "acme" }),
+          ),
+        ),
+      );
+      expect(onOrganization.rawMessage).toBe(
+        teamNotGrantableMessage("organization"),
+      );
+    });
   });
 
   it("a scope can only NARROW the proto: a role it adds is clipped from the list", async () => {

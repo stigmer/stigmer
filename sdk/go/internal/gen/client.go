@@ -32,6 +32,7 @@ type Client struct {
 	Session           *SessionClient
 	Skill             *SkillClient
 	Subscription      *SubscriptionClient
+	Team              *TeamClient
 	Workflow          *WorkflowClient
 	WorkflowExecution *WorkflowExecutionClient
 	WorkflowInstance  *WorkflowInstanceClient
@@ -66,6 +67,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Session:           NewSessionClient(conn),
 		Skill:             NewSkillClient(conn),
 		Subscription:      NewSubscriptionClient(conn),
+		Team:              NewTeamClient(conn),
 		Workflow:          NewWorkflowClient(conn),
 		WorkflowExecution: NewWorkflowExecutionClient(conn),
 		WorkflowInstance:  NewWorkflowInstanceClient(conn),

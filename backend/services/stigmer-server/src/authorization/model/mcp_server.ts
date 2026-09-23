@@ -1,7 +1,8 @@
 /**
  * Transcript of fga/model/agentic/mcp_server.fga — a blueprint with three
  * read-side verbs: `can_use`, `can_clone` and `can_connect` (the OAuth
- * connect lane's gate), all `viewer`.
+ * connect lane's gate), all `viewer`. `team#member` on `viewer` is the
+ * Enterprise team grant, which no open-source tuple ever names.
  */
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -40,6 +41,7 @@ export const mcpServerDeclaration = declareKind({
           objectOf("identity_account"),
           usersetOf("organization", "member"),
           usersetOf("organization", "viewer"),
+          usersetOf("team", "member"),
         ),
         computed("owner"),
         computed("platform_viewer"),

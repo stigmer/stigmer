@@ -5,7 +5,11 @@
  * kind is reached by enum and by FGA type name alike, and that every
  * permission the wire can ask about (the IamPermission vocabulary) is
  * either a declared relation of the kind or absent from its `.fga` file —
- * never a relation the transcript forgot.
+ * never a relation the transcript forgot — and that the relations whose
+ * direct list admits a team (`team#member`) are exactly the roles the
+ * kind's `team_grantable_roles` names, a subset of what a person can be
+ * granted and never ownership, so the grant step and the model cannot
+ * disagree about where a team may be granted.
  *
  * The kind list is pinned twice on purpose: as the literal in registry
  * order (a reordering or a dropped file is a visible diff) and as
@@ -20,13 +24,19 @@ import {
   ApiResourceKindSchema,
   ResourceTier,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermissionSchema } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import {
+  IamPermissionSchema,
+  IamRole,
+} from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
   getKindMeta,
+  grantableRolesFor,
   kindEnumName,
+  teamGrantableRolesFor,
 } from "../../../pipeline/apiresource-meta.js";
 import { builtInModel, declarationFor } from "../index.js";
+import type { Rewrite, SubjectType } from "../rewrite.js";
 
 /** The open-source tier, in registry order (the `fga.mod` order of their files). */
 const DECLARED_KINDS = [
@@ -121,6 +131,7 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
     "can_create_execution_in",
     "can_create_agent_share",
     "can_create_agent_instance",
+    "can_create_team",
     "can_grant_access",
     "can_view_access",
     "can_view_billing",
@@ -238,6 +249,32 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
   ],
 };
 
+/** The subject types a relation's direct lists name, wherever they sit in its rewrite. */
+function directSubjects(rewrite: Rewrite): ReadonlyArray<SubjectType> {
+  switch (rewrite.node) {
+    case "this":
+      return rewrite.subjects;
+    case "computed":
+    case "from":
+      return [];
+    case "union":
+    case "intersection":
+      return rewrite.members.flatMap(directSubjects);
+    default: {
+      const exhaustive: never = rewrite;
+      throw new Error(`unknown rewrite node: ${JSON.stringify(exhaustive)}`);
+    }
+  }
+}
+
+function isTeamMembers(subject: SubjectType): boolean {
+  return (
+    subject.form === "userset" &&
+    subject.type === "team" &&
+    subject.relation === "member"
+  );
+}
+
 /** Every kind whose `kind_meta.tier` is the open-source tier, by enum number. */
 function openSourceTierKinds(): ReadonlySet<ApiResourceKind> {
   const kinds = new Set<ApiResourceKind>();
@@ -271,6 +308,7 @@ describe("the built-in model's registry", () => {
       ApiResourceKind.platform,
       ApiResourceKind.identity_provider,
       ApiResourceKind.invitation,
+      ApiResourceKind.team,
     ]) {
       expect(declarationFor(unserved), kindEnumName(unserved)).toBeUndefined();
     }
@@ -301,6 +339,30 @@ describe("the built-in model's registry", () => {
       expect(declaredWirePermissions, declaration.type).toEqual(
         WIRE_PERMISSIONS_BY_TYPE[declaration.type],
       );
+    }
+  });
+
+  it("admits a team exactly on the roles each kind's team_grantable_roles lists — the transcript and the contract say one thing", () => {
+    for (const declaration of builtInModel.declarations) {
+      const admitsTeam = [...declaration.relations]
+        .filter(([, rewrite]) => directSubjects(rewrite).some(isTeamMembers))
+        .map(([relation]) => relation)
+        .sort();
+      const contract = teamGrantableRolesFor(declaration.kind)
+        .map((role) => IamRole[role])
+        .sort();
+      expect(admitsTeam, declaration.type).toEqual(contract);
+    }
+  });
+
+  it("lets a team hold only roles a person can hold on the kind, and never ownership", () => {
+    for (const value of ApiResourceKindSchema.values) {
+      const kind = value.number as ApiResourceKind;
+      const person = grantableRolesFor(kind);
+      for (const role of teamGrantableRolesFor(kind)) {
+        expect(person, `${value.name}: ${IamRole[role]}`).toContain(role);
+        expect(role, value.name).not.toBe(IamRole.owner);
+      }
     }
   });
 

@@ -3,6 +3,7 @@
 import { useId } from "react";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { GranteeKind } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { useRoleSelector } from "./useRoleSelector.js";
@@ -19,6 +20,11 @@ export interface RoleSelectorProps {
   readonly defaultRole?: IamRole;
   /** Disable all role options. */
   readonly disabled?: boolean;
+  /**
+   * Who the role is for. A team is offered only the kind's team roles.
+   * Defaults to a person.
+   */
+  readonly granteeKind?: GranteeKind;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -47,6 +53,7 @@ export function RoleSelector({
   selected: controlledSelected,
   defaultRole,
   disabled = false,
+  granteeKind = "identity_account",
   className,
 }: RoleSelectorProps) {
   // Instance-scoped radio-group name (oss#593): a hardcoded name would make
@@ -58,6 +65,7 @@ export function RoleSelector({
   const { options, selected: internalSelected, select } = useRoleSelector(
     kind,
     defaultRole,
+    granteeKind,
   );
 
   const currentSelected = controlledSelected !== undefined

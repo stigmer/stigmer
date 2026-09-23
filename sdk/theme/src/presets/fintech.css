@@ -17,6 +17,7 @@
   --stgm-secondary-foreground: oklch(0.25 0.04 280);
   --stgm-muted: oklch(0.95 0.01 280);
   --stgm-muted-foreground: oklch(0.50 0.03 280);
+  --stgm-avatar: oklch(0.95 0.01 280);
   --stgm-accent: oklch(0.93 0.02 280);
   --stgm-accent-foreground: oklch(0.25 0.04 280);
   --stgm-border: oklch(0.90 0.01 280);
@@ -73,6 +74,7 @@
   --stgm-secondary-foreground: oklch(0.92 0.01 280);
   --stgm-muted: oklch(0.23 0.05 280);
   --stgm-muted-foreground: oklch(0.65 0.04 280);
+  --stgm-avatar: oklch(0.30 0.05 280);
   --stgm-accent: oklch(0.28 0.06 280);
   --stgm-accent-foreground: oklch(0.92 0.01 280);
   --stgm-border: oklch(0.35 0.06 280);

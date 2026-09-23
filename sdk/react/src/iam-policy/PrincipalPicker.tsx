@@ -1,57 +1,74 @@
 "use client";
 
+/**
+ * The share picker: an accessible combobox for choosing who a resource is
+ * shared with, a person from the organization or, where the resource can
+ * be shared with teams, one of the organization's teams.
+ *
+ * Users type a name, an email or a team name; the resolved grantee is
+ * carried internally and never shown. Because email is not unique across
+ * identity sources, a person shows a {@link ProviderBadge} when it
+ * disambiguates. With teams offered, results come in two labelled groups,
+ * Teams then People, and the arrow keys walk both as one list. Teams lead
+ * because an organization has few of them and many people: listed second,
+ * they would sit below the scroll in any organization of size, and sharing
+ * with a team is the act that scales.
+ *
+ * Grantees that already have access show disabled, so no one is granted
+ * twice. Candidates come from lists the caller can already see
+ * ({@link useGranteeCandidates}), so the picker opens no new enumeration
+ * surface.
+ */
 import { useCallback, useId, useMemo, useRef, useState } from "react";
-import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { cn } from "@stigmer/theme";
+import { getUserMessage, granteeKey, type Grantee } from "@stigmer/sdk";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/sdk";
-import { useResourceAccess } from "./useResourceAccess.js";
+import { GranteeAvatar } from "./GranteeAvatar.js";
 import { ProviderBadge, providerLabel } from "./ProviderBadge.js";
+import {
+  useGranteeCandidates,
+  type GranteeCandidate,
+  type PersonCandidate,
+} from "./useGranteeCandidates.js";
 
-/** A principal selected through {@link PrincipalPicker}. */
-export interface SelectedPrincipal {
-  /** identity_account ID (`ida_...`). */
-  readonly id: string;
-  /** Display name (falls back to email, then ID). */
-  readonly name: string;
-  /** Email address, if known. */
-  readonly email: string;
-  /** Full view for richer rendering (avatar, provider). */
-  readonly view: ApiResourceRefView;
-}
+/** A grantee selected through {@link PrincipalPicker}. */
+export type SelectedGrantee = GranteeCandidate;
 
 /** Props for {@link PrincipalPicker}. */
 export interface PrincipalPickerProps {
-  /** Organization whose members are selectable. */
+  /** Organization whose people (and teams) are selectable. */
   readonly orgId: string;
-  /** Currently selected principal, or `null`. Controlled. */
-  readonly value: SelectedPrincipal | null;
+  /** Currently selected grantee, or `null`. Controlled. */
+  readonly value: SelectedGrantee | null;
   /** Fired when the selection changes. */
-  readonly onChange: (principal: SelectedPrincipal | null) => void;
-  /** Principal IDs to hide/disable because they already have access. */
-  readonly excludePrincipalIds?: readonly string[];
+  readonly onChange: (grantee: SelectedGrantee | null) => void;
+  /**
+   * Offer the organization's teams beside its people. Set it where the
+   * resource can be shared with a team (`useShareFlow().canShareWithTeams`).
+   */
+  readonly includeTeams?: boolean;
+  /** Grantees shown disabled because they already have access. */
+  readonly excludeGrantees?: readonly Grantee[];
   /** Disable the control. */
   readonly disabled?: boolean;
+  /**
+   * The field's label. Defaults to "Person", or "Person or team" when teams
+   * are offered; a surface whose heading already names the act (a team's
+   * "Members") says what the field does instead, e.g. "Add a person".
+   */
+  readonly label?: string;
+  /**
+   * Focus the search input on mount. Right where the picker opens on a
+   * deliberate click (the grant form); turn it off where the picker is
+   * always on screen, or it takes focus from the rest of the page.
+   */
+  readonly autoFocus?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
- * Accessible combobox for picking an organization member to share with.
- *
- * Replaces raw account-ID entry: users type a name or email and choose a
- * person from the org's member list. Because email is not unique across
- * identity sources, each candidate shows a {@link ProviderBadge} so accounts
- * that share an email (e.g. a direct account and a federated one) can be told
- * apart. The resolved `identity_account` ID is carried internally — the user
- * never sees it.
- *
- * Members who already have access are shown disabled, so the same person is
- * not granted twice.
- *
- * Search is over the org member list the caller can already see
- * (`listResourceAccessByPrincipal` on the organization), so it introduces no
- * new account-enumeration surface.
+ * Accessible combobox for picking a person or a team to share with.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  */
@@ -59,14 +76,18 @@ export function PrincipalPicker({
   orgId,
   value,
   onChange,
-  excludePrincipalIds,
+  includeTeams = false,
+  excludeGrantees,
   disabled = false,
+  label,
+  autoFocus = true,
   className,
 }: PrincipalPickerProps) {
   const listboxId = useId();
-  const { members, isLoading, error } = useResourceAccess(
-    orgId ? { kind: "organization", id: orgId } : null,
-  );
+  const { people, teams, isLoading, error } = useGranteeCandidates({
+    orgId: orgId || null,
+    includeTeams,
+  });
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -74,59 +95,51 @@ export function PrincipalPicker({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const excluded = useMemo(
-    () => new Set(excludePrincipalIds ?? []),
-    [excludePrincipalIds],
+    () => new Set((excludeGrantees ?? []).map(granteeKey)),
+    [excludeGrantees],
+  );
+  const isExcluded = useCallback(
+    (candidate: GranteeCandidate) => excluded.has(granteeKey(candidate.grantee)),
+    [excluded],
   );
 
-  // Org members that are identity accounts, deduped by ID. The org list groups
-  // by principal, so each ID appears once already; the dedupe guards against
-  // inherited-role duplicates.
-  const candidates = useMemo(() => {
-    const byId = new Map<string, ApiResourceRefView>();
-    for (const entry of members) {
-      const p = entry.principal;
-      if (!p || p.kind !== "identity_account" || !p.id) continue;
-      if (!byId.has(p.id)) byId.set(p.id, p);
-    }
-    return [...byId.values()];
-  }, [members]);
-
-  // Emails that appear on more than one candidate — these are the rows where
-  // the provider badge is doing real disambiguation work.
+  // Emails that appear on more than one person — the rows where the
+  // provider badge does real disambiguation work.
   const duplicatedEmails = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const c of candidates) {
-      const email = c.email?.toLowerCase();
+    for (const person of people) {
+      const email = person.email.toLowerCase();
       if (email) counts.set(email, (counts.get(email) ?? 0) + 1);
     }
-    return new Set(
-      [...counts.entries()].filter(([, n]) => n > 1).map(([email]) => email),
-    );
-  }, [candidates]);
+    return new Set([...counts.entries()].filter(([, n]) => n > 1).map(([email]) => email));
+  }, [people]);
 
-  const filtered = useMemo(() => {
+  const { matchingPeople, matchingTeams } = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return candidates;
-    return candidates.filter((c) => {
-      const name = (c.name ?? "").toLowerCase();
-      const email = (c.email ?? "").toLowerCase();
-      return name.includes(q) || email.includes(q);
-    });
-  }, [candidates, query]);
+    return {
+      matchingPeople: q
+        ? people.filter((p) => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
+        : people,
+      matchingTeams: q
+        ? teams.filter((t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
+        : teams,
+    };
+  }, [people, teams, query]);
+
+  // One flat order for the keyboard: teams, then people, as rendered.
+  const options = useMemo<readonly GranteeCandidate[]>(
+    () => [...matchingTeams, ...matchingPeople],
+    [matchingPeople, matchingTeams],
+  );
 
   const commitSelection = useCallback(
-    (view: ApiResourceRefView) => {
-      if (excluded.has(view.id)) return;
-      onChange({
-        id: view.id,
-        name: view.name || view.email || view.id,
-        email: view.email,
-        view,
-      });
+    (candidate: GranteeCandidate) => {
+      if (isExcluded(candidate)) return;
+      onChange(candidate);
       setQuery("");
       setOpen(false);
     },
-    [excluded, onChange],
+    [isExcluded, onChange],
   );
 
   const handleKeyDown = useCallback(
@@ -134,51 +147,43 @@ export function PrincipalPicker({
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setOpen(true);
-        setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+        setActiveIndex((i) => Math.min(i + 1, options.length - 1));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setActiveIndex((i) => Math.max(i - 1, 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        const choice = filtered[activeIndex];
-        if (choice && !excluded.has(choice.id)) commitSelection(choice);
+        const choice = options[activeIndex];
+        if (choice) commitSelection(choice);
       } else if (e.key === "Escape") {
         setOpen(false);
       }
     },
-    [filtered, activeIndex, excluded, commitSelection],
+    [options, activeIndex, commitSelection],
   );
 
-  // Selected state: show a chip with a clear affordance instead of the input.
+  const fieldLabel = label ?? (includeTeams ? "Person or team" : "Person");
+
   if (value) {
     return (
       <div className={cn("stg:space-y-1", className)}>
-        <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">Person</span>
+        <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">{fieldLabel}</span>
         <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5">
           <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-            <div
-              className="stg:flex stg:h-6 stg:w-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground"
-              aria-hidden="true"
-            >
-              {(value.name[0] ?? "?").toUpperCase()}
-            </div>
+            <GranteeAvatar kind={value.kind} name={value.name} />
             <div className="stg:min-w-0">
               <div className="stg:flex stg:items-center stg:gap-1.5">
                 <span className="stg:truncate stg:text-xs stg:text-foreground">{value.name}</span>
-                <ProviderBadge principal={value.view} />
+                {value.kind === "identity_account" && <ProviderBadge principal={value.view} />}
               </div>
-              {value.email && value.email !== value.name && (
-                <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">
-                  {value.email}
-                </span>
-              )}
+              <SelectedSubline value={value} />
             </div>
           </div>
           <button
             type="button"
             onClick={() => onChange(null)}
             disabled={disabled}
-            aria-label="Clear selected person"
+            aria-label={value.kind === "team" ? "Clear selected team" : "Clear selected person"}
             className={cn(
               "stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground",
               "stg:hover:text-foreground stg:hover:bg-accent-hover",
@@ -192,13 +197,55 @@ export function PrincipalPicker({
     );
   }
 
+  const renderOption = (candidate: GranteeCandidate, index: number) => {
+    const excludedNow = isExcluded(candidate);
+    const isActive = index === activeIndex;
+    return (
+      <li
+        key={granteeKey(candidate.grantee)}
+        role="option"
+        aria-selected={isActive}
+        aria-disabled={excludedNow}
+        onMouseEnter={() => setActiveIndex(index)}
+        onMouseDown={(e) => {
+          // Prevent input blur before selection commits.
+          e.preventDefault();
+          commitSelection(candidate);
+        }}
+        className={cn(
+          "stg:flex stg:items-center stg:justify-between stg:gap-2 stg:px-2.5 stg:py-1.5",
+          excludedNow ? "stg:cursor-not-allowed stg:opacity-50" : "stg:cursor-pointer",
+          isActive && !excludedNow && "stg:bg-accent-hover",
+        )}
+      >
+        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
+          <GranteeAvatar kind={candidate.kind} name={candidate.name} />
+          <div className="stg:min-w-0">
+            <div className="stg:flex stg:items-center stg:gap-1.5">
+              <span className="stg:truncate stg:text-xs stg:text-foreground">{candidate.name}</span>
+              {candidate.kind === "identity_account" && showProviderBadge(candidate, duplicatedEmails) && (
+                <ProviderBadge principal={candidate.view} />
+              )}
+            </div>
+            <CandidateSubline candidate={candidate} />
+          </div>
+        </div>
+        {excludedNow && (
+          <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">Has access</span>
+        )}
+      </li>
+    );
+  };
+
+  const nothingMatches = options.length === 0;
+
   return (
     <div className={cn("stg:space-y-1", className)}>
       <label
         htmlFor={`${listboxId}-input`}
         className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
       >
-        Person
+        {fieldLabel}
       </label>
       <div className="stg:relative">
         <input
@@ -222,9 +269,9 @@ export function PrincipalPicker({
             window.setTimeout(() => setOpen(false), 120);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Search by name or email"
+          placeholder={includeTeams ? "Search people or teams" : "Search by name or email"}
           disabled={disabled || isLoading}
-          autoFocus
+          autoFocus={autoFocus}
           className={cn(
             "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
             "stg:placeholder:text-muted-foreground",
@@ -237,7 +284,7 @@ export function PrincipalPicker({
           <ul
             id={listboxId}
             role="listbox"
-            aria-label="Organization members"
+            aria-label={includeTeams ? "People and teams" : "Organization members"}
             className={cn(
               UNSTYLED_LIST,
               "stg:absolute stg:z-10 stg:mt-1 stg:max-h-56 stg:w-full stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-popover stg:py-1 stg:shadow-md",
@@ -245,7 +292,7 @@ export function PrincipalPicker({
           >
             {isLoading && (
               <li className="stg:px-2.5 stg:py-2 stg:text-xs stg:text-muted-foreground">
-                Loading members…
+                {includeTeams ? "Loading people and teams…" : "Loading members…"}
               </li>
             )}
 
@@ -255,80 +302,89 @@ export function PrincipalPicker({
               </li>
             )}
 
-            {!isLoading && !error && filtered.length === 0 && (
+            {!isLoading && !error && nothingMatches && (
               <li className="stg:px-2.5 stg:py-2 stg:text-xs stg:text-muted-foreground">
-                {query.trim()
-                  ? "No members match your search."
-                  : "No members to share with."}
+                {query.trim() ? "No one matches your search." : "No one to share with."}
               </li>
             )}
 
-            {!isLoading &&
-              !error &&
-              filtered.map((c, index) => {
-                const isExcluded = excluded.has(c.id);
-                const isActive = index === activeIndex;
-                const name = c.name || c.email || c.id;
-                // Show the provider badge when it disambiguates: an external
-                // identity source, or a shared email across candidates.
-                const showBadge =
-                  !!providerLabel(c) &&
-                  (c.identityOrigin?.providerDisplayName !== "Stigmer" ||
-                    (!!c.email && duplicatedEmails.has(c.email.toLowerCase())));
-                return (
-                  <li
-                    key={c.id}
-                    role="option"
-                    aria-selected={isActive}
-                    aria-disabled={isExcluded}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onMouseDown={(e) => {
-                      // Prevent input blur before selection commits.
-                      e.preventDefault();
-                      if (!isExcluded) commitSelection(c);
-                    }}
-                    className={cn(
-                      "stg:flex stg:items-center stg:justify-between stg:gap-2 stg:px-2.5 stg:py-1.5",
-                      isExcluded
-                        ? "stg:cursor-not-allowed stg:opacity-50"
-                        : "stg:cursor-pointer",
-                      isActive && !isExcluded && "stg:bg-accent-hover",
-                    )}
-                  >
-                    <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-                      <div
-                        className="stg:flex stg:h-6 stg:w-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground"
-                        aria-hidden="true"
-                      >
-                        {(name[0] ?? "?").toUpperCase()}
-                      </div>
-                      <div className="stg:min-w-0">
-                        <div className="stg:flex stg:items-center stg:gap-1.5">
-                          <span className="stg:truncate stg:text-xs stg:text-foreground">
-                            {name}
-                          </span>
-                          {showBadge && <ProviderBadge principal={c} />}
-                        </div>
-                        {c.email && c.email !== name && (
-                          <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">
-                            {c.email}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {isExcluded && (
-                      <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
-                        Has access
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
+            {!isLoading && !error && !nothingMatches && !includeTeams &&
+              matchingPeople.map((person, index) => renderOption(person, index))}
+
+            {!isLoading && !error && !nothingMatches && includeTeams && (
+              <>
+                <OptionGroup label="Teams" count={matchingTeams.length}>
+                  {matchingTeams.map((team, index) => renderOption(team, index))}
+                </OptionGroup>
+                <OptionGroup label="People" count={matchingPeople.length}>
+                  {matchingPeople.map((person, index) => renderOption(person, matchingTeams.length + index))}
+                </OptionGroup>
+              </>
+            )}
           </ul>
         )}
       </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Internal subcomponents
+// ---------------------------------------------------------------------------
+
+/** Show the provider badge when it disambiguates: an external identity source, or a shared email. */
+function showProviderBadge(person: PersonCandidate, duplicatedEmails: ReadonlySet<string>): boolean {
+  return (
+    !!providerLabel(person.view) &&
+    (person.view.identityOrigin?.providerDisplayName !== "Stigmer" ||
+      (!!person.email && duplicatedEmails.has(person.email.toLowerCase())))
+  );
+}
+
+function OptionGroup({
+  label,
+  count,
+  children,
+}: {
+  readonly label: string;
+  readonly count: number;
+  readonly children: React.ReactNode;
+}) {
+  const headingId = useId();
+  if (count === 0) return null;
+  return (
+    <li role="presentation">
+      <div
+        id={headingId}
+        className="stg:px-2.5 stg:pt-1.5 stg:pb-1 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
+      >
+        {label}
+      </div>
+      <ul role="group" aria-labelledby={headingId} className={UNSTYLED_LIST}>
+        {children}
+      </ul>
+    </li>
+  );
+}
+
+function CandidateSubline({ candidate }: { readonly candidate: GranteeCandidate }) {
+  const text =
+    candidate.kind === "team"
+      ? candidate.description
+      : candidate.email !== candidate.name
+        ? candidate.email
+        : "";
+  if (!text) return null;
+  return (
+    <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">{text}</span>
+  );
+}
+
+function SelectedSubline({ value }: { readonly value: SelectedGrantee }) {
+  if (value.kind === "team") {
+    return <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">Team</span>;
+  }
+  return <CandidateSubline candidate={value} />;
 }
 
 function ClearIcon() {

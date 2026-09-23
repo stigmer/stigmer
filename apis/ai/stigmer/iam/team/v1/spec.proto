@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.team.v1;
+
+import "buf/validate/validate.proto";
+
+// TeamSpec is the user-provided configuration of a team.
+//
+// A team's name and handle live in its metadata (name, slug); the spec
+// carries only what describes the team to the people choosing it. Who is in
+// the team is not part of the spec: membership is granted and revoked as
+// access, one person at a time, so it is visible and audited the way every
+// other grant is.
+//
+// @internal
+// Membership rows are IamPolicy grants of the `member` role on the team
+// (`identity_account:<id> member team:<id>`), written through the one grant
+// path. Keeping them out of the spec leaves one writer of authorization
+// facts.
+message TeamSpec {
+  // What the team is for, shown where people pick a team to share with.
+  string description = 1 [(buf.validate.field).string.max_len = 500];
+}

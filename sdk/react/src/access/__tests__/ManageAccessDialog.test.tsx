@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { DeploymentModeContext } from "../../deployment-mode";
 import { ManageAccessDialog } from "../ManageAccessDialog";
 
 // The dialog's job is composition + conditional section rendering — not the
@@ -107,6 +108,17 @@ describe("ManageAccessDialog", () => {
       />,
     );
     expect(screen.getByTestId("people-with-access")).toBeTruthy();
+    // The default context is Cloud, which serves teams, and an agent
+    // accepts a team grant.
+    expect(screen.getByText("People and teams with access")).toBeTruthy();
+  });
+
+  it("names only people where the edition serves no teams", () => {
+    render(
+      <DeploymentModeContext.Provider value="local">
+        <ManageAccessDialog open onOpenChange={() => {}} resource={RESOURCE} />
+      </DeploymentModeContext.Provider>,
+    );
     expect(screen.getByText("People with access")).toBeTruthy();
   });
 

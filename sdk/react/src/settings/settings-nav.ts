@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   UserCog,
   Users,
+  UsersRound,
 } from "lucide-react";
 
 /** Single navigable entry in the settings sidebar. */
@@ -56,7 +57,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   {
     label: "Organization",
     description:
-      "Manage your team, organization identity, and identity providers.",
+      "Manage members, teams, organization identity, and identity providers.",
     items: [
       { href: "/settings/org-profile", label: "Org Profile", icon: Building2 },
       {
@@ -65,6 +66,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
         icon: SlidersHorizontal,
       },
       { href: "/settings/members", label: "Members", icon: Users },
+      { href: "/settings/teams", label: "Teams", icon: UsersRound },
       { href: "/settings/invitations", label: "Invitations", icon: Link },
       {
         href: "/settings/identity-providers",

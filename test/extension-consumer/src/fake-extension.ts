@@ -46,6 +46,8 @@ import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/qu
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import type {
@@ -136,6 +138,7 @@ import type {
   PlatformTokenKeyRing,
   PlatformTokenSigningOptions,
   PolicyGrantScope,
+  PrincipalDisplay,
   PresignedUpload,
   RawResourceDocument,
   ResourceAuthorizationLifecycle,
@@ -542,6 +545,29 @@ const consumerAuthorizationQueries: AuthorizationQueryEngine = {
       principalKind === "identity_account" ? ["ida_consumer"] : [],
     );
   },
+};
+
+/**
+ * A consumer-shaped principal display: how an access list names a grantee
+ * that is not a person (a team). It answers for the ids its own store
+ * knows and omits the rest, which then render by id.
+ */
+const consumerPrincipalDisplay: PrincipalDisplay = {
+  resolve: (kind: ApiResourceKind, ids: ReadonlyArray<string>) =>
+    Promise.resolve<ReadonlyMap<string, ApiResourceRefView>>(
+      new Map(
+        kind === ApiResourceKind.team
+          ? ids.map((id) => [
+              id,
+              create(ApiResourceRefViewSchema, {
+                kind: "team",
+                id,
+                name: "Consumer team",
+              }),
+            ])
+          : [],
+      ),
+    ),
 };
 
 /**
@@ -1121,6 +1147,9 @@ export const fakeExtension: ServerExtension = {
     // persisted or found inside provisionMyAccount — the cloud's
     // personal-organization ensure and backfill ride it.
     ["identity-account-provision:post-persist", [consumerGateStep()]],
+    // The eighth: the IamPolicy create chain, before the grant is written
+    // — where an edition that serves teams refuses a team it cannot admit.
+    ["iam-policy-create:pre-side-effect-gate", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],
@@ -1159,6 +1188,8 @@ export const fakeExtension: ServerExtension = {
     iamPolicyStore: consumerIamPolicyStore,
     policyGrantScope: consumerPolicyGrantScope,
     authorizationQueries: consumerAuthorizationQueries,
+    // How the consumer's access lists name a team grantee.
+    principalDisplay: consumerPrincipalDisplay,
     // The outbound-egress seam: which addresses this edition's control
     // plane may dial when it reaches a URL a user supplied. A managed
     // composition registers the strict posture the library exports and

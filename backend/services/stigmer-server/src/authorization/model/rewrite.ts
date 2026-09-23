@@ -1,7 +1,7 @@
 /**
  * The relation-rewrite vocabulary the model declarations are written in —
- * the four forms an OpenFGA `define` line takes in the cloud's 27 `.fga`
- * files, and nothing more:
+ * the forms an OpenFGA `define` line takes in the cloud's `.fga` files,
+ * and nothing more:
  *
  *   define organization: [organization]                      → direct(objectOf("organization"))
  *   define owner: [identity_account] or admin from organization
@@ -10,7 +10,19 @@
  *                   or owner or platform_viewer
  *                → union(direct(objectOf(...), usersetOf(...), usersetOf(...)),
  *                        computed("owner"), computed("platform_viewer"))
+ *   define member: [identity_account] and viewer from organization
+ *                → intersection(direct(objectOf("identity_account")), from("viewer", "organization"))
  *   define can_view: viewer                                   → computed("viewer")
+ *
+ * `and` exists for one shape: a relation that is true only while another
+ * holds too — a team's member is a person granted the role AND still one
+ * of the organization's viewers, so leaving the organization ends every
+ * team-derived grant with no cleanup. A line is either a union or an
+ * intersection of leaves, never both: the DSL would need parentheses to
+ * mix them, the cloud's reader refuses parentheses, and `declareKind`
+ * refuses the nesting that would need them. `but not` has no node; the day
+ * a line needs it, the transcript cannot be written and the gap is a
+ * design act.
  *
  * A subject type is an object type or a userset; the model admits no
  * wildcard (`type:*`) and declares no condition, so neither has a form
@@ -21,10 +33,7 @@
  * file: the same relations, in the file's order, each line rewritten in
  * these builders so a reader with the model open sees the same text, and
  * so a structural compare against the file (the cloud's drift test at
- * the re-pin) needs no translation table. Intersection and exclusion
- * (`and`, `but not`) do not appear in the model and have no node here;
- * the day they do, the transcript cannot be written and the gap is a
- * design act, not a silent approximation.
+ * the re-pin) needs no translation table.
  *
  * The direct form carries its type restrictions (`[identity_account,
  * organization#viewer]`) because the evaluator ENFORCES them: a tuple
@@ -72,7 +81,12 @@ export type Rewrite =
       readonly tupleset: string;
     }
   /** `a or b or c` — the first true member wins, in the line's order. */
-  | { readonly node: "union"; readonly members: ReadonlyArray<Rewrite> };
+  | { readonly node: "union"; readonly members: ReadonlyArray<Rewrite> }
+  /** `a and b` — true only when every member is, in the line's order; the first false one ends it. */
+  | {
+      readonly node: "intersection";
+      readonly members: ReadonlyArray<Rewrite>;
+    };
 
 // ---------------------------------------------------------------------------
 // Builders — named so a transcript reads like its `.fga` line.
@@ -100,6 +114,10 @@ export function from(relation: string, tupleset: string): Rewrite {
 
 export function union(...members: ReadonlyArray<Rewrite>): Rewrite {
   return { node: "union", members };
+}
+
+export function intersection(...members: ReadonlyArray<Rewrite>): Rewrite {
+  return { node: "intersection", members };
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +166,10 @@ export interface KindDeclarationInput {
  * module load: a relation declared twice, a `computed` naming a relation
  * the kind does not define, a `from` whose tupleset the kind does not
  * define (its `relation` is the PARENT's and is resolved at evaluation),
- * a derived rule for a relation the transcript does not declare.
+ * a derived rule for a relation the transcript does not declare, and a
+ * line no `.fga` file could hold without parentheses (a union inside an
+ * intersection or the reverse, an operator nested in itself, an operator
+ * over fewer than two members).
  */
 export function declareKind(input: KindDeclarationInput): KindDeclaration {
   const type = kindEnumName(input.kind);
@@ -156,6 +177,10 @@ export function declareKind(input: KindDeclarationInput): KindDeclaration {
   for (const [name, rewrite] of input.relations) {
     if (relations.has(name)) {
       throw new Error(`${input.source}: relation '${name}' is declared twice`);
+    }
+    const shape = unwritableShape(rewrite);
+    if (shape !== undefined) {
+      throw new Error(`${input.source}: '${name}' ${shape}`);
     }
     relations.set(name, rewrite);
   }
@@ -199,7 +224,39 @@ function localReferences(
     case "from":
       return [{ role: "tupleset", relation: rewrite.tupleset }];
     case "union":
+    case "intersection":
       return rewrite.members.flatMap(localReferences);
+    default: {
+      const exhaustive: never = rewrite;
+      throw new Error(`unknown rewrite node: ${JSON.stringify(exhaustive)}`);
+    }
+  }
+}
+
+/**
+ * Why a line could not be written in a `.fga` file without parentheses,
+ * or undefined when it can: an operator's members are leaves (a direct
+ * list, a sibling relation, a tuple-to-userset), and there are at least
+ * two of them.
+ */
+function unwritableShape(rewrite: Rewrite): string | undefined {
+  switch (rewrite.node) {
+    case "this":
+    case "computed":
+    case "from":
+      return undefined;
+    case "union":
+    case "intersection": {
+      if (rewrite.members.length < 2) {
+        return `is ${rewrite.node === "union" ? "an or" : "an and"} over fewer than two members`;
+      }
+      const nested = rewrite.members.find(
+        (member) => member.node === "union" || member.node === "intersection",
+      );
+      return nested === undefined
+        ? undefined
+        : `nests ${nested.node === "union" ? "or" : "and"} inside ${rewrite.node === "union" ? "or" : "and"}, which a .fga line cannot say without parentheses`;
+    }
     default: {
       const exhaustive: never = rewrite;
       throw new Error(`unknown rewrite node: ${JSON.stringify(exhaustive)}`);
