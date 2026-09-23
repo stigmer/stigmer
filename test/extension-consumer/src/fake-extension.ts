@@ -48,6 +48,8 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import type {
   ApiResourceRef,
   IamPolicySpec,
@@ -59,9 +61,11 @@ import {
   ArtifactStorageNotFoundError,
   callerIdentityKey,
   callerIdentityOf,
+  canSign,
   composeServer,
   createLogger,
   DuplicateAccountError,
+  DuplicatePlatformClientError,
   DuplicatePolicyError,
   EncryptionScope,
   EncryptionUnavailableError,
@@ -79,14 +83,23 @@ import {
   newBuildNewStateStep,
   newModelCatalogProviderFromDocument,
   newPipeline,
+  newSystemManagedPlatformClient,
   newResolveSlugStep,
   newR2ArtifactStorage,
   newValidateProtoStep,
   newWorkflowExecutionConfigFromEnv,
   notFoundError,
+  PLATFORM_TOKEN_ISSUER,
+  platformClientStoreContract,
+  platformTokenKeyRingFromPem,
+  platformTokenRefusalError,
+  signPlatformToken,
+  TOKEN_TYPE_CLAIM,
+  verifyPlatformToken,
   RequestContext,
   ResourceNotFoundError,
   ROUTING_SESSION,
+  SYSTEM_SHARE_CLIENT_SLUG,
   TOKEN_TYPE_EXECUTION_SCOPED,
   WORKFLOW_ROUTING_EXECUTION,
 } from "@stigmer/server";
@@ -103,6 +116,7 @@ import type {
   ChannelRuntime,
   ComposedServer,
   GateSlotName,
+  GuestTokenMinting,
   IamPolicyStore,
   IamPolicyStoreContractCase,
   IamPolicyStoreContractFixture,
@@ -118,6 +132,11 @@ import type {
   OrganizationDirectory,
   OutboundEgressPolicy,
   PipelineStep,
+  PlatformClientStore,
+  PlatformClientStoreContractCase,
+  PlatformClientStoreContractFixture,
+  PlatformTokenKeyRing,
+  PlatformTokenSigningOptions,
   PolicyGrantScope,
   PrincipalDisplay,
   PresignedUpload,
@@ -137,7 +156,9 @@ import type {
   SecretCodec,
   SecretService,
   ServerExtension,
+  SignedPlatformToken,
   Store,
+  SystemManagedPlatformClientInput,
   VisibilityChangedEvent,
   WorkerFactory,
   WorkflowExecutionTemporalConfig,
@@ -235,6 +256,185 @@ export async function runConsumerIdentityAccountStoreContract(): Promise<void> {
     await contractCase.run();
   }
 }
+
+/**
+ * A consumer-shaped PlatformClient store driver: the PORT the domain's
+ * chains, the mint and the verifier's liveness read go through when a
+ * composition registers one (the cloud's `cloud.iam_platform_client` store
+ * takes this position, registered below as `drivers.platformClientStore`).
+ * A held id, slug or client_id is DuplicatePlatformClientError.
+ */
+const consumerPlatformClients = new Map<string, PlatformClient>();
+const consumerPlatformClientStore: PlatformClientStore = {
+  save: (client) => {
+    const id = client.metadata?.id ?? "";
+    if (consumerPlatformClients.has(id)) {
+      return Promise.reject(
+        new DuplicatePlatformClientError(
+          `platform client '${id}' already exists`,
+        ),
+      );
+    }
+    consumerPlatformClients.set(id, client);
+    return Promise.resolve();
+  },
+  update: (client) => {
+    const id = client.metadata?.id ?? "";
+    if (consumerPlatformClients.has(id)) {
+      consumerPlatformClients.set(id, client);
+    }
+    return Promise.resolve();
+  },
+  deleteById: (id) => {
+    consumerPlatformClients.delete(id);
+    return Promise.resolve();
+  },
+  findById: (id) => Promise.resolve(consumerPlatformClients.get(id)),
+  findByClientId: (clientId) =>
+    Promise.resolve(
+      [...consumerPlatformClients.values()].find(
+        (client) => client.spec?.clientId === clientId,
+      ),
+    ),
+  findByOrgAndSlug: (org, slug) =>
+    Promise.resolve(
+      [...consumerPlatformClients.values()].find(
+        (client) =>
+          client.metadata?.org === org && client.metadata?.slug === slug,
+      ),
+    ),
+  findByOrg: (org) =>
+    Promise.resolve(
+      [...consumerPlatformClients.values()].filter(
+        (client) => client.metadata?.org === org,
+      ),
+    ),
+};
+
+/** The PlatformClient port-contract kit over the consumer's driver (compile-only here). */
+export function consumerPlatformClientStoreContract(): ReadonlyArray<PlatformClientStoreContractCase> {
+  return platformClientStoreContract(
+    async (): Promise<PlatformClientStoreContractFixture> => ({
+      store: consumerPlatformClientStore,
+      disconnect: () => Promise.resolve(),
+      cleanup: () => Promise.resolve(),
+    }),
+  );
+}
+
+/**
+ * A consumer's platform-token key ring, built from its configured PEMs
+ * (registered below as `drivers.platformTokenKeys`): the active public key
+ * first, the previous one still accepted, and the private key that signs.
+ */
+const consumerPlatformTokenKeys: PlatformTokenKeyRing =
+  platformTokenKeyRingFromPem({
+    privateKeyPem: process.env["CONSUMER_PLATFORM_TOKEN_PRIVATE_KEY"] ?? "",
+    kid: "consumer-signing-key-1",
+    publicKeyPems: [process.env["CONSUMER_PLATFORM_TOKEN_PUBLIC_KEY"] ?? ""],
+    audience: "https://api.consumer.example",
+    ttlSeconds: 900,
+  });
+
+/** The consumer guest lane's own lifetime, longer than the ring's user-token default. */
+const CONSUMER_GUEST_TOKEN_TTL_SECONDS = 3600;
+
+/**
+ * A consumer's own typed platform-token lane: a guest token signed through
+ * the exported envelope with the lane's own lifetime, naming the org's
+ * system-managed client, and claimed by a verifier on the same envelope —
+ * the shape a composition's typed lanes take once open source owns the
+ * untyped user-token lane.
+ */
+export async function mintConsumerGuestToken(
+  org: string,
+  shareId: string,
+): Promise<SignedPlatformToken> {
+  if (!canSign(consumerPlatformTokenKeys)) {
+    throw new Error("consumer ring cannot sign");
+  }
+  const client = await ensureConsumerSystemShareClient(org);
+  const options: PlatformTokenSigningOptions = {
+    ttlSeconds: CONSUMER_GUEST_TOKEN_TTL_SECONDS,
+  };
+  return signPlatformToken(
+    consumerPlatformTokenKeys,
+    {
+      sub: "ida_consumer_guest",
+      [TOKEN_TYPE_CLAIM]: "guest",
+      platform_client_id: client.metadata?.id ?? "",
+      share_id: shareId,
+    },
+    options,
+  );
+}
+
+/**
+ * The org's system-managed share client, built by the library and kept in
+ * the consumer's own store (the cloud's `cloud.iam_platform_client` driver
+ * takes this position): get, else build and save.
+ */
+async function ensureConsumerSystemShareClient(
+  org: string,
+): Promise<PlatformClient> {
+  const existing = await consumerPlatformClientStore.findByOrgAndSlug(
+    org,
+    SYSTEM_SHARE_CLIENT_SLUG,
+  );
+  if (existing !== undefined) {
+    return existing;
+  }
+  const input: SystemManagedPlatformClientInput = {
+    org,
+    slug: SYSTEM_SHARE_CLIENT_SLUG,
+    name: "System Share Client",
+  };
+  const client = newSystemManagedPlatformClient(input);
+  await consumerPlatformClientStore.save(client);
+  return client;
+}
+
+const consumerGuestTokenVerifier: IdentityVerifier = {
+  name: "consumer-guest-token",
+  verify(token) {
+    const result = verifyPlatformToken(consumerPlatformTokenKeys, token);
+    switch (result.outcome) {
+      case "foreign":
+        return Promise.resolve(null);
+      case "refused":
+        return Promise.reject(platformTokenRefusalError(result.refusal));
+      case "verified":
+        if (result.token.tokenType !== "guest") {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({
+          identityId: result.token.subject,
+          callerClass: "guest",
+          issuer: PLATFORM_TOKEN_ISSUER,
+          rawToken: token,
+        });
+      default: {
+        const exhaustive: never = result;
+        return Promise.reject(
+          new Error(`unknown outcome ${String(exhaustive)}`),
+        );
+      }
+    }
+  },
+};
+
+/** A consumer's guest-token capability (registered below as `drivers.guestTokenMinting`). */
+const consumerGuestTokenMinting: GuestTokenMinting = {
+  async mintGuestToken(request) {
+    const signed = await mintConsumerGuestToken(request.org, request.slug);
+    return create(MintGuestTokenResponseSchema, {
+      accessToken: signed.token,
+      tokenType: "Bearer",
+      expiresIn: CONSUMER_GUEST_TOKEN_TTL_SECONDS,
+      guestCookieId: request.guestCookieId,
+    });
+  },
+};
 
 /**
  * A consumer-shaped IamPolicy store driver (the 20260913.01 seam, Q-OR-1):
@@ -924,7 +1124,7 @@ export const fakeExtension: ServerExtension = {
   // literal `true` — `false` does not compile; omit the field instead.
   requireAuthentication: true,
   authorizer,
-  identityVerifiers: [verifier],
+  identityVerifiers: [verifier, consumerGuestTokenVerifier],
   // The 20260902.02 seam: post-authentication caller guards, serving
   // chain only.
   callerGuards: [callerGuard],
@@ -995,6 +1195,12 @@ export const fakeExtension: ServerExtension = {
     // composition registers the strict posture the library exports and
     // owns no copy of the address ranges.
     outboundEgress: consumerOutboundEgress,
+    // The PlatformClient seams: the domain served over the consumer's own
+    // store, the key ring its tokens ride, and the guest mint only it
+    // hosts.
+    platformClientStore: consumerPlatformClientStore,
+    platformTokenKeys: consumerPlatformTokenKeys,
+    guestTokenMinting: consumerGuestTokenMinting,
   },
   services: [registerBillingService, registerLicenseService],
   workers: [workerFactory],

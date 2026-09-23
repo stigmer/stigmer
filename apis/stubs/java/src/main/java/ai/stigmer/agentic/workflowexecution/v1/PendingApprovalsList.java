@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * PendingApprovalsList contains a paginated list of pending approvals.
+ * PendingApprovalsList contains one page of pending approvals.
  *
  * &#64;since T14 (Dashboard Integration)
  * </pre>
@@ -60,6 +60,11 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.workflowexecution.v1.PendingApproval> entries_;
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -67,6 +72,11 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -75,6 +85,11 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -82,6 +97,11 @@ private static final long serialVersionUID = 0L;
     return entries_.size();
   }
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -89,6 +109,11 @@ private static final long serialVersionUID = 0L;
     return entries_.get(index);
   }
   /**
+   * <pre>
+   * Pending approvals in this page: the newest execution's first, and an
+   * execution's waiting tasks in their order.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -117,7 +142,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object nextPageToken_ = "";
   /**
    * <pre>
-   * Pagination token for the next page. Empty when no more pages exist.
+   * Set when more approvals follow: pass it as page_token to continue.
+   * Empty when no more pages exist.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -138,7 +164,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pagination token for the next page. Empty when no more pages exist.
+   * Set when more approvals follow: pass it as page_token to continue.
+   * Empty when no more pages exist.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -346,7 +373,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * PendingApprovalsList contains a paginated list of pending approvals.
+   * PendingApprovalsList contains one page of pending approvals.
    *
    * &#64;since T14 (Dashboard Integration)
    * </pre>
@@ -572,6 +599,11 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflowexecution.v1.PendingApproval, ai.stigmer.agentic.workflowexecution.v1.PendingApproval.Builder, ai.stigmer.agentic.workflowexecution.v1.PendingApprovalOrBuilder> entriesBuilder_;
 
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.agentic.workflowexecution.v1.PendingApproval> getEntriesList() {
@@ -582,6 +614,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public int getEntriesCount() {
@@ -592,6 +629,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.agentic.workflowexecution.v1.PendingApproval getEntries(int index) {
@@ -602,6 +644,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -619,6 +666,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -633,6 +685,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(ai.stigmer.agentic.workflowexecution.v1.PendingApproval value) {
@@ -649,6 +706,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -666,6 +728,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -680,6 +747,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -694,6 +766,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder addAllEntries(
@@ -709,6 +786,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder clearEntries() {
@@ -722,6 +804,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public Builder removeEntries(int index) {
@@ -735,6 +822,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.agentic.workflowexecution.v1.PendingApproval.Builder getEntriesBuilder(
@@ -742,6 +834,11 @@ private static final long serialVersionUID = 0L;
       return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.agentic.workflowexecution.v1.PendingApprovalOrBuilder getEntriesOrBuilder(
@@ -752,6 +849,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.PendingApprovalOrBuilder> 
@@ -763,6 +865,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.agentic.workflowexecution.v1.PendingApproval.Builder addEntriesBuilder() {
@@ -770,6 +877,11 @@ private static final long serialVersionUID = 0L;
           ai.stigmer.agentic.workflowexecution.v1.PendingApproval.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.agentic.workflowexecution.v1.PendingApproval.Builder addEntriesBuilder(
@@ -778,6 +890,11 @@ private static final long serialVersionUID = 0L;
           index, ai.stigmer.agentic.workflowexecution.v1.PendingApproval.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Pending approvals in this page: the newest execution's first, and an
+     * execution's waiting tasks in their order.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.agentic.workflowexecution.v1.PendingApproval.Builder> 
@@ -846,7 +963,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
-     * Pagination token for the next page. Empty when no more pages exist.
+     * Set when more approvals follow: pass it as page_token to continue.
+     * Empty when no more pages exist.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -866,7 +984,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination token for the next page. Empty when no more pages exist.
+     * Set when more approvals follow: pass it as page_token to continue.
+     * Empty when no more pages exist.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -887,7 +1006,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination token for the next page. Empty when no more pages exist.
+     * Set when more approvals follow: pass it as page_token to continue.
+     * Empty when no more pages exist.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -904,7 +1024,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination token for the next page. Empty when no more pages exist.
+     * Set when more approvals follow: pass it as page_token to continue.
+     * Empty when no more pages exist.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -918,7 +1039,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination token for the next page. Empty when no more pages exist.
+     * Set when more approvals follow: pass it as page_token to continue.
+     * Empty when no more pages exist.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>

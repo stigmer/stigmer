@@ -19,7 +19,7 @@ public enum ExecutionSortField
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default: sort by started_at descending.
+   * Default: newest created first, the one order that pages.
    * </pre>
    *
    * <code>EXECUTION_SORT_FIELD_UNSPECIFIED = 0;</code>
@@ -73,7 +73,7 @@ public enum ExecutionSortField
   }
   /**
    * <pre>
-   * Default: sort by started_at descending.
+   * Default: newest created first, the one order that pages.
    * </pre>
    *
    * <code>EXECUTION_SORT_FIELD_UNSPECIFIED = 0;</code>

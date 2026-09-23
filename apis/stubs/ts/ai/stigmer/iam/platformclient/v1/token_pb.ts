@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/token.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_token: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiowEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhgKB3VzZXJfaWQYAyABKAlCB7pIBHICEAESEgoKdXNlcl9lbWFpbBgEIAEoCRIRCgl1c2VyX25hbWUYBSABKAkSDgoGb3JnX2lkGAYgASgJIlUKFU1pbnRVc2VyVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFIskDChVNaW50R3Vlc3RUb2tlblJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhUKBHNsdWcYAiABKAlCB7pIBHICEAESFwoPZ3Vlc3RfY29va2llX2lkGAMgASgJEssCCgxlbWJlZF9vcmlnaW4YBCABKAlCtAK6SLACugGsAgoTZW1iZWRfb3JpZ2luLmZvcm1hdBJ3ZW1iZWRfb3JpZ2luIG11c3QgYmUgZW1wdHksICJudWxsIiwgb3IgYW4gZXhhY3Qgd2ViIG9yaWdpbiBsaWtlIGh0dHBzOi8vZXhhbXBsZS5jb20gKG5vIHBhdGgsIHF1ZXJ5LCBvciB0cmFpbGluZyBzbGFzaCkamwF0aGlzID09ICcnIHx8IHRoaXMgPT0gJ251bGwnIHx8IHRoaXMubWF0Y2hlcygnXmh0dHBzPzovL1tBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KFxcLltBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KSooOlswLTldezEsNX0pPyQnKRIcCgpsaW5rX3Rva2VuGAUgASgJQgi6SAVyAxiAASJvChZNaW50R3Vlc3RUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUSFwoPZ3Vlc3RfY29va2llX2lkGAQgASgJMrQCCh1QbGF0Zm9ybUNsaWVudFRva2VuQ29udHJvbGxlchKGAQoNbWludFVzZXJUb2tlbhI2LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXF1ZXN0GjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlc3BvbnNlIgTIuBgBEokBCg5taW50R3Vlc3RUb2tlbhI3LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRHdWVzdFRva2VuUmVxdWVzdBo4LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRHdWVzdFRva2VuUmVzcG9uc2UiBMi4GAFiBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiugEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhsKB3VzZXJfaWQYAyABKAlCCrpIB3IFEAEYgAISHAoKdXNlcl9lbWFpbBgEIAEoCUIIukgFcgMYwAISGwoJdXNlcl9uYW1lGAUgASgJQgi6SAVyAxiAAhIOCgZvcmdfaWQYBiABKAkiVQoVTWludFVzZXJUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUiyQMKFU1pbnRHdWVzdFRva2VuUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESFQoEc2x1ZxgCIAEoCUIHukgEcgIQARIXCg9ndWVzdF9jb29raWVfaWQYAyABKAkSywIKDGVtYmVkX29yaWdpbhgEIAEoCUK0ArpIsAK6AawCChNlbWJlZF9vcmlnaW4uZm9ybWF0EndlbWJlZF9vcmlnaW4gbXVzdCBiZSBlbXB0eSwgIm51bGwiLCBvciBhbiBleGFjdCB3ZWIgb3JpZ2luIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRqbAXRoaXMgPT0gJycgfHwgdGhpcyA9PSAnbnVsbCcgfHwgdGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEhwKCmxpbmtfdG9rZW4YBSABKAlCCLpIBXIDGIABIm8KFk1pbnRHdWVzdFRva2VuUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSEgoKZXhwaXJlc19pbhgDIAEoBRIXCg9ndWVzdF9jb29raWVfaWQYBCABKAkytAIKHVBsYXRmb3JtQ2xpZW50VG9rZW5Db250cm9sbGVyEoYBCg1taW50VXNlclRva2VuEjYuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlcXVlc3QaNy5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50VXNlclRva2VuUmVzcG9uc2UiBMi4GAESiQEKDm1pbnRHdWVzdFRva2VuEjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludEd1ZXN0VG9rZW5SZXF1ZXN0GjguYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludEd1ZXN0VG9rZW5SZXNwb25zZSIEyLgYAWIGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * MintUserTokenRequest contains the credentials and user identity needed
@@ -49,22 +49,25 @@ export type MintUserTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.Min
    * Must be unique and stable within the org — the same user_id presented
    * via any PlatformClient in the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
+   * It must not contain the separator character '|'.
    *
    * @generated from field: string user_id = 3;
    */
   userId: string;
 
   /**
-   * User's email address. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's email address, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    *
    * @generated from field: string user_email = 4;
    */
   userEmail: string;
 
   /**
-   * User's display name. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's display name, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    *
    * @generated from field: string user_name = 5;
    */
@@ -243,14 +246,18 @@ export const MintGuestTokenResponseSchema: GenMessage<MintGuestTokenResponse> = 
  * of platform builder users, authenticated via PlatformClient credentials
  * (client_id + client_secret).
  *
- * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
- * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
- * that checks the Stigmer-issued signature and resolves the identity account.
+ * The minted JWT is signed by the server's own platform-token key, not by an
+ * external identity provider. The server verifies it on every request and
+ * refuses it once the PlatformClient that minted it is deleted. Minting
+ * requires a server that authenticates its callers; a server that trusts
+ * every request refuses it FAILED_PRECONDITION, because nothing would ever
+ * verify the token.
  *
  * mintGuestToken is the credential-free exception: no client_id/client_secret.
  * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
  * hosted page, gated on an enabled public-audience AgentShare
- * (ai.stigmer.agentic.agentshare.v1).
+ * (ai.stigmer.agentic.agentshare.v1). Editions that do not host shared-agent
+ * pages answer it UNIMPLEMENTED.
  *
  * @generated from service ai.stigmer.iam.platformclient.v1.PlatformClientTokenController
  */
@@ -268,17 +275,18 @@ export const PlatformClientTokenController: GenService<{
    *
    * Authentication flow:
    * 1. Validate client_id + client_secret against stored hash
-   * 2. Resolve or JIT-provision the identity account for user_id
-   * 3. If auto_grant_on_org is enabled, grant the configured role
-   * 4. Sign a JWT with Stigmer's private key containing the user's identity
+   * 2. Resolve the identity account for user_id; on first use, provision it
+   *    (and grant auto_grant_role when auto_grant_on_org is enabled)
+   * 3. Sign a JWT with the server's platform-token key containing the user's identity
    *
    * Error scenarios:
    * - UNAUTHENTICATED: Invalid client_id or client_secret
    * - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
-   *   is false, or the PlatformClient secret has expired
-   * - INTERNAL: Account provisioning could not be completed (for example, the
-   *   auto_grant_on_org role grant failed). No partial account is left behind
-   *   — the account is rolled back — so the request is safe to retry.
+   *   is false, the PlatformClient secret has expired, or the server does not
+   *   authenticate its callers
+   * - INTERNAL: Account provisioning could not be completed. No partial
+   *   account is left behind, so the request is safe to retry: a retry
+   *   completes the provisioning.
    *
    * Origin enforcement (spec.allowed_origins) does NOT apply to this call:
    * minting is server-to-server, so there is no browser Origin to check.

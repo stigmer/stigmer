@@ -107,6 +107,16 @@ export interface PlatformControllerDeps {
    */
   readonly version: string;
   /**
+   * The resolved require-authentication posture (compose.ts: the OSS
+   * issuer OR a unit's declaration), reported so a console can tell a
+   * server that verifies its callers from one that trusts every request —
+   * the features that hand out credentials only a verifying server
+   * honours (PlatformClient token minting) are unavailable on the latter.
+   * Always set on the wire, true or false: the field's absence is how a
+   * client recognises a server that predates it.
+   */
+  readonly authenticationRequired: boolean;
+  /**
    * What license this server holds (extensions/license-status.ts). The
    * composition root installs the built-in `absent` provider when no unit
    * registers one, so the field is required: a server that cannot answer
@@ -136,11 +146,12 @@ export function registerPlatformServices(
   });
 }
 
-/** Go GetServerInfo: the server edition and release version. */
+/** Go GetServerInfo: the server edition, release version and authentication posture. */
 function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
     edition: deps.edition,
     version: deps.version,
+    authenticationRequired: deps.authenticationRequired,
   });
 }
 

@@ -429,14 +429,17 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * can access: the executions in their organization the parent instance's
      * visibility and their own runs admit.
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
-     * - Returns total_pages count for UI pagination
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
+     * - next_page_token: set while more may follow; a page may be short
      * Filtering:
      * - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
      * - tags: Filter by resource tags (AND logic - must match all tags)
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Execution History Dashboard:
      * - UI displays list of all recent executions
@@ -456,8 +459,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Developer identifies systematic failures
      * Error Cases:
      * - INVALID_ARGUMENT:
-     *   - page_size is negative or exceeds maximum
-     *   - Invalid page_token (expired, corrupted)
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * Example Request (Filter for failed executions):
      * {
      *   "page_size": 20,
@@ -466,7 +469,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 3,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_failed-1", ... },
@@ -496,10 +499,13 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * 1. User has access to the referenced Workflow or WorkflowInstance
      * 2. Results are filtered to only include executions user can access
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Workflow Execution History:
      * - User views a Workflow in the UI
@@ -520,7 +526,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Error Cases:
      * - INVALID_ARGUMENT:
      *   - workflow_id is empty or invalid format
-     *   - page_size is negative or exceeds maximum
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * - PERMISSION_DENIED:
      *   - User doesn't have access to the referenced Workflow/WorkflowInstance
      * - NOT_FOUND:
@@ -532,7 +539,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 5,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
@@ -788,7 +795,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *    - Link to execution viewer for review action
      * 2. Approval Queue:
      *    - Reviewers see all pending approvals in one view
-     *    - Sorted by urgency (closest to timeout first)
+     *    - The newest execution's approvals first, paged by page_token
      * &#64;since T14 (Dashboard Integration)
      * </pre>
      */
@@ -932,14 +939,17 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * can access: the executions in their organization the parent instance's
      * visibility and their own runs admit.
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
-     * - Returns total_pages count for UI pagination
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
+     * - next_page_token: set while more may follow; a page may be short
      * Filtering:
      * - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
      * - tags: Filter by resource tags (AND logic - must match all tags)
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Execution History Dashboard:
      * - UI displays list of all recent executions
@@ -959,8 +969,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Developer identifies systematic failures
      * Error Cases:
      * - INVALID_ARGUMENT:
-     *   - page_size is negative or exceeds maximum
-     *   - Invalid page_token (expired, corrupted)
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * Example Request (Filter for failed executions):
      * {
      *   "page_size": 20,
@@ -969,7 +979,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 3,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_failed-1", ... },
@@ -1000,10 +1010,13 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * 1. User has access to the referenced Workflow or WorkflowInstance
      * 2. Results are filtered to only include executions user can access
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Workflow Execution History:
      * - User views a Workflow in the UI
@@ -1024,7 +1037,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Error Cases:
      * - INVALID_ARGUMENT:
      *   - workflow_id is empty or invalid format
-     *   - page_size is negative or exceeds maximum
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * - PERMISSION_DENIED:
      *   - User doesn't have access to the referenced Workflow/WorkflowInstance
      * - NOT_FOUND:
@@ -1036,7 +1050,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 5,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
@@ -1297,7 +1311,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *    - Link to execution viewer for review action
      * 2. Approval Queue:
      *    - Reviewers see all pending approvals in one view
-     *    - Sorted by urgency (closest to timeout first)
+     *    - The newest execution's approvals first, paged by page_token
      * &#64;since T14 (Dashboard Integration)
      * </pre>
      */
@@ -1417,14 +1431,17 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * can access: the executions in their organization the parent instance's
      * visibility and their own runs admit.
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
-     * - Returns total_pages count for UI pagination
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
+     * - next_page_token: set while more may follow; a page may be short
      * Filtering:
      * - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
      * - tags: Filter by resource tags (AND logic - must match all tags)
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Execution History Dashboard:
      * - UI displays list of all recent executions
@@ -1444,8 +1461,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Developer identifies systematic failures
      * Error Cases:
      * - INVALID_ARGUMENT:
-     *   - page_size is negative or exceeds maximum
-     *   - Invalid page_token (expired, corrupted)
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * Example Request (Filter for failed executions):
      * {
      *   "page_size": 20,
@@ -1454,7 +1471,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 3,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_failed-1", ... },
@@ -1484,10 +1501,13 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * 1. User has access to the referenced Workflow or WorkflowInstance
      * 2. Results are filtered to only include executions user can access
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Workflow Execution History:
      * - User views a Workflow in the UI
@@ -1508,7 +1528,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Error Cases:
      * - INVALID_ARGUMENT:
      *   - workflow_id is empty or invalid format
-     *   - page_size is negative or exceeds maximum
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * - PERMISSION_DENIED:
      *   - User doesn't have access to the referenced Workflow/WorkflowInstance
      * - NOT_FOUND:
@@ -1520,7 +1541,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 5,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
@@ -1780,7 +1801,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *    - Link to execution viewer for review action
      * 2. Approval Queue:
      *    - Reviewers see all pending approvals in one view
-     *    - Sorted by urgency (closest to timeout first)
+     *    - The newest execution's approvals first, paged by page_token
      * &#64;since T14 (Dashboard Integration)
      * </pre>
      */
@@ -1899,14 +1920,17 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * can access: the executions in their organization the parent instance's
      * visibility and their own runs admit.
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
-     * - Returns total_pages count for UI pagination
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
+     * - next_page_token: set while more may follow; a page may be short
      * Filtering:
      * - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
      * - tags: Filter by resource tags (AND logic - must match all tags)
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Execution History Dashboard:
      * - UI displays list of all recent executions
@@ -1926,8 +1950,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Developer identifies systematic failures
      * Error Cases:
      * - INVALID_ARGUMENT:
-     *   - page_size is negative or exceeds maximum
-     *   - Invalid page_token (expired, corrupted)
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * Example Request (Filter for failed executions):
      * {
      *   "page_size": 20,
@@ -1936,7 +1960,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 3,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_failed-1", ... },
@@ -1966,10 +1990,13 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * 1. User has access to the referenced Workflow or WorkflowInstance
      * 2. Results are filtered to only include executions user can access
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Workflow Execution History:
      * - User views a Workflow in the UI
@@ -1990,7 +2017,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Error Cases:
      * - INVALID_ARGUMENT:
      *   - workflow_id is empty or invalid format
-     *   - page_size is negative or exceeds maximum
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * - PERMISSION_DENIED:
      *   - User doesn't have access to the referenced Workflow/WorkflowInstance
      * - NOT_FOUND:
@@ -2002,7 +2030,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 5,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
@@ -2260,7 +2288,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *    - Link to execution viewer for review action
      * 2. Approval Queue:
      *    - Reviewers see all pending approvals in one view
-     *    - Sorted by urgency (closest to timeout first)
+     *    - The newest execution's approvals first, paged by page_token
      * &#64;since T14 (Dashboard Integration)
      * </pre>
      */
@@ -2380,14 +2408,17 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * can access: the executions in their organization the parent instance's
      * visibility and their own runs admit.
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
-     * - Returns total_pages count for UI pagination
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
+     * - next_page_token: set while more may follow; a page may be short
      * Filtering:
      * - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
      * - tags: Filter by resource tags (AND logic - must match all tags)
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Execution History Dashboard:
      * - UI displays list of all recent executions
@@ -2407,8 +2438,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Developer identifies systematic failures
      * Error Cases:
      * - INVALID_ARGUMENT:
-     *   - page_size is negative or exceeds maximum
-     *   - Invalid page_token (expired, corrupted)
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * Example Request (Filter for failed executions):
      * {
      *   "page_size": 20,
@@ -2417,7 +2448,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 3,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_failed-1", ... },
@@ -2448,10 +2479,13 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * 1. User has access to the referenced Workflow or WorkflowInstance
      * 2. Results are filtered to only include executions user can access
      * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
+     * - page_size: zero returns every execution; a positive size at most that
+     *   many, and at most 100
+     * - page_token: the previous response's next_page_token, the other
+     *   fields unchanged
      * Sorting:
-     * Results are sorted by created_at descending (newest first).
+     * Results are sorted by created_at descending (newest first); another
+     * sort_field sorts the whole matching set and returns no token.
      * Use Cases:
      * 1. Workflow Execution History:
      * - User views a Workflow in the UI
@@ -2472,7 +2506,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * Error Cases:
      * - INVALID_ARGUMENT:
      *   - workflow_id is empty or invalid format
-     *   - page_size is negative or exceeds maximum
+     *   - page_size is negative
+     *   - page_token is malformed, or was issued for a different request
      * - PERMISSION_DENIED:
      *   - User doesn't have access to the referenced Workflow/WorkflowInstance
      * - NOT_FOUND:
@@ -2484,7 +2519,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Example Response:
      * {
-     *   "total_pages": 5,
+     *   "next_page_token": "…",
      *   "entries": [
      *     {
      *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
@@ -2587,7 +2622,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *    - Link to execution viewer for review action
      * 2. Approval Queue:
      *    - Reviewers see all pending approvals in one view
-     *    - Sorted by urgency (closest to timeout first)
+     *    - The newest execution's approvals first, paged by page_token
      * &#64;since T14 (Dashboard Integration)
      * </pre>
      */

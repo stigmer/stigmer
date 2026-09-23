@@ -26,7 +26,8 @@
  *     subject, never its slug (the guideline's "domains with different
  *     uniqueness rules bring their own step under the same name").
  *   - AssignBackendFields: `is_machine_account` from the `@clients`
- *     suffix and `provisioning_mode direct` on create (the spec's
+ *     suffix and the provisioning mode the path was given (`direct`, or
+ *     `platform_client` for the mint's end users) on create (the spec's
  *     "assigned by backend" fields); on update, every backend-assigned
  *     field and the email are preserved from the existing row (A9: the
  *     cloud's writable surface — first/last name, picture, preferences —
@@ -63,11 +64,15 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
 import {
+  PLATFORM_CLIENT_SUBJECT_PREFIX,
   accountIdFor,
   accountNotFoundMessage,
   idpIdImmutableMessage,
   isMachineSubject,
+  isPlatformClientSubject,
+  reservedSubjectMessage,
 } from "./constants.js";
+import type { AccountProvisioning } from "./provisioning.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -158,11 +163,61 @@ export function assignDirectBackendFields(
   return spec;
 }
 
-export function newAssignBackendFieldsStep(): AccountStep {
+/**
+ * The backend-assigned fields of a PLATFORM-CLIENT account: the machine
+ * flag from the subject's shape (the cloud's rule for every mode), mode
+ * `platform_client`, no provider ref — the PlatformClient admits the user
+ * at mint time and is no ongoing authentication authority.
+ */
+function assignPlatformClientBackendFields(
+  spec: IdentityAccountSpec,
+): IdentityAccountSpec {
+  spec.isMachineAccount = isMachineSubject(spec.idpId);
+  spec.provisioningMode = IdentityAccountProvisioningMode.platform_client;
+  spec.identityProviderRef = undefined;
+  return spec;
+}
+
+/**
+ * AssignBackendFields on create, by how the account was provisioned. The
+ * `stgm_pc|` subject namespace is reserved in both directions: a direct
+ * account refuses it (INVALID_ARGUMENT, before anything is written), and a
+ * platform-client account must carry it — its absence is the mint's bug,
+ * never a client's input.
+ */
+export function newAssignBackendFieldsStep(
+  provisioning: AccountProvisioning,
+): AccountStep {
   return {
     name: "AssignBackendFields",
     execute(ctx: AccountContext): void {
-      assignDirectBackendFields(specOf(ctx));
+      const spec = specOf(ctx);
+      switch (provisioning.mode) {
+        case "direct":
+          if (isPlatformClientSubject(spec.idpId)) {
+            throw invalidArgumentError(reservedSubjectMessage(spec.idpId));
+          }
+          assignDirectBackendFields(spec);
+          return;
+        case "platform_client":
+          if (!isPlatformClientSubject(spec.idpId)) {
+            throw internalError(
+              new Error(
+                `a platform-client account's subject must carry the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix`,
+              ),
+              "assign backend fields",
+            );
+          }
+          assignPlatformClientBackendFields(spec);
+          return;
+        default: {
+          const exhaustive: never = provisioning;
+          throw internalError(
+            new Error(`unknown provisioning ${JSON.stringify(exhaustive)}`),
+            "assign backend fields",
+          );
+        }
+      }
     },
   };
 }

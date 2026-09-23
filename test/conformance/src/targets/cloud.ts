@@ -21,7 +21,12 @@ import {
   mintCloudUserToken,
   organizationMemberGrant,
 } from "../harness/cloud-env";
-import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import {
+  createTransport,
+  makeClients,
+  type ConformanceClients,
+  type PresentingOptions,
+} from "../harness/clients";
 import {
   newDirectLoginTenant,
   readDirectLoginTenantMaterial,
@@ -222,8 +227,8 @@ export class CloudTarget implements TargetProfile {
         return organizationId;
       },
       directLoginTenant: this.directLoginTenant?.(),
-      clientsPresenting: (bearerToken) =>
-        makeClients(createTransport(grpcBaseUrl, { bearerToken })),
+      clientsPresenting: (bearerToken, options = {}) =>
+        makeClients(createTransport(grpcBaseUrl, { ...options, bearerToken })),
     });
   }
 
@@ -275,8 +280,10 @@ export class CloudTarget implements TargetProfile {
     return makeClients(createTransport(this.requireBaseUrl("anonymousClients")));
   }
 
-  clientsPresenting(bearerToken: string): ConformanceClients {
-    return makeClients(createTransport(this.requireBaseUrl("clientsPresenting"), { bearerToken }));
+  clientsPresenting(bearerToken: string, options: PresentingOptions = {}): ConformanceClients {
+    return makeClients(
+      createTransport(this.requireBaseUrl("clientsPresenting"), { ...options, bearerToken }),
+    );
   }
 
   private requireBaseUrl(caller: string): string {

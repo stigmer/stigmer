@@ -38,6 +38,11 @@
  *     it reaches a URL a user supplied: the MCP endpoint it probes at save
  *     time and the login server it reaches on Sign in) — landed with the
  *     save-time OAuth completion for URL-only MCP servers, 2026-09-19
+ *   - platform-client store + platform-token keys + guest-token minting
+ *     (PlatformClient served in every edition: the port the cloud's
+ *     `cloud.iam_platform_client` driver fills, the RS256 key ring every
+ *     self-signed token rides, and the one token method only an edition
+ *     that hosts shared-agent pages serves) — landed 2026-09-23
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -53,12 +58,15 @@ import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-s
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
+import type { PlatformTokenKeyRing } from "../platformtoken/key-ring.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
+import type { GuestTokenMinting } from "./guest-token-minting.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
@@ -259,4 +267,33 @@ export interface ExtensionDrivers {
    * (extensions/outbound-egress.ts carries the contract).
    */
   readonly outboundEgress?: OutboundEgressPolicy;
+  /**
+   * The platform-client store driver (single-instance point). The
+   * platform-client domain's persistence is a PORT like the
+   * identity-account domain's: when composed, every chain, the mint and
+   * the verifier's liveness read go through this driver (the cloud serves
+   * the domain over its own `cloud.iam_platform_client` table this way,
+   * legacy `pc_` ids included). When absent, the OSS adapter over the
+   * generic Store installs at the compose.ts consumption site.
+   */
+  readonly platformClientStore?: PlatformClientStore;
+  /**
+   * The platform-token key ring (single-instance point): the RS256 keys
+   * every token the server signs for itself rides
+   * (platformtoken/key-ring.ts). Consumed only under an authentication
+   * posture — nothing verifies a token on a server that trusts every
+   * request. When absent there, open source composes its own ring on the
+   * key-manager ladder; a composition declaring an edition other than
+   * open source must supply one (compose.ts refuses to boot without it,
+   * so a hosted edition never signs with a generated key).
+   */
+  readonly platformTokenKeys?: PlatformTokenKeyRing;
+  /**
+   * The guest-token capability (single-instance point): the one
+   * PlatformClientTokenController method only an edition hosting
+   * shared-agent pages serves. When absent, `mintGuestToken` refuses
+   * UNIMPLEMENTED with the edition sentence
+   * (extensions/guest-token-minting.ts carries the contract).
+   */
+  readonly guestTokenMinting?: GuestTokenMinting;
 }

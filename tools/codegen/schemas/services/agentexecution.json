@@ -650,7 +650,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of executions to return per page.",
+          "description": "The most executions to return, at most 100; zero returns them all.",
           "required": false
         },
         {
@@ -660,7 +660,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Token for pagination, obtained from previous response.",
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
           "required": false
         },
         {
@@ -711,7 +711,7 @@
     },
     {
       "name": "AgentExecutionList",
-      "description": "AgentExecutionList contains a paginated list of agent executions.",
+      "description": "AgentExecutionList contains one page of agent executions, newest first.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionList",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
       "fields": [
@@ -722,7 +722,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Total number of pages available.",
+          "description": "Not computed for this list: 1 when the response holds every execution,\n 0 when next_page_token is set. Follow next_page_token instead.",
           "required": false
         },
         {
@@ -736,14 +736,24 @@
               "messageType": "AgentExecution"
             }
           },
-          "description": "Agent executions in the current page.",
+          "description": "Agent executions in this page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more executions may follow: pass it as page_token to\n continue. A page may hold fewer executions than page_size, even none,\n and still carry a token. Empty when the list is complete, and always\n empty from listBySession, which returns a session's executions whole.",
           "required": false
         }
       ]
     },
     {
       "name": "ListAgentExecutionsBySessionRequest",
-      "description": "ListAgentExecutionsBySessionRequest lists all executions in a session.",
+      "description": "ListAgentExecutionsBySessionRequest lists all executions in a session.\n\n A session's executions are returned whole, newest first: a conversation\n is read as one, and every consumer of this list needs all of it.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
       "fields": [
@@ -767,7 +777,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of executions to return per page.",
+          "description": "Not read: a session's executions are returned whole.",
           "required": false
         },
         {
@@ -777,7 +787,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Token for pagination, obtained from previous response.",
+          "description": "Not read: a session's executions are returned whole.",
           "required": false
         }
       ]

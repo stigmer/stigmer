@@ -9,7 +9,12 @@
 // the CRUD domains), so tenancy provisioning is just a unique org slug.
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ensureTsServerEntry } from "../harness/ts-build";
-import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import {
+  createTransport,
+  makeClients,
+  type ConformanceClients,
+  type PresentingOptions,
+} from "../harness/clients";
 import { newSiblingEnforcingLane, type SiblingEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import {
@@ -72,10 +77,10 @@ export class LocalTarget implements TargetProfile {
     billingLedger: false,
     sideChannelProxy: false,
     publicLane: false,
-    // No PlatformClient surface in this edition — the controllers are
-    // unrouted and the serving edge composes zero caller guards (the
-    // 20260902.02 empty state), so the enforcement arms skip.
-    platformClientTokens: false,
+    // Open source serves PlatformClient; the minting lane is the OIDC
+    // sibling this target lends through enforcingLane(), where the key ring,
+    // the platform-token verifier and the origin guard are composed.
+    platformClientTokens: true,
     // Single-operator trusted-local posture: no issuer, no declared
     // posture, zero verifiers — a tokenless request IS the operator (the
     // authentication suite pins that admission, entry 20260904.02).
@@ -142,8 +147,11 @@ export class LocalTarget implements TargetProfile {
       await storage.release();
       throw error;
     }
-    const clientsPresenting = (bearerToken: string): ConformanceClients =>
-      makeClients(createTransport(server.baseUrl, { bearerToken }));
+    const clientsPresenting = (
+      bearerToken: string,
+      options: PresentingOptions = {},
+    ): ConformanceClients =>
+      makeClients(createTransport(server.baseUrl, { ...options, bearerToken }));
     const teardown = async (): Promise<void> => {
       await server.stop();
       await storage.release();
@@ -186,8 +194,8 @@ export class LocalTarget implements TargetProfile {
     return makeClients(createTransport(this.httpBaseUrl()));
   }
 
-  clientsPresenting(bearerToken: string): ConformanceClients {
-    return makeClients(createTransport(this.httpBaseUrl(), { bearerToken }));
+  clientsPresenting(bearerToken: string, options: PresentingOptions = {}): ConformanceClients {
+    return makeClients(createTransport(this.httpBaseUrl(), { ...options, bearerToken }));
   }
 
   // The spawned server's unified port also serves the plain-HTTP lanes (the

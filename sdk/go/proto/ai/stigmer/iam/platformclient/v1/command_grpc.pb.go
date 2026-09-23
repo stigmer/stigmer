@@ -52,10 +52,10 @@ type PlatformClientCommandControllerClient interface {
 	Create(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClientCreateResponse, error)
 	// Update an existing platform client.
 	//
-	// Only mutable fields can be changed: auto_provision_accounts, auto_grant_on_org,
-	// auto_grant_role, and allowed_origins. Credential fields (client_id,
-	// client_secret_hash, secret_fingerprint) are immutable after creation.
-	// Use rotateSecret to change the client secret.
+	// The name, labels and every spec field can be changed except the
+	// credential fields (client_id, client_secret_hash, secret_fingerprint),
+	// which are kept from the stored client. Use rotateSecret to change the
+	// client secret. A system-managed client cannot be updated.
 	Update(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClient, error)
 	// Delete a platform client.
 	//
@@ -70,7 +70,9 @@ type PlatformClientCommandControllerClient interface {
 	// Generates a new client_secret, invalidates the old one immediately,
 	// and returns the new raw secret in the response. The client_id remains
 	// unchanged — platform builders do not need to update their client_id
-	// configuration after rotation.
+	// configuration after rotation. Tokens already minted stay valid until they
+	// expire; delete the client to revoke them. A system-managed client's
+	// secret cannot be rotated.
 	RotateSecret(ctx context.Context, in *PlatformClientId, opts ...grpc.CallOption) (*PlatformClientCreateResponse, error)
 }
 
@@ -148,10 +150,10 @@ type PlatformClientCommandControllerServer interface {
 	Create(context.Context, *PlatformClient) (*PlatformClientCreateResponse, error)
 	// Update an existing platform client.
 	//
-	// Only mutable fields can be changed: auto_provision_accounts, auto_grant_on_org,
-	// auto_grant_role, and allowed_origins. Credential fields (client_id,
-	// client_secret_hash, secret_fingerprint) are immutable after creation.
-	// Use rotateSecret to change the client secret.
+	// The name, labels and every spec field can be changed except the
+	// credential fields (client_id, client_secret_hash, secret_fingerprint),
+	// which are kept from the stored client. Use rotateSecret to change the
+	// client secret. A system-managed client cannot be updated.
 	Update(context.Context, *PlatformClient) (*PlatformClient, error)
 	// Delete a platform client.
 	//
@@ -166,7 +168,9 @@ type PlatformClientCommandControllerServer interface {
 	// Generates a new client_secret, invalidates the old one immediately,
 	// and returns the new raw secret in the response. The client_id remains
 	// unchanged — platform builders do not need to update their client_id
-	// configuration after rotation.
+	// configuration after rotation. Tokens already minted stay valid until they
+	// expire; delete the client to revoke them. A system-managed client's
+	// secret cannot be rotated.
 	RotateSecret(context.Context, *PlatformClientId) (*PlatformClientCreateResponse, error)
 }
 

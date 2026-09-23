@@ -110,16 +110,21 @@ extends a chain only through the registered points; it never patches a step.
   mapping, and any other throw from it is an infrastructure fault, never
   softened into a denial. The in-process chain takes no guards by structure, not
   by a runtime skip.
-- Server code acting on its own behalf rides the in-process transport
+- Server code that calls another domain's RPCs rides the in-process transport
   (`backend/services/stigmer-server/src/boot/inprocess.ts`), whose identity
   position mints the `internal` caller class and whose chain validates, logs and
-  tags the call like an external one. Never call a domain function directly with
-  a hand-built `CallerIdentity`; the only constructor of one is
-  `backend/services/stigmer-server/src/pipeline/interceptors/auth.ts`, and the
-  trusted-local identity is the wire fallback for an unclaimed request, never a
-  worker's identity. A new server-internal caller adds a narrow,
-  method-segregated edge to the in-process clients and resolves it lazily when
-  it is built before the routes exist.
+  tags the call like an external one. A new server-internal caller adds a
+  narrow, method-segregated edge to the in-process clients and resolves it
+  lazily when it is built before the routes exist. A domain port the composition
+  root injects (the identity-account create path, the IamPolicy grant path, the
+  membership hook) may be called directly, because it is not an RPC. Either way,
+  every `CallerIdentity` is built in
+  `backend/services/stigmer-server/src/pipeline/interceptors/auth.ts` or, for an
+  account acting as itself, in
+  `backend/services/stigmer-server/src/domain/identityaccount/actor.ts`; the
+  server acting for a principal it authenticated itself is `serverActingFor`
+  there; and the trusted-local identity is the wire fallback for an unclaimed
+  request, never a worker's identity.
 - The require-authentication posture has exactly two sources, combined in
   `backend/services/stigmer-server/src/boot/compose.ts`: the OSS OIDC issuer
   setting, and a composed unit's single declaration. Which authorizer runs under

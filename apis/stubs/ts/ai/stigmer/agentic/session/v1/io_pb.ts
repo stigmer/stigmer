@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJuCiJMaXN0U2Vzc2lvbnNCeUFnZW50SW5zdGFuY2VSZXF1ZXN0EiEKEWFnZW50X2luc3RhbmNlX2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiYQocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJIncKIkxpc3RTZXNzaW9uc0J5QWdlbnRJbnN0YW5jZVJlcXVlc3QSIQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAlCBrpIA8gBARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASEgoKcGFnZV90b2tlbhgDIAEoCSJqChxMaXN0U2Vzc2lvbnNCeUNoYW5uZWxSZXF1ZXN0EhoKCmNoYW5uZWxfaWQYASABKAlCBrpIA8gBARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASEgoKcGFnZV90b2tlbhgDIAEoCSJCChtVcGRhdGVTZXNzaW9uU3ViamVjdFJlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBARIPCgdzdWJqZWN0GAIgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -54,24 +54,34 @@ export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 1);
 
 /**
- * SessionList contains a paginated list of sessions.
+ * SessionList contains one page of sessions, newest first.
  *
  * @generated from message ai.stigmer.agentic.session.v1.SessionList
  */
 export type SessionList = Message<"ai.stigmer.agentic.session.v1.SessionList"> & {
   /**
-   * Total number of pages available.
+   * Not computed for this list: 1 when the response holds every session,
+   * 0 when next_page_token is set. Follow next_page_token instead.
    *
    * @generated from field: int32 total_pages = 1;
    */
   totalPages: number;
 
   /**
-   * Sessions in the current page.
+   * Sessions in this page, newest first.
    *
    * @generated from field: repeated ai.stigmer.agentic.session.v1.Session entries = 2;
    */
   entries: Session[];
+
+  /**
+   * Set when more sessions may follow: pass it as page_token to continue.
+   * A page may hold fewer sessions than page_size, even none, and still
+   * carry a token. Empty when the list is complete.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -88,14 +98,15 @@ export const SessionListSchema: GenMessage<SessionList> = /*@__PURE__*/
  */
 export type ListSessionsRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionsRequest"> & {
   /**
-   * Maximum number of sessions to return per page.
+   * The most sessions to return, at most 100; zero returns them all.
    *
    * @generated from field: int32 page_size = 1;
    */
   pageSize: number;
 
   /**
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 2;
    */
@@ -107,6 +118,18 @@ export type ListSessionsRequest = Message<"ai.stigmer.agentic.session.v1.ListSes
    * @generated from field: repeated string tags = 3;
    */
   tags: string[];
+
+  /**
+   * Organization slug to scope the results to.
+   *
+   * When set, only sessions of that organization are returned — the
+   * org-context view a console needs. When empty, results are bounded only
+   * by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * @generated from field: string org = 4;
+   */
+  org: string;
 };
 
 /**
@@ -130,14 +153,15 @@ export type ListSessionsByAgentInstanceRequest = Message<"ai.stigmer.agentic.ses
   agentInstanceId: string;
 
   /**
-   * Maximum number of sessions to return per page.
+   * The most sessions to return, at most 100; zero returns them all.
    *
    * @generated from field: int32 page_size = 2;
    */
   pageSize: number;
 
   /**
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 3;
    */
@@ -165,14 +189,15 @@ export type ListSessionsByChannelRequest = Message<"ai.stigmer.agentic.session.v
   channelId: string;
 
   /**
-   * Maximum number of sessions to return per page.
+   * The most sessions to return, at most 100; zero returns them all.
    *
    * @generated from field: int32 page_size = 2;
    */
   pageSize: number;
 
   /**
-   * Token for pagination, obtained from previous response.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 3;
    */

@@ -35,6 +35,7 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import type { OutputFormat } from "../output/index.js";
+import { readCursorPages } from "./cursor-pages.js";
 import {
   bool,
   type JsonObject,
@@ -192,12 +193,12 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
       // api_key above — the agent_instance precedent, not an oversight.
       // Promoted from a bespoke pre-gate route in commands/list.ts by
       // stigmer/stigmer#469 (it had shipped working-but-unadvertised).
-      const result = await client.session.list(
-        create(ListSessionsRequestSchema, { pageSize: limit }),
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.session.list(create(ListSessionsRequestSchema, { pageSize, pageToken })),
       );
       return {
         schema: SessionSchema,
-        entries: result.entries,
+        entries,
         table: SESSION_TABLE,
       };
     },

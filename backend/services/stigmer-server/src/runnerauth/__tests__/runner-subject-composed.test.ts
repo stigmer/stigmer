@@ -245,9 +245,13 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     );
   }
 
-  it("the chain is apikey → runner → oidc: ours claims the server's own token before the OIDC verifier can fault on it", () => {
+  it("the chain is apikey → platform-client → runner → oidc: ours claims the server's own token before the OIDC verifier can fault on it", () => {
+    // The platform-client verifier claims only `iss: "stigmer"` user tokens
+    // and a runner token carries no `iss`, so the two lanes are disjoint and
+    // both sit ahead of the OIDC verifier for the same reason.
     expect(server.identityVerifiers.map((verifier) => verifier.name)).toEqual([
       "apikey",
+      "platform-client",
       RUNNER_VERIFIER_NAME,
       "oidc",
     ]);
@@ -489,9 +493,11 @@ describe("a unit's own Authorizer: no runner verifier is composed", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("the chain is apikey then the unit's verifiers — the composition owns its credential story", () => {
+  it("the chain is apikey, platform-client, then the unit's verifiers — the composition owns its credential story", () => {
     const names = server.identityVerifiers.map((verifier) => verifier.name);
-    expect(names).toEqual(["apikey", fakeVerifier.name]);
+    // The PlatformClient lane is core in every posture that verifies
+    // callers; the runner-subject lane is the built-in Authorizer's alone.
+    expect(names).toEqual(["apikey", "platform-client", fakeVerifier.name]);
     expect(names).not.toContain(RUNNER_VERIFIER_NAME);
   });
 });

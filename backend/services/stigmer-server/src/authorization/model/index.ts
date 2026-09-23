@@ -12,11 +12,11 @@
  * chain past the depth bound) and for the cloud's drift test, which
  * builds a model from the live `.fga` files and compares.
  *
- * Registered: every kind of the open-source tier — the twenty-three
- * `kind_meta.tier: open_source` members — and nothing else. The four
+ * Registered: every kind of the open-source tier — the twenty-four
+ * `kind_meta.tier: open_source` members — and nothing else. The three
  * files `fga.mod` lists that have no declaration here (`platform`,
- * `identity_provider`, `platform_client`, `invitation`) are kinds this
- * edition does not serve: a check that targets one is refused by the
+ * `identity_provider`, `invitation`) are kinds this edition does not
+ * serve: a check that targets one is refused by the
  * driver, and a tuple that names one (`identity_provider#platform_user`)
  * resolves to nobody. The registry test pins the list against the tier.
  */
@@ -38,6 +38,7 @@ import { mcpServerDeclaration } from "./mcp_server.js";
 import { memoryDeclaration } from "./memory.js";
 import { oauthAppDeclaration } from "./oauth_app.js";
 import { organizationDeclaration } from "./organization.js";
+import { platformClientDeclaration } from "./platform_client.js";
 import { pluginDeclaration } from "./plugin.js";
 import type { KindDeclaration } from "./rewrite.js";
 import { scheduleDeclaration } from "./schedule.js";
@@ -77,6 +78,7 @@ export const builtInModel: Model = newModel([
   iamPolicyDeclaration,
   apiKeyDeclaration,
   oauthAppDeclaration,
+  platformClientDeclaration,
   organizationDeclaration,
   agentDeclaration,
   agentChannelDeclaration,

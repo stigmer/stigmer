@@ -54,6 +54,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.platform.v1.GetServerInfoOutput.class, ai.stigmer.platform.v1.GetServerInfoOutput.Builder.class);
   }
 
+  private int bitField0_;
   public static final int EDITION_FIELD_NUMBER = 1;
   private int edition_ = 0;
   /**
@@ -127,6 +128,53 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int AUTHENTICATION_REQUIRED_FIELD_NUMBER = 3;
+  private boolean authenticationRequired_ = false;
+  /**
+   * <pre>
+   * Whether the server authenticates its callers.
+   *
+   * False when the server trusts every request (no identity verifier is
+   * configured, the default single-operator posture). Features that hand out
+   * credentials only a verifying server honours — minting PlatformClient user
+   * tokens — are unavailable then.
+   *
+   * Every server that knows the field sets it, true or false. Absent means
+   * the server predates it and its posture is unknown: a client offers the
+   * feature and lets the server's own answer decide, rather than reading an
+   * older server as one that trusts every request.
+   * </pre>
+   *
+   * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+   * @return Whether the authenticationRequired field is set.
+   */
+  @java.lang.Override
+  public boolean hasAuthenticationRequired() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Whether the server authenticates its callers.
+   *
+   * False when the server trusts every request (no identity verifier is
+   * configured, the default single-operator posture). Features that hand out
+   * credentials only a verifying server honours — minting PlatformClient user
+   * tokens — are unavailable then.
+   *
+   * Every server that knows the field sets it, true or false. Absent means
+   * the server predates it and its posture is unknown: a client offers the
+   * feature and lets the server's own answer decide, rather than reading an
+   * older server as one that trusts every request.
+   * </pre>
+   *
+   * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+   * @return The authenticationRequired.
+   */
+  @java.lang.Override
+  public boolean getAuthenticationRequired() {
+    return authenticationRequired_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -147,6 +195,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(version_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, version_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeBool(3, authenticationRequired_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -162,6 +213,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(version_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, version_);
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, authenticationRequired_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -181,6 +236,11 @@ private static final long serialVersionUID = 0L;
     if (edition_ != other.edition_) return false;
     if (!getVersion()
         .equals(other.getVersion())) return false;
+    if (hasAuthenticationRequired() != other.hasAuthenticationRequired()) return false;
+    if (hasAuthenticationRequired()) {
+      if (getAuthenticationRequired()
+          != other.getAuthenticationRequired()) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -196,6 +256,11 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + edition_;
     hash = (37 * hash) + VERSION_FIELD_NUMBER;
     hash = (53 * hash) + getVersion().hashCode();
+    if (hasAuthenticationRequired()) {
+      hash = (37 * hash) + AUTHENTICATION_REQUIRED_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+          getAuthenticationRequired());
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -333,6 +398,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       edition_ = 0;
       version_ = "";
+      authenticationRequired_ = false;
       return this;
     }
 
@@ -372,6 +438,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.version_ = version_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.authenticationRequired_ = authenticationRequired_;
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -393,6 +465,9 @@ private static final long serialVersionUID = 0L;
         version_ = other.version_;
         bitField0_ |= 0x00000002;
         onChanged();
+      }
+      if (other.hasAuthenticationRequired()) {
+        setAuthenticationRequired(other.getAuthenticationRequired());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -430,6 +505,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              authenticationRequired_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -607,6 +687,102 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       version_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private boolean authenticationRequired_ ;
+    /**
+     * <pre>
+     * Whether the server authenticates its callers.
+     *
+     * False when the server trusts every request (no identity verifier is
+     * configured, the default single-operator posture). Features that hand out
+     * credentials only a verifying server honours — minting PlatformClient user
+     * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
+     * </pre>
+     *
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * @return Whether the authenticationRequired field is set.
+     */
+    @java.lang.Override
+    public boolean hasAuthenticationRequired() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <pre>
+     * Whether the server authenticates its callers.
+     *
+     * False when the server trusts every request (no identity verifier is
+     * configured, the default single-operator posture). Features that hand out
+     * credentials only a verifying server honours — minting PlatformClient user
+     * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
+     * </pre>
+     *
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * @return The authenticationRequired.
+     */
+    @java.lang.Override
+    public boolean getAuthenticationRequired() {
+      return authenticationRequired_;
+    }
+    /**
+     * <pre>
+     * Whether the server authenticates its callers.
+     *
+     * False when the server trusts every request (no identity verifier is
+     * configured, the default single-operator posture). Features that hand out
+     * credentials only a verifying server honours — minting PlatformClient user
+     * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
+     * </pre>
+     *
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * @param value The authenticationRequired to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAuthenticationRequired(boolean value) {
+
+      authenticationRequired_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the server authenticates its callers.
+     *
+     * False when the server trusts every request (no identity verifier is
+     * configured, the default single-operator posture). Features that hand out
+     * credentials only a verifying server honours — minting PlatformClient user
+     * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
+     * </pre>
+     *
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAuthenticationRequired() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      authenticationRequired_ = false;
       onChanged();
       return this;
     }

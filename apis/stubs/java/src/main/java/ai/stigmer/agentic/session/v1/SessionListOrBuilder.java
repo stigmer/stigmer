@@ -12,7 +12,8 @@ public interface SessionListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of pages available.
+   * Not computed for this list: 1 when the response holds every session,
+   * 0 when next_page_token is set. Follow next_page_token instead.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -22,7 +23,7 @@ public interface SessionListOrBuilder extends
 
   /**
    * <pre>
-   * Sessions in the current page.
+   * Sessions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.Session entries = 2 [json_name = "entries"];</code>
@@ -31,7 +32,7 @@ public interface SessionListOrBuilder extends
       getEntriesList();
   /**
    * <pre>
-   * Sessions in the current page.
+   * Sessions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.Session entries = 2 [json_name = "entries"];</code>
@@ -39,7 +40,7 @@ public interface SessionListOrBuilder extends
   ai.stigmer.agentic.session.v1.Session getEntries(int index);
   /**
    * <pre>
-   * Sessions in the current page.
+   * Sessions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.Session entries = 2 [json_name = "entries"];</code>
@@ -47,7 +48,7 @@ public interface SessionListOrBuilder extends
   int getEntriesCount();
   /**
    * <pre>
-   * Sessions in the current page.
+   * Sessions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.Session entries = 2 [json_name = "entries"];</code>
@@ -56,11 +57,35 @@ public interface SessionListOrBuilder extends
       getEntriesOrBuilderList();
   /**
    * <pre>
-   * Sessions in the current page.
+   * Sessions in this page, newest first.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.Session entries = 2 [json_name = "entries"];</code>
    */
   ai.stigmer.agentic.session.v1.SessionOrBuilder getEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Set when more sessions may follow: pass it as page_token to continue.
+   * A page may hold fewer sessions than page_size, even none, and still
+   * carry a token. Empty when the list is complete.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  java.lang.String getNextPageToken();
+  /**
+   * <pre>
+   * Set when more sessions may follow: pass it as page_token to continue.
+   * A page may hold fewer sessions than page_size, even none, and still
+   * carry a token. Empty when the list is complete.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

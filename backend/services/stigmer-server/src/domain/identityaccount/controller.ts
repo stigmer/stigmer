@@ -108,6 +108,7 @@ import {
 import type {
   AccountCreatedHook,
   CreateAccount,
+  AccountProvisioning,
   CreateAccountInput,
   DirectAccountProvisioner,
 } from "./provisioning.js";
@@ -230,6 +231,7 @@ async function runCreateChain(
   account: IdentityAccount,
   caller: CallerIdentity,
   kind: ApiResourceKind,
+  provisioning: AccountProvisioning,
 ): Promise<IdentityAccount> {
   const reqCtx = new RequestContext(
     IdentityAccountSchema,
@@ -254,7 +256,7 @@ async function runCreateChain(
     .addStep(newCheckDuplicateStep(deps.accounts))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newAssignBackendFieldsStep())
+    .addStep(newAssignBackendFieldsStep(provisioning))
     .addStep(newPersistNewAccountStep(deps.accounts))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -270,7 +272,9 @@ async function runCreateChain(
 /**
  * The create path as its in-process callers see it (provisioning.ts
  * `CreateAccount`): the input becomes the resource envelope the chain
- * expects, tagged with the kind this controller serves.
+ * expects, tagged with the kind this controller serves. A platform-client
+ * account carries its owning organization, as the cloud has always
+ * written it; a direct account belongs to no organization.
  */
 export function newCreateAccountPath(
   deps: CreateAccountPathDeps,
@@ -282,11 +286,17 @@ export function newCreateAccountPath(
       create(IdentityAccountSchema, {
         apiVersion: "iam.stigmer.ai/v1",
         kind: "IdentityAccount",
-        metadata: { name: input.name },
+        metadata: {
+          name: input.name,
+          ...(input.provisioning.mode === "platform_client"
+            ? { org: input.provisioning.org }
+            : {}),
+        },
         spec: input.spec,
       }),
       caller,
       kind,
+      input.provisioning,
     );
 }
 
@@ -303,7 +313,9 @@ function createRpc(
 ): Promise<IdentityAccount> {
   const caller = callerIdentityOf(ctx);
   guardInternalRpc(caller);
-  return runCreateChain(deps, account, caller, kindOf(ctx));
+  // The RPC creates the platform's own accounts only: a platform-client
+  // account is the mint's to provision, never a wire caller's.
+  return runCreateChain(deps, account, caller, kindOf(ctx), { mode: "direct" });
 }
 
 function guardInternalRpc(caller: CallerIdentity): void {

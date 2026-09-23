@@ -173,6 +173,7 @@ private static final long serialVersionUID = 0L;
    * Must be unique and stable within the org — the same user_id presented
    * via any PlatformClient in the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
+   * It must not contain the separator character '|'.
    * </pre>
    *
    * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -200,6 +201,7 @@ private static final long serialVersionUID = 0L;
    * Must be unique and stable within the org — the same user_id presented
    * via any PlatformClient in the same org resolves to the same identity.
    * Changing this value for the same user creates a new identity account.
+   * It must not contain the separator character '|'.
    * </pre>
    *
    * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -225,11 +227,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object userEmail_ = "";
   /**
    * <pre>
-   * User's email address. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's email address, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_email = 4 [json_name = "userEmail"];</code>
+   * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
    * @return The userEmail.
    */
   @java.lang.Override
@@ -247,11 +250,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * User's email address. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's email address, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_email = 4 [json_name = "userEmail"];</code>
+   * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
    * @return The bytes for userEmail.
    */
   @java.lang.Override
@@ -274,11 +278,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object userName_ = "";
   /**
    * <pre>
-   * User's display name. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's display name, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_name = 5 [json_name = "userName"];</code>
+   * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
    * @return The userName.
    */
   @java.lang.Override
@@ -296,11 +301,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * User's display name. Used for profile enrichment when JIT-provisioning
-   * an identity account. Updated on each token mint if the account exists.
+   * User's display name, asserted by the platform. Used for profile
+   * enrichment when JIT-provisioning an identity account; later mints do not
+   * change the stored profile.
    * </pre>
    *
-   * <code>string user_name = 5 [json_name = "userName"];</code>
+   * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
    * @return The bytes for userName.
    */
   @java.lang.Override
@@ -1004,6 +1010,7 @@ private static final long serialVersionUID = 0L;
      * Must be unique and stable within the org — the same user_id presented
      * via any PlatformClient in the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
+     * It must not contain the separator character '|'.
      * </pre>
      *
      * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -1030,6 +1037,7 @@ private static final long serialVersionUID = 0L;
      * Must be unique and stable within the org — the same user_id presented
      * via any PlatformClient in the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
+     * It must not contain the separator character '|'.
      * </pre>
      *
      * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -1057,6 +1065,7 @@ private static final long serialVersionUID = 0L;
      * Must be unique and stable within the org — the same user_id presented
      * via any PlatformClient in the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
+     * It must not contain the separator character '|'.
      * </pre>
      *
      * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -1080,6 +1089,7 @@ private static final long serialVersionUID = 0L;
      * Must be unique and stable within the org — the same user_id presented
      * via any PlatformClient in the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
+     * It must not contain the separator character '|'.
      * </pre>
      *
      * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -1100,6 +1110,7 @@ private static final long serialVersionUID = 0L;
      * Must be unique and stable within the org — the same user_id presented
      * via any PlatformClient in the same org resolves to the same identity.
      * Changing this value for the same user creates a new identity account.
+     * It must not contain the separator character '|'.
      * </pre>
      *
      * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -1119,11 +1130,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object userEmail_ = "";
     /**
      * <pre>
-     * User's email address. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's email address, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_email = 4 [json_name = "userEmail"];</code>
+     * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
      * @return The userEmail.
      */
     public java.lang.String getUserEmail() {
@@ -1140,11 +1152,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's email address. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's email address, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_email = 4 [json_name = "userEmail"];</code>
+     * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
      * @return The bytes for userEmail.
      */
     public com.google.protobuf.ByteString
@@ -1162,11 +1175,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's email address. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's email address, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_email = 4 [json_name = "userEmail"];</code>
+     * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
      * @param value The userEmail to set.
      * @return This builder for chaining.
      */
@@ -1180,11 +1194,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's email address. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's email address, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_email = 4 [json_name = "userEmail"];</code>
+     * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearUserEmail() {
@@ -1195,11 +1210,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's email address. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's email address, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_email = 4 [json_name = "userEmail"];</code>
+     * <code>string user_email = 4 [json_name = "userEmail", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for userEmail to set.
      * @return This builder for chaining.
      */
@@ -1216,11 +1232,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object userName_ = "";
     /**
      * <pre>
-     * User's display name. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's display name, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_name = 5 [json_name = "userName"];</code>
+     * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
      * @return The userName.
      */
     public java.lang.String getUserName() {
@@ -1237,11 +1254,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's display name. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's display name, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_name = 5 [json_name = "userName"];</code>
+     * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
      * @return The bytes for userName.
      */
     public com.google.protobuf.ByteString
@@ -1259,11 +1277,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's display name. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's display name, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_name = 5 [json_name = "userName"];</code>
+     * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
      * @param value The userName to set.
      * @return This builder for chaining.
      */
@@ -1277,11 +1296,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's display name. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's display name, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_name = 5 [json_name = "userName"];</code>
+     * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearUserName() {
@@ -1292,11 +1312,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's display name. Used for profile enrichment when JIT-provisioning
-     * an identity account. Updated on each token mint if the account exists.
+     * User's display name, asserted by the platform. Used for profile
+     * enrichment when JIT-provisioning an identity account; later mints do not
+     * change the stored profile.
      * </pre>
      *
-     * <code>string user_name = 5 [json_name = "userName"];</code>
+     * <code>string user_name = 5 [json_name = "userName", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for userName to set.
      * @return This builder for chaining.
      */

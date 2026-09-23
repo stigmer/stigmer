@@ -17,7 +17,8 @@
  *     with the token fields empty (minting a proxy token is cloud-only);
  *   - getServerInfo reports the build stamp by default and the release a
  *     library consumer states through ComposeOptions.version otherwise
- *     (stigmer#1168: unbundled, the stamp is always "dev");
+ *     (stigmer#1168: unbundled, the stamp is always "dev"), and a
+ *     trusted-local server's posture as an explicit false;
  *   - getLicenseStatus answers `absent` with no claims and no key when no
  *     provider is composed, and the composed provider's report verbatim
  *     when one is — both stamped with the ONE instant the controller
@@ -138,6 +139,9 @@ describe("platform domain (composed server)", () => {
     // Unbundled runs report Go's unstamped default; release bundles stamp
     // the esbuild define (scripts/bundle-slim.mjs).
     expect(first.version).toBe("dev");
+    // A server that trusts every request says so on the wire: an explicit
+    // false, never an absent field a console would read as "unknown".
+    expect(first.authenticationRequired).toBe(false);
 
     const second = await client.getServerInfo({});
     expect(second.edition).toBe(first.edition);
@@ -285,6 +289,7 @@ describe("platform domain (keyless runner-token service)", () => {
         ),
         edition: ServerEdition.oss,
         version: "dev",
+        authenticationRequired: false,
         licenseStatus: ABSENT_LICENSE_STATUS,
         now: () => new Date(),
         logger: silentLogger,
@@ -320,6 +325,7 @@ describe("platform domain (license status)", () => {
         ),
         edition: ServerEdition.enterprise,
         version: "dev",
+        authenticationRequired: false,
         licenseStatus: provider,
         now: () => instant,
         logger: silentLogger,

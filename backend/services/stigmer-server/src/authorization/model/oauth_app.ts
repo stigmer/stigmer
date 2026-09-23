@@ -1,6 +1,7 @@
 /**
- * Transcript of fga/model/iam/oauth_app.fga — the one organization-scoped
- * kind whose `owner` has NO admin arm while its `viewer` does: the file's
+ * Transcript of fga/model/iam/oauth_app.fga — an organization-scoped kind
+ * whose `owner` has NO admin arm while its `viewer` does (platform_client
+ * shares the shape, for the same reason): the file's
  * "administrative visibility" for the organization's admins over a
  * registration that holds vendor client credentials, with change and
  * deletion the creator's (or an explicit grant's) alone, and no public

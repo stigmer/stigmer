@@ -63,6 +63,14 @@ export function applyFilterCriteria(
   return executions.filter((execution) => matchesFilter(execution, filter));
 }
 
+/** The same criteria for one execution, for a page read's per-row filter. */
+export function matchesFilterCriteria(
+  execution: WorkflowExecution,
+  filter: ExecutionFilterCriteria | undefined,
+): boolean {
+  return filter === undefined || matchesFilter(execution, filter);
+}
+
 function matchesFilter(
   execution: WorkflowExecution,
   f: ExecutionFilterCriteria,
@@ -244,12 +252,17 @@ export function applyLegacyPhaseFilter(
   executions: WorkflowExecution[],
   phase: ExecutionPhase,
 ): WorkflowExecution[] {
-  if (phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) {
-    return executions;
-  }
-  return executions.filter(
-    (execution) =>
-      (execution.status?.phase ??
-        ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) === phase,
+  return executions.filter((execution) => matchesLegacyPhase(execution, phase));
+}
+
+/** The legacy phase filter for one execution. */
+export function matchesLegacyPhase(
+  execution: WorkflowExecution,
+  phase: ExecutionPhase,
+): boolean {
+  return (
+    phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED ||
+    (execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) ===
+      phase
   );
 }

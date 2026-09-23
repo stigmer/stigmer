@@ -38,7 +38,7 @@ configuration change, not a rewrite.
 | ------------------------------------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Agents, Workflows, Skills, Sessions, MCP servers | Full — the same contracts                                                     | Full — the same contracts                                   |
 | Storage                                          | Your Postgres                                                                 | Managed                                                     |
-| Authentication                                   | Your OIDC provider + API keys                                                 | Hosted login, SSO/SAML, identity federation, PlatformClient |
+| Authentication                                   | Your OIDC provider, API keys and PlatformClient                               | Hosted login, SSO/SAML, identity federation, PlatformClient |
 | Organizations                                    | One team's — the server does not stop a signed-in person creating more        | As many as you need                                         |
 | Permissions                                      | Owner, admin, member and viewer roles per Organization; Private stays private | Fine-grained, per-resource roles and sharing                |
 | Sandbox isolation                                | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                |
@@ -59,7 +59,9 @@ and back up.
   server capability works exactly as it does on Stigmer Cloud, through the same
   API, CLI, and SDKs.
 - **Authentication on your terms.** Point the server at any OIDC provider you
-  control — Keycloak, Okta, Auth0, Dex — and mint API keys for machines. See
+  control — Keycloak, Okta, Auth0, Dex — mint API keys for machines, and let
+  your product's backend mint tokens for its own users with a
+  [PlatformClient](/docs/guides/authentication/platform-client/overview). See
   [Enable authentication](/docs/guides/self-hosting/authentication).
 - **Your LLM relationships.** You bring your own provider API keys and pay
   providers directly. There is no Stigmer billing when you self-host — see
@@ -83,10 +85,10 @@ service requires:
 
 - **Tenancy and governance.** Multiple Organizations, invitations, SSO/SAML, and
   fine-grained per-resource permissions and sharing.
-- **Identity for your product.** Bring your users with
-  [identity federation or PlatformClient](/docs/guides/authentication/overview)
-  — trust relationships and token minting that let your platform's users reach
-  Stigmer without managing credentials themselves.
+- **Identity federation.** Bring users from many identity providers with
+  [identity federation](/docs/guides/authentication/federation/overview) — trust
+  relationships that let your platform's users reach Stigmer without managing
+  credentials themselves.
 - **Channels.** Agents that talk to your users
   [in Slack and WhatsApp](/docs/guides/channels/connect-slack) — webhook
   delivery, provider apps, and outbound messaging are cloud infrastructure.

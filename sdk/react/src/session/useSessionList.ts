@@ -1,50 +1,70 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 
 /** Options for {@link useSessionList}. */
 export interface UseSessionListOptions {
-  /** Maximum sessions to return. Defaults to 50. */
+  /** Sessions per page, the first and each `loadMore`. Defaults to 50; the server caps it at 100. */
   pageSize?: number;
   /** Optional tag filter. */
   tags?: string[];
+  /**
+   * Organization slug to list the sessions of. When omitted, the list spans
+   * every organization the caller can view. Console pages should pass the
+   * active org (`useActiveOrgSlug()`).
+   */
+  org?: string | null;
 }
 
 /** Return value of {@link useSessionList}. */
 export interface UseSessionListReturn {
-  /** The fetched list of Sessions, empty while loading or on error. */
+  /** Sessions newest first: the first page, then every page loaded since. Empty while loading or on error. */
   readonly sessions: readonly Session[];
+  /** `true` while more sessions exist beyond what is loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page of older sessions. No-op while one is loading. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` page is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. Cleared on retry. */
+  readonly loadMoreError: Error | null;
   /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
   /** `true` while a background refetch is in flight. */
   readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Discard cached data and re-fetch the session list from the server. */
+  /** Re-fetch the first page (after creating a session, say); loaded older pages stay. */
   readonly refetch: () => void;
 }
 
 const DEFAULT_PAGE_SIZE = 50;
 
+function sessionIdentity(session: Session): string {
+  return session.metadata?.id ?? "";
+}
+
 /**
- * Data hook that fetches a paginated list of {@link Session} entries.
+ * Data hook that lists {@link Session} entries newest first, one page at a
+ * time.
  *
- * Org scoping is handled at the transport level (auth context),
- * consistent with other data hooks. Call `refetch()` to re-query
- * after creating a session or navigating between views.
- *
- * Returns up to `pageSize` sessions (default 50). Full cursor-based
- * pagination can be added later without breaking the return type.
+ * The first `pageSize` sessions (default 50) load on mount; `loadMore()`
+ * appends the next page while `hasMore` is true. Pass `org` to list one
+ * organization's sessions; without it the list spans every organization
+ * the caller can view. Call `refetch()` to re-query after creating a
+ * session or navigating between views.
  *
  * @example
  * ```tsx
  * function SessionSidebar() {
- *   const { sessions, isLoading, refetch } = useSessionList({ pageSize: 25 });
+ *   const org = useActiveOrgSlug();
+ *   const { sessions, isLoading, hasMore, loadMore, isLoadingMore } =
+ *     useSessionList({ org, pageSize: 25 });
  *
  *   if (isLoading) return <Skeleton />;
  *
@@ -52,9 +72,12 @@ const DEFAULT_PAGE_SIZE = 50;
  *     <ul>
  *       {sessions.map((s) => (
  *         <li key={s.metadata?.id}>
- *           {s.status?.subject ?? "Untitled"}
+ *           {s.spec?.subject || "Untitled"}
  *         </li>
  *       ))}
+ *       {hasMore && (
+ *         <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>
+ *       )}
  *     </ul>
  *   );
  * }
@@ -66,6 +89,7 @@ export function useSessionList(
   const stigmer = useStigmer();
 
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
+  const org = options?.org ?? "";
   const tagsRef = useRef(options?.tags);
 
   if (
@@ -76,19 +100,33 @@ export function useSessionList(
   }
   const tags = tagsRef.current;
 
-  const { data: sessions, isLoading, isRefetching, error, refetch } = useFetch(
-    () =>
-      stigmer.session
-        .list(
-          create(ListSessionsRequestSchema, {
-            pageSize,
-            tags: tags ?? [],
-          }),
-        )
-        .then((result) => result.entries),
-    [stigmer, pageSize, tags],
-    [] as Session[],
+  const list = useCursorPages(
+    (pageToken) =>
+      stigmer.session.list(
+        create(ListSessionsRequestSchema, {
+          org,
+          pageSize,
+          pageToken,
+          tags: tags ?? [],
+        }),
+      ),
+    [stigmer, org, pageSize, tags],
+    sessionIdentity,
   );
 
-  return { sessions, isLoading, isRefetching, error, refetch };
+  const { items, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, isRefetching, error, refetch } = list;
+  return useMemo(
+    () => ({
+      sessions: items,
+      hasMore,
+      loadMore,
+      isLoadingMore,
+      loadMoreError,
+      isLoading,
+      isRefetching,
+      error,
+      refetch,
+    }),
+    [items, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, isRefetching, error, refetch],
+  );
 }

@@ -258,11 +258,13 @@ enum ApiResourceKind {
     id_prefix: "pcl"
     is_versioned: false
     not_search_indexed: true
-    // Becomes open_source when the open-source server serves it: the
-    // single-organization PlatformClient moves into @stigmer/server
-    // (project 20260911.04, entry sp.platform-client-oss) and that change
-    // flips this tier.
-    tier: cloud_only
+    // The open-source server serves this kind in every edition: its own
+    // domain over a store port the cloud fills with its own table. Minting
+    // user tokens needs a server that authenticates its callers; a server
+    // that trusts every request refuses the mint, not the kind. The guest
+    // mint on the same token service is an edition capability that degrades
+    // by probe (UNIMPLEMENTED), not by this tier.
+    tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT

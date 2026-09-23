@@ -81,18 +81,15 @@
  *     driver's cost is proportional to the candidates offered (the cloud
  *     checks each one against its authorization engine), and the whole
  *     kind across every tenant is what rolled back on 2026-09-14; the
- *     request's org is tens of rows. Two idioms carry the rule and both
- *     keep their reason: a lane whose Go/Java contract org-narrows in
- *     BOTH editions (environment, memory, schedule, agent-instance,
- *     agent-share and agent-channel lists; the getBy* parent filters)
- *     applies its own filter ABOVE the helper call and passes `""`; a lane
- *     whose contract is cross-org on OSS (`agentExecution.list`,
- *     `workflowExecution.list`, `listPendingApprovals`) hands the request
- *     org to the helper, which applies it before the scope ONLY when a
- *     scope is composed — a scope-less server still returns the input
- *     untouched with the org unconsulted (the first line above). Two lanes
- *     have no org on the wire (`session.list`, `apiKey.findAll`) and offer
- *     the kind until P1 entry 12 pages them.
+ *     request's org is tens of rows. The lanes over the session, execution
+ *     and artifact kinds narrow by the request's org or parent in the
+ *     store's indexed read (store/list-index.ts; every posture honours the
+ *     request) and page there (pipeline/steps/list-page.ts, one batch per
+ *     scope call), passing `""`; the small org-scoped lists (environment,
+ *     memory, schedule, agent-instance, agent-share and agent-channel; the
+ *     getBy* parent filters) apply their own filter above the helper call
+ *     and pass `""` too. `apiKey.findAll` has no org on the wire and offers
+ *     the kind: a few rows per person.
  *   - A KIND WHOSE AUTHORIZATION IS ITS PARENT'S CARRIES THAT PARENT ON
  *     EVERY CANDIDATE (stigmer-cloud 20260913.04 T04, Q-LB-33..36). When
  *     `kind_meta` declares PARENT scope with INHERITED owner

@@ -235,12 +235,11 @@ export interface FetchSessionTranscriptOptions {
 /**
  * Fetches everything a session's transcript needs and assembles it.
  *
- * One `listBySession` call returns the complete execution set — both server
- * editions answer this RPC unpaginated today (Go: `TODO: Implement
- * pagination`; Java: "not using pagination with authorized IDs approach").
- * If a future server starts paginating (`total_pages > 1`), this fails with
- * a descriptive error rather than silently exporting a truncated
- * "full-fidelity" transcript.
+ * One `listBySession` call returns the complete execution set: the RPC
+ * returns a session's executions whole by contract, and its paging fields
+ * are deprecated. A response claiming more than one page (`total_pages >
+ * 1`) fails with a descriptive error rather than silently exporting a
+ * truncated "full-fidelity" transcript.
  */
 export async function fetchSessionTranscript(
   client: SessionTranscriptClient,

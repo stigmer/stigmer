@@ -44,8 +44,8 @@ export const PlatformClientQueryController = {
     /**
      * List all platform clients belonging to an organization.
      *
-     * Returns every PlatformClient whose metadata.org matches the input org.
-     * Typically a small set per org, so results are not paginated.
+     * Returns the PlatformClients of the input org that the caller may view,
+     * newest first. Typically a small set per org, so results are not paginated.
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.listByOrg
      */

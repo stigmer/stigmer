@@ -163,15 +163,16 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * Maximum number of artifacts to return per page.
-   * Default: 50. Maximum: 100.
+   * Not read: an execution's artifacts are returned whole.
    * </pre>
    *
-   * <code>int32 page_size = 3 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_size is deprecated.
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=86
    * @return The pageSize.
    */
   @java.lang.Override
-  public int getPageSize() {
+  @java.lang.Deprecated public int getPageSize() {
     return pageSize_;
   }
 
@@ -180,14 +181,16 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * Not read: an execution's artifacts are returned whole.
    * </pre>
    *
-   * <code>string page_token = 4 [json_name = "pageToken"];</code>
+   * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
    * @return The pageToken.
    */
   @java.lang.Override
-  public java.lang.String getPageToken() {
+  @java.lang.Deprecated public java.lang.String getPageToken() {
     java.lang.Object ref = pageToken_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
@@ -201,14 +204,16 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Opaque pagination token from a previous response.
+   * Not read: an execution's artifacts are returned whole.
    * </pre>
    *
-   * <code>string page_token = 4 [json_name = "pageToken"];</code>
+   * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
    * @return The bytes for pageToken.
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString
+  @java.lang.Deprecated public com.google.protobuf.ByteString
       getPageTokenBytes() {
     java.lang.Object ref = pageToken_;
     if (ref instanceof java.lang.String) {
@@ -794,28 +799,30 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * Maximum number of artifacts to return per page.
-     * Default: 50. Maximum: 100.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>int32 page_size = 3 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_size is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=86
      * @return The pageSize.
      */
     @java.lang.Override
-    public int getPageSize() {
+    @java.lang.Deprecated public int getPageSize() {
       return pageSize_;
     }
     /**
      * <pre>
-     * Maximum number of artifacts to return per page.
-     * Default: 50. Maximum: 100.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>int32 page_size = 3 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_size is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=86
      * @param value The pageSize to set.
      * @return This builder for chaining.
      */
-    public Builder setPageSize(int value) {
+    @java.lang.Deprecated public Builder setPageSize(int value) {
 
       pageSize_ = value;
       bitField0_ |= 0x00000004;
@@ -824,14 +831,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum number of artifacts to return per page.
-     * Default: 50. Maximum: 100.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>int32 page_size = 3 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_size is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=86
      * @return This builder for chaining.
      */
-    public Builder clearPageSize() {
+    @java.lang.Deprecated public Builder clearPageSize() {
       bitField0_ = (bitField0_ & ~0x00000004);
       pageSize_ = 0;
       onChanged();
@@ -841,13 +849,15 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>string page_token = 4 [json_name = "pageToken"];</code>
+     * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
      * @return The pageToken.
      */
-    public java.lang.String getPageToken() {
+    @java.lang.Deprecated public java.lang.String getPageToken() {
       java.lang.Object ref = pageToken_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
@@ -861,13 +871,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>string page_token = 4 [json_name = "pageToken"];</code>
+     * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
      * @return The bytes for pageToken.
      */
-    public com.google.protobuf.ByteString
+    @java.lang.Deprecated public com.google.protobuf.ByteString
         getPageTokenBytes() {
       java.lang.Object ref = pageToken_;
       if (ref instanceof String) {
@@ -882,14 +894,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>string page_token = 4 [json_name = "pageToken"];</code>
+     * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
      * @param value The pageToken to set.
      * @return This builder for chaining.
      */
-    public Builder setPageToken(
+    @java.lang.Deprecated public Builder setPageToken(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       pageToken_ = value;
@@ -899,13 +913,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>string page_token = 4 [json_name = "pageToken"];</code>
+     * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
      * @return This builder for chaining.
      */
-    public Builder clearPageToken() {
+    @java.lang.Deprecated public Builder clearPageToken() {
       pageToken_ = getDefaultInstance().getPageToken();
       bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
@@ -913,14 +929,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque pagination token from a previous response.
+     * Not read: an execution's artifacts are returned whole.
      * </pre>
      *
-     * <code>string page_token = 4 [json_name = "pageToken"];</code>
+     * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
+     * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
+     *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
      * @param value The bytes for pageToken to set.
      * @return This builder for chaining.
      */
-    public Builder setPageTokenBytes(
+    @java.lang.Deprecated public Builder setPageTokenBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);

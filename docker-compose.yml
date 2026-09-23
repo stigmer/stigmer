@@ -91,7 +91,7 @@ services:
       retries: 30
 
   stigmer-server:
-    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.24.0}
+    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.26.0}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -130,6 +130,9 @@ services:
       # story invisible exactly where self-hosters need it explicit.
       STIGMER_ENCRYPTION_KEY: ${STIGMER_ENCRYPTION_KEY:?missing — copy .env.example to .env and fill it in}
       STIGMER_RUNNER_TOKEN_KEY: ${STIGMER_RUNNER_TOKEN_KEY:?missing — copy .env.example to .env and fill it in}
+      # Optional: signs PlatformClient user tokens when authentication is
+      # on (see .env.example); generated into the volume when unset.
+      STIGMER_PLATFORM_TOKEN_KEY: ${STIGMER_PLATFORM_TOKEN_KEY:-}
       # Optional operator identity for audit attribution (see .env.example).
       STIGMER_OPERATOR_EMAIL: ${STIGMER_OPERATOR_EMAIL:-}
       STIGMER_OPERATOR_NAME: ${STIGMER_OPERATOR_NAME:-}
@@ -153,7 +156,7 @@ services:
     # runner's depends_on gates on it.
 
   stigmer-runner:
-    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.24.0}
+    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.26.0}
     restart: unless-stopped
     depends_on:
       stigmer-server:

@@ -30,6 +30,12 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import type {
+  ListIndexDeclaration,
+  ListIndexQuery,
+  ListIndexRow,
+} from "./list-index.js";
+
 // =============================================================================
 // Sentinel errors
 // =============================================================================
@@ -434,6 +440,16 @@ export interface RawResourceDocument {
   readonly data: Uint8Array;
 }
 
+/**
+ * What a driver opens with beyond its connection. `listIndexes` is the
+ * composition root's one list of list-index declarations
+ * (boot/list-indexes.ts); a store opened without it keeps no list index
+ * and refuses every `queryResources`.
+ */
+export interface StoreOpenOptions {
+  readonly listIndexes?: ReadonlyArray<ListIndexDeclaration>;
+}
+
 // =============================================================================
 // The store contract
 // =============================================================================
@@ -491,6 +507,29 @@ export interface Store {
    * undefined) when none exist. Live resources only, never audit records.
    */
   listResources(kind: ApiResourceKind): Promise<Uint8Array[]>;
+
+  /**
+   * The rows of a list-indexed kind that match the query, newest first on
+   * (creation instant, id) compared as bytes, strictly after
+   * `query.after`, at most `query.limit` of them (list-index.ts states the
+   * order and the predicates). Fewer than `limit` rows means there are no
+   * more.
+   *
+   * EXACT whoever wrote the rows: a row whose index facts are proven
+   * current is answered through the index; every other row of the kind —
+   * one written by a binary that does not know the index, or under
+   * another revision of the declaration — is evaluated from its bytes with
+   * the declaration, and repaired by a compare-and-set on those bytes so a
+   * newer write is never overwritten. An unproven row that cannot be
+   * decoded is skipped and logged, as the list lanes skip one.
+   *
+   * Throws when `declaration` is not the one this store was opened with,
+   * or on a limit that is not a positive integer.
+   */
+  queryResources<K extends string>(
+    declaration: ListIndexDeclaration<K>,
+    query: ListIndexQuery<K>,
+  ): Promise<ListIndexRow[]>;
 
   /** Removes a resource; NO error if it does not exist. */
   deleteResource(kind: ApiResourceKind, id: string): Promise<void>;

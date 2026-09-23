@@ -18,14 +18,24 @@
  * list-mode newest-first at exactly 1.0 — search-mode ranking ORDER is
  * deliberately NOT asserted here, it is driver-relative), the two-phase
  * signal-dedupe hold (oss#442), OAuth grants, once-only pending-state
- * redemption with its 10-minute TTL, and the closed-store failure mode.
+ * redemption with its 10-minute TTL, the closed-store failure mode, and
+ * the list index (../list-index.ts): one organization's or one parent's
+ * rows newest first, a cursor walk with no gap and no duplicate, keys
+ * that follow an update and vanish with a delete, and exactness whoever
+ * wrote the row — a row written the way a binary that does not know the
+ * index writes it is read from its bytes and repaired, the reconciliation
+ * at open leaves nothing unproven, a row written under another revision
+ * of a declaration is re-derived, and an undecodable one is skipped.
  *
  * Driver-physical behavior (column layouts, FTS5/tsvector internals,
- * migration chains) stays in each driver's own tests.
+ * migration chains, the repair's lock ordering) stays in each driver's own
+ * tests.
  */
-import { fromBinary, toBinary } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -39,13 +49,53 @@ import type {
   PendingOAuthState,
   SearchIndexEntry,
   Store,
+  StoreOpenOptions,
   WorkflowExecutionEventRecord,
 } from "../interface.js";
+import { declareListIndex, field, label } from "../list-index.js";
+import type { ListIndexRow } from "../list-index.js";
 import { makeOrganization } from "./support.js";
+
+/** The kit's own declaration, so the arms do not depend on the server's list. */
+export const CONTRACT_SESSION_INDEX = declareListIndex({
+  kind: ApiResourceKind.session,
+  schema: SessionSchema,
+  revision: 1,
+  keys: {
+    agent_instance: field("spec.agent_instance_id"),
+    channel: label("stigmer.ai/channel-id"),
+  },
+});
+
+/** What every contract store opens with. */
+export const CONTRACT_STORE_OPTIONS: StoreOpenOptions = {
+  listIndexes: [CONTRACT_SESSION_INDEX],
+};
 
 /** One fresh, isolated store per test, plus the driver escape hatches. */
 export interface StoreContractFixture {
   store: Store;
+  /**
+   * Writes a resource exactly as a binary that does not know the list
+   * index writes it — the row and `updated_at`, nothing else — the way
+   * the old pod writes while a roll overlaps it with the new one.
+   */
+  writeAsOlderBinary(
+    kind: ApiResourceKind,
+    id: string,
+    data: Uint8Array,
+  ): Promise<void>;
+  /**
+   * Counts a kind's rows whose list facts are not proven current under
+   * `revision`, as the driver judges it; without a revision (an undeclared
+   * kind carries none), its unstamped rows.
+   */
+  countUnproven(kind: ApiResourceKind, revision?: number): Promise<number>;
+  /**
+   * Opens a second store over the same database (running its
+   * reconciliation at open); the fixture closes it at cleanup.
+   */
+  openAnother(options: StoreOpenOptions): Promise<Store>;
   /**
    * Ages a signal-dedupe row directly (crash-recovery arm: a hold whose
    * delivery died must self-heal at the next claim). The interface has no
@@ -78,6 +128,10 @@ function event(
   };
 }
 
+/**
+ * Every driver passes its fixture factory; the factory opens its store
+ * with `CONTRACT_STORE_OPTIONS`.
+ */
 export function describeStoreContract(
   makeFixture: () => Promise<StoreContractFixture>,
 ): void {
@@ -1520,6 +1574,295 @@ export function describeStoreContract(
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("state-1"),
       ).toBeDefined();
+    });
+  });
+
+  describe("list index", () => {
+    const SESSION = ApiResourceKind.session;
+
+    function session(
+      id: string,
+      org: string,
+      createdSeconds: number | undefined,
+      extras: { agentInstanceId?: string; channel?: string } = {},
+    ): Session {
+      return create(SessionSchema, {
+        metadata: {
+          id,
+          org,
+          labels:
+            extras.channel === undefined
+              ? {}
+              : { "stigmer.ai/channel-id": extras.channel },
+        },
+        spec: { agentInstanceId: extras.agentInstanceId ?? "" },
+        status:
+          createdSeconds === undefined
+            ? {}
+            : {
+                audit: {
+                  specAudit: {
+                    createdAt: { seconds: BigInt(createdSeconds), nanos: 0 },
+                  },
+                },
+              },
+      });
+    }
+
+    async function save(s: Session): Promise<void> {
+      await fx.store.saveResource(SESSION, s.metadata!.id, SessionSchema, s);
+    }
+
+    function ids(rows: ReadonlyArray<ListIndexRow>): string[] {
+      return rows.map((r) => r.id);
+    }
+
+    it("reads one organization's rows newest first, ids breaking ties, unstamped last", async () => {
+      await save(session("ses_a", "acme", 100));
+      await save(session("ses_b", "acme", 300));
+      await save(session("ses_c", "acme", 300));
+      await save(session("ses_d", "acme", undefined));
+      await save(session("ses_e", "other", 500));
+
+      const rows = await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+        org: "acme",
+      });
+      expect(ids(rows)).toEqual(["ses_c", "ses_b", "ses_a", "ses_d"]);
+      expect(
+        fromBinary(SessionSchema, rows[0]!.data).metadata?.id,
+        "the row's bytes ride the result",
+      ).toBe("ses_c");
+      expect(
+        ids(await fx.store.queryResources(CONTRACT_SESSION_INDEX, {})),
+        "no organization reads every organization",
+      ).toEqual(["ses_e", "ses_c", "ses_b", "ses_a", "ses_d"]);
+    });
+
+    it("walks every row by cursor with no gap and no duplicate", async () => {
+      for (let i = 0; i < 7; i++) {
+        await save(session(`ses_${i}`, "acme", i % 3 === 0 ? 10 : 100 + i));
+      }
+      const all = ids(
+        await fx.store.queryResources(CONTRACT_SESSION_INDEX, { org: "acme" }),
+      );
+
+      const walked: string[] = [];
+      let after: ListIndexRow["cursor"] | undefined;
+      for (;;) {
+        const page = await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+          org: "acme",
+          limit: 3,
+          ...(after === undefined ? {} : { after }),
+        });
+        walked.push(...ids(page));
+        if (page.length < 3) {
+          break;
+        }
+        after = page[page.length - 1]!.cursor;
+      }
+      expect(walked).toEqual(all);
+      expect(new Set(walked).size).toBe(7);
+    });
+
+    it("reads a parent's rows through a key, or through any of several", async () => {
+      await save(session("ses_1", "acme", 1, { agentInstanceId: "ain_1" }));
+      await save(session("ses_2", "acme", 2, { channel: "ach_1" }));
+      await save(session("ses_3", "acme", 3, { agentInstanceId: "ain_2" }));
+
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            anyKey: [{ name: "agent_instance", value: "ain_1" }],
+          }),
+        ),
+      ).toEqual(["ses_1"]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            anyKey: [
+              { name: "agent_instance", value: "ain_1" },
+              { name: "channel", value: "ach_1" },
+            ],
+          }),
+        ),
+      ).toEqual(["ses_2", "ses_1"]);
+      expect(
+        await fx.store.queryResources(CONTRACT_SESSION_INDEX, { anyKey: [] }),
+        "an empty key list matches nothing",
+      ).toEqual([]);
+    });
+
+    it("keeps rows created at or after a bound, and rows with no stamp", async () => {
+      await save(session("ses_old", "acme", 100));
+      await save(session("ses_new", "acme", 200));
+      await save(session("ses_unstamped", "acme", undefined));
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            createdAtOrAfter: "1970-01-01T00:02:30.000000000Z",
+          }),
+        ),
+      ).toEqual(["ses_new", "ses_unstamped"]);
+    });
+
+    it("follows a key an update changes, and forgets a deleted row", async () => {
+      await save(session("ses_1", "acme", 1, { agentInstanceId: "ain_1" }));
+      await fx.store.updateResource(SESSION, "ses_1", SessionSchema, (s) => {
+        s.spec!.agentInstanceId = "ain_2";
+      });
+      const byInstance = (value: string) =>
+        fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+          anyKey: [{ name: "agent_instance", value }],
+        });
+      expect(ids(await byInstance("ain_1"))).toEqual([]);
+      expect(ids(await byInstance("ain_2"))).toEqual(["ses_1"]);
+
+      await fx.store.deleteResource(SESSION, "ses_1");
+      expect(ids(await byInstance("ain_2"))).toEqual([]);
+      expect(await fx.store.queryResources(CONTRACT_SESSION_INDEX, {})).toEqual(
+        [],
+      );
+    });
+
+    it("reads a row written by a binary that does not know the index from its bytes, and repairs it", async () => {
+      await save(
+        session("ses_moved", "acme", 100, { agentInstanceId: "ain_1" }),
+      );
+      // The older binary rewrites one row into another organization and
+      // instance, and creates another row outright.
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_moved",
+        toBinary(
+          SessionSchema,
+          session("ses_moved", "other", 100, { agentInstanceId: "ain_2" }),
+        ),
+      );
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_created",
+        toBinary(SessionSchema, session("ses_created", "acme", 50)),
+      );
+      await save(session("ses_proven", "acme", 75));
+      expect(await fx.countUnproven(SESSION, 1)).toBe(2);
+
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            org: "acme",
+          }),
+        ),
+      ).toEqual(["ses_proven", "ses_created"]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            anyKey: [{ name: "agent_instance", value: "ain_2" }],
+          }),
+        ),
+      ).toEqual(["ses_moved"]);
+      expect(
+        await fx.countUnproven(SESSION, 1),
+        "both rows repaired by the read",
+      ).toBe(0);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            org: "other",
+          }),
+        ),
+        "and read through the index once repaired",
+      ).toEqual(["ses_moved"]);
+    });
+
+    it("merges an unproven row into the right page of a cursor walk", async () => {
+      for (let i = 0; i < 4; i++) {
+        await save(session(`ses_${i}`, "acme", 100 + i));
+      }
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_mid",
+        toBinary(SessionSchema, session("ses_mid", "acme", 102)),
+      );
+      const first = await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+        org: "acme",
+        limit: 2,
+      });
+      const second = await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+        org: "acme",
+        limit: 2,
+        after: first[1]!.cursor,
+      });
+      expect([...ids(first), ...ids(second)]).toEqual([
+        "ses_3",
+        "ses_mid",
+        "ses_2",
+        "ses_1",
+      ]);
+    });
+
+    it("skips an unproven row that does not decode", async () => {
+      await save(session("ses_good", "acme", 1));
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_garbage",
+        new Uint8Array([0xff, 0xff, 0xff]),
+      );
+      expect(
+        ids(await fx.store.queryResources(CONTRACT_SESSION_INDEX, {})),
+      ).toEqual(["ses_good"]);
+    });
+
+    it("leaves nothing unproven once a store has opened", async () => {
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_1",
+        toBinary(SessionSchema, session("ses_1", "acme", 1)),
+      );
+      await fx.writeAsOlderBinary(
+        KIND,
+        "acme",
+        toBinary(OrganizationSchema, makeOrganization({ id: "acme" })),
+      );
+      expect(await fx.countUnproven(SESSION, 1)).toBe(1);
+
+      await fx.openAnother(CONTRACT_STORE_OPTIONS);
+      expect(
+        await fx.countUnproven(SESSION, 1),
+        "a declared kind is derived",
+      ).toBe(0);
+      expect(
+        await fx.countUnproven(KIND),
+        "an undeclared kind is stamped, so it never widens the unproven set",
+      ).toBe(0);
+    });
+
+    it("re-derives rows written under another revision of a declaration", async () => {
+      await save(session("ses_1", "acme", 1));
+      const revised = declareListIndex({
+        ...CONTRACT_SESSION_INDEX,
+        revision: 2,
+        keys: { org_copy: field("metadata.org") },
+      });
+      expect(await fx.countUnproven(SESSION, 2)).toBe(1);
+      const other = await fx.openAnother({ listIndexes: [revised] });
+      expect(await fx.countUnproven(SESSION, 2)).toBe(0);
+      expect(
+        ids(
+          await other.queryResources(revised, {
+            anyKey: [{ name: "org_copy", value: "acme" }],
+          }),
+        ),
+      ).toEqual(["ses_1"]);
+    });
+
+    it("refuses a declaration it was not opened with, and a limit no caller means", async () => {
+      const stranger = declareListIndex({ ...CONTRACT_SESSION_INDEX });
+      await expect(fx.store.queryResources(stranger, {})).rejects.toThrow(
+        "list index for session is not registered with this store",
+      );
+      await expect(
+        fx.store.queryResources(CONTRACT_SESSION_INDEX, { limit: 0 }),
+      ).rejects.toThrow("list index limit must be a positive integer, got 0");
     });
   });
 

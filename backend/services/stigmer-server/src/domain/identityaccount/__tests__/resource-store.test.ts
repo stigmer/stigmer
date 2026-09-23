@@ -54,6 +54,7 @@ const CONTRACT_CASE_NAMES = [
   "a disconnected store is an infrastructure fault, never 'not found'",
   "two concurrent saves of one subject end in fulfilments and DuplicateAccountErrors only, and the winner is readable by subject",
   "findDirectByIdpId and findDirectByEmail never answer a federated account, while findByIdpId (any mode) does",
+  "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
   "findByIds answers one row per distinct id, in first-occurrence order; an empty request answers an empty list",
   "update of an unknown id is a no-op: no row appears",
   "deleteById of an unknown id resolves",

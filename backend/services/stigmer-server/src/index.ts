@@ -59,6 +59,7 @@ export type {
 export type {
   ExtensionServiceRegistration,
   ResolvedExtensions,
+  ResolvedServiceRegistration,
   ServerExtension,
 } from "./extensions/registry.js";
 export type {
@@ -169,6 +170,60 @@ export type { PrincipalDisplay } from "./extensions/principal-display.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
+// The PlatformClient seams: the store PORT a composition drives the domain
+// through (drivers.platformClientStore; a driver throws
+// DuplicatePlatformClientError for a held id, slug or client_id) and its
+// vitest-free contract kit; the guest-token capability
+// (drivers.guestTokenMinting — the one token method only an edition that
+// hosts shared-agent pages serves); and the builder of the system-managed
+// client such an edition keeps per organization under the reserved slug,
+// so the tokens it signs for guests and schedule fires name a real client.
+export type { PlatformClientStore } from "./domain/platformclient/store.js";
+export { DuplicatePlatformClientError } from "./domain/platformclient/store.js";
+export type {
+  PlatformClientStoreContractCase,
+  PlatformClientStoreContractFixture,
+} from "./domain/platformclient/store-contract.js";
+export { platformClientStoreContract } from "./domain/platformclient/store-contract.js";
+export type { GuestTokenMinting } from "./extensions/guest-token-minting.js";
+export type { SystemManagedPlatformClientInput } from "./domain/platformclient/system-managed.js";
+export { newSystemManagedPlatformClient } from "./domain/platformclient/system-managed.js";
+export { SYSTEM_SHARE_CLIENT_SLUG } from "./domain/platformclient/constants.js";
+// The platform-token envelope and its key ring: the RS256 JWT every token
+// the server signs for itself rides. A composition supplies its ring
+// (drivers.platformTokenKeys, built from its PEMs), signs its own typed
+// lanes through the envelope — each with its own lifetime when it is not
+// the ring's default, the expiry handed back — and verifies them with the
+// same function and refusal copy open source's user-token lane uses.
+export type {
+  PlatformTokenClaimValue,
+  PlatformTokenRefusal,
+  PlatformTokenSigningOptions,
+  PlatformTokenVerification,
+  SignedPlatformToken,
+  VerifiedPlatformToken,
+} from "./platformtoken/envelope.js";
+export {
+  PLATFORM_TOKEN_ISSUER,
+  PLATFORM_TOKEN_REFUSAL_MESSAGES,
+  TOKEN_TYPE_CLAIM,
+  decodeVerifiedPlatformTokenPayload,
+  platformTokenRefusalError,
+  signPlatformToken,
+  stringClaim,
+  verifyPlatformToken,
+} from "./platformtoken/envelope.js";
+export type {
+  PlatformTokenKeyMaterial,
+  PlatformTokenKeyRing,
+  PlatformTokenSigner,
+  SigningPlatformTokenKeyRing,
+} from "./platformtoken/key-ring.js";
+export {
+  DEFAULT_PLATFORM_TOKEN_TTL_SECONDS,
+  canSign,
+  platformTokenKeyRingFromPem,
+} from "./platformtoken/key-ring.js";
 // The built-in authorizer's model seams: the kind
 // declarations (transcripts of the cloud's `.fga` files), the evaluator,
 // and the OpenFGA store-test kit — exported so the cloud's drift test
@@ -334,11 +389,20 @@ export { newResolveSlugStep } from "./pipeline/steps/slug.js";
 // The driver interfaces and the store-fault classes the ratified mapping
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
-export type { Store } from "./store/interface.js";
+export type { Store, StoreOpenOptions } from "./store/interface.js";
 export {
   AuditNotFoundError,
   ResourceNotFoundError,
 } from "./store/interface.js";
+// The list index's read shapes, which `Store.queryResources` speaks
+// (store/list-index.ts). Declaring an index stays internal: the list is
+// the composition root's (boot/list-indexes.ts), one per server.
+export type {
+  ListIndexCursor,
+  ListIndexDeclaration,
+  ListIndexQuery,
+  ListIndexRow,
+} from "./store/list-index.js";
 // The maintenance-surface row shape (20260830.04 Stage 1, ruling Q3):
 // what findResourcesRawOrderedAfter pages and what
 // replaceResourceDataIfUnchanged guards on — the secret-convergence

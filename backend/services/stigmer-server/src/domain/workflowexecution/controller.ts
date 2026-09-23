@@ -22,8 +22,6 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
-import { ExecutionSortField } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowExecutionListSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import type {
   ListWorkflowExecutionsByWorkflowRequest,
   ListWorkflowExecutionsRequest,
@@ -40,7 +38,6 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
-import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
@@ -102,9 +99,8 @@ import { newCreateExecutionContextStep } from "./create-execution-context-step.j
 import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 import { newEnsureEngineAvailableStep } from "./engine.js";
 import {
-  applyFilterCriteria,
-  applyLegacyPhaseFilter,
-  applySortField,
+  matchesFilterCriteria,
+  matchesLegacyPhase,
 } from "./execution-filter.js";
 import {
   cancelExecution,
@@ -119,7 +115,7 @@ import { sendSignal } from "./send-signal.js";
 import { getEventLog } from "./get-event-log.js";
 import { getExecutionSummary } from "./get-execution-summary.js";
 import { listPendingApprovals } from "./list-pending-approvals.js";
-import { loadAllWorkflowExecutions } from "./queries.js";
+import { readWorkflowExecutionList } from "./queries.js";
 import { workflowExecutionRunTarget } from "./run-target.js";
 import { workflowExecutionSearchExtractor } from "./search-extractor.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
@@ -484,60 +480,48 @@ async function get(
 }
 
 /**
- * List — list.go: full scan, the legacy top-level phase filter (only when
- * filter.phases is absent), structured filter criteria (T13), and the
- * sort default started_at descending. No pagination (total_pages
- * placeholder 1). With a composed ListReadScope (20260830.01, census
- * lane 6) the list narrows to the caller's authorized executions and the
- * request `org` narrows when non-blank (the Java
- * WorkflowExecutionListHandler baseline: blank = permission-bounded
- * across orgs); no scope = the full scan with `org` a deliberate no-op
- * on this single-tenant edition — byte-identical. The scope runs AFTER
- * the phase and criteria filters (stigmer-cloud 20260913.04 T02: the
- * scope is the last per-row predicate), so a composed driver is asked
- * about the rows the request keeps, not the kind.
+ * List — list.go: the request's org through the index (every org when
+ * blank), the legacy top-level phase filter (only when filter.phases is
+ * absent), structured filter criteria (T13), the read scope last (census
+ * lane 6; no scope = every matching execution). Newest created first and
+ * paged; another sort field sorts the whole set (queries.ts).
  */
 async function list(
   deps: WorkflowExecutionControllerDeps,
   req: ListWorkflowExecutionsRequest,
   identity: CallerIdentity,
 ): Promise<WorkflowExecutionList> {
-  let executions = await loadAllWorkflowExecutions(
-    deps.store,
-    deps.logger,
-    "failed to list workflow executions",
-  );
-
-  if (req.filter === undefined || req.filter.phases.length === 0) {
-    executions = applyLegacyPhaseFilter(executions, req.phase);
-  }
-  executions = applyFilterCriteria(executions, req.filter);
-  executions = await restrictListByReadScope(
-    deps.listReadScope,
+  const legacyPhase =
+    req.filter === undefined || req.filter.phases.length === 0;
+  return readWorkflowExecutionList({
+    store: deps.store,
+    logger: deps.logger,
+    listReadScope: deps.listReadScope,
     identity,
-    ApiResourceKind.workflow_execution,
-    executions,
-    req.org,
-  );
-
-  let sortField = req.sortField;
-  let ascending = req.sortAscending;
-  if (sortField === ExecutionSortField.UNSPECIFIED) {
-    sortField = ExecutionSortField.STARTED_AT;
-    ascending = false;
-  }
-  applySortField(executions, sortField, ascending);
-
-  return create(WorkflowExecutionListSchema, {
-    entries: executions,
-    totalPages: 1,
+    query: { org: req.org },
+    request: req,
+    sortField: req.sortField,
+    sortAscending: req.sortAscending,
+    keep: (execution) =>
+      (!legacyPhase || matchesLegacyPhase(execution, req.phase)) &&
+      matchesFilterCriteria(execution, req.filter),
+    fingerprint: {
+      lane: "workflowExecution.list",
+      org: req.org,
+      phase: req.phase,
+      tags: req.tags,
+      filter: req.filter,
+      sortField: req.sortField,
+      sortAscending: req.sortAscending,
+    },
   });
 }
 
 /**
  * ListByWorkflow — list_by_workflow.go: the request field accepts either
- * a Workflow ID or a WorkflowInstance ID, so both spec fields are
- * matched. Same filter/sort tail as list; no pagination.
+ * a Workflow ID or a WorkflowInstance ID, so both of the index's keys are
+ * read. Same filter, scope and order as list (census lane 7; bounded by
+ * the workflow id, org never consulted).
  */
 async function listByWorkflow(
   deps: WorkflowExecutionControllerDeps,
@@ -547,39 +531,27 @@ async function listByWorkflow(
   if (req.workflowId === "") {
     throw invalidArgumentError("workflow_id is required");
   }
-
-  // Census lane 7: workflow filter ∩ criteria ∩ authorized ids, the scope
-  // last (bounded by the workflow id; the Java handler never consults org
-  // on this lane).
-  const all = await loadAllWorkflowExecutions(
-    deps.store,
-    deps.logger,
-    "failed to list workflow executions",
-  );
-  let executions = all.filter(
-    (execution) =>
-      execution.spec?.workflowInstanceId === req.workflowId ||
-      execution.spec?.workflowId === req.workflowId,
-  );
-  executions = applyFilterCriteria(executions, req.filter);
-  executions = await restrictListByReadScope(
-    deps.listReadScope,
+  return readWorkflowExecutionList({
+    store: deps.store,
+    logger: deps.logger,
+    listReadScope: deps.listReadScope,
     identity,
-    ApiResourceKind.workflow_execution,
-    executions,
-    "",
-  );
-
-  let sortField = req.sortField;
-  let ascending = req.sortAscending;
-  if (sortField === ExecutionSortField.UNSPECIFIED) {
-    sortField = ExecutionSortField.STARTED_AT;
-    ascending = false;
-  }
-  applySortField(executions, sortField, ascending);
-
-  return create(WorkflowExecutionListSchema, {
-    entries: executions,
-    totalPages: 1,
+    query: {
+      anyKey: [
+        { name: "workflow", value: req.workflowId },
+        { name: "workflow_instance", value: req.workflowId },
+      ],
+    },
+    request: req,
+    sortField: req.sortField,
+    sortAscending: req.sortAscending,
+    keep: (execution) => matchesFilterCriteria(execution, req.filter),
+    fingerprint: {
+      lane: "workflowExecution.listByWorkflow",
+      workflowId: req.workflowId,
+      filter: req.filter,
+      sortField: req.sortField,
+      sortAscending: req.sortAscending,
+    },
   });
 }

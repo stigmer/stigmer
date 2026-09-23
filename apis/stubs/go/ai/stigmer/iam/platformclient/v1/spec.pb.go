@@ -59,27 +59,13 @@ const (
 //     auto_grant_on_org and auto_grant_role.
 //
 //  3. JIT + Auto-Grant: When both auto_provision_accounts and auto_grant_on_org are
-//     true, newly provisioned accounts are immediately granted auto_grant_role on
-//     the PlatformClient's owning organization.
-//
-// Example YAML:
-//
-//	apiVersion: iam.stigmer.ai/v1
-//	kind: PlatformClient
-//	metadata:
-//	  name: Acme Dashboard
-//	  slug: acme-dashboard
-//	  org: acme
-//	spec:
-//	  auto_provision_accounts: true
-//	  auto_grant_on_org: true
-//	  auto_grant_role: viewer
-//	  allowed_origins: ["https://app.acme.com"]
+//     true, newly provisioned accounts are granted auto_grant_role on the
+//     PlatformClient's owning organization.
 type PlatformClientSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// OAuth client identifier.
-	// Generated on creation with the prefix "stgm_cid_" followed by 32 random
-	// alphanumeric characters. Permanent across secret rotations — safe for logs,
+	// Generated on creation with the prefix "stgm_cid_" followed by 43 random
+	// URL-safe characters. Permanent across secret rotations — safe for logs,
 	// configuration files, and client-side code.
 	ClientId string `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	// SHA-256 hash of the raw client secret.
@@ -113,7 +99,9 @@ type PlatformClientSpec struct {
 	// access. The platform must create IAM policies to grant access.
 	//
 	// When true, Stigmer grants auto_grant_role (default: viewer) on the
-	// PlatformClient's owning organization immediately after account creation.
+	// PlatformClient's owning organization to every account it provisions.
+	// Accounts that already exist keep the roles they hold: changing this
+	// setting or auto_grant_role later does not reach them.
 	//
 	// Requires auto_provision_accounts to be true.
 	AutoGrantOnOrg bool `protobuf:"varint,7,opt,name=auto_grant_on_org,json=autoGrantOnOrg,proto3" json:"auto_grant_on_org,omitempty"`
@@ -125,7 +113,7 @@ type PlatformClientSpec struct {
 	// Only meaningful when auto_grant_on_org is true. Ignored otherwise.
 	AutoGrantRole v1.IamRole `protobuf:"varint,8,opt,name=auto_grant_role,json=autoGrantRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"auto_grant_role,omitempty"`
 	// Web origins allowed for browser-based requests using tokens minted by
-	// this PlatformClient (Stigmer Cloud).
+	// this PlatformClient.
 	//
 	// Enforced on every API request bearing a user token minted by this
 	// client (never on mintUserToken itself — minting is server-to-server and
@@ -143,8 +131,8 @@ type PlatformClientSpec struct {
 	//     browser context; the client_secret remains the primary control,
 	//     and non-browser callers are not constrained by it.
 	//
-	// Edits propagate immediately: the enforcement cache is evicted on every
-	// PlatformClient update.
+	// Edits apply to the next request: the client is read on every request
+	// that bears one of its tokens.
 	AllowedOrigins []string `protobuf:"bytes,9,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
 	// Environments whose values are delivered to every agent execution
 	// created by a session this PlatformClient minted. This is how an
@@ -261,7 +249,7 @@ var File_ai_stigmer_iam_platformclient_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xac\x05\n" +
+	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\b\n" +
 	"\x12PlatformClientSpec\x12!\n" +
 	"\tclient_id\x18\x01 \x01(\tB\x04ȅ,\x01R\bclientId\x122\n" +
 	"\x12client_secret_hash\x18\x02 \x01(\tB\x04ȅ,\x01R\x10clientSecretHash\x123\n" +
@@ -275,7 +263,9 @@ const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOrigins\x12\xd9\x01\n" +
 	"\x10environment_refs\x18\n" +
 	" \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefsB\xb2\x02\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs:\x80\x03\xbaH\xfc\x02\x1a\xdb\x01\n" +
+	"2platform_client.auto_grant_requires_auto_provision\x12lauto_grant_on_org requires auto_provision_accounts: only an account the client provisions receives the grant\x1a7!this.auto_grant_on_org || this.auto_provision_accounts\x1a\x9b\x01\n" +
+	")platform_client.auto_grant_role_not_owner\x12Sauto_grant_role cannot be owner; organization ownership must be assigned explicitly\x1a\x19this.auto_grant_role != 1B\xb2\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (

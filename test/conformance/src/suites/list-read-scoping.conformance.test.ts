@@ -11,7 +11,8 @@
 //
 // One lane per consumer family (the seam's per-lane logic is pinned in
 // the OSS unit suites; this is the wire-level tenant-isolation contract):
-// session.list (the restrict verb, no org intersection), apikey.findAll
+// session.list (the restrict verb, no org intersection, once walked page
+// by page so a token is shown to carry no authority), apikey.findAll
 // (the direct-read tail), environment.list (the org-intersecting family),
 // search + recent activity (the enumeration verb), and the Q8
 // check-shaped lanes (the listByChannel channel gate, workflow
@@ -20,7 +21,7 @@
 // The arms run on the target's ENFORCING LANE (targets/target.ts): the
 // cloud's primary, and on the managed local targets an open-source sibling
 // in the OIDC posture, whose built-in ListReadScope answers every lane
-// below — so the same seven arms are the cross-edition contract on the
+// below — so the same eight arms are the cross-edition contract on the
 // cloud and on both open-source store drivers. Where a target lends no
 // lane the arms skip VISIBLY with its reason. Guest sibling-visitor
 // isolation cannot ride this suite (guest lanes are unreachable from
@@ -112,6 +113,51 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
       theirs.entries.map((s) => s.metadata?.id),
       "outsider list must not contain the owner's session",
     ).not.toContain(session.metadata!.id);
+  });
+
+  it("session.list paged: the owner's walk is whole, the outsider's walk of the owner's org is empty", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
+
+    const agent = await ownerAgent(org);
+    const seeded = new Set<string>();
+    for (let i = 0; i < 3; i++) {
+      const session = await clients.sessionCommand.create(
+        makeSession({
+          org,
+          name: uniqueName("iso-paged"),
+          agentInstanceId: agent.status!.defaultInstanceId,
+          subject: "paged isolation probe",
+        }),
+      );
+      fixtures.defer(() =>
+        clients.sessionCommand.delete({ value: session.metadata!.id }),
+      );
+      seeded.add(session.metadata!.id);
+    }
+
+    // Every page re-runs the scope, so a token carries no authority: the
+    // outsider may follow tokens through short or empty pages, never onto
+    // a row.
+    async function walk(as: ConformanceClients): Promise<string[]> {
+      const ids: string[] = [];
+      let pageToken = "";
+      for (let pages = 0; pages < 10; pages++) {
+        const page = await as.sessionQuery.list({ org, pageSize: 1, pageToken });
+        ids.push(...page.entries.map((s) => s.metadata!.id));
+        pageToken = page.nextPageToken;
+        if (pageToken === "") return ids;
+      }
+      throw new Error("session.list walk did not end within 10 pages");
+    }
+
+    const mine = await walk(clients);
+    expect(mine, "the owner's walk has no duplicate").toHaveLength(seeded.size);
+    expect(new Set(mine), "the owner's walk has no gap").toEqual(seeded);
+
+    const theirs = await walk(outsider);
+    expect(theirs, "the outsider's walk surfaces none of the owner's sessions").toEqual([]);
   });
 
   it("apikey.findAll: the owner's key is ABSENT from the outsider's list", async (ctx) => {

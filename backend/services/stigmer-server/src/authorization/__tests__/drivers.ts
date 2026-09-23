@@ -12,6 +12,7 @@
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { LIST_INDEXES } from "../../boot/list-indexes.js";
 import type { Store } from "../../store/interface.js";
 import { PostgresStore } from "../../store/postgres/store.js";
 import {
@@ -54,7 +55,11 @@ export function driverFixtures(
         if (postgresDatabase === undefined) {
           postgresDatabase = await createTestDatabase();
         }
-        const store = await PostgresStore.open(postgresDatabase.databaseUrl);
+        const store = await PostgresStore.open(
+          postgresDatabase.databaseUrl,
+          undefined,
+          { listIndexes: LIST_INDEXES },
+        );
         for (const kind of seededKinds) {
           await store.deleteResourcesByKind(kind);
         }

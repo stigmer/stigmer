@@ -193,6 +193,16 @@ spec:
                 secretKeyRef:
                   name: stigmer-secrets
                   key: STIGMER_RUNNER_TOKEN_KEY
+            # Optional, unlike the two above: it signs only the 15-minute
+            # PlatformClient user tokens, so a lost key costs at most one
+            # token lifetime and has no backup story. Absent from the
+            # Secret, the server generates one on its claim.
+            - name: STIGMER_PLATFORM_TOKEN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stigmer-secrets
+                  key: STIGMER_PLATFORM_TOKEN_KEY
+                  optional: true
             - name: STIGMER_OPERATOR_EMAIL
               value: ""
             - name: STIGMER_OPERATOR_NAME

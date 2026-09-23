@@ -193,7 +193,10 @@ describe("resolveExtensions — merge semantics", () => {
       "g2",
       "g3",
     ]);
-    expect(resolved.services).toEqual([registerA, registerB]);
+    expect(resolved.services).toEqual([
+      { unit: "alpha", register: registerA },
+      { unit: "beta", register: registerB },
+    ]);
     expect(resolved.workers).toEqual([workerFactory]);
     expect(resolved.statusObservers).toEqual([observerA]);
     expect(resolved.responseDecorators).toEqual([decoratorB]);

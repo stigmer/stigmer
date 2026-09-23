@@ -56,12 +56,14 @@ class WorkflowId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class WorkflowExecutionList(_message.Message):
-    __slots__ = ("total_pages", "entries")
+    __slots__ = ("total_pages", "entries", "next_page_token")
     TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     total_pages: int
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.WorkflowExecution]
-    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.WorkflowExecution, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.WorkflowExecution, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListWorkflowExecutionsRequest(_message.Message):
     __slots__ = ("page_size", "page_token", "phase", "tags", "filter", "sort_field", "sort_ascending", "org")

@@ -639,6 +639,13 @@ describe("membership rules", () => {
         IdentityAccountProvisioningMode.machine;
       expect(isPersonAccount(machineMode)).toBe(false);
     });
+
+    it("a platform-client end user is not: the mint grants it its client's role and nothing else", () => {
+      const endUser = account("stgm_pc|acme|user-7", OPERATOR_EMAIL);
+      endUser.spec!.provisioningMode =
+        IdentityAccountProvisioningMode.platform_client;
+      expect(isPersonAccount(endUser)).toBe(false);
+    });
   });
 
   describe("ensureRolesForExistingAccounts", () => {

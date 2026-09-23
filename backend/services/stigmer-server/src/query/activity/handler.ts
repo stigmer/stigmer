@@ -5,18 +5,15 @@
  *
  * This is the OSS twin of the cloud's ListRecentActivityHandler; the
  * merge, ordering, projection, and filtering semantics are deliberately
- * identical (stigmer#461). What differs is only what single-tenancy
- * removes: with NO ListReadScope composed there is no id enumeration
- * (the candidate set is every stored row) and the request's org is a
- * no-op (a recents filter stricter than the per-kind lists it summarizes
- * would hide locally-owned rows); load-all-then-sort-in-memory replaces
- * per-kind SQL LIMIT windows (each kind's newest page_size rows are a
- * superset of its contribution to the merged page — the identical final
- * list; the full scan is this store's contract, the same pattern every
- * OSS list handler uses). With a composed ListReadScope (20260830.01,
- * census lane 22) both loads narrow to the caller's authorized ids ∩
- * the request's org when non-blank — the Java handler's two
- * listAuthorizedResourceIds calls and its findRecentByIdsAndOrg org arm.
+ * identical (stigmer#461). Both loads read the request's org through the
+ * list index (every org when blank) — the same narrowing the per-kind
+ * lists it summarizes apply, so recents is never stricter than they are —
+ * and, with a composed ListReadScope (census lane 22), offer those rows to
+ * its restrict verb: one read per kind, exact, where the Java handler
+ * enumerated the caller's authorized ids and then scanned. Recents orders
+ * by the last update, not by creation, so each kind's org is read whole
+ * and merged in memory (each kind's newest page_size rows are a superset
+ * of its contribution to the merged page).
  *
  * Proven by __tests__/handler.test.ts (Go's handler_test.go arms) and
  * activity.conformance.test.ts on local.
@@ -35,7 +32,9 @@ import type {
   RecentActivityEntry,
 } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -44,6 +43,9 @@ import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/api
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
+import { sessionListIndex } from "../../domain/session/list-index.js";
+import { workflowExecutionListIndex } from "../../domain/workflowexecution/list-index.js";
 import type { Store } from "../../store/interface.js";
 
 /**
@@ -91,10 +93,9 @@ export class ActivityHandler {
   ) {}
 
   /**
-   * Go ListRecentActivity: load both kinds, project to sidebar entries,
-   * merge-sort newest-first, trim to the page. With a composed scope the
-   * per-kind loads narrow to the caller's authorized ids ∩ the request's
-   * org (blank = permission-bounded across orgs, the repo convention).
+   * Go ListRecentActivity: load both kinds (the request's org, every org
+   * when blank; the scope's restrict verb when one is composed), project
+   * to sidebar entries, merge-sort newest-first, trim to the page.
    */
   async listRecentActivity(
     request: ListRecentActivityRequest,
@@ -102,21 +103,8 @@ export class ActivityHandler {
   ): Promise<ListRecentActivityResponse> {
     const pageSize = normalizePageSize(request.pageSize);
 
-    let sessionScope: ReadonlySet<string> | undefined;
-    let executionScope: ReadonlySet<string> | undefined;
-    if (this.listReadScope !== undefined) {
-      sessionScope = await this.listReadScope.authorizedResourceIds(
-        identity,
-        ApiResourceKind.session,
-      );
-      executionScope = await this.listReadScope.authorizedResourceIds(
-        identity,
-        ApiResourceKind.workflow_execution,
-      );
-    }
-
-    const sessions = await this.loadSessions(sessionScope, request.org);
-    const executions = await this.loadExecutions(executionScope, request.org);
+    const sessions = await this.loadSessions(identity, request.org);
+    const executions = await this.loadExecutions(identity, request.org);
 
     // Sessions before executions, then a stable sort: entries with equal
     // timestamps keep this insertion order — the same tie-break the
@@ -146,32 +134,36 @@ export class ActivityHandler {
   }
 
   /**
-   * Go loadSessions: every stored personal session projected to a recents
-   * entry; runtime-originated sessions excluded.
+   * Go loadSessions: the org's personal sessions the caller may see,
+   * projected to recents entries; runtime-originated sessions excluded.
    */
   private async loadSessions(
-    authorizedIds: ReadonlySet<string> | undefined,
+    identity: CallerIdentity,
     org: string,
   ): Promise<RecentActivityEntry[]> {
-    const rows = await this.store.listResources(ApiResourceKind.session);
-    const entries: RecentActivityEntry[] = [];
+    const rows = await this.store.queryResources(sessionListIndex, { org });
+    const personal: Session[] = [];
     for (const row of rows) {
-      let session;
+      let session: Session;
       try {
-        session = fromBinary(SessionSchema, row);
+        session = fromBinary(SessionSchema, row.data);
       } catch {
         this.logger.warn("Skipping undecodable session row in recent activity");
         continue;
       }
-      if (hasRuntimeOriginLabel(session.metadata)) {
-        continue;
+      if (!hasRuntimeOriginLabel(session.metadata)) {
+        personal.push(session);
       }
-      if (
-        authorizedIds !== undefined &&
-        !isVisibleUnderScope(authorizedIds, org, session.metadata)
-      ) {
-        continue;
-      }
+    }
+    const visible = await restrictListByReadScope(
+      this.listReadScope,
+      identity,
+      ApiResourceKind.session,
+      personal,
+      "",
+    );
+    const entries: RecentActivityEntry[] = [];
+    for (const session of visible) {
       entries.push(
         create(RecentActivityEntrySchema, {
           id: session.metadata?.id ?? "",
@@ -184,31 +176,33 @@ export class ActivityHandler {
     return entries;
   }
 
-  /** Go loadExecutions: every stored workflow execution projected. */
+  /** Go loadExecutions: the org's workflow executions the caller may see, projected. */
   private async loadExecutions(
-    authorizedIds: ReadonlySet<string> | undefined,
+    identity: CallerIdentity,
     org: string,
   ): Promise<RecentActivityEntry[]> {
-    const rows = await this.store.listResources(
-      ApiResourceKind.workflow_execution,
-    );
-    const entries: RecentActivityEntry[] = [];
+    const rows = await this.store.queryResources(workflowExecutionListIndex, {
+      org,
+    });
+    const decoded: WorkflowExecution[] = [];
     for (const row of rows) {
-      let execution;
       try {
-        execution = fromBinary(WorkflowExecutionSchema, row);
+        decoded.push(fromBinary(WorkflowExecutionSchema, row.data));
       } catch {
         this.logger.warn(
           "Skipping undecodable workflow execution row in recent activity",
         );
-        continue;
       }
-      if (
-        authorizedIds !== undefined &&
-        !isVisibleUnderScope(authorizedIds, org, execution.metadata)
-      ) {
-        continue;
-      }
+    }
+    const visible = await restrictListByReadScope(
+      this.listReadScope,
+      identity,
+      ApiResourceKind.workflow_execution,
+      decoded,
+      "",
+    );
+    const entries: RecentActivityEntry[] = [];
+    for (const execution of visible) {
       const name = execution.metadata?.name ?? "";
       entries.push(
         create(RecentActivityEntrySchema, {
@@ -217,29 +211,14 @@ export class ActivityHandler {
           subject: name === "" ? UNTITLED_EXECUTION_SUBJECT : name,
           updatedAt: extractUpdatedAt(execution.status?.audit),
           status: resolvePhase(
-            execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+            execution.status?.phase ??
+              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
           ),
         }),
       );
     }
     return entries;
   }
-}
-
-/**
- * The scoped-visibility test both loads share when a scope is composed:
- * the row's id must be authorized and, when the request names an org, the
- * row must belong to it (the Java findRecentByIdsAndOrg arm).
- */
-function isVisibleUnderScope(
-  authorizedIds: ReadonlySet<string>,
-  org: string,
-  metadata: ApiResourceMetadata | undefined,
-): boolean {
-  if (!authorizedIds.has(metadata?.id ?? "")) {
-    return false;
-  }
-  return org === "" || (metadata?.org ?? "") === org;
 }
 
 /** Go normalizePageSize: ≤0 → default 30; >100 → cap 100. */

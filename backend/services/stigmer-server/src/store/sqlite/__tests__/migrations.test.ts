@@ -9,7 +9,9 @@
  * (< 6) runs nothing. v10, the chain's first row-decoding step, moves
  * every row of the seven kinds that held the retired public level to org
  * and leaves every other row's bytes as they were; a row it cannot decode
- * fails the step and leaves the database at v9.
+ * fails the step and leaves the database at v9. v11 adds the list index's
+ * schema only, and a Go-written row of a declared kind is derived by the
+ * store's reconciliation at open and read through the index.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,8 +24,13 @@ import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
+import {
+  CONTRACT_SESSION_INDEX,
+  CONTRACT_STORE_OPTIONS,
+} from "../../__tests__/store-contract.js";
 import { SqliteStore } from "../store.js";
 import {
   CURRENT_SCHEMA_VERSION,
@@ -93,7 +100,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
     ]);
   });
 
@@ -216,6 +223,46 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
       )
       .all() as Array<{ resource_id: string }>;
     expect(hits).toEqual([{ resource_id: "acme" }]);
+  });
+
+  it("derives the list facts of a Go-written row of a declared kind at open", async () => {
+    const fixture = materializeGoFixture();
+    cleanups.push(() => fixture.cleanup());
+
+    // A session as the Go server wrote it: four columns, no list facts.
+    const session = create(SessionSchema, {
+      metadata: { id: "ses_go", org: "acme" },
+      spec: { agentInstanceId: "ain_go" },
+    });
+    const before = new DatabaseSync(fixture.dbPath);
+    before
+      .prepare(
+        `INSERT INTO resources VALUES ('session', 'ses_go', ?, '2026-08-23 11:43:54')`,
+      )
+      .run(toBinary(SessionSchema, session));
+    before.close();
+
+    const store = SqliteStore.open(
+      fixture.dbPath,
+      undefined,
+      CONTRACT_STORE_OPTIONS,
+    );
+    cleanups.push(() => store.close());
+
+    const db = new DatabaseSync(fixture.dbPath);
+    cleanups.push(() => db.close());
+    const unproven = db
+      .prepare(
+        `SELECT count(*) AS count FROM resources WHERE list_indexed_at IS NOT updated_at`,
+      )
+      .get() as { count: number };
+    expect(unproven.count, "every adopted row derived or stamped at open").toBe(
+      0,
+    );
+    const rows = await store.queryResources(CONTRACT_SESSION_INDEX, {
+      anyKey: [{ name: "agent_instance", value: "ain_go" }],
+    });
+    expect(rows.map((row) => row.id)).toEqual(["ses_go"]);
   });
 
   it("reads a Go-marshaled resource blob through the TS driver (wire-format continuity)", async () => {
@@ -349,14 +396,11 @@ describe("rollback safety (DD-006)", () => {
 });
 
 describe("v10: the retired public level leaves every row", () => {
-  /** A v9 database: the chain replayed, then v10's version row removed. */
+  /** A v9 database: the chain replayed up to the step before v10. */
   function v9Database(): { dbPath: string; db: DatabaseSync } {
     const dbPath = tempDbPath();
     const setup = new DatabaseSync(dbPath);
-    runMigrations(setup);
-    setup
-      .prepare(`DELETE FROM schema_version WHERE version = ?`)
-      .run(SCHEMA_VERSION_10);
+    runMigrations(setup, SCHEMA_VERSION_10 - 1);
     expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_10 - 1);
     return { dbPath, db: setup };
   }
