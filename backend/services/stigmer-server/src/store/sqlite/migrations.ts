@@ -1,8 +1,9 @@
 /**
  * Versioned schema migrations — ports the inline chain in
  * backend/libs/go/store/sqlite/store.go (v1–v6, DDL character-faithful),
- * adds v7, the OD-3 consolidation (D2 §3), and v8, the by-resource
- * oauth_grant index (the channel teardown's query pattern, C3 Stage 6).
+ * adds v7, the OD-3 consolidation (D2 §3), v8, the by-resource
+ * oauth_grant index (the channel teardown's query pattern, C3 Stage 6),
+ * and the later steps each named at its constant below.
  *
  * Schema continuity across cutover is the design point: a database the Go
  * server created at any version migrates forward through the SAME steps Go
@@ -51,12 +52,20 @@ export const SCHEMA_VERSION_8 = 8;
 export const SCHEMA_VERSION_9 = 9;
 /** v10: every row holding the retired public visibility level moved to org. */
 export const SCHEMA_VERSION_10 = 10;
+/** v11: the list index's columns, key table and indexes (DDL only). */
+export const SCHEMA_VERSION_11 = 11;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_10;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_11;
 
-/** Applies all pending migrations in order. */
-export function runMigrations(db: DatabaseSync): void {
+/**
+ * Applies every pending migration up to `targetVersion` in order — all of
+ * them unless a test builds the database a given step starts from.
+ */
+export function runMigrations(
+  db: DatabaseSync,
+  targetVersion: number = CURRENT_SCHEMA_VERSION,
+): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_version (
       version INTEGER PRIMARY KEY,
@@ -77,10 +86,11 @@ export function runMigrations(db: DatabaseSync): void {
     [SCHEMA_VERSION_8, migrateToV8],
     [SCHEMA_VERSION_9, migrateToV9],
     [SCHEMA_VERSION_10, migrateToV10],
+    [SCHEMA_VERSION_11, migrateToV11],
   ];
 
   for (const [version, migrate] of chain) {
-    if (currentVersion < version) {
+    if (currentVersion < version && version <= targetVersion) {
       applyInTransaction(db, version, migrate);
     }
   }
@@ -422,4 +432,45 @@ function migrateToV10(db: DatabaseSync): void {
       }
     }
   }
+}
+
+/**
+ * v11: the list index (../list-index.ts) — schema only, the Postgres
+ * driver's v6 in this engine's terms (postgres/migrations.ts gives the
+ * reasons for every column and index). Existing rows, a Go-era database's
+ * included, arrive unproven and are derived by the store's reconciliation
+ * at open. sqlite compares text as bytes (BINARY) by default, the order
+ * list-index.ts merges in, so no collation is spelled here. The store now
+ * writes `updated_at` to the millisecond and the stamp from the same
+ * expression in the same statement; a writer that does not know the index
+ * writes `datetime('now')`, whole seconds, which can never equal a stamp.
+ */
+function migrateToV11(db: DatabaseSync): void {
+  db.exec(`
+    ALTER TABLE resources ADD COLUMN list_org TEXT;
+    ALTER TABLE resources ADD COLUMN list_created_at TEXT;
+    ALTER TABLE resources ADD COLUMN list_index_revision INTEGER;
+    ALTER TABLE resources ADD COLUMN list_indexed_at TEXT;
+
+    CREATE INDEX idx_resources_list_org
+      ON resources (kind, list_org, list_created_at, id);
+    CREATE INDEX idx_resources_list_created
+      ON resources (kind, list_created_at, id);
+    CREATE INDEX idx_resources_list_revision
+      ON resources (kind, list_index_revision);
+    CREATE INDEX idx_resources_list_unproven
+      ON resources (kind, id) WHERE list_indexed_at IS NOT updated_at;
+
+    CREATE TABLE resource_list_keys (
+      kind TEXT NOT NULL,
+      id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (kind, id, key)
+    ) WITHOUT ROWID;
+
+    CREATE INDEX idx_resource_list_keys_lookup
+      ON resource_list_keys (kind, key, value, created_at, id);
+  `);
 }

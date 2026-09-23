@@ -213,6 +213,7 @@ import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
 import type { ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
 import type { InProcessClients } from "./inprocess.js";
+import { LIST_INDEXES } from "./list-indexes.js";
 import type { Logger } from "./logger.js";
 
 export interface ComposedServer {
@@ -336,20 +337,22 @@ export async function composeServer(
   }
   // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
-  // sqlite on DB_PATH (migrations v1–v7, incl. adopting a Go-created
+  // sqlite on DB_PATH (its whole chain, incl. adopting a Go-created
   // database — D2 §3 schema continuity). Postgres wins when both are set:
   // DB_PATH always has a default value, so no other precedence could ever
-  // select Postgres (config.ts documents the contract). A failure here is
-  // a loud boot throw, never a degraded server. The operator identity
-  // (#400) is installed by main.ts — once per PROCESS, before any writer
-  // exists — not here: composeServer is re-entrant for tests, the
-  // identity seam deliberately is not.
+  // select Postgres (config.ts documents the contract). Either driver
+  // opens with the list indexes (list-indexes.ts) and reconciles them
+  // before it returns. A failure here is a loud boot throw, never a
+  // degraded server. The operator identity (#400) is installed by main.ts
+  // — once per PROCESS, before any writer exists — not here: composeServer
+  // is re-entrant for tests, the identity seam deliberately is not.
   let store: Store;
+  const storeOptions = { listIndexes: LIST_INDEXES };
   if (config.databaseUrl !== "") {
-    store = await PostgresStore.open(config.databaseUrl, logger);
+    store = await PostgresStore.open(config.databaseUrl, logger, storeOptions);
     logger.info("storage driver selected", { driver: "postgres" });
   } else {
-    store = SqliteStore.open(config.dbPath, logger);
+    store = SqliteStore.open(config.dbPath, logger, storeOptions);
     logger.info("storage driver selected", {
       driver: "sqlite",
       dbPath: config.dbPath,
@@ -1020,7 +1023,10 @@ export async function composeServer(
           reserve: (key, declaredSizeBytes) => {
             const { ttlMs } = skillUploadSlots.reserve(key, declaredSizeBytes);
             return {
-              url: skillUploadUrl(config.skillTransferBaseUrl, uploadRefOf(key)),
+              url: skillUploadUrl(
+                config.skillTransferBaseUrl,
+                uploadRefOf(key),
+              ),
               ttlMs,
             };
           },
@@ -1196,9 +1202,12 @@ export async function composeServer(
     case "configured":
       break;
     case "derived":
-      logger.info("STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for MCP server OAuth Connect", {
-        redirectUri: oauthRedirect.uri,
-      });
+      logger.info(
+        "STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for MCP server OAuth Connect",
+        {
+          redirectUri: oauthRedirect.uri,
+        },
+      );
       break;
     case "absent":
       logger.warn(
@@ -1210,7 +1219,8 @@ export async function composeServer(
       throw new Error(String(exhaustive));
     }
   }
-  const oauthRedirectUri = oauthRedirect.kind === "absent" ? "" : oauthRedirect.uri;
+  const oauthRedirectUri =
+    oauthRedirect.kind === "absent" ? "" : oauthRedirect.uri;
   // The ONE fetch the McpServer domain dials user-supplied URLs with: the
   // endpoint it probes at save time and the login server it reaches on
   // Sign in. Every hop is judged under the edition's egress policy

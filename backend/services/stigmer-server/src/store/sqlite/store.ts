@@ -59,8 +59,23 @@ import type {
   SignalDedupeStatus,
   SignalDedupeStore,
   Store,
+  StoreOpenOptions,
   WorkflowExecutionEventRecord,
 } from "../interface.js";
+import {
+  ListIndexRegistry,
+  assertListIndexLimit,
+  listIndexFactsOf,
+  matchesListIndexQuery,
+  mergeListIndexRows,
+  sameListKeyRows,
+} from "../list-index.js";
+import type {
+  ListIndexDeclaration,
+  ListIndexFacts,
+  ListIndexQuery,
+  ListIndexRow,
+} from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import type { StoreLogger } from "../logger.js";
 import {
@@ -77,6 +92,67 @@ import { runMigrations } from "./migrations.js";
 // import path stays stable for existing consumers.
 export type { StoreLogger } from "../logger.js";
 
+/**
+ * `updated_at` and the list index's stamp, to the millisecond. Evaluated
+ * twice in one statement it yields one value (sqlite fixes 'now' per
+ * statement step), so a row this driver writes is stamped with exactly its
+ * `updated_at`; a writer that does not know the index writes
+ * `datetime('now')`, whole seconds, which never equals a stamp.
+ */
+const NOW = `strftime('%Y-%m-%d %H:%M:%f', 'now')`;
+
+/** The one upsert every resource write goes through (postgres/store.ts's twin). */
+const UPSERT_RESOURCE_SQL = `INSERT OR REPLACE INTO resources
+  (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+  VALUES (?, ?, ?, ${NOW}, ?, ?, ?, ${NOW})`;
+
+/**
+ * The rows of a kind whose facts are not proven current under a revision
+ * (list-index.ts; postgres/store.ts's twin). A row's list columns sit
+ * after its blob in the record and sqlite reaches them only by walking the
+ * blob's overflow pages, so any predicate checked per row of the kind
+ * costs a read of every blob (measured: 11 ms, and 72 ms for an OR over
+ * the revision, across 1,279 rows of 37 KB). Every arm is therefore one
+ * index range that fetches a row only when it matches, and names its
+ * index: without statistics the planner prefers the primary key for
+ * `kind = ?`, and `INDEXED BY` fails the statement rather than fall back
+ * to a scan. The arms overlap (an unstamped row has no revision either),
+ * so the caller keeps one row per id. Parameters: kind, kind, kind,
+ * revision, kind, revision.
+ */
+const UNPROVEN_ROWS_SQL = `
+  SELECT id, data FROM resources INDEXED BY idx_resources_list_unproven
+  WHERE kind = ? AND list_indexed_at IS NOT updated_at
+  UNION ALL
+  SELECT id, data FROM resources INDEXED BY idx_resources_list_revision
+  WHERE kind = ? AND list_index_revision IS NULL
+  UNION ALL
+  SELECT id, data FROM resources INDEXED BY idx_resources_list_revision
+  WHERE kind = ? AND list_index_revision < ?
+  UNION ALL
+  SELECT id, data FROM resources INDEXED BY idx_resources_list_revision
+  WHERE kind = ? AND list_index_revision > ?`;
+
+function unprovenRowsParams(
+  kindName: string,
+  revision: number,
+): Array<string | number> {
+  return [kindName, kindName, kindName, revision, kindName, revision];
+}
+
+/** Keeps the first row per id; the unproven arms overlap. */
+function oneRowPerId<T extends { readonly id: string }>(
+  rows: ReadonlyArray<T>,
+): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) =>
+    seen.has(row.id) ? false : (seen.add(row.id), true),
+  );
+}
+
+/** How many unproven rows the reconciliation at open decodes per statement. */
+const RECONCILE_BATCH = 500;
+
 export class SqliteStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly signalDedupe: SignalDedupeStore;
@@ -86,11 +162,18 @@ export class SqliteStore implements Store {
   private db: DatabaseSync | undefined;
   private readonly dbPath: string;
   private readonly logger: StoreLogger;
+  private readonly listIndexes: ListIndexRegistry;
 
-  private constructor(db: DatabaseSync, dbPath: string, logger: StoreLogger) {
+  private constructor(
+    db: DatabaseSync,
+    dbPath: string,
+    logger: StoreLogger,
+    listIndexes: ListIndexRegistry,
+  ) {
     this.db = db;
     this.dbPath = dbPath;
     this.logger = logger;
+    this.listIndexes = listIndexes;
     this.bootstrapState = new SqliteBootstrapStateStore(() => this.open());
     this.signalDedupe = new SqliteSignalDedupeStore(() => this.open(), logger);
     this.oauthGrants = new SqliteOAuthGrantStore(() => this.open());
@@ -101,12 +184,15 @@ export class SqliteStore implements Store {
 
   /**
    * Opens (or creates) the database at dbPath, applies the pragmas in Go's
-   * order, and runs migrations — Go NewStore.
+   * order, runs migrations — Go NewStore — and reconciles the list index
+   * (derives the facts of every unproven row of a declared kind).
    */
   static open(
     dbPath: string,
     logger: StoreLogger = NOOP_STORE_LOGGER,
+    options: StoreOpenOptions = {},
   ): SqliteStore {
+    const listIndexes = new ListIndexRegistry(options.listIndexes ?? []);
     const dir = path.dirname(dbPath);
     if (dir !== "" && dir !== ".") {
       mkdirSync(dir, { recursive: true });
@@ -129,7 +215,14 @@ export class SqliteStore implements Store {
       throw error;
     }
 
-    return new SqliteStore(db, dbPath, logger);
+    const store = new SqliteStore(db, dbPath, logger, listIndexes);
+    try {
+      store.reconcileListIndexes();
+    } catch (error) {
+      db.close();
+      throw error;
+    }
+    return store;
   }
 
   /** Filesystem path of the database file (Go Store.Path()). */
@@ -149,9 +242,28 @@ export class SqliteStore implements Store {
   ): Promise<void> {
     const db = this.open();
     const data = toBinary(schema, msg);
-    db.prepare(
-      `INSERT OR REPLACE INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
-    ).run(apiResourceKindName(kind), id, data);
+    const kindName = apiResourceKindName(kind);
+    const facts = this.listIndexes.factsOf(kind, msg);
+    if (facts === undefined) {
+      db.prepare(UPSERT_RESOURCE_SQL).run(kindName, id, data, null, null, null);
+      return;
+    }
+    db.exec("BEGIN");
+    try {
+      db.prepare(UPSERT_RESOURCE_SQL).run(
+        kindName,
+        id,
+        data,
+        facts.org,
+        facts.createdAt,
+        facts.revision,
+      );
+      replaceListKeys(db, kindName, id, facts);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   async getResource<Desc extends DescMessage>(
@@ -187,19 +299,44 @@ export class SqliteStore implements Store {
     db.exec("BEGIN IMMEDIATE");
     try {
       const row = db
-        .prepare(`SELECT data FROM resources WHERE kind = ? AND id = ?`)
-        .get(kindName, id) as { data: Uint8Array } | undefined;
+        .prepare(
+          `SELECT data, list_indexed_at IS updated_at AS stamped, list_index_revision
+           FROM resources WHERE kind = ? AND id = ?`,
+        )
+        .get(kindName, id) as
+        | {
+            data: Uint8Array;
+            stamped: number;
+            list_index_revision: number | null;
+          }
+        | undefined;
       if (row === undefined) {
         throw new ResourceNotFoundError(`${kindName}/${id}`);
       }
 
       const msg = fromBinary(schema, row.data);
+      const before = this.listIndexes.factsOf(kind, msg);
       modify(msg);
+      const after = this.listIndexes.factsOf(kind, msg);
 
       const data = toBinary(schema, msg);
-      db.prepare(
-        `INSERT OR REPLACE INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
-      ).run(kindName, id, data);
+      db.prepare(UPSERT_RESOURCE_SQL).run(
+        kindName,
+        id,
+        data,
+        after?.org ?? null,
+        after?.createdAt ?? null,
+        after?.revision ?? null,
+      );
+      if (
+        after !== undefined &&
+        (row.stamped !== 1 ||
+          row.list_index_revision !== after.revision ||
+          before === undefined ||
+          !sameListKeyRows(before, after))
+      ) {
+        replaceListKeys(db, kindName, id, after);
+      }
 
       db.exec("COMMIT");
       return msg;
@@ -219,10 +356,74 @@ export class SqliteStore implements Store {
     return rows.map((row) => row.data);
   }
 
+  async queryResources<K extends string>(
+    declaration: ListIndexDeclaration<K>,
+    query: ListIndexQuery<K>,
+  ): Promise<ListIndexRow[]> {
+    this.listIndexes.require(declaration);
+    assertListIndexLimit(query.limit);
+    if (query.anyKey !== undefined && query.anyKey.length === 0) {
+      return [];
+    }
+    const db = this.open();
+    const kindName = apiResourceKindName(declaration.kind);
+
+    // A key read is driven from the key table (CROSS JOIN fixes sqlite's
+    // join order), so only the rows the key names are ever read; several
+    // keys are one such read each, merged below (postgres/store.ts's twin).
+    const reads =
+      query.anyKey === undefined
+        ? [provenReadSql(kindName, declaration.revision, query, undefined)]
+        : query.anyKey.map((key) =>
+            provenReadSql(kindName, declaration.revision, query, key),
+          );
+    const proven: ListIndexRow[] = [];
+    for (const read of reads) {
+      const rows = db.prepare(read.sql).all(...read.params) as Array<{
+        id: string;
+        data: Uint8Array;
+        created_at: string;
+      }>;
+      for (const row of rows) {
+        proven.push({
+          id: row.id,
+          data: row.data,
+          cursor: { createdAt: row.created_at, id: row.id },
+        });
+      }
+    }
+
+    const unproven = oneRowPerId(
+      db
+        .prepare(UNPROVEN_ROWS_SQL)
+        .all(...unprovenRowsParams(kindName, declaration.revision)) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>,
+    );
+    const unprovenRows: ListIndexRow[] = [];
+    for (const row of unproven) {
+      const facts = this.deriveAndRepair(declaration, row.id, row.data);
+      if (facts !== undefined && matchesListIndexQuery(row.id, facts, query)) {
+        unprovenRows.push({
+          id: row.id,
+          data: row.data,
+          cursor: { createdAt: facts.createdAt, id: row.id },
+        });
+      }
+    }
+    return mergeListIndexRows(proven, unprovenRows, query.limit);
+  }
+
   async deleteResource(kind: ApiResourceKind, id: string): Promise<void> {
     const db = this.open();
+    const kindName = apiResourceKindName(kind);
     db.prepare(`DELETE FROM resources WHERE kind = ? AND id = ?`).run(
-      apiResourceKindName(kind),
+      kindName,
+      id,
+    );
+    db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(
+      kindName,
       id,
     );
   }
@@ -315,20 +516,59 @@ export class SqliteStore implements Store {
     const db = this.open();
     // BLOB equality in the WHERE clause makes the compare-and-swap one
     // atomic statement: zero rows changed means the row moved on (or was
-    // deleted) since the read — a lost swap, never an upsert.
-    const result = db
-      .prepare(
-        `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ? AND data = ?`,
-      )
-      .run(newData, apiResourceKindName(kind), id, expectedData);
-    return Number(result.changes) === 1;
+    // deleted) since the read — a lost swap, never an upsert. The new bytes'
+    // list facts ride the same statement; bytes a declared kind's schema
+    // cannot decode leave the row unproven (stamp NULL), for a read to skip.
+    const kindName = apiResourceKindName(kind);
+    const declaration = this.listIndexes.declarationOf(kind);
+    const facts =
+      declaration === undefined
+        ? undefined
+        : factsOfBytes(declaration, newData);
+    const swap = (): boolean =>
+      Number(
+        db
+          .prepare(
+            `UPDATE resources SET data = ?, updated_at = ${NOW},
+               list_org = ?, list_created_at = ?, list_index_revision = ?,
+               list_indexed_at = CASE WHEN ? THEN ${NOW} ELSE NULL END
+             WHERE kind = ? AND id = ? AND data = ?`,
+          )
+          .run(
+            newData,
+            facts?.org ?? null,
+            facts?.createdAt ?? null,
+            facts?.revision ?? null,
+            declaration === undefined || facts !== undefined ? 1 : 0,
+            kindName,
+            id,
+            expectedData,
+          ).changes,
+      ) === 1;
+    if (facts === undefined) {
+      return swap();
+    }
+    db.exec("BEGIN");
+    try {
+      const swapped = swap();
+      if (swapped) {
+        replaceListKeys(db, kindName, id, facts);
+      }
+      db.exec("COMMIT");
+      return swapped;
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   async deleteResourcesByKind(kind: ApiResourceKind): Promise<number> {
     const db = this.open();
+    const kindName = apiResourceKindName(kind);
     const result = db
       .prepare(`DELETE FROM resources WHERE kind = ?`)
-      .run(apiResourceKindName(kind));
+      .run(kindName);
+    db.prepare(`DELETE FROM resource_list_keys WHERE kind = ?`).run(kindName);
     return Number(result.changes);
   }
 
@@ -337,11 +577,121 @@ export class SqliteStore implements Store {
     idPrefix: string,
   ): Promise<number> {
     const db = this.open();
+    const kindName = apiResourceKindName(kind);
     // GLOB 'prefix*' uses the (kind, id) index where LIKE would not (Go).
     const result = db
       .prepare(`DELETE FROM resources WHERE kind = ? AND id GLOB ?`)
-      .run(apiResourceKindName(kind), `${idPrefix}*`);
+      .run(kindName, `${idPrefix}*`);
+    db.prepare(
+      `DELETE FROM resource_list_keys WHERE kind = ? AND id GLOB ?`,
+    ).run(kindName, `${idPrefix}*`);
     return Number(result.changes);
+  }
+
+  // ---------------------------------------------------------------------------
+  // The list index's repair (list-index.ts; postgres/store.ts's twin)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * An unproven row's facts, derived from its bytes, and the row repaired
+   * when those bytes are still the stored ones. Undefined when the bytes
+   * do not decode; the row stays unproven and is skipped.
+   */
+  private deriveAndRepair(
+    declaration: ListIndexDeclaration,
+    id: string,
+    data: Uint8Array,
+  ): ListIndexFacts | undefined {
+    const kindName = apiResourceKindName(declaration.kind);
+    const facts = factsOfBytes(declaration, data);
+    if (facts === undefined) {
+      this.logger.warn(
+        "list index: an unproven row does not decode, skipping",
+        {
+          kind: kindName,
+          id,
+        },
+      );
+      return undefined;
+    }
+    const db = this.open();
+    db.exec("BEGIN");
+    try {
+      const repaired = db
+        .prepare(
+          `UPDATE resources SET list_org = ?, list_created_at = ?,
+             list_index_revision = ?, list_indexed_at = updated_at
+           WHERE kind = ? AND id = ? AND data = ?`,
+        )
+        .run(facts.org, facts.createdAt, facts.revision, kindName, id, data);
+      if (Number(repaired.changes) === 1) {
+        replaceListKeys(db, kindName, id, facts);
+      }
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      this.logger.warn("list index: repairing a row failed", {
+        kind: kindName,
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return facts;
+  }
+
+  /**
+   * Derives every unproven row of each declared kind and stamps every other
+   * kind's unstamped rows, so the unproven set is empty once open returns.
+   */
+  private reconcileListIndexes(): void {
+    const db = this.open();
+    const declarations = this.listIndexes.declarations();
+    for (const declaration of declarations) {
+      const kindName = apiResourceKindName(declaration.kind);
+      let after = "";
+      let derived = 0;
+      for (;;) {
+        // Duplicates from overlapping arms sit side by side in id order and
+        // the next batch starts after the last id, so none is repaired twice
+        // across batches and the count still ends the loop.
+        const rows = db
+          .prepare(
+            `SELECT id, data FROM (${UNPROVEN_ROWS_SQL}) WHERE id > ?
+             ORDER BY id LIMIT ?`,
+          )
+          .all(
+            ...unprovenRowsParams(kindName, declaration.revision),
+            after,
+            RECONCILE_BATCH,
+          ) as Array<{
+          id: string;
+          data: Uint8Array;
+        }>;
+        for (const row of oneRowPerId(rows)) {
+          if (
+            this.deriveAndRepair(declaration, row.id, row.data) !== undefined
+          ) {
+            derived += 1;
+          }
+          after = row.id;
+        }
+        if (rows.length < RECONCILE_BATCH) {
+          break;
+        }
+      }
+      if (derived > 0) {
+        this.logger.info("list index reconciled", {
+          kind: kindName,
+          rows: derived,
+        });
+      }
+    }
+    const declared = declarations.map((d) => apiResourceKindName(d.kind));
+    db.prepare(
+      `UPDATE resources SET list_indexed_at = updated_at
+       WHERE list_indexed_at IS NOT updated_at
+         AND kind NOT IN (${declared.map(() => "?").join(", ") || "''"})`,
+    ).run(...declared);
   }
 
   // ---------------------------------------------------------------------------
@@ -1145,6 +1495,97 @@ class SqliteSignalDedupeStore implements SignalDedupeStore {
 }
 
 /** Composite dedupe key: "{org}:{idempotency_key}" (Go buildDedupeKey). */
+/**
+ * A row's key rows made equal to its facts, on the caller's open
+ * transaction (postgres/store.ts's twin).
+ */
+function replaceListKeys(
+  db: DatabaseSync,
+  kindName: string,
+  id: string,
+  facts: ListIndexFacts,
+): void {
+  db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(
+    kindName,
+    id,
+  );
+  const insert = db.prepare(
+    `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES (?, ?, ?, ?, ?)`,
+  );
+  for (const entry of facts.keys) {
+    insert.run(kindName, id, entry.key, entry.value, facts.createdAt);
+  }
+}
+
+/**
+ * One proven read of `queryResources` (postgres/store.ts's twin): through
+ * one key's index range when `key` is given, else through the organization
+ * index; only rows whose facts are proven current.
+ */
+function provenReadSql(
+  kindName: string,
+  revision: number,
+  query: ListIndexQuery,
+  key: { readonly name: string; readonly value: string } | undefined,
+): { sql: string; params: Array<string | number> } {
+  const params: Array<string | number> = [];
+  const created = key === undefined ? "r.list_created_at" : "k.created_at";
+  const id = key === undefined ? "r.id" : "k.id";
+  const where: string[] = [];
+  let from = `resources AS r`;
+  if (key === undefined) {
+    where.push(`r.kind = ?`);
+    params.push(kindName);
+  } else {
+    from = `resource_list_keys AS k CROSS JOIN resources AS r`;
+    where.push(
+      `k.kind = ?`,
+      `k.key = ?`,
+      `k.value = ?`,
+      `r.kind = k.kind`,
+      `r.id = k.id`,
+    );
+    params.push(kindName, key.name, key.value);
+  }
+  where.push(`r.list_indexed_at = r.updated_at`, `r.list_index_revision = ?`);
+  params.push(revision);
+  if (query.org !== undefined && query.org !== "") {
+    where.push(`r.list_org = ?`);
+    params.push(query.org);
+  }
+  if (query.createdAtOrAfter !== undefined) {
+    where.push(`(${created} >= ? OR ${created} = '')`);
+    params.push(query.createdAtOrAfter);
+  }
+  if (query.after !== undefined) {
+    where.push(`(${created} < ? OR (${created} = ? AND ${id} < ?))`);
+    params.push(query.after.createdAt, query.after.createdAt, query.after.id);
+  }
+  let limit = "";
+  if (query.limit !== undefined) {
+    limit = ` LIMIT ?`;
+    params.push(query.limit);
+  }
+  return {
+    sql: `SELECT r.id, r.data, ${created} AS created_at FROM ${from}
+          WHERE ${where.join(" AND ")}
+          ORDER BY ${created} DESC, ${id} DESC${limit}`,
+    params,
+  };
+}
+
+/** A declared kind's facts from stored bytes; undefined when they do not decode. */
+function factsOfBytes(
+  declaration: ListIndexDeclaration,
+  data: Uint8Array,
+): ListIndexFacts | undefined {
+  try {
+    return listIndexFactsOf(declaration, fromBinary(declaration.schema, data));
+  } catch {
+    return undefined;
+  }
+}
+
 function buildDedupeKey(org: string, idempotencyKey: string): string {
   return `${org}:${idempotencyKey}`;
 }
