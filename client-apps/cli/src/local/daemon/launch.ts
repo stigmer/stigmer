@@ -83,11 +83,11 @@ export interface UpForegroundDeps {
   runDaemon?: (deps: InternalDaemonDeps) => Promise<number>;
   /** Resolves when the stack should shut down (default: the first SIGTERM/SIGINT). */
   waitForShutdown?: () => Promise<void>;
-  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`: prepare the defaults, ensure the org, install). */
+  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`, which ensures the `stigmer` org). */
   bootstrap?: () => Promise<void>;
   /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
   mirror?: OutputMirror;
-  /** Invoked once the stack is serving and seeded — the moment a detached `up` would have returned. */
+  /** Invoked once the stack is serving and bootstrapped — the moment a detached `up` would have returned. */
   onReady?: () => void | Promise<void>;
 }
 

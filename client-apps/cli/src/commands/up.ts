@@ -74,7 +74,7 @@ async function runUp(run: UpRun, flags: OutputFlags): Promise<void> {
     return;
   }
 
-  // The card renders when the stack is serving and seeded — the moment the
+  // The card renders when the stack is serving and bootstrapped — the moment the
   // detached shape would have returned — and the process then stays up,
   // mirroring the server's and runner's output, until a shutdown signal.
   const code = await launch.upForeground(run, homedir(), {
