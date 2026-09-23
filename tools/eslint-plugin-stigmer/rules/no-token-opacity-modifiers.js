@@ -15,6 +15,7 @@ const TOKEN_COLOR_PREFIXES = [
   "bg-primary-subtle",
   "bg-destructive-subtle",
   "bg-muted-subtle",
+  "bg-avatar",
   "bg-backdrop",
   "bg-sidebar",
   "bg-sidebar-foreground",
