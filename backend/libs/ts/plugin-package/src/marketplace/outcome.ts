@@ -46,9 +46,7 @@ export type MarketplaceErrorKind =
   | "entry-name-invalid"
   | "entry-name-duplicate"
   | "entry-source-missing"
-  | "entry-source-escapes-root"
-  // Defaults
-  | "default-unknown";
+  | "entry-source-escapes-root";
 
 export type MarketplaceWarningKind =
   | "entry-source-unsupported"
@@ -86,8 +84,6 @@ export interface Marketplace {
   readonly path: string;
   /** Installable entries, in the file's order; entries the reader dropped are in the warnings. */
   readonly plugins: readonly MarketplaceEntry[];
-  /** Entry names a client bootstraps with, in install order; empty when the file names none. */
-  readonly defaults: readonly string[];
 }
 
 export type MarketplaceReadOutcome =

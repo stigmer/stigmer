@@ -59,7 +59,7 @@ import {
   pollUntil,
   runSetVarsWorkflow,
   sleep,
-  waitForSystemOrganization,
+  waitForBootstrapOrganization,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 
@@ -204,7 +204,7 @@ async function main() {
     // 4. The bootstrap. `healthy` is the server's SERVING; the bootstrap runs
     // a few seconds later, from the daemon's onStarted, and creates the
     // `stigmer` organization. Its presence proves the bootstrap ran.
-    const orgId = await waitForSystemOrganization(baseUrl, HEALTHY_TIMEOUT_MS);
+    const orgId = await waitForBootstrapOrganization(baseUrl, HEALTHY_TIMEOUT_MS);
     log(`organization 'stigmer' present after first boot (${orgId})`);
 
     // 5. The end-to-end run through Temporal, the server's workers and the runner.

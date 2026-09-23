@@ -200,35 +200,47 @@ API contracts work identically in both modes.
 
 ## Resource visibility
 
-Every resource has a visibility setting:
+Every resource has a visibility setting that says who inside the platform can
+read it:
 
-| Visibility           | Meaning                                      |
-| -------------------- | -------------------------------------------- |
-| `visibility_public`  | Visible to all Organizations on the platform |
-| `visibility_private` | Visible only within the owning Organization  |
+| Visibility            | Meaning                                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `visibility_private`  | The person who created it, and anyone granted access to it directly                                                                                      |
+| `visibility_org`      | Every member of the owning Organization (the default for Agents, Skills, MCP Servers, Workflows and Plugins)                                             |
+| `visibility_platform` | Every member of every Organization the owning Organization manages through its Identity Provider (see [Multi-tenant platforms](#multi-tenant-platforms)) |
 
-Public resources enable sharing — a useful MCP Server or Skill published by one
-Organization can be referenced by Agents in another.
+Nothing an Organization owns is visible outside it unless that Organization is a
+platform sharing it with the Organizations it manages. To use another
+Organization's Agent, Skill or MCP Server, install the Plugin that carries it:
+the copy is yours, in your Organization, and upgrades with the Plugin.
 
 ## Resource references
 
-Resources reference each other by `kind` and `slug`. When the reference includes
-an `org` field, it points to a resource in a different Organization:
+Resources reference each other by `kind` and `slug`. Omit `org` and the
+reference points at your own Organization, which is the common case:
 
 ```yaml validate-as="Agent.spec"
-# Same org — org field omitted
 skill_refs:
   - kind: skill
     slug: return-policy
 ```
 
+An `org` field is accepted only when that Organization is a platform that shares
+the resource with yours at `visibility_platform`:
+
 ```yaml validate-as="Agent.spec"
-# Cross-org reference
+# A Skill the platform Organization shares with every Organization it manages
 skill_refs:
   - kind: skill
     slug: return-policy
-    org: acme
+    org: acme-cloud
 ```
+
+Stigmer checks every reference when you save: the referenced resource must
+exist, and an Agent or Workflow may not be more visible than the Skills, MCP
+Servers and Agents it references, so what a person can run they can also read. A
+reference that fails either check is refused with the field and the reason
+named, rather than failing later at run time.
 
 This keeps resource definitions portable — they reference resources by name, not
 by internal IDs.

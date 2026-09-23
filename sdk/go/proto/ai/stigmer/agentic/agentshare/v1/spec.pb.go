@@ -94,10 +94,10 @@ type AgentShareSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the agent this share distributes.
 	//
-	// The referenced agent may live in another organization when it is
-	// marketplace-public: the share then offers that agent from this share's
-	// org, billed to this share's org, with tool credentials bound from this
-	// share's org. Cross-org shares must have a public audience.
+	// The referenced agent must live in this share's organization: a share
+	// offers an agent its own organization owns, billed to that organization,
+	// with tool credentials bound from it. To share another organization's
+	// agent, install the plugin that carries it and share the installed copy.
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Whether hosted-chat access for the configured audience is enabled.
 	//

@@ -21,7 +21,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Workflow
 metadata:
   name: my-workflow
-  visibility: visibility_public
+  visibility: visibility_org
 spec:
   description: What this workflow does.
   document:
@@ -456,6 +456,36 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
   `human_input` outcome targets, `agent_call` fallback targets — all must
   reference valid task names (with typo suggestions on near-misses)
 - **Budget**: valid policy values
+
+### Referenced Agents must exist
+
+An `agent_call` task's `agent` names its Agent in one of three forms, and each
+is checked at a different moment:
+
+- **`org/slug`** names that Organization's Agent. Stigmer checks it when you
+  save the Workflow: the Agent must exist, another Organization's Agent must be
+  shared at `visibility_platform`, and the Workflow may not be more visible than
+  the Agent.
+- **A bare `slug`** names an Agent of the Organization the Workflow runs in.
+  That is usually your own, but a Workflow shared at `visibility_platform` runs
+  in each Organization that uses it, and each run calls that Organization's
+  Agent. When you save, Stigmer checks the slug against your Organization: the
+  Agent must exist there, and a Workflow visible to the whole Organization or
+  wider needs an Agent at `visibility_org` or wider.
+- **A value that holds an expression**, such as
+  `${.env_vars.TEAM_ORG}/assistant` or `${ .input.agent }`, names its Agent only
+  when the task runs, so Stigmer does not check it when you save. When the task
+  runs, the value resolves to `slug` or `org/slug` and the Agent is read as the
+  person who ran the Workflow. If that person cannot view the Agent, the task
+  fails before the Agent starts.
+
+A Workflow that names an Agent nobody has applied yet is refused when saved. The
+refusal names the task and the reference.
+
+`stigmer apply -f <directory>` applies files in dependency order — MCP Servers,
+Skills, Agents, then Workflows — so a directory that holds both is fine. When
+you apply files one at a time, from a script, or through an SDK, apply the
+Agents before the Workflows that call them.
 
 ## Worked example
 

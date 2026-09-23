@@ -128,11 +128,9 @@ func (m *McpServerClient) GetOrgOAuthApp(ctx context.Context, input *mcpserverv1
 
 func (m *McpServerClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
 	req := &searchv1.SearchRequest{
-		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_mcp_server},
-		Query:          params.Query,
-		Org:            params.Org,
-		ExcludePublic:  params.ExcludePublic,
-		CrossOrgPublic: params.CrossOrgPublic,
+		Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_mcp_server},
+		Query: params.Query,
+		Org:   params.Org,
 	}
 	if params.Page != nil {
 		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}

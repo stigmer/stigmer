@@ -4,7 +4,7 @@ import { test, expect } from "@playwright/test";
  * Skills list page structural tests.
  *
  * Verifies that /library/skills renders the correct heading, search,
- * workbench (cards or empty state), scope/view toggles, and the
+ * workbench (cards or empty state), the view-mode toggle, and the
  * "Upload skill" action link.
  *
  * Prerequisites:
@@ -54,14 +54,11 @@ test.describe("Skills list page", () => {
     ).toBeVisible();
   });
 
-  test("has scope and view mode toggles", async ({ page }) => {
+  test("has a view mode toggle", async ({ page }) => {
     await expect(page.getByLabel("Skill workbench")).toBeVisible({
       timeout: 15_000,
     });
 
-    await expect(
-      page.getByRole("radiogroup", { name: "Resource scope" }),
-    ).toBeVisible();
     await expect(
       page.getByRole("radiogroup", { name: "View mode" }),
     ).toBeVisible();

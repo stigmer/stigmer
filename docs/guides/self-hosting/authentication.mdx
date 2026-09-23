@@ -21,11 +21,6 @@ machines (CI jobs, the runner, scripts) use API keys. The
   from outside" section set up. The console's redirect URI and the CLI's TLS
   rule both assume it. For an evaluation on one machine over plain HTTP,
   `http://localhost:7234` works too.
-- A stack you have bootstrapped: your shape's page ran `stigmer bootstrap`
-  before it sent you here. A server with authentication on refuses the
-  platform-managed labels and the Public visibility the default Plugins carry,
-  so the bootstrap can't be run afterwards
-  ([stigmer#1192](https://github.com/stigmer/stigmer/issues/1192)).
 - An OIDC provider you control: Keycloak, Okta, Auth0, Dex, or any server that
   supports OIDC discovery. You need three values from it: the **issuer URL**
   (for example `https://auth.example.com/realms/main`), the **audience** your
@@ -245,16 +240,19 @@ attributed.
 
 ### Point the CLI at the stack
 
-Add the stack as a named backend with your own key, and switch to it:
+Add the stack as a named backend with your own key, switch to it, and point it
+at your Organization:
 
 ```bash
 stigmer config backend add prod --endpoint stigmer.example.com:443 --api-key stk_...
 stigmer config backend use prod
+stigmer config context set --org <your-org-slug>
 ```
 
 Port 443 is the one port the CLI dials with TLS. A named backend keeps its key,
 so switching between this stack, your laptop and Stigmer Cloud stays one
-command.
+command. The context command checks, with your key, that you belong to the
+Organization before it saves it.
 
 </Steps>
 
@@ -290,10 +288,10 @@ From the boot that read the issuer, every request needs a credential:
   admin there, the operator email's holder is an admin everywhere, and everyone
   else is a member. This happens once; from then on roles change only when an
   owner or admin changes them.
-- **Anything marked Public before 3.16.0 stays readable by every signed-in
-  person**, including people outside its Organization. New Public marks are
-  refused on a self-hosted server; an admin can set an existing one back to
-  Organization from its page.
+- **Nothing is readable outside its Organization.** The Public visibility level
+  is retired: it is refused everywhere, and a server upgrading from a release
+  that still had it moves every row that carried it to Organization visibility
+  on its first start, deleting nothing.
 - **Runs belong to the person who started them, whoever's key the runner
   holds.** For each run, the server gives the runner a credential for that run
   alone, and everything the runner does for it, including the Sessions and

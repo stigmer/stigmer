@@ -11,16 +11,6 @@ export interface UseResourceSearchOptions {
   readonly pageSize?: number;
   /** Debounce delay for query changes in milliseconds. @default 300 */
   readonly debounceMs?: number;
-  /**
-   * Controls search scope.
-   *
-   * - `"org"` — search only within the provided organization.
-   * - `"all"` — search within the provided organization plus public
-   *   resources from other organizations.
-   *
-   * @default "org"
-   */
-  readonly scope?: "org" | "all";
 }
 
 /** Shared return value for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`). */
@@ -63,7 +53,6 @@ export function useResourceSearch(
 
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
   const debounceMs = options?.debounceMs ?? DEFAULT_DEBOUNCE_MS;
-  const scope = options?.scope ?? "org";
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), debounceMs);
@@ -75,14 +64,12 @@ export function useResourceSearch(
       const params: ListParams = {
         org,
         query: debouncedQuery || undefined,
-        excludePublic: false,
-        crossOrgPublic: scope === "all",
         page: { num: 1, size: pageSize },
       };
       const result = await listFn(params);
       return [...result.entries];
     },
-    [listFn, org, debouncedQuery, pageSize, scope],
+    [listFn, org, debouncedQuery, pageSize],
     [],
   );
 

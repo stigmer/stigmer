@@ -405,7 +405,7 @@ Update who can observe the run history (executions) of this instance.
 
 This is a SEPARATE axis from updateVisibility: it controls run observability (who sees execution inputs/outputs), not who can see/run the instance itself. Making an instance org-runnable does NOT expose other users' run history — that requires this opt-in.
 
-Supported levels: PRIVATE (only the user who ran each execution) and ORGANIZATION (all org members). Public/platform are unsupported.
+Supported levels: PRIVATE (only the user who ran each execution) and ORGANIZATION (all org members). Platform is unsupported.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -450,11 +450,9 @@ WorkflowInstance workflowInstance = client.workflowInstances().updateExecutionVi
 
 Update the visibility of an existing workflow instance.
 
-Changes who can view this instance and its executions. Supports the full visibility spectrum: PRIVATE (owner only), ORG (all org members), or PUBLIC (all authenticated users).
+Changes who can view this instance and its executions. Supports PRIVATE (owner only) and ORG (all org members); instances never take the platform level (tenant isolation).
 
 For workflow instances, visibility has cascading effects on execution observability: workflow executions inherit visibility from their parent instance via FGA. An ORG-visible instance means all org members can see all executions — zero per-execution tuples needed.
-
-In the cloud edition, PUBLIC is operator-gated: public listing crosses every org boundary, so it is granted by the platform team on request. Un-publishing and all other levels stay self-service.
 
 <SDKTabs>
 <Tab value="TypeScript">

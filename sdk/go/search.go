@@ -23,11 +23,10 @@ const (
 
 // SearchParams configures a cross-resource search query.
 type SearchParams struct {
-	Kinds         []ResourceKind
-	Query         string
-	Org           string
-	ExcludePublic bool
-	Page          *Page
+	Kinds []ResourceKind
+	Query string
+	Org   string
+	Page  *Page
 }
 
 // SearchResult wraps one search hit returned by the platform.
@@ -52,10 +51,9 @@ func newSearchClient(conn grpc.ClientConnInterface) *SearchClient {
 // Query performs a cross-resource search.
 func (s *SearchClient) Query(ctx context.Context, params *SearchParams) (*SearchResponse, error) {
 	req := &searchv1.SearchRequest{
-		Kinds:         params.Kinds,
-		Query:         params.Query,
-		Org:           params.Org,
-		ExcludePublic: params.ExcludePublic,
+		Kinds: params.Kinds,
+		Query: params.Query,
+		Org:   params.Org,
 	}
 	if params.Page != nil {
 		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}

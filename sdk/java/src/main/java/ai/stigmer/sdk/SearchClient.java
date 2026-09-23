@@ -42,8 +42,7 @@ public final class SearchClient {
         try {
             SearchRequest.Builder req = SearchRequest.newBuilder()
                     .addAllKinds(params.kinds)
-                    .setOrg(params.org)
-                    .setExcludePublic(params.excludePublic);
+                    .setOrg(params.org);
 
             if (params.query != null) {
                 req.setQuery(params.query);
@@ -72,14 +71,12 @@ public final class SearchClient {
         final List<ApiResourceKind> kinds;
         final String org;
         final String query;
-        final boolean excludePublic;
         final Page page;
 
         private SearchParams(Builder builder) {
             this.kinds = builder.kinds;
             this.org = builder.org;
             this.query = builder.query;
-            this.excludePublic = builder.excludePublic;
             this.page = builder.page;
         }
 
@@ -89,7 +86,6 @@ public final class SearchClient {
             private List<ApiResourceKind> kinds = List.of();
             private String org;
             private String query;
-            private boolean excludePublic;
             private Page page;
 
             private Builder() {}
@@ -109,12 +105,6 @@ public final class SearchClient {
             /** Free-text search query. */
             public Builder query(String query) {
                 this.query = query;
-                return this;
-            }
-
-            /** Whether to exclude public (non-org) resources from results. */
-            public Builder excludePublic(boolean excludePublic) {
-                this.excludePublic = excludePublic;
                 return this;
             }
 

@@ -19,8 +19,10 @@ const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
  * Wizard step 1: MCP server identity and transport configuration.
  *
  * Collects: name (required), slug (auto-derived), description,
- * icon URL, visibility, transport type (HTTP vs Stdio), and the
- * transport-specific fields.
+ * icon URL, transport type (HTTP vs Stdio), and the
+ * transport-specific fields. Visibility is not chosen here: a new server
+ * takes its kind's default level, and the detail page's
+ * `ResourceVisibilityControl` is the one home of the choice.
  *
  * Transport type uses a radio group (mutually exclusive modes).
  * Conditional fields render based on the selected transport.
@@ -157,50 +159,26 @@ export function IdentityTransportStep({
         />
       </div>
 
-      {/* Icon URL + Visibility */}
-      <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
-        <div className="stg:space-y-1.5">
-          <label
-            htmlFor={`${baseId}-icon`}
-            className="stg:text-sm stg:font-medium stg:text-foreground"
-          >
-            Icon URL
-          </label>
-          <input
-            id={`${baseId}-icon`}
-            type="url"
-            value={data.iconUrl}
-            onChange={(e) => updateData({ iconUrl: e.target.value })}
-            placeholder="https://example.com/icon.png"
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          />
-        </div>
-
-        <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
-          <legend className="stg:text-sm stg:font-medium stg:text-foreground">
-            Visibility
-          </legend>
-          <div className="stg:flex stg:gap-2">
-            <RadioOption
-              name={`${baseId}-visibility`}
-              value="private"
-              label="Private"
-              checked={data.visibility === "private"}
-              onChange={() => updateData({ visibility: "private" })}
-            />
-            <RadioOption
-              name={`${baseId}-visibility`}
-              value="public"
-              label="Public"
-              checked={data.visibility === "public"}
-              onChange={() => updateData({ visibility: "public" })}
-            />
-          </div>
-        </fieldset>
+      {/* Icon URL */}
+      <div className="stg:space-y-1.5">
+        <label
+          htmlFor={`${baseId}-icon`}
+          className="stg:text-sm stg:font-medium stg:text-foreground"
+        >
+          Icon URL
+        </label>
+        <input
+          id={`${baseId}-icon`}
+          type="url"
+          value={data.iconUrl}
+          onChange={(e) => updateData({ iconUrl: e.target.value })}
+          placeholder="https://example.com/icon.png"
+          className={cn(
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          )}
+        />
       </div>
 
       {/* data-scroll-target: guided tours/demos scroll the transport config

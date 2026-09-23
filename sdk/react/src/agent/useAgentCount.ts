@@ -2,21 +2,12 @@
 
 import { useCallback } from "react";
 import { useStigmer } from "../hooks.js";
-import { useResourceCount, type ResourceListScope } from "../search/index.js";
+import { useResourceCount } from "../search/index.js";
 
 /** Options for {@link useAgentCount}. */
 export interface UseAgentCountOptions {
   /** Text query to filter agents before counting. */
   readonly query?: string;
-  /**
-   * Controls which agents are counted.
-   *
-   * - `"org"` — only agents owned by the given organization.
-   * - `"all"` — includes public/platform agents (e.g. `stigmer/agent-creator`).
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
   /** Opaque token that forces a recount when its value changes. */
   readonly refetchToken?: unknown;
 }
@@ -50,12 +41,6 @@ export interface UseAgentCountReturn {
  * @example
  * ```tsx
  * const { count, isLoading } = useAgentCount("acme");
- * ```
- *
- * @example
- * ```tsx
- * // Count all accessible agents including public/platform ones
- * const { count } = useAgentCount("acme", { scope: "all" });
  * ```
  */
 export function useAgentCount(

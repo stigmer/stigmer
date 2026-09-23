@@ -94,31 +94,27 @@ export async function shareAgent(
 
   const agent = await resolveAgentRef(client, ref, org);
   const agentOrg = agent.metadata?.org ?? "";
-  // The share lands in the CALLER's resolved org (decision 013 D8): when
-  // it differs from the agent's, this is a cross-org share — the caller
-  // org's own channel (URL, billing, credentials) of another org's
-  // marketplace-public agent. An empty org (ID ref without context)
-  // falls back to the agent's own — the Phase A same-org form.
-  const shareOrg = org || agentOrg;
-  const isCrossOrg = shareOrg !== agentOrg;
+  // A share lives in its agent's organization: its URL, billing and
+  // credential bindings belong to the organization that owns the agent.
+  // The server refuses an agent_ref in any other organization; refusing
+  // here names the remedy instead of surfacing a bare FAILED_PRECONDITION,
+  // and mirrors the share dialog, which never offers another org's agent.
+  // An empty org (an ID ref without context) is the agent's own.
+  if (org !== "" && org !== agentOrg) {
+    throw new UsageError(
+      `a share of ${agentOrg}/${agent.metadata?.slug ?? ""} lives in ${agentOrg}, not ${org}\n\n` +
+        "A share is the agent's own organization's channel. To share another\n" +
+        "organization's agent from yours, install the plugin that carries it and\n" +
+        "share the installed copy. To manage this agent's own share:\n" +
+        `  stigmer share agent ${ref} --org ${agentOrg}`,
+    );
+  }
+  const shareOrg = agentOrg;
   let share = await resolveCanonicalShare(client, agent, shareOrg);
   const current = share?.spec;
 
   const currentAudience = audienceFromProto(current?.audience);
   const targetAudience = options.audience ?? currentAudience;
-
-  // Cross-org shares are public-audience only (decision 013 D3). The
-  // server refuses this too; refusing here names the remedy instead of
-  // surfacing a bare FAILED_PRECONDITION — and mirrors the share dialog,
-  // which hides the audience selector in cross-org mode.
-  if (isCrossOrg && targetAudience === "org") {
-    throw new UsageError(
-      "--audience org is not available for another organization's agent\n\n" +
-        `A share of ${agentOrg}/${agent.metadata?.slug ?? ""} in your organization\n` +
-        "(" + shareOrg + ") serves anyone with the link. Org-members-only sharing\n" +
-        "is limited to the agent's own organization.",
-    );
-  }
 
   // Resetting the link is meaningless for org-members-only shares: their
   // access is gated by live membership, and the member link never carries
@@ -179,10 +175,10 @@ export async function shareAgent(
  * slug equals the agent's (the server's default on create), else the
  * first entry in that org, else null when the agent has never been shared
  * there. Mirrors the web dialog's selection so both surfaces manage the
- * same row. The org scope is what keeps each org on its own channel
- * (decision 013): an agent may be shared in N orgs, and toggling here
- * must never edit another org's share. The server applies the scope via
- * the request's org field.
+ * same row. The org scope is the agent's organization, where every share
+ * of it lives; the server applies the scope via the request's org field,
+ * so a share written in another organization before sharing across
+ * organizations was retired is never the row this command edits.
  */
 async function resolveCanonicalShare(
   client: Stigmer,
@@ -214,9 +210,8 @@ function audienceFromProto(audience: AgentShareAudience | undefined): ShareAudie
 // was never shared before). Identity comes from the existing share when one
 // exists — a manifest-created share may carry a non-default slug, and
 // applying with the agent's slug would create a SECOND share — and from the
-// sharing org + the agent's slug otherwise (the server's own D2 default,
-// made explicit; for a cross-org share the org is the CALLER's, not the
-// agent's — decision 013). The audience is written explicitly — never left
+// agent's org + the agent's slug otherwise (the server's own D2 default,
+// made explicit). The audience is written explicitly — never left
 // unspecified — so a console-managed org share can't drift back to public.
 function preservingShareInput(
   agent: Agent,

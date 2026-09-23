@@ -33,15 +33,23 @@
 //   - a workflow that calls an agent runs to terminal under enforcement, and
 //     the child the runner created carries the workflow lineage labels and
 //     the member's stamp;
-//   - a workflow calling an agent the member CANNOT VIEW: the workflow-bound
-//     runner is admitted on the child's run-gate checks (the cloud's
-//     `workflow_sandbox` admission, mirrored), so the child IS created as the
-//     member; the child's own run then reads the agent's blueprint and
-//     instance as the member and is refused, and the workflow fails. That is
-//     the reach the model gives a run's credential today, the same in both
-//     editions — a shared workflow runs its agents as the person who ran it,
-//     who must be able to view them — pinned so a widening of that reach
-//     turns this arm red on purpose;
+//   - a workflow calling an agent the member CANNOT VIEW: the parent's
+//     `call:agent` resolves the callee by reference AS THE MEMBER, and a read
+//     by reference asks what the read by id asks, so the run is refused at
+//     the parent's own read — before any child execution exists and before
+//     any model turn is spent — and the workflow fails. That is the reach the
+//     model gives a run's credential today, the same in both editions: a
+//     shared workflow runs its agents as the person who ran it, who must be
+//     able to view them. The state is reached the two ways the reference
+//     rule leaves open, one arm each: the callee is NARROWED after the
+//     workflow was written (a write that would reference an agent less
+//     visible than the workflow is refused at the door; a dependency
+//     narrowed afterwards is the run's to refuse), and the task names its
+//     callee with a RUNTIME EXPRESSION (the write collects nothing for a
+//     reference fixed only at run; the run reads what it resolves to as the
+//     member). Pinned so that either door moving — the write refusing a
+//     narrowing, or the run admitting what the id read refuses — turns
+//     these arms red on purpose;
 //   - the runner's MCP children act as the person who asked. An MCP server
 //     is an organization's blueprint, an admin's to author; a member brings
 //     their own credential to it. A member's connect of an admin-authored,
@@ -85,6 +93,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
   ExecutionPhase as WorkflowExecutionPhase,
@@ -298,14 +307,14 @@ describe.skipIf(!runnerActsAsRunCreator)(
       return minted.runnerScopedToken;
     }
 
-    // A founder-owned, org-visible workflow whose first task calls `agentSlug`,
-    // dispatched by the member, with one text turn scripted for the child.
-    async function dispatchAgentCallWorkflow(
-      mock: MockLlmProxy,
+    // A founder-owned, org-visible workflow whose first task calls `agentSlug`.
+    // Written as its own step so an arm can act on the callee between the
+    // workflow's write and its dispatch.
+    async function createAgentCallWorkflow(
       people: People,
       agentSlug: string,
       label: string,
-    ): Promise<WorkflowExecution> {
+    ): Promise<Workflow> {
       const input = makeAgentCallWorkflow({
         org: people.org,
         name: uniqueName(label),
@@ -320,7 +329,17 @@ describe.skipIf(!runnerActsAsRunCreator)(
       fixtures.defer(() =>
         people.founder.workflowCommand.delete({ value: workflow.metadata!.id }),
       );
+      return workflow;
+    }
 
+    // `workflow` dispatched by the member, with one text turn scripted for the
+    // child the `call:agent` task creates.
+    async function dispatchWorkflow(
+      mock: MockLlmProxy,
+      people: People,
+      workflow: Workflow,
+      label: string,
+    ): Promise<WorkflowExecution> {
       mock.enqueue(anthropicText(`Hello from the ${label} child.`));
       const execution = await people.member.workflowExecutionCommand.create(
         makeWorkflowExecution({
@@ -335,6 +354,17 @@ describe.skipIf(!runnerActsAsRunCreator)(
         }),
       );
       return execution;
+    }
+
+    // The two steps above as one: write the workflow, then dispatch it.
+    async function dispatchAgentCallWorkflow(
+      mock: MockLlmProxy,
+      people: People,
+      agentSlug: string,
+      label: string,
+    ): Promise<WorkflowExecution> {
+      const workflow = await createAgentCallWorkflow(people, agentSlug, label);
+      return dispatchWorkflow(mock, people, workflow, label);
     }
 
     // The workflow run to COMPLETED: resolves once the downstream task
@@ -681,20 +711,47 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
     });
 
-    it("a shared workflow calling an agent the member cannot view: the parent's reference read is refused as the member before any child exists, and the workflow fails (the recorded reach)", async (ctx) => {
+    it("a shared workflow calling an agent the member cannot view, the callee narrowed after the workflow was written: the parent's reference read is refused as the member before any child exists, and the workflow fails (the recorded reach)", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
-      const privateAgent = await createAgent(
-        people,
-        ApiResourceVisibility.visibility_private,
-        "ras-private-callee",
-      );
 
-      const execution = await dispatchAgentCallWorkflow(
+      // The state — an org-visible workflow calling an agent the member
+      // cannot view — is reached here the first of the two ways the
+      // reference rule leaves open (the runtime-expression arm below is the
+      // second).
+      // A write that names an agent LESS visible than the workflow is
+      // refused at the door (the reference floor, pinned by the workflow
+      // suite on the `local` targets), so the callee is written org-visible,
+      // the workflow beside it, and the callee is narrowed afterwards. The
+      // rule judges a reference when the row is written; a dependency
+      // narrowed later is the run's to refuse — which is exactly what this
+      // arm reads. The narrowing itself succeeding is part of the pin: a
+      // floor that started refusing it would turn this arm red at the
+      // `updateVisibility` below, on purpose.
+      const callee = await createAgent(
+        people,
+        ApiResourceVisibility.visibility_org,
+        "ras-narrowed-callee",
+      );
+      const workflow = await createAgentCallWorkflow(
+        people,
+        callee.metadata!.slug,
+        "ras-narrowed-call",
+      );
+      const narrowed = await people.founder.agentCommand.updateVisibility({
+        resourceId: callee.metadata!.id,
+        visibility: ApiResourceVisibility.visibility_private,
+      });
+      expect(
+        narrowed.metadata?.visibility,
+        "narrowing a referenced callee is not refused at write",
+      ).toBe(ApiResourceVisibility.visibility_private);
+
+      const execution = await dispatchWorkflow(
         mock,
         people,
-        privateAgent.metadata!.slug,
-        "ras-private-call",
+        workflow,
+        "ras-narrowed-call",
       );
       const settled = await awaitWorkflowTerminal(
         people.member,
@@ -717,6 +774,65 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(
         settled.status?.error,
         "the workflow failed at the callee's reference read, with the get copy",
+      ).toContain("unauthorized to get agent");
+      const listed = await people.member.agentExecutionQuery.list({
+        org: people.org,
+      });
+      expect(
+        listed.entries.filter(
+          (entry) =>
+            entry.metadata?.labels[WORKFLOW_EXECUTION_ID_LABEL] ===
+            settled.metadata!.id,
+        ),
+        "no child execution was created: the refusal came before the child",
+      ).toEqual([]);
+      expect(
+        mock.consumed(),
+        "no model turn was spent: the refusal came before any call",
+      ).toBe(0);
+    });
+
+    it("a workflow naming its callee with a runtime expression that resolves to an agent the member cannot view: the write collects nothing, and the parent's reference read is refused as the member before any child exists", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+
+      // The founder's private agent: a row the member cannot view. The
+      // task names it through a jq literal, the simplest value fixed only at
+      // run, so the org-visible workflow saves with no floor to ask — the
+      // write judges what the write can see, and this reference exists only
+      // when the task runs.
+      const callee = await createAgent(
+        people,
+        ApiResourceVisibility.visibility_private,
+        "ras-dynamic-callee",
+      );
+      const workflow = await createAgentCallWorkflow(
+        people,
+        `\${ "${people.org}/${callee.metadata!.slug}" }`,
+        "ras-dynamic-call",
+      );
+
+      const execution = await dispatchWorkflow(
+        mock,
+        people,
+        workflow,
+        "ras-dynamic-call",
+      );
+      const settled = await awaitWorkflowTerminal(
+        people.member,
+        execution.metadata!.id,
+      );
+
+      // The same bound as the narrowed arm: the resolved reference is read
+      // as the member, so the run is refused at the parent's own read, with
+      // the agent's `get` copy, before a child or a model turn exists.
+      expect(
+        settled.status?.phase,
+        `the workflow: ${settled.status?.error}`,
+      ).toBe(WorkflowExecutionPhase.EXECUTION_FAILED);
+      expect(
+        settled.status?.error,
+        "the workflow failed at the resolved callee's reference read, with the get copy",
       ).toContain("unauthorized to get agent");
       const listed = await people.member.agentExecutionQuery.list({
         org: people.org,

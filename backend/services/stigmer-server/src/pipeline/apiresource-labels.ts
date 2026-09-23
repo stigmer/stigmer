@@ -45,15 +45,16 @@ export const SYSTEM_MANAGED_LABEL = `${RESERVED_LABEL_PREFIX}system-managed`;
 
 /**
  * Marks system content: a resource the platform itself seeded rather than a
- * user authored — the system organization, the default agent, the
- * platform's own MCP servers. The label predates this module (the retired
- * seedpack wrote it on every row it applied; the official plugins' overlays
- * carry it on the resources they replace) and has one server-side meaning:
- * a plugin push may adopt a system-content row that holds a slug the plugin
- * needs, keeping the row's id and everything bound to it, instead of
- * refusing the slug as taken. It never marks a user's resource, so a user's
- * row is never adopted (domain/plugin/members.ts, judgeSlug). The CLI names
- * the same bytes as SYSTEM_ORG_LABEL for the organization it ensures.
+ * user authored. The retired seedpack wrote it on every row it applied, and
+ * CLIs before the bootstrap stopped labelling stamped it on the `stigmer`
+ * organization they created. A plugin overlay may still carry it on a
+ * member (a reserved label, so the push charges the platform permission for
+ * it). It has one server-side meaning: a plugin
+ * push may adopt a system-content row that holds a slug the plugin needs,
+ * keeping the row's id and everything bound to it, instead of refusing the
+ * slug as taken. It never marks a user's resource, so a user's row is never
+ * adopted (domain/plugin/members.ts, judgeSlug); on an organization it is
+ * inert.
  */
 export const SYSTEM_LABEL = `${RESERVED_LABEL_PREFIX}system`;
 

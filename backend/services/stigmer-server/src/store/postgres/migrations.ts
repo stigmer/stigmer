@@ -38,14 +38,21 @@
  */
 import type { PoolClient } from "pg";
 
+import {
+  PUBLIC_ROW_KINDS_AT_RETIREMENT,
+  movePublicRowToOrg,
+} from "../public-visibility-retired.js";
+
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
 export const SCHEMA_VERSION_3 = 3;
 /** v4: the rows of the removed Project kind deleted. */
 export const SCHEMA_VERSION_4 = 4;
+/** v5: every row holding the retired public visibility level moved to org. */
+export const SCHEMA_VERSION_5 = 5;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_4;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_5;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -79,6 +86,7 @@ export async function runMigrations(client: PoolClient): Promise<void> {
       [SCHEMA_VERSION_2, migrateToV2],
       [SCHEMA_VERSION_3, migrateToV3],
       [SCHEMA_VERSION_4, migrateToV4],
+      [SCHEMA_VERSION_5, migrateToV5],
     ];
 
     for (const [version, migrate] of chain) {
@@ -314,4 +322,43 @@ async function migrateToV3(client: PoolClient): Promise<void> {
 async function migrateToV4(client: PoolClient): Promise<void> {
   await client.query(`DELETE FROM resources WHERE kind = 'project'`);
   await client.query(`DELETE FROM resource_audit WHERE kind = 'project'`);
+}
+
+/**
+ * v5: the public visibility level is retired, so every row that still
+ * holds it is moved to org visibility — the same step as the sqlite
+ * driver's v10 (public-visibility-retired.ts says why a migration, why the
+ * kind table is frozen there, and why an undecodable row fails the step).
+ * The rows are read FOR UPDATE inside applyInTransaction's transaction,
+ * under the chain's advisory lock, so a second instance booting against
+ * the same database waits rather than moving a row twice; `updated_at` is
+ * bumped the way saveResource bumps it; rows that hold any other level are
+ * left byte-for-byte as they are. On the hosted edition every such row was
+ * moved through the API before this release deployed, so this step finds
+ * none and records its version.
+ */
+async function migrateToV5(client: PoolClient): Promise<void> {
+  for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
+    const result = await client.query<{ id: string; data: Buffer }>(
+      `SELECT id, data FROM resources WHERE kind = $1 FOR UPDATE`,
+      [entry.kind],
+    );
+    for (const row of result.rows) {
+      let moved: Uint8Array | undefined;
+      try {
+        moved = movePublicRowToOrg(entry, new Uint8Array(row.data));
+      } catch (error) {
+        throw new Error(
+          `${entry.kind} '${row.id}' cannot be moved off the retired public level: ${String(error)}`,
+          { cause: error },
+        );
+      }
+      if (moved !== undefined) {
+        await client.query(
+          `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
+          [Buffer.from(moved), entry.kind, row.id],
+        );
+      }
+    }
+  }
 }

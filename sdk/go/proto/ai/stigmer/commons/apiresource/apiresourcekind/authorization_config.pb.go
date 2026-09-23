@@ -171,12 +171,16 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 //
 //   - visibility_private: no visibility tuple (owner + explicit grants only)
 //   - visibility_org:     resource#viewer@organization:<org>#member
-//   - visibility_public:  resource#viewer@identity_account:* (conditional
-//     wildcard gated by allow_public)
 //   - visibility_platform: resource#platform_viewer@identity_provider:<idp>#platform_user
 //     (the "private catalog" primitive: grants access to
 //     all members of all platform_managed orgs linked to
 //     the owning org's IdentityProvider)
+//
+// Every level but private is bounded by an organization or by the identity
+// provider that links a set of organizations. There is no level a resource
+// can hold that makes it readable to every account on the server; sharing
+// across organizations that share no identity provider is done by
+// packaging the resource as a plugin and installing a copy.
 //
 // Kinds WITHOUT a visibility config accept only visibility_private (or
 // unspecified) — they are personal or org-structural resources whose access
@@ -184,10 +188,10 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // tuples (session, environment, executions, etc.).
 //
 // Current classification:
-//   - Blueprint kinds (agent, skill, workflow, mcp_server):
-//     private, org, public, platform
+//   - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
+//     private, org, platform
 //   - Instance kinds (agent_instance, workflow_instance):
-//     private, org, public — platform is deliberately excluded to preserve
+//     private, org — platform is deliberately excluded to preserve
 //     tenant isolation: each managed org instantiates shared blueprints
 //     inside its own boundary. (System-managed DEFAULT instances opt out of
 //     visibility entirely: their access tracks the parent blueprint
@@ -199,9 +203,6 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // reference here would create a Go package import cycle.
 type VisibilityConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether resources of this kind can be set to visibility_public.
-	// FGA tuple: resource#viewer@identity_account:* (gated by allow_public)
-	SupportsPublic bool `protobuf:"varint,1,opt,name=supports_public,json=supportsPublic,proto3" json:"supports_public,omitempty"`
 	// Whether resources of this kind can be set to visibility_platform.
 	// FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
 	//
@@ -227,12 +228,12 @@ type VisibilityConfig struct {
 	// explicit opt-in, never a surprise.
 	//
 	// The flag carries a second, coupled semantic for the same kinds — the
-	// ORG FLOOR: when visibility is platform or public, the org viewer tuple
-	// is written IN ADDITION to the level's own tuple. Sharing a blueprint
-	// beyond the org must never make it less visible to the owning org's own
-	// members (org-scoped listings resolve through FGA ListObjects with the
-	// public wildcard suppressed, so the explicit org tuple is what keeps
-	// shared blueprints listable at home).
+	// ORG FLOOR: when visibility is platform, the org viewer tuple is written
+	// IN ADDITION to the level's own tuple. Sharing a blueprint beyond the
+	// org must never make it less visible to the owning org's own members
+	// (org-scoped listings resolve through FGA ListObjects on the org tuple,
+	// so the explicit org tuple is what keeps shared blueprints listable at
+	// home).
 	//
 	// Instance kinds deliberately leave this false: instances are personal
 	// resources (configuration, secrets) that must start private, and their
@@ -275,13 +276,6 @@ func (x *VisibilityConfig) ProtoReflect() protoreflect.Message {
 // Deprecated: Use VisibilityConfig.ProtoReflect.Descriptor instead.
 func (*VisibilityConfig) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *VisibilityConfig) GetSupportsPublic() bool {
-	if x != nil {
-		return x.SupportsPublic
-	}
-	return false
 }
 
 func (x *VisibilityConfig) GetSupportsPlatform() bool {
@@ -558,12 +552,11 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
 	"\n" +
-	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"\xc8\x01\n" +
-	"\x10VisibilityConfig\x12'\n" +
-	"\x0fsupports_public\x18\x01 \x01(\bR\x0esupportsPublic\x12+\n" +
+	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"\xb6\x01\n" +
+	"\x10VisibilityConfig\x12+\n" +
 	"\x11supports_platform\x18\x02 \x01(\bR\x10supportsPlatform\x12!\n" +
 	"\fsupports_org\x18\x03 \x01(\bR\vsupportsOrg\x12;\n" +
-	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibility\"e\n" +
+	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"e\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +

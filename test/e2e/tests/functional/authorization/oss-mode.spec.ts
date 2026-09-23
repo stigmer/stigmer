@@ -8,8 +8,8 @@ import { test, expect } from "@playwright/test";
  * served by open source since 20260913.01).
  *
  * Key behaviors in OSS:
- * - Visibility toggles for blueprints (private/public) remain visible
- *   (they update metadata in SQLite without FGA)
+ * - The visibility control for blueprints (private/organization) remains
+ *   visible (it updates metadata in SQLite without FGA)
  * - The organization members page lists the organization's roles — on a
  *   trusted-local server the operator is the owner of every organization
  * - The invitations page shows CloudFeatureNotice (invitations stay an

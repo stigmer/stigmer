@@ -243,12 +243,6 @@ The two Stigmer images always move together, and the chart version is the
 Stigmer version. Take a [backup](#back-up) first: the server migrates its
 database schema forward on start, and there is no migration back.
 
-The default Plugins don't move with the images. They are what the CLI that ran
-`stigmer bootstrap` installed, at that CLI's version; and until
-[stigmer#1192](https://github.com/stigmer/stigmer/issues/1192) is fixed, a
-self-hosted server with authentication on refuses a bootstrap that would change
-them.
-
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
 <Tab value="Docker Compose">
 

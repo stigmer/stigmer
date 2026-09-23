@@ -76,7 +76,7 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  * Multi-step wizard for creating a new agent blueprint.
  *
  * Three condensed steps:
- * 1. **Identity & Instructions** — name, slug, description, visibility, system prompt
+ * 1. **Identity & Instructions** — name, slug, description, icon, system prompt
  * 2. **Capabilities** — MCP servers + tools, skills, env var declarations (all optional)
  * 3. **Review & Create** — YAML preview + submission
  *

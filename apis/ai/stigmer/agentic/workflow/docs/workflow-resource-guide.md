@@ -107,20 +107,24 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.name` | Canonical display name. Set by the author. Used in the UI and CLI listings. |
 | `metadata.slug` | URL-friendly identifier, unique within the organization. Derived from `metadata.name` if not explicitly set. Reference format: `org/slug` (e.g., `acme-corp/deploy-service`). |
 | `metadata.org` | Organization that owns this workflow. Provided via `--org` flag or CLI context. Every workflow belongs to exactly one organization. |
-| `metadata.visibility` | Access control. `visibility_private` (default): only org members can access. `visibility_public`: anyone can read and reference. |
+| `metadata.visibility` | Access control. `visibility_org` (default): every member of the owning organization can read and run. `visibility_private`: the creator and anyone granted access directly. `visibility_platform`: every organization the owning organization manages through its identity provider. A workflow may not be more visible than the agents its `agent_call` tasks name. |
 | `metadata.labels` | Key-value pairs for organization and filtering. |
-| `metadata.tags` | String array for categorization and marketplace discoverability. |
+| `metadata.tags` | String array for categorization and search. |
 
 ### Visibility
 
 ```yaml
-# Private workflow (default) — only your org can reference and execute it
+# Organization workflow (default) — every member of the owning org can run it
+metadata:
+  visibility: visibility_org
+
+# Private workflow — the creator and anyone granted access directly
 metadata:
   visibility: visibility_private
 
-# Public workflow — visible to and referenceable by everyone
+# Platform workflow — every organization the owner manages through its identity provider
 metadata:
-  visibility: visibility_public
+  visibility: visibility_platform
 ```
 
 ## Spec Fields

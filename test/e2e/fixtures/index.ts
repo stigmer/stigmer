@@ -52,8 +52,13 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await result.cleanup();
   },
 
-  testMultiKindWorkflow: async ({ stigmerClient }, use) => {
-    const result = await createMultiKindTestWorkflow(stigmerClient);
+  // The workflow's `agent_call` names an agent that must exist, so this
+  // fixture is composed over `testAgent`; Playwright tears fixtures down in
+  // reverse, so the workflow is deleted before the agent it references.
+  testMultiKindWorkflow: async ({ stigmerClient, testAgent }, use) => {
+    const result = await createMultiKindTestWorkflow(stigmerClient, {
+      agentSlug: testAgent.slug,
+    });
     await use(result);
     await result.cleanup();
   },

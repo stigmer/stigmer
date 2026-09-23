@@ -43,10 +43,6 @@ import {
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
-  newAuthorizeVisibilityTransitionStep,
-  newGuardPublicVisibilityStep,
-} from "../../pipeline/steps/visibility-gates.js";
-import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
@@ -77,6 +73,8 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import {
+  collectSpecReferences,
+  newGuardReferenceFloorOnEscalationStep,
   newNormalizeReferencesStep,
   newValidateReferencesStep,
 } from "../../pipeline/steps/references.js";
@@ -168,7 +166,6 @@ async function createAgent(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newGuardPublicVisibilityStep(deps.authorizer))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store))
@@ -361,10 +358,13 @@ async function updateVisibility(
     )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
+    // The reference floor's second door: an agent may not be raised above
+    // the skills and MCP servers it runs with.
     .addStep(
-      newAuthorizeVisibilityTransitionStep(
+      newGuardReferenceFloorOnEscalationStep(
+        deps.store,
         UPDATE_VISIBILITY_AGENT_KEY,
-        deps.authorizer,
+        [(row) => collectSpecReferences(AgentSchema, row)],
       ),
     )
     .addStep(newSetAgentVisibilityStep())

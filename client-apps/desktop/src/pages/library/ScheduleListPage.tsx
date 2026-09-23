@@ -67,9 +67,8 @@ export default function ScheduleListPage() {
       {/*
         Schedules are the one Library kind listed via the direct query
         (full protos with live status), not the search service — hence
-        searchable={false} (no server text search) and no Org/All scope
-        toggle (schedules are never public/cross-org). Wired identically
-        to the web Library (DD-016 parity).
+        searchable={false} (no server text search). Wired identically to
+        the web Library (DD-016 parity).
       */}
       <ResourceWorkbench<Schedule>
         refetchToken={refetchToken}

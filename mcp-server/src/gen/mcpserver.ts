@@ -3,12 +3,13 @@
 // Flattened apply-input zod schema + toProto bridge for the McpServer resource.
 // Source proto package: ai.stigmer.agentic.mcpserver.v1
 
-import { generateSlug, visibilityFromString } from "./apply-runtime.js";
+import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
@@ -18,7 +19,7 @@ export const McpServerInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
   org: z.string().describe("Organization that owns this resource (e.g. acme)."),
-  visibility: z.string().optional().describe("Resource visibility: PRIVATE or PUBLIC. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged."),
+  visibility: z.string().optional().describe("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_platform."),
   labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description for marketplace display and documentation. Should explain what this MCP server does and its primary use cases. Example: 'GitHub MCP server for repository operations, code search, and PR management'"),
@@ -66,13 +67,13 @@ const ToolApprovalPolicyInputSchema = z.object({
 type ToolApprovalPolicyInput = z.infer<typeof ToolApprovalPolicyInputSchema>;
 
 const OauthAppRefInputSchema = z.object({
-  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."),
+  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is a platform that shares the resource with yours (visibility_platform)."),
   slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
 });
 type OauthAppRefInput = z.infer<typeof OauthAppRefInputSchema>;
 
 const McpServerAuthInputSchema = z.object({
-  oauth_app_ref: z.lazy(() => OauthAppRefInputSchema).optional().describe("Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference)."),
+  oauth_app_ref: z.lazy(() => OauthAppRefInputSchema).optional().describe("Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer: an OAuth app holds vendor credentials and is never platform-visible, so no cross-organization reference to one is accepted."),
   target_env_var: z.string().optional().describe("The env var where the acquired access token is stored. Must correspond to an entry in env so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the grant's managed environment."),
   token_lifetime_hint: z.string().optional().describe("Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."),
   scope_hints: z.array(z.string()).optional().describe("Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp)."),
@@ -105,7 +106,7 @@ export function mcpServerInputToProto(input: McpServerInput): McpServer {
       name: input.name,
       slug,
       org: input.org,
-      ...(input.visibility !== undefined && { visibility: visibilityFromString(input.visibility) }),
+      ...(input.visibility !== undefined && { visibility: enumFromString(ApiResourceVisibility, input.visibility) as ApiResourceVisibility }),
       ...(input.labels !== undefined && { labels: input.labels }),
       ...(input.tags !== undefined && { tags: input.tags }),
     }),

@@ -66,7 +66,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
@@ -328,6 +331,7 @@ async function createExecution(
     .addStep(newRecordRunnerLineageLabelsStep(deps.runnerCredentialProvider))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newEnsureEngineAvailableStep(deps.engineState));
   // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4): after
   // every pure validation/resolution step, before the first side-effecting
@@ -433,6 +437,7 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newNormalizeReferencesStep())
+    .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(

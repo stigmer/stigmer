@@ -3,8 +3,7 @@
  * built-in authorizer: which tuples a stored row stands for, in exactly
  * the shapes the cloud's tuple driver writes (stigmer-cloud
  * iam/tuple-lifecycle.ts: `organization:<org>#viewer` for the org level,
- * the conditional `identity_account:*` for public, the owner by the
- * kind's attribution, the parent links by `kind_meta`). Two facts are the
+ * the owner by the kind's attribution, the parent links by `kind_meta`). Two facts are the
  * OSS edition's own and are pinned here by name: the organization's owner
  * is a ROW (2b's role lifecycle), never derived from its creator stamp,
  * or a revoked founder would stay owner; and a stamp that names no person
@@ -96,7 +95,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
-  it("a public blueprint adds the conditional wildcard AND keeps the org floor", () => {
+  it("a row that still carries the retired public level derives no viewer tuple at all — no shape reaches every account, and the level's own org floor left with it", () => {
     expect(
       derivedFor("skill", {
         visibility: ApiResourceVisibility.visibility_public,
@@ -104,8 +103,6 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ).toEqual([
       "skill:skill-1#organization@organization:acme",
       "skill:skill-1#owner@identity_account:ida_carol",
-      "skill:skill-1#viewer@identity_account:* with allow_public",
-      "skill:skill-1#viewer@organization:acme#viewer",
     ]);
   });
 
@@ -166,7 +163,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ).toEqual(["memory:memory-1#organization@organization:acme"]);
   });
 
-  it("an environment carries its creator tuple, an org-viewer at org level, and NO public wildcard (the kind's ceiling)", () => {
+  it("an environment carries its creator tuple and an org-viewer at org level, and nothing beyond its org ceiling", () => {
     expect(
       derivedFor("environment", {
         visibility: ApiResourceVisibility.visibility_org,
@@ -179,7 +176,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
     expect(
       derivedFor("environment", {
-        visibility: ApiResourceVisibility.visibility_public,
+        visibility: ApiResourceVisibility.visibility_platform,
       }),
     ).toEqual([
       "environment:environment-1#organization@organization:acme",
@@ -509,9 +506,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             object,
             "can_view",
             DAVE,
-            {
-              allow: false,
-            },
           ),
         ).toBe(true);
         expect(rowReads).toBe(1);
@@ -707,7 +701,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           parseObjectRef(object),
           relation,
           person,
-          { allow: true },
         );
       }
 

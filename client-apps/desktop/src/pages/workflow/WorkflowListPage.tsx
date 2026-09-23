@@ -3,10 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Plus } from "lucide-react";
 import {
-  readPersistedScope,
-  writePersistedScope,
-} from "./scope-persistence";
-import {
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -59,9 +55,6 @@ export default function WorkflowListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(() =>
-    readPersistedScope(),
-  );
   // Bumped after a delete to refetch the list in place — no remount
   // flash, pagination and sort preserved.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
@@ -88,11 +81,6 @@ export default function WorkflowListPage() {
     },
     [confirm, stigmer],
   );
-
-  const handleScopeChange = useCallback((newScope: "org" | "all") => {
-    setScope(newScope);
-    writePersistedScope(newScope);
-  }, []);
 
   const listFn = useMemo(
     () => (params: Parameters<typeof stigmer.workflow.list>[0]) =>
@@ -123,8 +111,6 @@ export default function WorkflowListPage() {
         listFn={listFn}
         org={org}
         columns={WORKFLOW_COLUMNS}
-        scope={scope}
-        onScopeChange={handleScopeChange}
         defaultViewMode="table"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}

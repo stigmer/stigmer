@@ -196,17 +196,17 @@ spec:
             - get_pod_status
 ```
 
-## Public Marketplace Agent
+## Platform Agent
 
-An agent published to the marketplace from a named organization with public visibility. Uses absolute references (explicit `org`) to reference resources from the publishing organization.
+An agent a platform organization shares with every organization it manages through its identity provider. Uses absolute references (explicit `org`) to the platform's own resources, which must be platform-visible too: an agent may not be more visible than what it references.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: web-search-assistant
-  org: acme-corp
-  visibility: visibility_public
+  org: acme-cloud
+  visibility: visibility_platform
   labels:
     category: productivity
   tags:
@@ -224,21 +224,21 @@ spec:
     Always cite your sources with URLs.
   mcp_server_usages:
     - mcp_server_ref:
-        org: acme-corp
+        org: acme-cloud
         kind: mcp_server
         slug: web-search
       enabled_tools:
         - search
         - fetch_page
   skill_refs:
-    - org: acme-corp
+    - org: acme-cloud
       kind: skill
       slug: research-methodology
       version: stable
 ```
 
-Key characteristics of marketplace agents:
-- `metadata.org` is set explicitly to the publishing organization (`acme-corp`)
-- `metadata.visibility` is `visibility_public` for marketplace publishing
-- Resource references use absolute `org` values (same org or cross-org public resources)
+Key characteristics of platform agents:
+- `metadata.org` is set explicitly to the platform organization (`acme-cloud`), the one that operates the identity provider
+- `metadata.visibility` is `visibility_platform`; every referenced skill and MCP server carries the same level
+- Resource references use absolute `org` values naming the platform organization
 - Skill version is pinned to `stable` for production reliability

@@ -9,7 +9,14 @@ package ai.stigmer.commons.apiresource;
  * <pre>
  * Generic reference to any API resource by org and slug.
  * Used across resources to reference other resources (e.g., Environment, Agent, Skill).
- * Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
+ * Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+ *
+ * Every reference in a resource's spec is checked when the resource is
+ * written: the target must exist, and a target in another organization
+ * must be platform-visible to be referenced at all. A blueprint may not be
+ * more visible than the skills, MCP servers and agents it references, so
+ * what a person can run they can also read. A reference that fails the
+ * check is refused at write, never at run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceReference}
@@ -73,7 +80,8 @@ private static final long serialVersionUID = 0L;
    * always have org populated (absolute form).
    *
    * Use empty org for same-org references (the common case).
-   * Use explicit org for cross-org references (e.g., marketplace resources).
+   * An explicit other org is accepted only when that organization is a
+   * platform that shares the resource with yours (visibility_platform).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -104,7 +112,8 @@ private static final long serialVersionUID = 0L;
    * always have org populated (absolute form).
    *
    * Use empty org for same-org references (the common case).
-   * Use explicit org for cross-org references (e.g., marketplace resources).
+   * An explicit other org is accepted only when that organization is a
+   * platform that shares the resource with yours (visibility_platform).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -469,7 +478,14 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Generic reference to any API resource by org and slug.
    * Used across resources to reference other resources (e.g., Environment, Agent, Skill).
-   * Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
+   * Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+   *
+   * Every reference in a resource's spec is checked when the resource is
+   * written: the target must exist, and a target in another organization
+   * must be platform-visible to be referenced at all. A blueprint may not be
+   * more visible than the skills, MCP servers and agents it references, so
+   * what a person can run they can also read. A reference that fails the
+   * check is refused at write, never at run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceReference}
@@ -662,7 +678,8 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form).
      *
      * Use empty org for same-org references (the common case).
-     * Use explicit org for cross-org references (e.g., marketplace resources).
+     * An explicit other org is accepted only when that organization is a
+     * platform that shares the resource with yours (visibility_platform).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -692,7 +709,8 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form).
      *
      * Use empty org for same-org references (the common case).
-     * Use explicit org for cross-org references (e.g., marketplace resources).
+     * An explicit other org is accepted only when that organization is a
+     * platform that shares the resource with yours (visibility_platform).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -723,7 +741,8 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form).
      *
      * Use empty org for same-org references (the common case).
-     * Use explicit org for cross-org references (e.g., marketplace resources).
+     * An explicit other org is accepted only when that organization is a
+     * platform that shares the resource with yours (visibility_platform).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -750,7 +769,8 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form).
      *
      * Use empty org for same-org references (the common case).
-     * Use explicit org for cross-org references (e.g., marketplace resources).
+     * An explicit other org is accepted only when that organization is a
+     * platform that shares the resource with yours (visibility_platform).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -774,7 +794,8 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form).
      *
      * Use empty org for same-org references (the common case).
-     * Use explicit org for cross-org references (e.g., marketplace resources).
+     * An explicit other org is accepted only when that organization is a
+     * platform that shares the resource with yours (visibility_platform).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>

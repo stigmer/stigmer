@@ -1,22 +1,11 @@
 "use client";
 
 import type { ListParams, ListResult } from "@stigmer/sdk";
-import type { ResourceListScope } from "./useResourceList.js";
 import { useFetch } from "../internal/useFetch.js";
 
 export interface UseResourceCountOptions {
   /** Text query to filter results before counting. */
   readonly query?: string;
-  /**
-   * Controls resource visibility scope.
-   *
-   * - `"org"` — all resources owned by the given organization, regardless of visibility.
-   * - `"all"` — all resources owned by the given organization plus public resources
-   *   from other organizations.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
   /**
    * Opaque token that forces a recount whenever its value changes. Use
    * it to refresh the count after an out-of-band mutation (e.g. applying
@@ -59,7 +48,6 @@ export function useResourceCount(
   options?: UseResourceCountOptions,
 ): UseResourceCountReturn {
   const query = options?.query;
-  const scope = options?.scope ?? "org";
   const refetchToken = options?.refetchToken;
 
   const { data: count, isLoading, isRefetching, error, refetch } = useFetch<number | undefined>(
@@ -68,19 +56,17 @@ export function useResourceCount(
           // Identical params to useResourceList so a card's count always matches
           // the list page it links to. `org` is ALWAYS sent: an empty org means
           // "every org the caller can access" to the search backend (a global FGA
-          // dump), and `crossOrgPublic` with an empty org matches zero rows.
+          // dump).
           const params: ListParams = {
             org,
             query: query || undefined,
-            excludePublic: false,
-            crossOrgPublic: scope === "all",
             page: { num: 1, size: 1 },
           };
           const result = await listFn(params);
           return result.totalCount;
         }
       : null,
-    [listFn, org, query, scope, refetchToken],
+    [listFn, org, query, refetchToken],
     undefined,
   );
 

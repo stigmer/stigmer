@@ -266,9 +266,18 @@ function tierRank(tier: ResourceTier): number {
 }
 
 /**
- * Go SupportsVisibility: PRIVATE and UNSPECIFIED are always supported (no
- * visibility grant); every other level requires the matching supports_*
- * flag. Kinds with no VisibilityConfig are private-only.
+ * Whether a kind may hold a visibility level — the one predicate behind the
+ * ValidateVisibility doors on every create and updateVisibility chain.
+ *
+ * PRIVATE and UNSPECIFIED are always supported (no visibility grant is
+ * written for them); ORG and PLATFORM require the matching supports_* flag
+ * on the kind's VisibilityConfig, so kinds with no config are private-only.
+ * PUBLIC is refused for every kind: the level is retired (it made a row
+ * readable to every account on the server), no config may declare it, and
+ * the answer is fixed here rather than read from a flag that no longer
+ * exists. Every level is named so a level added to the enum must be taught
+ * here before any row can hold it; the closing arm is unreachable by wire
+ * input, because both doors validate the field `defined_only` first.
  */
 export function supportsVisibility(
   kind: ApiResourceKind,
@@ -276,14 +285,19 @@ export function supportsVisibility(
 ): boolean {
   const config = getKindMeta(kind).authorization?.visibility;
   switch (visibility) {
-    case ApiResourceVisibility.visibility_public:
-      return config?.supportsPublic === true;
+    case ApiResourceVisibility.api_resource_visibility_unspecified:
+    case ApiResourceVisibility.visibility_private:
+      return true;
     case ApiResourceVisibility.visibility_org:
       return config?.supportsOrg === true;
     case ApiResourceVisibility.visibility_platform:
       return config?.supportsPlatform === true;
-    default:
-      return true;
+    case ApiResourceVisibility.visibility_public:
+      return false;
+    default: {
+      const exhaustive: never = visibility;
+      throw new Error(`unknown visibility level: ${String(exhaustive)}`);
+    }
   }
 }
 
@@ -297,9 +311,6 @@ export function supportedVisibilityLevels(kind: ApiResourceKind): string {
   let levels = "visibility_private";
   if (config?.supportsOrg === true) {
     levels += ", visibility_org";
-  }
-  if (config?.supportsPublic === true) {
-    levels += ", visibility_public";
   }
   if (config?.supportsPlatform === true) {
     levels += ", visibility_platform";

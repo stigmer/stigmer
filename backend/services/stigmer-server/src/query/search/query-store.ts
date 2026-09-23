@@ -81,8 +81,6 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
         // is already goTrimSpace'd). Engine syntax is the driver's job.
         terms: criteria.hasQuery() ? goFields(criteria.query()) : undefined,
         orgFilter: criteria.orgFilter(),
-        crossOrgPublic: criteria.crossOrgPublic(),
-        excludePublic: criteria.excludePublic(),
         limit: criteria.pageSize(),
         offset: criteria.offset(),
       });

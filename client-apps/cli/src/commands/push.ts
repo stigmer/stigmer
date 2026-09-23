@@ -55,7 +55,7 @@ export function registerPush(program: Command): void {
     )
     .option(
       "--visibility <level>",
-      "plugins: visibility for the plugin and everything it installs (private, org, public, platform)",
+      "plugins: visibility for the plugin and everything it installs (private, org, platform)",
     )
     .option("--dry-run", "validate without pushing")
     .option("--git-url <url>", "push from a remote git repository URL")

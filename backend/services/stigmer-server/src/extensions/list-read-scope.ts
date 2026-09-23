@@ -8,7 +8,7 @@
  * is yours). On a multi-tenant edition the same scans serve OTHER
  * tenants' rows, so the cloud baseline (the Java list handlers) narrows
  * every one of them to the caller's FGA-authorized id set (ListObjects
- * on can_view, public wildcards suppressed), with a second guest
+ * on can_view), with a second guest
  * cookie-label rule on the session and agent-execution lanes.
  *
  * This port is the ONE seam for that fork (DD-007 addendum 3: every

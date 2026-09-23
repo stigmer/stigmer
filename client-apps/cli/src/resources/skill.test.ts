@@ -71,10 +71,10 @@ describe("parseSkillMetadata", () => {
   });
 
   it("parses a declared visibility from frontmatter", () => {
-    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: public\n---\n");
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: org\n---\n");
     expect(parseSkillMetadata(dir)).toEqual({
       name: "my-skill",
-      visibility: ApiResourceVisibility.visibility_public,
+      visibility: ApiResourceVisibility.visibility_org,
     });
   });
 
@@ -85,16 +85,23 @@ describe("parseSkillMetadata", () => {
 });
 
 describe("parseVisibility", () => {
-  it("maps the four short forms", () => {
+  it("maps the three short forms", () => {
     expect(parseVisibility("private")).toBe(ApiResourceVisibility.visibility_private);
-    expect(parseVisibility("public")).toBe(ApiResourceVisibility.visibility_public);
     expect(parseVisibility("org")).toBe(ApiResourceVisibility.visibility_org);
     expect(parseVisibility("platform")).toBe(ApiResourceVisibility.visibility_platform);
   });
 
   it("accepts canonical enum names and is case/whitespace insensitive", () => {
-    expect(parseVisibility(" Visibility_Public ")).toBe(ApiResourceVisibility.visibility_public);
-    expect(parseVisibility("PUBLIC")).toBe(ApiResourceVisibility.visibility_public);
+    expect(parseVisibility(" Visibility_Platform ")).toBe(ApiResourceVisibility.visibility_platform);
+    expect(parseVisibility("ORG")).toBe(ApiResourceVisibility.visibility_org);
+  });
+
+  it("refuses the retired public level by name, with the remedy and the valid values", () => {
+    for (const spelling of ["public", "visibility_public", " PUBLIC "]) {
+      expect(() => parseVisibility(spelling, "--visibility")).toThrow(
+        /invalid 'visibility' value '.*' in --visibility: the public level is retired[\s\S]*plugins[\s\S]*Valid values: private, org, platform\./,
+      );
+    }
   });
 
   it("treats omitted/unspecified as not declared (undefined)", () => {
@@ -141,16 +148,16 @@ const NO_IGNORE = { respectGitignore: true, extraIgnore: [], extraInclude: [] };
 
 describe("pushSkill visibility propagation", () => {
   it("issues an UpdateVisibility RPC when the SKILL.md declares a non-matching visibility", async () => {
-    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: public\n---\n");
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: org\n---\n");
     const { client, calls } = fakeClient({ id: "skill-123", visibility: ApiResourceVisibility.visibility_private });
 
     const result = await pushSkill(client, dir, "stigmer", "latest", "", NO_IGNORE);
 
     expect(calls.push).toBe(1);
     expect(calls.updateVisibility).toEqual([
-      { resourceId: "skill-123", visibility: ApiResourceVisibility.visibility_public },
+      { resourceId: "skill-123", visibility: ApiResourceVisibility.visibility_org },
     ]);
-    expect(result.visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(result.visibility).toBe(ApiResourceVisibility.visibility_org);
   });
 
   it("does not touch visibility when the SKILL.md omits it", async () => {
@@ -163,8 +170,8 @@ describe("pushSkill visibility propagation", () => {
   });
 
   it("skips the RPC when the server already matches the declared visibility", async () => {
-    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: public\n---\n");
-    const { client, calls } = fakeClient({ id: "skill-123", visibility: ApiResourceVisibility.visibility_public });
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: org\n---\n");
+    const { client, calls } = fakeClient({ id: "skill-123", visibility: ApiResourceVisibility.visibility_org });
 
     await pushSkill(client, dir, "stigmer", "latest", "", NO_IGNORE);
 
@@ -296,7 +303,7 @@ describe("readSkillArchive", () => {
 describe("pushSkillFromArchive", () => {
   it("uploads the archive bytes untouched (checksum parity) and applies declared visibility", async () => {
     const zipped = zipSync({
-      "SKILL.md": new TextEncoder().encode("---\nname: my-skill\nvisibility: public\n---\n# S\n"),
+      "SKILL.md": new TextEncoder().encode("---\nname: my-skill\nvisibility: org\n---\n# S\n"),
     });
     const archivePath = join(dir, "skill.zip");
     writeFileSync(archivePath, zipped);
@@ -307,7 +314,7 @@ describe("pushSkillFromArchive", () => {
     expect(calls.push).toBe(1);
     expect(Buffer.from(calls.pushedArtifacts[0]).equals(Buffer.from(zipped))).toBe(true);
     expect(calls.updateVisibility).toEqual([
-      { resourceId: "skill-123", visibility: ApiResourceVisibility.visibility_public },
+      { resourceId: "skill-123", visibility: ApiResourceVisibility.visibility_org },
     ]);
     expect(result.skillName).toBe("my-skill");
   });

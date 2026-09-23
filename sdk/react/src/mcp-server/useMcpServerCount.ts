@@ -2,21 +2,12 @@
 
 import { useCallback } from "react";
 import { useStigmer } from "../hooks.js";
-import { useResourceCount, type ResourceListScope } from "../search/index.js";
+import { useResourceCount } from "../search/index.js";
 
 /** Options for {@link useMcpServerCount}. */
 export interface UseMcpServerCountOptions {
   /** Text query to filter MCP servers before counting. */
   readonly query?: string;
-  /**
-   * Controls which MCP servers are counted.
-   *
-   * - `"org"` — only MCP servers owned by the given organization.
-   * - `"all"` — includes public/platform MCP servers.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
   /** Opaque token that forces a recount when its value changes. */
   readonly refetchToken?: unknown;
 }
@@ -50,12 +41,6 @@ export interface UseMcpServerCountReturn {
  * @example
  * ```tsx
  * const { count, isLoading } = useMcpServerCount("acme");
- * ```
- *
- * @example
- * ```tsx
- * // Count all accessible MCP servers including public/platform ones
- * const { count } = useMcpServerCount("acme", { scope: "all" });
  * ```
  */
 export function useMcpServerCount(

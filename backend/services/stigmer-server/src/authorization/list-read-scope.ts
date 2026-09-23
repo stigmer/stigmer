@@ -11,12 +11,10 @@
  * row a second time. A self-host's lists show a person exactly what a
  * `get` would let them read.
  *
- * Both verbs ask under the LISTING context, `allow: false` — the public
- * wildcard suppressed, the cloud's own posture (its Java
- * listAuthorizedResourceIds set it): a legacy PUBLIC row reads for any
- * signed-in person on a point check and never expands into an outsider's
- * listing; the organization's own people still reach it through the
- * org-viewer shape public also emits.
+ * Both verbs ask the same question a point check asks, `can_view` on the
+ * candidate: the model has no subject whose answer differs between a
+ * listing and a get, so a list is exactly the set of rows a get would
+ * read.
  *
  *   - `restrictListEntries`: one derived source for the caller, seeded
  *     with every candidate's facts; one `checkRelation` per unique id —
@@ -84,13 +82,10 @@ import { builtInModel } from "./model/index.js";
 import type { KindDeclaration } from "./model/rewrite.js";
 import type { AccountsByCaller } from "./person.js";
 import { resolvePerson } from "./person.js";
-import type { CheckContext, ObjectRef, Person } from "./tuples.js";
+import type { ObjectRef, Person } from "./tuples.js";
 
 /** The relation every list lane reads through (the cloud's LIST_RELATION). */
 const LIST_RELATION = "can_view";
-
-/** The listing context: the public wildcard suppressed (the module header). */
-const LISTING: CheckContext = { allow: false };
 
 export interface BuiltInListReadScopeDeps {
   readonly store: Store;
@@ -138,7 +133,6 @@ export function newBuiltInListReadScope(
           object,
           LIST_RELATION,
           person,
-          LISTING,
         );
         return allowed ? facts.id : undefined;
       }),

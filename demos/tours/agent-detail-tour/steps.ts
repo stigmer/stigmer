@@ -39,7 +39,7 @@ export const DEMO_SLUG = "support-agent";
  * The demo agent returned by the mocked `AgentQueryController.getByReference`
  * (see `.scenar/providers.tsx`). Every rendered field — description,
  * instructions, both skill refs, the MCP server usage with its three tools,
- * the two env declarations, and the public visibility — matches the YAML
+ * the two env declarations, and the organization visibility — matches the YAML
  * listing the embed sits under on `docs/concepts/agents.mdx`, so the reader
  * sees exactly the definition they just read.
  *
@@ -63,7 +63,7 @@ export function buildDemoAgent() {
     ].join("\n"),
   });
 
-  agent.metadata!.visibility = ApiResourceVisibility.visibility_public;
+  agent.metadata!.visibility = ApiResourceVisibility.visibility_org;
 
   agent.spec = create(AgentSpecSchema, {
     description: agent.spec!.description,

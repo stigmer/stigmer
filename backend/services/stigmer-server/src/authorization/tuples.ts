@@ -1,9 +1,11 @@
 /**
  * The tuple vocabulary of the built-in authorizer — the OpenFGA notions
  * the cloud's model is written in (object, relation, subject; a subject
- * being an object, a userset `type:id#relation`, or the public wildcard
- * `type:*` under a condition), typed once so the evaluator, the
- * derivation and the store-test kit speak one language. Nothing here is
+ * being an object or a userset `type:id#relation`), typed once so the
+ * evaluator, the derivation and the store-test kit speak one language. The
+ * model declares no wildcard subject and no condition: every reader of a
+ * row is an account or the holder of a relation on an object, which is
+ * why a check needs no context parameter. Nothing here is
  * stored: open source derives every tuple from a row (derived-tuples.ts)
  * or reads it from an IamPolicy row, and this module only names what a
  * tuple IS.
@@ -18,27 +20,17 @@
  * The type is named here; the construction (`personFor`, `resolvePerson`)
  * is person.ts's, so this module stays vocabulary with no I/O.
  *
- * `CheckContext` is the FGA condition context. The one condition the
- * model declares is `allow_public(allow: bool)` on the public wildcard,
- * and the cloud's own posture (stigmer-cloud authorizer/fga-authorizer.ts,
- * the Java BuildCheckRequest) is `allow: true` on a point check — a public
- * resource reads for any authenticated caller — and `allow: false` in a
- * listing, which keeps a public wildcard from flooding an organization's
- * catalog. The parameter is required so a caller states which posture it
- * is in; there is no default because either one is wrong for the other.
- *
- * The string forms (`agent:x`, `organization:acme#viewer`,
- * `identity_account:*`) are the notation the cloud's store tests and the
- * IamPolicy proto both use; parse and format are here so the kit and the
- * tests never spell them a second way.
+ * The string forms (`agent:x`, `organization:acme#viewer`) are the
+ * notation the cloud's store tests and the IamPolicy proto both use; parse
+ * and format are here so the kit and the tests never spell them a second
+ * way. The wildcard notation `type:*` is refused by the parser: the model
+ * has no line that admits one, so a fixture or a policy that spells it is
+ * a mistake to surface, never a subject to carry.
  */
 import type { Message } from "@bufbuild/protobuf";
 
 /** The FGA type name of the kind every person is: `identity_account:<id>`. */
 export const ACCOUNT_TYPE = "identity_account";
-
-/** The one condition the model declares; it guards the public wildcard. */
-export const ALLOW_PUBLIC_CONDITION = "allow_public";
 
 /** `type:id` — an object of the model. */
 export interface ObjectRef {
@@ -55,12 +47,6 @@ export type Subject =
       readonly form: "userset";
       readonly object: ObjectRef;
       readonly relation: string;
-    }
-  /** `type:*` — every object of the type, honoured only when its condition holds. */
-  | {
-      readonly form: "wildcard";
-      readonly type: string;
-      readonly condition: string | undefined;
     };
 
 export interface Tuple {
@@ -97,11 +83,6 @@ export interface Person {
   readonly aliases: ReadonlySet<string>;
 }
 
-/** The condition parameters of a check (the module header). */
-export interface CheckContext {
-  readonly allow: boolean;
-}
-
 // ---------------------------------------------------------------------------
 // The string notation.
 // ---------------------------------------------------------------------------
@@ -120,10 +101,8 @@ export function formatObjectRef(object: ObjectRef): string {
 }
 
 /**
- * `type:id`, `type:id#relation` or `type:*` → Subject. A wildcard parsed
- * from text carries no condition; the caller attaches one when its source
- * says so (the store tests carry it on the tuple, the derivation attaches
- * the model's).
+ * `type:id` or `type:id#relation` → Subject. `type:*` is refused (the
+ * module header): no line of the model admits a wildcard subject.
  */
 export function parseSubject(text: string): Subject {
   const hash = text.indexOf("#");
@@ -136,7 +115,9 @@ export function parseSubject(text: string): Subject {
   }
   const object = parseObjectRef(text);
   if (object.id === "*") {
-    return { form: "wildcard", type: object.type, condition: undefined };
+    throw new Error(
+      `wildcard subject '${text}' is not admitted: the model declares no wildcard line`,
+    );
   }
   return { form: "object", object };
 }
@@ -147,10 +128,6 @@ export function formatSubject(subject: Subject): string {
       return formatObjectRef(subject.object);
     case "userset":
       return `${formatObjectRef(subject.object)}#${subject.relation}`;
-    case "wildcard":
-      return subject.condition === undefined
-        ? `${subject.type}:*`
-        : `${subject.type}:* with ${subject.condition}`;
     default: {
       const exhaustive: never = subject;
       throw new Error(`unknown subject form: ${JSON.stringify(exhaustive)}`);

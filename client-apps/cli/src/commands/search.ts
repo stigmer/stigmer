@@ -14,7 +14,6 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
 interface SearchFlags extends OutputFlags {
-  excludePublic?: boolean;
   page?: string;
   pageSize?: string;
 }
@@ -23,7 +22,6 @@ export function registerSearch(program: Command): void {
   const search = program
     .command("search <type> <query>")
     .description("search resources by text query (supported types: agent, workflow)")
-    .option("--exclude-public", "exclude public/platform resources")
     .option("--page <n>", "page number (1-indexed)", String(DEFAULT_PAGE))
     .option("--page-size <n>", "results per page (max 100)", String(DEFAULT_PAGE_SIZE))
     .action((type: string, query: string, options: SearchFlags, command: Command) =>
@@ -64,7 +62,6 @@ async function runSearch(type: string, query: string, options: SearchFlags, comm
 
   const outcome = await searchResources(client.stigmer, info.kind, query, {
     org,
-    excludePublic: options.excludePublic === true,
     page,
     pageSize,
   }, format);

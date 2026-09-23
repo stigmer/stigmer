@@ -169,11 +169,11 @@ describe("marketplace show", () => {
     expect(payload.data.warnings[0].subject).toBe("ghost");
   });
 
-  it("shows the built-in marketplace, which installs nothing by default", async () => {
+  it("shows the built-in marketplace", async () => {
     const outcome = await run("show", "stigmer", "--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     const payload = JSON.parse(outcome.stdout);
-    expect(payload.data.marketplace.defaults).toEqual([]);
+    expect(payload.data.marketplace.name).toBe("stigmer");
     expect(payload.data.plugins.map((p: { name: string }) => p.name)).toContain(
       "linear",
     );

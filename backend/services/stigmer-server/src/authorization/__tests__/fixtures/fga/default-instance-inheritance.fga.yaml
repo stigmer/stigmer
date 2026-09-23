@@ -1,5 +1,5 @@
 # Pinned copy of stigmer-cloud backend/services/stigmer-server/fga/tests/default-instance-inheritance.fga.yaml
-# at commit b87dd1170 (the OpenFGA store test the cloud runs against its live model).
+# as changed by stigmer-cloud#765 (the OpenFGA store test the cloud runs against its live model).
 # The body below is byte-identical to the source; the cloud re-runs the LIVE
 # file against this evaluator at the re-pin, so a stale copy is caught there.
 # Store tests for default-instance structural inheritance (default_of).
@@ -7,8 +7,8 @@
 # A blueprint's system-managed default instance carries a single
 #   instance#default_of@<blueprint>:<id>
 # tuple and inherits the blueprint's ENTIRE viewer set through
-# `viewer from default_of` — org members, public users (allow_public), and
-# platform users (identity_provider#platform_user). No enum-derived
+# `viewer from default_of` — org members and platform users
+# (identity_provider#platform_user). No enum-derived
 # visibility tuples are ever written on default instances, so their access
 # can never drift from the template's.
 #
@@ -20,8 +20,7 @@
 # visibility level; each has a default instance linked via default_of.
 # Alice (acme member) reaches default instances of platform-shared
 # blueprints; planton members reach default instances of org-visible ones;
-# everyone reaches default instances of public ones; personal instances
-# never leak.
+# personal instances never leak.
 name: default-instance-inheritance
 model_file: ../model/fga.mod
 
@@ -115,35 +114,6 @@ tuples:
     relation: default_of
     object: agent_instance:internal-default
 
-  # --- Public agent + its default instance ---
-  # PUBLIC carries the org floor tuple too (viewer@org#viewer).
-  - user: organization:planton
-    relation: organization
-    object: agent:public-bot
-  - user: identity_account:swarup
-    relation: owner
-    object: agent:public-bot
-  - user: identity_account:*
-    relation: viewer
-    object: agent:public-bot
-    condition:
-      name: allow_public
-  - user: organization:planton#viewer
-    relation: viewer
-    object: agent:public-bot
-  - user: organization:planton
-    relation: organization
-    object: agent_instance:public-bot-default
-  - user: agent:public-bot
-    relation: agent
-    object: agent_instance:public-bot-default
-  - user: identity_account:swarup
-    relation: owner
-    object: agent_instance:public-bot-default
-  - user: agent:public-bot
-    relation: default_of
-    object: agent_instance:public-bot-default
-
   # --- Platform-shared workflow + its default instance ---
   - user: organization:planton
     relation: organization
@@ -175,8 +145,6 @@ tests:
     check:
       - user: identity_account:alice
         object: agent_instance:sara-default
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -187,8 +155,6 @@ tests:
     check:
       - user: identity_account:mallory
         object: agent_instance:sara-default
-        context:
-          allow: false
         assertions:
           can_view: false
           can_execute: false
@@ -199,14 +165,10 @@ tests:
       # default_of tuple — only she (its owner) can reach it.
       - user: identity_account:swarup
         object: agent_instance:alice-personal
-        context:
-          allow: false
         assertions:
           can_view: false
       - user: identity_account:alice
         object: agent_instance:alice-personal
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: true
@@ -215,8 +177,6 @@ tests:
     check:
       - user: identity_account:priya
         object: agent_instance:internal-default
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -226,34 +186,19 @@ tests:
       # read audience, and the default instance inherits it structurally.
       - user: identity_account:veda
         object: agent_instance:internal-default
-        context:
-          allow: false
         assertions:
           can_view: true
           can_edit: false
       # Managed-org membership grants nothing on non-platform-shared agents.
       - user: identity_account:alice
         object: agent_instance:internal-default
-        context:
-          allow: false
         assertions:
           can_view: false
-
-  - name: everyone reaches the default instance of a public agent
-    check:
-      - user: identity_account:mallory
-        object: agent_instance:public-bot-default
-        context:
-          allow: true
-        assertions:
-          can_view: true
 
   - name: managed-org member reaches the default instance of a platform-shared workflow
     check:
       - user: identity_account:alice
         object: workflow_instance:onboarding-default
-        context:
-          allow: false
         assertions:
           can_view: true
           can_execute: true
@@ -263,8 +208,6 @@ tests:
     list_objects:
       - user: identity_account:alice
         type: agent_instance
-        context:
-          allow: false
         assertions:
           can_view:
             - agent_instance:sara-default

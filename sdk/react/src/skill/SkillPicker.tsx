@@ -15,23 +15,11 @@ import { cn } from "@stigmer/theme";
 import { useSkillSearch } from "./useSkillSearch.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
-import { ScopeToggle } from "../library/ScopeToggle.js";
-import type { ResourceListScope } from "../search/index.js";
 
 /** Props for {@link SkillPicker}. */
 export interface SkillPickerProps {
-  /** Organization slug used as the default search scope. */
+  /** Organization whose skills the picker searches. */
   readonly org: string;
-  /**
-   * Controls search scope.
-   *
-   * - `"org"` — search only within the provided organization.
-   * - `"all"` — search all organizations the caller can access,
-   *   including public/platform skills from other orgs.
-   *
-   * @default "org"
-   */
-  readonly scope?: "org" | "all";
   /** Currently selected skill references. */
   readonly value: ResourceRef[];
   /** Called when the selection changes. */
@@ -78,15 +66,13 @@ const LIST_ID = "stgm-skill-list";
  */
 export function SkillPicker({
   org,
-  scope,
   value,
   onChange,
   onDisplayNameResolved,
   disabled,
   className,
 }: SkillPickerProps) {
-  const [activeScope, setActiveScope] = useState<ResourceListScope>(scope ?? "org");
-  const { results, isLoading, error, query, setQuery } = useSkillSearch(org, { scope: activeScope });
+  const { results, isLoading, error, query, setQuery } = useSkillSearch(org);
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -219,8 +205,6 @@ export function SkillPicker({
         className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
         autoFocus
       />
-
-      <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
 
       {error && <p className="stg:text-xs stg:text-destructive">{error.message}</p>}
 

@@ -185,7 +185,6 @@ export {
   newModel,
 } from "./authorization/model/index.js";
 export type {
-  CheckContext,
   ObjectRef,
   Person,
   Subject,

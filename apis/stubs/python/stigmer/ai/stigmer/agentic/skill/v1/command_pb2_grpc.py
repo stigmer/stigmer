@@ -84,12 +84,8 @@ class SkillCommandControllerServicer(object):
     def updateVisibility(self, request, context):
         """Update the visibility of an existing skill.
         Only modifies metadata.visibility, leaving spec, status, and other
-        metadata fields untouched. Use this to make a skill publicly accessible
-        or to revoke public access.
-
-        In the cloud edition, PUBLIC is operator-gated: public listing crosses
-        every org boundary, so it is granted by the platform team on request.
-        Un-publishing and all other levels stay self-service.
+        metadata fields untouched. Use this to widen or narrow who can read
+        the skill.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

@@ -270,7 +270,7 @@ describe("ConversationListPane", () => {
     );
   });
 
-  it("moves selection with arrow keys — the ScopeToggle radiogroup contract", async () => {
+  it("moves selection with arrow keys — the ViewSwitcher radiogroup contract", async () => {
     const user = userEvent.setup();
     const onFilterChange = vi.fn();
     render(

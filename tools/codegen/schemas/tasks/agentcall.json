@@ -13,7 +13,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Agent reference in \"org/slug\" or \"slug\" format.\n - \"slug\" only: uses the workflow's organization\n - \"org/slug\": explicit organization reference\n Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\"\n Required field.",
+      "description": "Agent to invoke, as \"slug\", \"org/slug\", or a value holding a runtime expression.\n - \"slug\": an agent of the organization the workflow runs in; checked when the\n   workflow is saved, against the workflow's own organization\n - \"org/slug\": that organization's agent; checked when the workflow is saved,\n   and another organization's agent must be shared at platform visibility\n - a value holding \"${ ... }\", \"${.env_vars.KEY}\" or \"${.secrets.KEY}\": resolved\n   to \"slug\" or \"org/slug\" when the task runs, and read as the person who ran\n   the workflow\n Examples: \"code-reviewer\", \"acme/data-analyst\", \"${.env_vars.TEAM_ORG}/assistant\"\n Required field.",
       "required": true,
       "validation": {
         "required": true,

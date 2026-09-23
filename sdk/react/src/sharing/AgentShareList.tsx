@@ -36,14 +36,6 @@ export interface AgentShareListProps {
   /** The agent whose shares are managed. */
   readonly agent: Agent;
   /**
-   * The viewer's active organization slug. Scopes the list to this
-   * org's channels of the agent, and a share created from this list
-   * lands in this org — its URL, billing, and credentials belong to it
-   * (a **cross-org share** when it differs from the agent's org,
-   * decision 013). Omit to default to the agent's own org.
-   */
-  readonly viewerOrg?: string;
-  /**
    * Builds the absolute public chat URL for a share. The host
    * application owns URL construction (its configured public origin may
    * differ from the rendering origin — e.g. the desktop app). When
@@ -59,15 +51,13 @@ export interface AgentShareListProps {
  * agent analog of {@link AgentInstanceList}, rendered in the agent
  * detail view's Shares tab.
  *
- * Lists the viewer's active org's channels of the agent: `viewerOrg`
- * scopes the `getByAgent` call server-side, so a member of several orgs
- * sees exactly the current org context's channels — never a merged list
- * of every org's (decision 013 amendment). Per-row actions: copy link,
- * edit, pause/resume, reset link, delete. Creation goes through the same
- * {@link ShareAgentDialog} and always lands in the viewer's active org;
- * the create bar mirrors the server's via
- * {@link useCanCreateAgentShare}, so the button never appears to a user
- * whose create would be refused.
+ * Lists the agent's organization's channels of the agent: a share lives
+ * in its agent's organization, so that org scopes the `getByAgent` call
+ * server-side. Per-row actions: copy link, edit, pause/resume, reset
+ * link, delete. Creation goes through the same {@link ShareAgentDialog}
+ * and lands in the agent's organization; the create bar mirrors the
+ * server's via {@link useCanCreateAgentShare}, so the button never
+ * appears to a user whose create would be refused.
  *
  * Self-contained: owns its dialog, its confirmation prompts, and its
  * refetch-after-mutation — hosts render it with just the agent and the
@@ -77,28 +67,22 @@ export interface AgentShareListProps {
  */
 export function AgentShareList({
   agent,
-  viewerOrg,
   buildShareUrl,
   className,
 }: AgentShareListProps) {
   const agentId = agent.metadata?.id ?? "";
-  // Scope the list to the org whose context the viewer is in; when the
-  // host passes no viewerOrg the scope falls back to the agent's own org
-  // (the same-org owner flow), matching where creation would land.
+  const agentOrg = agent.metadata?.org ?? "";
   const { shares, isLoading, error, refetch } = useAgentShares(
     agentId,
-    viewerOrg || (agent.metadata?.org ?? ""),
+    agentOrg,
   );
-  const { allowed: canCreate, shareOrg } = useCanCreateAgentShare(
-    agent,
-    viewerOrg,
-  );
+  const { allowed: canCreate } = useCanCreateAgentShare(agent);
   const { deleteShare } = useDeleteAgentShare();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
   // One dialog instance serves both flows: editing the chosen share, or
-  // creating a new one in the viewer's org.
+  // creating a new one.
   const [editor, setEditor] = useState<
     | { readonly mode: "create" }
     | { readonly mode: "edit"; readonly share: AgentShare }
@@ -207,7 +191,6 @@ export function AgentShareList({
           }}
           agent={agent}
           share={editor.mode === "edit" ? editor.share : undefined}
-          shareOrg={shareOrg}
           buildShareUrl={buildShareUrl}
           onSharingChanged={refetch}
         />
@@ -249,7 +232,6 @@ function ShareRow({
   const slug = meta?.slug ?? "";
   const enabled = share.spec?.enabled ?? false;
   const audience = sharingAudienceFromProto(share.spec?.audience);
-  const isCrossOrg = org !== (agent.metadata?.org ?? "");
 
   const { copy } = useCopyResource();
   const { save, isPending } = useSaveAgentShare(agent);
@@ -317,26 +299,6 @@ function ShareRow({
             text={meta?.name || slug || "\u2014"}
             className="stg:font-medium stg:text-foreground"
           />
-          {isCrossOrg && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span
-                    className={cn(
-                      "stg:inline-flex stg:shrink-0 stg:items-center stg:rounded-md stg:px-1.5 stg:py-0.5",
-                      "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide",
-                      "stg:bg-muted stg:text-muted-foreground stg:border stg:border-border",
-                    )}
-                  />
-                }
-              >
-                Cross-org
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {`This share lives in ${org}; the agent lives in ${agent.metadata?.org}`}
-              </TooltipContent>
-            </Tooltip>
-          )}
         </div>
       </td>
 

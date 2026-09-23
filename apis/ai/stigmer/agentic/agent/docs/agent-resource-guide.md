@@ -50,7 +50,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Recommended | Organization that owns this agent. Set automatically from `context.organization` if omitted during apply. Format: lowercase alphanumeric with hyphens (e.g., `acme-corp`). |
-| `metadata.visibility` | No | Access control. `visibility_private` (default): only org members can access. `visibility_public`: anyone can read (write still requires org membership). Used for marketplace-published agents. |
+| `metadata.visibility` | No | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_platform`: every organization the owning organization manages through its identity provider. Nothing is readable outside the organization otherwise; another organization's agent reaches yours as a plugin you install. |
 | `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: engineering`). |
 | `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
 | `metadata.tags` | No | String array for categorization and search (e.g., `["code-review", "security"]`). |
@@ -58,20 +58,26 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 
 ### Visibility
 
-Agents support public visibility. This is how agents are published to the marketplace.
+Agents take one of three levels. Organization is the default: a blueprint is a shared asset of the organization that owns it. Private is an explicit opt-in. Platform is offered only to an organization that operates an identity provider, and shares the agent with every organization it manages. An agent may not be more visible than the skills, MCP servers and agents it references; the server refuses the save (and the escalation) that would break that.
 
 ```yaml
-# Private agent (default) — only your org can see it
+# Organization agent (default) — every member of acme-corp can read and run it
 metadata:
   name: internal-reviewer
   org: acme-corp
+  visibility: visibility_org
+
+# Private agent — the creator and anyone granted access directly
+metadata:
+  name: my-draft
+  org: acme-corp
   visibility: visibility_private
 
-# Public agent — visible to everyone, writable only by org members
+# Platform agent — every organization acme-cloud manages through its identity provider
 metadata:
-  name: web-search
-  org: stigmer
-  visibility: visibility_public
+  name: onboarding-assistant
+  org: acme-cloud
+  visibility: visibility_platform
 ```
 
 ### Organization

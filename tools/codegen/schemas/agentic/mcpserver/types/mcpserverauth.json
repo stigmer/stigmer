@@ -12,7 +12,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to an OAuthApp for vendor-specific OAuth.\n\n When empty: the server supports the MCP Authorization spec (DCR + PKCE).\n Stigmer discovers the authorization server metadata, registers a client\n via DCR, and performs the authorization code flow with PKCE — all\n automatically at connect time.\n\n When set: Stigmer uses the referenced OAuthApp's client credentials to\n perform the OAuth authorization code flow with the vendor on behalf of\n the user. The OAuthApp must belong to the same organization as the\n McpServer (or be accessible via cross-org reference).",
+      "description": "Reference to an OAuthApp for vendor-specific OAuth.\n\n When empty: the server supports the MCP Authorization spec (DCR + PKCE).\n Stigmer discovers the authorization server metadata, registers a client\n via DCR, and performs the authorization code flow with PKCE — all\n automatically at connect time.\n\n When set: Stigmer uses the referenced OAuthApp's client credentials to\n perform the OAuth authorization code flow with the vendor on behalf of\n the user. The OAuthApp must belong to the same organization as the\n McpServer: an OAuth app holds vendor credentials and is never\n platform-visible, so no cross-organization reference to one is\n accepted.",
       "required": false,
       "referenceKind": 22
     },

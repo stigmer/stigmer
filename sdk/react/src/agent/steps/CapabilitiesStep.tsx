@@ -80,7 +80,6 @@ export function CapabilitiesStep({
       >
         <McpServerPicker
           org={org}
-          scope="all"
           value={data.mcpServerUsages}
           onChange={handleMcpChange}
         />
@@ -97,7 +96,6 @@ export function CapabilitiesStep({
       >
         <SkillPicker
           org={org}
-          scope="all"
           value={data.skillRefs}
           onChange={handleSkillsChange}
         />

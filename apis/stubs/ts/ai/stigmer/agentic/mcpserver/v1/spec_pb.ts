@@ -339,7 +339,9 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
    * When set: Stigmer uses the referenced OAuthApp's client credentials to
    * perform the OAuth authorization code flow with the vendor on behalf of
    * the user. The OAuthApp must belong to the same organization as the
-   * McpServer (or be accessible via cross-org reference).
+   * McpServer: an OAuth app holds vendor credentials and is never
+   * platform-visible, so no cross-organization reference to one is
+   * accepted.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
    */

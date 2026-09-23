@@ -79,8 +79,6 @@ public final class AgentClient {
             if (params.getQuery() != null) {
                 req.setQuery(params.getQuery());
             }
-            req.setExcludePublic(params.isExcludePublic());
-            req.setCrossOrgPublic(params.isCrossOrgPublic());
             if (params.getPage() != null) {
                 req.setPage(PageInfo.newBuilder()
                     .setNum(params.getPage().getNum())

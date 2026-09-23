@@ -37,11 +37,11 @@ export interface UseUpdateVisibilityReturn {
  * Behavior hook that updates the visibility of a resource.
  *
  * Supports blueprints (Agent, Workflow, Skill, MCP Server, Plugin) with
- * the full private/org/public/platform spectrum (a plugin's change reaches
+ * the full private/org/platform spectrum (a plugin's change reaches
  * every resource it installed, by the server's contract), instances
- * (AgentInstance, WorkflowInstance) with private/org/public, and
- * environments with private/org (secret values never leave the org
- * boundary, so broader levels are rejected by the backend).
+ * (AgentInstance, WorkflowInstance) with private/org, and environments
+ * with private/org (secret values never leave the org boundary, so the
+ * platform level is rejected by the backend).
  *
  * Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
  * with loading and error state management. The hook is stateless with

@@ -62,22 +62,13 @@ export interface ShareAgentDialogProps {
   readonly agent: Agent;
   /**
    * The exact share to edit. When omitted, the dialog opens in **create
-   * mode**: a name/slug step creates a new share in `shareOrg`, then the
-   * dialog becomes its editor. The share's identity is immutable once
-   * created (decision 011 D2) — edit mode never renames.
+   * mode**: a name/slug step creates a new share in the agent's own
+   * organization (its URL, billing and credentials belong to that
+   * organization), then the dialog becomes its editor. The share's
+   * identity is immutable once created (decision 011 D2) — edit mode
+   * never renames.
    */
   readonly share?: AgentShare | null;
-  /**
-   * The org that owns (and pays for) a share created by this dialog.
-   * Defaults to the agent's own org — the owner's channel. Pass the
-   * viewer's org to create a **cross-org share** of another org's
-   * marketplace-public agent (decision 013): the share, its billing,
-   * its credentials, and its hosted URL all belong to this org, while
-   * the agent stays live in its own. Cross-org shares are
-   * public-audience only, so the audience selector is hidden in that
-   * mode. Ignored in edit mode — an existing share knows its org.
-   */
-  readonly shareOrg?: string;
   /**
    * Builds the absolute public chat URL for the shared agent. The host
    * application owns URL construction (its configured public origin may
@@ -134,7 +125,6 @@ export function ShareAgentDialog({
   onOpenChange,
   agent,
   share,
-  shareOrg,
   buildShareUrl,
   onSharingChanged,
   modal = true,
@@ -163,7 +153,6 @@ export function ShareAgentDialog({
         <ShareAgentDialogBody
           agent={agent}
           share={share ?? null}
-          shareOrg={shareOrg}
           buildShareUrl={buildShareUrl}
           onSharingChanged={onSharingChanged}
           onClose={handleClose}
@@ -189,7 +178,6 @@ export function ShareAgentDialog({
 function ShareAgentDialogBody({
   agent,
   share,
-  shareOrg,
   buildShareUrl,
   onSharingChanged,
   onClose,
@@ -197,7 +185,6 @@ function ShareAgentDialogBody({
 }: {
   readonly agent: Agent;
   readonly share: AgentShare | null;
-  readonly shareOrg?: string;
   readonly buildShareUrl?: (org: string, slug: string) => string;
   readonly onSharingChanged?: () => void;
   readonly onClose: () => void;
@@ -207,10 +194,6 @@ function ShareAgentDialogBody({
   const [created, setCreated] = useState<AgentShare | null>(null);
   const activeShare = share ?? created;
   const isCreating = activeShare === null;
-
-  const resolvedShareOrg =
-    activeShare?.metadata?.org || shareOrg || (agent.metadata?.org ?? "");
-  const isCrossOrg = resolvedShareOrg !== (agent.metadata?.org ?? "");
 
   return (
     <div className="stg:flex stg:flex-col">
@@ -224,11 +207,7 @@ function ShareAgentDialogBody({
             {isCreating ? "Create share" : "Share"}
           </h2>
           <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
-            {/* Cross-org: qualify the agent so it's clear whose blueprint
-                this channel serves — the URL and billing are still yours. */}
-            {isCrossOrg
-              ? `${agent.metadata?.org}/${agent.metadata?.slug}`
-              : agent.metadata?.name || agent.metadata?.slug}
+            {agent.metadata?.name || agent.metadata?.slug}
           </p>
         </div>
         <button
@@ -248,7 +227,6 @@ function ShareAgentDialogBody({
       {isCreating ? (
         <CreateShareForm
           agent={agent}
-          shareOrg={resolvedShareOrg}
           onCreated={(persisted) => {
             setCreated(persisted);
             onSharingChanged?.();
@@ -291,7 +269,7 @@ function ShareAgentDialogBody({
  * Names the new share and creates it live (`enabled: true`, public
  * audience — the server's own defaults). Identity is set here because it
  * is immutable afterward (decision 011 D2): the slug becomes the hosted
- * URL `/chat/<org>/<slug>` in the sharing org's namespace.
+ * URL `/chat/<org>/<slug>` in the agent's organization's namespace.
  *
  * The slug auto-derives from the name until the user edits it (the
  * {@link CreateOrganizationForm} pattern), validated by the same
@@ -301,15 +279,13 @@ function ShareAgentDialogBody({
  */
 function CreateShareForm({
   agent,
-  shareOrg,
   onCreated,
 }: {
   readonly agent: Agent;
-  readonly shareOrg: string;
   readonly onCreated: (share: AgentShare) => void;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
-  const isCrossOrg = shareOrg !== (agent.metadata?.org ?? "");
+  const shareOrg = agent.metadata?.org ?? "";
 
   // Instance-scoped field ids (oss#593) — see the outer dialog's titleId.
   const baseId = useId();
@@ -325,7 +301,7 @@ function CreateShareForm({
   const [collisionError, setCollisionError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { save, isPending } = useSaveAgentShare(agent, shareOrg);
+  const { save, isPending } = useSaveAgentShare(agent);
 
   const trimmedName = name.trim();
   const violations =
@@ -385,8 +361,8 @@ function CreateShareForm({
             `"${slug}" is already used by another share or resource in ${shareOrg} — pick a different slug`,
           );
         } else {
-          // e.g. the cross-org FAILED_PRECONDITION naming non-public
-          // dependencies (decision 013 D5) — show the server's words.
+          // Any other refusal (a permission the caller lacks, a
+          // precondition the server names) — show the server's words.
           setSubmitError(getUserMessage(err));
         }
       }
@@ -399,17 +375,8 @@ function CreateShareForm({
       <p className="stg:text-xs stg:text-muted-foreground">
         A share is its own channel to this agent: a hosted chat link with
         its own audience, embed origins, tool credentials, and visitor
-        messages.{" "}
-        {isCrossOrg && (
-          <>
-            This one lives in your organization{" "}
-            <span className="stg:font-medium">{shareOrg}</span> while the agent
-            stays in <span className="stg:font-medium">{agent.metadata?.org}</span>{" "}
-            — updates to the agent apply live.{" "}
-          </>
-        )}
-        Visitors chat on <span className="stg:font-medium">{shareOrg}</span>&apos;s
-        credits.
+        messages. Visitors chat on{" "}
+        <span className="stg:font-medium">{shareOrg}</span>&apos;s credits.
       </p>
 
       {/* ---- Name ---- */}
@@ -543,15 +510,10 @@ function ShareAgentForm({
     share.metadata?.id ?? null,
   );
 
-  // The share's own org/slug are the hosted URL — for a cross-org share
-  // (decision 013) that org is the sharing org's, not the agent's.
+  // The share's own org/slug are the hosted URL.
   const org = share.metadata?.org ?? "";
   const slug = share.metadata?.slug ?? "";
   const linkToken = share.status?.shareLinkToken ?? "";
-  // Cross-org shares are public-audience only (decision 013 D3) — the
-  // audience selector disappears rather than offering a choice the
-  // server would refuse.
-  const isCrossOrg = org !== (agent.metadata?.org ?? "");
 
   // Single commit path: apply the complete draft, adopt the server's
   // returned share as the new baseline, notify the host.
@@ -657,13 +619,11 @@ function ShareAgentForm({
             aria-labelledby={enabledLabelId}
           />
         </div>
-        {!isCrossOrg && (
-          <AudienceSelector
-            audience={draft.audience}
-            onChange={handleAudienceChange}
-            disabled={isPending}
-          />
-        )}
+        <AudienceSelector
+          audience={draft.audience}
+          onChange={handleAudienceChange}
+          disabled={isPending}
+        />
         <ToolReadinessHint agent={agent} draft={draft} />
       </div>
 

@@ -569,9 +569,7 @@ function generateSearchList(buf: string[], cfg: SdkResourceConfig): void {
   buf.push("\treq := &searchv1.SearchRequest{\n");
   buf.push(`\t\tKinds: []apiresourcekind.ApiResourceKind{${kindConst}},\n`);
   buf.push("\t\tQuery: params.Query,\n");
-  buf.push("\t\tOrg:            params.Org,\n");
-  buf.push("\t\tExcludePublic:  params.ExcludePublic,\n");
-  buf.push("\t\tCrossOrgPublic: params.CrossOrgPublic,\n");
+  buf.push("\t\tOrg:   params.Org,\n");
   buf.push("\t}\n");
   buf.push("\tif params.Page != nil {\n");
   buf.push("\t\treq.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}\n");
@@ -1776,11 +1774,9 @@ type Page struct {
 
 // ListParams configures a SearchService-backed list query.
 type ListParams struct {
-	Org            string
-	Query          string
-	ExcludePublic  bool
-	CrossOrgPublic bool
-	Page           *Page
+	Org   string
+	Query string
+	Page  *Page
 }
 
 // ListResult holds the response from a SearchService-backed list.

@@ -119,7 +119,6 @@ that result to resolve and run the agent.
     onSelect: { type: "(agent: SearchResult) => void", description: "Called with the chosen agent's search result on selection.", required: true },
     onSelectBuiltInAssistant: { type: "() => void", description: "When given, the list opens with the built-in assistant — the answer a session gets with no agent at all — as its first row, and choosing it calls this instead of `onSelect`. Absent, the picker offers agents only (a caller that needs an agent, such as a schedule, leaves it out)." },
     org: { type: "string", description: "Organization to search within.", required: true },
-    scope: { type: "\"org\" | \"all\"", description: "`\"org\"` (default) searches the org; `\"all\"` includes public agents." },
   }}
 />
 

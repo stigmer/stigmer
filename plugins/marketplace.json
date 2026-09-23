@@ -82,6 +82,5 @@
     { "name": "vercel", "source": "./vercel" },
     { "name": "workable", "source": "./workable" },
     { "name": "wrike", "source": "./wrike" }
-  ],
-  "defaults": []
+  ]
 }

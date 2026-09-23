@@ -18,8 +18,6 @@ export interface SearchParams {
   readonly org: string;
   /** Free-text search query. */
   readonly query?: string;
-  /** Whether to exclude public (non-org) resources from results. */
-  readonly excludePublic?: boolean;
   /** Pagination parameters. */
   readonly page?: { num: number; size: number };
 }
@@ -53,7 +51,6 @@ export class SearchClient {
           kinds: params.kinds,
           query: params.query,
           org: params.org,
-          excludePublic: params.excludePublic ?? false,
           page: params.page
             ? create(PageInfoSchema, params.page)
             : undefined,

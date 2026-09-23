@@ -35,8 +35,8 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 export interface ScheduleFormProps {
   /**
    * Organization slug. Schedules are org-local: the server requires the
-   * target agent to live in this same org, so the agent picker is
-   * locked to org scope.
+   * target agent to live in this same org, which is the org the agent
+   * picker searches.
    */
   readonly org: string;
   /** Fired with the created schedule after a successful submit. */
@@ -580,11 +580,6 @@ function AgentPickerPopup({
             value={value}
             onChange={onChange}
             onDisplayNameResolved={onDisplayNameResolved}
-            // Schedules are org-local: the server rejects a target
-            // agent outside the schedule's org, so cross-org browsing
-            // could only offer choices that fail at submit.
-            scope="org"
-            showScopeToggle={false}
             disabled={disabled}
           />
         </Popover.Popup>

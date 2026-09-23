@@ -4,8 +4,8 @@ import {
   blueprintVisibilityLevels,
   environmentVisibilityLevels,
   instanceVisibilityLevels,
-  PUBLIC_LOCKED_REASON,
-  type VisibilityLevelOption,
+  visibilityLabel,
+  visibilityOption,
 } from "../visibilityLevels";
 
 describe("environmentVisibilityLevels", () => {
@@ -17,10 +17,9 @@ describe("environmentVisibilityLevels", () => {
     ]);
   });
 
-  it("never offers public or platform — secrets stay inside the org", () => {
+  it("never offers platform — secrets stay inside the org", () => {
     for (const mode of ["cloud", "local"] as const) {
       const values = environmentVisibilityLevels(mode).map((l) => l.value);
-      expect(values).not.toContain(ApiResourceVisibility.visibility_public);
       expect(values).not.toContain(ApiResourceVisibility.visibility_platform);
     }
   });
@@ -44,84 +43,75 @@ describe("environmentVisibilityLevels", () => {
   });
 });
 
-describe("blueprintVisibilityLevels across the three editions", () => {
-  const valuesFor = (deploymentMode: "local" | "enterprise" | "cloud") =>
-    blueprintVisibilityLevels({
-      deploymentMode,
-      hasIdentityProvider: true,
-      canSetPublicVisibility: true,
-    }).map((l) => l.value);
-
-  it("collapses to Private/Public only in local mode", () => {
-    expect(valuesFor("local")).toEqual([
+describe("blueprintVisibilityLevels", () => {
+  it("offers Private and Organization when the owning org operates no identity provider", () => {
+    expect(
+      blueprintVisibilityLevels({ hasIdentityProvider: false }).map((l) => l.value),
+    ).toEqual([
       ApiResourceVisibility.visibility_private,
-      ApiResourceVisibility.visibility_public,
+      ApiResourceVisibility.visibility_org,
     ]);
   });
 
-  it("enterprise offers exactly what cloud offers — the org, platform and public levels", () => {
-    expect(valuesFor("enterprise")).toEqual(valuesFor("cloud"));
-    expect(valuesFor("enterprise")).toContain(ApiResourceVisibility.visibility_org);
-    expect(valuesFor("enterprise")).toContain(ApiResourceVisibility.visibility_platform);
-  });
-});
-
-describe("operator-gated PUBLIC level", () => {
-  const publicOf = (levels: readonly VisibilityLevelOption[]) =>
-    levels.find((l) => l.value === ApiResourceVisibility.visibility_public);
-
-  it("locks Public with the platform-team copy when the caller may not publish", () => {
-    const blueprint = publicOf(
-      blueprintVisibilityLevels({
-        deploymentMode: "cloud",
-        hasIdentityProvider: false,
-        canSetPublicVisibility: false,
-      }),
-    );
-    const instance = publicOf(
-      instanceVisibilityLevels({ canSetPublicVisibility: false }),
-    );
-
-    expect(blueprint?.lockedReason).toBe(PUBLIC_LOCKED_REASON);
-    expect(instance?.lockedReason).toBe(PUBLIC_LOCKED_REASON);
+  it("adds Platform, and only Platform, when the owning org operates an identity provider", () => {
+    expect(
+      blueprintVisibilityLevels({ hasIdentityProvider: true }).map((l) => l.value),
+    ).toEqual([
+      ApiResourceVisibility.visibility_private,
+      ApiResourceVisibility.visibility_org,
+      ApiResourceVisibility.visibility_platform,
+    ]);
   });
 
-  it("offers Public unlocked for callers with the publish grant", () => {
-    const blueprint = publicOf(
-      blueprintVisibilityLevels({
-        deploymentMode: "cloud",
-        hasIdentityProvider: true,
-        canSetPublicVisibility: true,
-      }),
+  it("confirms a Platform escalation with a blocking dialog that names the audience", () => {
+    const platform = blueprintVisibilityLevels({ hasIdentityProvider: true }).find(
+      (l) => l.value === ApiResourceVisibility.visibility_platform,
     );
-    const instance = publicOf(
-      instanceVisibilityLevels({ canSetPublicVisibility: true }),
-    );
-
-    expect(blueprint?.lockedReason).toBeUndefined();
-    expect(instance?.lockedReason).toBeUndefined();
+    expect(platform?.confirmDialog?.description).toContain("Every organization managed by your platform");
   });
 
-  it("never locks any level below Public — org/platform sharing stays self-service", () => {
-    const levels = blueprintVisibilityLevels({
-      deploymentMode: "cloud",
-      hasIdentityProvider: true,
-      canSetPublicVisibility: false,
-    });
-    for (const level of levels) {
-      if (level.value === ApiResourceVisibility.visibility_public) continue;
+  it("locks no level — every offered level is self-service", () => {
+    for (const level of blueprintVisibilityLevels({ hasIdentityProvider: true })) {
       expect(level.lockedReason, `${level.label} must stay self-service`).toBeUndefined();
     }
   });
+});
 
-  it("keeps the instance Public row's execution-oriented description when locked", () => {
-    // The lock replaces the rendered detail line, but the option data keeps
-    // its identity (label, tone, confirmation) so an unlock is a pure
-    // context change.
-    const instance = publicOf(
-      instanceVisibilityLevels({ canSetPublicVisibility: false }),
+describe("instanceVisibilityLevels", () => {
+  it("offers exactly Private and Organization — instances never take the platform level", () => {
+    expect(instanceVisibilityLevels().map((l) => l.value)).toEqual([
+      ApiResourceVisibility.visibility_private,
+      ApiResourceVisibility.visibility_org,
+    ]);
+  });
+
+  it("describes the org level in execution terms", () => {
+    const org = instanceVisibilityLevels().find(
+      (l) => l.value === ApiResourceVisibility.visibility_org,
     );
-    expect(instance?.lockedReason).toBe(PUBLIC_LOCKED_REASON);
-    expect(instance?.confirmDialog).toBeDefined();
+    expect(org?.description).toContain("executions");
+  });
+});
+
+describe("the retired public level", () => {
+  it("is offered by no level list", () => {
+    const offered = [
+      ...blueprintVisibilityLevels({ hasIdentityProvider: true }),
+      ...instanceVisibilityLevels(),
+      ...environmentVisibilityLevels("cloud"),
+    ].map((l) => l.value);
+    expect(offered).not.toContain(ApiResourceVisibility.visibility_public);
+  });
+
+  it("still renders truthfully for a stored value from before the retirement", () => {
+    // A row on a server not yet upgraded can carry the level; a badge that
+    // fell through to "Private" would lie about who can read the row.
+    const option = visibilityOption(ApiResourceVisibility.visibility_public);
+    expect(option.label).toBe("Public");
+    expect(option.tone).toBe("public");
+    expect(option.description).toContain("Retired");
+    expect(option.confirmPrompt).toBeUndefined();
+    expect(option.confirmDialog).toBeUndefined();
+    expect(visibilityLabel(ApiResourceVisibility.visibility_public)).toBe("Public");
   });
 });

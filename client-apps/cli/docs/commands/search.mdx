@@ -1,9 +1,9 @@
 Search for resources matching a text query.
 
 `stigmer search` performs a full-text search across resource names,
-descriptions, and tags. Results are sorted by relevance score. By default,
-the search includes public platform resources — use `--exclude-public` to
-see only your own.
+descriptions, and tags. Results are sorted by relevance score and cover the
+resources you can read: your organization's, and the platform-visible ones
+shared with it.
 
 {/* AUTO_USAGE */}
 
@@ -15,9 +15,6 @@ stigmer search agents "code review"
 
 # Search for workflows
 stigmer search workflows "deploy"
-
-# Exclude public/platform resources
-stigmer search agents "api" --exclude-public
 
 # Output as JSON for scripting
 stigmer search workflows "data" --output json

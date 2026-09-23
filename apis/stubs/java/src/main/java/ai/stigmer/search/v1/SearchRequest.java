@@ -336,29 +336,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int EXCLUDE_PUBLIC_FIELD_NUMBER = 4;
-  private boolean excludePublic_ = false;
-  /**
-   * <pre>
-   * Exclude public/platform resources from results.
-   *
-   * Default: false (include public resources).
-   *
-   * When true: Only return resources from organizations the caller
-   * is a member of. Excludes platform-provided public resources
-   * like "stigmer/web-search".
-   *
-   * Useful when users want to see only their own resources.
-   * </pre>
-   *
-   * <code>bool exclude_public = 4 [json_name = "excludePublic"];</code>
-   * @return The excludePublic.
-   */
-  @java.lang.Override
-  public boolean getExcludePublic() {
-    return excludePublic_;
-  }
-
   public static final int PAGE_FIELD_NUMBER = 5;
   private ai.stigmer.commons.rpc.PageInfo page_;
   /**
@@ -412,30 +389,6 @@ private static final long serialVersionUID = 0L;
     return page_ == null ? ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : page_;
   }
 
-  public static final int CROSS_ORG_PUBLIC_FIELD_NUMBER = 6;
-  private boolean crossOrgPublic_ = false;
-  /**
-   * <pre>
-   * Include public resources from organizations other than the org filter.
-   *
-   * Only meaningful when org is non-empty. When true, the result set includes:
-   * 1. All authorized resources from the specified org (any visibility)
-   * 2. All authorized public resources from other orgs
-   *
-   * Use case: "All" scope in library views — shows the user's org resources
-   * plus marketplace/public resources from other organizations.
-   *
-   * Default: false (only resources matching the org filter are returned).
-   * </pre>
-   *
-   * <code>bool cross_org_public = 6 [json_name = "crossOrgPublic"];</code>
-   * @return The crossOrgPublic.
-   */
-  @java.lang.Override
-  public boolean getCrossOrgPublic() {
-    return crossOrgPublic_;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -464,14 +417,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, org_);
     }
-    if (excludePublic_ != false) {
-      output.writeBool(4, excludePublic_);
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getPage());
-    }
-    if (crossOrgPublic_ != false) {
-      output.writeBool(6, crossOrgPublic_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -500,17 +447,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, org_);
     }
-    if (excludePublic_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(4, excludePublic_);
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getPage());
-    }
-    if (crossOrgPublic_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(6, crossOrgPublic_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -532,15 +471,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getQuery())) return false;
     if (!getOrg()
         .equals(other.getOrg())) return false;
-    if (getExcludePublic()
-        != other.getExcludePublic()) return false;
     if (hasPage() != other.hasPage()) return false;
     if (hasPage()) {
       if (!getPage()
           .equals(other.getPage())) return false;
     }
-    if (getCrossOrgPublic()
-        != other.getCrossOrgPublic()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -560,16 +495,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getQuery().hashCode();
     hash = (37 * hash) + ORG_FIELD_NUMBER;
     hash = (53 * hash) + getOrg().hashCode();
-    hash = (37 * hash) + EXCLUDE_PUBLIC_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getExcludePublic());
     if (hasPage()) {
       hash = (37 * hash) + PAGE_FIELD_NUMBER;
       hash = (53 * hash) + getPage().hashCode();
     }
-    hash = (37 * hash) + CROSS_ORG_PUBLIC_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getCrossOrgPublic());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -726,13 +655,11 @@ private static final long serialVersionUID = 0L;
       kinds_ = emptyIntList();
       query_ = "";
       org_ = "";
-      excludePublic_ = false;
       page_ = null;
       if (pageBuilder_ != null) {
         pageBuilder_.dispose();
         pageBuilder_ = null;
       }
-      crossOrgPublic_ = false;
       return this;
     }
 
@@ -776,18 +703,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.org_ = org_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.excludePublic_ = excludePublic_;
-      }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.page_ = pageBuilder_ == null
             ? page_
             : pageBuilder_.build();
         to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.crossOrgPublic_ = crossOrgPublic_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -825,14 +746,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (other.getExcludePublic() != false) {
-        setExcludePublic(other.getExcludePublic());
-      }
       if (other.hasPage()) {
         mergePage(other.getPage());
-      }
-      if (other.getCrossOrgPublic() != false) {
-        setCrossOrgPublic(other.getCrossOrgPublic());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -886,23 +801,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 32: {
-              excludePublic_ = input.readBool();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
             case 42: {
               input.readMessage(
                   internalGetPageFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
-            case 48: {
-              crossOrgPublic_ = input.readBool();
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1522,74 +1427,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private boolean excludePublic_ ;
-    /**
-     * <pre>
-     * Exclude public/platform resources from results.
-     *
-     * Default: false (include public resources).
-     *
-     * When true: Only return resources from organizations the caller
-     * is a member of. Excludes platform-provided public resources
-     * like "stigmer/web-search".
-     *
-     * Useful when users want to see only their own resources.
-     * </pre>
-     *
-     * <code>bool exclude_public = 4 [json_name = "excludePublic"];</code>
-     * @return The excludePublic.
-     */
-    @java.lang.Override
-    public boolean getExcludePublic() {
-      return excludePublic_;
-    }
-    /**
-     * <pre>
-     * Exclude public/platform resources from results.
-     *
-     * Default: false (include public resources).
-     *
-     * When true: Only return resources from organizations the caller
-     * is a member of. Excludes platform-provided public resources
-     * like "stigmer/web-search".
-     *
-     * Useful when users want to see only their own resources.
-     * </pre>
-     *
-     * <code>bool exclude_public = 4 [json_name = "excludePublic"];</code>
-     * @param value The excludePublic to set.
-     * @return This builder for chaining.
-     */
-    public Builder setExcludePublic(boolean value) {
-
-      excludePublic_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Exclude public/platform resources from results.
-     *
-     * Default: false (include public resources).
-     *
-     * When true: Only return resources from organizations the caller
-     * is a member of. Excludes platform-provided public resources
-     * like "stigmer/web-search".
-     *
-     * Useful when users want to see only their own resources.
-     * </pre>
-     *
-     * <code>bool exclude_public = 4 [json_name = "excludePublic"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearExcludePublic() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      excludePublic_ = false;
-      onChanged();
-      return this;
-    }
-
     private ai.stigmer.commons.rpc.PageInfo page_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.rpc.PageInfo, ai.stigmer.commons.rpc.PageInfo.Builder, ai.stigmer.commons.rpc.PageInfoOrBuilder> pageBuilder_;
@@ -1607,7 +1444,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the page field is set.
      */
     public boolean hasPage() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
@@ -1650,7 +1487,7 @@ private static final long serialVersionUID = 0L;
       } else {
         pageBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1673,7 +1510,7 @@ private static final long serialVersionUID = 0L;
       } else {
         pageBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1691,7 +1528,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergePage(ai.stigmer.commons.rpc.PageInfo value) {
       if (pageBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           page_ != null &&
           page_ != ai.stigmer.commons.rpc.PageInfo.getDefaultInstance()) {
           getPageBuilder().mergeFrom(value);
@@ -1702,7 +1539,7 @@ private static final long serialVersionUID = 0L;
         pageBuilder_.mergeFrom(value);
       }
       if (page_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
@@ -1720,7 +1557,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 5 [json_name = "page"];</code>
      */
     public Builder clearPage() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       page_ = null;
       if (pageBuilder_ != null) {
         pageBuilder_.dispose();
@@ -1742,7 +1579,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 5 [json_name = "page"];</code>
      */
     public ai.stigmer.commons.rpc.PageInfo.Builder getPageBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return internalGetPageFieldBuilder().getBuilder();
     }
@@ -1790,77 +1627,6 @@ private static final long serialVersionUID = 0L;
         page_ = null;
       }
       return pageBuilder_;
-    }
-
-    private boolean crossOrgPublic_ ;
-    /**
-     * <pre>
-     * Include public resources from organizations other than the org filter.
-     *
-     * Only meaningful when org is non-empty. When true, the result set includes:
-     * 1. All authorized resources from the specified org (any visibility)
-     * 2. All authorized public resources from other orgs
-     *
-     * Use case: "All" scope in library views — shows the user's org resources
-     * plus marketplace/public resources from other organizations.
-     *
-     * Default: false (only resources matching the org filter are returned).
-     * </pre>
-     *
-     * <code>bool cross_org_public = 6 [json_name = "crossOrgPublic"];</code>
-     * @return The crossOrgPublic.
-     */
-    @java.lang.Override
-    public boolean getCrossOrgPublic() {
-      return crossOrgPublic_;
-    }
-    /**
-     * <pre>
-     * Include public resources from organizations other than the org filter.
-     *
-     * Only meaningful when org is non-empty. When true, the result set includes:
-     * 1. All authorized resources from the specified org (any visibility)
-     * 2. All authorized public resources from other orgs
-     *
-     * Use case: "All" scope in library views — shows the user's org resources
-     * plus marketplace/public resources from other organizations.
-     *
-     * Default: false (only resources matching the org filter are returned).
-     * </pre>
-     *
-     * <code>bool cross_org_public = 6 [json_name = "crossOrgPublic"];</code>
-     * @param value The crossOrgPublic to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCrossOrgPublic(boolean value) {
-
-      crossOrgPublic_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Include public resources from organizations other than the org filter.
-     *
-     * Only meaningful when org is non-empty. When true, the result set includes:
-     * 1. All authorized resources from the specified org (any visibility)
-     * 2. All authorized public resources from other orgs
-     *
-     * Use case: "All" scope in library views — shows the user's org resources
-     * plus marketplace/public resources from other organizations.
-     *
-     * Default: false (only resources matching the org filter are returned).
-     * </pre>
-     *
-     * <code>bool cross_org_public = 6 [json_name = "crossOrgPublic"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCrossOrgPublic() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      crossOrgPublic_ = false;
-      onChanged();
-      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.search.v1.SearchRequest)

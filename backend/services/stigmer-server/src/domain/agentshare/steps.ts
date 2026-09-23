@@ -1,9 +1,18 @@
 /**
  * AgentShare domain steps — ports pkg/domain/agentshare/controller/steps.go
- * and the get_shared_profile.go helpers: share defaults + the cross-org
- * public-dependency contract (decision 013), the agent-id rebind pin, the
+ * and the get_shared_profile.go helpers: share defaults and the
+ * same-organization invariant on agent_ref, the agent-id rebind pin, the
  * update immutability rules, the uniform-NotFound profile resolution
  * helpers, and the constant-time link-token predicate.
+ *
+ * A share's agent lives in the share's own organization. The
+ * cross-organization arm this domain once carried (a share of another
+ * organization's public agent, gated on a public audience and a sweep of
+ * the agent's dependencies for public visibility) left with the public
+ * level; sharing another organization's agent is done by installing the
+ * plugin that carries it and sharing the installed copy. A stored share
+ * whose agent is in another organization — a row from before — fails
+ * closed at the profile like a dangling reference.
  *
  * OD-1 (deliberate exclusion): Go's boot migration
  * (pkg/domain/agentshare/migration/bootstrap_shares.go — protowire
@@ -29,11 +38,6 @@ import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v
 import { AgentShareStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/status_pb";
 import { SharedAgentProfileSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import type { SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
-import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -52,7 +56,6 @@ import {
 } from "../../pipeline/steps/authorize.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import type { GetByReferenceDesc } from "../../pipeline/steps/authorize-resolved-target.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -60,8 +63,7 @@ import {
   ORG_REQUIRED_MESSAGE,
   SHARE_LINK_TOKEN_BYTES,
   agentRefImmutableMessage,
-  crossOrgAudienceMessage,
-  crossOrgBlockersMessage,
+  sameOrgInvariantMessage,
 } from "./constants.js";
 
 type AgentShareDesc = typeof AgentShareSchema;
@@ -84,21 +86,14 @@ export const SHARE_ORGANIZATION_DENIED_MESSAGE =
 
 /**
  * The create lane's authorization questions, for AuthorizeResolvedTarget
- * after ResolveShareDefaults: the two-arm consent bar the Java handler
- * enforced and the model's comment on can_create_agent_share describes.
- * The RPC is is_skip_authorization because the target is the referenced
- * agent, resolved from a slug, not a request field.
- *
- * A same-org share (spec.agent_ref.org equals metadata.org, after the
- * resolve step made the reference absolute) asks can_edit on the agent:
- * sharing puts the agent in front of a wider audience, an editor's act.
- *
- * A cross-org share of another organization's public agent asks two
- * questions, agent first as Java did: can_execute on the agent (whoever may
- * run it may offer it) and then can_create_agent_share on the SHARING
- * organization — a public share spends that organization's credits on the
- * open internet, an admin-level act. The cross-org validity rules (public
- * agent, no org audience, public dependencies) stay the resolve step's.
+ * after ResolveShareDefaults, agent first: can_edit on the agent (sharing
+ * puts it in front of a wider audience, an editor's act) and then
+ * can_create_agent_share on the organization (a share spends the
+ * organization's credits on the open internet, an admin-level act). The
+ * RPC is is_skip_authorization because the target is the referenced agent,
+ * resolved from a slug, not a request field. The resolve step has already
+ * made the reference absolute and refused an agent outside the share's
+ * organization, so the two bars are always the same organization's.
  */
 export function resolveShareCreateTargets(
   ctx: RequestContext<AgentShareDesc>,
@@ -107,24 +102,17 @@ export function resolveShareCreateTargets(
   if (agent === undefined) {
     throw new Error("referenced agent not found in context");
   }
-  const share = ctx.newState;
-  const shareOrg = share.metadata?.org ?? "";
-  const crossOrg = (share.spec?.agentRef?.org ?? "") !== shareOrg;
-  const agentBar: AuthorizationTarget = {
-    permission: crossOrg ? IamPermission.can_execute : IamPermission.can_edit,
-    resourceKind: ApiResourceKind.agent,
-    resourceId: agent.metadata?.id ?? "",
-    deniedMessage: SHARE_AGENT_DENIED_MESSAGE,
-  };
-  if (!crossOrg) {
-    return [agentBar];
-  }
   return [
-    agentBar,
+    {
+      permission: IamPermission.can_edit,
+      resourceKind: ApiResourceKind.agent,
+      resourceId: agent.metadata?.id ?? "",
+      deniedMessage: SHARE_AGENT_DENIED_MESSAGE,
+    },
     {
       permission: IamPermission.can_create_agent_share,
       resourceKind: ApiResourceKind.organization,
-      resourceId: shareOrg,
+      resourceId: ctx.newState.metadata?.org ?? "",
       deniedMessage: SHARE_ORGANIZATION_DENIED_MESSAGE,
     },
   ];
@@ -306,10 +294,12 @@ export async function findShareByOrgAndSlug(
 /**
  * ResolveShareDefaults — Go resolveShareDefaultsStep:
  *   1. Requires metadata.org (URL + billing identity, never inferred).
- *   2. Normalizes spec.agent_ref.org (empty means same-org) and loads the
- *      referenced agent — a nonexistent agent is refused with the same
- *      NOT_FOUND a direct agent lookup would produce.
- *   3. For a CROSS-ORG share, enforces the decision-013 contract.
+ *   2. Normalizes spec.agent_ref.org (empty means same-org) and refuses an
+ *      agent_ref that names another organization (the module header) with
+ *      the same-organization sentence, BEFORE any lookup, so the share
+ *      lane never says whether another organization's slug exists.
+ *   3. Loads the referenced agent — a nonexistent agent is refused with
+ *      the same NOT_FOUND a direct agent lookup would produce.
  *   4. Defaults metadata.slug (and name) from the agent when the caller
  *      provided neither — the canonical share keeps the agent's hosted URL.
  *      Runs before ResolveSlug, which skips already-set slugs.
@@ -337,6 +327,9 @@ export function newResolveShareDefaultsStep(
       if (agentRef!.org === "") {
         agentRef!.org = metadata!.org;
       }
+      if (agentRef!.org !== metadata!.org) {
+        throw failedPreconditionError(sameOrgInvariantMessage(agentRef!.org));
+      }
 
       const agent = await findAgentByOrgAndSlug(
         store,
@@ -345,10 +338,6 @@ export function newResolveShareDefaultsStep(
       );
       if (agent === undefined) {
         throw notFoundError("Agent", agentRef!.slug);
-      }
-
-      if (agentRef!.org !== metadata!.org) {
-        await validateCrossOrgShare(store, share, agent);
       }
 
       ctx.set(REFERENCED_AGENT_KEY, agent);
@@ -362,133 +351,6 @@ export function newResolveShareDefaultsStep(
       }
     },
   };
-}
-
-/**
- * The cross-org share contract (decision 013) — Go validateCrossOrgShare:
- *   - The agent must be marketplace-public; a non-public agent is refused
- *     with the same NOT_FOUND as a missing one (no existence probe for
- *     private slugs).
- *   - The audience must be public — org-audience semantics don't carry
- *     across the org boundary.
- *   - Every declared dependency must itself be public; the refusal names
- *     every blocker (sorted) so the sharing org knows exactly what to ask
- *     the agent's org to publish.
- * Runtime re-enforcement is cloud-side; this create-time sweep is the
- * fail-loud half, mirrored in both editions.
- */
-async function validateCrossOrgShare(
-  store: Store,
-  share: AgentShare,
-  agent: Agent,
-): Promise<void> {
-  const agentMeta = agent.metadata;
-
-  if (agentMeta?.visibility !== ApiResourceVisibility.visibility_public) {
-    throw notFoundError("Agent", agentMeta?.slug ?? "");
-  }
-
-  // protobuf-es strips the shared enum prefix: proto
-  // agent_share_audience_org generates as AgentShareAudience.org.
-  if (share.spec?.audience === AgentShareAudience.org) {
-    throw failedPreconditionError(crossOrgAudienceMessage(agentMeta.org));
-  }
-
-  const blockers = await findNonPublicDependencies(store, agent);
-  if (blockers.length > 0) {
-    throw failedPreconditionError(
-      crossOrgBlockersMessage(agentMeta.org, agentMeta.slug, blockers),
-    );
-  }
-}
-
-/**
- * Sweeps the agent's declared blueprint dependencies — skill_refs
- * (including every sub-agent's) and mcp_server_usages — and returns a
- * deterministic "kind org/slug" entry for each that is missing or not
- * visibility_public — Go findNonPublicDependencies. A reference with an
- * empty org is relative to the AGENT's org (defensive parity with the
- * cloud edition's referenceMatches; agent writes normalize refs to
- * absolute form).
- */
-async function findNonPublicDependencies(
-  store: Store,
-  agent: Agent,
-): Promise<string[]> {
-  const spec = agent.spec;
-  const agentOrg = agent.metadata?.org ?? "";
-
-  interface DepRef {
-    kind: ApiResourceKind;
-    org: string;
-    slug: string;
-  }
-
-  const seen = new Set<string>();
-  const deps: DepRef[] = [];
-  const add = (
-    kind: ApiResourceKind,
-    ref: ApiResourceReference | undefined,
-  ): void => {
-    if (ref === undefined || ref.slug === "") {
-      return;
-    }
-    const org = ref.org !== "" ? ref.org : agentOrg;
-    const key = `${kind}|${org}|${ref.slug}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      deps.push({ kind, org, slug: ref.slug });
-    }
-  };
-
-  for (const ref of spec?.skillRefs ?? []) {
-    add(ApiResourceKind.skill, ref);
-  }
-  for (const sub of spec?.subAgents ?? []) {
-    for (const ref of sub.skillRefs) {
-      add(ApiResourceKind.skill, ref);
-    }
-  }
-  for (const usage of spec?.mcpServerUsages ?? []) {
-    add(ApiResourceKind.mcp_server, usage.mcpServerRef);
-  }
-
-  const blockers: string[] = [];
-  for (const dep of deps) {
-    let visibility: ApiResourceVisibility | undefined;
-    try {
-      // Per-kind resolution, exactly Go's switch — skill and mcp_server
-      // are the only dependency kinds an agent blueprint declares.
-      const resolved =
-        dep.kind === ApiResourceKind.skill
-          ? await findResourceBySlug(
-              store,
-              dep.kind,
-              SkillSchema,
-              dep.slug,
-              dep.org,
-            )
-          : await findResourceBySlug(
-              store,
-              dep.kind,
-              McpServerSchema,
-              dep.slug,
-              dep.org,
-            );
-      visibility = resolved?.metadata?.visibility;
-    } catch (error) {
-      throw internalError(
-        error,
-        `failed to resolve ${ApiResourceKind[dep.kind]} ${dep.org}/${dep.slug} while validating cross-org share`,
-      );
-    }
-    if (visibility !== ApiResourceVisibility.visibility_public) {
-      blockers.push(`${ApiResourceKind[dep.kind]} ${dep.org}/${dep.slug}`);
-    }
-  }
-
-  blockers.sort();
-  return blockers;
 }
 
 /**
@@ -524,10 +386,8 @@ export function newStampAgentPinStep(): PipelineStep<AgentShareDesc> {
 
 /**
  * ValidateShareUpdate — Go validateShareUpdateStep: spec.agent_ref must
- * keep referencing the same agent, and the cross-org public-audience rule
- * must hold on update too (update replaces the spec wholesale and must not
- * open a side door to an org-audience cross-org share). Runs after
- * LoadExisting. metadata.slug/org immutability needs no step — the generic
+ * keep referencing the same agent. Runs after LoadExisting.
+ * metadata.slug/org immutability needs no step — the generic
  * BuildUpdateState preserves both, and status (including the pin and link
  * token) wholesale.
  */
@@ -564,14 +424,6 @@ export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
           ),
         );
       }
-
-      const isCrossOrg =
-        (existingRef?.org ?? "") !== (existing.metadata?.org ?? "");
-      if (isCrossOrg && ctx.input.spec?.audience === AgentShareAudience.org) {
-        throw failedPreconditionError(
-          crossOrgAudienceMessage(existingRef?.org ?? ""),
-        );
-      }
     },
   };
 }
@@ -583,8 +435,8 @@ export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
  * SHARE; display fields and default_instance_id from the AGENT. Three
  * misses all fail closed with the uniform refusal, indistinguishable from
  * absence: a dangling agent_ref, a stale agent-id pin (the rebind guard),
- * and a cross-org agent no longer visibility_public (withdrawing public
- * visibility must kill every external channel).
+ * and an agent in another organization (a share written before the
+ * same-organization invariant; this release serves no such share).
  */
 export async function buildSharedAgentProfile(
   store: Store,
@@ -605,12 +457,7 @@ export async function buildSharedAgentProfile(
     throw sharedNotFound(share.metadata?.slug ?? "");
   }
 
-  const isCrossOrg =
-    (share.metadata?.org ?? "") !== (agent.metadata?.org ?? "");
-  if (
-    isCrossOrg &&
-    agent.metadata?.visibility !== ApiResourceVisibility.visibility_public
-  ) {
+  if ((share.metadata?.org ?? "") !== (agent.metadata?.org ?? "")) {
     throw sharedNotFound(share.metadata?.slug ?? "");
   }
 

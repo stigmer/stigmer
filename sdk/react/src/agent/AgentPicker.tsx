@@ -15,12 +15,10 @@ import { cn } from "@stigmer/theme";
 import { useAgentSearch } from "./useAgentSearch.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
-import { ScopeToggle } from "../library/ScopeToggle.js";
-import type { ResourceListScope } from "../search/index.js";
 
 /** Props for {@link AgentPicker}. */
 export interface AgentPickerProps {
-  /** Organization slug used as the default search scope. */
+  /** Organization whose agents the picker searches. */
   readonly org: string;
   /** Currently selected agent reference, or null if none selected. */
   readonly value: ResourceRef | null;
@@ -28,25 +26,6 @@ export interface AgentPickerProps {
   readonly onChange: (ref: ResourceRef | null) => void;
   /** Called with the display name when an agent is selected (for chip rendering). */
   readonly onDisplayNameResolved?: (key: string, name: string) => void;
-  /**
-   * Controls search scope.
-   *
-   * - `"org"` — search only within the provided organization.
-   * - `"all"` — search all organizations the caller can access,
-   *   including public/platform agents from other orgs.
-   *
-   * @default "org"
-   */
-  readonly scope?: "org" | "all";
-  /**
-   * Renders the Org/All scope toggle. Pass `false` to lock the picker
-   * to the `scope` prop — for flows where only one scope can produce a
-   * valid selection (e.g. schedule creation, where the server requires
-   * the target agent to live in the schedule's own org).
-   *
-   * @default true
-   */
-  readonly showScopeToggle?: boolean;
   /** Prevents interaction with the picker when `true`. */
   readonly disabled?: boolean;
   /** Additional CSS class names for the root container. */
@@ -93,13 +72,10 @@ export function AgentPicker({
   value,
   onChange,
   onDisplayNameResolved,
-  scope,
-  showScopeToggle = true,
   disabled,
   className,
 }: AgentPickerProps) {
-  const [activeScope, setActiveScope] = useState<ResourceListScope>(scope ?? "org");
-  const { results, isLoading, error, query, setQuery } = useAgentSearch(org, { scope: activeScope });
+  const { results, isLoading, error, query, setQuery } = useAgentSearch(org);
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -215,10 +191,6 @@ export function AgentPicker({
         className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
         autoFocus
       />
-
-      {showScopeToggle && (
-        <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
-      )}
 
       {error && <p className="stg:text-xs stg:text-destructive">{error.message}</p>}
 

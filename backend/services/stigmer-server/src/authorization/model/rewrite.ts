@@ -6,11 +6,16 @@
  *   define organization: [organization]                      → direct(objectOf("organization"))
  *   define owner: [identity_account] or admin from organization
  *                → union(direct(objectOf("identity_account")), from("admin", "organization"))
- *   define viewer: [identity_account, identity_account:* with allow_public,
- *                   organization#member, organization#viewer] or owner or platform_viewer
- *                → union(direct(objectOf(...), publicWith(...), usersetOf(...), usersetOf(...)),
+ *   define viewer: [identity_account, organization#member, organization#viewer]
+ *                   or owner or platform_viewer
+ *                → union(direct(objectOf(...), usersetOf(...), usersetOf(...)),
  *                        computed("owner"), computed("platform_viewer"))
  *   define can_view: viewer                                   → computed("viewer")
+ *
+ * A subject type is an object type or a userset; the model admits no
+ * wildcard (`type:*`) and declares no condition, so neither has a form
+ * here. The day a line needs one, the transcript cannot be written and
+ * the gap is a design act.
  *
  * A declaration file (model/<kind>.ts) is a TRANSCRIPT of its `.fga`
  * file: the same relations, in the file's order, each line rewritten in
@@ -53,12 +58,6 @@ export type SubjectType =
       readonly form: "userset";
       readonly type: string;
       readonly relation: string;
-    }
-  /** `[identity_account:* with allow_public]` — every object of the type, under the condition. */
-  | {
-      readonly form: "wildcard";
-      readonly type: string;
-      readonly condition: string;
     };
 
 export type Rewrite =
@@ -85,10 +84,6 @@ export function objectOf(type: string): SubjectType {
 
 export function usersetOf(type: string, relation: string): SubjectType {
   return { form: "userset", type, relation };
-}
-
-export function publicWith(type: string, condition: string): SubjectType {
-  return { form: "wildcard", type, condition };
 }
 
 export function direct(...subjects: ReadonlyArray<SubjectType>): Rewrite {

@@ -3,8 +3,8 @@
  * sqlite_search_query_store_test.go (the kind-parsing table) and
  * sqlite_search_query_store_query_test.go (the end-to-end
  * write→index→query pins: session list mode, the #440 emptiness arm, the
- * #439 newly-searchable-kind arm), plus the scope-filter matrix
- * (org strict / crossOrgPublic / excludePublic) and RebuildIndex —
+ * #439 newly-searchable-kind arm), plus the scope filter (org strict:
+ * visibility never widens or narrows it) and RebuildIndex —
  * including the DD-D proof: rebuilding over an ADOPTED Go-created
  * database re-indexes the rows it already holds. The escaping and
  * score-normalization tables moved with their code into the sqlite
@@ -118,8 +118,6 @@ function criteria(overrides: {
   kinds?: ApiResourceKind[];
   query?: string;
   org?: string;
-  excludePublic?: boolean;
-  crossOrgPublic?: boolean;
   pageNumber?: number;
   pageSize?: number;
 }): SearchCriteria {
@@ -127,8 +125,6 @@ function criteria(overrides: {
     overrides.kinds ?? [],
     overrides.query ?? "",
     overrides.org ?? "",
-    overrides.excludePublic ?? false,
-    overrides.crossOrgPublic ?? false,
     overrides.pageNumber ?? 1,
     overrides.pageSize ?? 20,
   );
@@ -249,7 +245,7 @@ describe("write→index→query pins (Go's query_test.go)", () => {
   });
 });
 
-describe("scope-filter matrix (Go buildScopeFilter)", () => {
+describe("scope filter (the org filter is strict)", () => {
   beforeEach(async () => {
     await seed(
       ApiResourceKind.session,
@@ -269,10 +265,10 @@ describe("scope-filter matrix (Go buildScopeFilter)", () => {
     );
     await seed(
       ApiResourceKind.session,
-      "ses-b-public",
+      "ses-b-org",
       SessionSchema,
-      newSession("ses-b-public", "org-b", "b public", {
-        visibility: ApiResourceVisibility.visibility_public,
+      newSession("ses-b-org", "org-b", "b org", {
+        visibility: ApiResourceVisibility.visibility_org,
         createdAtSeconds: 1_700_000_001,
       }),
     );
@@ -288,36 +284,13 @@ describe("scope-filter matrix (Go buildScopeFilter)", () => {
     expect(ids(result)).toEqual(["ses-a-private"]);
   });
 
-  it("crossOrgPublic widens to OTHER orgs' public rows only", async () => {
+  it("another org's rows stay out of an org filter whatever their visibility", async () => {
     const result = await queryStore.search(
-      criteria({
-        kinds: [ApiResourceKind.session],
-        org: "org-a",
-        crossOrgPublic: true,
-      }),
+      criteria({ kinds: [ApiResourceKind.session], org: "org-b" }),
     );
     expect(new Set(ids(result))).toEqual(
-      new Set(["ses-a-private", "ses-b-public"]),
+      new Set(["ses-b-private", "ses-b-org"]),
     );
-  });
-
-  it("excludePublic subtracts public rows from any scope", async () => {
-    const unscoped = await queryStore.search(
-      criteria({ kinds: [ApiResourceKind.session], excludePublic: true }),
-    );
-    expect(new Set(ids(unscoped))).toEqual(
-      new Set(["ses-a-private", "ses-b-private"]),
-    );
-
-    const widened = await queryStore.search(
-      criteria({
-        kinds: [ApiResourceKind.session],
-        org: "org-a",
-        crossOrgPublic: true,
-        excludePublic: true,
-      }),
-    );
-    expect(ids(widened)).toEqual(["ses-a-private"]);
   });
 
   it("no org filter returns every row, newest first (list mode ordering)", async () => {
@@ -327,7 +300,7 @@ describe("scope-filter matrix (Go buildScopeFilter)", () => {
     expect(ids(result)).toEqual([
       "ses-a-private",
       "ses-b-private",
-      "ses-b-public",
+      "ses-b-org",
     ]);
   });
 });
@@ -474,9 +447,7 @@ describe("rebuildIndex", () => {
         "skl_1",
         SkillSchema,
       );
-      expect(toBinary(SkillSchema, raw)).toEqual(
-        toBinary(SkillSchema, skill),
-      );
+      expect(toBinary(SkillSchema, raw)).toEqual(toBinary(SkillSchema, skill));
     } finally {
       await adopted.close();
       fixture.cleanup();

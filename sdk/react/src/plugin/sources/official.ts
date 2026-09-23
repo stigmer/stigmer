@@ -3,7 +3,7 @@
  *
  * `@stigmer/plugins` is published with every release; its package root IS
  * the marketplace tree (`plugins/` in the repository, staged whole). The
- * CLI acquires it at its own version so bootstrap content matches the
+ * CLI acquires it at its own version so what it installs matches the
  * control plane; the console reads it at the SERVER's version for the same
  * reason, through the npm CDN: jsdelivr lists a version's files
  * (`data.jsdelivr.com`) and serves them (`cdn.jsdelivr.net`), both with

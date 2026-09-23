@@ -18,15 +18,17 @@ package ai.stigmer.commons.apiresource;
  * old level is removed and the tuple for the new level is created:
  * - PRIVATE:  no visibility tuple (owner + explicit grants only)
  * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#member
- * - PUBLIC:   resource#viewer&#64;identity_account:* (gated by allow_public)
  * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
  *
  * Not all resources support all visibility levels — the supported set is
  * declared per kind via VisibilityConfig in kind_meta:
- * - Blueprints (agent, workflow, skill, mcp_server):
- * PRIVATE, ORG, PUBLIC, or PLATFORM
+ * - Blueprints (agent, workflow, skill, mcp_server, plugin):
+ * PRIVATE, ORG, or PLATFORM
  * - Instances (agent_instance, workflow_instance):
- * PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)
+ * PRIVATE or ORG (never PLATFORM — tenant isolation)
+ *
+ * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
+ * supported levels); the level is retired.
  *
  * System-managed DEFAULT instances reject visibility updates entirely:
  * their access structurally tracks the parent blueprint via the
@@ -333,15 +335,17 @@ private static final long serialVersionUID = 0L;
    * old level is removed and the tuple for the new level is created:
    * - PRIVATE:  no visibility tuple (owner + explicit grants only)
    * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#member
-   * - PUBLIC:   resource#viewer&#64;identity_account:* (gated by allow_public)
    * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
    *
    * Not all resources support all visibility levels — the supported set is
    * declared per kind via VisibilityConfig in kind_meta:
-   * - Blueprints (agent, workflow, skill, mcp_server):
-   * PRIVATE, ORG, PUBLIC, or PLATFORM
+   * - Blueprints (agent, workflow, skill, mcp_server, plugin):
+   * PRIVATE, ORG, or PLATFORM
    * - Instances (agent_instance, workflow_instance):
-   * PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)
+   * PRIVATE or ORG (never PLATFORM — tenant isolation)
+   *
+   * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
+   * supported levels); the level is retired.
    *
    * System-managed DEFAULT instances reject visibility updates entirely:
    * their access structurally tracks the parent blueprint via the

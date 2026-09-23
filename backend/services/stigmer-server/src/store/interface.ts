@@ -135,8 +135,9 @@ export interface SearchIndexEntry {
   /** Owning org (metadata.org) — org-scoped filtering. */
   readonly org: string;
   /**
-   * Visibility enum NAME (e.g. "visibility_public"); scope filtering only
-   * special-cases "visibility_public", all other levels are org-scoped.
+   * Visibility enum NAME (e.g. "visibility_org"), carried for display;
+   * scope filtering is by org and by the authorized-id map, never by
+   * this column.
    */
   readonly visibility: string;
   /** Unix seconds creation time — sorting in list mode (no query). */
@@ -166,10 +167,6 @@ export interface SearchIndexQuery {
   readonly terms: readonly string[] | undefined;
   /** Org scope; "" = no org filter. */
   readonly orgFilter: string;
-  /** With orgFilter: also admit visibility_public rows from ANY org. */
-  readonly crossOrgPublic: boolean;
-  /** Independent subtraction: drop visibility_public rows from any scope. */
-  readonly excludePublic: boolean;
   /**
    * Optional per-kind authorized-id allowlist (kind NAME → ids) — the
    * multi-tenant list-read scoping arm (20260830.01): a listed kind

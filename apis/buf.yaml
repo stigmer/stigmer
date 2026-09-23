@@ -29,23 +29,16 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # The Project kind's removal (the tenancy/project package, the skill
-  # synthesis handover, and the two enum values reserved in their place) is a
-  # deliberate FILE-category break the CI gate would otherwise refuse. This
-  # block lets that one pull request through and nothing else; the pull
+  # Public visibility retired: the operator permission that granted it, the
+  # two Search switches that read it and the kind-config flag that declared
+  # it leave the contract, each number and name reserved in place. A
+  # deliberate FILE-category break the CI gate would otherwise refuse; this
+  # block lets that one pull request through and nothing else, and the pull
   # request that follows the merge removes it, because main then has no
-  # project package for a deletion to be measured against.
+  # such field for a deletion to be measured against.
   ignore_only:
-    FILE_NO_DELETE:
-      - ai/stigmer/tenancy/project
-      - ai/stigmer/agentic/skill/v1/synth.proto
     ENUM_VALUE_NO_DELETE:
-      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
       - ai/stigmer/iam/v1/enum.proto
-    # The default-agent lookup's removal: a session created with no agent
-    # runs the built-in assistant, so the rpc that found a stored default and
-    # its request message leave the contract. Same one-merge shape as above.
-    RPC_NO_DELETE:
-      - ai/stigmer/agentic/agent/v1/query.proto
-    MESSAGE_NO_DELETE:
-      - ai/stigmer/agentic/agent/v1/io.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/search/v1/io.proto
+      - ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto

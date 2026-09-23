@@ -1,10 +1,11 @@
 /**
  * The evaluator — OpenFGA's check, over the built-in model and a tuple
  * source, small because the model uses four rewrite forms and nothing
- * else (model/rewrite.ts). `checkRelation(object, relation, person, context)`
+ * else (model/rewrite.ts). `checkRelation(object, relation, person)`
  * answers "does this person hold this relation on this object" the way
  * the cloud's engine answers it over stored tuples, so the two editions
- * share one meaning of authorization.
+ * share one meaning of authorization. There is no context parameter: the
+ * model declares no condition, so a check has no posture to state.
  *
  * The walk, in the order a `.fga` line reads:
  *   - `this`: the tuples on (object, relation). A tuple counts only if
@@ -12,9 +13,7 @@
  *     OpenFGA makes at write time, made here at read time, so a derived
  *     tuple the model no longer admits denies instead of allowing. An
  *     object subject matches when it names one of the person's aliases;
- *     a userset subject is resolved on its own object; the wildcard is
- *     honoured only under its condition (`allow_public` reads the
- *     context's `allow`; an unknown condition is a fault).
+ *     a userset subject is resolved on its own object.
  *   - `computed`: the same object, another relation.
  *   - `from`: every object the tupleset relation links to (again within
  *     the tupleset line's type restriction), resolved for the relation.
@@ -44,19 +43,8 @@
  */
 import type { Model } from "./model/index.js";
 import type { Rewrite, SubjectType } from "./model/rewrite.js";
-import type {
-  CheckContext,
-  ObjectRef,
-  Person,
-  Subject,
-  TupleSource,
-} from "./tuples.js";
-import {
-  ACCOUNT_TYPE,
-  ALLOW_PUBLIC_CONDITION,
-  formatObjectRef,
-  pairKey,
-} from "./tuples.js";
+import type { ObjectRef, Person, Subject, TupleSource } from "./tuples.js";
+import { ACCOUNT_TYPE, formatObjectRef, pairKey } from "./tuples.js";
 
 /**
  * OpenFGA's default resolution-depth limit (its `resolveNodeLimit`), so
@@ -77,8 +65,7 @@ export type EvaluationFault =
   | "undeclared-target-kind"
   | "internal-caller-offered"
   | "resolution-depth-exceeded"
-  | "resolution-cycle"
-  | "unknown-condition";
+  | "resolution-cycle";
 
 /** A fault in the model or its evaluation — never a denial; the driver maps it to `unavailable`. */
 export class AuthorizationEvaluationError extends Error {
@@ -101,7 +88,6 @@ export async function checkRelation(
   object: ObjectRef,
   relation: string,
   person: Person,
-  context: CheckContext,
 ): Promise<boolean> {
   if (deps.model.byType(object.type) === undefined) {
     throw new AuthorizationEvaluationError(
@@ -109,7 +95,7 @@ export async function checkRelation(
       `no declaration for kind '${object.type}' (target ${formatObjectRef(object)})`,
     );
   }
-  return new Walk(deps, person, context).resolve(object, relation, 0);
+  return new Walk(deps, person).resolve(object, relation, 0);
 }
 
 /** One check's state: the memo and the in-progress set, over one source. */
@@ -120,7 +106,6 @@ class Walk {
   constructor(
     private readonly deps: EvaluationDeps,
     private readonly person: Person,
-    private readonly context: CheckContext,
   ) {}
 
   resolve(
@@ -234,31 +219,10 @@ class Walk {
               allowed.relation === subject.relation,
           ) && (await this.resolve(subject.object, subject.relation, depth + 1))
         );
-      case "wildcard": {
-        const allowed = restriction.some(
-          (entry) =>
-            entry.form === "wildcard" &&
-            entry.type === subject.type &&
-            entry.condition === subject.condition,
-        );
-        return allowed && this.conditionHolds(subject.condition);
-      }
       default: {
         const exhaustive: never = subject;
         throw new Error(`unknown subject form: ${JSON.stringify(exhaustive)}`);
       }
-    }
-  }
-
-  private conditionHolds(condition: string | undefined): boolean {
-    switch (condition) {
-      case ALLOW_PUBLIC_CONDITION:
-        return this.context.allow;
-      default:
-        throw new AuthorizationEvaluationError(
-          "unknown-condition",
-          `the model declares no condition '${String(condition)}'`,
-        );
     }
   }
 

@@ -713,6 +713,7 @@ stigmer get workflow my-workflow --output yaml | grep -A 5 warnings
 # 6. Iterate — edit, re-apply
 stigmer apply my-workflow.yaml
 
-# 7. When ready for production, set visibility to public
-# (update metadata.visibility: visibility_public in YAML and re-apply)
+# 7. To keep a draft to yourself while iterating, set visibility to private
+# (update metadata.visibility: visibility_private in YAML and re-apply;
+#  the default, visibility_org, is what the whole organization runs)
 ```

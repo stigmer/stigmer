@@ -13,7 +13,7 @@ import {
 } from "../tuples.js";
 
 describe("the string notation", () => {
-  it("parses an object, a userset and the wildcard, and an id may carry a colon (issuer subjects do)", () => {
+  it("parses an object and a userset, and an id may carry a colon (issuer subjects do)", () => {
     expect(parseObjectRef("agent:agt_1")).toEqual({
       type: "agent",
       id: "agt_1",
@@ -27,11 +27,6 @@ describe("the string notation", () => {
       object: { type: "organization", id: "acme" },
       relation: "viewer",
     });
-    expect(parseSubject("identity_account:*")).toEqual({
-      form: "wildcard",
-      type: "identity_account",
-      condition: undefined,
-    });
     expect(parseSubject("identity_account:ida_x")).toEqual({
       form: "object",
       object: { type: "identity_account", id: "ida_x" },
@@ -43,18 +38,24 @@ describe("the string notation", () => {
     expect(() => parseObjectRef(":id")).toThrow("not an object reference");
   });
 
-  it("formats a tuple in the proto's notation, the condition spelled after `with`", () => {
+  it("refuses the wildcard notation — no line of the model admits one", () => {
+    expect(() => parseSubject("identity_account:*")).toThrow(
+      "wildcard subject 'identity_account:*' is not admitted",
+    );
+  });
+
+  it("formats a tuple in the proto's notation", () => {
     expect(
       formatTuple({
         object: parseObjectRef("agent:a"),
         relation: "viewer",
         subject: {
-          form: "wildcard",
-          type: "identity_account",
-          condition: "allow_public",
+          form: "userset",
+          object: { type: "organization", id: "acme" },
+          relation: "viewer",
         },
       }),
-    ).toBe("agent:a#viewer@identity_account:* with allow_public");
+    ).toBe("agent:a#viewer@organization:acme#viewer");
     expect(formatSubject(parseSubject("organization:acme#member"))).toBe(
       "organization:acme#member",
     );

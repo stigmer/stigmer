@@ -78,25 +78,19 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the agent this share distributes.
    *
-   * The referenced agent may live in another organization when it is
-   * marketplace-public: the share then offers that agent from this share's
-   * org, billed to this share's org, with tool credentials bound from this
-   * share's org. Cross-org shares must have a public audience.
+   * The referenced agent must live in this share's organization: a share
+   * offers an agent its own organization owns, billed to that organization,
+   * with tool credentials bound from it. To share another organization's
+   * agent, install the plugin that carries it and share the installed copy.
    *
    * &#64;internal
-   * Cross-org contract (decision 013): making an agent visibility_public
-   * IS the origin org's consent to external shares — enforced app-level in
-   * both editions' defaults resolvers (spec-level CEL cannot see
-   * metadata.org), together with the public-audience-only rule and the
-   * dependency-publicness sweep (every skill/MCP the agent declares must be
-   * visibility_public, refused loudly naming blockers). The sharing org is
-   * always the billing org (decision 001 generalized) and guest tool
-   * credentials resolve in the share's org (secrets never cross orgs —
-   * org A's environments are structurally unreachable from org B's
-   * executions via OrgSharedEnvironmentPolicy). The agent's public
-   * visibility is re-verified on every guest turn, at the shared profile,
-   * and at guest mint, so revoking visibility kills external channels on
-   * the visitor's next message. status.agent_id pins the resolved agent
+   * agent_ref.org must equal metadata.org, enforced app-level in both
+   * editions (spec-level CEL cannot see metadata.org), the same rule the
+   * schedule and channel kinds apply to their agent reference. The sharing
+   * org is the billing org (decision 001) and guest tool credentials
+   * resolve in the share's org (secrets never cross orgs — org A's
+   * environments are structurally unreachable from org B's executions via
+   * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
    * against slug-reuse rebind.
    * </pre>
    *
@@ -111,25 +105,19 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the agent this share distributes.
    *
-   * The referenced agent may live in another organization when it is
-   * marketplace-public: the share then offers that agent from this share's
-   * org, billed to this share's org, with tool credentials bound from this
-   * share's org. Cross-org shares must have a public audience.
+   * The referenced agent must live in this share's organization: a share
+   * offers an agent its own organization owns, billed to that organization,
+   * with tool credentials bound from it. To share another organization's
+   * agent, install the plugin that carries it and share the installed copy.
    *
    * &#64;internal
-   * Cross-org contract (decision 013): making an agent visibility_public
-   * IS the origin org's consent to external shares — enforced app-level in
-   * both editions' defaults resolvers (spec-level CEL cannot see
-   * metadata.org), together with the public-audience-only rule and the
-   * dependency-publicness sweep (every skill/MCP the agent declares must be
-   * visibility_public, refused loudly naming blockers). The sharing org is
-   * always the billing org (decision 001 generalized) and guest tool
-   * credentials resolve in the share's org (secrets never cross orgs —
-   * org A's environments are structurally unreachable from org B's
-   * executions via OrgSharedEnvironmentPolicy). The agent's public
-   * visibility is re-verified on every guest turn, at the shared profile,
-   * and at guest mint, so revoking visibility kills external channels on
-   * the visitor's next message. status.agent_id pins the resolved agent
+   * agent_ref.org must equal metadata.org, enforced app-level in both
+   * editions (spec-level CEL cannot see metadata.org), the same rule the
+   * schedule and channel kinds apply to their agent reference. The sharing
+   * org is the billing org (decision 001) and guest tool credentials
+   * resolve in the share's org (secrets never cross orgs — org A's
+   * environments are structurally unreachable from org B's executions via
+   * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
    * against slug-reuse rebind.
    * </pre>
    *
@@ -144,25 +132,19 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the agent this share distributes.
    *
-   * The referenced agent may live in another organization when it is
-   * marketplace-public: the share then offers that agent from this share's
-   * org, billed to this share's org, with tool credentials bound from this
-   * share's org. Cross-org shares must have a public audience.
+   * The referenced agent must live in this share's organization: a share
+   * offers an agent its own organization owns, billed to that organization,
+   * with tool credentials bound from it. To share another organization's
+   * agent, install the plugin that carries it and share the installed copy.
    *
    * &#64;internal
-   * Cross-org contract (decision 013): making an agent visibility_public
-   * IS the origin org's consent to external shares — enforced app-level in
-   * both editions' defaults resolvers (spec-level CEL cannot see
-   * metadata.org), together with the public-audience-only rule and the
-   * dependency-publicness sweep (every skill/MCP the agent declares must be
-   * visibility_public, refused loudly naming blockers). The sharing org is
-   * always the billing org (decision 001 generalized) and guest tool
-   * credentials resolve in the share's org (secrets never cross orgs —
-   * org A's environments are structurally unreachable from org B's
-   * executions via OrgSharedEnvironmentPolicy). The agent's public
-   * visibility is re-verified on every guest turn, at the shared profile,
-   * and at guest mint, so revoking visibility kills external channels on
-   * the visitor's next message. status.agent_id pins the resolved agent
+   * agent_ref.org must equal metadata.org, enforced app-level in both
+   * editions (spec-level CEL cannot see metadata.org), the same rule the
+   * schedule and channel kinds apply to their agent reference. The sharing
+   * org is the billing org (decision 001) and guest tool credentials
+   * resolve in the share's org (secrets never cross orgs — org A's
+   * environments are structurally unreachable from org B's executions via
+   * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
    * against slug-reuse rebind.
    * </pre>
    *
@@ -1274,25 +1256,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1306,25 +1282,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1342,25 +1312,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1383,25 +1347,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1422,25 +1380,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1468,25 +1420,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1506,25 +1452,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1539,25 +1479,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *
@@ -1575,25 +1509,19 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the agent this share distributes.
      *
-     * The referenced agent may live in another organization when it is
-     * marketplace-public: the share then offers that agent from this share's
-     * org, billed to this share's org, with tool credentials bound from this
-     * share's org. Cross-org shares must have a public audience.
+     * The referenced agent must live in this share's organization: a share
+     * offers an agent its own organization owns, billed to that organization,
+     * with tool credentials bound from it. To share another organization's
+     * agent, install the plugin that carries it and share the installed copy.
      *
      * &#64;internal
-     * Cross-org contract (decision 013): making an agent visibility_public
-     * IS the origin org's consent to external shares — enforced app-level in
-     * both editions' defaults resolvers (spec-level CEL cannot see
-     * metadata.org), together with the public-audience-only rule and the
-     * dependency-publicness sweep (every skill/MCP the agent declares must be
-     * visibility_public, refused loudly naming blockers). The sharing org is
-     * always the billing org (decision 001 generalized) and guest tool
-     * credentials resolve in the share's org (secrets never cross orgs —
-     * org A's environments are structurally unreachable from org B's
-     * executions via OrgSharedEnvironmentPolicy). The agent's public
-     * visibility is re-verified on every guest turn, at the shared profile,
-     * and at guest mint, so revoking visibility kills external channels on
-     * the visitor's next message. status.agent_id pins the resolved agent
+     * agent_ref.org must equal metadata.org, enforced app-level in both
+     * editions (spec-level CEL cannot see metadata.org), the same rule the
+     * schedule and channel kinds apply to their agent reference. The sharing
+     * org is the billing org (decision 001) and guest tool credentials
+     * resolve in the share's org (secrets never cross orgs — org A's
+     * environments are structurally unreachable from org B's executions via
+     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
      * against slug-reuse rebind.
      * </pre>
      *

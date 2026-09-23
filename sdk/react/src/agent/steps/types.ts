@@ -22,8 +22,6 @@ export interface AgentWizardData {
   readonly description: string;
   /** Icon URL (optional). */
   readonly iconUrl: string;
-  /** Resource visibility. */
-  readonly visibility: "private" | "public";
   /** System prompt / instructions (the agent's core content). */
   readonly instructions: string;
 
@@ -44,7 +42,6 @@ export function createInitialWizardData(): AgentWizardData {
     slugTouched: false,
     description: "",
     iconUrl: "",
-    visibility: "private",
     instructions: "",
     mcpServerUsages: [],
     skillRefs: [],

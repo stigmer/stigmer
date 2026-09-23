@@ -16,8 +16,9 @@
  *     outsider on an EXISTING resource hears PERMISSION_DENIED, the
  *     cloud's answer; `findMyOrganizations` lists what a person may view
  *     and `find` refuses enumeration; `checkMyPermission` tells the truth;
- *     nobody sets public visibility; an unprovisioned subject
- *     writes nothing until provisioned. The LIST lanes are a member's
+ *     the retired public level is refused for the founder too, as an
+ *     invalid level and not a permission question; an unprovisioned
+ *     subject writes nothing until provisioned. The LIST lanes are a member's
  *     lists: an outsider lists nothing of an organization they hold no
  *     row in; environments and API keys are their owner's even to the
  *     organization's owner; the library (a search) omits a private agent
@@ -26,8 +27,9 @@
  *     provisioned.
  *   - trusted-local: the permissive default stays (one caller,
  *     nothing to separate; the laptop's rows are stamped `"system"`):
- *     tokenless reads, public visibility and organization enumeration all
- *     keep working.
+ *     tokenless reads and organization enumeration keep working, and
+ *     the retired public level is refused here exactly as it is under
+ *     every other posture (the level is gone, not gated).
  *   - a unit's own Authorizer: nothing built in is installed; the unit's
  *     answer stands even against the founder.
  *
@@ -80,7 +82,6 @@ import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
-import { PUBLIC_VISIBILITY_DENY_MESSAGE } from "../../pipeline/steps/visibility-gates.js";
 import type { Store } from "../../store/interface.js";
 import type { Authorizer } from "../authorizer.js";
 import type { ListReadScope } from "../list-read-scope.js";
@@ -131,6 +132,15 @@ function organizationInput(slug: string) {
     spec: { description: slug },
   };
 }
+
+/**
+ * The one sentence for a level a kind does not support, as the agent chain
+ * answers it (pipeline/steps/validate-visibility.ts builds it from the
+ * kind's config); pinned as bytes because clients render it.
+ */
+const PUBLIC_LEVEL_REFUSED_FOR_AGENT =
+  "agent resources cannot be set to visibility_public. " +
+  "Supported visibility levels: visibility_private, visibility_org, visibility_platform.";
 
 function agentInput(
   name: string,
@@ -377,14 +387,14 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     );
   });
 
-  it("nobody sets PUBLIC visibility on an enforcing self-host — the platform gate denies the founder with the policy copy", async () => {
+  it("the retired public level is refused for the founder as an invalid level, before any permission question", async () => {
     const failure = await failureOf(
       createClient(AgentCommandController, asFounder()).create(
         agentInput("Public Agent", ApiResourceVisibility.visibility_public),
       ),
     );
-    expect(failure.code).toBe(Code.PermissionDenied);
-    expect(failure.rawMessage).toBe(PUBLIC_VISIBILITY_DENY_MESSAGE);
+    expect(failure.code).toBe(Code.InvalidArgument);
+    expect(failure.rawMessage).toBe(PUBLIC_LEVEL_REFUSED_FOR_AGENT);
   });
 
   describe("the list lanes (the built-in ListReadScope)", () => {
@@ -595,20 +605,18 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     expect(read.metadata?.id).toBe(created.metadata!.id);
   });
 
-  it("the laptop keeps public visibility and organization enumeration — no directory, no platform gate that bites", async () => {
+  it("the laptop keeps organization enumeration and refuses the retired public level like every posture — the level is gone, not gated", async () => {
     const anonymous = transportFor(port);
-    const publicAgent = await createClient(
-      AgentCommandController,
-      anonymous,
-    ).create(
-      agentInput(
-        "Public Laptop Agent",
-        ApiResourceVisibility.visibility_public,
+    const failure = await failureOf(
+      createClient(AgentCommandController, anonymous).create(
+        agentInput(
+          "Public Laptop Agent",
+          ApiResourceVisibility.visibility_public,
+        ),
       ),
     );
-    expect(publicAgent.metadata?.visibility).toBe(
-      ApiResourceVisibility.visibility_public,
-    );
+    expect(failure.code).toBe(Code.InvalidArgument);
+    expect(failure.rawMessage).toBe(PUBLIC_LEVEL_REFUSED_FOR_AGENT);
     const all = await createClient(OrganizationQueryController, anonymous).find(
       { org: ORG },
     );
@@ -617,6 +625,11 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
 
   it("the laptop's lists are the full scan — no scope composed, the rows stamped `system` included", async () => {
     const anonymous = transportFor(port);
+    // A second agent beside the private one the earlier test created, so
+    // the search below proves a scan and not a single-row coincidence.
+    await createClient(AgentCommandController, anonymous).create(
+      agentInput("Second Laptop Agent", ApiResourceVisibility.visibility_org),
+    );
     const environments = createClient(EnvironmentCommandController, anonymous);
     await environments.create(environmentInput("laptop env one"));
     await environments.create(environmentInput("laptop env two"));

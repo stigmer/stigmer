@@ -100,12 +100,9 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   },
 ];
 
-// Cards always count in org scope (the hooks' default): the landing presents
-// "your organization's library", so it never inherits the per-list-page Org/All
-// toggle. Inheriting it made each card silently follow whatever scope was last
-// used on its list page — five cards could show five different scopes, and an
-// "All" card counted cross-org public resources. Desktop's landing has always
-// been org-only; this matches it (DD-016).
+// Cards count the organization's rows: the landing presents "your
+// organization's library", the same set every list page shows. Wired
+// identically on the desktop landing (DD-016).
 function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const agents = useAgentCount(org, { refetchToken });
   const workflows = useWorkflowCount(org, { refetchToken });

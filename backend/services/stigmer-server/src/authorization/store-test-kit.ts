@@ -41,26 +41,18 @@
  * `skipped` is therefore complete once every case has run; a consumer
  * pins it after the cases, which is the order a test file declares them.
  *
- * Context. A check's `context.allow` is the `allow_public` parameter
- * (tuples.ts). A check without a context runs with `allow: false`, the
- * listing posture: OpenFGA itself would fault on a conditional tuple it
- * reached with the parameter missing, so the cloud's documents never do
- * that — their CI would already fail — and the choice cannot change an
- * answer the oracle gives. The parser is strict on purpose: an unknown
- * key anywhere is a thrown fault, so a change to the format upstream is
- * loud here rather than half-run.
+ * The parser is strict on purpose: an unknown key anywhere is a thrown
+ * fault, so a change to the format upstream is loud here rather than
+ * half-run. The model declares no condition, so the format's `condition`
+ * on a tuple and `context` on a check are among the keys refused: a
+ * document that still carries them is written against a model this
+ * evaluator does not answer, and saying so beats running it half-blind.
  */
 import assert from "node:assert/strict";
 
 import { checkRelation } from "./evaluator.js";
 import type { Model } from "./model/index.js";
-import type {
-  CheckContext,
-  Person,
-  Subject,
-  Tuple,
-  TupleSource,
-} from "./tuples.js";
+import type { Person, Subject, Tuple, TupleSource } from "./tuples.js";
 import {
   ACCOUNT_TYPE,
   newInMemoryTupleSource,
@@ -76,20 +68,17 @@ export interface StoreTestTuple {
   readonly user: string;
   readonly relation: string;
   readonly object: string;
-  readonly condition?: { readonly name: string };
 }
 
 export interface StoreTestCheck {
   readonly user: string;
   readonly object: string;
-  readonly context?: CheckContext;
   readonly assertions: Readonly<Record<string, boolean>>;
 }
 
 export interface StoreTestListObjects {
   readonly user: string;
   readonly type: string;
-  readonly context?: CheckContext;
   readonly assertions: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
@@ -132,27 +121,11 @@ export function parseStoreTestDocument(
 }
 
 function parseTuple(value: unknown, where: string): StoreTestTuple {
-  const entry = record(value, where, [
-    "user",
-    "relation",
-    "object",
-    "condition",
-  ]);
-  const tuple: StoreTestTuple = {
+  const entry = record(value, where, ["user", "relation", "object"]);
+  return {
     user: text(entry["user"], `${where}.user`),
     relation: text(entry["relation"], `${where}.relation`),
     object: text(entry["object"], `${where}.object`),
-  };
-  if (entry["condition"] === undefined) {
-    return tuple;
-  }
-  const condition = record(entry["condition"], `${where}.condition`, [
-    "name",
-    "context",
-  ]);
-  return {
-    ...tuple,
-    condition: { name: text(condition["name"], `${where}.condition.name`) },
   };
 }
 
@@ -173,12 +146,7 @@ function parseTest(value: unknown, where: string): StoreTest {
 }
 
 function parseCheck(value: unknown, where: string): StoreTestCheck {
-  const entry = record(value, where, [
-    "user",
-    "object",
-    "context",
-    "assertions",
-  ]);
+  const entry = record(value, where, ["user", "object", "assertions"]);
   const assertions = record(entry["assertions"], `${where}.assertions`);
   const parsed: Record<string, boolean> = {};
   for (const [relation, expected] of Object.entries(assertions)) {
@@ -187,17 +155,15 @@ function parseCheck(value: unknown, where: string): StoreTestCheck {
     }
     parsed[relation] = expected;
   }
-  const context = parseContext(entry["context"], `${where}.context`);
   return {
     user: text(entry["user"], `${where}.user`),
     object: text(entry["object"], `${where}.object`),
-    ...(context === undefined ? {} : { context }),
     assertions: parsed,
   };
 }
 
 function parseListObjects(value: unknown, where: string): StoreTestListObjects {
-  const entry = record(value, where, ["user", "type", "context", "assertions"]);
+  const entry = record(value, where, ["user", "type", "assertions"]);
   const assertions = record(entry["assertions"], `${where}.assertions`);
   const parsed: Record<string, ReadonlyArray<string>> = {};
   for (const [relation, expected] of Object.entries(assertions)) {
@@ -205,24 +171,11 @@ function parseListObjects(value: unknown, where: string): StoreTestListObjects {
       (item, index) => text(item, `${where}.assertions.${relation}[${index}]`),
     );
   }
-  const context = parseContext(entry["context"], `${where}.context`);
   return {
     user: text(entry["user"], `${where}.user`),
     type: text(entry["type"], `${where}.type`),
-    ...(context === undefined ? {} : { context }),
     assertions: parsed,
   };
-}
-
-function parseContext(value: unknown, where: string): CheckContext | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const entry = record(value, where, ["allow"]);
-  if (typeof entry["allow"] !== "boolean") {
-    throw new Error(`${where}.allow: expected a boolean`);
-  }
-  return { allow: entry["allow"] };
 }
 
 function record(
@@ -297,9 +250,6 @@ export interface StoreTestKit {
   readonly skipped: ReadonlyArray<StoreTestSkip>;
 }
 
-/** The listing posture, for a check the document leaves without a context (the module header). */
-const CONTEXT_WHEN_ABSENT: CheckContext = { allow: false };
-
 /**
  * The document's tests as runnable cases over `model`, plus every
  * assertion group the kit does not run.
@@ -346,7 +296,6 @@ export function storeTestCases(
         for (const item of runnable) {
           const object = parseObjectRef(item.object);
           const person = personOf(item.user);
-          const context = item.context ?? CONTEXT_WHEN_ABSENT;
           for (const [relation, expected] of Object.entries(item.assertions)) {
             const recording = recordUndeclaredTypes(source, model);
             const actual = await checkRelation(
@@ -354,7 +303,6 @@ export function storeTestCases(
               object,
               relation,
               person,
-              context,
             );
             if (recording.reached.size > 0) {
               skipped.push({
@@ -371,7 +319,7 @@ export function storeTestCases(
             assert.equal(
               actual,
               expected,
-              `${document.name} :: ${test.name}: ${item.user} ${relation} ${item.object} (allow: ${String(context.allow)}) expected ${String(expected)}, got ${String(actual)}`,
+              `${document.name} :: ${test.name}: ${item.user} ${relation} ${item.object} expected ${String(expected)}, got ${String(actual)}`,
             );
           }
         }
@@ -389,10 +337,9 @@ interface RecordingTupleSource extends TupleSource {
 /**
  * A view of `inner` that records, for one walk, every subject type the
  * evaluator read that `model` does not declare. A person
- * (`identity_account:<id>`, the wildcard) is a subject the evaluator
- * compares, never a type it resolves, so it is not a "reach" whatever
- * the model declares; a userset or a parent object of an undeclared
- * type is.
+ * (`identity_account:<id>`) is a subject the evaluator compares, never a
+ * type it resolves, so it is not a "reach" whatever the model declares; a
+ * userset or a parent object of an undeclared type is.
  */
 function recordUndeclaredTypes(
   inner: TupleSource,
@@ -423,8 +370,6 @@ function resolvedTypeOf(subject: Subject): string | undefined {
         : subject.object.type;
     case "userset":
       return subject.object.type;
-    case "wildcard":
-      return undefined;
     default: {
       const exhaustive: never = subject;
       throw new Error(`unknown subject form: ${JSON.stringify(exhaustive)}`);
@@ -433,14 +378,10 @@ function resolvedTypeOf(subject: Subject): string | undefined {
 }
 
 function tupleOf(entry: StoreTestTuple): Tuple {
-  const subject = parseSubject(entry.user);
   return {
     object: parseObjectRef(entry.object),
     relation: entry.relation,
-    subject:
-      subject.form === "wildcard" && entry.condition !== undefined
-        ? { ...subject, condition: entry.condition.name }
-        : subject,
+    subject: parseSubject(entry.user),
   };
 }
 

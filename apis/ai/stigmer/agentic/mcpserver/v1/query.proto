@@ -12,9 +12,10 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //
 // @internal
 // Authorization model:
-// - Platform-scoped: Anyone can view (public marketplace)
-// - Organization-scoped: Org members can view
-// - Identity-account-scoped: Only the owner can view
+// - visibility_platform: members of the organizations the owning org's
+//   identity provider links can view
+// - visibility_org: org members can view
+// - visibility_private: the owner and explicit grants can view
 service McpServerQueryController {
   // Service-level option identifying this as an MCP server controller.
   option (ai.stigmer.commons.apiresource.api_resource_kind) = mcp_server;

@@ -216,7 +216,8 @@ function generateTSFile(m: McpGen): void {
   imports.addValue(resourceBase + "/api_pb", kind + "Schema");
   imports.addType(resourceBase + "/api_pb", kind);
   imports.addValue("./apply-runtime.js", "generateSlug");
-  imports.addValue("./apply-runtime.js", "visibilityFromString");
+  imports.addValue("./apply-runtime.js", "enumFromString");
+  imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb", "ApiResourceVisibility");
 
   const body: string[] = [];
 
@@ -253,7 +254,10 @@ function identityZodFields(w: string[]): void {
   w.push(`  name: z.string().describe(${goQuote("Human-readable name of the resource.")}),\n`);
   w.push(`  slug: z.string().optional().describe(${goQuote("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted.")}),\n`);
   w.push(`  org: z.string().describe(${goQuote("Organization that owns this resource (e.g. acme).")}),\n`);
-  w.push(`  visibility: z.string().optional().describe(${goQuote("Resource visibility: PRIVATE or PUBLIC. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged.")}),\n`);
+  // Visibility rides the same enum-name convention as every other enum input
+  // (`enumFromString`, "Allowed values: ..."); the three levels named are the
+  // ones the server accepts — the retired public level is not offered.
+  w.push(`  visibility: z.string().optional().describe(${goQuote("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_platform.")}),\n`);
   w.push(`  labels: z.record(z.string()).optional().describe(${goQuote("Key-value labels for organization and filtering.")}),\n`);
   w.push(`  tags: z.array(z.string()).optional().describe(${goQuote("Tags for categorization and discovery.")}),\n`);
 }
@@ -414,7 +418,7 @@ function genTSTopLevelToProto(m: McpGen, w: string[], kind: string, apiVersion: 
   w.push("      name: input.name,\n");
   w.push("      slug,\n");
   w.push("      org: input.org,\n");
-  w.push("      ...(input.visibility !== undefined && { visibility: visibilityFromString(input.visibility) }),\n");
+  w.push("      ...(input.visibility !== undefined && { visibility: enumFromString(ApiResourceVisibility, input.visibility) as ApiResourceVisibility }),\n");
   w.push("      ...(input.labels !== undefined && { labels: input.labels }),\n");
   w.push("      ...(input.tags !== undefined && { tags: input.tags }),\n");
   w.push("    }),\n");
@@ -579,7 +583,6 @@ function writeApplyRuntime(outputDir: string): void {
 // Shared runtime helpers for the generated apply-input toProto bridges.
 
 import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 /**
  * Slugify a resource name: lowercase, collapse each run of non-alphanumeric
@@ -599,13 +602,6 @@ export function generateSlug(name: string): string {
     }
   }
   return out.replace(/^-+/, "").replace(/-+$/, "");
-}
-
-/** Map the PUBLIC/PRIVATE apply input string to the visibility enum. */
-export function visibilityFromString(s: string | undefined): ApiResourceVisibility {
-  if (s && s.toUpperCase() === "PUBLIC") return ApiResourceVisibility.visibility_public;
-  if (s && s.toUpperCase() === "PRIVATE") return ApiResourceVisibility.visibility_private;
-  return ApiResourceVisibility.api_resource_visibility_unspecified;
 }
 
 /**

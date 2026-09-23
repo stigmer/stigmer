@@ -43,20 +43,21 @@ type AgentCommandControllerClient interface {
 	//
 	// This is a targeted metadata update — it only modifies metadata.visibility,
 	// leaving spec, status, and other metadata fields untouched. Use this to
-	// make an agent publicly accessible or to revoke public access without
-	// sending the entire agent resource (avoiding read-modify-write races).
+	// widen or narrow who can read the agent without sending the entire agent
+	// resource (avoiding read-modify-write races).
 	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
+	// Raising the level is refused while a skill, MCP server or agent the
+	// agent references is less visible than the requested level: what a
+	// person can run they must also be able to read.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
 	//
 	// Deletion also removes the agent's system-managed default instance and
 	// every AgentShare in the agent's own organization referencing it, so a
 	// later agent created at the same org/slug starts clean. Personal
-	// instances, sessions, and other organizations' shares of this agent are
-	// not deleted — external shares stop resolving instead.
+	// instances and sessions are not deleted, nor is a share written in
+	// another organization before sharing across organizations was retired;
+	// such a share stops resolving instead.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 }
 
@@ -134,20 +135,21 @@ type AgentCommandControllerServer interface {
 	//
 	// This is a targeted metadata update — it only modifies metadata.visibility,
 	// leaving spec, status, and other metadata fields untouched. Use this to
-	// make an agent publicly accessible or to revoke public access without
-	// sending the entire agent resource (avoiding read-modify-write races).
+	// widen or narrow who can read the agent without sending the entire agent
+	// resource (avoiding read-modify-write races).
 	//
-	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
-	// every org boundary, so it is granted by the platform team on request.
-	// Un-publishing and all other levels stay self-service.
+	// Raising the level is refused while a skill, MCP server or agent the
+	// agent references is less visible than the requested level: what a
+	// person can run they must also be able to read.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error)
 	// Delete an agent.
 	//
 	// Deletion also removes the agent's system-managed default instance and
 	// every AgentShare in the agent's own organization referencing it, so a
 	// later agent created at the same org/slug starts clean. Personal
-	// instances, sessions, and other organizations' shares of this agent are
-	// not deleted — external shares stop resolving instead.
+	// instances and sessions are not deleted, nor is a share written in
+	// another organization before sharing across organizations was retired;
+	// such a share stops resolving instead.
 	Delete(context.Context, *AgentId) (*Agent, error)
 }
 

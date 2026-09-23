@@ -12,10 +12,15 @@ public interface AgentCallTaskConfigOrBuilder extends
 
   /**
    * <pre>
-   * Agent reference in "org/slug" or "slug" format.
-   * - "slug" only: uses the workflow's organization
-   * - "org/slug": explicit organization reference
-   * Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
+   * Agent to invoke, as "slug", "org/slug", or a value holding a runtime expression.
+   * - "slug": an agent of the organization the workflow runs in; checked when the
+   * workflow is saved, against the workflow's own organization
+   * - "org/slug": that organization's agent; checked when the workflow is saved,
+   * and another organization's agent must be shared at platform visibility
+   * - a value holding "${ ... }", "${.env_vars.KEY}" or "${.secrets.KEY}": resolved
+   * to "slug" or "org/slug" when the task runs, and read as the person who ran
+   * the workflow
+   * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
    * Required field.
    *
    * &#64;internal
@@ -23,6 +28,14 @@ public interface AgentCallTaskConfigOrBuilder extends
    * ApiResourceReference shape is deliberately not used here: the
    * authoring surface is YAML written by hand, and "org/slug" is its
    * idiom.
+   *
+   * A bare slug is relative: the runner resolves it in the execution's
+   * organization (`__stigmer_org_id`), which is not the workflow's when a
+   * person runs the workflow from another organization by id. The
+   * server's reference rule judges a bare slug in the workflow's own
+   * organization with its visibility floor capped at org, and collects
+   * nothing for a value containing "${", which no slug can contain
+   * (stigmer-server domain/workflow/agent-call-references.ts).
    * </pre>
    *
    * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -31,10 +44,15 @@ public interface AgentCallTaskConfigOrBuilder extends
   java.lang.String getAgent();
   /**
    * <pre>
-   * Agent reference in "org/slug" or "slug" format.
-   * - "slug" only: uses the workflow's organization
-   * - "org/slug": explicit organization reference
-   * Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
+   * Agent to invoke, as "slug", "org/slug", or a value holding a runtime expression.
+   * - "slug": an agent of the organization the workflow runs in; checked when the
+   * workflow is saved, against the workflow's own organization
+   * - "org/slug": that organization's agent; checked when the workflow is saved,
+   * and another organization's agent must be shared at platform visibility
+   * - a value holding "${ ... }", "${.env_vars.KEY}" or "${.secrets.KEY}": resolved
+   * to "slug" or "org/slug" when the task runs, and read as the person who ran
+   * the workflow
+   * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
    * Required field.
    *
    * &#64;internal
@@ -42,6 +60,14 @@ public interface AgentCallTaskConfigOrBuilder extends
    * ApiResourceReference shape is deliberately not used here: the
    * authoring surface is YAML written by hand, and "org/slug" is its
    * idiom.
+   *
+   * A bare slug is relative: the runner resolves it in the execution's
+   * organization (`__stigmer_org_id`), which is not the workflow's when a
+   * person runs the workflow from another organization by id. The
+   * server's reference rule judges a bare slug in the workflow's own
+   * organization with its visibility floor capped at org, and collects
+   * nothing for a value containing "${", which no slug can contain
+   * (stigmer-server domain/workflow/agent-call-references.ts).
    * </pre>
    *
    * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>

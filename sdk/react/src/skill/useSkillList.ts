@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useResourceList, type ResourceListScope } from "../search/index.js";
+import { useResourceList } from "../search/index.js";
 
 /** Options for {@link useSkillList}. */
 export interface UseSkillListOptions {
@@ -13,15 +13,6 @@ export interface UseSkillListOptions {
   readonly page?: number;
   /** Text query to filter skills by name, description, or tags. */
   readonly query?: string;
-  /**
-   * Controls which skills are visible.
-   *
-   * - `"org"` — only skills owned by the given organization.
-   * - `"all"` — includes public/platform skills.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
 }
 
 /** Return value of {@link useSkillList}. */
@@ -45,9 +36,9 @@ export interface UseSkillListReturn {
 /**
  * Data hook that fetches a paginated list of skills for the Library.
  *
- * Wraps `stigmer.skill.list()` with pagination, scope filtering,
- * and text search. All parameters are externally controlled — the
- * consumer manages page state, query debouncing, and scope toggling.
+ * Wraps `stigmer.skill.list()` with pagination and text search over the
+ * organization's skills. All parameters are externally controlled — the
+ * consumer manages page state and query debouncing.
  *
  * For picker/type-ahead search with internal debouncing and query
  * state management, use {@link useSkillSearch} instead.
@@ -59,14 +50,7 @@ export interface UseSkillListReturn {
  * const { skills, totalCount, isLoading } = useSkillList("acme", {
  *   page: 1,
  *   pageSize: 20,
- *   scope: "org",
  * });
- * ```
- *
- * @example
- * ```tsx
- * // Show all skills including public/platform ones
- * const { skills } = useSkillList("acme", { scope: "all" });
  * ```
  */
 export function useSkillList(

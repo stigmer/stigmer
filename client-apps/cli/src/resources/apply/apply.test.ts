@@ -51,20 +51,20 @@ function handlerWith(opts: HandlerOptions): { handler: ApplyHandler; calls: Upda
 
 describe("applyMessage declared-visibility follow-up", () => {
   it("lands a declared level the update preserved away, and reflects it on the outcome", async () => {
-    // Server preserved stored org; manifest declares public.
+    // Server preserved stored org; manifest declares platform.
     const { handler, calls } = handlerWith({
       applyReturns: agent(ApiResourceVisibility.visibility_org),
-      updateVisibility: () => Promise.resolve(agent(ApiResourceVisibility.visibility_public)),
+      updateVisibility: () => Promise.resolve(agent(ApiResourceVisibility.visibility_platform)),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_public), "acme", false);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false);
 
     expect(calls).toHaveLength(1);
     expect(calls[0].resourceId).toBe("agent-1");
-    expect(calls[0].visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(calls[0].visibility).toBe(ApiResourceVisibility.visibility_platform);
     expect(outcome.warning).toBeUndefined();
     const appliedMeta = (outcome.applied as { metadata?: { visibility?: ApiResourceVisibility } })?.metadata;
-    expect(appliedMeta?.visibility).toBe(ApiResourceVisibility.visibility_public);
+    expect(appliedMeta?.visibility).toBe(ApiResourceVisibility.visibility_platform);
   });
 
   it("skips the follow-up when the manifest omits visibility", async () => {
@@ -87,11 +87,11 @@ describe("applyMessage declared-visibility follow-up", () => {
 
   it("skips the follow-up when the server already matches (idempotent re-apply)", async () => {
     const { handler, calls } = handlerWith({
-      applyReturns: agent(ApiResourceVisibility.visibility_public),
+      applyReturns: agent(ApiResourceVisibility.visibility_platform),
       updateVisibility: () => Promise.reject(new Error("must not be called")),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_public), "acme", false);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false);
 
     expect(calls).toHaveLength(0);
     expect(outcome.warning).toBeUndefined();
@@ -102,7 +102,7 @@ describe("applyMessage declared-visibility follow-up", () => {
       applyReturns: agent(ApiResourceVisibility.visibility_private),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_public), "acme", false);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false);
 
     expect(outcome.warning).toMatch(/visibility cannot be changed declaratively/);
     expect(outcome.warning).toMatch(/stored value is kept/);
@@ -116,7 +116,7 @@ describe("applyMessage declared-visibility follow-up", () => {
     });
 
     await expect(
-      applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_public), "acme", false),
+      applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", false),
     ).rejects.toThrow(/spec applied, but the manifest's visibility change was rejected/);
   });
 
@@ -126,7 +126,7 @@ describe("applyMessage declared-visibility follow-up", () => {
       updateVisibility: () => Promise.reject(new Error("must not be called")),
     });
 
-    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_public), "acme", true);
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.visibility_platform), "acme", true);
 
     expect(calls).toHaveLength(0);
     expect(outcome.applied).toBeUndefined();

@@ -109,19 +109,14 @@ function useAgentCount(org: string | null, options?: UseAgentCountOptions): UseA
 const { count, isLoading } = useAgentCount("acme");
 ```
 
-```tsx
-// Count all accessible agents including public/platform ones
-const { count } = useAgentCount("acme", { scope: "all" });
-```
-
 
 ### useAgentList
 
 Data hook that fetches a paginated list of agents for the Library.
 
-Wraps `stigmer.agent.list()` with pagination, scope filtering,
-and text search. All parameters are externally controlled — the
-consumer manages page state, query debouncing, and scope toggling.
+Wraps `stigmer.agent.list()` with pagination and text search over the
+organization's agents. All parameters are externally controlled — the
+consumer manages page state and query debouncing.
 
 For picker/type-ahead search with internal debouncing and query
 state management, use [`useAgentSearch`](#useagentsearch) instead.
@@ -159,13 +154,7 @@ function useAgentList(org: string | null, options?: UseAgentListOptions): UseAge
 const { agents, totalCount, isLoading } = useAgentList("acme", {
   page: 1,
   pageSize: 20,
-  scope: "org",
 });
-```
-
-```tsx
-// Show all agents including public/platform ones
-const { agents } = useAgentList("acme", { scope: "all" });
 ```
 
 
@@ -176,11 +165,8 @@ Data hook that searches agents available to the user.
 Wraps `stigmer.agent.list()` with debounced search, loading/error
 tracking, and cancellation-safe fetching. Platform builders use this
 when they want full control over rendering; the [`AgentPicker`](#agentpicker)
-styled component uses it internally.
-
-By default, searches within the given organization (`scope: "org"`).
-Pass `scope: "all"` to search across all organizations the caller
-can access, including public/platform agents from other orgs.
+styled component uses it internally. Results are the given
+organization's agents the caller may read.
 
 This is a Layer 1 building-block hook used by both platform builders
 (Profile A) and direct Stigmer users (Profile B). Platform builders
@@ -201,11 +187,7 @@ function useAgentSearch(org: string, options?: UseResourceSearchOptions): UseRes
 />
 
 ```tsx
-// Org-scoped (default)
 const { results, isLoading, query, setQuery } = useAgentSearch("acme");
-
-// Cross-org: include public agents from all accessible orgs
-const { results } = useAgentSearch("acme", { scope: "all" });
 ```
 
 
@@ -361,7 +343,7 @@ function useUpdateAgent(): UseUpdateAgentReturn
 Multi-step wizard for creating a new agent blueprint.
 
 Three condensed steps:
-1. **Identity & Instructions** — name, slug, description, visibility, system prompt
+1. **Identity & Instructions** — name, slug, description, icon, system prompt
 2. **Capabilities** — MCP servers + tools, skills, env var declarations (all optional)
 3. **Review & Create** — YAML preview + submission
 
@@ -437,7 +419,7 @@ All visual properties flow through `--stgm-*` design tokens.
     org: { type: "string", description: "Organization slug that owns the agent.", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area. Typically \"Edit\" for agent detail pages.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Agent slug (URL-friendly identifier unique within the org).", required: true },
-    viewerOrg: { type: "string", description: "The viewer's active organization slug, feeding the Shares and Instances tabs. It scopes both lists to this org's rows (a member of several orgs sees the current org context only), and a share created in the Shares tab lands in this org — its URL, billing, and credentials — which for another org's marketplace-public agent is a **cross-org share** (decision 013). Omit to default to the agent's own org." },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug, feeding the Instances tab: it scopes the instance list to this org's rows, so a member of several orgs sees the current org context only, and an instance of a platform-visible agent is created in the viewer's own org. Shares always live in the agent's organization and take no scope from here. Omit to default to the agent's own org." },
   }}
 />
 
@@ -532,9 +514,7 @@ All visual properties flow through `--stgm-*` tokens.
     disabled: { type: "boolean", description: "Prevents interaction with the picker when `true`." },
     onChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the selection changes. Pass null to deselect.", required: true },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an agent is selected (for chip rendering)." },
-    org: { type: "string", description: "Organization slug used as the default search scope.", required: true },
-    scope: { type: "\"org\" | \"all\"", description: "Controls search scope.  - `\"org\"` — search only within the provided organization. - `\"all\"` — search all organizations the caller can access,   including public/platform agents from other orgs." },
-    showScopeToggle: { type: "boolean", description: "Renders the Org/All scope toggle. Pass `false` to lock the picker to the `scope` prop — for flows where only one scope can produce a valid selection (e.g. schedule creation, where the server requires the target agent to live in the schedule's own org)." },
+    org: { type: "string", description: "Organization whose agents the picker searches.", required: true },
     value: { type: "ResourceRef | null", description: "Currently selected agent reference, or null if none selected.", required: true },
   }}
 />
@@ -653,7 +633,6 @@ an `AgentInput` for submission on the final step.
     skillRefs: { type: "ResourceRef[]", description: "Skill references.", required: true },
     slug: { type: "string", description: "URL-friendly slug (auto-derived from name, editable).", required: true },
     slugTouched: { type: "boolean", description: "Whether the slug has been manually edited by the user.", required: true },
-    visibility: { type: "\"private\" | \"public\"", description: "Resource visibility.", required: true },
   }}
 />
 
@@ -695,7 +674,6 @@ Options for [`useAgentCount`](#useagentcount).
   type={{
     query: { type: "string", description: "Text query to filter agents before counting." },
     refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
-    scope: { type: "ResourceListScope", description: "Controls which agents are counted.  - `\"org\"` — only agents owned by the given organization. - `\"all\"` — includes public/platform agents (e.g. `stigmer/agent-creator`)." },
   }}
 />
 
@@ -709,7 +687,6 @@ Options for [`useAgentList`](#useagentlist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum agents per page." },
     query: { type: "string", description: "Text query to filter agents by name, description, or tags." },
-    scope: { type: "ResourceListScope", description: "Controls which agents are visible.  - `\"org\"` — only agents owned by the given organization. - `\"all\"` — includes public/platform agents (e.g. `stigmer/agent-creator`)." },
   }}
 />
 

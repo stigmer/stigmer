@@ -530,7 +530,7 @@ Invokes an AI agent as a task, delegating complex reasoning or tool use to a spe
 
 | Field | Required | Description |
 |---|---|---|
-| `agent` | Yes | Agent reference. Format: `"slug"` (uses workflow's org) or `"org/slug"` (explicit org). |
+| `agent` | Yes | Agent reference. Format: `"slug"` (an agent of the organization the workflow runs in), `"org/slug"` (that organization's agent), or a value holding a runtime expression (`${.env_vars.KEY}`, `${ expr }`), resolved when the task runs. |
 | `message` | Yes | Instructions/prompt to send to the agent. Supports expressions. |
 | `org` | No | Explicit org override for agent resolution. |
 | `env` | No | Runtime environment variables to pass to the agent. Map of name → value or expression. |
@@ -540,7 +540,7 @@ Invokes an AI agent as a task, delegating complex reasoning or tool use to a spe
 | `config.context_management` | No | Context summarization settings. See context management docs. |
 
 ```yaml
-# Basic agent call — uses workflow's org
+# Basic agent call — an agent of the organization the workflow runs in
 - name: analyzeCode
   kind: agent_call
   task_config:
@@ -551,11 +551,12 @@ Invokes an AI agent as a task, delegating complex reasoning or tool use to a spe
   flow:
     then: publishReview
 
-# Cross-org agent call with config overrides
+# Agent call naming a platform organization's agent, with config overrides
+# (accepted only when acme-cloud shares the agent at visibility_platform)
 - name: generateReport
   kind: agent_call
   task_config:
-    agent: "stigmer/report-generator"
+    agent: "acme-cloud/report-generator"
     message: "Generate a deployment report for build ${$context.buildId}. Data: ${$context.buildMetrics}"
     env:
       S3_BUCKET: "${.env.REPORTS_BUCKET}"

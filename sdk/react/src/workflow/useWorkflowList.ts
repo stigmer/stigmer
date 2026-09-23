@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useResourceList, type ResourceListScope } from "../search/index.js";
+import { useResourceList } from "../search/index.js";
 
 /** Options for {@link useWorkflowList}. */
 export interface UseWorkflowListOptions {
@@ -13,15 +13,6 @@ export interface UseWorkflowListOptions {
   readonly page?: number;
   /** Text query to filter workflows by name, description, or tags. */
   readonly query?: string;
-  /**
-   * Controls which workflows are visible.
-   *
-   * - `"org"` — only workflows owned by the given organization.
-   * - `"all"` — includes public/platform workflows.
-   *
-   * @default "org"
-   */
-  readonly scope?: ResourceListScope;
 }
 
 /** Return value of {@link useWorkflowList}. */
@@ -45,9 +36,9 @@ export interface UseWorkflowListReturn {
 /**
  * Data hook that fetches a paginated list of workflows for the Workflows section.
  *
- * Wraps `stigmer.workflow.list()` with pagination, scope filtering,
- * and text search. All parameters are externally controlled — the
- * consumer manages page state, query debouncing, and scope toggling.
+ * Wraps `stigmer.workflow.list()` with pagination and text search over
+ * the organization's workflows. All parameters are externally
+ * controlled — the consumer manages page state and query debouncing.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
@@ -56,7 +47,6 @@ export interface UseWorkflowListReturn {
  * const { workflows, totalCount, isLoading } = useWorkflowList("acme", {
  *   page: 1,
  *   pageSize: 20,
- *   scope: "org",
  * });
  * ```
  */

@@ -73,7 +73,7 @@ export function CadenceField({
 
   return (
     <div className="stg:space-y-2">
-      {/* Preset selector — segmented radio group, matching ScopeToggle's pattern */}
+      {/* Preset selector — segmented radio group, matching ViewSwitcher's pattern */}
       <div
         role="radiogroup"
         aria-label="Cadence"

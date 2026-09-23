@@ -1,15 +1,15 @@
 /**
  * Pins the built-in list read scope on both store drivers as the twin of
  * the cloud's driver (stigmer-cloud iam/list-read-scope.ts): every
- * candidate a list lane offers is answered by `can_view` under the
- * LISTING context (`allow: false`, the public wildcard suppressed) through
- * the same evaluator the Authorizer uses, over tuples derived from the
- * facts the candidate carries — no candidate row is read twice.
+ * candidate a list lane offers is answered by `can_view` through the same
+ * evaluator the Authorizer uses, over tuples derived from the facts the
+ * candidate carries — no candidate row is read twice.
  *
  * The adversarial cells come first, because until slice 5's sibling
  * cells this file and the composed proof are the only proof that a
- * member's list is a member's list: the outsider sees nothing (a legacy
- * PUBLIC row included); the viewer rung sees the org-visible blueprints
+ * member's list is a member's list: the outsider sees nothing (a row
+ * still carrying the retired public level included); the viewer rung sees
+ * the org-visible blueprints
  * and nothing personal; the founder — an admin — sees the organization's
  * blueprints and NOT its members' sessions, keys, environments or
  * memories (the model's own line, now list-visible); an execution is its session's and
@@ -280,9 +280,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           await grant(orgRole(VIEWER, "viewer", ORG));
 
           // Blueprints: the founder's private and org-visible agents, a
-          // member's private one, a legacy PUBLIC one (nobody can set public
-          // under the built-in posture; a row from before it can carry it),
-          // and one stamped by the 3.14 verifiers' raw subject.
+          // member's private one, one still carrying the retired public
+          // level (a row the store migration has not met, which derives no
+          // viewer grant and so reads as its owner's alone), and one
+          // stamped by the 3.14 verifiers' raw subject.
           await save("agent", {
             id: "agt_private",
             org: ORG,
@@ -427,7 +428,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         });
 
         describe("the adversarial cells", () => {
-          it("an OUTSIDER lists nothing of the organization's — not even the legacy PUBLIC blueprint, which the listing context suppresses", async () => {
+          it("an OUTSIDER lists nothing of the organization's — a row still carrying the retired public level included", async () => {
             for (const kind of SEEDED_KINDS.filter(
               (k) =>
                 k !== ApiResourceKind.iam_policy &&
@@ -441,13 +442,13 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             }
           });
 
-          it("a VIEWER lists the org-visible and the public blueprints and nothing private; a MEMBER adds their own private one", async () => {
+          it("a VIEWER lists the org-visible blueprint and nothing private; a MEMBER adds their own private one; the retired level grants neither anything", async () => {
             expect(
               await listAs(resolved(VIEWER), ApiResourceKind.agent),
-            ).toEqual(["agt_org", "agt_public"]);
+            ).toEqual(["agt_org"]);
             expect(
               await listAs(resolved(MEMBER), ApiResourceKind.agent),
-            ).toEqual(["agt_org", "agt_member_private", "agt_public"]);
+            ).toEqual(["agt_org", "agt_member_private"]);
           });
 
           it("the FOUNDER and the ADMIN list every blueprint (`owner: … or admin from organization`), including a member's private one", async () => {
@@ -542,7 +543,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             const offered = [
               entryOf(
                 ApiResourceKind.agent,
-                rows.get(ApiResourceKind.agent)!.get("agt_public")!,
+                rows.get(ApiResourceKind.agent)!.get("agt_member_private")!,
               ),
               entryOf(
                 ApiResourceKind.agent,
@@ -562,15 +563,15 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               ApiResourceKind.agent,
               offered,
             );
-            expect([...kept]).toEqual(["agt_public", "agt_org"]);
+            expect([...kept]).toEqual(["agt_member_private", "agt_org"]);
             // The lane's order is the lane's: the helper filters its own
             // array by the kept set.
             expect(
               await listAs(resolved(MEMBER), ApiResourceKind.agent, [
-                rows.get(ApiResourceKind.agent)!.get("agt_public")!,
+                rows.get(ApiResourceKind.agent)!.get("agt_member_private")!,
                 rows.get(ApiResourceKind.agent)!.get("agt_org")!,
               ]),
-            ).toEqual(["agt_public", "agt_org"]);
+            ).toEqual(["agt_member_private", "agt_org"]);
           });
 
           it("no candidates: the empty set, with no read of any kind", async () => {

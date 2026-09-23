@@ -109,8 +109,9 @@ describe("callAgentAction", () => {
       expect(ref.slug).toBe("my-agent");
       expect(ref.kind).toBe(ApiResourceKind.agent);
 
-      // The execution itself is still created in the workflow's org — the
-      // cross-org reference changes agent lookup, never the billing org.
+      // The execution itself is still created in the organization the
+      // workflow execution runs in — the cross-org reference changes agent
+      // lookup, never the billing organization.
       const execution = mockCreateAgentExecution.mock.calls[0][0];
       expect(execution.metadata?.org).toBe("workflow-org");
     });

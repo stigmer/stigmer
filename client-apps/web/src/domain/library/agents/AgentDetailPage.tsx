@@ -52,8 +52,8 @@ interface AgentDetailPageInnerProps {
 export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
-  // The viewer's own org — shares created from the Shares tab land in it
-  // (a cross-org share when it differs from the agent's org, decision 013).
+  // The viewer's own org scopes the Instances tab: an instance of a
+  // platform-visible agent is created in the viewer's org, not the agent's.
   const viewerOrg = useActiveOrgSlug();
   const { navigateToDetail } = useLibraryNavigation();
   const [resourceId, setResourceId] = useState<string | null>(null);

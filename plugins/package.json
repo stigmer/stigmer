@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/plugins",
   "version": "0.0.0-dev",
-  "description": "Stigmer's official plugin marketplace: a directory tree of Agent Plugins packages with a root marketplace.json, published at the CLI's own version so `stigmer up` bootstraps content that matches the control plane it seeds",
+  "description": "Stigmer's official plugin marketplace: a directory tree of Agent Plugins packages with a root marketplace.json, published at the CLI's own version so what `stigmer install` installs matches the control plane that serves it",
   "license": "Apache-2.0",
   "type": "module",
   "private": false,

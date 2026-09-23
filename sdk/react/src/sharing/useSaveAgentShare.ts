@@ -162,8 +162,9 @@ export interface UseSaveAgentShareReturn {
  *
  * Commits via `stigmer.agentShare.apply()` — an idempotent upsert keyed
  * on the share's `(org, slug)` identity — so one code path serves both
- * creation (the server authorizes on the referenced agent's `can_edit`)
- * and every later edit. There is deliberately no create/update
+ * creation (the server authorizes on the referenced agent's `can_edit`
+ * and the organization's `can_create_agent_share`) and every later
+ * edit. There is deliberately no create/update
  * branching: the share slug is unique per org, which makes
  * apply-by-identity exact, and the generated `AgentShareInput` carries
  * no `metadata.id` for an update to route by anyway. A create that
@@ -174,11 +175,11 @@ export interface UseSaveAgentShareReturn {
  * (decision 011 D1). Deleting the share is a separate, destructive
  * operation ({@link useDeleteAgentShare}).
  *
- * `shareOrg` selects which org owns a created share and defaults to the
- * agent's own org. Pass the viewer's org to create a **cross-org
- * share** (decision 013) — the server then authorizes on the public
- * agent's `can_execute` plus `can_create_agent_share` in the sharing
- * org, and bills that org.
+ * A created share lives in the agent's own organization: the share's URL,
+ * billing and credential bindings all belong to the organization that
+ * owns the agent, and the server refuses an `agent_ref` in any other. To
+ * share another organization's agent, install the plugin that carries it
+ * and share the installed copy.
  *
  * Pass `null` for `agent` to produce a stable no-op (useful while the
  * agent is still loading).
@@ -193,7 +194,6 @@ export interface UseSaveAgentShareReturn {
  */
 export function useSaveAgentShare(
   agent: Agent | null,
-  shareOrg?: string,
 ): UseSaveAgentShareReturn {
   const stigmer = useStigmer();
   const [isPending, setIsPending] = useState(false);
@@ -202,7 +202,6 @@ export function useSaveAgentShare(
   const agentOrg = agent?.metadata?.org ?? "";
   const agentSlug = agent?.metadata?.slug ?? "";
   const agentName = agent?.metadata?.name ?? "";
-  const resolvedShareOrg = shareOrg || agentOrg;
 
   const save = useCallback(
     async (
@@ -220,10 +219,10 @@ export function useSaveAgentShare(
           // Identity: the existing share's org/slug when editing (a
           // share may carry a non-default slug — apply with the agent's
           // slug would create a SECOND share); when creating, the
-          // sharing org + the caller-chosen identity, falling back to
+          // agent's org + the caller-chosen identity, falling back to
           // the agent's own slug/name (the server's D2 default, made
           // explicit).
-          org: current?.metadata?.org || resolvedShareOrg,
+          org: current?.metadata?.org || agentOrg,
           slug: current?.metadata?.slug || createIdentity?.slug || agentSlug,
           name:
             current?.metadata?.name ||
@@ -255,7 +254,7 @@ export function useSaveAgentShare(
         setIsPending(false);
       }
     },
-    [agentOrg, agentSlug, agentName, resolvedShareOrg, stigmer],
+    [agentOrg, agentSlug, agentName, stigmer],
   );
 
   return { save, isPending, error };

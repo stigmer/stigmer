@@ -198,11 +198,12 @@ public enum IamPermission
    * Organization-level permission to create agent shares billed to the
    * organization.
    *
-   * Checked only for CROSS-ORG shares (a share of another org's
-   * marketplace-public agent — decision 013): a public share spends the
-   * sharing org's credits on the open internet, an admin-level act.
-   * Same-org shares keep their Phase A bar (can_edit on the agent), which
-   * already implies membership in the agent's org.
+   * &#64;internal
+   * Asked on every share create beside can_edit on the shared agent: a
+   * share spends the organization's credits on the open internet, an
+   * admin-level act, whichever agent it offers. A share's agent lives in
+   * the share's own organization (the AgentShare spec), so the two
+   * questions are always one organization's.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>
@@ -284,23 +285,6 @@ public enum IamPermission
    * <code>can_view_provider_standing = 38;</code>
    */
   can_view_provider_standing(38),
-  /**
-   * <pre>
-   * Platform-level permission to set a resource's visibility to PUBLIC —
-   * the only level that crosses every org boundary (the cross-org
-   * "explore" catalog). Gated to platform operators in the cloud
-   * edition: public listing is a curation decision, requested by the
-   * owner and granted by the platform team. Enforced at BOTH doors a
-   * resource can become public through — updateVisibility escalation and
-   * create-with-public — while org/platform levels and un-publishing
-   * stay self-service (resource can_edit). The OSS edition is
-   * deliberately unguarded: the self-hosted operator owns the store,
-   * the same scoping cloud#320 applied to reserved labels.
-   * </pre>
-   *
-   * <code>can_set_public_visibility = 39;</code>
-   */
-  can_set_public_visibility(39),
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
@@ -554,11 +538,12 @@ public enum IamPermission
    * Organization-level permission to create agent shares billed to the
    * organization.
    *
-   * Checked only for CROSS-ORG shares (a share of another org's
-   * marketplace-public agent — decision 013): a public share spends the
-   * sharing org's credits on the open internet, an admin-level act.
-   * Same-org shares keep their Phase A bar (can_edit on the agent), which
-   * already implies membership in the agent's org.
+   * &#64;internal
+   * Asked on every share create beside can_edit on the shared agent: a
+   * share spends the organization's credits on the open internet, an
+   * admin-level act, whichever agent it offers. A share's agent lives in
+   * the share's own organization (the AgentShare spec), so the two
+   * questions are always one organization's.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>
@@ -640,23 +625,6 @@ public enum IamPermission
    * <code>can_view_provider_standing = 38;</code>
    */
   public static final int can_view_provider_standing_VALUE = 38;
-  /**
-   * <pre>
-   * Platform-level permission to set a resource's visibility to PUBLIC —
-   * the only level that crosses every org boundary (the cross-org
-   * "explore" catalog). Gated to platform operators in the cloud
-   * edition: public listing is a curation decision, requested by the
-   * owner and granted by the platform team. Enforced at BOTH doors a
-   * resource can become public through — updateVisibility escalation and
-   * create-with-public — while org/platform levels and un-publishing
-   * stay self-service (resource can_edit). The OSS edition is
-   * deliberately unguarded: the self-hosted operator owns the store,
-   * the same scoping cloud#320 applied to reserved labels.
-   * </pre>
-   *
-   * <code>can_set_public_visibility = 39;</code>
-   */
-  public static final int can_set_public_visibility_VALUE = 39;
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
@@ -786,7 +754,6 @@ public enum IamPermission
       case 36: return can_participate;
       case 37: return can_write_reserved_labels;
       case 38: return can_view_provider_standing;
-      case 39: return can_set_public_visibility;
       case 40: return can_create_plugin;
       case 41: return can_manage_plans;
       case 42: return can_issue_license;

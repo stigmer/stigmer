@@ -86,9 +86,8 @@ export async function listSchedulesPage(
  * happens. Consumers type their workbench as
  * `ResourceWorkbench<Schedule>` and pass `getItemId={(s) => s.metadata?.id}`.
  *
- * `params.query` and `params.crossOrgPublic` are ignored: schedules have
- * no server-side text search (render the workbench with
- * `searchable={false}`) and are never public/cross-org.
+ * `params.query` is ignored: schedules have no server-side text search
+ * (render the workbench with `searchable={false}`).
  */
 export function createScheduleListFn(
   client: ScheduleListClient,

@@ -20,6 +20,11 @@ send the link, and embed the chat on your own website.
 
 ## Create a share
 
+You must be an admin of the Agent's Organization to create a share. A share
+spends the Organization's credits with anyone who holds the link, so it is an
+admin-level decision; members who can edit the Agent but are not admins do not
+see the **Create share** button.
+
 1. Open your Agent in the web console under **Library → Agents**.
 2. Open the **Shares** tab — or choose **Share** from the actions menu (⋯),
    which takes you there.
@@ -41,9 +46,8 @@ yourself.
 The **Shares** tab lists every share of the Agent you can see, with its link,
 audience, and status. An Agent can carry several shares — say, one for your docs
 site and one for a partner — and each is its own channel with its own link,
-audience, embed origins, visitor messages, and tool credentials. You see your
-own Organization's shares; another Organization's shares of the same Agent are
-theirs, not yours.
+audience, embed origins, visitor messages, and tool credentials. Every share of
+an Agent lives in the Agent's own Organization.
 
 From the row you can copy the link, **Edit** the share (the dialog), **Pause**
 or **Resume** it, **Reset link** on public shares, and **Delete** it. Pausing
@@ -198,56 +202,21 @@ same "not found" page as for an Agent that never existed. Pausing keeps the
 share's configuration for when you resume; **Delete** in the Shares tab removes
 the share entirely.
 
-## Share a public Agent from another Organization
+## Share an Agent another Organization built
 
-Sharing is not limited to Agents your Organization built. When another
-Organization publishes an Agent as public, you can create a share link of your
-own: your Organization's link, paid for with your credits, and running with your
-credentials — while the Agent itself stays with the Organization that built it.
-
-You must be an admin of your Organization to create the link. A share spends
-your Organization's credits with anyone on the internet, so it is an admin-level
-decision.
-
-1. Open the public Agent in the web console: on the Library's Agents page, set
-   the scope to **All** so Agents from other Organizations are listed.
-2. Open the **Shares** tab and click **Create share**. The dialog names your
-   Organization as the one that owns — and pays for — the new share.
-3. Confirm the name and slug, create the share, and copy your link.
-
-The link carries your Organization, not the Agent owner's:
-
-```
-https://app.stigmer.ai/chat/<your-org>/<slug>
-```
-
-A share of another Organization's Agent works like your own public share, with
-three differences:
-
-- **Anyone with the link can chat.** There is no **Org members** option — a
-  share of another Organization's Agent always serves the public audience.
-- **Your Organization pays.** Conversations over your link use your credits,
-  never the Agent owner's. The rate limits and conversation limits apply to your
-  link independently.
-- **Tools run on your credentials.** If the Agent uses MCP Servers, bind your
-  own Organization-shared Environments in the dialog. The owner's credentials
-  are never used for your link.
-
-The Agent's owner stays in control of the Agent itself. If the owner makes the
-Agent private or deletes it, your link stops working on the visitor's next
-message — it shows the same "not found" page as an Agent that never existed. And
-if the Agent depends on Skills or MCP Servers that are not public, Stigmer
-refuses to create the share and names what is blocking; ask the owner to make
-those public first.
+A share always lives in the Agent's own Organization: its link, its credits and
+its credentials are that Organization's. To offer another Organization's Agent
+from yours, install the Plugin that carries it — the installed Agent is your
+Organization's copy, upgrades with the Plugin, and can be shared like any Agent
+you built. See
+[Install from a marketplace](/docs/guides/plugins/install-from-a-marketplace).
 
 <Callout>
-  The Agent's behavior belongs to its owner. When the owner updates the Agent,
-  the change shows up live in chats over your link — you are sharing their
-  Agent, not a copy of it.
+  Shares of another Organization's Agent created before this rule no longer
+  serve visitors; their links show the same "not found" page as an Agent that
+  never existed. Remove them through the API or the CLI, or leave them: they
+  cost nothing.
 </Callout>
-
-You can also create the share from the terminal — see the
-[`stigmer share` reference](/docs/cli/commands/share).
 
 ## Share from the CLI
 
@@ -296,10 +265,8 @@ spec:
 
 Apply it with `stigmer apply -f share.yaml`. Because the share is a separate
 resource, applying your Agent's manifest never changes sharing — and applying
-the share never changes the Agent.
-
-For a share of another Organization's public Agent, set `metadata.org` to your
-Organization and `agent_ref.org` to the Agent owner's.
+the share never changes the Agent. `metadata.org` and `agent_ref.org` name the
+same Organization: a share lives where its Agent lives.
 
 <Callout type="warn">
   An apply replaces the share's settings as a whole, and a missing `audience`

@@ -68,7 +68,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.name` | Canonical display name. Set from `SKILL.md` frontmatter `name` field after normalization. |
 | `metadata.slug` | URL-friendly identifier, unique within the organization. Derived from the frontmatter `name` field (normalized to kebab-case; dots in the name become hyphens, e.g. `platform.planton-architecture` → `platform-planton-architecture`). |
 | `metadata.org` | Organization that owns this skill. Provided at push time via `--org` flag or CLI context. Every skill belongs to exactly one organization. |
-| `metadata.visibility` | Access control. `visibility_private` (default): only org members can access. `visibility_public`: anyone can read. |
+| `metadata.visibility` | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_platform`: every organization the owning organization manages through its identity provider. Declared in the SKILL.md frontmatter (`visibility: org`) or applied after the push. |
 | `metadata.labels` | Key-value pairs for organization and filtering. Not extracted from the artifact — set via API if needed. |
 | `metadata.annotations` | Key-value pairs for additional metadata. Not extracted from the artifact — set via API if needed. |
 | `metadata.tags` | String array for categorization. Not the same as skill version tags. |
@@ -77,13 +77,17 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 ### Visibility
 
 ```yaml
-# Private skill (default) — only your org can use it
+# Organization skill (default) — every member of the owning org can use it
+metadata:
+  visibility: visibility_org
+
+# Private skill — the creator and anyone granted access directly
 metadata:
   visibility: visibility_private
 
-# Public skill — visible to and usable by everyone
+# Platform skill — every organization the owner manages through its identity provider
 metadata:
-  visibility: visibility_public
+  visibility: visibility_platform
 ```
 
 ### Organization

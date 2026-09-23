@@ -196,24 +196,6 @@ public interface SearchRequestOrBuilder extends
 
   /**
    * <pre>
-   * Exclude public/platform resources from results.
-   *
-   * Default: false (include public resources).
-   *
-   * When true: Only return resources from organizations the caller
-   * is a member of. Excludes platform-provided public resources
-   * like "stigmer/web-search".
-   *
-   * Useful when users want to see only their own resources.
-   * </pre>
-   *
-   * <code>bool exclude_public = 4 [json_name = "excludePublic"];</code>
-   * @return The excludePublic.
-   */
-  boolean getExcludePublic();
-
-  /**
-   * <pre>
    * Pagination parameters.
    *
    * - num: Page number (1-indexed). Default: 1
@@ -253,23 +235,4 @@ public interface SearchRequestOrBuilder extends
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 5 [json_name = "page"];</code>
    */
   ai.stigmer.commons.rpc.PageInfoOrBuilder getPageOrBuilder();
-
-  /**
-   * <pre>
-   * Include public resources from organizations other than the org filter.
-   *
-   * Only meaningful when org is non-empty. When true, the result set includes:
-   * 1. All authorized resources from the specified org (any visibility)
-   * 2. All authorized public resources from other orgs
-   *
-   * Use case: "All" scope in library views — shows the user's org resources
-   * plus marketplace/public resources from other organizations.
-   *
-   * Default: false (only resources matching the org filter are returned).
-   * </pre>
-   *
-   * <code>bool cross_org_public = 6 [json_name = "crossOrgPublic"];</code>
-   * @return The crossOrgPublic.
-   */
-  boolean getCrossOrgPublic();
 }

@@ -43,8 +43,8 @@ function agentSessionUrl(org: string, slug: string, instanceId?: string): string
 export default function AgentDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
   const navigate = useNavigate();
-  // The viewer's own org — shares created from the Shares tab land in it
-  // (a cross-org share when it differs from the agent's org, decision 013).
+  // The viewer's own org scopes the Instances tab: an instance of a
+  // platform-visible agent is created in the viewer's org, not the agent's.
   const viewerOrg = useActiveOrgSlug();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);

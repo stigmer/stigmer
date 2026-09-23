@@ -6,7 +6,6 @@ export type {
 
 export { useResourceList } from "./useResourceList.js";
 export type {
-  ResourceListScope,
   UseResourceListOptions,
   UseResourceListReturn,
 } from "./useResourceList.js";
