@@ -274,6 +274,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Platform-operator console for the model registry baseline and pricing overrides.",
   },
+  licenses: {
+    title: "Licenses",
+    description:
+      "Platform-operator console for issuing Stigmer licenses and their renewal calendar.",
+  },
 };
 
 // Proto qualified-name → docs/sdk/resources/ slug
@@ -321,6 +326,7 @@ const EXCLUDED_DOMAINS = new Set([
   "inline-edit",
   "cursor-accounts",
   "pricing-governance",
+  "licenses",
 ]);
 
 // Built-in type names that should never get a typeDescriptionLink

@@ -1257,6 +1257,22 @@ export type {
   ProviderStandingConsoleProps,
 } from "./provider-standing/index.js";
 
+// Licenses — platform-operator issuing of Stigmer licenses: the renewal
+// calendar, the issue form and the signed ticket (gated on can_issue_license)
+export {
+  useLicenses,
+  useLicense,
+  useIssueLicense,
+  LicensesConsole,
+  LicensesAccessNotice,
+} from "./licenses/index.js";
+export type {
+  UseLicensesReturn,
+  UseLicenseReturn,
+  UseIssueLicenseReturn,
+  LicensesConsoleProps,
+} from "./licenses/index.js";
+
 // Settings — navigation structure + section components shared across app shells
 export {
   SETTINGS_NAV_GROUPS,

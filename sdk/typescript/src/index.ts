@@ -298,6 +298,7 @@ export {
 export { SubscriptionClient } from "./gen/subscription.js";
 export {
   LicenseClient,
+  buildLicenseProto,
   type LicenseInput,
   type LicenseCustomerInput,
 } from "./gen/license.js";
