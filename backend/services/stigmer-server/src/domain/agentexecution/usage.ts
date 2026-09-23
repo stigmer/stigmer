@@ -67,6 +67,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -74,8 +75,11 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import type { Store } from "../../store/interface.js";
+import { listIndexInstantOfMillis } from "../../store/list-index.js";
+import type { ListIndexRow } from "../../store/list-index.js";
 
 import { executionUsageReportNotFoundMessage } from "./constants.js";
+import { agentExecutionListIndex } from "./list-index.js";
 import { EXECUTION_LIST_KEY, loadAllAgentExecutions } from "./steps.js";
 
 export interface UsageReportDeps {
@@ -781,13 +785,11 @@ function requireReport<T>(value: unknown, message: string): T {
 // absent from this shape (AD-DASH-005: the dashboard sources cost from
 // getOrgUsageReport to prevent double-counting).
 //
-// With a composed ListReadScope (C2 Stage 4's ExecutionReadScope,
-// absorbed by 20260830.01), the scan narrows to
-// the caller's authorized ids ∩ the requested org and an empty set
-// answers the default instance — the Java
-// AgentExecutionGetExecutionSummaryHandler baseline; see the twin's
-// header (workflowexecution/get-execution-summary.ts) for the full
-// rationale. No scope composed = this full scan, byte-identical.
+// The rows are the requested org's within the time window, read through
+// the list index; with a composed ListReadScope they are offered to its
+// restrict verb, and none visible answers the default instance — the Java
+// AgentExecutionGetExecutionSummaryHandler baseline; see the twin's header
+// (workflowexecution/get-execution-summary.ts) for the full rationale.
 // ---------------------------------------------------------------------------
 
 export async function getExecutionSummary(
@@ -795,24 +797,43 @@ export async function getExecutionSummary(
   req: GetAgentExecutionSummaryRequest,
   identity: CallerIdentity,
 ): Promise<AgentExecutionSummary> {
-  let executions = await loadAllAgentExecutions(deps.store, deps.logger);
-
-  if (deps.listReadScope !== undefined) {
-    const authorizedIds = await deps.listReadScope.authorizedResourceIds(
-      identity,
-      ApiResourceKind.agent_execution,
-    );
-    if (authorizedIds.size === 0) {
-      return create(AgentExecutionSummarySchema);
+  // The store's window is one millisecond wider than the loop's check
+  // below, which stays the authority: it only ever narrows the read.
+  const cutoffMs = resolveAgentTimeCutoffMs(req.timeWindow);
+  let rows: ListIndexRow[];
+  try {
+    rows = await deps.store.queryResources(agentExecutionListIndex, {
+      org: req.org,
+      ...(cutoffMs === undefined
+        ? {}
+        : { createdAtOrAfter: listIndexInstantOfMillis(cutoffMs - 1) }),
+    });
+  } catch (error) {
+    throw internalError(error, "failed to list agent executions");
+  }
+  let executions: AgentExecution[] = [];
+  for (const row of rows) {
+    try {
+      executions.push(fromBinary(AgentExecutionSchema, row.data));
+    } catch (error) {
+      deps.logger.warn("Failed to unmarshal execution, skipping", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
-    executions = executions.filter(
-      (execution) =>
-        authorizedIds.has(execution.metadata?.id ?? "") &&
-        execution.metadata?.org === req.org,
-    );
   }
 
-  const cutoffMs = resolveAgentTimeCutoffMs(req.timeWindow);
+  if (deps.listReadScope !== undefined) {
+    executions = await restrictListByReadScope(
+      deps.listReadScope,
+      identity,
+      ApiResourceKind.agent_execution,
+      executions,
+      "",
+    );
+    if (executions.length === 0) {
+      return create(AgentExecutionSummarySchema);
+    }
+  }
 
   const phaseCounts: { [key: number]: number } = {};
   let activeCount = 0;

@@ -5,7 +5,9 @@
 // Drives SessionCommandController + SessionQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update branching,
 // immutable identity fields, the configuration fields (harness / execution_target),
-// the field-level updateSubject contract, list / listByAgentInstance queries, slug
+// the field-level updateSubject contract, list / listByAgentInstance queries and
+// their cursor paging (a walk with no gap or duplicate, newest first, one
+// organization's sessions only, a token refused on another request), slug
 // semantics, and spec-first negative paths.
 //
 // Session has NO Temporal involvement — it only persists conversation
@@ -277,6 +279,78 @@ describe("Session conformance — queries", () => {
 
     expect(ids).toContain(a.metadata?.id);
     expect(ids).toContain(b.metadata?.id);
+  });
+
+  it("list pages one organization newest first, with no gap, no duplicate and a token until the last page", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentInstanceId = await provisionAgentInstance(org);
+    const created = new Set<string>();
+    for (let i = 0; i < 5; i++) {
+      created.add((await createSession(org, uniqueName("session"), agentInstanceId)).metadata!.id);
+    }
+
+    const walked: Array<{ id: string; createdAt: bigint }> = [];
+    let pageToken = "";
+    let pages = 0;
+    do {
+      const page = await clients.sessionQuery.list({ org, pageSize: 2, pageToken });
+      pages += 1;
+      expect(page.entries.length, "a page never exceeds page_size").toBeLessThanOrEqual(2);
+      expect(page.totalPages, "total_pages is 1 only on the final page").toBe(page.nextPageToken === "" ? 1 : 0);
+      for (const session of page.entries) {
+        const at = session.status?.audit?.specAudit?.createdAt;
+        walked.push({ id: session.metadata!.id, createdAt: (at?.seconds ?? 0n) * 1_000_000_000n + BigInt(at?.nanos ?? 0) });
+      }
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(pages).toBe(3);
+    expect(new Set(walked.map((w) => w.id))).toEqual(created);
+    expect(walked).toHaveLength(created.size);
+    for (let i = 1; i < walked.length; i++) {
+      expect(walked[i - 1]!.createdAt, "newest first").toBeGreaterThanOrEqual(walked[i]!.createdAt);
+    }
+  });
+
+  it("list never places another organization's session on a page, and refuses a token on another request", async () => {
+    const mine = await target.provisionTenancy();
+    const theirs = await target.provisionTenancy();
+    const myInstance = await provisionAgentInstance(mine.org);
+    const theirInstance = await provisionAgentInstance(theirs.org);
+    await createSession(mine.org, uniqueName("session"), myInstance);
+    await createSession(mine.org, uniqueName("session"), myInstance);
+    const theirSession = await createSession(theirs.org, uniqueName("session"), theirInstance);
+
+    const first = await clients.sessionQuery.list({ org: mine.org, pageSize: 1 });
+    const rest = await clients.sessionQuery.list({ org: mine.org, pageSize: 5, pageToken: first.nextPageToken });
+    const ids = [...first.entries, ...rest.entries].map((s) => s.metadata?.id);
+    expect(ids).toHaveLength(2);
+    expect(ids).not.toContain(theirSession.metadata?.id);
+
+    await expectGrpcCode(
+      () => clients.sessionQuery.list({ org: theirs.org, pageSize: 1, pageToken: first.nextPageToken }),
+      Code.InvalidArgument,
+      "list page_token issued for another organization",
+    );
+  });
+
+  it("listByAgentInstance pages the instance's sessions", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentInstanceId = await provisionAgentInstance(org);
+    const created = new Set<string>();
+    for (let i = 0; i < 3; i++) {
+      created.add((await createSession(org, uniqueName("session"), agentInstanceId)).metadata!.id);
+    }
+    const first = await clients.sessionQuery.listByAgentInstance({ agentInstanceId, pageSize: 2 });
+    expect(first.entries).toHaveLength(2);
+    expect(first.nextPageToken).not.toBe("");
+    const second = await clients.sessionQuery.listByAgentInstance({
+      agentInstanceId,
+      pageSize: 2,
+      pageToken: first.nextPageToken,
+    });
+    expect(second.nextPageToken).toBe("");
+    expect(new Set([...first.entries, ...second.entries].map((s) => s.metadata!.id))).toEqual(created);
   });
 
   it("listByAgentInstance returns only the sessions for the given agent instance", async () => {

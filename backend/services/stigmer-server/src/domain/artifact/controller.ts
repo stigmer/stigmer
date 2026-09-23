@@ -80,6 +80,8 @@ import {
 } from "../../pipeline/steps/load-target.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
+import type { ListIndexRow } from "../../store/list-index.js";
+import { artifactListIndex } from "./list-index.js";
 import {
   ARTIFACT_KIND,
   DEFAULT_MAX_CONTENT_BYTES,
@@ -457,36 +459,44 @@ async function listByExecution(
     .addStep({
       name: "QueryArtifactsByExecution",
       async execute(stepCtx): Promise<void> {
+        // The execution's artifacts through the list index's source key,
+        // whole and newest first: an execution's artifacts are returned as
+        // one (the request's paging fields are not read).
         const input = stepCtx.input;
-        let data: Uint8Array[];
+        let rows: ListIndexRow[];
         try {
-          data = await deps.store.listResources(ApiResourceKind.artifact);
+          rows = await deps.store.queryResources(artifactListIndex, {
+            anyKey: [
+              ...(input.workflowExecutionId === ""
+                ? []
+                : [
+                    {
+                      name: "workflow_execution" as const,
+                      value: input.workflowExecutionId,
+                    },
+                  ]),
+              ...(input.agentExecutionId === ""
+                ? []
+                : [
+                    {
+                      name: "agent_execution" as const,
+                      value: input.agentExecutionId,
+                    },
+                  ]),
+            ],
+          });
         } catch (error) {
           throw internalError(error, "failed to list artifacts");
         }
 
         const artifacts: Artifact[] = [];
-        for (const bytes of data) {
-          let artifact: Artifact;
+        for (const row of rows) {
           try {
-            artifact = fromBinary(ArtifactSchema, bytes);
+            artifacts.push(fromBinary(ArtifactSchema, row.data));
           } catch (error) {
             deps.logger.warn("failed to unmarshal artifact, skipping", {
               error: error instanceof Error ? error.message : String(error),
             });
-            continue;
-          }
-          const source = artifact.spec?.source;
-          if (
-            input.workflowExecutionId !== "" &&
-            source?.workflowExecutionId === input.workflowExecutionId
-          ) {
-            artifacts.push(artifact);
-          } else if (
-            input.agentExecutionId !== "" &&
-            source?.agentExecutionId === input.agentExecutionId
-          ) {
-            artifacts.push(artifact);
           }
         }
 

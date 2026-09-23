@@ -3,10 +3,14 @@
  * list_by_session.go, plus the full-scan load helper the usage reports
  * share.
  *
- * List semantics ported verbatim: no sorting (unlike the session domain's
- * newest-first list), no pagination (total_pages pinned to 1 — Go's
- * placeholder), the request `org` field a deliberate no-op (single-tenant
- * edition), and phase filtering only when a phase is specified.
+ * Both lists read through the list index (list-index.ts beside this file;
+ * the store's contract in store/interface.ts), newest first by spec-audit
+ * created_at. `list` pages (pipeline/steps/list-page.ts): the store
+ * narrows by the request's org, the phase filter and then the read scope
+ * run on each batch — the scope last, so a composed driver is asked about
+ * the rows the request keeps. `listBySession` returns the session's
+ * executions whole: a conversation is read as one, and its consumers (the
+ * transcript, the channel and guest turn limits) need all of it.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
@@ -22,12 +26,19 @@ import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import {
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPage } from "../../pipeline/steps/list-page.js";
 import type { Store } from "../../store/interface.js";
+import type { ListIndexRow } from "../../store/list-index.js";
+import { agentExecutionListIndex } from "./list-index.js";
 
 /**
- * Inter-step key for the working execution list AND the final
- * AgentExecutionList — Go reuses one key ("execution_list") for both, and
- * the controller reads the final response from it.
+ * Inter-step key for the working page AND the final AgentExecutionList —
+ * Go reuses one key ("execution_list") for both, and the controller reads
+ * the final response from it.
  */
 export const EXECUTION_LIST_KEY = "execution_list";
 
@@ -36,8 +47,9 @@ type ListBySessionDesc =
   typeof AgentExecutionQueryController.method.listBySession.input;
 
 /**
- * Full-scan agent-execution load shared by the list steps and the usage
- * reports; malformed rows warn + skip (Go's proto.Unmarshal-continue).
+ * Full-scan agent-execution load for the usage reports, whose org match
+ * is case-insensitive (Go strings.EqualFold) where the list index's is
+ * exact; malformed rows warn + skip (Go's proto.Unmarshal-continue).
  */
 export async function loadAllAgentExecutions(
   store: Store,
@@ -49,21 +61,7 @@ export async function loadAllAgentExecutions(
   } catch (error) {
     throw internalError(error, "failed to list agent executions");
   }
-
-  const executions: AgentExecution[] = [];
-  for (const data of rows) {
-    let execution: AgentExecution;
-    try {
-      execution = fromBinary(AgentExecutionSchema, data);
-    } catch (error) {
-      logger.warn("Failed to unmarshal execution, skipping", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      continue;
-    }
-    executions.push(execution);
-  }
-  return executions;
+  return decodeExecutions(rows, logger);
 }
 
 /** ValidateListRequest — list.go: no required fields today (a no-op). */
@@ -71,92 +69,54 @@ export function newValidateListRequestStep(): PipelineStep<ListDesc> {
   return {
     name: "ValidateListRequest",
     execute() {
-      // Go validates nothing here yet; pagination validation would land
-      // in both editions together.
+      // Go validates nothing here yet; page_size is protovalidate's and
+      // page_token the page reader's.
     },
   };
 }
 
 /**
- * QueryAllExecutions — list.go: full scan into the context. The read
- * scope no longer runs here: since stigmer-cloud 20260913.04 T02 the scope
- * is the LAST per-row predicate of the chain (RestrictByReadScope below,
- * after ApplyPhaseFilter), so a composed driver is offered the request's
- * org and phase, not the kind (extensions/list-read-scope.ts, the
- * header's last contract line).
+ * QueryExecutionPage — one page of the request's executions: its org
+ * through the index when it names one, its phase when it names one, the
+ * read scope last (census lane 4; with no scope composed, every matching
+ * execution — the OSS single-user posture).
  */
-export function newQueryAllExecutionsStep(
+export function newQueryExecutionPageStep(
   store: Store,
   logger: Logger,
-): PipelineStep<ListDesc> {
-  return {
-    name: "QueryAllExecutions",
-    async execute(ctx) {
-      const executions = await loadAllAgentExecutions(store, logger);
-      logger.debug("Successfully queried executions", {
-        count: executions.length,
-      });
-      ctx.set(EXECUTION_LIST_KEY, executions);
-    },
-  };
-}
-
-/**
- * RestrictByReadScope — the list chain's last per-row predicate (census
- * lane 4). With a composed ListReadScope (20260830.01) the working list
- * narrows to the caller's authorized executions ∩ the request's org (the
- * Java AgentExecutionListHandler baseline: org set = one-org view, blank
- * = permission-bounded across orgs; the guest cookie rule rides the
- * driver); no scope = the working list unchanged, org a no-op —
- * byte-identical. Placed after ApplyPhaseFilter so the driver is asked
- * about the rows the request keeps, never about the whole kind.
- */
-export function newRestrictByReadScopeStep(
   listReadScope: ListReadScope | undefined,
 ): PipelineStep<ListDesc> {
   return {
-    name: "RestrictByReadScope",
+    name: "QueryExecutionPage",
     async execute(ctx) {
-      const executions = requireExecutions(ctx.get(EXECUTION_LIST_KEY));
-      ctx.set(
-        EXECUTION_LIST_KEY,
-        await restrictListByReadScope(
-          listReadScope,
-          ctx.callerIdentity,
-          ApiResourceKind.agent_execution,
-          executions,
-          ctx.input.org,
-        ),
-      );
-    },
-  };
-}
-
-/**
- * ApplyPhaseFilter — list.go: status.phase equality filter, skipped when
- * the request carries no phase.
- */
-export function newApplyPhaseFilterStep(
-  logger: Logger,
-): PipelineStep<ListDesc> {
-  return {
-    name: "ApplyPhaseFilter",
-    execute(ctx) {
-      const executions = requireExecutions(ctx.get(EXECUTION_LIST_KEY));
-      if (ctx.input.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) {
-        logger.debug("No phase filter specified, skipping");
-        return;
-      }
-      const filtered = executions.filter(
-        (execution) =>
+      const input = ctx.input;
+      const page = await readListPage({
+        store,
+        declaration: agentExecutionListIndex,
+        query: { org: input.org },
+        request: input,
+        fingerprint: listPageFingerprint({
+          lane: "agentExecution.list",
+          org: input.org,
+          phase: input.phase,
+          tags: input.tags,
+        }),
+        decode: (data) => decodeExecution(data, logger),
+        keep: (execution) =>
+          input.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED ||
           (execution.status?.phase ??
-            ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) === ctx.input.phase,
-      );
-      logger.debug("Phase filter applied", {
-        originalCount: executions.length,
-        filteredCount: filtered.length,
+            ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) === input.phase,
+        scope: (executions) =>
+          restrictListByReadScope(
+            listReadScope,
+            ctx.callerIdentity,
+            ApiResourceKind.agent_execution,
+            executions,
+            "",
+          ),
+        failure: "failed to list agent executions",
       });
-      ctx.set(EXECUTION_LIST_KEY, filtered);
+      ctx.set(EXECUTION_LIST_KEY, page);
     },
   };
 }
@@ -176,9 +136,9 @@ export function newValidateListBySessionRequestStep(): PipelineStep<ListBySessio
 }
 
 /**
- * QueryExecutionsBySession — list_by_session.go: full scan +
- * spec.session_id equality filter, then the read scope over the session's
- * executions only (the scope is the last per-row predicate).
+ * QueryExecutionsBySession — list_by_session.go: the session's executions
+ * through the index's session key, whole and newest first, then the read
+ * scope (census lane 5; bounded by the session id, org never consulted).
  */
 export function newQueryExecutionsBySessionStep(
   store: Store,
@@ -188,31 +148,41 @@ export function newQueryExecutionsBySessionStep(
   return {
     name: "QueryExecutionsBySession",
     async execute(ctx) {
-      // Census lane 5: session filter ∩ authorized ids; the Java handler
-      // never consults org on this lane (bounded by the session id).
-      const ofSession = (await loadAllAgentExecutions(store, logger)).filter(
-        (execution) =>
-          (execution.spec?.sessionId ?? "") === ctx.input.sessionId,
-      );
+      let rows: ListIndexRow[];
+      try {
+        rows = await store.queryResources(agentExecutionListIndex, {
+          anyKey: [{ name: "session", value: ctx.input.sessionId }],
+        });
+      } catch (error) {
+        throw internalError(error, "failed to list agent executions");
+      }
       const executions = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_execution,
-        ofSession,
+        decodeExecutions(
+          rows.map((row) => row.data),
+          logger,
+        ),
         "",
       );
       logger.debug("Successfully queried executions by session", {
         sessionId: ctx.input.sessionId,
         count: executions.length,
       });
-      ctx.set(EXECUTION_LIST_KEY, executions);
+      const page: ListPage<AgentExecution> = {
+        entries: executions,
+        nextPageToken: "",
+      };
+      ctx.set(EXECUTION_LIST_KEY, page);
     },
   };
 }
 
 /**
- * BuildExecutionListResponse — both list files: wraps the working list
- * into AgentExecutionList with the total_pages placeholder pinned to 1.
+ * BuildExecutionListResponse — both list files: wraps the page into
+ * AgentExecutionList; total_pages is 1 when the response is whole and 0
+ * when a token follows (the contract's "not computed").
  */
 export function newBuildExecutionListResponseStep<
   Desc extends ListDesc | ListBySessionDesc,
@@ -220,24 +190,57 @@ export function newBuildExecutionListResponseStep<
   return {
     name: "BuildExecutionListResponse",
     execute(ctx) {
-      const executions = requireExecutions(ctx.get(EXECUTION_LIST_KEY));
+      const page = requirePage(ctx.get(EXECUTION_LIST_KEY));
       ctx.set(
         EXECUTION_LIST_KEY,
         create(AgentExecutionListSchema, {
-          totalPages: 1,
-          entries: executions,
+          totalPages: page.nextPageToken === "" ? 1 : 0,
+          entries: page.entries,
+          nextPageToken: page.nextPageToken,
         }),
       );
     },
   };
 }
 
-function requireExecutions(value: unknown): AgentExecution[] {
-  if (!Array.isArray(value)) {
+function decodeExecution(
+  data: Uint8Array,
+  logger: Logger,
+): AgentExecution | undefined {
+  try {
+    return fromBinary(AgentExecutionSchema, data);
+  } catch (error) {
+    logger.warn("Failed to unmarshal execution, skipping", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
+}
+
+function decodeExecutions(
+  rows: ReadonlyArray<Uint8Array>,
+  logger: Logger,
+): AgentExecution[] {
+  const executions: AgentExecution[] = [];
+  for (const data of rows) {
+    const execution = decodeExecution(data, logger);
+    if (execution !== undefined) {
+      executions.push(execution);
+    }
+  }
+  return executions;
+}
+
+function requirePage(value: unknown): ListPage<AgentExecution> {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !Array.isArray((value as { entries?: unknown }).entries)
+  ) {
     throw internalError(
       new Error("execution list not found in context"),
       "execution list not found in context",
     );
   }
-  return value as AgentExecution[];
+  return value as ListPage<AgentExecution>;
 }
