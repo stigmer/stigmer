@@ -257,14 +257,15 @@ on offer by default.
   from one. CLI: `stigmer marketplace add|list|show|remove` manages sources;
   `stigmer install [source/]name[@version]` installs. Console: the Marketplace
   entry in the sidebar; "Manage sources", beside the chips, lists the sources
-  and, under "Add your own catalogue", adds or removes your own. `stigmer up`
-  installs the official catalogue's default set into the system Organization.
+  and, under "Add your own catalogue", adds or removes your own. Nothing is
+  installed from a source unasked.
 - **File structure**: a source's marketplace file is in one of four locations,
   read in this precedence: `marketplace.json` (Stigmer's own),
   `.claude-plugin/marketplace.json`, `.cursor-plugin/marketplace.json`,
   `.agents/plugins/marketplace.json`. Each entry is a `name` and a `source`
-  naming a folder in the tree; Stigmer's file also carries `defaults`, the names
-  a fresh install bootstraps with, in order.
+  naming a folder in the tree. A field that names entries to install unasked
+  (Codex's `INSTALLED_BY_DEFAULT`, the `defaults` list of older Stigmer files)
+  is read past.
 - **What it is not**: the Marketplace does not know where an installed plugin
   came from. Nothing on the server records the source, so installing `thermos`
   from a second source upgrades the `thermos` from the first: a plugin is
@@ -556,8 +557,14 @@ A Workspace that groups people, Agents, Workflows, and settings together.
   `tenancy/organization/v1/spec.proto`. CLI: `--org` flag.
 - **Key fields**: `management_mode`, `identity_provider_ref`, `external_org_id`,
   `is_personal`.
-- **Note**: Local mode has no Organization concept---it uses an implicit
-  single-user context. Organizations appear in Stigmer Cloud.
+- **Note**: Every edition has Organizations. On a laptop or a self-hosted
+  server, the CLI uses the `stigmer` Organization when a command names none;
+  `stigmer up` creates it on a laptop and `stigmer bootstrap` on a raw server,
+  and `stigmer config context set --org` points the CLI at another. The
+  `stigmer` Organization has no role beyond that: on a laptop it is the user's
+  own, and on Stigmer Cloud it is Stigmer's own.
+- **Context rule**: Call it the `stigmer` Organization. "System Organization" is
+  a retired phrase from when default content was installed into it.
 
 ---
 
@@ -1033,16 +1040,15 @@ Ephemeral runtime secrets and variables scoped to a specific execution.
 
 Retired term. The starter bundle of Agents, Skills, MCP Servers and Workflows
 that earlier releases installed on a fresh stack. A fresh install now gets the
-`stigmer` Organization and the official marketplace's default Plugins
-(`stigmer up` on a laptop, `stigmer bootstrap` against a raw server), and
-everything else is a Plugin you install by name; see Plugin and Marketplace.
+`stigmer` Organization and nothing else (`stigmer up` on a laptop,
+`stigmer bootstrap` against a raw server): a Session with no Agent runs the
+built-in assistant, and everything else is a Plugin you install by name; see
+Plugin and Marketplace.
 
-- **Capitalize**: Yes (when quoting historical docs or the upgrade report).
-- **Context rule**: Do not use in new writing. It appears in exactly two places
-  a reader still meets: the report `stigmer up` prints once when it retires the
-  content an older release installed, and the upgrade note in the marketplace
-  how-to. A doc describing "the built-in Agents and servers" or "the curated
-  library" is describing the retired bundle; point it at Plugin instead.
+- **Capitalize**: Yes (when quoting historical docs).
+- **Context rule**: Do not use in new writing. A doc describing "the built-in
+  Agents and servers" or "the curated library" is describing the retired bundle;
+  point it at Plugin instead.
 
 ---
 

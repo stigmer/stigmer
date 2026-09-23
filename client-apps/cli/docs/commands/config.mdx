@@ -94,6 +94,19 @@ stigmer config backend set cloud
 stigmer config set llm.provider anthropic
 ```
 
+### Point the CLI at an organization
+
+```bash
+stigmer config context set --org acme
+```
+
+The CLI checks that you belong to `acme` on the active backend before it saves
+the context, so a mistyped slug is refused and nothing changes. From then on,
+every command that takes an organization uses `acme` unless `--org` or
+`STIGMER_ORG_ID` names another. `--org ""` clears the context: a local or
+self-hosted backend then falls back to the `stigmer` organization, and Stigmer
+Cloud asks for one.
+
 ### Check current organization context
 
 ```bash
