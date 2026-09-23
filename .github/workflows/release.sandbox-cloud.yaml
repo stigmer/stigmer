@@ -130,11 +130,22 @@ jobs:
       # ships the CLOUD sandbox stage, byte-identical to before the stage
       # split. amd64 stays this lane's platform — the cloud fleet is amd64;
       # the multi-arch proof lives on the compose-runner lane.
+      # The layer cache is what lets an unchanged step produce the SAME layer
+      # bytes build after build, so a node holding the last image pulls only
+      # what changed (stigmer/stigmer#1244; the Dockerfile cuts its layers
+      # by what changes them). A registry cache in its own package, not
+      # type=gha, whose export has hung releases for up to an hour
+      # (release.mcp-server, v3.1.11); a failed cache export is ignored, so
+      # the cache can slow a release down but never fail one.
       - name: Build and push sandbox image
+        env:
+          CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-amd64
         run: |
           docker buildx build \
             --platform linux/amd64 \
             --target sandbox \
+            --cache-from "type=registry,ref=$CACHE_REF" \
+            --cache-to "type=registry,ref=$CACHE_REF,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true" \
             --file backend/services/runner/Dockerfile.sandbox \
             --tag ghcr.io/${{ github.repository_owner }}/runner:latest \
             --tag ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }} \
