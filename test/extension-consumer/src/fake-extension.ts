@@ -59,6 +59,7 @@ import {
   ArtifactStorageNotFoundError,
   callerIdentityKey,
   callerIdentityOf,
+  canSign,
   composeServer,
   createLogger,
   DuplicateAccountError,
@@ -80,6 +81,7 @@ import {
   newBuildNewStateStep,
   newModelCatalogProviderFromDocument,
   newPipeline,
+  newSystemManagedPlatformClient,
   newResolveSlugStep,
   newR2ArtifactStorage,
   newValidateProtoStep,
@@ -95,6 +97,7 @@ import {
   RequestContext,
   ResourceNotFoundError,
   ROUTING_SESSION,
+  SYSTEM_SHARE_CLIENT_SLUG,
   TOKEN_TYPE_EXECUTION_SCOPED,
   WORKFLOW_ROUTING_EXECUTION,
 } from "@stigmer/server";
@@ -131,6 +134,7 @@ import type {
   PlatformClientStoreContractCase,
   PlatformClientStoreContractFixture,
   PlatformTokenKeyRing,
+  PlatformTokenSigningOptions,
   PolicyGrantScope,
   PresignedUpload,
   RawResourceDocument,
@@ -149,7 +153,9 @@ import type {
   SecretCodec,
   SecretService,
   ServerExtension,
+  SignedPlatformToken,
   Store,
+  SystemManagedPlatformClientInput,
   VisibilityChangedEvent,
   WorkerFactory,
   WorkflowExecutionTemporalConfig,
@@ -327,24 +333,62 @@ const consumerPlatformTokenKeys: PlatformTokenKeyRing =
     ttlSeconds: 900,
   });
 
+/** The consumer guest lane's own lifetime, longer than the ring's user-token default. */
+const CONSUMER_GUEST_TOKEN_TTL_SECONDS = 3600;
+
 /**
  * A consumer's own typed platform-token lane: a guest token signed through
- * the exported envelope and claimed by a verifier on the same envelope —
+ * the exported envelope with the lane's own lifetime, naming the org's
+ * system-managed client, and claimed by a verifier on the same envelope —
  * the shape a composition's typed lanes take once open source owns the
  * untyped user-token lane.
  */
-export function mintConsumerGuestToken(shareId: string): string {
-  if (consumerPlatformTokenKeys.signer === undefined) {
+export async function mintConsumerGuestToken(
+  org: string,
+  shareId: string,
+): Promise<SignedPlatformToken> {
+  if (!canSign(consumerPlatformTokenKeys)) {
     throw new Error("consumer ring cannot sign");
   }
+  const client = await ensureConsumerSystemShareClient(org);
+  const options: PlatformTokenSigningOptions = {
+    ttlSeconds: CONSUMER_GUEST_TOKEN_TTL_SECONDS,
+  };
   return signPlatformToken(
-    { ...consumerPlatformTokenKeys, signer: consumerPlatformTokenKeys.signer },
+    consumerPlatformTokenKeys,
     {
       sub: "ida_consumer_guest",
       [TOKEN_TYPE_CLAIM]: "guest",
+      platform_client_id: client.metadata?.id ?? "",
       share_id: shareId,
     },
+    options,
   );
+}
+
+/**
+ * The org's system-managed share client, built by the library and kept in
+ * the consumer's own store (the cloud's `cloud.iam_platform_client` driver
+ * takes this position): get, else build and save.
+ */
+async function ensureConsumerSystemShareClient(
+  org: string,
+): Promise<PlatformClient> {
+  const existing = await consumerPlatformClientStore.findByOrgAndSlug(
+    org,
+    SYSTEM_SHARE_CLIENT_SLUG,
+  );
+  if (existing !== undefined) {
+    return existing;
+  }
+  const input: SystemManagedPlatformClientInput = {
+    org,
+    slug: SYSTEM_SHARE_CLIENT_SLUG,
+    name: "System Share Client",
+  };
+  const client = newSystemManagedPlatformClient(input);
+  await consumerPlatformClientStore.save(client);
+  return client;
 }
 
 const consumerGuestTokenVerifier: IdentityVerifier = {
@@ -378,15 +422,15 @@ const consumerGuestTokenVerifier: IdentityVerifier = {
 
 /** A consumer's guest-token capability (registered below as `drivers.guestTokenMinting`). */
 const consumerGuestTokenMinting: GuestTokenMinting = {
-  mintGuestToken: (request) =>
-    Promise.resolve(
-      create(MintGuestTokenResponseSchema, {
-        accessToken: mintConsumerGuestToken(request.slug),
-        tokenType: "Bearer",
-        expiresIn: consumerPlatformTokenKeys.ttlSeconds,
-        guestCookieId: request.guestCookieId,
-      }),
-    ),
+  async mintGuestToken(request) {
+    const signed = await mintConsumerGuestToken(request.org, request.slug);
+    return create(MintGuestTokenResponseSchema, {
+      accessToken: signed.token,
+      tokenType: "Bearer",
+      expiresIn: CONSUMER_GUEST_TOKEN_TTL_SECONDS,
+      guestCookieId: request.guestCookieId,
+    });
+  },
 };
 
 /**

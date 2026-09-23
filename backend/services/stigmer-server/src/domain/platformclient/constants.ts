@@ -17,12 +17,19 @@
 export const PLATFORM_CLIENT_KIND_NAME = "PlatformClient";
 
 /**
- * Slugs the platform keeps for its own clients: the cloud creates each
- * organization's system-managed share client under this one, so a user
- * client holding it would be adopted by the guest lane.
+ * The slug of an organization's system-managed share client: the client
+ * an edition that hosts shared-agent pages names in the tokens it signs
+ * for guests and schedule fires, so every platform token names a real
+ * client. A user client holding it would be adopted by those lanes.
+ */
+export const SYSTEM_SHARE_CLIENT_SLUG = "system-share-client";
+
+/**
+ * Slugs the platform keeps for its own clients: the create chain refuses
+ * them, and newSystemManagedPlatformClient builds only under them.
  */
 export const RESERVED_PLATFORM_CLIENT_SLUGS: ReadonlySet<string> = new Set([
-  "system-share-client",
+  SYSTEM_SHARE_CLIENT_SLUG,
 ]);
 
 /** The claims the PlatformClient user token carries beside the envelope's. */

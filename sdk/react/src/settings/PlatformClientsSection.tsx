@@ -27,15 +27,18 @@ type FlowState =
  *
  * Every edition serves platform clients, but only a server that
  * authenticates its callers mints their user tokens. On a server that
- * trusts every request the section explains that and offers no create
- * button; clients that already exist stay listed and manageable.
+ * says it trusts every request the section explains that and offers no
+ * create button; clients that already exist stay listed and manageable.
+ * A server too old to say either way is offered the button, and its own
+ * answer to the create decides: the section never claims a limitation the
+ * server did not report. Until the server has answered, it offers neither.
  */
 export function PlatformClientsSection() {
   const headingId = useId();
   const org = useActiveOrgSlug();
   const { serverInfo } = useServerInfo();
-  const canMint = serverInfo?.authenticationRequired === true;
   const trustsEveryRequest = serverInfo?.authenticationRequired === false;
+  const canMint = serverInfo !== null && !trustsEveryRequest;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);

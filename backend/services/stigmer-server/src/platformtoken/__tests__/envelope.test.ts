@@ -2,6 +2,8 @@
  * Pins the platform-token envelope against the cloud verifier's semantics,
  * which every token in the field was accepted under:
  *   - a signed token round-trips with the envelope's claims and the lane's;
+ *   - a lane's own lifetime replaces the ring's default, and the expiry the
+ *     signer returns is the instant the `exp` claim names;
  *   - a token signed by the previous key still verifies (the rotation
  *     window), and the header's kid never selects a key;
  *   - the forgeries a JWT verifier must refuse are refused as a bad
@@ -73,8 +75,8 @@ describe("the platform-token envelope", () => {
     const token = signPlatformToken(
       ring,
       { sub: "ida_1", platform_client_id: "pcl_1" },
-      NOW,
-    );
+      { now: NOW },
+    ).token;
 
     const result = verifyPlatformToken(ring, token, NOW);
     expect(result.outcome).toBe("verified");
@@ -98,13 +100,46 @@ describe("the platform-token envelope", () => {
     });
   });
 
+  it("signs with the lane's own lifetime when it names one, and returns the expiry the token carries", () => {
+    const ring = signingRing({ ttlSeconds: 900 });
+
+    const byDefault = signPlatformToken(ring, { sub: "ida_1" }, { now: NOW });
+    expect(byDefault.expiresAt).toEqual(new Date(NOW.getTime() + 900_000));
+
+    const sandbox = signPlatformToken(
+      ring,
+      { sub: "ida_1", token_type: "sandbox" },
+      { now: NOW, ttlSeconds: 14_400 },
+    );
+    expect(sandbox.expiresAt).toEqual(new Date(NOW.getTime() + 14_400_000));
+    const verified = verifyPlatformToken(ring, sandbox.token, NOW);
+    expect(verified.outcome === "verified" && verified.token.payload.exp).toBe(
+      sandbox.expiresAt.getTime() / 1000,
+    );
+    expect(
+      verifyPlatformToken(
+        ring,
+        sandbox.token,
+        new Date(NOW.getTime() + 900_000),
+      ).outcome,
+    ).toBe("verified");
+  });
+
+  it("refuses a lifetime that is not a positive whole number of seconds", () => {
+    for (const ttlSeconds of [0, -1, 1.5, Number.NaN]) {
+      expect(() =>
+        signPlatformToken(signingRing(), { sub: "ida_1" }, { ttlSeconds }),
+      ).toThrow(/positive integer number of seconds/);
+    }
+  });
+
   it("reads token_type as the lane discriminator", () => {
     const ring = signingRing();
     const token = signPlatformToken(
       ring,
       { sub: "ida_guest", token_type: "guest" },
-      NOW,
-    );
+      { now: NOW },
+    ).token;
     const result = verifyPlatformToken(ring, token, NOW);
     expect(result.outcome === "verified" && result.token.tokenType).toBe(
       "guest",
@@ -115,8 +150,8 @@ describe("the platform-token envelope", () => {
     const old = signPlatformToken(
       signingRing({ pair: previous }),
       { sub: "ida_1" },
-      NOW,
-    );
+      { now: NOW },
+    ).token;
     const ring = platformTokenKeyRingFromPem({
       privateKeyPem: active.privateKeyPem,
       kid: "stigmer-signing-key-1",
@@ -155,8 +190,8 @@ describe("the platform-token envelope", () => {
     const stranger = signPlatformToken(
       signingRing({ pair: pemPair() }),
       { sub: "ida_1" },
-      NOW,
-    );
+      { now: NOW },
+    ).token;
     expect(verifyPlatformToken(signingRing(), stranger, NOW)).toEqual({
       outcome: "refused",
       refusal: "signature",
@@ -165,7 +200,7 @@ describe("the platform-token envelope", () => {
 
   it("refuses an expired token strictly, with no leeway", () => {
     const ring = signingRing({ ttlSeconds: 60 });
-    const token = signPlatformToken(ring, { sub: "ida_1" }, NOW);
+    const token = signPlatformToken(ring, { sub: "ida_1" }, { now: NOW }).token;
     const atExpiry = new Date(NOW.getTime() + 60_000);
     expect(verifyPlatformToken(ring, token, atExpiry)).toEqual({
       outcome: "refused",
@@ -174,7 +209,11 @@ describe("the platform-token envelope", () => {
   });
 
   it("tolerates a missing aud and refuses one that names another audience", () => {
-    const noAudience = signPlatformToken(signingRing(), { sub: "ida_1" }, NOW);
+    const noAudience = signPlatformToken(
+      signingRing(),
+      { sub: "ida_1" },
+      { now: NOW },
+    ).token;
     const expecting = signingRing({ audience: "https://api.stigmer.ai" });
     expect(verifyPlatformToken(expecting, noAudience, NOW).outcome).toBe(
       "verified",
@@ -183,8 +222,8 @@ describe("the platform-token envelope", () => {
     const elsewhere = signPlatformToken(
       signingRing({ audience: "https://staging.stigmer.ai" }),
       { sub: "ida_1" },
-      NOW,
-    );
+      { now: NOW },
+    ).token;
     expect(verifyPlatformToken(expecting, elsewhere, NOW)).toEqual({
       outcome: "refused",
       refusal: "audience",
@@ -193,7 +232,11 @@ describe("the platform-token envelope", () => {
 
   it("refuses a token with no subject", () => {
     const ring = signingRing();
-    const token = signPlatformToken(ring, { platform_client_id: "pcl_1" }, NOW);
+    const token = signPlatformToken(
+      ring,
+      { platform_client_id: "pcl_1" },
+      { now: NOW },
+    ).token;
     expect(verifyPlatformToken(ring, token, NOW)).toEqual({
       outcome: "refused",
       refusal: "subject",
@@ -213,8 +256,10 @@ describe("the platform-token envelope", () => {
   });
 
   it("refuses a lane claim that collides with an envelope claim", () => {
-    expect(() =>
-      signPlatformToken(signingRing(), { sub: "ida_1", exp: 1 }, NOW),
+    expect(
+      () =>
+        signPlatformToken(signingRing(), { sub: "ida_1", exp: 1 }, { now: NOW })
+          .token,
     ).toThrow(/belongs to the envelope/);
   });
 

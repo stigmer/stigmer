@@ -54,6 +54,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.platform.v1.GetServerInfoOutput.class, ai.stigmer.platform.v1.GetServerInfoOutput.Builder.class);
   }
 
+  private int bitField0_;
   public static final int EDITION_FIELD_NUMBER = 1;
   private int edition_ = 0;
   /**
@@ -137,9 +138,36 @@ private static final long serialVersionUID = 0L;
    * configured, the default single-operator posture). Features that hand out
    * credentials only a verifying server honours — minting PlatformClient user
    * tokens — are unavailable then.
+   *
+   * Every server that knows the field sets it, true or false. Absent means
+   * the server predates it and its posture is unknown: a client offers the
+   * feature and lets the server's own answer decide, rather than reading an
+   * older server as one that trusts every request.
    * </pre>
    *
-   * <code>bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+   * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+   * @return Whether the authenticationRequired field is set.
+   */
+  @java.lang.Override
+  public boolean hasAuthenticationRequired() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Whether the server authenticates its callers.
+   *
+   * False when the server trusts every request (no identity verifier is
+   * configured, the default single-operator posture). Features that hand out
+   * credentials only a verifying server honours — minting PlatformClient user
+   * tokens — are unavailable then.
+   *
+   * Every server that knows the field sets it, true or false. Absent means
+   * the server predates it and its posture is unknown: a client offers the
+   * feature and lets the server's own answer decide, rather than reading an
+   * older server as one that trusts every request.
+   * </pre>
+   *
+   * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
    * @return The authenticationRequired.
    */
   @java.lang.Override
@@ -167,7 +195,7 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(version_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, version_);
     }
-    if (authenticationRequired_ != false) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       output.writeBool(3, authenticationRequired_);
     }
     getUnknownFields().writeTo(output);
@@ -186,7 +214,7 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(version_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, version_);
     }
-    if (authenticationRequired_ != false) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(3, authenticationRequired_);
     }
@@ -208,8 +236,11 @@ private static final long serialVersionUID = 0L;
     if (edition_ != other.edition_) return false;
     if (!getVersion()
         .equals(other.getVersion())) return false;
-    if (getAuthenticationRequired()
-        != other.getAuthenticationRequired()) return false;
+    if (hasAuthenticationRequired() != other.hasAuthenticationRequired()) return false;
+    if (hasAuthenticationRequired()) {
+      if (getAuthenticationRequired()
+          != other.getAuthenticationRequired()) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -225,9 +256,11 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + edition_;
     hash = (37 * hash) + VERSION_FIELD_NUMBER;
     hash = (53 * hash) + getVersion().hashCode();
-    hash = (37 * hash) + AUTHENTICATION_REQUIRED_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getAuthenticationRequired());
+    if (hasAuthenticationRequired()) {
+      hash = (37 * hash) + AUTHENTICATION_REQUIRED_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+          getAuthenticationRequired());
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -405,9 +438,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.version_ = version_;
       }
+      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.authenticationRequired_ = authenticationRequired_;
+        to_bitField0_ |= 0x00000001;
       }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -430,7 +466,7 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (other.getAuthenticationRequired() != false) {
+      if (other.hasAuthenticationRequired()) {
         setAuthenticationRequired(other.getAuthenticationRequired());
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -664,9 +700,36 @@ private static final long serialVersionUID = 0L;
      * configured, the default single-operator posture). Features that hand out
      * credentials only a verifying server honours — minting PlatformClient user
      * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
      * </pre>
      *
-     * <code>bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * @return Whether the authenticationRequired field is set.
+     */
+    @java.lang.Override
+    public boolean hasAuthenticationRequired() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <pre>
+     * Whether the server authenticates its callers.
+     *
+     * False when the server trusts every request (no identity verifier is
+     * configured, the default single-operator posture). Features that hand out
+     * credentials only a verifying server honours — minting PlatformClient user
+     * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
+     * </pre>
+     *
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
      * @return The authenticationRequired.
      */
     @java.lang.Override
@@ -681,9 +744,14 @@ private static final long serialVersionUID = 0L;
      * configured, the default single-operator posture). Features that hand out
      * credentials only a verifying server honours — minting PlatformClient user
      * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
      * </pre>
      *
-     * <code>bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
      * @param value The authenticationRequired to set.
      * @return This builder for chaining.
      */
@@ -702,9 +770,14 @@ private static final long serialVersionUID = 0L;
      * configured, the default single-operator posture). Features that hand out
      * credentials only a verifying server honours — minting PlatformClient user
      * tokens — are unavailable then.
+     *
+     * Every server that knows the field sets it, true or false. Absent means
+     * the server predates it and its posture is unknown: a client offers the
+     * feature and lets the server's own answer decide, rather than reading an
+     * older server as one that trusts every request.
      * </pre>
      *
-     * <code>bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+     * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
      * @return This builder for chaining.
      */
     public Builder clearAuthenticationRequired() {
