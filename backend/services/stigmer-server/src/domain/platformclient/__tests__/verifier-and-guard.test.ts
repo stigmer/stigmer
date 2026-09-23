@@ -60,7 +60,7 @@ function userToken(claims: Record<string, string> = {}): string {
     name: "Pat",
     platform_client_id: "pcl_dashboard",
     ...claims,
-  });
+  }).token;
 }
 
 function callerWith(rawToken: string): CallerIdentity {
@@ -124,7 +124,7 @@ describe("the PlatformClient user-token verifier", () => {
       newPlatformClientTokenVerifier({
         keys: ring,
         clients: storeOf(client()),
-      }).verify(signPlatformToken(ring, { sub: "ida_pat" })),
+      }).verify(signPlatformToken(ring, { sub: "ida_pat" }).token),
     );
     expect(unnamed.code).toBe(Code.Unauthenticated);
   });

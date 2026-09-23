@@ -112,6 +112,8 @@ export interface PlatformControllerDeps {
    * server that verifies its callers from one that trusts every request —
    * the features that hand out credentials only a verifying server
    * honours (PlatformClient token minting) are unavailable on the latter.
+   * Always set on the wire, true or false: the field's absence is how a
+   * client recognises a server that predates it.
    */
   readonly authenticationRequired: boolean;
   /**

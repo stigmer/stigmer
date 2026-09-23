@@ -4,6 +4,12 @@
  * (`deploymentModeOf`), so a third edition on the wire reaches consumers
  * as its own mode and never collapses into "cloud" by accident. The raw
  * edition rides beside it for callers that want the wire value.
+ *
+ * Also pins the authentication posture across the wire: a server's `true`
+ * and `false` reach callers as they were sent, and a server that predates
+ * the field answers `undefined`, never `false` — the difference between
+ * "this server trusts every request" and "this server did not say", which
+ * a console meeting an older server must not confuse.
  */
 import { describe, expect, it } from "vitest";
 import { createRouterTransport } from "@connectrpc/connect";
@@ -16,12 +22,21 @@ import {
 
 import { PlatformClient } from "../platform";
 
-function clientAnswering(edition: ServerEdition): PlatformClient {
+function clientAnswering(
+  edition: ServerEdition,
+  authenticationRequired?: boolean,
+): PlatformClient {
   return new PlatformClient(
     createRouterTransport(({ service }) => {
       service(PlatformQueryController, {
         getServerInfo: () =>
-          create(GetServerInfoOutputSchema, { edition, version: "1.2.3" }),
+          create(GetServerInfoOutputSchema, {
+            edition,
+            version: "1.2.3",
+            ...(authenticationRequired !== undefined
+              ? { authenticationRequired }
+              : {}),
+          }),
       });
     }),
   );
@@ -39,6 +54,21 @@ describe("PlatformClient.getServerInfo", () => {
       expect(info.deploymentMode).toBe(mode);
       expect(info.edition).toBe(edition);
       expect(info.version).toBe("1.2.3");
+    },
+  );
+
+  it.each([
+    [true, true],
+    [false, false],
+    [undefined, undefined],
+  ] as const)(
+    "reports a server's authentication posture of %s as %s",
+    async (sent, reported) => {
+      const info = await clientAnswering(
+        ServerEdition.cloud,
+        sent,
+      ).getServerInfo();
+      expect(info.authenticationRequired).toBe(reported);
     },
   );
 });

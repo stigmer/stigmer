@@ -172,7 +172,9 @@ export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
 // DuplicatePlatformClientError for a held id, slug or client_id) and its
 // vitest-free contract kit; the guest-token capability
 // (drivers.guestTokenMinting — the one token method only an edition that
-// hosts shared-agent pages serves).
+// hosts shared-agent pages serves); and the builder of the system-managed
+// client such an edition keeps per organization under the reserved slug,
+// so the tokens it signs for guests and schedule fires name a real client.
 export type { PlatformClientStore } from "./domain/platformclient/store.js";
 export { DuplicatePlatformClientError } from "./domain/platformclient/store.js";
 export type {
@@ -181,15 +183,21 @@ export type {
 } from "./domain/platformclient/store-contract.js";
 export { platformClientStoreContract } from "./domain/platformclient/store-contract.js";
 export type { GuestTokenMinting } from "./extensions/guest-token-minting.js";
+export type { SystemManagedPlatformClientInput } from "./domain/platformclient/system-managed.js";
+export { newSystemManagedPlatformClient } from "./domain/platformclient/system-managed.js";
+export { SYSTEM_SHARE_CLIENT_SLUG } from "./domain/platformclient/constants.js";
 // The platform-token envelope and its key ring: the RS256 JWT every token
 // the server signs for itself rides. A composition supplies its ring
 // (drivers.platformTokenKeys, built from its PEMs), signs its own typed
-// lanes through the envelope, and verifies them with the same function and
-// refusal copy open source's user-token lane uses.
+// lanes through the envelope — each with its own lifetime when it is not
+// the ring's default, the expiry handed back — and verifies them with the
+// same function and refusal copy open source's user-token lane uses.
 export type {
   PlatformTokenClaimValue,
   PlatformTokenRefusal,
+  PlatformTokenSigningOptions,
   PlatformTokenVerification,
+  SignedPlatformToken,
   VerifiedPlatformToken,
 } from "./platformtoken/envelope.js";
 export {

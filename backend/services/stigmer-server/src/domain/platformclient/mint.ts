@@ -164,7 +164,7 @@ export async function mintUserToken(
     user,
   );
 
-  const accessToken = signPlatformToken(
+  const signed = signPlatformToken(
     keys,
     {
       [USER_TOKEN_CLAIMS.subject]: accountId,
@@ -174,10 +174,10 @@ export async function mintUserToken(
       [USER_TOKEN_CLAIMS.org]: owningOrg,
       [USER_TOKEN_CLAIMS.platformClientId]: client.metadata?.id ?? "",
     },
-    deps.now(),
+    { now: deps.now() },
   );
   return create(MintUserTokenResponseSchema, {
-    accessToken,
+    accessToken: signed.token,
     tokenType: BEARER_TOKEN_TYPE,
     expiresIn: keys.ttlSeconds,
   });

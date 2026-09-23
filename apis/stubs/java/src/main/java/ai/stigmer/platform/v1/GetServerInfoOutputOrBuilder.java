@@ -57,9 +57,33 @@ public interface GetServerInfoOutputOrBuilder extends
    * configured, the default single-operator posture). Features that hand out
    * credentials only a verifying server honours — minting PlatformClient user
    * tokens — are unavailable then.
+   *
+   * Every server that knows the field sets it, true or false. Absent means
+   * the server predates it and its posture is unknown: a client offers the
+   * feature and lets the server's own answer decide, rather than reading an
+   * older server as one that trusts every request.
    * </pre>
    *
-   * <code>bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+   * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
+   * @return Whether the authenticationRequired field is set.
+   */
+  boolean hasAuthenticationRequired();
+  /**
+   * <pre>
+   * Whether the server authenticates its callers.
+   *
+   * False when the server trusts every request (no identity verifier is
+   * configured, the default single-operator posture). Features that hand out
+   * credentials only a verifying server honours — minting PlatformClient user
+   * tokens — are unavailable then.
+   *
+   * Every server that knows the field sets it, true or false. Absent means
+   * the server predates it and its posture is unknown: a client offers the
+   * feature and lets the server's own answer decide, rather than reading an
+   * older server as one that trusts every request.
+   * </pre>
+   *
+   * <code>optional bool authentication_required = 3 [json_name = "authenticationRequired"];</code>
    * @return The authenticationRequired.
    */
   boolean getAuthenticationRequired();

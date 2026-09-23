@@ -236,10 +236,11 @@ describe("the require-authentication posture on the wire", () => {
     );
   });
 
-  it("is_public methods stay reachable tokenless (getServerInfo)", async () => {
+  it("is_public methods stay reachable tokenless (getServerInfo), and it reports the posture", async () => {
     const platform = createClient(PlatformQueryController, transportWith());
     const info = await platform.getServerInfo({});
     expect(info.edition).not.toBe("");
+    expect(info.authenticationRequired).toBe(true);
   });
 
   it("the gRPC health service stays reachable tokenless — a Kubernetes grpc probe survives the posture (stigmer#974)", async () => {
