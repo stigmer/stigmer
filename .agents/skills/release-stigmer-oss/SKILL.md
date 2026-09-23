@@ -164,4 +164,5 @@ installers as a draft; the `@stigmer/*` npm packages including `@stigmer/server`
 server, runner and all-in-one images pushed to GHCR and the Helm chart to its
 OCI registry, each smoked before promotion; the Go SDK through the module proxy;
 the Python packages to PyPI; the Java SDK to Maven; the MCP server image; the
-Rust crate; the sandbox cloud image.
+Rust crate; the sandbox cloud image, whose `runner:v<version>` tag and `prod`
+appear only after its smoke test passes.

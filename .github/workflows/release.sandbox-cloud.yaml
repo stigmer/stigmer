@@ -1,12 +1,22 @@
 name: release.sandbox-cloud
 
-# Builds and publishes the cloud sandbox runner image. stigmer-service launches
-# sandboxes from it (Kubernetes in prod, Daytona in local/rollback).
+# Builds and publishes the cloud sandbox runner image, ghcr.io/stigmer/runner,
+# the image the hosted edition launches its sandboxes from.
 #
 # This pipeline is a pure artifact publisher: build -> push (latest + main-<sha>)
-# -> smoke-test -> on pass, move the blessed :prod tag. stigmer-service follows
-# :prod and resolves it to an immutable @sha256 digest at sandbox-create time, so
-# there is no Planton variable, no CLI, and no redeploy in this path.
+# -> smoke-test -> on a release tag that passed, promote. The tag policy is the
+# self-host runner's (ghcr.io/stigmer/stigmer-runner in release.npm-libs.yaml):
+#   - latest, main-<sha>: every build, before the smoke (development and the
+#     OSS drivers follow latest).
+#   - v<X.Y.Z>: a v* tag's build, pushed only after the smoke passes, so a
+#     version tag existing means that release's runner booted. A deployment
+#     that runs a server release names the runner of the same release by it.
+#   - prod: the latest smoke-tested release. Moved only on a release tag,
+#     never on a main push, a prerelease tag, or a rebuild dispatched from
+#     main, so nothing unreleased reaches a deployment that follows it.
+# The version tag is added after the smoke, not before as the self-host lane
+# does: that lane smokes the pushed version tag itself, while this one smokes
+# the pushed main-<sha> bytes the version tag then names.
 #
 # Triggers:
 #   - push to main: rebuild when runner code, proto stubs, or Dockerfile
@@ -15,9 +25,8 @@ name: release.sandbox-cloud
 #     pushes/merges and silently skipped the v2.0.0 merge).
 #   - push of a v* tag: always rebuild so every release ships a matching
 #     cloud sandbox image.
-#   - workflow_dispatch: manual rebuild/re-bless.
-#
-# Image is tagged with latest + commit SHA + (on smoke pass) prod. No semver tags.
+#   - workflow_dispatch: manual rebuild; dispatched from a v* tag it
+#     re-publishes that release's version tag (and prod, for a release).
 on:
   push:
     branches:
@@ -94,10 +103,26 @@ jobs:
 
       - name: Determine image tags
         id: tags
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           SHORT_SHA="$(git rev-parse --short HEAD)"
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-          echo "Building: latest + main-$SHORT_SHA"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          # A v* tag's build (pushed or dispatched from the tag) publishes
+          # its version tag after the smoke; only a release, not a
+          # prerelease (v1.2.3-rc.1), also moves prod.
+          VERSION_TAG=""
+          MOVES_PROD="false"
+          if [ "$REF_TYPE" = "tag" ] && [[ "$REF_NAME" == v* ]]; then
+            VERSION_TAG="$REF_NAME"
+            if [[ "$REF_NAME" != *-* ]]; then
+              MOVES_PROD="true"
+            fi
+          fi
+          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "moves_prod=$MOVES_PROD" >> "$GITHUB_OUTPUT"
+          echo "Building: latest + main-$SHORT_SHA; after the smoke: version tag '${VERSION_TAG:-none}', moves prod: $MOVES_PROD"
 
       # --target sandbox: the Dockerfile's final stage is the self-host
       # compose runner (sandbox + stigmer CLI, published separately as
@@ -121,9 +146,10 @@ jobs:
       # every run, masked into an error annotation). `runner` is public.
 
       - name: Smoke-test runner image
-        # Gate before blessing :prod. Boot a sandbox from the freshly built SHA image:
+        # Gate before promotion. Boot a sandbox from the freshly built SHA image:
         # if the image is broken/unpullable or the runner crashes on boot (the
-        # 2026-04 stale-image failure mode), creation fails and :prod is never moved.
+        # 2026-04 stale-image failure mode), creation fails and neither the
+        # version tag nor :prod is written.
         # The smoke runs on Daytona (that is where CI has credentials); it validates
         # "the runner boots", not k8s-specific concerns (PVC/gVisor). A deeper
         # worker-level assertion is a future enhancement (see design-decision 003).
@@ -149,20 +175,38 @@ jobs:
           print("Smoke test passed — sandbox booted from the image and was cleaned up")
           PYEOF
 
-      - name: Promote tested image to :prod
-        # stigmer-service follows :prod and resolves it to an immutable @sha256 digest
-        # at sandbox-create time (SandboxImageResolver). Only a smoke-tested image
-        # reaches this tag. No Planton, no variable, no redeploy.
+      - name: Promote the tested release image
+        # Only a smoke-tested build of a v* tag gets here: the version tag
+        # names that release's runner, and prod moves for a release only.
+        if: steps.tags.outputs.version_tag != ''
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/runner
+          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
+          MOVES_PROD: ${{ steps.tags.outputs.moves_prod }}
         run: |
-          docker buildx imagetools create \
-            --tag ghcr.io/${{ github.repository_owner }}/runner:prod \
-            ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}
+          TAGS=(--tag "$IMAGE:$VERSION_TAG")
+          if [ "$MOVES_PROD" = "true" ]; then
+            TAGS+=(--tag "$IMAGE:prod")
+          fi
+          docker buildx imagetools create "${TAGS[@]}" "$IMAGE:main-$SHORT_SHA"
 
       - name: Summary
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/runner
+          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
+          MOVES_PROD: ${{ steps.tags.outputs.moves_prod }}
         run: |
-          echo "## Cloud Sandbox Image Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/runner\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:** \`latest\`, \`main-${{ steps.tags.outputs.short_sha }}\`, \`prod\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Architecture:** linux/amd64" >> $GITHUB_STEP_SUMMARY
-          echo "**Blessed tag:** \`:prod\` moved after smoke test; stigmer-service resolves it to a digest at sandbox-create (no redeploy)" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Cloud Sandbox Image Published"
+            echo ""
+            echo "**Image:** \`$IMAGE\`"
+            echo "**Tags:** \`latest\`, \`main-$SHORT_SHA\`${VERSION_TAG:+, \`$VERSION_TAG\` (after the smoke)}"
+            echo "**Architecture:** linux/amd64"
+            if [ "$MOVES_PROD" = "true" ]; then
+              echo "**prod:** moved to \`$VERSION_TAG\`, the latest smoke-tested release"
+            else
+              echo "**prod:** unchanged (moves on a release tag only)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
