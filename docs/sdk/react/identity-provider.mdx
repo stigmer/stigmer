@@ -336,7 +336,8 @@ All visual properties flow through `--stgm-*` design tokens.
 View and edit panel for an existing identity provider.
 
 In **view mode**, displays all OIDC configuration fields in a
-structured label/value layout with an "Edit" button.
+structured label/value layout, with an "Edit" button for a caller who
+may edit the provider (`can_edit`).
 
 In **edit mode**, fields become editable inputs. The SSO toggle and
 OIDC client ID are editable. "Save" submits the update via
@@ -372,8 +373,9 @@ Displays a list of `IdentityProvider` resources for an
 organization with inline delete confirmation.
 
 Each provider is rendered as a row showing name, slug, SSO badge
-(when `is_sso_provider` is true), and creation date. A delete
-button triggers an inline confirmation flow.
+(when `is_sso_provider` is true), and creation date. The edit and
+delete buttons appear only on rows the caller may edit or delete
+(`can_edit`, `can_delete`); delete opens an inline confirmation.
 
 Identity providers are admin-level resources with small cardinality
 (typically 1–3 per org), so the list is rendered without pagination.
@@ -385,6 +387,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No identity providers configured.\" The list holds only the providers the caller may view, so a host that knows the caller may not manage providers should say who does instead." },
     onEdit: { type: "(idp: IdentityProvider) => void", description: "Fired when the user wants to edit an identity provider." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Expose the refetch function so parents can trigger a list refresh." },
     org: { type: "string", description: "Organization slug whose identity providers should be listed.", required: true },

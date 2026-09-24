@@ -223,8 +223,10 @@ public final class IdentityProviderQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the handler loads the provider by org and slug, then
+     * requires can_view on the loaded provider exactly as get does (the same
+     * permission and the same error message). The lane is skip-annotated only
+     * because its target is the loaded row, which no request field names.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -234,11 +236,14 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all identity providers belonging to an organization.
-     * Returns every IdentityProvider whose metadata.org matches the input org.
-     * Typically a small set (1-3 per org), so results are not paginated.
+     * List the identity providers of an organization that the caller may view.
+     * Returns the IdentityProviders whose metadata.org matches the input org and
+     * that the caller could get by id. Typically a small set (1-3 per org), so
+     * results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: requires can_view on the organization, then keeps only the
+     * providers the caller holds can_view on (the list read scope), so a member
+     * who may not get a provider does not see it listed either.
      * </pre>
      */
     default void listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request,
@@ -249,14 +254,18 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Look up the SSO identity provider for an organization.
-     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
-     * of the IdentityProvider where is_sso_provider is true for the given org.
-     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
+     * expected audience) of the IdentityProvider where is_sso_provider is true
+     * for the given org. Returns NOT_FOUND if the organization has no SSO
+     * provider configured.
      * This endpoint is called by the web app's login page before the user has
-     * authenticated, so it requires no authorization. The response intentionally
-     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * signed in, so it requires no credential. The response intentionally omits
+     * internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
      * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * Authorization: none. Marked is_public so the authentication interceptor
+     * admits a tokenless caller on a server that requires authentication; a
+     * tokenless call is stamped with the trusted-local identity, so the handler
+     * never reads the caller.
      * </pre>
      */
     default void getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request,
@@ -317,8 +326,10 @@ public final class IdentityProviderQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the handler loads the provider by org and slug, then
+     * requires can_view on the loaded provider exactly as get does (the same
+     * permission and the same error message). The lane is skip-annotated only
+     * because its target is the loaded row, which no request field names.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -329,11 +340,14 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all identity providers belonging to an organization.
-     * Returns every IdentityProvider whose metadata.org matches the input org.
-     * Typically a small set (1-3 per org), so results are not paginated.
+     * List the identity providers of an organization that the caller may view.
+     * Returns the IdentityProviders whose metadata.org matches the input org and
+     * that the caller could get by id. Typically a small set (1-3 per org), so
+     * results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: requires can_view on the organization, then keeps only the
+     * providers the caller holds can_view on (the list read scope), so a member
+     * who may not get a provider does not see it listed either.
      * </pre>
      */
     public void listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request,
@@ -345,14 +359,18 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Look up the SSO identity provider for an organization.
-     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
-     * of the IdentityProvider where is_sso_provider is true for the given org.
-     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
+     * expected audience) of the IdentityProvider where is_sso_provider is true
+     * for the given org. Returns NOT_FOUND if the organization has no SSO
+     * provider configured.
      * This endpoint is called by the web app's login page before the user has
-     * authenticated, so it requires no authorization. The response intentionally
-     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * signed in, so it requires no credential. The response intentionally omits
+     * internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
      * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * Authorization: none. Marked is_public so the authentication interceptor
+     * admits a tokenless caller on a server that requires authentication; a
+     * tokenless call is stamped with the trusted-local identity, so the handler
+     * never reads the caller.
      * </pre>
      */
     public void getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request,
@@ -399,8 +417,10 @@ public final class IdentityProviderQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the handler loads the provider by org and slug, then
+     * requires can_view on the loaded provider exactly as get does (the same
+     * permission and the same error message). The lane is skip-annotated only
+     * because its target is the loaded row, which no request field names.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -410,11 +430,14 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all identity providers belonging to an organization.
-     * Returns every IdentityProvider whose metadata.org matches the input org.
-     * Typically a small set (1-3 per org), so results are not paginated.
+     * List the identity providers of an organization that the caller may view.
+     * Returns the IdentityProviders whose metadata.org matches the input org and
+     * that the caller could get by id. Typically a small set (1-3 per org), so
+     * results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: requires can_view on the organization, then keeps only the
+     * providers the caller holds can_view on (the list read scope), so a member
+     * who may not get a provider does not see it listed either.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProviders listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) throws io.grpc.StatusException {
@@ -425,14 +448,18 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Look up the SSO identity provider for an organization.
-     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
-     * of the IdentityProvider where is_sso_provider is true for the given org.
-     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
+     * expected audience) of the IdentityProvider where is_sso_provider is true
+     * for the given org. Returns NOT_FOUND if the organization has no SSO
+     * provider configured.
      * This endpoint is called by the web app's login page before the user has
-     * authenticated, so it requires no authorization. The response intentionally
-     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * signed in, so it requires no credential. The response intentionally omits
+     * internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
      * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * Authorization: none. Marked is_public so the authentication interceptor
+     * admits a tokenless caller on a server that requires authentication; a
+     * tokenless call is stamped with the trusted-local identity, so the handler
+     * never reads the caller.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.SsoProviderInfo getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request) throws io.grpc.StatusException {
@@ -478,8 +505,10 @@ public final class IdentityProviderQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the handler loads the provider by org and slug, then
+     * requires can_view on the loaded provider exactly as get does (the same
+     * permission and the same error message). The lane is skip-annotated only
+     * because its target is the loaded row, which no request field names.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -489,11 +518,14 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all identity providers belonging to an organization.
-     * Returns every IdentityProvider whose metadata.org matches the input org.
-     * Typically a small set (1-3 per org), so results are not paginated.
+     * List the identity providers of an organization that the caller may view.
+     * Returns the IdentityProviders whose metadata.org matches the input org and
+     * that the caller could get by id. Typically a small set (1-3 per org), so
+     * results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: requires can_view on the organization, then keeps only the
+     * providers the caller holds can_view on (the list read scope), so a member
+     * who may not get a provider does not see it listed either.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProviders listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) {
@@ -504,14 +536,18 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Look up the SSO identity provider for an organization.
-     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
-     * of the IdentityProvider where is_sso_provider is true for the given org.
-     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
+     * expected audience) of the IdentityProvider where is_sso_provider is true
+     * for the given org. Returns NOT_FOUND if the organization has no SSO
+     * provider configured.
      * This endpoint is called by the web app's login page before the user has
-     * authenticated, so it requires no authorization. The response intentionally
-     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * signed in, so it requires no credential. The response intentionally omits
+     * internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
      * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * Authorization: none. Marked is_public so the authentication interceptor
+     * admits a tokenless caller on a server that requires authentication; a
+     * tokenless call is stamped with the trusted-local identity, so the handler
+     * never reads the caller.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.SsoProviderInfo getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request) {
@@ -558,8 +594,10 @@ public final class IdentityProviderQueryControllerGrpc {
      * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
+     * Authorization: the handler loads the provider by org and slug, then
+     * requires can_view on the loaded provider exactly as get does (the same
+     * permission and the same error message). The lane is skip-annotated only
+     * because its target is the loaded row, which no request field names.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> getByReference(
@@ -570,11 +608,14 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all identity providers belonging to an organization.
-     * Returns every IdentityProvider whose metadata.org matches the input org.
-     * Typically a small set (1-3 per org), so results are not paginated.
+     * List the identity providers of an organization that the caller may view.
+     * Returns the IdentityProviders whose metadata.org matches the input org and
+     * that the caller could get by id. Typically a small set (1-3 per org), so
+     * results are not paginated.
      * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource.
+     * Authorization: requires can_view on the organization, then keeps only the
+     * providers the caller holds can_view on (the list read scope), so a member
+     * who may not get a provider does not see it listed either.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProviders> listByOrg(
@@ -586,14 +627,18 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Look up the SSO identity provider for an organization.
-     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
-     * of the IdentityProvider where is_sso_provider is true for the given org.
-     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
+     * expected audience) of the IdentityProvider where is_sso_provider is true
+     * for the given org. Returns NOT_FOUND if the organization has no SSO
+     * provider configured.
      * This endpoint is called by the web app's login page before the user has
-     * authenticated, so it requires no authorization. The response intentionally
-     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * signed in, so it requires no credential. The response intentionally omits
+     * internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
      * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * Authorization: none. Marked is_public so the authentication interceptor
+     * admits a tokenless caller on a server that requires authentication; a
+     * tokenless call is stamped with the trusted-local identity, so the handler
+     * never reads the caller.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.SsoProviderInfo> getSsoProvider(

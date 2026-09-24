@@ -66,31 +66,18 @@ spec:
 ## CLI: Apply (Create or Update)
 
 ```bash
-# Apply using Kubernetes-style upsert
-stigmer identity-provider apply planton-idp.yaml
-
-# Output on first apply (create):
-# Created: IdentityProvider idp-01ABCDEF (planton/planton)
-
-# Output on subsequent apply (update):
-# Updated: IdentityProvider idp-01ABCDEF (planton/planton)
-```
-
-## CLI: Create
-
-```bash
-stigmer identity-provider create planton-idp.yaml
+# Kubernetes-style upsert: creates the provider the first time, updates it after
+stigmer apply -f planton-idp.yaml
 ```
 
 ## CLI: Update (Rotate JWKS or Update Audience)
 
-Update the YAML with new values, then apply:
+Update the YAML with new values, then apply it again. Apply finds the existing provider by its organization and slug, so the file needs no id:
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
-  id: idp-01ABCDEF
   name: Planton
   slug: planton
   org: planton
@@ -104,20 +91,11 @@ spec:
 ```
 
 ```bash
-stigmer identity-provider update updated-idp.yaml
+stigmer apply -f updated-idp.yaml
 ```
 
-## CLI: Get by Reference
+## Reading and deleting
 
-```bash
-# By org and slug (does not require the ID)
-stigmer identity-provider get --org planton --slug planton
-```
+The CLI applies identity providers and does not read or delete them; use the console's Identity Providers settings or the API (`getByReference` with the organization and slug, `delete` with the id).
 
-## CLI: Delete
-
-```bash
-stigmer identity-provider delete idp-01ABCDEF
-```
-
-Deletion is blocked if any platform-managed organizations reference this IdentityProvider. Remove those references first.
+Deletion is refused while any platform-managed organization references the IdentityProvider. Remove those organizations first.

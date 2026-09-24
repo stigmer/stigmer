@@ -60,7 +60,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "Provider\0229.ai.stigmer.iam.identityprovid" +
       "er.v1.OrganizationSsoLookup\0323.ai.stigmer" +
       ".iam.identityprovider.v1.SsoProviderInfo" +
-      "\"\004\320\270\030\001\032\004\240\377+\025B\271\001B\nQueryProtoP\001\242\002\004ASII\252\002\"A" +
+      "\"\004\310\270\030\001\032\004\240\377+\025B\271\001B\nQueryProtoP\001\242\002\004ASII\252\002\"A" +
       "i.Stigmer.Iam.Identityprovider.V1\312\002\"Ai\\S" +
       "tigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\Stig" +
       "mer\\Iam\\Identityprovider\\V1\\GPBMetadata\352" +
@@ -86,6 +86,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isPublic);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

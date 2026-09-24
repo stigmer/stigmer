@@ -5,7 +5,9 @@ import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identitypr
 import { IdentityProviderListPanel } from "../identity-provider/IdentityProviderListPanel.js";
 import { IdentityProviderWizard } from "../identity-provider/IdentityProviderWizard.js";
 import { IdentityProviderDetailPanel } from "../identity-provider/IdentityProviderDetailPanel.js";
+import { IDENTITY_PROVIDERS_MANAGED_BY_ADMINS } from "../identity-provider/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
 
@@ -24,7 +26,15 @@ type FlowState =
   | { phase: "creating" }
   | { phase: "editing"; identityProvider: IdentityProvider };
 
-/** Settings section for configuring OIDC identity providers. */
+/**
+ * Settings section for configuring OIDC identity providers.
+ *
+ * "New identity provider" is offered once the server confirms the caller
+ * holds `can_create_idp` on the organization. The list shows only the
+ * providers the caller may view, so a caller who may not create providers
+ * is told that the organization's admins manage them rather than that none
+ * is configured.
+ */
 export function IdentityProvidersSection({
   ssoLoginBaseUrl,
 }: IdentityProvidersSectionProps = {}) {
@@ -32,6 +42,13 @@ export function IdentityProvidersSection({
   const { activeOrg } = useOrg();
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
   const orgSlug = activeOrg?.metadata?.slug ?? "";
+  const orgId = activeOrg?.metadata?.id ?? "";
+  const createCheck = useCheckPermission(
+    idpAvailable && orgId ? { kind: "organization", id: orgId } : null,
+    "can_create_idp",
+  );
+  const canCreate = !createCheck.isLoading && createCheck.allowed;
+  const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);
@@ -64,7 +81,7 @@ export function IdentityProvidersSection({
           Identity Providers
         </h2>
 
-        {idpAvailable && orgSlug && flow.phase === "idle" && (
+        {idpAvailable && orgSlug && canCreate && flow.phase === "idle" && (
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
@@ -117,6 +134,9 @@ export function IdentityProvidersSection({
             setFlow({ phase: "editing", identityProvider: idp })
           }
           onRefetchRef={handleRefetchRef}
+          emptyState={
+            deniedCreate ? IDENTITY_PROVIDERS_MANAGED_BY_ADMINS : undefined
+          }
         />
       )}
     </section>

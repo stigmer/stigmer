@@ -274,6 +274,11 @@ export type {
   ListReadScope,
   ListEntryMeta,
 } from "./extensions/list-read-scope.js";
+// The one consumption idiom of the list read scope for post-scan list lanes:
+// exported so a list lane a composition serves from its own table narrows
+// its rows exactly as the library's lanes do, instead of building each
+// candidate's authorization facts by hand.
+export { restrictListByReadScope } from "./extensions/list-read-scope.js";
 // The stigmer-cloud#572 seam: the identity a schedule fire acts as
 // (drivers.scheduleFireCaller) — the composition mints it per fire; the
 // RunStarter propagates it through the R5 in-process header. A mint that

@@ -8,6 +8,7 @@ import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identitypr
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { selectElementText } from "../internal/select-element-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
@@ -34,7 +35,8 @@ export interface IdentityProviderDetailPanelProps {
  * View and edit panel for an existing identity provider.
  *
  * In **view mode**, displays all OIDC configuration fields in a
- * structured label/value layout with an "Edit" button.
+ * structured label/value layout, with an "Edit" button for a caller who
+ * may edit the provider (`can_edit`).
  *
  * In **edit mode**, fields become editable inputs. The SSO toggle and
  * OIDC client ID are editable. "Save" submits the update via
@@ -213,17 +215,22 @@ export function IdentityProviderDetailPanel({
         </div>
 
         {mode === "view" && (
-          <button
-            type="button"
-            onClick={enterEdit}
-            className={cn(
-              "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:transition-colors",
-            )}
+          <PermissionGate
+            resource={{ kind: "identity_provider", id: meta?.id ?? "" }}
+            relation="can_edit"
           >
-            Edit
-          </button>
+            <button
+              type="button"
+              onClick={enterEdit}
+              className={cn(
+                "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:transition-colors",
+              )}
+            >
+              Edit
+            </button>
+          </PermissionGate>
         )}
       </div>
 

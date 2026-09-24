@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useIdentityProviderList } from "./useIdentityProviderList.js";
 import { useDeleteIdentityProvider } from "./useDeleteIdentityProvider.js";
@@ -18,6 +19,13 @@ export interface IdentityProviderListPanelProps {
   readonly onEdit?: (idp: IdentityProvider) => void;
   /** Expose the refetch function so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
+  /**
+   * Shown when the list is empty. Defaults to "No identity providers
+   * configured." The list holds only the providers the caller may view, so
+   * a host that knows the caller may not manage providers should say who
+   * does instead.
+   */
+  readonly emptyState?: ReactNode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -27,8 +35,9 @@ export interface IdentityProviderListPanelProps {
  * organization with inline delete confirmation.
  *
  * Each provider is rendered as a row showing name, slug, SSO badge
- * (when `is_sso_provider` is true), and creation date. A delete
- * button triggers an inline confirmation flow.
+ * (when `is_sso_provider` is true), and creation date. The edit and
+ * delete buttons appear only on rows the caller may edit or delete
+ * (`can_edit`, `can_delete`); delete opens an inline confirmation.
  *
  * Identity providers are admin-level resources with small cardinality
  * (typically 1–3 per org), so the list is rendered without pagination.
@@ -53,6 +62,7 @@ export function IdentityProviderListPanel({
   org,
   onEdit,
   onRefetchRef,
+  emptyState = "No identity providers configured.",
   className,
 }: IdentityProviderListPanelProps) {
   const { identityProviders, isLoading, error, refetch } =
@@ -96,7 +106,7 @@ export function IdentityProviderListPanel({
           className,
         )}
       >
-        No identity providers configured.
+        {emptyState}
       </p>
     );
   }
@@ -263,31 +273,41 @@ function IdpRow({
 
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
         {onEdit && (
+          <PermissionGate
+            resource={{ kind: "identity_provider", id }}
+            relation="can_edit"
+          >
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label={`Edit ${name}`}
+              className={cn(
+                "stg:shrink-0 stg:rounded stg:p-1",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:transition-colors",
+              )}
+            >
+              <PencilIcon />
+            </button>
+          </PermissionGate>
+        )}
+        <PermissionGate
+          resource={{ kind: "identity_provider", id }}
+          relation="can_delete"
+        >
           <button
             type="button"
-            onClick={onEdit}
-            aria-label={`Edit ${name}`}
+            onClick={onConfirmDelete}
+            aria-label={`Delete ${name}`}
             className={cn(
               "stg:shrink-0 stg:rounded stg:p-1",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
               "stg:transition-colors",
             )}
           >
-            <PencilIcon />
+            <TrashIcon />
           </button>
-        )}
-        <button
-          type="button"
-          onClick={onConfirmDelete}
-          aria-label={`Delete ${name}`}
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:p-1",
-            "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
-            "stg:transition-colors",
-          )}
-        >
-          <TrashIcon />
-        </button>
+        </PermissionGate>
       </div>
     </div>
   );

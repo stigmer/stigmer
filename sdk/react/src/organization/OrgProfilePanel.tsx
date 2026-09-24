@@ -7,7 +7,9 @@ import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organizati
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
+import { IDENTITY_PROVIDERS_MANAGED_BY_ADMINS } from "../identity-provider/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
@@ -340,7 +342,7 @@ export function OrgProfilePanel({
       </div>
 
       {/* -- Identity Providers summary -- */}
-      <IdentityProvidersSummary orgSlug={serverSlug} />
+      <IdentityProvidersSummary orgId={orgId} orgSlug={serverSlug} />
     </form>
   );
 }
@@ -349,11 +351,27 @@ export function OrgProfilePanel({
 // IdentityProvidersSummary — shows linked IDPs on the org profile
 // ---------------------------------------------------------------------------
 
-function IdentityProvidersSummary({ orgSlug }: { orgSlug: string }) {
+/**
+ * The list holds only the providers the caller may view, so an empty list
+ * invites setting one up only when the server has not said the caller may
+ * not create providers; otherwise it says who manages them.
+ */
+function IdentityProvidersSummary({
+  orgId,
+  orgSlug,
+}: {
+  orgId: string;
+  orgSlug: string;
+}) {
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
   const { identityProviders, isLoading } = useIdentityProviderList(
     idpAvailable && orgSlug ? orgSlug : null,
   );
+  const createCheck = useCheckPermission(
+    idpAvailable && orgId ? { kind: "organization", id: orgId } : null,
+    "can_create_idp",
+  );
+  const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
 
   if (!idpAvailable || !orgSlug) return null;
 
@@ -367,6 +385,10 @@ function IdentityProvidersSummary({ orgSlug }: { orgSlug: string }) {
 
         {isLoading ? (
           <div className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded" />
+        ) : identityProviders.length === 0 && deniedCreate ? (
+          <p className="stg:text-xs stg:text-muted-foreground">
+            {IDENTITY_PROVIDERS_MANAGED_BY_ADMINS}
+          </p>
         ) : identityProviders.length === 0 ? (
           <p className="stg:text-xs stg:text-muted-foreground">
             No identity providers configured.{" "}
