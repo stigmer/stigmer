@@ -385,6 +385,23 @@ export { newValidateProtoStep } from "./pipeline/steps/validation.js";
 // same name over its own repo.
 export { newBuildNewStateStep } from "./pipeline/steps/defaults.js";
 export { newResolveSlugStep } from "./pipeline/steps/slug.js";
+// The update and reference-read steps for the same kinds, on the same
+// terms. An update runs BuildUpdateState after the composition's own
+// loader has stashed the stored row under EXISTING_RESOURCE_KEY, so which
+// fields a client may change, how status carries over and how the audit
+// slots are stamped stay the OSS step's. A read by reference runs
+// AuthorizeResolvedTarget with `loadedTargetAsMethod(get)` after the
+// loader has stashed the row under TARGET_RESOURCE_KEY, so the kind's
+// `get` annotation owns the permission and the refusal copy for both
+// reads. The loaders stay the composition's for CheckDuplicate's reason:
+// they read its own table.
+export { newBuildUpdateStateStep } from "./pipeline/steps/build-update-state.js";
+export { EXISTING_RESOURCE_KEY } from "./pipeline/steps/load-existing.js";
+export {
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+} from "./pipeline/steps/authorize-resolved-target.js";
+export { TARGET_RESOURCE_KEY } from "./pipeline/steps/load-target.js";
 
 // The driver interfaces and the store-fault classes the ratified mapping
 // keys on (typed not-found → NotFound; anything else rethrows as an
