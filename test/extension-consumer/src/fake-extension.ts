@@ -54,6 +54,10 @@ import type {
   ApiResourceRef,
   IamPolicySpec,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
+import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -79,8 +83,12 @@ import {
   LOADED_EXECUTION_KEY,
   MintingDisabledError,
   newAgentExecutionTemporalConfigFromEnv,
+  EXISTING_RESOURCE_KEY,
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
   newAuthorizeStep,
   newBuildNewStateStep,
+  newBuildUpdateStateStep,
   newModelCatalogProviderFromDocument,
   newPipeline,
   newSystemManagedPlatformClient,
@@ -100,6 +108,7 @@ import {
   ResourceNotFoundError,
   ROUTING_SESSION,
   SYSTEM_SHARE_CLIENT_SLUG,
+  TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
   WORKFLOW_ROUTING_EXECUTION,
 } from "@stigmer/server";
@@ -1049,6 +1058,84 @@ const registerLicenseService = (router: ConnectRouter): void => {
 };
 
 /**
+ * A consumer-served UPDATE and READ BY REFERENCE of the same shape of kind
+ * (an enterprise-tier Team, which this server registers no service for).
+ * The consumer's own loaders read its own table and stash the row under
+ * the exported keys; BuildUpdateState then decides what a client may
+ * change and stamps the audit, and AuthorizeResolvedTarget authorizes the
+ * loaded row exactly as the kind's `get` would, with `get`'s copy.
+ */
+const storedTeam = (id: string): Team =>
+  create(TeamSchema, { metadata: { id, org: "acme", slug: "sre" } });
+
+const registerTeamService = (router: ConnectRouter): void => {
+  const update = TeamCommandController.method.update;
+  router.service(TeamCommandController, {
+    update: async (input, ctx) => {
+      const reqCtx = new RequestContext(
+        update.input,
+        input,
+        callerIdentityOf(ctx),
+        ApiResourceKind.team,
+      );
+      const loadExisting: PipelineStep<typeof update.input> = {
+        name: "LoadExistingTeam",
+        execute: (stepCtx) => {
+          stepCtx.set(
+            EXISTING_RESOURCE_KEY,
+            storedTeam(stepCtx.input.metadata?.id ?? ""),
+          );
+        },
+      };
+      await newPipeline<typeof update.input>(
+        "consumer-team-update",
+        createLogger({ level: "error", pretty: false }),
+      )
+        .addStep(newAuthorizeStep(update, authorizer))
+        .addStep(newValidateProtoStep())
+        .addStep(loadExisting)
+        .addStep(newBuildUpdateStateStep())
+        .build()
+        .execute(reqCtx);
+      return reqCtx.newState;
+    },
+  });
+  const getByReference = TeamQueryController.method.getByReference;
+  router.service(TeamQueryController, {
+    getByReference: async (input, ctx) => {
+      const reqCtx = new RequestContext(
+        getByReference.input,
+        input,
+        callerIdentityOf(ctx),
+        ApiResourceKind.team,
+      );
+      const loadByReference: PipelineStep<typeof getByReference.input> = {
+        name: "LoadTeamByReference",
+        execute: (stepCtx) => {
+          stepCtx.set(TARGET_RESOURCE_KEY, storedTeam("tm_consumer"));
+        },
+      };
+      await newPipeline<typeof getByReference.input>(
+        "consumer-team-get-by-reference",
+        createLogger({ level: "error", pretty: false }),
+      )
+        .addStep(newAuthorizeStep(getByReference, authorizer))
+        .addStep(newValidateProtoStep())
+        .addStep(loadByReference)
+        .addStep(
+          newAuthorizeResolvedTargetStep(
+            authorizer,
+            loadedTargetAsMethod(TeamQueryController.method.get),
+          ),
+        )
+        .build()
+        .execute(reqCtx);
+      return reqCtx.get(TARGET_RESOURCE_KEY) as Team;
+    },
+  });
+};
+
+/**
  * A consumer tuple-lifecycle driver (the C2 seam, ruling Q2) — receives
  * fully-resolved events; the tuple writes are the consumer's own.
  */
@@ -1202,7 +1289,11 @@ export const fakeExtension: ServerExtension = {
     platformTokenKeys: consumerPlatformTokenKeys,
     guestTokenMinting: consumerGuestTokenMinting,
   },
-  services: [registerBillingService, registerLicenseService],
+  services: [
+    registerBillingService,
+    registerLicenseService,
+    registerTeamService,
+  ],
   workers: [workerFactory],
 };
 
