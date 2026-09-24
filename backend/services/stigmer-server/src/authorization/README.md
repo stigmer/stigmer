@@ -54,11 +54,13 @@ editions; the cloud stores what open source computes.
   the tuple lifecycle's create-time resolution, pinned equal to it.
 - `derived-tuples.ts` — the derivation (the cloud driver's shapes, from the
   facts) and the source that joins it with the person's IamPolicy rows, read
-  once per source. The two edition-specific facts live here: the organization's
-  owner is a row, and a stamp that names no person is no tuple. A source may be
-  seeded with candidates' facts (the list scope), so a seeded object's tuples
-  derive without a read of its row; a `derived` rule still reads the row it
-  needs.
+  once per source, and with the rows granted to each team the person holds
+  `member` on (one read more per team; open source serves no team, so its
+  callers never pay it). The two edition-specific facts live here: the
+  organization's owner is a row, and a stamp that names no person is no tuple. A
+  source may be seeded with candidates' facts (the list scope), so a seeded
+  object's tuples derive without a read of its row; a `derived` rule still reads
+  the row it needs.
 - `store-test-kit.ts` — runs an OpenFGA store test (`.fga.yaml`) against the
   evaluator, vitest-free, exported from the barrel. Open source runs it over
   pinned copies of the cloud's own model tests (`__tests__/fixtures/fga/`, a

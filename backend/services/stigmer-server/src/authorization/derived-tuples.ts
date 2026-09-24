@@ -26,18 +26,38 @@
  *     rules' one predicate). The person comparison itself is the
  *     evaluator's, over the aliases `Person` carries.
  *
- * The SOURCE joins two records per (object, relation): the person's own
- * IamPolicy rows on the object (read ONCE per source through
- * `findByPrincipal` — every row open source writes names an account id,
- * so the person's account id is the whole key, and on the OSS adapter one
- * read is one scan whatever the number of organizations walked) and the
- * tuples derived from the object's row (loaded once per object through
- * the loader, which a declaration's `derived` rule also reads related
- * rows through). An absent row is no tuples — the target's own not-found
- * is the driver's arm, and a parent that no longer exists simply grants
- * nothing, as in the cloud; any other store fault propagates so the
- * driver folds it to `unavailable`. One source per check (or per list
- * call for the list scope): its memo is the check's.
+ * The SOURCE joins two records per (object, relation): the IamPolicy rows
+ * a check can meet on the object, and the tuples derived from the
+ * object's row (loaded once per object through the loader, which a
+ * declaration's `derived` rule also reads related rows through). The rows
+ * are read ONCE per source through `findByPrincipal`, keyed by the
+ * principals a check can reach the person through:
+ *
+ *   - the person's account — every role and every grant made to them;
+ *   - every team the person holds `member` on — a grant made to
+ *     `team:<id>#member` names the team, never the person, so it is read
+ *     by the team's id. The set is complete without recursion: a team's
+ *     membership is a direct grant only and a team never contains a team,
+ *     so every team that can admit the person appears among the person's
+ *     own rows. The rows grant nothing by being read: the evaluator still
+ *     asks whether the person is the team's member, which the model bounds
+ *     by the organization (`member: [identity_account] and viewer from
+ *     organization`), so a person who left the organization reads the
+ *     team's rows and is admitted by none of them.
+ *
+ * Open source serves no team (the kind's tier is enterprise), so the
+ * person's rows name none and the second read never happens: one read per
+ * source, one scan on the OSS adapter whatever the number of
+ * organizations walked. An edition that composes teams over the built-in
+ * evaluator pays one read more per team the person holds. The rows are
+ * indexed by (object, relation) once, so a list's thousands of candidates
+ * each find theirs without walking the rest.
+ *
+ * An absent row is no tuples — the target's own not-found is the driver's
+ * arm, and a parent that no longer exists simply grants nothing, as in the
+ * cloud; any other store fault propagates so the driver folds it to
+ * `unavailable`. One source per check (or per list call for the list
+ * scope): its memo is the check's.
  *
  * A source may be SEEDED with the facts of objects the caller already
  * holds (the list scope's candidates, decoded by the lane and carried on
@@ -101,6 +121,10 @@ import { ACCOUNT_TYPE, formatObjectRef } from "./tuples.js";
 export const ROW_RECORDED_OWNER_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.organization,
 ]);
+
+/** The FGA type a team grant names, and the relation that makes a person one of its members (the model's `team#member`). */
+const TEAM_TYPE = kindEnumName(ApiResourceKind.team);
+const TEAM_MEMBER_RELATION = "member";
 
 function account(id: string): Subject {
   return { form: "object", object: { type: ACCOUNT_TYPE, id } };
@@ -209,7 +233,9 @@ export interface DerivedTupleSource extends TupleSource {
    * The person's own IamPolicy rows as tuples — the ONE read of them this
    * source makes, shared with `tuplesOf`. A list-shaped consumer (the
    * organization directory; the list scope) reads its candidate objects
-   * from here instead of scanning the port a second time.
+   * from here instead of scanning the port a second time. The rows granted
+   * to the person's teams are not among them: they name the team, and
+   * `tuplesOf` serves them where a check meets them.
    */
   personTuples(): Promise<ReadonlyArray<Tuple>>;
 }
@@ -235,6 +261,9 @@ export function newDerivedTupleSource(
     );
   }
   let personRows: Promise<ReadonlyArray<Tuple>> | undefined;
+  let reachableRows:
+    | Promise<ReadonlyMap<string, ReadonlyArray<Tuple>>>
+    | undefined;
 
   const loader: RowLoader = {
     load(object) {
@@ -284,6 +313,38 @@ export function newDerivedTupleSource(
     return personRows;
   }
 
+  /**
+   * Every row a check can meet, keyed by (object, relation): the person's
+   * own, then the rows granted to each team the person holds `member` on
+   * (the module header says why that set is complete). A person in no
+   * team costs nothing beyond their own rows.
+   */
+  function reachableTuples(): Promise<
+    ReadonlyMap<string, ReadonlyArray<Tuple>>
+  > {
+    if (reachableRows === undefined) {
+      reachableRows = rowTuples().then(async (own) => {
+        const teams = new Set<string>();
+        for (const tuple of own) {
+          if (
+            tuple.object.type === TEAM_TYPE &&
+            tuple.relation === TEAM_MEMBER_RELATION &&
+            tuple.object.id !== ""
+          ) {
+            teams.add(tuple.object.id);
+          }
+        }
+        const granted = await Promise.all(
+          [...teams].map((team) =>
+            deps.policies.findByPrincipal(TEAM_TYPE, team),
+          ),
+        );
+        return indexByPair([...own, ...granted.flat().map(tupleOfRow)]);
+      });
+    }
+    return reachableRows;
+  }
+
   return {
     loader,
     personTuples: rowTuples,
@@ -292,7 +353,8 @@ export function newDerivedTupleSource(
         tuple.relation === relation &&
         tuple.object.type === object.type &&
         tuple.object.id === object.id;
-      const fromRows = (await rowTuples()).filter(onPair);
+      const fromRows =
+        (await reachableTuples()).get(pairKey(object, relation)) ?? [];
       const declaration = model.byType(object.type);
       if (declaration === undefined) {
         return fromRows;
@@ -335,6 +397,27 @@ async function loadRow(
     }
     throw error;
   }
+}
+
+/** The key a tuple is served under: its object and relation. */
+function pairKey(object: ObjectRef, relation: string): string {
+  return `${formatObjectRef(object)}#${relation}`;
+}
+
+function indexByPair(
+  tuples: ReadonlyArray<Tuple>,
+): ReadonlyMap<string, ReadonlyArray<Tuple>> {
+  const index = new Map<string, Tuple[]>();
+  for (const tuple of tuples) {
+    const key = pairKey(tuple.object, tuple.relation);
+    const held = index.get(key);
+    if (held === undefined) {
+      index.set(key, [tuple]);
+    } else {
+      held.push(tuple);
+    }
+  }
+  return index;
 }
 
 /** An IamPolicy row as the tuple it records: `resource#relation@principal`. */

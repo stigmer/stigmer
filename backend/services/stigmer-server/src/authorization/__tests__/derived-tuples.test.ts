@@ -14,6 +14,10 @@
  * source, an absent object answering nothing, a store fault propagating
  * as the fault it is — the ratified store-fault mapping, which is what
  * lets the driver above fold it to `unavailable` and never to a denial.
+ * Its grants-to-teams arm evaluates the Enterprise team type
+ * (enterprise-model.ts): a grant to a team reaches its members and nobody
+ * who left the organization, and a person in no team — every open-source
+ * caller — still costs the source exactly one read.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -45,6 +49,7 @@ import type { Person } from "../tuples.js";
 import { formatTuple, parseObjectRef } from "../tuples.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
+import { enterpriseModel, teamDeclaration } from "./enterprise-model.js";
 import { fixtureRow } from "./support.js";
 
 function declared(type: string): KindDeclaration {
@@ -244,6 +249,7 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.workflow_instance,
   ApiResourceKind.workflow_execution,
   ApiResourceKind.identity_account,
+  ApiResourceKind.team,
 ];
 
 afterAll(dropPostgresFixture);
@@ -564,6 +570,173 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         await expect(
           source.tuplesOf(parseObjectRef("organization:acme"), "owner"),
         ).rejects.toThrow();
+      });
+    });
+
+    /**
+     * The grants made to a person's teams, through the real source and the
+     * evaluator over the Enterprise team type (enterprise-model.ts). Seeded:
+     * `acme` with Dave a member and Root its owner; `tm_core` and
+     * `tm_other` in `acme`; Dave and Erin granted `member` on `tm_core`,
+     * Erin holding no organization role (she left); `agt_core` shared with
+     * `tm_core#member` and `agt_other` with `tm_other#member`, both private
+     * and Carol's.
+     */
+    describe.skipIf(fixture.skip)("the grants made to a person's teams", () => {
+      let opened: OpenedStore;
+      let counted: ReturnType<typeof countingPolicies>;
+      const ERIN: Person = {
+        accountId: "ida_erin",
+        aliases: new Set(["ida_erin"]),
+      };
+
+      async function seed(
+        declaration: KindDeclaration,
+        facts: Parameters<typeof fixtureRow>[1],
+      ): Promise<void> {
+        await opened.store.saveResource(
+          declaration.kind,
+          facts.id,
+          declaration.schema,
+          fixtureRow(declaration, facts),
+        );
+      }
+
+      beforeEach(async () => {
+        opened = await fixture.open();
+        counted = countingPolicies(newResourceIamPolicyStore(opened.store));
+        await seed(declared("organization"), {
+          id: "acme",
+          org: "",
+          visibility: ApiResourceVisibility.visibility_private,
+          createdBy: ROOT.accountId,
+        });
+        for (const id of ["tm_core", "tm_other"]) {
+          await seed(teamDeclaration, {
+            id,
+            org: "acme",
+            visibility: ApiResourceVisibility.visibility_private,
+            createdBy: ROOT.accountId,
+          });
+        }
+        for (const [id, team] of [
+          ["agt_core", "tm_core"],
+          ["agt_other", "tm_other"],
+        ] as const) {
+          await seed(declared("agent"), {
+            id,
+            org: "acme",
+            visibility: ApiResourceVisibility.visibility_private,
+            createdBy: "ida_carol",
+          });
+          await grant(
+            counted.policies,
+            triple({ kind: "team", id: team, relation: "member" }, "viewer", {
+              kind: "agent",
+              id,
+            }),
+          );
+        }
+        await grant(counted.policies, orgRole(ROOT.accountId, "owner", "acme"));
+        await grant(
+          counted.policies,
+          orgRole(DAVE.accountId, "member", "acme"),
+        );
+        for (const member of [DAVE, ERIN]) {
+          await grant(
+            counted.policies,
+            triple(
+              { kind: "identity_account", id: member.accountId },
+              "member",
+              { kind: "team", id: "tm_core" },
+            ),
+          );
+        }
+      });
+
+      afterEach(async () => {
+        await opened.close();
+      });
+
+      function sourceFor(person: Person) {
+        return newDerivedTupleSource(
+          {
+            store: opened.store,
+            policies: counted.policies,
+            accounts: newResourceIdentityAccountStore(opened.store),
+            model: enterpriseModel,
+          },
+          person,
+        );
+      }
+
+      async function allowed(
+        person: Person,
+        object: string,
+        relation: string,
+      ): Promise<boolean> {
+        return checkRelation(
+          { model: enterpriseModel, source: sourceFor(person) },
+          parseObjectRef(object),
+          relation,
+          person,
+        );
+      }
+
+      it("a grant to a team reaches its member: the source serves the team's row on the object, and the member views it", async () => {
+        expect(
+          (
+            await sourceFor(DAVE).tuplesOf(
+              parseObjectRef("agent:agt_core"),
+              "viewer",
+            )
+          ).map(formatTuple),
+        ).toEqual(["agent:agt_core#viewer@team:tm_core#member"]);
+        expect(await allowed(DAVE, "agent:agt_core", "can_view")).toBe(true);
+      });
+
+      it("a member who left the organization reads the team's rows and is admitted by none of them — the model's bound, not a cleanup", async () => {
+        expect(
+          (
+            await sourceFor(ERIN).tuplesOf(
+              parseObjectRef("agent:agt_core"),
+              "viewer",
+            )
+          ).map(formatTuple),
+        ).toEqual(["agent:agt_core#viewer@team:tm_core#member"]);
+        expect(await allowed(ERIN, "agent:agt_core", "can_view")).toBe(false);
+      });
+
+      it("a grant to a team the person is not in never enters their source", async () => {
+        expect(
+          await sourceFor(DAVE).tuplesOf(
+            parseObjectRef("agent:agt_other"),
+            "viewer",
+          ),
+        ).toEqual([]);
+        expect(await allowed(DAVE, "agent:agt_other", "can_view")).toBe(false);
+        expect(await allowed(ROOT, "agent:agt_core", "can_view")).toBe(true);
+      });
+
+      it("reads once for a person in no team and once more per team held, however many objects are asked", async () => {
+        const root = sourceFor(ROOT);
+        await root.tuplesOf(parseObjectRef("agent:agt_core"), "viewer");
+        await root.tuplesOf(parseObjectRef("agent:agt_other"), "viewer");
+        expect(counted.reads()).toBe(1);
+        const dave = sourceFor(DAVE);
+        await dave.tuplesOf(parseObjectRef("agent:agt_core"), "viewer");
+        await dave.tuplesOf(parseObjectRef("agent:agt_other"), "viewer");
+        await dave.tuplesOf(parseObjectRef("organization:acme"), "member");
+        expect(counted.reads()).toBe(1 + 2);
+      });
+
+      it("personTuples stays the person's own rows — the organization directory's candidates do not grow with team grants", async () => {
+        expect(
+          (await sourceFor(DAVE).personTuples()).map(formatTuple).sort(),
+        ).toEqual([
+          "organization:acme#member@identity_account:ida_dave",
+          "team:tm_core#member@identity_account:ida_dave",
+        ]);
       });
     });
 

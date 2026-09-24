@@ -48,7 +48,8 @@
  * Cost, per check (measured at slice 4): the target row (1), the caller's
  * account (1 primary-key read; 2 for a caller a composition verifier left
  * idp-shaped), the person's IamPolicy rows (1 scan of the port, once per
- * source), and one row per parent hop the model walks.
+ * source; one more per team the person holds, which open source never
+ * has — derived-tuples.ts), and one row per parent hop the model walks.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
