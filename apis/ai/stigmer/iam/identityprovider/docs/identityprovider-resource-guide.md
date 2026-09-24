@@ -38,7 +38,7 @@ status: {}  # System-managed, never set by users
 |---|---|---|
 | `metadata.name` | Yes | Human-readable name (e.g., `Planton`). Used in UI and audit logs. |
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter. |
-| `metadata.id` | No | System-generated unique identifier (prefix `idp-`). Never set by users. |
+| `metadata.id` | No | System-generated unique identifier (prefix `idp_`). Never set by users. |
 | `metadata.org` | Yes | Organization that owns this identity provider. All federated accounts created via this provider are associated with this org. |
 
 ## Spec Fields
@@ -56,36 +56,24 @@ status: {}  # System-managed, never set by users
 
 | Operation | RPC | Authorization |
 |---|---|---|
-| Apply (create or update) | `IdentityProviderCommandController.apply` | Kubernetes-style upsert. |
+| Apply (create or update) | `IdentityProviderCommandController.apply` | Kubernetes-style upsert: creating asks what Create asks, updating asks what Update asks. |
 | Create | `IdentityProviderCommandController.create` | `can_create_idp` on the owning organization |
 | Update | `IdentityProviderCommandController.update` | `can_edit` on the IdentityProvider |
-| Delete | `IdentityProviderCommandController.delete` | `can_delete` on the IdentityProvider. Blocked if any platform-managed organizations reference this provider. |
+| Delete | `IdentityProviderCommandController.delete` | `can_delete` on the IdentityProvider. Refused while any platform-managed organization references this provider. |
 | Get by ID | `IdentityProviderQueryController.get` | `can_view` on the IdentityProvider |
-| Get by reference | `IdentityProviderQueryController.getByReference` | Open (used during token exchange flow) |
+| Get by reference | `IdentityProviderQueryController.getByReference` | `can_view` on the resolved IdentityProvider, exactly as Get by ID |
+| List by organization | `IdentityProviderQueryController.listByOrg` | `can_view` on the organization; the answer holds only the providers the caller may view |
+| SSO discovery | `IdentityProviderQueryController.getSsoProvider` | None: the login page calls it before sign-in, and it answers only the SSO projection (display name, OIDC client ID, issuer, expected audience) |
+
+The organization's admins view, edit and delete its identity providers, and so does each provider's creator; other members of the organization see none of them.
 
 ## CLI Commands
 
+The CLI applies identity providers declaratively; reading and deleting them is done in the console or through the API.
+
 ```bash
 # Apply (create or update) an identity provider from YAML
-stigmer identity-provider apply idp.yaml
-
-# Create a new identity provider
-stigmer identity-provider create idp.yaml
-
-# Update an existing identity provider
-stigmer identity-provider update idp.yaml
-
-# Get an identity provider by ID
-stigmer identity-provider get idp-01ABCDEF
-
-# Get an identity provider by reference (org/slug)
-stigmer identity-provider get --org planton --slug planton
-
-# Get as YAML
-stigmer identity-provider get idp-01ABCDEF --output yaml
-
-# Delete an identity provider
-stigmer identity-provider delete idp-01ABCDEF
+stigmer apply -f idp.yaml
 ```
 
 ## Related Documentation

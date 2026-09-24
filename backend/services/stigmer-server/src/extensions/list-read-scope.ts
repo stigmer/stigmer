@@ -224,7 +224,8 @@ export interface ScopedListResource {
 /**
  * The ONE consumption idiom for post-scan lanes (the shared-step
  * discipline of pipeline/steps/authorization-tuples.ts, rendered as a
- * helper because half the lanes are direct handlers):
+ * helper because half the lanes are direct handlers; on the barrel, so a
+ * composition's lane over its own table narrows the same way):
  *
  *   - no scope composed → the input array unchanged (byte-identity;
  *     `requestOrg` deliberately not consulted — the OSS single-tenant

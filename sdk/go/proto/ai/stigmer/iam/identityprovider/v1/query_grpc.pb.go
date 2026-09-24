@@ -39,20 +39,22 @@ type IdentityProviderQueryControllerClient interface {
 	// Resolves a human-readable reference like "acme/planton" to the full
 	// IdentityProvider resource.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*IdentityProvider, error)
-	// List all identity providers belonging to an organization.
+	// List the identity providers of an organization that the caller may view.
 	//
-	// Returns every IdentityProvider whose metadata.org matches the input org.
-	// Typically a small set (1-3 per org), so results are not paginated.
+	// Returns the IdentityProviders whose metadata.org matches the input org and
+	// that the caller could get by id. Typically a small set (1-3 per org), so
+	// results are not paginated.
 	ListByOrg(ctx context.Context, in *ListIdentityProvidersByOrgInput, opts ...grpc.CallOption) (*IdentityProviders, error)
 	// Look up the SSO identity provider for an organization.
 	//
-	// Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
-	// of the IdentityProvider where is_sso_provider is true for the given org.
-	// Returns NOT_FOUND if the organization has no SSO provider configured.
+	// Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
+	// expected audience) of the IdentityProvider where is_sso_provider is true
+	// for the given org. Returns NOT_FOUND if the organization has no SSO
+	// provider configured.
 	//
 	// This endpoint is called by the web app's login page before the user has
-	// authenticated, so it requires no authorization. The response intentionally
-	// omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+	// signed in, so it requires no credential. The response intentionally omits
+	// internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
 	GetSsoProvider(ctx context.Context, in *OrganizationSsoLookup, opts ...grpc.CallOption) (*SsoProviderInfo, error)
 }
 
@@ -117,20 +119,22 @@ type IdentityProviderQueryControllerServer interface {
 	// Resolves a human-readable reference like "acme/planton" to the full
 	// IdentityProvider resource.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*IdentityProvider, error)
-	// List all identity providers belonging to an organization.
+	// List the identity providers of an organization that the caller may view.
 	//
-	// Returns every IdentityProvider whose metadata.org matches the input org.
-	// Typically a small set (1-3 per org), so results are not paginated.
+	// Returns the IdentityProviders whose metadata.org matches the input org and
+	// that the caller could get by id. Typically a small set (1-3 per org), so
+	// results are not paginated.
 	ListByOrg(context.Context, *ListIdentityProvidersByOrgInput) (*IdentityProviders, error)
 	// Look up the SSO identity provider for an organization.
 	//
-	// Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
-	// of the IdentityProvider where is_sso_provider is true for the given org.
-	// Returns NOT_FOUND if the organization has no SSO provider configured.
+	// Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
+	// expected audience) of the IdentityProvider where is_sso_provider is true
+	// for the given org. Returns NOT_FOUND if the organization has no SSO
+	// provider configured.
 	//
 	// This endpoint is called by the web app's login page before the user has
-	// authenticated, so it requires no authorization. The response intentionally
-	// omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+	// signed in, so it requires no credential. The response intentionally omits
+	// internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
 	GetSsoProvider(context.Context, *OrganizationSsoLookup) (*SsoProviderInfo, error)
 }
 
