@@ -47,8 +47,9 @@
  *
  * Open source serves no team (the kind's tier is enterprise), so the
  * person's rows name none and the second read never happens: one read per
- * source, one scan on the OSS adapter whatever the number of
- * organizations walked. An edition that composes teams over the built-in
+ * source, an indexed read on the OSS adapter (its list index by
+ * principal) whatever the number of organizations walked or rows held.
+ * An edition that composes teams over the built-in
  * evaluator pays one read more per team the person holds. The rows are
  * indexed by (object, relation) once, so a list's thousands of candidates
  * each find theirs without walking the rest.

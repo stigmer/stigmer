@@ -2,10 +2,12 @@
  * Runs the IamPolicyStore port-contract kit (../store-contract.ts) over the
  * OSS adapter (../resource-store.ts) on both drivers through the drivers'
  * own fixtures (sqlite always; Postgres under TEST_DATABASE_URL), and pins
- * the one behaviour that is the OSS adapter's rather than the port's
- * (T01_1_review.md Q-OR-9): save refuses a policy whose id is not the
- * triple's derived id, the invariant that makes "one row per triple" the
- * primary key's job in open source.
+ * the two behaviours that are the OSS adapter's rather than the port's:
+ * save refuses a policy whose id is not the triple's derived id, the
+ * invariant that makes "one row per triple" the primary key's job in open
+ * source; and a principal's rows are read through the kind's list index,
+ * never by decoding the whole kind, because the built-in authorizer reads
+ * them on every check.
  *
  * The kit's case list is pinned by name so a case cannot drop out unnoticed:
  * the cloud driver's test iterates the same export over `cloud.iam_policy`
@@ -21,6 +23,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
+import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import type { Store } from "../../../store/interface.js";
 import { PostgresStore } from "../../../store/postgres/store.js";
 import {
@@ -82,7 +85,11 @@ const postgresFixture: DriverFixture = {
     if (postgresDatabase === undefined) {
       postgresDatabase = await createTestDatabase();
     }
-    const store = await PostgresStore.open(postgresDatabase.databaseUrl);
+    const store = await PostgresStore.open(
+      postgresDatabase.databaseUrl,
+      undefined,
+      { listIndexes: LIST_INDEXES },
+    );
     await store.deleteResourcesByKind(ApiResourceKind.iam_policy);
     return { store, close: () => store.close() };
   },
@@ -159,6 +166,59 @@ describe.each([sqliteFixture, postgresFixture])(
         expect((await policies.findById(policyIdFor(spec)))?.spec).toEqual(
           spec,
         );
+      });
+
+      it("reads a principal's rows through the list index, never by decoding the whole kind", async () => {
+        let scans = 0;
+        const target = opened.store;
+        // Every method runs on the real store; only the scan is counted.
+        const counted = new Proxy(target, {
+          get(store, property) {
+            if (property === "listResources") {
+              return (kind: ApiResourceKind) => {
+                if (kind === ApiResourceKind.iam_policy) {
+                  scans += 1;
+                }
+                return store.listResources(kind);
+              };
+            }
+            const value: unknown = Reflect.get(store, property, store);
+            return typeof value === "function" ? value.bind(store) : value;
+          },
+        });
+        const policies = newResourceIamPolicyStore(counted);
+        for (const [principal, relation] of [
+          ["ida_wtr3jcf281yfk9xx61kj59fsme", "admin"],
+          ["ida_wtr3jcf281yfk9xx61kj59fsme", "member"],
+          ["ida_0hlf2yb5mhkgb3bdzkkrptqf4d", "member"],
+        ] as const) {
+          const spec = orgRole(principal, relation, "acme");
+          await policies.save(
+            create(IamPolicySchema, {
+              apiVersion: IAM_POLICY_API_VERSION,
+              kind: IAM_POLICY_KIND,
+              metadata: create(ApiResourceMetadataSchema, {
+                id: policyIdFor(spec),
+              }),
+              spec,
+            }),
+          );
+        }
+        const found = await policies.findByPrincipal(
+          "identity_account",
+          "ida_wtr3jcf281yfk9xx61kj59fsme",
+        );
+        expect(found.map((policy) => policy.spec?.relation).sort()).toEqual([
+          "admin",
+          "member",
+        ]);
+        expect(
+          await policies.findByPrincipal(
+            "team",
+            "ida_wtr3jcf281yfk9xx61kj59fsme",
+          ),
+        ).toEqual([]);
+        expect(scans).toBe(0);
       });
     });
   },

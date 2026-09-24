@@ -7,12 +7,15 @@
  * and the numbers are recorded in a project log, not asserted: timing on
  * a shared machine is noise in a unit suite. No budget is ruled for open
  * source, and the cloud's 300 ms is a different engine's; an edition that
- * serves teams over this evaluator holds a list call at 10,000 candidates
- * to 300 ms and a point check to 50 ms, read from these lines.
+ * serves teams over this evaluator holds a page of a paged list to 300 ms
+ * and a point check to 50 ms, read from these lines, and records the
+ * single 10,000-candidate call (a request that asks for every row, the
+ * enumeration lanes) as its worst case.
  *
  * Two axes. The CANDIDATE count (1k and 10k rows of the listed kind) and
- * the POLICY TABLE every check and every list scans once through the
- * IamPolicy port (the OSS adapter decodes the whole kind; its header).
+ * the POLICY TABLE every check and every list batch reads a person's rows
+ * from through the IamPolicy port (indexed by principal on the OSS
+ * adapter; resource-store.ts).
  * Every shape runs at an Enterprise-sized population: one organization of
  * 1,000 members in 50 teams of 20, teams granted `viewer` on half the
  * candidate agents, one person granted directly on 2% of them, and other
@@ -33,6 +36,12 @@
  *     direct grants; a former member who keeps the team's row and is
  *     admitted by none of it (the bound's correctness at volume); and the
  *     enumeration verb for the team member;
+ *   - pages, as the paged lanes run them (pipeline/steps/list-page.ts): a
+ *     page that fills in one batch (one scope call of 100 candidates) and
+ *     a caller's worst page (five calls of 100, the examine budget of 500,
+ *     each call its own source as `admit` makes it), for the team member,
+ *     the direct grantee and an organization member, at the population of
+ *     10,000 policy rows;
  *   - point checks: one `can_view` through a team grant and one through a
  *     direct grant, each over 100 checks with a fresh source per check
  *     (the Authorizer's own shape), the mean reported.
@@ -100,6 +109,11 @@ const TEAM_SIZE = 20;
 const MEMBERS = TEAMS * TEAM_SIZE;
 const MULTI_TEAM_COUNT = 5;
 const POINT_CHECKS = 100;
+/** The page loop's largest page and its examine budget (pipeline/steps/list-page.ts). */
+const PAGE_SIZE = 100;
+const PAGE_EXAMINE_BUDGET = 500;
+/** The population the pages run at: a 10,000-row policy table. */
+const PAGE_POPULATION = 10_000;
 /**
  * A case seeds up to twenty thousand rows one write at a time before its
  * timer starts; the suite's 15 s budget is for tests, not for this seed.
@@ -335,6 +349,41 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
 ];
 
+interface PageShape {
+  readonly name: string;
+  readonly caller: string;
+  /** The candidate of index `i`, an agent. */
+  row(i: number): FixtureRowFacts;
+  /** How many of the first `n` candidates the caller keeps. */
+  kept(n: number): number;
+}
+
+const PAGE_SHAPES: ReadonlyArray<PageShape> = [
+  {
+    name: "the team member's private agents shared with their team",
+    caller: TEAM_MEMBER,
+    row: enterpriseAgentRow,
+    kept: (n) => keptThroughTeams(n, 1),
+  },
+  {
+    name: "the direct grantee's private agents granted to them",
+    caller: DIRECT,
+    row: enterpriseAgentRow,
+    kept: keptDirectly,
+  },
+  {
+    name: "an organization member's org-visible agents",
+    caller: MEMBER,
+    row: (i) => ({
+      id: `agt_${i}`,
+      org: ORG,
+      visibility: ApiResourceVisibility.visibility_org,
+      createdBy: FOUNDER,
+    }),
+    kept: (n) => n,
+  },
+];
+
 /** The Enterprise population's IamPolicy rows at candidate size `n`. */
 function populationPolicies(n: number): IamPolicySpec[] {
   const specs: IamPolicySpec[] = [
@@ -544,6 +593,54 @@ describe
           MEASURE_TIMEOUT_MS,
         );
       }
+    }
+
+    for (const shape of PAGE_SHAPES) {
+      it(
+        `pages: ${shape.name}, at a ${PAGE_POPULATION}-row population`,
+        async () => {
+          const declaration = declared("agent");
+          const policyRows = await seedPopulation(PAGE_POPULATION);
+          const entries: ListEntryMeta[] = [];
+          for (let i = 0; i < PAGE_EXAMINE_BUDGET; i += 1) {
+            const row = await save("agent", shape.row(i));
+            entries.push({
+              ...rowAuthorizationFactsOf(declaration.kind, row),
+              labels: {},
+            });
+          }
+          const scope = newBuiltInListReadScope({
+            store: opened.store,
+            policies,
+            accounts,
+            logger: silentLogger,
+            model: enterpriseModel,
+          });
+          const caller = resolved(shape.caller);
+          // A page's batches run one after another, each through the scope
+          // with its own source, exactly as the page loop calls `admit`.
+          async function page(batches: number): Promise<number> {
+            let kept = 0;
+            for (let b = 0; b < batches; b += 1) {
+              const batch = entries.slice(b * PAGE_SIZE, (b + 1) * PAGE_SIZE);
+              kept += (
+                await scope.restrictListEntries(caller, declaration.kind, batch)
+              ).size;
+            }
+            return kept;
+          }
+          for (const batches of [1, PAGE_EXAMINE_BUDGET / PAGE_SIZE]) {
+            const started = performance.now();
+            const kept = await page(batches);
+            const elapsedMs = Math.round(performance.now() - started);
+            expect(kept).toBe(shape.kept(batches * PAGE_SIZE));
+            console.log(
+              `[measure] ${fixture.name} agent page calls=${batches} candidates=${batches * PAGE_SIZE} policies=${policyRows} elapsed=${elapsedMs}ms — ${batches === 1 ? "a page that fills in one batch" : "the worst page"}: ${shape.name}`,
+            );
+          }
+        },
+        MEASURE_TIMEOUT_MS,
+      );
     }
 
     for (const [caller, agent, grant] of [
