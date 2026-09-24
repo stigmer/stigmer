@@ -27,6 +27,10 @@ const PINNED: Readonly<
     fingerprint:
       "artifact{agent_execution=field:spec.source.agent_execution_id,workflow_execution=field:spec.source.workflow_execution_id}",
   },
+  iam_policy: {
+    revision: 1,
+    fingerprint: "iam_policy{principal=field:spec.principal.id}",
+  },
   session: {
     revision: 1,
     fingerprint:

@@ -4,14 +4,21 @@
  * §3a, §4). The composition root installs it when no extension registers
  * `drivers.iamPolicyStore`.
  *
- * Reads. `findById` is a PRIMARY-KEY read. Every other find decodes
- * `listResources(iam_policy)` and filters in memory: the `resources` table
- * has no secondary index and `findByField` is single-hit, so a scan is the
- * honest shape, and the row count is members × organizations on a
- * self-host — measured in the entry's execution record (§4), not assumed.
- * The filters are the cloud store's WHERE clauses restated over the proto
- * (store.ts names each), so a driver's test over either edition reads the
- * same contract.
+ * Reads. `findById` is a PRIMARY-KEY read. `findByPrincipal` is an
+ * INDEXED read through the kind's list index (list-index.ts), because the
+ * built-in authorizer calls it on every check and every list batch — for
+ * the person, and once more per team they belong to — and a scan there
+ * costs a decode of every row the server holds, per call (measured
+ * 2026-09-24: about 4.6 microseconds per row, 47 ms a check at ten
+ * thousand rows on sqlite). The index narrows by the principal's id; the
+ * (kind, id) predicate decides, so the answer is exact whatever the index
+ * returns, and the store keeps it exact while an older binary still
+ * writes (store/interface.ts, `queryResources`). Every other find decodes
+ * `listResources(iam_policy)` and filters in memory: they serve the grant
+ * path and the access lists, not the check, and the row count behind them
+ * is members × organizations on a self-host. The filters are the cloud
+ * store's WHERE clauses restated over the proto (store.ts names each), so
+ * a driver's test over either edition reads the same contract.
  *
  * Writes. `save` refuses a policy whose id is not its triple's derived id
  * (constants.ts policyIdFor): open source has no legacy random ids, and a
@@ -43,6 +50,7 @@ import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { USER_GRANT_PRINCIPAL_KINDS, policyIdFor } from "./constants.js";
+import { iamPolicyListIndex } from "./list-index.js";
 import { DuplicatePolicyError } from "./store.js";
 import type { IamPolicyStore } from "./store.js";
 
@@ -72,7 +80,7 @@ export function newResourceIamPolicyStore(store: Store): IamPolicyStore {
     }
   }
 
-  /** Every row of the kind, decoded — the scan behind every non-id read. */
+  /** Every row of the kind, decoded — the scan behind every read but by id and by principal. */
   async function all(): Promise<ReadonlyArray<IamPolicy>> {
     const rows = await store.listResources(KIND);
     return rows.map((bytes) => fromBinary(IamPolicySchema, bytes));
@@ -102,8 +110,13 @@ export function newResourceIamPolicyStore(store: Store): IamPolicyStore {
 
     findById: readById,
 
-    findByPrincipal(principalKind, principalId) {
-      return where((policy) => onPrincipal(policy, principalKind, principalId));
+    async findByPrincipal(principalKind, principalId) {
+      const rows = await store.queryResources(iamPolicyListIndex, {
+        anyKey: [{ name: "principal", value: principalId }],
+      });
+      return rows
+        .map((row) => fromBinary(IamPolicySchema, row.data))
+        .filter((policy) => onPrincipal(policy, principalKind, principalId));
     },
 
     findByResource(resourceKind, resourceId) {
