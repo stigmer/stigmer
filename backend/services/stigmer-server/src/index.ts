@@ -246,6 +246,10 @@ export type {
 // its rows exactly as the library's lanes do, instead of building each
 // candidate's authorization facts by hand.
 export { restrictListByReadScope } from "./extensions/list-read-scope.js";
+// The seam's refusal of the `internal` caller class on the restrict verb,
+// which that idiom answers before any driver is asked: exported so a
+// composition's driver refuses the class exactly as the built-in one does.
+export { InternalCallerOfferedError } from "./extensions/list-read-scope.js";
 // The stigmer-cloud#572 seam: the identity a schedule fire acts as
 // (drivers.scheduleFireCaller) — the composition mints it per fire; the
 // RunStarter propagates it through the R5 in-process header. A mint that

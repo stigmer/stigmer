@@ -53,7 +53,10 @@ import type {
   ListEntryMeta,
   ListReadScope,
 } from "../../extensions/list-read-scope.js";
-import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
+import {
+  InternalCallerOfferedError,
+  restrictListByReadScope,
+} from "../../extensions/list-read-scope.js";
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { rowAuthorizationFactsOf } from "../../pipeline/steps/authorization-facts.js";
 import type { Store } from "../../store/interface.js";
@@ -600,9 +603,15 @@ describe.each(driverFixtures(SEEDED_KINDS))(
                 () => undefined,
                 (error: unknown) => error,
               );
-            expect(refusal).toBeInstanceOf(AuthorizationEvaluationError);
-            expect((refusal as AuthorizationEvaluationError).reason).toBe(
-              "internal-caller-offered",
+            // The seam's own refusal, the one a composition's driver throws
+            // too; never the evaluator's fault, since nothing was evaluated.
+            expect(refusal).toBeInstanceOf(InternalCallerOfferedError);
+            expect(refusal).not.toBeInstanceOf(AuthorizationEvaluationError);
+            expect((refusal as InternalCallerOfferedError).kind).toBe(
+              ApiResourceKind.agent,
+            );
+            expect((refusal as InternalCallerOfferedError).message).toContain(
+              "kind 'agent'",
             );
             // Refused before any read: the server was never evaluated as a person.
             expect(accountReads).toBe(0);
