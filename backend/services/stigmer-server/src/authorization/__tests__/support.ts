@@ -15,6 +15,11 @@
  * parent), which is what lets the parity pin run over all of them.
  * `spec` and `status` overrides sit on top for the arms that need a
  * pointer or a level set.
+ *
+ * A fixture row exists only for a kind this edition stores rows of: every
+ * type of the model but a rowless one (`platform`, model/bindings.ts), so
+ * the builders take a StoredKindDeclaration and `storedDeclaration`
+ * refuses a rowless type by name.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
@@ -26,6 +31,7 @@ import {
   getKindMeta,
   kindEnumName,
 } from "../../pipeline/apiresource-meta.js";
+import { builtInModel } from "../model/index.js";
 import type { KindDeclaration } from "../model/rewrite.js";
 
 export interface FixtureRowFacts {
@@ -39,6 +45,28 @@ export interface FixtureRowFacts {
   readonly status?: Readonly<Record<string, unknown>>;
 }
 
+/** A declaration of a kind with stored rows: what a fixture row is built, saved and decoded with. */
+export type StoredKindDeclaration = KindDeclaration & { readonly schema: DescMessage };
+
+/** Whether rows of the declaration's kind are stored: every type but a rowless one. */
+export function hasStoredRows(
+  declaration: KindDeclaration,
+): declaration is StoredKindDeclaration {
+  return declaration.schema !== undefined;
+}
+
+/** The built-in model's declaration of `type`, which must be a kind with stored rows. */
+export function storedDeclaration(type: string): StoredKindDeclaration {
+  const declaration = builtInModel.byType(type);
+  if (declaration === undefined) {
+    throw new Error(`${type} is not a type of the model`);
+  }
+  if (!hasStoredRows(declaration)) {
+    throw new Error(`${type} is rowless: no row of it is stored`);
+  }
+  return declaration;
+}
+
 /** The id the fixture gives the parent of `parentKind`: `<type>-1`. */
 export function fixtureParentId(parentKind: string): string {
   return `${kindEnumName(getKindEnum(parentKind))}-1`;
@@ -46,7 +74,7 @@ export function fixtureParentId(parentKind: string): string {
 
 /** A row of `declaration.kind` carrying exactly the given facts, its parents filled. */
 export function fixtureRow(
-  declaration: KindDeclaration,
+  declaration: StoredKindDeclaration,
   facts: FixtureRowFacts,
 ): Message {
   // Typed loosely on purpose: the schema is any declared kind's, and
@@ -70,7 +98,7 @@ export function fixtureRow(
 }
 
 /** `kind_meta`'s parent spec fields for the kind, by generated name, each naming `<parentKind>-1`. */
-function parentFieldsOf(declaration: KindDeclaration): Record<string, string> {
+function parentFieldsOf(declaration: StoredKindDeclaration): Record<string, string> {
   const config = getKindMeta(declaration.kind).authorization;
   const spec = specSchemaOf(declaration.schema);
   const fields: Record<string, string> = {};

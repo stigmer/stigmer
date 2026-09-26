@@ -1,83 +1,136 @@
 /**
- * Pins that every question the wire can ask this edition's authorizer
- * has a line in the model: for every `rpc.config`-annotated method the
- * open-source server SERVES whose annotation names a static kind this
- * edition serves, the permission is a relation that kind's transcript
- * declares. A relation the kind does not define answers `deny` here
- * (evaluator.ts) — an RPC annotated with such a pair would refuse every
- * caller, green on the permissive `local*` targets and dark only under
- * enforcement, so the gap is caught at the registry instead of on a
- * self-host.
+ * Pins the contract to the model over the whole wire: every question an
+ * RPC annotation asks the authorization model is a relation the model
+ * defines. The model (fga/model) and the contract (apis/, reaching this
+ * package as `@stigmer/protos`) are both this repository's, so their
+ * agreement is this repository's to keep, whichever edition serves the
+ * RPC. That is why the scope here is every service in `@stigmer/protos`,
+ * where authorize-annotation-completeness.test.ts scopes itself to the
+ * methods open source serves: that test governs the Authorize step, and a
+ * composition's own services are its own conformance suite's business;
+ * this one asks whether the model and the contract say the same thing.
  *
- * Scope follows authorize-annotation-completeness.test.ts: the empty
- * composition's routes, replayed into a recorder, are exactly the methods
- * the OSS Authorize step governs. Outside the pin, each for a stated
- * reason: `is_public` and `is_skip_authorization` methods (the annotation
- * is never resolved); a kind the edition does not serve (`platform`; the
- * driver refuses it before any evaluation, so under the built-in posture
- * nobody holds a platform permission); a kind named by
- * `resource_kind_path` (the IamPolicy lane's — the kind is the request's,
- * and the target's own declaration answers at run time).
+ * Two invariants:
+ *   - every `rpc.config` annotation that names a static kind asks a
+ *     permission that kind's type defines. A relation the type does not
+ *     define answers `deny` in the built-in evaluator and a validation
+ *     error in OpenFGA, so such an RPC refuses every caller, dark until
+ *     someone runs it under enforcement;
+ *   - the permission of every `resource_kind_path` lane (the IamPolicy
+ *     lanes, whose kind is the request's) is defined on every kind whose
+ *     `kind_meta` lists grantable roles, because each such kind is one the
+ *     grant path admits.
+ *
+ * Outside the pin, as in the annotation-completeness precedent: `is_public`
+ * and `is_skip_authorization` methods (their annotation is never
+ * resolved), and a `config` that names no kind (`IamPolicyQueryController.get`,
+ * which authorizes the loaded policy's resource).
+ *
+ * What does not hold today is pinned, never dropped: `KNOWN_GAPS` lists
+ * each disagreement, and the test requires the computed list to equal it,
+ * so a fix to the model or the contract fails here until its line is
+ * removed.
+ *
+ * The walk reads the stubs' built `dist`. `make test-server` builds them
+ * first; a bare `vitest` run in a checkout whose `dist` is stale reads
+ * services the contract no longer has.
  */
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 
+import type { DescService } from "@bufbuild/protobuf";
 import { getOption, hasOption } from "@bufbuild/protobuf";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  ApiResourceKind,
+  ApiResourceKindSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   config as rpcAuthorizationConfig,
   is_public,
   is_skip_authorization,
 } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
-import { loadConfig } from "../../boot/config.js";
-import { composeServer } from "../../boot/compose.js";
-import type { ComposedServer } from "../../boot/compose.js";
-import {
-  baseConfig,
-  servedServices,
-  silentLogger,
-} from "../../extensions/__tests__/composed-support.js";
-import {
-  kindEnumName,
-  kindServedByEdition,
-} from "../../pipeline/apiresource-meta.js";
-import { declarationFor } from "../model/index.js";
+import { grantableRolesFor, kindEnumName } from "../../pipeline/apiresource-meta.js";
+import { builtInModel } from "../model/index.js";
 
-/** One annotated, served, statically-targeted method: the question the wire asks. */
+/**
+ * Today's disagreements between the contract and the model, each with its
+ * reason. Removing a gap from the model or the contract fails the test
+ * until its line is removed here.
+ */
+const KNOWN_GAPS: ReadonlyArray<string> = [
+  // Contract ahead of model, on purpose: Plan's proto says the relation
+  // lands in the model with the entry that serves the kind
+  // (apis/ai/stigmer/billing/plan/v1/command.proto), and no edition serves
+  // Plan yet.
+  "ai.stigmer.billing.plan.v1.PlanCommandController/create asks can_manage_plans on platform",
+  "ai.stigmer.billing.plan.v1.PlanCommandController/retire asks can_manage_plans on platform",
+  // Artifacts are grantable in kind_meta, but the model defines no access
+  // relations on them: https://github.com/stigmer/stigmer/issues/1268.
+  "the resource_kind_path lanes ask can_grant_access on artifact",
+  "the resource_kind_path lanes ask can_view_access on artifact",
+];
+
+/** One annotated method: the question it asks the model. */
 interface WireQuestion {
   readonly method: string;
+  /** The static kind, or unknown when the kind is the request's (`kindPath`). */
   readonly kind: ApiResourceKind;
+  readonly kindPath: string;
   readonly permission: string;
 }
 
-describe("every static (kind, permission) the served RPCs ask about is a declared relation", () => {
-  let dir: string;
-  let server: ComposedServer;
+/** Every service descriptor the stubs package exports, loaded through its own specifiers. */
+async function everyService(): Promise<ReadonlyArray<DescService>> {
+  const require = createRequire(import.meta.url);
+  const anchor = "ai/stigmer/iam/v1/enum_pb";
+  const resolved = require.resolve(`@stigmer/protos/${anchor}`);
+  const dist = resolved.slice(0, resolved.length - `${anchor}.js`.length);
+  const modules = readdirSync(path.join(dist, "ai"), { recursive: true, encoding: "utf8" })
+    .filter((file) => file.endsWith("_pb.js"))
+    .map((file) => `ai/${file.slice(0, -".js".length).split(path.sep).join("/")}`)
+    .sort();
+  const services: DescService[] = [];
+  for (const specifier of modules) {
+    const loaded: Record<string, unknown> = await import(`@stigmer/protos/${specifier}`);
+    for (const value of Object.values(loaded)) {
+      if (isService(value)) {
+        services.push(value);
+      }
+    }
+  }
+  return services;
+}
+
+function isService(value: unknown): value is DescService {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "kind" in value &&
+    value.kind === "service" &&
+    "methods" in value
+  );
+}
+
+/** The model's relations on a kind, or none when the model does not define it. */
+function relationsOf(kind: ApiResourceKind): ReadonlySet<string> {
+  return new Set(builtInModel.byKind(kind)?.relations.keys() ?? []);
+}
+
+describe("the contract asks the model only what the model defines", () => {
+  let services: ReadonlyArray<DescService>;
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "wire-permissions-test-"));
-    server = await composeServer({
-      config: loadConfig(baseConfig(dir)),
-      logger: silentLogger,
-      portOverride: 0,
-      host: "127.0.0.1",
-    });
+    services = await everyService();
   });
 
-  afterAll(async () => {
-    await server.shutdown();
-    rmSync(dir, { recursive: true, force: true });
-  });
-
-  function wireQuestions(): WireQuestion[] {
-    const questions: WireQuestion[] = [];
-    for (const service of servedServices(server.routes)) {
+  function annotated(): ReadonlyArray<WireQuestion> {
+    const out: WireQuestion[] = [];
+    for (const service of services) {
       for (const method of service.methods) {
         if (
           !hasOption(method, rpcAuthorizationConfig) ||
@@ -87,68 +140,49 @@ describe("every static (kind, permission) the served RPCs ask about is a declare
           continue;
         }
         const config = getOption(method, rpcAuthorizationConfig);
-        if (
-          config.resourceKind === ApiResourceKind.api_resource_kind_unknown ||
-          !kindServedByEdition(config.resourceKind, ServerEdition.oss)
-        ) {
-          continue;
-        }
-        questions.push({
+        out.push({
           method: `${service.typeName}/${method.name}`,
           kind: config.resourceKind,
+          kindPath: config.resourceKindPath,
           permission: IamPermission[config.permission] ?? "",
         });
       }
     }
-    return questions;
+    return out;
   }
 
-  it("names a declared relation for every question, with none undeclared", () => {
-    const questions = wireQuestions();
-    expect(questions.length).toBeGreaterThan(60);
-    const undeclared = questions
-      .filter(
-        (q) => declarationFor(q.kind)?.relations.has(q.permission) !== true,
-      )
-      .map(
-        (q) =>
-          `${q.method} asks ${q.permission} on ${kindEnumName(q.kind)}, which its transcript does not declare`,
-      );
-    expect(undeclared).toEqual([]);
+  it("reads the whole contract, the IamPolicy lanes included", () => {
+    const questions = annotated();
+    expect(services.length).toBeGreaterThan(60);
+    expect(questions.length).toBeGreaterThan(150);
+    expect(questions.some((q) => q.kindPath !== "")).toBe(true);
   });
 
-  it("asks about every served kind the model declares except the one no RPC targets statically", () => {
-    // iam_policy's RPCs target the policy's RESOURCE (`resource_kind_path`
-    // or the load-then-authorize `get`). Every other declared kind is asked
-    // about by at least one static annotation — execution_context through
-    // its `get` and `delete`; its runner-token lane stays a skip.
-    const asked = new Set(wireQuestions().map((q) => kindEnumName(q.kind)));
-    expect([...asked].sort()).toEqual(
-      [
-        "agent",
-        "agent_channel",
-        "agent_execution",
-        "agent_instance",
-        "agent_share",
-        "api_key",
-        "artifact",
-        "channel_app",
-        "environment",
-        "execution_context",
-        "identity_account",
-        "mcp_server",
-        "memory",
-        "oauth_app",
-        "organization",
-        "platform_client",
-        "plugin",
-        "schedule",
-        "session",
-        "skill",
-        "workflow",
-        "workflow_execution",
-        "workflow_instance",
-      ].sort(),
+  it("defines every relation the contract asks about, except the known gaps", () => {
+    const questions = annotated();
+    const gaps: string[] = [];
+
+    for (const q of questions) {
+      if (q.kind !== ApiResourceKind.api_resource_kind_unknown && !relationsOf(q.kind).has(q.permission)) {
+        gaps.push(`${q.method} asks ${q.permission} on ${kindEnumName(q.kind)}`);
+      }
+    }
+
+    const pathPermissions = new Set(
+      questions.filter((q) => q.kindPath !== "").map((q) => q.permission),
     );
+    for (const value of ApiResourceKindSchema.values) {
+      const kind = value.number as ApiResourceKind;
+      if (kind === ApiResourceKind.api_resource_kind_unknown || grantableRolesFor(kind).length === 0) {
+        continue;
+      }
+      for (const permission of [...pathPermissions].sort()) {
+        if (!relationsOf(kind).has(permission)) {
+          gaps.push(`the resource_kind_path lanes ask ${permission} on ${kindEnumName(kind)}`);
+        }
+      }
+    }
+
+    expect(gaps.sort()).toEqual([...KNOWN_GAPS].sort());
   });
 });

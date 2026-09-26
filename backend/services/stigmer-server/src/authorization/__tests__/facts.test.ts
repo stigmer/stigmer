@@ -36,7 +36,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { rowFactsOf, rowFactsOfEntry } from "../facts.js";
 import { builtInModel } from "../model/index.js";
-import { fixtureRow } from "./support.js";
+import { fixtureRow, hasStoredRows, storedDeclaration } from "./support.js";
 
 const CREATOR: CallerIdentity = {
   identityId: "ida_carol",
@@ -46,7 +46,7 @@ const CREATOR: CallerIdentity = {
 };
 
 describe("rowFactsOf against the tuple lifecycle's own resolution", () => {
-  for (const declaration of builtInModel.declarations) {
+  for (const declaration of builtInModel.declarations.filter(hasStoredRows)) {
     for (const visibility of [
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
@@ -77,10 +77,7 @@ describe("rowFactsOf against the tuple lifecycle's own resolution", () => {
   }
 
   it("carries a legacy row's missing organization as no scope link, where the create-time resolver throws", () => {
-    const agent = builtInModel.byType("agent");
-    if (agent === undefined) {
-      throw new Error("agent is declared in this slice");
-    }
+    const agent = storedDeclaration("agent");
     const row = fixtureRow(agent, {
       id: "agent-legacy",
       org: "",
@@ -94,10 +91,7 @@ describe("rowFactsOf against the tuple lifecycle's own resolution", () => {
   });
 
   it("reads an absent creator stamp as the empty string", () => {
-    const agent = builtInModel.byType("agent");
-    if (agent === undefined) {
-      throw new Error("agent is declared in this slice");
-    }
+    const agent = storedDeclaration("agent");
     const bare = create(agent.schema, {
       metadata: { id: "agent-bare", org: "acme" },
     });
@@ -129,7 +123,7 @@ describe("a list candidate against the loaded row — the facts' two producers",
     return offered;
   }
 
-  for (const declaration of builtInModel.declarations) {
+  for (const declaration of builtInModel.declarations.filter(hasStoredRows)) {
     for (const visibility of [
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
