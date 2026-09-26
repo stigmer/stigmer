@@ -94,7 +94,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -216,6 +216,24 @@ gen-task-registry-check: ## Verify the task kind registry is up to date and sync
 		echo "error: task kind registry is stale — run 'make gen-task-registry'"; exit 1; \
 	fi; \
 	echo "✓ Task kind registry is up to date"
+
+# The authorization model: its source is the modular OpenFGA model under
+# $(SERVER_DIR)/fga/model, compiled by OpenFGA's own parser into the one
+# JSON file the server evaluates, the engine suites test and every edition
+# applies (fga/model/README.md states the file's contract). The check
+# compiles in memory and compares with the committed bytes.
+AUTHZ_MODEL_DIR := $(SERVER_DIR)/fga/model
+AUTHZ_MODEL_JSON := $(SERVER_DIR)/src/authorization/model/data/authorization-model.json
+
+gen-authorization-model: ## Compile the authorization model's .fga files into the server's OpenFGA JSON
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@node_modules/.bin/tsx tools/codegen/src/authorization-model/main.ts \
+		--model-dir $(AUTHZ_MODEL_DIR) --out $(AUTHZ_MODEL_JSON)
+
+gen-authorization-model-check: ## Verify the authorization model JSON is up to date with its .fga files (CI)
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@node_modules/.bin/tsx tools/codegen/src/authorization-model/main.ts \
+		--model-dir $(AUTHZ_MODEL_DIR) --out $(AUTHZ_MODEL_JSON) --check
 
 stubs-internal-check: ## Verify committed stubs carry no @internal comment sections (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -351,7 +369,7 @@ gen-narration: ## Generate narration audio for demo scenarios
 preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
 	npx scenar preview sync --source client-apps/web --output site/.scenar
 
-codegen: protos build-ts-stubs gen-sdk-docs gen-narration gen-ipc-fixtures ## Regenerate all derived code (stubs + SDK docs + narration + IPC fixtures)
+codegen: protos build-ts-stubs gen-sdk-docs gen-narration gen-ipc-fixtures gen-authorization-model ## Regenerate all derived code (stubs + SDK docs + narration + IPC fixtures + the authorization model JSON)
 
 gen-ipc-fixtures: $(RUNNER_DIR)/node_modules ## Regenerate golden IPC fixtures from ipc-protocol.ts (runner artifact + crate copy)
 	@cd $(RUNNER_DIR) && npm run gen:ipc-fixtures
@@ -390,10 +408,33 @@ test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (
 	@echo "testing  $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm test
 
-.PHONY: test-server
+.PHONY: test-server test-authorization-model
 test-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the TypeScript server vitest suite
 	@echo "testing  $(SERVER_DIR)"
 	@cd $(SERVER_DIR) && npm test
+
+# The model author's one command: regenerate the JSON so a .fga edit is
+# never tested against stale bytes, run every suite on the OpenFGA engine
+# at the version production runs (the fga CLI embeds it; FGA_CLI_VERSION
+# moves with production's engine, and the CI lane pins the same version by
+# checksum), then run the same suites and the model's pins through the
+# built-in evaluator. FGA names the CLI to use (default: fga on PATH).
+FGA_CLI_VERSION := 0.7.20
+FGA ?= fga
+AUTHZ_MODEL_EVALUATOR_SUITES := src/authorization/__tests__/store-tests.test.ts \
+	src/authorization/__tests__/wire-permissions.test.ts \
+	src/authorization/model/__tests__/registry.test.ts \
+	src/authorization/model/__tests__/openfga-json.test.ts
+
+test-authorization-model: build-ts-stubs $(SERVER_DIR)/node_modules ## Regenerate the authorization model, run its suites on the OpenFGA engine (fga CLI $(FGA_CLI_VERSION)), then on the built-in evaluator
+	@$(MAKE) --no-print-directory gen-authorization-model
+	@fga="$$(command -v $(FGA))" || { echo "error: the fga CLI is not installed — install v$(FGA_CLI_VERSION) from https://github.com/openfga/cli/releases/tag/v$(FGA_CLI_VERSION), or set FGA"; exit 1; }; \
+	case "$$fga" in /*) ;; *) fga="$$PWD/$$fga" ;; esac; \
+	"$$fga" version | grep -qF 'v`$(FGA_CLI_VERSION)`' || { echo "error: fga v$(FGA_CLI_VERSION) is required (it embeds the OpenFGA version production runs); found: $$("$$fga" version)"; exit 1; }; \
+	echo "engine   $(SERVER_DIR)/fga/tests (fga v$(FGA_CLI_VERSION))"; \
+	cd $(SERVER_DIR) && "$$fga" model test --tests 'fga/tests/*.fga.yaml'
+	@echo "evaluator $(SERVER_DIR)"
+	@cd $(SERVER_DIR) && npx vitest run $(AUTHZ_MODEL_EVALUATOR_SUITES)
 
 # The consumer compiles a fake extension against the @stigmer/server
 # exports map ALONE (DD-005): a missing export is a tsc failure here, not
@@ -910,6 +951,7 @@ check-prep: ## Sequential prep for check: tidy, fix, build + test shared libs, b
 	$(MAKE) gen-sdk-docs-check
 	$(MAKE) gen-ipc-fixtures
 	$(MAKE) gen-ipc-fixtures-check
+	$(MAKE) gen-authorization-model-check
 	$(MAKE) agents-sync
 	$(MAKE) agents-check
 

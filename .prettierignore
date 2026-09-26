@@ -6,10 +6,10 @@ docs/sdk/
 # formatting must not touch them.
 backend/services/stigmer-server/src/domain/workflow/registry/data/
 
-# Pinned copies of the cloud's OpenFGA store tests (the built-in
-# authorizer's proof oracle); each header names its source and commit and
-# the body must stay byte-identical to it, so formatting must not touch them.
-backend/services/stigmer-server/src/authorization/__tests__/fixtures/fga/
+# The compiled authorization model is the generator's canonical output
+# (gen-authorization-model-check compares it byte for byte), so formatting
+# must not touch it.
+backend/services/stigmer-server/src/authorization/model/data/
 
 # Vendored plugins from cursor/plugins (the plugin reader's real-world
 # fixtures); the NOTICE names the source and commit and the files must stay
