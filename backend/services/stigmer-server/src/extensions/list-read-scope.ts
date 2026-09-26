@@ -131,7 +131,10 @@ import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apires
 // protos and each other, so there is no cycle. Deliberate — one resolver
 // for the tuple writer, the point-check driver and the list reader beats
 // a copy in the seam.
-import { inheritedAuthorizationParentOf } from "../pipeline/apiresource-meta.js";
+import {
+  inheritedAuthorizationParentOf,
+  kindEnumName,
+} from "../pipeline/apiresource-meta.js";
 import { rowAuthorizationFactsOf } from "../pipeline/steps/authorization-facts.js";
 
 import type { CallerIdentity } from "./identity.js";
@@ -192,14 +195,38 @@ export interface ListReadScope {
    * `caller` is never the `internal` class: `restrictListByReadScope`,
    * the one consumption idiom, answers that class before any driver is
    * asked (the header's contract line). A driver that is offered it has
-   * been reached around the idiom and should refuse loudly rather than
-   * evaluate the server as a person (the built-in driver does).
+   * been reached around the idiom and refuses with
+   * `InternalCallerOfferedError` rather than evaluate the server as a
+   * person.
    */
   restrictListEntries(
     caller: CallerIdentity,
     kind: ApiResourceKind,
     entries: ReadonlyArray<ListEntryMeta>,
   ): Promise<ReadonlySet<string>>;
+}
+
+/**
+ * The restrict verb's refusal of the `internal` class (its doc above):
+ * thrown by a driver that is offered the server acting as itself, which
+ * `restrictListByReadScope` answers before any driver is asked. Being
+ * offered it means a list lane reached the driver around that idiom, and
+ * evaluating the server as a person would answer a quiet short list, the
+ * failure stigmer#1207 fixed. It is a consumer bug, never a denial (a
+ * denial is an empty set): the lane faults and the pipeline answers its
+ * sanitized INTERNAL. One type for every edition's driver, so each refuses
+ * the class the same way.
+ */
+export class InternalCallerOfferedError extends Error {
+  readonly kind: ApiResourceKind;
+
+  constructor(kind: ApiResourceKind) {
+    super(
+      `the internal caller class was offered to the list scope for kind '${kindEnumName(kind)}' — the shared helper answers that class before any driver; a list lane reached the driver around it`,
+    );
+    this.name = "InternalCallerOfferedError";
+    this.kind = kind;
+  }
 }
 
 /**

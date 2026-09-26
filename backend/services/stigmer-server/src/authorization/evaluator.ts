@@ -59,14 +59,12 @@ import { ACCOUNT_TYPE, formatObjectRef, pairKey } from "./tuples.js";
 export const MAX_RESOLUTION_DEPTH = 25;
 
 /**
- * The faults an evaluation can raise. Two are consumer bugs by the seam
- * contracts (a kind the model does not declare; the `internal` class
- * offered to the list scope's restrict verb, which the shared helper
- * answers before any driver); the rest are the model's own.
+ * The faults an evaluation can raise. One is a consumer bug by the seam
+ * contracts (a kind the model does not declare, or a rowless one asked
+ * for its rows); the rest are the model's own.
  */
 export type EvaluationFault =
   | "undeclared-target-kind"
-  | "internal-caller-offered"
   | "resolution-depth-exceeded"
   | "resolution-cycle";
 
