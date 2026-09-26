@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
   CheckMyPermissionInputSchema,
@@ -40,9 +40,20 @@ export interface CheckPermissionOptions {
 export interface UseCheckPermissionReturn {
   /** Whether the current user has the specified permission. */
   readonly allowed: boolean;
-  /** `true` while the authorization check is in flight. */
+  /**
+   * `true` while the authorization check is in flight, from the first
+   * render for a resource until its answer arrives.
+   */
   readonly isLoading: boolean;
   /** Error from the last check, or `null`. */
+  readonly error: Error | null;
+}
+
+/** A check's outcome, keyed by the (kind, id, relation) triple it answers. */
+interface SettledCheck {
+  readonly key: string;
+  /** The server's verdict, or `null` when the check failed. */
+  readonly verdict: boolean | null;
   readonly error: Error | null;
 }
 
@@ -71,6 +82,13 @@ export interface UseCheckPermissionReturn {
  * triple, for the lifetime of the component mount). A failed check is
  * never cached, so a transient error does not pin a wrong answer.
  *
+ * No render passes off an answer the hook does not have: `isLoading` is
+ * already `true` on the first render for a resource, and when the
+ * resource changes the previous resource's verdict is never reported for
+ * the new one. A gate can therefore trust a settled answer as the
+ * server's, and gated content that fetches when it mounts never mounts
+ * for a caller the server is about to refuse.
+ *
  * @param resource  - The resource to check, or `null` to skip.
  * @param relation  - The permission to check (e.g. "can_edit", "can_grant_access").
  * @param options   - Fail-mode configuration; see {@link CheckPermissionOptions}.
@@ -94,30 +112,25 @@ export function useCheckPermission(
   const failMode = options?.fail ?? "open";
   const failValue = failMode === "open";
 
-  const [allowed, setAllowed] = useState(failValue);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
   const cacheKey = resource ? `${resource.kind}:${resource.id}:${relation}` : null;
   const cacheRef = useRef<Map<string, boolean>>(new Map());
 
+  // The last settled outcome, kept with the triple it answers. Loading is
+  // derived from it during render rather than set by the effect, because
+  // the effect runs only after the first render has committed, so a
+  // separate loading flag would report a settled answer until then.
+  const [settled, setSettled] = useState<SettledCheck | null>(null);
+
   useEffect(() => {
-    if (!resource || !cacheKey) {
-      setAllowed(failValue);
-      setIsLoading(false);
-      return;
-    }
+    if (!resource || !cacheKey) return;
 
     const cached = cacheRef.current.get(cacheKey);
     if (cached !== undefined) {
-      setAllowed(cached);
-      setIsLoading(false);
+      setSettled({ key: cacheKey, verdict: cached, error: null });
       return;
     }
 
     let cancelled = false;
-    setAllowed(failValue);
-    setIsLoading(true);
 
     const input = create(CheckMyPermissionInputSchema, {
       resource: create(ApiResourceRefSchema, {
@@ -131,21 +144,19 @@ export function useCheckPermission(
       .checkMyPermission(input)
       .then((result) => {
         if (cancelled) return;
-        const isAllowed = result.isAuthorized;
-        cacheRef.current.set(cacheKey, isAllowed);
-        setAllowed(isAllowed);
-        setError(null);
+        cacheRef.current.set(cacheKey, result.isAuthorized);
+        setSettled({ key: cacheKey, verdict: result.isAuthorized, error: null });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         // Degradation is fail-mode-resolved and deliberately NOT cached:
         // an error is not an authorization verdict, and caching it would
         // pin a possibly-wrong answer for the mount's lifetime.
-        setAllowed(failValue);
-        setError(err instanceof Error ? err : new Error(String(err)));
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        setSettled({
+          key: cacheKey,
+          verdict: null,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
       });
 
     return () => {
@@ -153,5 +164,10 @@ export function useCheckPermission(
     };
   }, [cacheKey, resource?.kind, resource?.id, relation, failValue, stigmer]);
 
-  return { allowed, isLoading, error };
+  const current = cacheKey !== null && settled?.key === cacheKey ? settled : null;
+  const allowed = current?.verdict ?? failValue;
+  const isLoading = cacheKey !== null && current === null;
+  const error = current?.error ?? null;
+
+  return useMemo(() => ({ allowed, isLoading, error }), [allowed, isLoading, error]);
 }
