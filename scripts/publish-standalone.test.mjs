@@ -7,6 +7,13 @@
 // no consumer can install (file:../../.. does not exist on their disk); a
 // stamp that touches a non-@stigmer dependency, or a lib already pinned to
 // a version, changes what CI tested.
+//
+// They also guard the registry wait (stigmer#1275). The release lost
+// @stigmer/server@3.28.0 to a fixed 5-minute window that closed one second
+// before npm served a lib it had already accepted. So the schedule is
+// pinned here on a fake clock: one shared deadline, backoff to a cap, a
+// last sleep cut to the deadline, and a refusal that names the lag and the
+// rerun rather than blaming the libs job.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -14,7 +21,16 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { parseArgs, resolveTag, stampManifest } from "./publish-standalone.mjs";
+import {
+  parseArgs,
+  registryLagMessage,
+  resolveTag,
+  stampManifest,
+  waitForRegistry,
+  WAIT_BUDGET_MS,
+  WAIT_FIRST_INTERVAL_MS,
+  WAIT_MAX_INTERVAL_MS,
+} from "./publish-standalone.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -136,4 +152,100 @@ test("the two standalone packages stamp cleanly from their committed manifests",
       `${dir} must declare stigmerPublish.consumerCheck for the consumer-install smoke this script runs`,
     );
   }
+});
+
+/**
+ * A registry whose libs appear at given times on a fake clock; `sleep`
+ * advances the clock, so the wait runs instantly and its schedule is exact.
+ */
+function fakeRegistry(appearsAtMs) {
+  let clock = 0;
+  const sleeps = [];
+  const queries = [];
+  return {
+    sleeps,
+    queries,
+    options: {
+      now: () => clock,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+        clock += ms;
+      },
+      isVisible: (name, version) => {
+        queries.push(`${name}@${version}`);
+        return name in appearsAtMs && clock >= appearsAtMs[name];
+      },
+      log: () => {},
+      runId: "36264269415",
+    },
+  };
+}
+
+test("the wait's budget is almost three times the worst lag measured, polled from 10 s up to a 60 s cap", () => {
+  assert.equal(WAIT_BUDGET_MS, 20 * 60_000);
+  assert.equal(WAIT_FIRST_INTERVAL_MS, 10_000);
+  assert.equal(WAIT_MAX_INTERVAL_MS, 60_000);
+});
+
+test("waitForRegistry returns without sleeping when every lib is already served", async () => {
+  const registry = fakeRegistry({ "@stigmer/protos": 0, "@stigmer/outbound": 0 });
+  await waitForRegistry(["@stigmer/protos", "@stigmer/outbound"], "3.28.0", registry.options);
+  assert.deepEqual(registry.sleeps, []);
+  assert.deepEqual(registry.queries, ["@stigmer/protos@3.28.0", "@stigmer/outbound@3.28.0"]);
+});
+
+test("waitForRegistry outlasts the v3.28.0 lag: a lib served after 7 minutes is found, on a doubling schedule capped at 60 s", async () => {
+  const registry = fakeRegistry({
+    "@stigmer/outbound": 20_000,
+    "@stigmer/plugin-package": 7 * 60_000 + 8_000,
+  });
+  await waitForRegistry(
+    ["@stigmer/outbound", "@stigmer/plugin-package"],
+    "3.28.0",
+    registry.options,
+  );
+  assert.deepEqual(registry.sleeps.slice(0, 4), [10_000, 20_000, 40_000, 60_000]);
+  assert.ok(registry.sleeps.slice(3).every((ms) => ms === 60_000));
+  // A lib found once is never asked about again.
+  const outboundQueries = registry.queries.filter((q) => q === "@stigmer/outbound@3.28.0");
+  assert.equal(outboundQueries.length, 3);
+});
+
+test("waitForRegistry shares one deadline across libs and cuts its last sleep to it", async () => {
+  const registry = fakeRegistry({});
+  await assert.rejects(
+    waitForRegistry(["@stigmer/protos", "@stigmer/plugin-package"], "3.28.0", {
+      ...registry.options,
+      budgetMs: 100_000,
+    }),
+  );
+  // 10 + 20 + 40 = 70 s, then the last sleep is cut to the 30 s left.
+  assert.deepEqual(registry.sleeps, [10_000, 20_000, 40_000, 30_000]);
+  assert.equal(registry.sleeps.reduce((a, b) => a + b, 0), 100_000);
+});
+
+test("waitForRegistry's refusal names the lagging libs and the rerun, not a failed libs job", async () => {
+  const registry = fakeRegistry({ "@stigmer/protos": 0 });
+  await assert.rejects(
+    waitForRegistry(["@stigmer/protos", "@stigmer/plugin-package"], "3.28.0", {
+      ...registry.options,
+      budgetMs: 120_000,
+    }),
+    (error) => {
+      assert.equal(
+        error.message,
+        "@stigmer/plugin-package@3.28.0 published by the libs job but not served by npm after 2 minutes; " +
+          "the registry is lagging. Rerun the failed job once npm serves it: gh run rerun 36264269415 --failed",
+      );
+      return true;
+    },
+  );
+});
+
+test("registryLagMessage names every lagging lib, and a placeholder when no run id is known", () => {
+  assert.equal(
+    registryLagMessage(["@stigmer/a", "@stigmer/b"], "1.0.0", 20 * 60_000, undefined),
+    "@stigmer/a@1.0.0, @stigmer/b@1.0.0 published by the libs job but not served by npm after 20 minutes; " +
+      "the registry is lagging. Rerun the failed job once npm serves them: gh run rerun <run-id> --failed",
+  );
 });

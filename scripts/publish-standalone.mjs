@@ -22,9 +22,12 @@
  *   2. Copy the repo-root LICENSE beside the manifest so the tarball
  *      carries it (the libs' publish does the same).
  *   3. `npm pack --dry-run` — the published file list, in the log.
- *   4. Wait until every pinned lib is queryable on npm at that version
- *      (the `publish` job already put them there; this absorbs registry
- *      propagation lag so the install below cannot race it).
+ *   4. Wait until every pinned lib is queryable on npm at that version.
+ *      The `publish` job already put them there (it is this job's hard
+ *      `needs:`), so the wait only absorbs the registry's propagation lag,
+ *      and the install below cannot race it. The libs publish together, so
+ *      they share one deadline and every lib still missing is polled each
+ *      round (`waitForRegistry`).
  *   5. `npm run verify:consumer` — the package's consumer-install smoke
  *      (scripts/verify-consumer-install.mjs) over the REAL published
  *      manifest: version stamped, libs pinned to the registry versions the
@@ -64,8 +67,19 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
-const WAIT_ATTEMPTS = 30;
-const WAIT_INTERVAL_MS = 10_000;
+/**
+ * How long the pinned libs may take to appear on npm, and how often to ask.
+ * Measured on v3.28.0 (run 36264269415, stigmer#1275): npm served
+ * @stigmer/plugin-package about 7 minutes after it was published (18:58:35Z
+ * published, 19:05:43Z in its packument), and @stigmer/server about 4.5
+ * minutes after its own publish. The old fixed 5-minute window failed one
+ * second before the lib appeared. 20 minutes is almost three times the
+ * worst lag seen. The poll starts at 10 s and doubles to a 60 s cap, so a
+ * fast registry is noticed at once and a slow one is not hammered.
+ */
+export const WAIT_BUDGET_MS = 20 * 60_000;
+export const WAIT_FIRST_INTERVAL_MS = 10_000;
+export const WAIT_MAX_INTERVAL_MS = 60_000;
 
 /**
  * Returns the manifest with the release version stamped and every
@@ -131,27 +145,64 @@ function isOnRegistry(name, version) {
   }
 }
 
-async function waitForRegistry(names, version) {
-  for (const name of names) {
-    console.log(`  confirming ${name}@${version} is queryable on npm...`);
-    let found = false;
-    for (let attempt = 1; attempt <= WAIT_ATTEMPTS; attempt++) {
-      if (isOnRegistry(name, version)) {
-        found = true;
-        break;
-      }
-      console.log(
-        `  attempt ${attempt}/${WAIT_ATTEMPTS}: not yet visible, waiting ${WAIT_INTERVAL_MS / 1000}s...`,
-      );
-      await new Promise((r) => setTimeout(r, WAIT_INTERVAL_MS));
+/**
+ * The wait's refusal: the libs are published (the libs job is this job's
+ * hard dependency) and npm has not served them yet. It names the recovery,
+ * rerunning only the failed job, which resumes here with the libs in place.
+ */
+export function registryLagMessage(names, version, budgetMs, runId) {
+  const libs = names.map((name) => `${name}@${version}`).join(", ");
+  const rerun = `gh run rerun ${runId ?? "<run-id>"} --failed`;
+  return (
+    `${libs} published by the libs job but not served by npm after ` +
+    `${budgetMs / 60_000} minutes; the registry is lagging. ` +
+    `Rerun the failed job once npm serves ${names.length === 1 ? "it" : "them"}: ${rerun}`
+  );
+}
+
+/**
+ * Polls until every name is visible at `version` or the budget is spent.
+ * All names share one deadline and each round asks only about the ones
+ * still missing. The interval doubles from `firstIntervalMs` to
+ * `maxIntervalMs`, and the last sleep is cut to the deadline. The clock,
+ * the sleep and the registry query are parameters, so the schedule is
+ * tested without a registry or real time.
+ */
+export async function waitForRegistry(
+  names,
+  version,
+  {
+    isVisible = isOnRegistry,
+    sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+    now = () => Date.now(),
+    log = (line) => console.log(line),
+    budgetMs = WAIT_BUDGET_MS,
+    firstIntervalMs = WAIT_FIRST_INTERVAL_MS,
+    maxIntervalMs = WAIT_MAX_INTERVAL_MS,
+    runId = process.env.GITHUB_RUN_ID,
+  } = {},
+) {
+  const deadline = now() + budgetMs;
+  let pending = [...names];
+  let interval = firstIntervalMs;
+  for (;;) {
+    pending = pending.filter((name) => {
+      if (!isVisible(name, version)) return true;
+      log(`  found ${name}@${version}`);
+      return false;
+    });
+    if (pending.length === 0) return;
+    const remaining = deadline - now();
+    if (remaining <= 0) {
+      throw new Error(registryLagMessage(pending, version, budgetMs, runId));
     }
-    if (!found) {
-      throw new Error(
-        `${name}@${version} not visible on npm after ${(WAIT_ATTEMPTS * WAIT_INTERVAL_MS) / 60_000} minutes — ` +
-          `did the libs publish job succeed?`,
-      );
-    }
-    console.log(`  found ${name}@${version}`);
+    const wait = Math.min(interval, remaining);
+    log(
+      `  not yet served: ${pending.map((name) => `${name}@${version}`).join(", ")}; ` +
+        `next check in ${Math.ceil(wait / 1000)}s (${Math.ceil(remaining / 60_000)} min left)`,
+    );
+    await sleep(wait);
+    interval = Math.min(interval * 2, maxIntervalMs);
   }
 }
 
