@@ -259,6 +259,14 @@ function inheritedWholeViolations(
   return violations;
 }
 
+/** A declaration the model must hold, or a loud failure naming it. */
+function declared(declaration: KindDeclaration | undefined, type: string): KindDeclaration {
+  if (declaration === undefined) {
+    throw new Error(`${type} is not in the built-in model`);
+  }
+  return declaration;
+}
+
 /** The kinds whose `kind_meta` makes their authorization their parent's whole, with that parent. */
 function inheritedWholeKinds(): ReadonlyArray<{
   readonly kind: ApiResourceKind;
@@ -389,22 +397,16 @@ describe("the built-in model", () => {
     const inherited = inheritedWholeKinds();
     expect(inherited.length, "kinds whose authorization is their parent's").toBeGreaterThan(0);
     for (const { kind, parentType, link } of inherited) {
-      const child = declarationFor(kind);
-      const parent = builtInModel.byType(parentType);
-      if (child === undefined || parent === undefined) {
-        throw new Error(`${kindEnumName(kind)} or its parent ${parentType} is not in the model`);
-      }
+      const child = declared(declarationFor(kind), kindEnumName(kind));
+      const parent = declared(builtInModel.byType(parentType), parentType);
       expect(inheritedWholeViolations(child, parent, link), kindEnumName(kind)).toEqual([]);
     }
   });
 });
 
 describe("the parent-inheritance walker refuses what would make asking the parent wrong", () => {
-  const execution = declarationFor(ApiResourceKind.agent_execution);
-  const session = builtInModel.byType("session");
-  if (execution === undefined || session === undefined) {
-    throw new Error("agent_execution and session are in the model");
-  }
+  const execution = declared(declarationFor(ApiResourceKind.agent_execution), "agent_execution");
+  const session = declared(builtInModel.byType("session"), "session");
 
   /** agent_execution as the model has it, with one line rewritten. */
   function executionWith(relation: string, rewrite: Rewrite): KindDeclaration {
