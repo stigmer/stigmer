@@ -1,0 +1,67 @@
+module agentic
+
+# ========================================
+# AGENT SHARE TYPE (Organization-scoped, Owner-managed Channel Config)
+# ========================================
+# A share is a distribution channel for an agent's hosted chat experience
+# (its own resource since 2026-07-12): audience, embed origins, visitor
+# messages, and guest tool credentials — all independent of the agent
+# blueprint it references.
+#
+# Authorization model (OWNER-SCOPED — deliberately narrow):
+# The creator owns the share; view/edit/delete/rotate require ownership or
+# an explicit grant. Plain org members get NO implicit access: a share
+# carries billing-affecting levers (enabled, environment_refs) whose consent
+# bar is can_edit on the referenced agent at creation time, and ownership
+# after. Org admins inherit owner (since 2026-07-13) — consistent with
+# agents: an admin who can edit the agent can also manage its distribution
+# channels.
+#
+# CRITICAL: a share writes NO visitor-facing visibility tuples. Guest and
+# org-member admission to the hosted chat is enforced app-level (the
+# shared-profile, mint, and create-time gates) — a public wildcard viewer
+# tuple here would expose the referenced agent's full blueprint
+# (instructions included) to any authenticated account, conflating
+# blueprint visibility with chat access. See AgentShareSpec in spec.proto.
+# The same rule holds for the RUNNER serving a guest session: the org's
+# guest account is no viewer of the shared agent, and the composition
+# admits that runner's reads of the session's blueprint app-level too
+# (src/authorizer/blueprint-read-admission.ts, over the shared-session
+# legitimizer's live re-read of this share), never through a tuple.
+#
+# FGA tuples on creation (config-driven from the agent_share kind config:
+# ORGANIZATION scope + DIRECT owner):
+# - agent_share:<id>#organization@organization:<org>
+# - agent_share:<id>#owner@identity_account:<creator>
+
+type agent_share
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    # The creator, plus org admins by inheritance (since 2026-07-13, closing
+    # the org-Owner-is-not-agent-owner gap platform-wide).
+    define owner: [identity_account] or admin from organization
+
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants)
+    # ========================================
+    define viewer: [identity_account] or owner
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

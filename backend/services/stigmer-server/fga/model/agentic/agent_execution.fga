@@ -1,0 +1,38 @@
+module agentic
+
+# ========================================
+# AGENT EXECUTION TYPE (Session-bound)
+# ========================================
+# Runtime execution of an agent within a session.
+# Inherits all permissions from parent session.
+#
+# Lifecycle:
+# - Created when user sends a message in a session
+# - Tied to specific session (not standalone)
+# - Permissions inherited from session
+
+type agent_execution
+  relations
+    # ========================================
+    # PARENT SESSION
+    # ========================================
+    # Every execution belongs to a session
+    # FGA tuple: agent_execution:<exec_id>#session@session:<session_id>
+    define session: [session]
+    
+    # ========================================
+    # INHERITED PERMISSIONS
+    # ========================================
+    define owner: owner from session
+    define viewer: viewer from session or owner
+    
+    # ========================================
+    # OPERATIONS
+    # ========================================
+    # can_view tracks the session's COMPUTED can_view (not just its viewer
+    # relation) so channel observers — who reach the session via
+    # `viewer from channel` on can_view only — can read its executions too.
+    # For ordinary sessions the two clauses are equivalent; can_edit stays
+    # owner-only either way.
+    define can_view: viewer or can_view from session
+    define can_edit: owner

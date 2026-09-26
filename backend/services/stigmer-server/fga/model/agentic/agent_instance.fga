@@ -1,0 +1,105 @@
+module agentic
+
+# ========================================
+# AGENT INSTANCE TYPE (Organization-scoped, Configurable Visibility)
+# ========================================
+# Configured deployments of agent templates with secrets and configuration.
+# Every instance belongs to an organization. Contains encrypted secrets.
+#
+# Authorization model (CONFIGURABLE VISIBILITY):
+# Visibility is controlled by which FGA tuples are written on the viewer
+# relation, not by a field in the resource. The model accepts multiple
+# principal types so the application layer can set the appropriate level:
+#
+#   PRIVATE  — no viewer tuples beyond owner. Only owner can access.
+#   ORG      — agent_instance#viewer@organization:<org>#viewer tuple written.
+#              Everyone in the org gets viewer access (all roles satisfy
+#              organization#viewer; #member is the legacy pre-2026-08-11 shape).
+#
+# DEFAULT instances are different — structural inheritance, not tuples:
+# Every agent has exactly one system-managed default instance (the empty
+# config shell the runner resolves when a user has no personal instance).
+# Its access must always be EXACTLY the parent agent's access — private,
+# org, or platform — or entitled users are denied mid-execution.
+# Rather than copying the parent's visibility enum onto the instance (which
+# drifts and needs cascades/migrations on every parent change), the default
+# instance carries a single `default_of` tuple and inherits `viewer` from
+# the agent structurally. The enum-driven visibility tuples above are NEVER
+# written for default instances.
+#
+# Parent relationship:
+# - Every instance is created from an Agent (the template)
+# - The agent relation tracks this for audit
+#
+# FGA tuples on creation (always):
+# - agent_instance:<id>#organization@organization:<org>
+# - agent_instance:<id>#agent@agent:<agent>
+# - agent_instance:<id>#owner@identity_account:<creator>
+#
+# FGA tuples for visibility (conditional, user-created instances only):
+# - ORG:    agent_instance:<id>#viewer@organization:<org>#viewer
+#
+# FGA tuple for default instances (instead of visibility tuples):
+# - agent_instance:<id>#default_of@agent:<agent>
+
+type agent_instance
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # PARENT AGENT
+    # ========================================
+    define agent: [agent]
+
+    # ========================================
+    # DEFAULT-INSTANCE LINK (Structural Inheritance)
+    # ========================================
+    # Written ONLY on the agent's one system-managed default instance —
+    # invariant: this tuple exists iff agent.status.defaultInstanceId points
+    # at this instance. It makes the default instance exactly as reachable
+    # as its template: org members and platform users
+    # (identity_provider#platform_user via the agent's platform_viewer) all
+    # inherit viewer through the agent's own viewer relation. Never written
+    # on user-created instances — that would leak personal configuration to
+    # everyone who can see the agent. Distinct from `agent` above, which is
+    # written on EVERY instance purely for parent tracking.
+    define default_of: [agent]
+    
+    # ========================================
+    # OWNERSHIP (Personal Resource)
+    # ========================================
+    # Org admins explicitly excluded — agent instances are personal resources
+    # containing preferences and configuration that admins have no business accessing.
+    define owner: [identity_account]
+    
+    # ========================================
+    # VIEWER ACCESS (Configurable Visibility)
+    # ========================================
+    # Accepts multiple principal types so visibility can be set per-instance:
+    # - identity_account: explicit individual grants
+    # - organization#viewer: everyone in the org (ORG visibility — the shape
+    #   written since 2026-08-11; every role satisfies it)
+    # - organization#member: legacy pre-2026-08-11 ORG shape (kept resolving
+    #   until the boot backfill converges stored tuples)
+    # - team#member: an Enterprise team's grant, every member, bounded by
+    #   the organization in team.fga
+    # Default instances additionally inherit the parent agent's full viewer
+    # set through `viewer from default_of` (see default_of above).
+    define viewer: [identity_account, organization#member, organization#viewer, team#member] or owner or viewer from default_of
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_execute: can_view
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

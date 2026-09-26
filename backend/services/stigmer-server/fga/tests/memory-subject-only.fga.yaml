@@ -1,0 +1,68 @@
+# Memory is subject-only (as ratified 2026-08-18): the identity account the
+# memory is ABOUT is its only principal. These tests pin the platform's
+# strictest model — org membership grants nothing, org ADMINSHIP grants
+# nothing (admins govern the memory_enabled switch, never the content),
+# and nothing is grantable.
+
+name: memory-subject-only
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org membership and adminship — proving both grant nothing on memories.
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:acme
+  - user: identity_account:ana
+    relation: admin
+    object: organization:acme
+
+  # Alice's memory (the config-driven create tuples: org + subject).
+  - user: organization:acme
+    relation: organization
+    object: memory:mem-alice-terse
+  - user: identity_account:alice
+    relation: subject
+    object: memory:mem-alice-terse
+
+tests:
+  - name: the subject has full control over their own memory
+    check:
+      - user: identity_account:alice
+        object: memory:mem-alice-terse
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+
+  - name: a fellow org member sees and touches nothing
+    check:
+      - user: identity_account:mallory
+        object: memory:mem-alice-terse
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+
+  - name: an org ADMIN sees and touches nothing — the setting, never the entries
+    check:
+      - user: identity_account:ana
+        object: memory:mem-alice-terse
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+
+  - name: list-objects returns only the subject's own records
+    list_objects:
+      - user: identity_account:alice
+        type: memory
+        assertions:
+          can_view:
+            - memory:mem-alice-terse
+      - user: identity_account:mallory
+        type: memory
+        assertions:
+          can_view: []

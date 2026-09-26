@@ -1,0 +1,39 @@
+# Store tests for the Enterprise license permission.
+#
+# can_issue_license gates every License RPC (create, get, list): the
+# signed tickets self-hosting customers install carry a customer's name
+# and a credential, so reading them is the same operator act as issuing
+# them. It derives from the platform operator role — the seeding machine
+# account holds it, ordinary tenants (even org owners) never do,
+# regardless of what they own. There is no per-license relation: the kind
+# belongs to the platform, not to any organization.
+#
+# Run with:
+#   fga model test --tests license-issuer.fga.yaml
+name: license-issuer
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # The bootstrap machine account is the platform operator
+  # (BootstrapIdentitySeeder re-asserts this tuple on every boot).
+  - user: identity_account:machine
+    relation: operator
+    object: platform:stigmer
+
+  # A tenant org owner — owns everything in their org, nothing on the
+  # platform.
+  - user: identity_account:mallory
+    relation: owner
+    object: organization:acme
+
+tests:
+  - name: operator may issue licenses, tenants may not
+    check:
+      - user: identity_account:machine
+        object: platform:stigmer
+        assertions:
+          can_issue_license: true
+      - user: identity_account:mallory
+        object: platform:stigmer
+        assertions:
+          can_issue_license: false

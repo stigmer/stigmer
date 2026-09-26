@@ -1,0 +1,128 @@
+module agentic
+
+# ========================================
+# AGENT TYPE (Organization-scoped)
+# ========================================
+# AI agents with organization-based ownership. Visibility is handled
+# entirely through FGA tuples written by VisibilityTupleReconciler, across
+# three levels (private / org / platform).
+#
+# Authorization model (visibility is REAL — no unconditional org grant):
+# - PRIVATE:  owner (incl. org admins, see below) + explicit grants only.
+#             Plain org members see nothing.
+# - ORG:      agent#viewer@organization:<org>#viewer tuple written.
+# - PLATFORM: agent#platform_viewer@identity_provider:<idp>#platform_user
+#             — PLUS the org tuple (the "org floor", see below).
+# - Owners (creators) and org admins can edit/delete (the GitHub
+#   org-admin model — mirrors mcp_server).
+#
+# Org floor: PLATFORM always carries the org tuple too, so the explicit org
+# tuple is what keeps a shared agent visible in its own org's catalog on
+# both listing paths — the list lanes' per-candidate BatchCheck and the
+# enumeration lanes' ListObjects (the composition's list-read-scope.ts).
+#
+# There is no level that crosses every organization. The public level —
+# a wildcard viewer (`identity_account:*`) under a request-time condition
+# that point checks resolved and listings suppressed — was retired
+# (stigmer#1211; the cloud's model on 2026-09-23): another
+# organization's agent is reached by installing the plugin that carries
+# it, and the model holds no wildcard subject and no condition. A stored
+# `identity_account:*` tuple from before the retirement no longer matches
+# any relation and is deleted by the release runbook.
+#
+# Privacy note: Sessions are org-scoped with user attribution for filtering.
+#
+# FGA tuples on creation:
+# - agent:pr-reviewer#organization@organization:stigmer
+# - agent:pr-reviewer#owner@identity_account:alice
+# - agent:pr-reviewer#viewer@organization:stigmer#viewer (if visibility>=ORG)
+# - agent:sara#platform_viewer@identity_provider:<idp>#platform_user (if visibility=PLATFORM)
+#
+# Platform visibility (visibility_platform):
+# - Grants view + execute to members of all orgs managed by the owning
+#   org's IdentityProvider (the multi-tenant "private catalog" primitive).
+# - Modeled as a single structural relation (platform_viewer) composed into
+#   viewer, so one tuple drives view and execute — same precedent as
+#   execution_viewer on instances.
+# - An unconditioned userset, so it resolves in listing queries just like
+#   org visibility.
+
+type agent
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    # Every agent belongs to exactly one organization. Structural link only
+    # for viewer access — it no longer grants viewer access by itself
+    # (private agents are private even inside the org; org-wide access
+    # requires the explicit visibility tuple on viewer). Org ADMINS still
+    # inherit owner through it (see owner below), so a private agent remains
+    # manageable — and therefore visible — to org admins while invisible to
+    # plain members.
+    # FGA tuple: agent:<agent_id>#organization@organization:<org_id>
+    define organization: [organization]
+    
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    # The creator, plus org admins by inheritance. Admin inheritance
+    # gives every agent an operator of last resort: machine-provisioned and
+    # ex-employee agents stay manageable by the org. Because owner feeds
+    # viewer and can_execute, admins can also view, list, and run private
+    # agents — the accepted GitHub-org-admin trade (decided 2026-07-13).
+    # FGA tuple: agent:<agent_id>#owner@identity_account:<user_id>
+    define owner: [identity_account] or admin from organization
+    
+    # ========================================
+    # PLATFORM VISIBILITY (Structural)
+    # ========================================
+    # Members of all orgs managed by the owning org's IdentityProvider.
+    # Written/deleted as visibility moves to/from visibility_platform.
+    # FGA tuple: agent:<agent_id>#platform_viewer@identity_provider:<idp_id>#platform_user
+    define platform_viewer: [identity_provider#platform_user]
+    
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # Viewers: owner + direct grants + org userset (ORG visibility tuple) +
+    # platform tenant family (PLATFORM).
+    # organization#viewer is the shape VisibilityTupleReconciler writes — the
+    # org's FULL read audience (roles flow downward: owner/admin/member all
+    # satisfy organization#viewer). organization#member is the legacy
+    # pre-2026-08-11 shape, accepted so tuples written before the flip keep
+    # resolving until the boot backfill converges them. team#member is an
+    # Enterprise team's grant: every member, bounded by the organization
+    # in team.fga.
+    define viewer: [identity_account, organization#member, organization#viewer, team#member] or owner or platform_viewer
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # EXECUTION & INSTANCES
+    # ========================================
+    # Platform invariant: you can run what you can read. The OSS run gate
+    # (the AuthorizeRunTarget step in the session, agent-execution and
+    # workflow-execution create chains; stigmer#1066)
+    # asks can_execute on the blueprint or instance a run targets — for
+    # every direct caller; the runtime lanes are admitted by their own gate
+    # steps through authorizer/lane-admission.ts — and instance models
+    # define can_execute: can_view. Deriving from viewer keeps every
+    # visibility level (org tuple, platform_viewer)
+    # executable through one composition with no separate execute tuples
+    # to reconcile. (Until 2026-09-11 this comment named a retired Java
+    # step, BlueprintAccessAuthorization, that the TypeScript server never
+    # had; nothing asked can_execute.)
+    define can_execute: viewer
+    define can_create_instance: can_execute
+    define can_clone: viewer
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

@@ -1,0 +1,39 @@
+module iam
+
+# ========================================
+# INVITATION TYPE (Organization-scoped)
+# ========================================
+# Invitations allow org admins to create shareable links that grant
+# organization membership with a configurable role on redemption.
+# Scoped to organization - all invitations belong to an organization.
+#
+# Permission pattern:
+# - Org Admin: Can view all invitations (administrative visibility)
+# - Invitation Creator (Owner): Full CRUD access
+# - Org Members/Viewers: No access (administrative resource)
+#
+# FGA tuples on creation:
+# - invitation:<inv_id>#organization@organization:acme
+# - invitation:<inv_id>#owner@identity_account:alice
+
+type invitation
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # OWNERSHIP
+    # ========================================
+    define owner: [identity_account] or admin from organization
+    
+    # Viewers (org admins can view)
+    define viewer: admin from organization
+    
+    # ========================================
+    # CRUD OPERATIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner

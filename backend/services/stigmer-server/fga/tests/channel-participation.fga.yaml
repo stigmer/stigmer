@@ -1,0 +1,197 @@
+# Store tests for conversation participation on agent channels (the
+# `participant` relation and `can_participate` permission,
+# added 2026-08-06).
+#
+# The model change under test, in one line each:
+#   participant: [identity_account] or owner   (owner participates free)
+#   viewer:      [identity_account] or participant   (widened from `or owner`)
+#   can_participate: participant               (the reply/takeover bar)
+#
+# The invariants this suite pins:
+#   1. Read and speak are DIFFERENT powers: a granted viewer can see
+#      conversations but cannot participate (the rejected
+#      alternative "widen viewer alone" stays rejected).
+#   2. Participation is NOT configuration: a participant can never
+#      edit/delete/grant on the channel.
+#   3. The viewer widening is behavior-preserving for existing grants:
+#      owner ⊆ participant ⊆ viewer, so every pre-2026-08-06 owner/admin
+#      read keeps working (asserted below, byte-identical semantics).
+#   4. Conversation READ rides the existing session.can_view composition
+#      (`viewer from channel`) unchanged, still read-only — participants
+#      inherit view on channel sessions but never
+#      can_create_execution_in (the channel link's read-only-by-construction).
+#   5. The personal-session invariant is untouched: a participant sees
+#      nothing of anyone's console sessions.
+#
+# Run with:
+#   fga model test --tests channel-participation.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (who connected the
+# WhatsApp channel and owns it), member trina (a trainer granted
+# participant — staff who talk to customers, never configure), member
+# carol (granted plain viewer), and member dave (no relation to the
+# channel). "rival" is another org whose admin eve must see nothing. The
+# channel session is owned by acme's system-channel account; bob also has
+# a personal console session to prove invariant 5.
+name: channel-participation
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:alice
+    relation: admin
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:trina
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:eve
+    relation: admin
+    object: organization:rival
+
+  # --- The AgentChannel (tuples written on create: org link + creator owner) ---
+  - user: organization:acme
+    relation: organization
+    object: agent_channel:wa-line
+  - user: identity_account:bob
+    relation: owner
+    object: agent_channel:wa-line
+
+  # --- The participant grants (IamPolicy-written: participant vs plain viewer) ---
+  - user: identity_account:trina
+    relation: participant
+    object: agent_channel:wa-line
+  - user: identity_account:carol
+    relation: viewer
+    object: agent_channel:wa-line
+
+  # --- A channel session (owned by the org's system-channel account) ---
+  - user: organization:acme
+    relation: organization
+    object: session:member-chat
+  - user: identity_account:sys-channel-acme
+    relation: owner
+    object: session:member-chat
+  # The structural link written by ChannelSessionLinkStep:
+  - user: agent_channel:wa-line
+    relation: channel
+    object: session:member-chat
+
+  # --- Bob's personal console session (invariant 5's control subject) ---
+  - user: organization:acme
+    relation: organization
+    object: session:bobs-chat
+  - user: identity_account:bob
+    relation: owner
+    object: session:bobs-chat
+
+tests:
+  - name: a granted participant may read and speak but never configure
+    check:
+      - user: identity_account:trina
+        object: agent_channel:wa-line
+        assertions:
+          can_view: true
+          can_participate: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: true
+
+  - name: a granted viewer may read but never speak — read and speak are different powers
+    check:
+      - user: identity_account:carol
+        object: agent_channel:wa-line
+        assertions:
+          can_view: true
+          can_participate: false
+          can_edit: false
+
+  - name: the channel owner participates without an explicit tuple
+    check:
+      - user: identity_account:bob
+        object: agent_channel:wa-line
+        assertions:
+          can_view: true
+          can_participate: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+
+  - name: an org admin participates through owner inheritance, no tuple needed
+    check:
+      - user: identity_account:alice
+        object: agent_channel:wa-line
+        assertions:
+          can_view: true
+          can_participate: true
+          can_edit: true
+
+  - name: a plain org member has no access of any kind
+    check:
+      - user: identity_account:dave
+        object: agent_channel:wa-line
+        assertions:
+          can_view: false
+          can_participate: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: a foreign org admin has no access of any kind
+    check:
+      - user: identity_account:eve
+        object: agent_channel:wa-line
+        assertions:
+          can_view: false
+          can_participate: false
+          can_edit: false
+
+  - name: participants inherit channel-session read through the existing composition, read-only
+    check:
+      - user: identity_account:trina
+        object: session:member-chat
+        assertions:
+          can_view: true
+          can_create_execution_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+
+  - name: the personal-session invariant is untouched — a participant sees no console sessions
+    check:
+      - user: identity_account:trina
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+          can_create_execution_in: false
+
+  - name: list viewable and participable channels resolve per grant (drives listConversations)
+    list_objects:
+      - user: identity_account:trina
+        type: agent_channel
+        assertions:
+          can_view:
+            - agent_channel:wa-line
+          can_participate:
+            - agent_channel:wa-line
+      - user: identity_account:carol
+        type: agent_channel
+        assertions:
+          can_view:
+            - agent_channel:wa-line
+          can_participate: []
+      - user: identity_account:dave
+        type: agent_channel
+        assertions:
+          can_view: []
+          can_participate: []

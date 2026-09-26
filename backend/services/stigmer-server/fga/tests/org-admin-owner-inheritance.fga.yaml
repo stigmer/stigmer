@@ -1,0 +1,304 @@
+# Store tests for org-admin owner inheritance (since 2026-07-13).
+#
+# Blueprint kinds — agent, agent_share, agent_channel, channel_app,
+# schedule, skill, workflow, plugin — compose org admins into `owner`:
+#
+#   define owner: [identity_account] or admin from organization
+#
+# This is the GitHub-org-admin model (precedent: mcp_server, iam_policy,
+# invitation): every org asset has an operator of last resort, so
+# machine-provisioned and ex-employee resources stay manageable. Because
+# owner feeds viewer (and can_execute on agents), admins also see, list,
+# and run PRIVATE blueprints — a deliberate trade, accepted when the
+# inheritance was decided on 2026-07-13.
+#
+# The four personal/secret kinds — agent_instance, environment, session,
+# workflow_instance — deliberately do NOT inherit. Their fixtures below
+# carry the organization tuple, so these tests would fail loudly if
+# inheritance were ever wrongly added to them.
+#
+# Run with:
+#   fga model test --tests org-admin-owner-inheritance.fga.yaml
+#
+# Scenario: org "acme" has org owner root, org admin ana, and plain member
+# dave. carol (a plain member) created one PRIVATE resource of each
+# inherited kind, plus one of each excluded kind. zara is an admin of the
+# unrelated org "other".
+name: org-admin-owner-inheritance
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:root
+    relation: owner
+    object: organization:acme
+  - user: identity_account:ana
+    relation: admin
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:zara
+    relation: admin
+    object: organization:other
+
+  # --- carol's PRIVATE blueprints (creation tuples only) ---
+  - user: organization:acme
+    relation: organization
+    object: agent:carols-bot
+  - user: identity_account:carol
+    relation: owner
+    object: agent:carols-bot
+  - user: organization:acme
+    relation: organization
+    object: agent_share:carols-bot-share
+  - user: identity_account:carol
+    relation: owner
+    object: agent_share:carols-bot-share
+  - user: organization:acme
+    relation: organization
+    object: agent_channel:carols-bot-slack
+  - user: identity_account:carol
+    relation: owner
+    object: agent_channel:carols-bot-slack
+  - user: organization:acme
+    relation: organization
+    object: channel_app:carols-slack-app
+  - user: identity_account:carol
+    relation: owner
+    object: channel_app:carols-slack-app
+  - user: organization:acme
+    relation: organization
+    object: schedule:carols-reminders
+  - user: identity_account:carol
+    relation: owner
+    object: schedule:carols-reminders
+  - user: organization:acme
+    relation: organization
+    object: skill:carols-notes
+  - user: identity_account:carol
+    relation: owner
+    object: skill:carols-notes
+  - user: organization:acme
+    relation: organization
+    object: workflow:carols-flow
+  - user: identity_account:carol
+    relation: owner
+    object: workflow:carols-flow
+  - user: organization:acme
+    relation: organization
+    object: plugin:carols-plugin
+  - user: identity_account:carol
+    relation: owner
+    object: plugin:carols-plugin
+
+  # --- carol's personal resources (organization tuple present, so a
+  #     wrongly-added inheritance WOULD resolve — these must stay denied) ---
+  - user: organization:acme
+    relation: organization
+    object: agent_instance:carols-instance
+  - user: agent:carols-bot
+    relation: agent
+    object: agent_instance:carols-instance
+  - user: identity_account:carol
+    relation: owner
+    object: agent_instance:carols-instance
+  - user: organization:acme
+    relation: organization
+    object: environment:carols-secrets
+  - user: identity_account:carol
+    relation: owner
+    object: environment:carols-secrets
+  - user: identity_account:carol
+    relation: creator
+    object: environment:carols-secrets
+  - user: organization:acme
+    relation: organization
+    object: session:carols-chat
+  - user: identity_account:carol
+    relation: owner
+    object: session:carols-chat
+
+tests:
+  - name: org admin inherits full management of every blueprint kind
+    check:
+      - user: identity_account:ana
+        object: agent:carols-bot
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_execute: true
+      - user: identity_account:ana
+        object: agent_share:carols-bot-share
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:ana
+        object: agent_channel:carols-bot-slack
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:ana
+        object: channel_app:carols-slack-app
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:ana
+        object: schedule:carols-reminders
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:ana
+        object: skill:carols-notes
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:ana
+        object: workflow:carols-flow
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:ana
+        object: plugin:carols-plugin
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+
+  - name: org owner inherits through the admin hierarchy
+    check:
+      - user: identity_account:root
+        object: agent:carols-bot
+        assertions:
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:root
+        object: agent_share:carols-bot-share
+        assertions:
+          can_edit: true
+          can_delete: true
+      - user: identity_account:root
+        object: agent_channel:carols-bot-slack
+        assertions:
+          can_edit: true
+          can_delete: true
+
+  - name: plain org member still has nothing on private blueprints
+    check:
+      - user: identity_account:dave
+        object: agent:carols-bot
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+      - user: identity_account:dave
+        object: agent_share:carols-bot-share
+        assertions:
+          can_view: false
+          can_edit: false
+      - user: identity_account:dave
+        object: agent_channel:carols-bot-slack
+        assertions:
+          can_view: false
+          can_edit: false
+      - user: identity_account:dave
+        object: channel_app:carols-slack-app
+        assertions:
+          can_view: false
+          can_edit: false
+      - user: identity_account:dave
+        object: schedule:carols-reminders
+        assertions:
+          can_view: false
+          can_edit: false
+
+  - name: admin of an unrelated org has nothing
+    check:
+      - user: identity_account:zara
+        object: agent:carols-bot
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:zara
+        object: plugin:carols-plugin
+        assertions:
+          can_view: false
+          can_edit: false
+
+  - name: personal kinds stay admin-excluded (privacy invariant)
+    check:
+      - user: identity_account:ana
+        object: agent_instance:carols-instance
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:ana
+        object: environment:carols-secrets
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+          can_read_secrets: false
+      - user: identity_account:ana
+        object: session:carols-chat
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      # The org OWNER is admin-and-above — the exclusion must hold for
+      # them too.
+      - user: identity_account:root
+        object: environment:carols-secrets
+        assertions:
+          can_view: false
+          can_read_secrets: false
+
+  - name: creator keeps everything (inheritance adds, never subtracts)
+    check:
+      - user: identity_account:carol
+        object: agent:carols-bot
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+
+  - name: admin's listable resources include private blueprints, never personal kinds
+    list_objects:
+      - user: identity_account:ana
+        type: agent
+        assertions:
+          can_view:
+            - agent:carols-bot
+          can_edit:
+            - agent:carols-bot
+      - user: identity_account:ana
+        type: agent_instance
+        assertions:
+          can_view: []
+      - user: identity_account:ana
+        type: session
+        assertions:
+          can_view: []

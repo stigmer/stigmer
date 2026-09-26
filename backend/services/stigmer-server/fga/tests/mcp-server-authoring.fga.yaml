@@ -1,0 +1,125 @@
+# Store tests for MCP-server authoring: an MCP server is an organization's
+# blueprint, so creating one takes the organization's admin bar
+# (can_create_mcp_server: admin), the bar agents, workflows and skills
+# already take. Until stigmer#1209 (v3.22.0) the create ran no check in
+# either edition and any member could author one; these pin the bar and
+# the story it leaves for members: an admin authors the server org-visible
+# and a member connects it (can_connect) with their own credentials, while
+# a private server stays the owner's and the admins'.
+#
+# Run: fga model test --tests mcp-server-authoring.fga.yaml
+
+name: mcp-server-authoring
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org acme: olivia owns it, oscar administers, dave is a plain member,
+  # vera a read-only viewer; mallory belongs to an unrelated org.
+  - user: identity_account:olivia
+    relation: owner
+    object: organization:acme
+  - user: identity_account:oscar
+    relation: admin
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:vera
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:other
+
+  # An ORG-visible server oscar authored (the org viewer tuple the
+  # visibility writer emits).
+  - user: organization:acme
+    relation: organization
+    object: mcp_server:github
+  - user: identity_account:oscar
+    relation: owner
+    object: mcp_server:github
+  - user: organization:acme#viewer
+    relation: viewer
+    object: mcp_server:github
+
+  # A PRIVATE server oscar authored (no visibility tuple).
+  - user: organization:acme
+    relation: organization
+    object: mcp_server:vault
+  - user: identity_account:oscar
+    relation: owner
+    object: mcp_server:vault
+
+tests:
+  - name: authoring an MCP server is an admin act, the blueprint bar
+    check:
+      - user: identity_account:olivia
+        object: organization:acme
+        assertions:
+          can_create_mcp_server: true
+          can_create_agent: true
+      - user: identity_account:oscar
+        object: organization:acme
+        assertions:
+          can_create_mcp_server: true
+          can_create_agent: true
+
+  - name: a member, a viewer and an outsider cannot author one
+    check:
+      - user: identity_account:dave
+        object: organization:acme
+        assertions:
+          can_create_mcp_server: false
+      - user: identity_account:vera
+        object: organization:acme
+        assertions:
+          can_create_mcp_server: false
+      - user: identity_account:mallory
+        object: organization:acme
+        assertions:
+          can_create_mcp_server: false
+
+  - name: a member connects an admin-authored org-visible server with their own credentials
+    check:
+      - user: identity_account:dave
+        object: mcp_server:github
+        assertions:
+          can_view: true
+          can_connect: true
+          can_edit: false
+      - user: identity_account:vera
+        object: mcp_server:github
+        assertions:
+          can_view: true
+          can_connect: true
+          can_edit: false
+      - user: identity_account:mallory
+        object: mcp_server:github
+        assertions:
+          can_view: false
+          can_connect: false
+
+  - name: a private server stays with its author and the org admins
+    check:
+      - user: identity_account:oscar
+        object: mcp_server:vault
+        assertions:
+          can_view: true
+          can_connect: true
+          can_edit: true
+      - user: identity_account:olivia
+        object: mcp_server:vault
+        assertions:
+          can_view: true
+          can_edit: true
+      - user: identity_account:dave
+        object: mcp_server:vault
+        assertions:
+          can_view: false
+          can_connect: false
+      - user: identity_account:vera
+        object: mcp_server:vault
+        assertions:
+          can_view: false
+          can_connect: false

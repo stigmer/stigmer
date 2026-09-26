@@ -1,0 +1,117 @@
+module agentic
+
+# ========================================
+# ENVIRONMENT TYPE (Organization-scoped, Personal Resource)
+# ========================================
+# Environment represents a named collection of configuration and secrets.
+# Every environment belongs to an organization. Contains encrypted secrets.
+#
+# Authorization model (PERSONAL RESOURCE with opt-in org sharing):
+# - PRIVATE (default): only owner (creator) and explicitly granted users
+#   can view. Org admins are explicitly EXCLUDED (personal secrets).
+# - ORG (visibility_org, opt-in): all org members can view — with secret
+#   values REDACTED — via the explicit org viewer tuple written by
+#   VisibilityTupleReconciler. Setting ORG also marks the environment as
+#   runtime-resolvable for executions in the owning org (see below).
+# - PUBLIC/PLATFORM are not supported for environments (kind
+#   VisibilityConfig: supports_org only) — secret values must never be
+#   resolvable across the org boundary.
+# - Personal (stigmer.ai/personal) and OAuth-managed (stigmer.ai/managed)
+#   environments reject org visibility entirely (handler-level guardrail).
+#
+# Secret access is TWO DISTINCT OPERATIONS with distinct authorization:
+#
+# 1. HUMAN REVEAL (getSecretValue RPC) — creator-only via can_read_secrets,
+#    at every visibility level. Viewers (explicit grants AND org members on
+#    shared environments) always see redacted values. This is the
+#    GitHub-org-secrets model: write-only for humans, usable by the runtime.
+#
+# 2. RUNTIME RESOLUTION (execution-context creation) — NOT modeled in FGA.
+#    The execution engine resolves an org-shared environment's secrets
+#    server-side (EnvironmentRuntimeResolutionService) under one app-level
+#    policy: metadata.visibility == org AND environment org == execution
+#    org. Private environments resolve as-caller (creator-only), unchanged.
+#    This is deliberately app-level, mirroring the sharing gates (decided
+#    2026-07-09 and 2026-07-12): no per-share tuples, and no FGA relation
+#    could allow an org member's *execution* to use a secret while denying
+#    the same member's *reveal*.
+#
+# FGA tuples on creation:
+# - environment:my-env#organization@organization:acme
+# - environment:my-env#owner@identity_account:alice
+# - environment:my-env#creator@identity_account:alice
+#
+# Additional tuple when visibility_org is set (removed on revert to private):
+# - environment:my-env#viewer@organization:acme#viewer
+#
+# CHANNEL CREDENTIALS (documented deviation): the managed environment that
+# holds an agent channel's provider credential (e.g. the Slack bot token
+# the Slack install flow stores) carries a SECOND owner and creator tuple
+# for the org's system-channel identity account, written at install time by
+# ChannelIdentityAccountService.grantCredentialsEnvironmentAccess. This
+# deliberately bends the single-immutable-creator attribution note above:
+# the party who stored the secret is the channel runtime (the token comes
+# from the provider's OAuth exchange, not from the human), and the async
+# webhook/delivery paths — which have no caller JWT — read it OnBehalfOf
+# that account through the standard getSecretValue pipeline. The co-owner
+# tuple additionally makes cross-owner re-install and the channel delete
+# cascade pass can_edit/can_delete regardless of which human clicked. The
+# installing human remains creator too and can reveal the token (accepted:
+# installers hold can_edit on the channel itself). Scope: ONLY these
+# system-managed channel-credential environments; nothing else may write a
+# second creator tuple.
+
+type environment
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # CREATOR (Immutable Attribution)
+    # ========================================
+    # The identity_account that originally created this resource.
+    # Written once at creation, never changed. Distinct from owner:
+    # owner = who can manage (mutable)
+    # creator = who originally stored the secrets (immutable)
+    define creator: [identity_account]
+    
+    # ========================================
+    # OWNERSHIP (Personal Resource)
+    # ========================================
+    # Org admins explicitly excluded — environments are personal resources
+    # containing secrets that admins have no business accessing.
+    define owner: [identity_account]
+    
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants + Org Sharing)
+    # ========================================
+    # organization#viewer is the shape VisibilityTupleReconciler writes for
+    # visibility_org (the org's full read audience — every role satisfies it);
+    # organization#member is the legacy pre-2026-08-11 shape, kept resolving
+    # until the boot backfill converges stored tuples. Viewers see REDACTED
+    # secret values.
+    define viewer: [identity_account, organization#member, organization#viewer] or owner
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # SECRET RETRIEVAL (Creator-Only, Every Visibility Level)
+    # ========================================
+    # Only the creator can read unredacted secret values — org sharing never
+    # widens this. The execution engine resolves org-shared secrets through
+    # the server-side runtime-resolution path (see type comment), not
+    # through this permission.
+    define can_read_secrets: creator
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

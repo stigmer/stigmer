@@ -1,0 +1,57 @@
+module iam
+
+# ========================================
+# PLATFORM CLIENT TYPE (Organization-scoped)
+# ========================================
+# OAuth2 client credentials for platform builders embedding Stigmer
+# into their products. Holds client_id + client_secret_hash for
+# inbound authentication via the mintUserToken RPC.
+# Scoped to organization — each platform client is owned by an org.
+#
+# Access model: RESTRICTED
+# Platform clients contain sensitive credential material (client_secret_hash).
+# Only owners and org admins can see them. Regular org members have no access.
+# Public visibility is intentionally unsupported to prevent credential leakage.
+#
+# Permission pattern:
+# - Org Admin: Can view (administrative visibility — fingerprint, rotation
+#   history, provisioning config). The plaintext secret and hash are never
+#   returned by the API layer.
+# - Creator (Owner): Full CRUD access + secret rotation
+# - Org Members: No access (administrative resource)
+#
+# FGA tuples on creation:
+# - platform_client:pcl_abc#organization@organization:acme
+# - platform_client:pcl_abc#owner@identity_account:alice
+
+type platform_client
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # OWNERSHIP
+    # ========================================
+    define owner: [identity_account]
+    
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # Restricted: only owner and org admins can view
+    # Regular org members cannot see platform clients
+    define viewer: [identity_account] or owner or admin from organization
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

@@ -1,0 +1,61 @@
+module agentic
+
+# ========================================
+# MEMORY TYPE (Organization-scoped, Subject-Only Resource)
+# ========================================
+# Memory is an agent-proposed, user-confirmed fact about a person
+# (stigmer/stigmer#293 Phase 2; subject-only as ratified 2026-08-18).
+#
+# Authorization model (SUBJECT-ONLY — the strictest in the platform):
+# - The SUBJECT (the identity account the memory is ABOUT) is the only
+#   principal. Org admins govern whether memory operates in the org
+#   (OrganizationPreferences.memory_enabled) but NEVER read members'
+#   memories — the Claude-enterprise split: owners control the setting,
+#   not the entries. Only you can see what the platform remembers about
+#   you.
+# - No owner relation: an agent authored the record and the subject
+#   decides on it — owner/creator vocabulary would misname both. The
+#   kind config sets OWNER_ATTRIBUTION_TYPE_NONE.
+# - No visibility levels, no grantable roles: memories are never shared,
+#   published, or granted (the kind has no visibility block and an empty
+#   grantable_roles list).
+# - The ONE deliberate visibility exception lives elsewhere: the
+#   recalled_memories snapshot on an AgentExecution spec is readable by
+#   whoever can read that execution (snapshot transparency).
+#   That is the execution's contract, not this type's.
+#
+# FGA tuples on creation (config-driven from the kind's proto
+# authorization block — organization scope + the subject
+# additional_parent extracted from spec.subject_identity_account_id,
+# which the create handler derives from the calling credential, so FGA
+# always sees the subject creating a record about themselves):
+# - memory:mem_x#organization@organization:acme
+# - memory:mem_x#subject@identity_account:alice
+#
+# Lifecycle note: confirm/reject (can_edit) are the sole writers of
+# status.lifecycle_state — the control-plane consent gate (propose, then
+# the subject confirms).
+# delete (can_delete) works in any lifecycle state: deletion is the
+# revocation mechanism for confirmed facts.
+
+type memory
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # SUBJECT (The Person This Memory Is About)
+    # ========================================
+    # Written once at creation from the capturing credential, immutable
+    # forever after (the update pipeline refuses subject changes). The
+    # memory's ONLY principal.
+    define subject: [identity_account]
+
+    # ========================================
+    # PERMISSIONS (Subject-Only)
+    # ========================================
+    define can_view: subject
+    define can_edit: subject
+    define can_delete: subject

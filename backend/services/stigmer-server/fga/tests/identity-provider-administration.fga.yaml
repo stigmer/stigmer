@@ -1,0 +1,113 @@
+# An identity provider is managed by its creator and by every admin of its
+# organization, and is invisible to the organization's other people.
+#
+# Cast (organization acme unless named):
+#   root  - acme owner (an admin through the role hierarchy)
+#   ana   - acme admin; created nothing
+#   carol - acme admin; created provider `sso`
+#   dave  - acme member-role member
+#   vera  - acme viewer-role member
+#   vince - acme member with a direct viewer grant on `sso`
+#   zara  - admin of the unrelated organization other
+#   tina  - member of organization tenant, which `sso` operates
+#
+# Provider `sso` carries both creation tuples. Provider `unowned` carries
+# only its organization link: a provider whose creator was never recorded,
+# the state the boot reconcile repairs to. Provider `ghost` carries no
+# tuple at all, the state a provider is left in when its creation event
+# failed: nobody manages it, which is why the reconcile exists.
+name: identity-provider-administration
+model_file: ../../src/authorization/model/data/authorization-model.json
+tuples:
+  - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:carol, relation: admin, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:vince, relation: member, object: organization:acme}
+  - {user: identity_account:zara, relation: admin, object: organization:other}
+  - {user: identity_account:tina, relation: member, object: organization:tenant}
+  - {user: organization:acme, relation: organization, object: identity_provider:sso}
+  - {user: identity_account:carol, relation: owner, object: identity_provider:sso}
+  - {user: identity_account:vince, relation: viewer, object: identity_provider:sso}
+  - {user: organization:tenant, relation: managed_org, object: identity_provider:sso}
+  - {user: organization:acme, relation: organization, object: identity_provider:unowned}
+tests:
+  - name: the creator and every org admin manage the provider
+    check:
+      - user: identity_account:carol
+        object: identity_provider:sso
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true, can_view_access: true}
+      - user: identity_account:ana
+        object: identity_provider:sso
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true, can_view_access: true}
+      - user: identity_account:root
+        object: identity_provider:sso
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true}
+  - name: a provider with no recorded creator is still managed by its organization's admins
+    check:
+      - user: identity_account:ana
+        object: identity_provider:unowned
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true}
+      - user: identity_account:dave
+        object: identity_provider:unowned
+        assertions: {can_view: false}
+  - name: the organization's members and viewers see nothing
+    check:
+      - user: identity_account:dave
+        object: identity_provider:sso
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false, can_view_access: false}
+      - user: identity_account:vera
+        object: identity_provider:sso
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_view_access: false}
+  - name: a direct viewer grant reads the provider and its access list, and manages nothing
+    check:
+      - user: identity_account:vince
+        object: identity_provider:sso
+        assertions: {viewer: true, can_view: true, can_view_access: true, owner: false, can_edit: false, can_delete: false, can_grant_access: false}
+  - name: an admin of another organization has nothing
+    check:
+      - user: identity_account:zara
+        object: identity_provider:sso
+        assertions: {owner: false, can_view: false, can_edit: false, can_delete: false}
+  - name: managed organizations reach platform_user and nothing else
+    check:
+      - user: identity_account:tina
+        object: identity_provider:sso
+        assertions: {platform_user: true, can_view: false, can_edit: false}
+      - user: identity_account:dave
+        object: identity_provider:sso
+        assertions: {platform_user: false}
+  - name: a provider with no tuples is managed by nobody
+    check:
+      - user: identity_account:ana
+        object: identity_provider:ghost
+        assertions: {can_view: false, can_edit: false, can_delete: false}
+  - name: only admins may create a provider
+    check:
+      - user: identity_account:ana
+        object: organization:acme
+        assertions: {can_create_idp: true}
+      - user: identity_account:dave
+        object: organization:acme
+        assertions: {can_create_idp: false}
+      - user: identity_account:vera
+        object: organization:acme
+        assertions: {can_create_idp: false}
+  - name: the organization's list holds only what each caller could get
+    list_objects:
+      - user: identity_account:ana
+        type: identity_provider
+        assertions: {can_view: [identity_provider:sso, identity_provider:unowned]}
+      - user: identity_account:vince
+        type: identity_provider
+        assertions: {can_view: [identity_provider:sso]}
+      - user: identity_account:dave
+        type: identity_provider
+        assertions: {can_view: []}
+      - user: identity_account:vera
+        type: identity_provider
+        assertions: {can_view: []}
+      - user: identity_account:zara
+        type: identity_provider
+        assertions: {can_view: []}

@@ -1,0 +1,68 @@
+module agentic
+
+# ========================================
+# SCHEDULE TYPE (Organization-scoped, Owner-managed Operational Config)
+# ========================================
+# A schedule is a recurring trigger that runs an agent on a cron schedule
+# (a standalone resource since 2026-08-02): the target agent + prompt, the
+# cron/timezone pair, and the owner's enablement switch. Like a channel, it
+# is operational configuration for the agent's runtime, independent of the
+# agent blueprint it references.
+#
+# Authorization model (OWNER-SCOPED — deliberately narrow, the
+# agent_channel template): the creator owns the schedule; view/edit/delete
+# require ownership or an explicit grant. Plain org members get NO implicit
+# access: a schedule carries billing-affecting levers (enabled, the cron
+# itself — every fire creates an execution that consumes the owning org's
+# credits, unattended) whose consent bar is can_edit on the referenced
+# agent at creation time, and ownership after (settled 2026-08-02). There is
+# deliberately no organization.can_create_schedule: creation is
+# target-gated, not org-admin-gated.
+# Org admins inherit owner (since 2026-07-13) — an admin who can edit the
+# agent can also manage its schedules.
+#
+# A schedule writes NO visitor-facing visibility tuples: it has no public
+# surface at all. Its runtime effect is the executions its fires create —
+# and each fire's session carries a session#schedule@schedule:<id> link
+# tuple (written by ScheduleSessionLinkStep since 2026-08-02) that
+# composes THIS type's viewer set into the session's can_view, read-only.
+# The schedule is the principal of that tuple; nothing here changes.
+#
+# FGA tuples on creation (config-driven from the schedule kind config:
+# ORGANIZATION scope + DIRECT owner):
+# - schedule:<id>#organization@organization:<org>
+# - schedule:<id>#owner@identity_account:<creator>
+
+type schedule
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    # The creator, plus org admins by inheritance (since 2026-07-13, closing
+    # the org-Owner-is-not-agent-owner gap platform-wide).
+    define owner: [identity_account] or admin from organization
+
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants)
+    # ========================================
+    # To a person or to an Enterprise team's members (team#member, bounded
+    # by the organization in team.fga).
+    define viewer: [identity_account, team#member] or owner
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

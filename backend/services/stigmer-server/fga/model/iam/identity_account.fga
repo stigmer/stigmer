@@ -1,0 +1,36 @@
+module iam
+
+# ========================================
+# IDENTITY ACCOUNT TYPE (Root-level Resource)
+# ========================================
+# User accounts - no parent, created at platform level.
+# Each user owns their own identity account.
+#
+# Platform operators manage identity accounts via
+# platform:stigmer#can_manage_identity_accounts, not through
+# transitive FGA relations on this type.
+#
+# FGA tuples on account creation:
+# - identity_account:alice#owner@identity_account:alice
+
+type identity_account
+  relations
+    # ========================================
+    # SELF-OWNERSHIP
+    # ========================================
+    # Each user owns their own identity account data
+    # FGA tuple: identity_account:<user_id>#owner@identity_account:<user_id>
+    define owner: [identity_account]
+    
+    # ========================================
+    # CRUD OPERATIONS
+    # ========================================
+    define can_view: owner
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: owner

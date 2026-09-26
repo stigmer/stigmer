@@ -1,0 +1,137 @@
+module stigmer
+
+# ========================================
+# PLATFORM TYPE (Singleton Root)
+# ========================================
+# The Stigmer platform itself - the root of all authorization.
+#
+# The platform type defines the `operator` role and gates all platform-level
+# capabilities through specific `can_*` permissions. Operator access does NOT
+# propagate transitively to organizations or resources. Instead, each
+# platform-level operation is an explicit permission checked directly
+# against platform:stigmer.
+#
+# FGA tuple for operator assignment:
+#   platform:stigmer#operator@identity_account:<operator_id>
+
+type platform
+  relations
+    # ========================================
+    # OPERATOR (Role)
+    # ========================================
+    # Platform operators - users with elevated platform-level privileges.
+    # This is the sole role on the platform type. All permissions below
+    # derive from it, giving each a clear domain meaning for audit and
+    # future role splitting.
+    # FGA tuple: platform:stigmer#operator@identity_account:<operator_id>
+    define operator: [identity_account]
+    
+    # ========================================
+    # IMPERSONATION
+    # ========================================
+    # Controls who can use on-behalf-of impersonation via gRPC metadata.
+    # Gates the x-on-behalf-of header.
+    # FGA check: identity_account:<caller_id> can_impersonate platform:stigmer
+    define can_impersonate: operator
+    
+    # ========================================
+    # IAM BOOTSTRAP
+    # ========================================
+    # Permission to create and clean up FGA tuples during resource lifecycle.
+    # Used by server pipeline steps (bootstrapPolicy, cleanupResourcePolicies).
+    # FGA check: identity_account:<caller_id> can_bootstrap_iam platform:stigmer
+    define can_bootstrap_iam: operator
+    
+    # ========================================
+    # IDENTITY ACCOUNT MANAGEMENT
+    # ========================================
+    # Permission for admin operations on identity accounts:
+    # get actor info, simulate signup, delete accounts, manage account access.
+    # FGA check: identity_account:<caller_id> can_manage_identity_accounts platform:stigmer
+    define can_manage_identity_accounts: operator
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    # Platform-level IAM policy operations (operators only)
+    define can_grant_access: operator
+    define can_view_access: operator
+    
+    # ========================================
+    # USAGE METERING
+    # ========================================
+    # Permission to write trusted usage data from the proxy layer.
+    # Gates the updateUsage RPC on AgentExecutionCommandController.
+    # FGA check: identity_account:<caller_id> can_update_usage platform:stigmer
+    define can_update_usage: operator
+    
+    # ========================================
+    # BILLING OPERATIONS (Internal)
+    # ========================================
+    # Permission to execute internal billing operations (authorize, record, finalize).
+    # Gates the internal billing RPCs that must only run as the platform machine account.
+    # FGA check: identity_account:<caller_id> can_execute_billing_ops platform:stigmer
+    define can_execute_billing_ops: operator
+
+    # ========================================
+    # MODEL PRICING GOVERNANCE
+    # ========================================
+    # Permission to view pricing governance (baseline vs effective rates,
+    # override provenance) and decide pricing-override sign-offs from the
+    # pricing feedback loop. A human operator action, distinct from the
+    # machine account's can_execute_billing_ops pipeline.
+    # FGA check: identity_account:<caller_id> can_manage_model_pricing platform:stigmer
+    define can_manage_model_pricing: operator
+
+    # ========================================
+    # CURSOR ACCOUNT MANAGEMENT
+    # ========================================
+    # Permission to manage the platform's Cursor accounts: the managed
+    # Cursor teams (admin keys, member execution keys, org assignments)
+    # backing the cursor harness, plus their roster/spend views. A human
+    # operator action — key material and per-member spend are
+    # platform-internal, never org-visible.
+    # FGA check: identity_account:<caller_id> can_manage_cursor_accounts platform:stigmer
+    define can_manage_cursor_accounts: operator
+
+    # ========================================
+    # PROVIDER STANDING (stigmer#732)
+    # ========================================
+    # Permission to view platform provider standing: the canary-probe
+    # verdicts (health, billing/auth rejections, latency, probe
+    # freshness) for the platform's own LLM provider accounts. Read-only
+    # — the standing surface only observes, so this is deliberately a
+    # view permission, distinct from the manage-class platform
+    # permissions above. Provider account health is platform-internal,
+    # never org-visible.
+    # FGA check: identity_account:<caller_id> can_view_provider_standing platform:stigmer
+    define can_view_provider_standing: operator
+
+    # ========================================
+    # RESERVED LABEL NAMESPACE (stigmer#548)
+    # ========================================
+    # Permission to introduce or change stigmer.ai/* labels through
+    # client-facing write boundaries. Reserved labels carry platform
+    # semantics the server acts on — a row's plugin membership
+    # (stigmer.ai/plugin), a system-managed lifecycle
+    # (stigmer.ai/system-managed), a default instance
+    # (stigmer.ai/default-instance) — so ordinary requests may echo or
+    # remove them but never write them. Checked lazily by
+    # GuardReservedLabelsStep, only when a request actually mutates a
+    # reserved key.
+    # FGA check: identity_account:<caller_id> can_write_reserved_labels platform:stigmer
+    define can_write_reserved_labels: operator
+
+    # ========================================
+    # ENTERPRISE LICENSE ISSUANCE
+    # ========================================
+    # Permission to issue, read and list Enterprise licenses: the signed
+    # tickets a self-hosting customer installs in their own server. A
+    # license names a customer and carries a credential, so every License
+    # RPC (create, get, list) is this one platform permission; there is no
+    # per-license relation because the kind belongs to the platform, not
+    # to any organization (its authorization scope is NONE). A human
+    # operator act: the ticket is signed inside the vault under a key the
+    # service can use but never export.
+    # FGA check: identity_account:<caller_id> can_issue_license platform:stigmer
+    define can_issue_license: operator
