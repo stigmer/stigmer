@@ -290,6 +290,10 @@ The component composes three invitation hooks internally:
 - [`useCreateInvitation`](#usecreateinvitation) for creation
 - [`useRevokeInvitation`](#userevokeinvitation) for revocation
 
+The server serves an organization's invitations only to callers who
+hold `can_grant_access` on it, so gate the mount on that permission,
+as [`InvitationsSection`](/docs/sdk/react/settings#invitationssection) does with [`PermissionGate`](/docs/sdk/react/iam-policy#permissiongate).
+
 All visual properties flow through `--stgm-*` design tokens.
 
 **Props** — `InvitationManagerProps`

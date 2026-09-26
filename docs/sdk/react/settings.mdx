@@ -93,6 +93,13 @@ is configured.
 
 Settings section for creating and managing organization invitations.
 
+An organization's invitations are administered by its admins: the
+server lists them to, and creates them for, callers who hold
+`can_grant_access` on the organization. The manager is offered once the
+server confirms the caller holds it; everyone else is told that the
+organization's admins manage invitations, rather than shown an empty
+list and a create button the server would refuse.
+
 
 ### MembersSection
 
