@@ -33,6 +33,13 @@ Only genuine server verdicts are cached (per (kind, id, relation)
 triple, for the lifetime of the component mount). A failed check is
 never cached, so a transient error does not pin a wrong answer.
 
+No render passes off an answer the hook does not have: `isLoading` is
+already `true` on the first render for a resource, and when the
+resource changes the previous resource's verdict is never reported for
+the new one. A gate can therefore trust a settled answer as the
+server's, and gated content that fetches when it mounts never mounts
+for a caller the server is about to refuse.
+
 **Signature**
 
 ```tsx
@@ -53,7 +60,7 @@ function useCheckPermission(resource: PermissionCheckResource | null, relation: 
   type={{
     allowed: { type: "boolean", description: "Whether the current user has the specified permission." },
     error: { type: "Error | null", description: "Error from the last check, or `null`." },
-    isLoading: { type: "boolean", description: "`true` while the authorization check is in flight." },
+    isLoading: { type: "boolean", description: "`true` while the authorization check is in flight, from the first render for a resource until its answer arrives." },
   }}
 />
 
@@ -588,9 +595,13 @@ All visual properties flow through `--stgm-*` design tokens.
 Conditionally renders children based on the current user's
 permission on a resource.
 
-Uses [`useCheckPermission`](#usecheckpermission) under the hood. In OSS mode (where
-the IAM service is unavailable), the gate is always permissive —
-children are rendered immediately without a network call.
+Uses [`useCheckPermission`](#usecheckpermission) under the hood, so the check runs in
+every edition and the gate fails open: a check that errors renders
+the children. Until the server answers, the gate renders `loading`,
+from its first render. Gated content never mounts before the answer,
+so content that fetches when it mounts is never fetched for a caller
+the server refuses. A `null` resource skips the check and renders the
+children.
 
 This component is designed to hide UI elements (buttons, actions,
 controls) that the user cannot perform. It does NOT enforce

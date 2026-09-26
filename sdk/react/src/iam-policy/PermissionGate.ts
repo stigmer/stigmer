@@ -30,9 +30,13 @@ export interface PermissionGateProps {
  * Conditionally renders children based on the current user's
  * permission on a resource.
  *
- * Uses {@link useCheckPermission} under the hood. In OSS mode (where
- * the IAM service is unavailable), the gate is always permissive —
- * children are rendered immediately without a network call.
+ * Uses {@link useCheckPermission} under the hood, so the check runs in
+ * every edition and the gate fails open: a check that errors renders
+ * the children. Until the server answers, the gate renders `loading`,
+ * from its first render. Gated content never mounts before the answer,
+ * so content that fetches when it mounts is never fetched for a caller
+ * the server refuses. A `null` resource skips the check and renders the
+ * children.
  *
  * This component is designed to hide UI elements (buttons, actions,
  * controls) that the user cannot perform. It does NOT enforce

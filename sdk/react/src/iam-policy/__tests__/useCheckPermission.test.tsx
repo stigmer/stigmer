@@ -1,11 +1,22 @@
+/**
+ * Pins useCheckPermission's contract: the verdict each fail mode reports
+ * while a check is in flight, on a grant, a denial, a failed RPC and a
+ * skipped (null) resource; the per-mount cache of genuine verdicts only;
+ * and that no render ever passes off a verdict it does not have. The
+ * first render already reports the check as in flight, and a changed
+ * resource never reports the previous resource's verdict, because
+ * PermissionGate and every caller that reads `isLoading` treat a settled
+ * answer as the server's.
+ */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
 import {
   useCheckPermission,
   type CheckPermissionOptions,
   type PermissionCheckResource,
+  type UseCheckPermissionReturn,
 } from "../useCheckPermission";
 
 function createMockStigmer(checkMyPermission: ReturnType<typeof vi.fn>) {
@@ -217,5 +228,95 @@ describe("useCheckPermission — caching", () => {
     await waitFor(() =>
       expect(screen.getByTestId("probe").getAttribute("data-allowed")).toBe("true"),
     );
+  });
+});
+
+/** Every value the hook returned, in render order. */
+function Recorder({
+  resource,
+  options,
+  renders,
+}: {
+  resource: PermissionCheckResource | null;
+  options?: CheckPermissionOptions;
+  renders: UseCheckPermissionReturn[];
+}) {
+  renders.push(useCheckPermission(resource, "can_edit", options));
+  return null;
+}
+
+const WORKFLOW: PermissionCheckResource = { kind: "workflow", id: "wfl_1" };
+
+describe("useCheckPermission — the first render", () => {
+  it("reports the check as in flight from the first render, under fail-open", () => {
+    const { check } = pendingCheck();
+    const renders: UseCheckPermissionReturn[] = [];
+    render(<Recorder resource={AGENT} renders={renders} />, {
+      wrapper: wrapper(createMockStigmer(check)),
+    });
+
+    expect(renders[0]).toEqual({ allowed: true, isLoading: true, error: null });
+    expect(check).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports the check as in flight from the first render, under fail-closed", () => {
+    const { check } = pendingCheck();
+    const renders: UseCheckPermissionReturn[] = [];
+    render(
+      <Recorder resource={AGENT} options={{ fail: "closed" }} renders={renders} />,
+      { wrapper: wrapper(createMockStigmer(check)) },
+    );
+
+    expect(renders[0]).toEqual({ allowed: false, isLoading: true, error: null });
+  });
+
+  it("reports a skipped (null) resource as settled from the first render", () => {
+    const check = vi.fn();
+    const renders: UseCheckPermissionReturn[] = [];
+    render(<Recorder resource={null} renders={renders} />, {
+      wrapper: wrapper(createMockStigmer(check)),
+    });
+
+    expect(renders[0]).toEqual({ allowed: true, isLoading: false, error: null });
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  it("never reports one resource's verdict for another", async () => {
+    const denied = pendingCheck();
+    const pending = pendingCheck();
+    const check = vi
+      .fn()
+      .mockImplementationOnce(denied.check)
+      .mockImplementationOnce(pending.check);
+    const renders: UseCheckPermissionReturn[] = [];
+    const { rerender } = render(<Recorder resource={AGENT} renders={renders} />, {
+      wrapper: wrapper(createMockStigmer(check)),
+    });
+    await act(async () => denied.resolve(false));
+    expect(renders.at(-1)).toEqual({ allowed: false, isLoading: false, error: null });
+
+    const firstForWorkflow = renders.length;
+    rerender(<Recorder resource={WORKFLOW} renders={renders} />);
+
+    // Every render for the new resource is in flight at the fail value,
+    // never the agent's denial passed off as the workflow's verdict.
+    for (const value of renders.slice(firstForWorkflow)) {
+      expect(value).toEqual({ allowed: true, isLoading: true, error: null });
+    }
+    await act(async () => pending.resolve(true));
+    expect(renders.at(-1)).toEqual({ allowed: true, isLoading: false, error: null });
+  });
+
+  it("returns the same object while its answer is unchanged", async () => {
+    const check = vi.fn().mockResolvedValue({ isAuthorized: true });
+    const renders: UseCheckPermissionReturn[] = [];
+    const { rerender } = render(<Recorder resource={AGENT} renders={renders} />, {
+      wrapper: wrapper(createMockStigmer(check)),
+    });
+    await waitFor(() => expect(renders.at(-1)?.isLoading).toBe(false));
+
+    const settled = renders.at(-1);
+    rerender(<Recorder resource={AGENT} renders={renders} />);
+    expect(renders.at(-1)).toBe(settled);
   });
 });
