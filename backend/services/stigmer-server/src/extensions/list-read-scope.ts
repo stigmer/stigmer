@@ -99,7 +99,8 @@
  *     with. A driver MAY answer the parent's question in place of the
  *     child's: by the model's construction the two answers are identical
  *     (the child's `owner`, `viewer` and `can_view` are all `from` the
- *     parent), and the parent's resolution is direct tuples where the
+ *     parent; authorization/model/__tests__/registry.test.ts holds that
+ *     for every such kind), and the parent's resolution is direct tuples where the
  *     child's walks the parent's whole set (OpenFGA's learned `weight2`
  *     strategy read the founder's 423 sessions per execution; that is what
  *     rolled back twice on 2026-09-14). A driver that ignores the field is

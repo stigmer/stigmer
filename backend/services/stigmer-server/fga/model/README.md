@@ -101,6 +101,8 @@ define viewer: viewer from session or owner
 
 Resources: `workflow_execution`, `agent_execution`
 
+An agent execution holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the execution's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give an execution something of its own is a design change of the list read scope first. A workflow execution is not such a kind, because its opt-in `execution_viewer` is its own.
+
 ### Bounded Membership (Teams)
 
 A group that access is shared with as one, whose members must still belong to the group's organization:

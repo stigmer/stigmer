@@ -17,7 +17,14 @@
  *     step and the model cannot disagree about where a team may be
  *     granted;
  *   - the derived rules are exactly the three relations `kind_meta` cannot
- *     derive.
+ *     derive;
+ *   - a kind whose authorization is its parent's whole
+ *     (`inheritedAuthorizationParentOf`) holds nothing of its own: its one
+ *     direct relation is the parent link, every other relation is built
+ *     through it, and its `can_view` answers exactly what the parent's
+ *     does, so the list read scope may ask the parent in the child's place
+ *     (extensions/list-read-scope.ts) without hiding or showing a row the
+ *     child's own check would not.
  *
  * Whether the model defines what the wire asks is the whole contract's
  * question, pinned in __tests__/wire-permissions.test.ts.
@@ -39,12 +46,21 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import {
   getKindMeta,
   grantableRolesFor,
+  inheritedAuthorizationParentOf,
   kindEnumName,
   teamGrantableRolesFor,
 } from "../../../pipeline/apiresource-meta.js";
+import {
+  computed,
+  direct,
+  from,
+  objectOf,
+  throwawayDeclaration,
+  union,
+} from "../../__tests__/throwaway-model.js";
 import { KIND_BINDINGS, ROWLESS } from "../bindings.js";
 import { builtInModel, declarationFor } from "../index.js";
-import type { Rewrite, SubjectType } from "../rewrite.js";
+import type { KindDeclaration, Rewrite, SubjectType } from "../rewrite.js";
 
 /** The server package root, where fga/model lives. */
 const PACKAGE_ROOT = new URL("../../../../", import.meta.url);
@@ -91,6 +107,172 @@ function directSubjects(rewrite: Rewrite): ReadonlyArray<SubjectType> {
       throw new Error(`unknown rewrite node: ${JSON.stringify(exhaustive)}`);
     }
   }
+}
+
+/** The relation every list lane reads through, on the child and on its parent. */
+const LIST_RELATION = "can_view";
+
+/** The `this`, `computed` and `from` nodes a rewrite is built from, in the line's order. */
+function leavesOf(rewrite: Rewrite): ReadonlyArray<Rewrite> {
+  switch (rewrite.node) {
+    case "this":
+    case "computed":
+    case "from":
+      return [rewrite];
+    case "union":
+    case "intersection":
+      return rewrite.members.flatMap(leavesOf);
+    default: {
+      const exhaustive: never = rewrite;
+      throw new Error(`unknown rewrite node: ${JSON.stringify(exhaustive)}`);
+    }
+  }
+}
+
+/**
+ * The relations of `declaration` that `relation` includes whole: itself,
+ * and every sibling a union member or a computed node names, transitively.
+ * An intersection includes none of its members whole, so it stops here.
+ */
+function includedWhole(declaration: KindDeclaration, relation: string): ReadonlySet<string> {
+  const included = new Set<string>();
+  const visit = (name: string): void => {
+    if (included.has(name)) {
+      return;
+    }
+    included.add(name);
+    const walk = (rewrite: Rewrite | undefined): void => {
+      if (rewrite?.node === "computed") {
+        visit(rewrite.relation);
+      } else if (rewrite?.node === "union") {
+        rewrite.members.forEach(walk);
+      }
+    };
+    walk(declaration.relations.get(name));
+  };
+  visit(relation);
+  return included;
+}
+
+/**
+ * The parent relations `relation` of `child` reaches through `link`,
+ * following the child's own computed relations to their leaves.
+ */
+function parentRelationsReached(
+  child: KindDeclaration,
+  relation: string,
+  link: string,
+): ReadonlySet<string> {
+  const reached = new Set<string>();
+  const seen = new Set<string>();
+  const visit = (name: string): void => {
+    if (seen.has(name)) {
+      return;
+    }
+    seen.add(name);
+    const rewrite = child.relations.get(name);
+    for (const leaf of rewrite === undefined ? [] : leavesOf(rewrite)) {
+      if (leaf.node === "computed") {
+        visit(leaf.relation);
+      } else if (leaf.node === "from" && leaf.tupleset === link) {
+        reached.add(leaf.relation);
+      }
+    }
+  };
+  visit(relation);
+  return reached;
+}
+
+/**
+ * Every way `child` breaks the promise its `kind_meta` makes when it says
+ * the kind's authorization is its parent's whole (PARENT scope, INHERITED
+ * owner); empty when the model keeps it. The list read scope reads that
+ * promise to let a driver ask the parent's `can_view` in the child's
+ * place, which gives the child's answer only while:
+ *   - the child's one direct relation is the link, to the parent type
+ *     alone, so nothing is granted on the child that the parent does not
+ *     hold;
+ *   - every other relation is built through the link or from the child's
+ *     own relations, never from another object;
+ *   - the child's `can_view` includes the parent's (`can_view from <link>`
+ *     as a union member), so asking the parent hides nothing;
+ *   - every parent relation the child's `can_view` reaches is one the
+ *     parent's `can_view` includes whole, so asking the parent shows
+ *     nothing more.
+ * The last reads inclusion structurally (union and computed), so it errs
+ * toward a violation: a shape it cannot prove is a design review, never a
+ * pass.
+ */
+function inheritedWholeViolations(
+  child: KindDeclaration,
+  parent: KindDeclaration,
+  link: string,
+): ReadonlyArray<string> {
+  const violations: string[] = [];
+  const linkRewrite = child.relations.get(link);
+  const [linked, ...more] = linkRewrite?.node === "this" ? linkRewrite.subjects : [];
+  if (linked?.form !== "object" || linked.type !== parent.type || more.length > 0) {
+    violations.push(`${child.type}#${link} is not the direct link [${parent.type}] alone`);
+  }
+  for (const [name, rewrite] of child.relations) {
+    if (name === link) {
+      continue;
+    }
+    for (const leaf of leavesOf(rewrite)) {
+      if (leaf.node === "this") {
+        violations.push(`${child.type}#${name} admits a tuple on the child itself`);
+      } else if (leaf.node === "from" && leaf.tupleset !== link) {
+        violations.push(
+          `${child.type}#${name} reads ${leaf.relation} from ${leaf.tupleset}, not from ${link}`,
+        );
+      } else if (leaf.node === "computed" && !child.relations.has(leaf.relation)) {
+        violations.push(
+          `${child.type}#${name} names ${leaf.relation}, which the child does not declare`,
+        );
+      }
+    }
+  }
+  const childView = child.relations.get(LIST_RELATION);
+  if (childView === undefined || !parent.relations.has(LIST_RELATION)) {
+    violations.push(`${child.type} and ${parent.type} must both declare ${LIST_RELATION}`);
+    return violations;
+  }
+  const members = childView.node === "union" ? childView.members : [childView];
+  if (
+    !members.some(
+      (member) =>
+        member.node === "from" && member.relation === LIST_RELATION && member.tupleset === link,
+    )
+  ) {
+    violations.push(
+      `${child.type}#${LIST_RELATION} does not include ${LIST_RELATION} from ${link}`,
+    );
+  }
+  const parentView = includedWhole(parent, LIST_RELATION);
+  for (const relation of parentRelationsReached(child, LIST_RELATION, link)) {
+    if (!parentView.has(relation)) {
+      violations.push(
+        `${child.type}#${LIST_RELATION} reaches ${parent.type}#${relation}, which ${parent.type}#${LIST_RELATION} does not include`,
+      );
+    }
+  }
+  return violations;
+}
+
+/** The kinds whose `kind_meta` makes their authorization their parent's whole, with that parent. */
+function inheritedWholeKinds(): ReadonlyArray<{
+  readonly kind: ApiResourceKind;
+  readonly parentType: string;
+  readonly link: string;
+}> {
+  return ApiResourceKindSchema.values.flatMap((value) => {
+    const kind = value.number as ApiResourceKind;
+    if (kind === ApiResourceKind.api_resource_kind_unknown) {
+      return [];
+    }
+    const parent = inheritedAuthorizationParentOf(kind);
+    return parent === undefined ? [] : [{ kind, parentType: parent.kind, link: parent.relation }];
+  });
 }
 
 function isTeamMembers(subject: SubjectType): boolean {
@@ -201,5 +383,63 @@ describe("the built-in model", () => {
       "workflow_instance#default_of",
       "workflow_instance#execution_viewer",
     ]);
+  });
+
+  it("gives a kind whose authorization is its parent's nothing of its own, so asking the parent answers for it", () => {
+    const inherited = inheritedWholeKinds();
+    expect(inherited.length, "kinds whose authorization is their parent's").toBeGreaterThan(0);
+    for (const { kind, parentType, link } of inherited) {
+      const child = declarationFor(kind);
+      const parent = builtInModel.byType(parentType);
+      if (child === undefined || parent === undefined) {
+        throw new Error(`${kindEnumName(kind)} or its parent ${parentType} is not in the model`);
+      }
+      expect(inheritedWholeViolations(child, parent, link), kindEnumName(kind)).toEqual([]);
+    }
+  });
+});
+
+describe("the parent-inheritance walker refuses what would make asking the parent wrong", () => {
+  const execution = declarationFor(ApiResourceKind.agent_execution);
+  const session = builtInModel.byType("session");
+  if (execution === undefined || session === undefined) {
+    throw new Error("agent_execution and session are in the model");
+  }
+
+  /** agent_execution as the model has it, with one line rewritten. */
+  function executionWith(relation: string, rewrite: Rewrite): KindDeclaration {
+    return throwawayDeclaration({
+      kind: ApiResourceKind.agent_execution,
+      relations: [...execution.relations].map(([name, current]) =>
+        name === relation ? ([name, rewrite] as const) : ([name, current] as const),
+      ),
+    });
+  }
+
+  it.each([
+    {
+      shape: "a viewer granted on the execution itself",
+      child: executionWith(
+        "viewer",
+        union(direct(objectOf("identity_account")), from("viewer", "session"), computed("owner")),
+      ),
+      violation: "agent_execution#viewer admits a tuple on the child itself",
+    },
+    {
+      shape: "a can_view that no longer includes the session's",
+      child: executionWith("can_view", computed("viewer")),
+      violation: "agent_execution#can_view does not include can_view from session",
+    },
+    {
+      shape: "a can_view reaching a session relation its can_view does not include",
+      child: executionWith(
+        "can_view",
+        union(computed("viewer"), from("can_view", "session"), from("can_delete", "session")),
+      ),
+      violation:
+        "agent_execution#can_view reaches session#can_delete, which session#can_view does not include",
+    },
+  ])("$shape", ({ child, violation }) => {
+    expect(inheritedWholeViolations(child, session, "session")).toEqual([violation]);
   });
 });
