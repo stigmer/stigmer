@@ -13,7 +13,9 @@
 // before npm served a lib it had already accepted. So the schedule is
 // pinned here on a fake clock: one shared deadline, backoff to a cap, a
 // last sleep cut to the deadline, and a refusal that names the lag and the
-// rerun rather than blaming the libs job.
+// rerun rather than blaming the libs job. And "served" means what an
+// install sees: the wait reads npm's abbreviated install document, which
+// npm caches apart from the full document `npm view` reads.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,6 +24,8 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 import {
+  INSTALL_METADATA_ACCEPT,
+  installDocumentServes,
   parseArgs,
   registryLagMessage,
   resolveTag,
@@ -248,4 +252,67 @@ test("registryLagMessage names every lagging lib, and a placeholder when no run 
     "@stigmer/a@1.0.0, @stigmer/b@1.0.0 published by the libs job but not served by npm after 20 minutes; " +
       "the registry is lagging. Rerun the failed job once npm serves them: gh run rerun <run-id> --failed",
   );
+});
+
+/** A fetch that answers one document and records what it was asked. */
+function fakeFetch(answer) {
+  const asked = [];
+  return {
+    asked,
+    fetchImpl: async (url, init) => {
+      asked.push({ url, accept: init?.headers?.accept });
+      if (answer instanceof Error) throw answer;
+      return {
+        ok: answer.status === 200,
+        status: answer.status,
+        json: async () => answer.body,
+      };
+    },
+  };
+}
+
+test("installDocumentServes asks for the install document the way npm's installer does, scoped name encoded", async () => {
+  const registry = fakeFetch({ status: 200, body: { versions: { "3.28.0": {} } } });
+  assert.equal(
+    await installDocumentServes("@stigmer/plugin-package", "3.28.0", {
+      registry: "https://registry.npmjs.org/",
+      fetchImpl: registry.fetchImpl,
+    }),
+    true,
+  );
+  assert.deepEqual(registry.asked, [
+    {
+      url: "https://registry.npmjs.org/@stigmer%2fplugin-package",
+      accept: INSTALL_METADATA_ACCEPT,
+    },
+  ]);
+  assert.match(INSTALL_METADATA_ACCEPT, /^application\/vnd\.npm\.install-v1\+json/);
+});
+
+test("installDocumentServes adds the separator a registry URL without a trailing slash lacks", async () => {
+  const registry = fakeFetch({ status: 200, body: { versions: {} } });
+  await installDocumentServes("@stigmer/protos", "1.0.0", {
+    registry: "https://npm.example.test/api",
+    fetchImpl: registry.fetchImpl,
+  });
+  assert.equal(registry.asked[0].url, "https://npm.example.test/api/@stigmer%2fprotos");
+});
+
+test("installDocumentServes answers false, so the wait asks again, for an unlisted version, a 404 and a fault", async () => {
+  for (const answer of [
+    { status: 200, body: { versions: { "3.27.2": {} } } },
+    { status: 200, body: {} },
+    { status: 404, body: { error: "Not found" } },
+    { status: 503, body: {} },
+    new Error("getaddrinfo ENOTFOUND registry.npmjs.org"),
+  ]) {
+    const registry = fakeFetch(answer);
+    assert.equal(
+      await installDocumentServes("@stigmer/outbound", "3.28.0", {
+        registry: "https://registry.npmjs.org/",
+        fetchImpl: registry.fetchImpl,
+      }),
+      false,
+    );
+  }
 });

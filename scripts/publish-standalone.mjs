@@ -22,10 +22,14 @@
  *   2. Copy the repo-root LICENSE beside the manifest so the tarball
  *      carries it (the libs' publish does the same).
  *   3. `npm pack --dry-run` — the published file list, in the log.
- *   4. Wait until every pinned lib is queryable on npm at that version.
- *      The `publish` job already put them there (it is this job's hard
- *      `needs:`), so the wait only absorbs the registry's propagation lag,
- *      and the install below cannot race it. The libs publish together, so
+ *   4. Wait until npm serves every pinned lib at that version to an
+ *      install. The `publish` job already put them there (it is this job's
+ *      hard `needs:`), so the wait only absorbs the registry's propagation
+ *      lag, and the install below cannot race it. "Served" is read from the
+ *      document `npm install` itself resolves against, the abbreviated
+ *      install metadata (`installDocumentServes`), because npm caches it
+ *      apart from the full document `npm view` reads, so the two can
+ *      disagree while a version propagates. The libs publish together, so
  *      they share one deadline and every lib still missing is polled each
  *      round (`waitForRegistry`).
  *   5. `npm run verify:consumer` — the package's consumer-install smoke
@@ -134,15 +138,41 @@ function run(cmd, args, cwd) {
   execFileSync(cmd, args, { cwd, stdio: "inherit" });
 }
 
-function isOnRegistry(name, version) {
+/** The Accept header npm's installer sends for a package's metadata. */
+export const INSTALL_METADATA_ACCEPT =
+  "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
+
+/**
+ * Whether the registry's install metadata for `name` lists `version`: the
+ * document an install resolves the pin against. A scoped name keeps its `@`
+ * and encodes its `/`, as npm's own client does. A version the document
+ * does not list, a 404 and a fault all answer false: the wait asks again
+ * until its deadline, and its refusal names what is still missing.
+ */
+export async function installDocumentServes(
+  name,
+  version,
+  { registry, fetchImpl = fetch },
+) {
+  const base = registry.endsWith("/") ? registry : `${registry}/`;
+  const url = `${base}${name.replace("/", "%2f")}`;
   try {
-    execFileSync("npm", ["view", `${name}@${version}`, "version"], {
-      stdio: "ignore",
+    const response = await fetchImpl(url, {
+      headers: { accept: INSTALL_METADATA_ACCEPT },
     });
-    return true;
+    if (!response.ok) return false;
+    const document = await response.json();
+    return Object.hasOwn(document?.versions ?? {}, version);
   } catch {
     return false;
   }
+}
+
+/** The registry the job's npm is configured for (setup-node writes it). */
+function configuredRegistry() {
+  return execFileSync("npm", ["config", "get", "registry"], {
+    encoding: "utf8",
+  }).trim();
 }
 
 /**
@@ -161,7 +191,7 @@ export function registryLagMessage(names, version, budgetMs, runId) {
 }
 
 /**
- * Polls until every name is visible at `version` or the budget is spent.
+ * Polls until npm serves every name at `version` or the budget is spent.
  * All names share one deadline and each round asks only about the ones
  * still missing. The interval doubles from `firstIntervalMs` to
  * `maxIntervalMs`, and the last sleep is cut to the deadline. The clock,
@@ -172,7 +202,7 @@ export async function waitForRegistry(
   names,
   version,
   {
-    isVisible = isOnRegistry,
+    isVisible,
     sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
     now = () => Date.now(),
     log = (line) => console.log(line),
@@ -186,9 +216,12 @@ export async function waitForRegistry(
   let pending = [...names];
   let interval = firstIntervalMs;
   for (;;) {
-    pending = pending.filter((name) => {
-      if (!isVisible(name, version)) return true;
-      log(`  found ${name}@${version}`);
+    const served = await Promise.all(
+      pending.map((name) => isVisible(name, version)),
+    );
+    pending = pending.filter((name, i) => {
+      if (!served[i]) return true;
+      log(`  served: ${name}@${version}`);
       return false;
     });
     if (pending.length === 0) return;
@@ -250,7 +283,10 @@ async function main() {
     if (!dryRun) {
       if (pinned.length > 0) {
         console.log("\n=== Waiting for the pinned libs on npm ===");
-        await waitForRegistry(pinned, version);
+        const registry = configuredRegistry();
+        await waitForRegistry(pinned, version, {
+          isVisible: (name, v) => installDocumentServes(name, v, { registry }),
+        });
       }
       console.log(
         "\n=== Consumer-install smoke (over the stamped manifest) ===",
