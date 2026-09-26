@@ -9,6 +9,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./authorization-model.json": "./src/authorization/model/data/authorization-model.json",
     "./package.json": "./package.json"
   },
   "files": [

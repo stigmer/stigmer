@@ -59,6 +59,8 @@ Pin all three to the same exact version. The library's own dependencies on `@sti
 
 The contract is the barrel, [`src/index.ts`](src/index.ts): the compose entry (`composeServer`, `loadConfig`, `createLogger`), the extension-point types (`ServerExtension` and the seven registry points), the pipeline primitives extension services and gate steps are built from, the driver interfaces (`Store`, `ArtifactStorage`, `ModelCatalogProvider`, `RunnerCredentialProvider`, `SandboxProvisioner`, `ChannelRuntime`, `OutboundEgressPolicy` with its two exported postures), the worker-factory types, and the Postgres driver constructor. Everything below the barrel is internal and may change between releases without notice; everything on it changes only through a review gate. Deep imports (`@stigmer/server/dist/...`) are unsupported. If your composition needs something that is not exported, that is a seam request — open an issue describing the behaviour you need.
 
+One data file is published beside the barrel, through its own exports entry: `@stigmer/server/authorization-model.json`, the compiled authorization model (OpenFGA's JSON, generated from [`fga/model`](fga/model), whose README states the file's contract). Every edition reads those bytes: this server evaluates them, and an edition that runs OpenFGA applies them as they are. The file changes only with a model change, and the release that carries one names it in its notes.
+
 A composition is a small program:
 
 ```ts
