@@ -12,7 +12,7 @@
  *   - owner SELF:     <row>#owner@identity_account:<row id>
  *   - creator:        <row>#creator@identity_account:<creator stamp>   (kinds flagged requires_creator_tuple)
  *   - org-viewer:     <row>#viewer@organization:<org>#viewer          (visibility_org; cloud#257's shape)
- *   - platform-viewer: none — it fans out over identity providers, a kind this edition does not serve
+ *   - platform-viewer: none — it fans out over identity providers, which this edition does not serve: the model defines the type, and no tuple of it is derived here
  *
  * Two facts are this edition's own and are stated here, nowhere else:
  *   - The ORGANIZATION's owner is a ROW, not a derivation. 2b's role
@@ -372,7 +372,11 @@ export function newDerivedTupleSource(
   };
 }
 
-/** The decoded row for an object, or undefined when the kind is not declared or the row does not exist. */
+/**
+ * The decoded row for an object, or undefined when the kind is not
+ * declared, is rowless (`platform`, which resolves over tuples alone), or
+ * the row does not exist.
+ */
 async function loadRow(
   deps: Pick<DerivedTupleSourceDeps, "store" | "accounts">,
   model: Model,
@@ -382,6 +386,7 @@ async function loadRow(
   const kind = kindByEnumName(object.type);
   if (
     declaration === undefined ||
+    declaration.schema === undefined ||
     kind === ApiResourceKind.api_resource_kind_unknown ||
     object.id === ""
   ) {

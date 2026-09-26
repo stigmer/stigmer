@@ -30,11 +30,11 @@
  * it is being resolved is a cycle in the declarations, which is a bug,
  * and a resolution deeper than MAX_RESOLUTION_DEPTH is the same class of
  * bug; both throw, because the alternative — a quiet `false` — would turn
- * a broken transcript into a lockout nobody can see. A kind the model does
- * not declare is a fault as the check's TARGET (the driver refuses
- * unserved kinds before evaluation, so reaching here is a registry gap)
- * and simply an object with no relations when reached through a tuple
- * (`identity_provider#platform_user`, which no open-source tuple names).
+ * a broken model into a lockout nobody can see. A kind the model does
+ * not declare is a fault as the check's TARGET (the built-in model
+ * declares every kind, so reaching here is a registry gap) and simply an
+ * object with no relations when reached through a tuple (only a test's
+ * throwaway model omits a type).
  * A relation the kind does not declare is `false` — the ruled answer for
  * a wire question the model has no line for, where OpenFGA
  * itself answers a validation error.

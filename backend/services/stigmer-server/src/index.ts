@@ -10,6 +10,12 @@
  * to this file are owner-visible surface changes, extended only through
  * gates (the DD-005 review property: a surface change is a one-file diff).
  *
+ * One data file is published beside it, through its own exports entry:
+ * `@stigmer/server/authorization-model.json`, the compiled authorization
+ * model (OpenFGA's JSON, generated from fga/model, whose README states the
+ * file's contract). Every edition reads those bytes: this server
+ * evaluates them, and an edition that runs OpenFGA applies them.
+ *
  * The surface is exactly what the ratified architecture names (blueprint
  * 20260826.02/03 §1) and the parameter types those entries force:
  *   - the compose entry and config loading (composeServer + its options'
@@ -224,51 +230,12 @@ export {
   canSign,
   platformTokenKeyRingFromPem,
 } from "./platformtoken/key-ring.js";
-// The built-in authorizer's model seams: the kind
-// declarations (transcripts of the cloud's `.fga` files), the evaluator,
-// and the OpenFGA store-test kit — exported so the cloud's drift test
-// compares the live model against the transcripts and runs its live
-// store tests through the evaluator, both from the published package.
-// The drivers themselves are composed by the root and are not exported.
-export type {
-  DerivedRelation,
-  KindDeclaration,
-  Rewrite,
-  SubjectType,
-} from "./authorization/model/rewrite.js";
-export type { Model } from "./authorization/model/index.js";
-export {
-  builtInModel,
-  declarationFor,
-  newModel,
-} from "./authorization/model/index.js";
-export type {
-  ObjectRef,
-  Person,
-  Subject,
-  Tuple,
-  TupleSource,
-} from "./authorization/tuples.js";
-export type { EvaluationFault } from "./authorization/evaluator.js";
-export {
-  AuthorizationEvaluationError,
-  MAX_RESOLUTION_DEPTH,
-  checkRelation,
-} from "./authorization/evaluator.js";
-export type {
-  StoreTestCase,
-  StoreTestDocument,
-  StoreTestKit,
-  StoreTestSkip,
-  StoreTestSkipReason,
-} from "./authorization/store-test-kit.js";
-export {
-  parseStoreTestDocument,
-  storeTestCases,
-} from "./authorization/store-test-kit.js";
 // The kinds whose missing row the built-in authorizer denies instead of
-// answering not-found — the cloud's probe exemption over the open-source
-// tier; exported so the cloud's drift test pins the two sets equal.
+// answering not-found: exported so a composition that authorizes with its
+// own engine and probes existence itself pins its exemptions to this set.
+// The model the authorizer evaluates is not exported as code: it is the
+// data subpath `@stigmer/server/authorization-model.json` (this file's
+// header).
 export { NOT_FOUND_EXEMPT_KINDS } from "./authorization/authorizer.js";
 export type {
   ListReadScope,

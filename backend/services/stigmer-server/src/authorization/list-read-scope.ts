@@ -51,16 +51,17 @@
  *
  * Faults THROW and are never an empty answer (the seam: an empty set means
  * "authorized to see nothing"; an outage is the pipeline's sanitized
- * INTERNAL). A kind the model does not declare, like the internal class
- * above, is a consumer bug by the seam's contract and faults through the
- * evaluator, loud; the model declares exactly the open-source tier, so no
- * served lane can reach it.
+ * INTERNAL). A kind the model does not declare, or a rowless one
+ * (`platform`, which has no stored rows to list), is, like the internal
+ * class above, a consumer bug by the seam's contract and faults through
+ * the evaluator, loud; every served list lane lists a kind with rows.
  *
  * Logging. One debug line per call — kind, offered, kept, elapsed — what
  * an operator needs to answer "why is Alice's list short" beside the
  * Authorizer's per-denial lines; never the token.
  */
 import { fromBinary } from "@bufbuild/protobuf";
+import type { DescMessage } from "@bufbuild/protobuf";
 
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -86,6 +87,9 @@ import type { ObjectRef, Person } from "./tuples.js";
 
 /** The relation every list lane reads through (the cloud's LIST_RELATION). */
 const LIST_RELATION = "can_view";
+
+/** A declaration of a kind with stored rows: the only kind a list lane can list. */
+type ListableDeclaration = KindDeclaration & { readonly schema: DescMessage };
 
 export interface BuiltInListReadScopeDeps {
   readonly store: Store;
@@ -153,8 +157,12 @@ export function newBuiltInListReadScope(
     return kept;
   }
 
-  /** The declaration a verb evaluates against; an undeclared kind is the evaluator's own fault, raised before any read. */
-  function requireDeclared(kind: ApiResourceKind): KindDeclaration {
+  /**
+   * The declaration a verb evaluates against, which must be a kind with
+   * stored rows. An undeclared kind, or a rowless one, is the evaluator's
+   * own fault, raised before any read.
+   */
+  function requireListable(kind: ApiResourceKind): ListableDeclaration {
     const declaration = model.byKind(kind);
     if (declaration === undefined) {
       throw new AuthorizationEvaluationError(
@@ -162,11 +170,18 @@ export function newBuiltInListReadScope(
         `no declaration for kind '${kindEnumName(kind)}' — a list lane asked the scope about a kind the model does not declare`,
       );
     }
-    return declaration;
+    const schema = declaration.schema;
+    if (schema === undefined) {
+      throw new AuthorizationEvaluationError(
+        "undeclared-target-kind",
+        `kind '${kindEnumName(kind)}' has no stored rows — a list lane asked the scope about a rowless kind`,
+      );
+    }
+    return { ...declaration, schema };
   }
 
   /** Every row of `kind` the store holds, as facts; a row that does not decode is skipped. */
-  async function everyRowOf(declaration: KindDeclaration): Promise<RowFacts[]> {
+  async function everyRowOf(declaration: ListableDeclaration): Promise<RowFacts[]> {
     const kind = declaration.kind;
     const rows = await deps.store.listResources(kind);
     const facts: RowFacts[] = [];
@@ -189,7 +204,7 @@ export function newBuiltInListReadScope(
       kind: ApiResourceKind,
       entries: ReadonlyArray<ListEntryMeta>,
     ): Promise<ReadonlySet<string>> {
-      requireDeclared(kind);
+      requireListable(kind);
       if (caller.callerClass === "internal") {
         throw new AuthorizationEvaluationError(
           "internal-caller-offered",
@@ -211,7 +226,7 @@ export function newBuiltInListReadScope(
       caller: CallerIdentity,
       kind: ApiResourceKind,
     ): Promise<ReadonlySet<string>> {
-      const candidates = await everyRowOf(requireDeclared(kind));
+      const candidates = await everyRowOf(requireListable(kind));
       if (caller.callerClass === "internal") {
         return new Set(candidates.map((facts) => facts.id));
       }

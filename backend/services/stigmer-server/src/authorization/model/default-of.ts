@@ -14,8 +14,8 @@
  * resolves the blueprint's `viewer` on — one read serves both. Which spec
  * field names the blueprint is `kind_meta`'s to say (the instance kind's
  * `additional_parents` entry for the blueprint kind), never restated
- * here; an instance kind without that entry is a transcript bug and
- * throws at first use rather than deriving nothing.
+ * here; an instance kind without that entry is a binding bug
+ * (bindings.ts) and throws at first use rather than deriving nothing.
  *
  * A user-created instance points at a blueprint whose pointer names a
  * different row (or none), so the rule derives nothing for it and its
