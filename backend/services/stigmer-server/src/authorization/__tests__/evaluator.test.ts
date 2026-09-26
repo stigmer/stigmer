@@ -1,19 +1,20 @@
 /**
  * Pins the evaluator's semantics the store tests cannot express (the
- * cloud's `.fga.yaml` documents prove the model's answers; this file
- * proves the machinery under them): how a person matches a tuple, that a
- * direct tuple outside the line's type restriction is ignored (model drift
- * fails closed), how far a resolution may walk, that an intersection
- * holds only while every member does (the team bound) and stops at its
- * first false member, that `declareKind` refuses a line a `.fga` file
- * could not hold, and that a declaration cycle or an undeclared target is
- * a thrown fault and never a silent deny.
+ * model's `.fga.yaml` suites prove its answers; this file proves the
+ * machinery under them): how a person matches a tuple, that a direct
+ * tuple outside the line's type restriction is ignored (model drift fails
+ * closed), how far a resolution may walk, that an intersection holds only
+ * while every member does (the team bound) and stops at its first false
+ * member, and that a declaration cycle or an undeclared target is a
+ * thrown fault and never a silent deny. What the model file may hold is
+ * the reader's to refuse (model/__tests__/openfga-json.test.ts).
  *
  * The fixture source is the in-memory one the store-test kit uses, so the
  * two proofs share one tuple vocabulary. Where a case needs a shape the
- * real model does not have (a cycle, a chain past the depth bound), it
- * declares a throwaway model with `declareKind`; everything else runs
- * over the built-in model so the fixtures are real relations.
+ * real model does not have (a cycle, a chain past the depth bound, a type
+ * the model omits), it declares a throwaway model (throwaway-model.ts);
+ * everything else runs over the built-in model so the fixtures are real
+ * relations.
  */
 import { describe, expect, it } from "vitest";
 
@@ -26,23 +27,21 @@ import {
   checkRelation,
 } from "../evaluator.js";
 import { builtInModel, newModel } from "../model/index.js";
-import {
-  computed,
-  declareKind,
-  direct,
-  from,
-  intersection,
-  objectOf,
-  union,
-  usersetOf,
-} from "../model/rewrite.js";
-import type { Rewrite } from "../model/rewrite.js";
 import type { Person, Tuple, TupleSource } from "../tuples.js";
 import {
   newInMemoryTupleSource,
   parseObjectRef,
   parseSubject,
 } from "../tuples.js";
+import {
+  computed,
+  direct,
+  from,
+  objectOf,
+  throwawayDeclaration,
+  union,
+  usersetOf,
+} from "./throwaway-model.js";
 
 /** `object#relation@subject` in the FGA tuple notation, the fixtures' own spelling. */
 function tuple(text: string): Tuple {
@@ -157,19 +156,43 @@ describe("relations and kinds the model does not declare", () => {
     ).toBe(false);
   });
 
-  it("an undeclared kind as the TARGET is a thrown fault — the driver refused unserved kinds before, so reaching here is a registry gap", async () => {
+  it("an undeclared kind as the TARGET is a thrown fault — the model declares every kind, so reaching here is a registry gap", async () => {
     await expect(
-      allowed(source, "identity_provider:idp", "can_view", person("ida_carol")),
+      allowed(source, "api_resource_version:v1", "can_view", person("ida_carol")),
     ).rejects.toMatchObject({ reason: "undeclared-target-kind" });
   });
 
-  it("an undeclared kind reached through a hop yields nothing — `agent.platform_viewer` walks `identity_provider#platform_user`", async () => {
+  it("a declared kind reached through a hop with no tuple on it yields nothing — `agent.platform_viewer` walks `identity_provider#platform_user`", async () => {
     const platform = newInMemoryTupleSource([
       tuple("agent:p#organization@organization:acme"),
       tuple("agent:p#platform_viewer@identity_provider:idp#platform_user"),
     ]);
     expect(
       await allowed(platform, "agent:p", "can_view", person("ida_zed")),
+    ).toBe(false);
+  });
+
+  it("a type the model omits, reached through a hop, is an object with no relations — nothing, never a fault", async () => {
+    const model = newModel([
+      throwawayDeclaration({
+        kind: ApiResourceKind.agent,
+        schema: AgentSchema,
+        relations: [
+          ["viewer", direct(usersetOf("api_resource_version", "member"))],
+          ["can_view", computed("viewer")],
+        ],
+      }),
+    ]);
+    const hop = newInMemoryTupleSource([
+      tuple("agent:p#viewer@api_resource_version:v1#member"),
+    ]);
+    expect(
+      await checkRelation(
+        { model, source: hop },
+        parseObjectRef("agent:p"),
+        "can_view",
+        person("ida_zed"),
+      ),
     ).toBe(false);
   });
 });
@@ -203,10 +226,9 @@ describe("the walk itself", () => {
 
   it("bounds the resolution at OpenFGA's own limit and reports the overrun as a fault", async () => {
     // A chain of `next from link` deeper than the bound, on a throwaway model.
-    const deep = declareKind({
+    const deep = throwawayDeclaration({
       kind: ApiResourceKind.agent,
       schema: AgentSchema,
-      source: "test/deep.fga",
       relations: [
         ["link", direct(objectOf("agent"))],
         [
@@ -230,23 +252,8 @@ describe("the walk itself", () => {
   });
 
   it("an intersection holds only while every member does — a team member reaches a team grant only while still an organization viewer", async () => {
-    // The Enterprise team type, declared here because open source serves
-    // no team: membership bounded by the organization's viewers.
-    const team = declareKind({
-      kind: ApiResourceKind.team,
-      schema: AgentSchema,
-      source: "test/team.fga",
-      relations: [
-        ["organization", direct(objectOf("organization"))],
-        [
-          "member",
-          intersection(
-            direct(objectOf("identity_account")),
-            from("viewer", "organization"),
-          ),
-        ],
-      ],
-    });
+    // The model's Enterprise team type: `member` is a person granted the
+    // role AND still one of the organization's viewers.
     const source = newInMemoryTupleSource([
       tuple("organization:acme#viewer@identity_account:ida_vic"),
       tuple("team:sre#organization@organization:acme"),
@@ -255,10 +262,9 @@ describe("the walk itself", () => {
       tuple("agent:a#organization@organization:acme"),
       tuple("agent:a#viewer@team:sre#member"),
     ]);
-    const model = newModel([...builtInModel.declarations, team]);
     const check = (who: Person): Promise<boolean> =>
       checkRelation(
-        { model, source },
+        { model: builtInModel, source },
         parseObjectRef("agent:a"),
         "can_view",
         who,
@@ -270,21 +276,6 @@ describe("the walk itself", () => {
   });
 
   it("an intersection stops at its first false member — the direct arm is read before the hop that bounds it", async () => {
-    const team = declareKind({
-      kind: ApiResourceKind.team,
-      schema: AgentSchema,
-      source: "test/team.fga",
-      relations: [
-        ["organization", direct(objectOf("organization"))],
-        [
-          "member",
-          intersection(
-            direct(objectOf("identity_account")),
-            from("viewer", "organization"),
-          ),
-        ],
-      ],
-    });
     const asked: string[] = [];
     const inner = newInMemoryTupleSource([
       tuple("team:sre#organization@organization:acme"),
@@ -297,7 +288,7 @@ describe("the walk itself", () => {
     };
     expect(
       await checkRelation(
-        { model: newModel([team]), source: counting },
+        { model: builtInModel, source: counting },
         parseObjectRef("team:sre"),
         "member",
         person("ida_nobody"),
@@ -307,10 +298,9 @@ describe("the walk itself", () => {
   });
 
   it("a declaration that re-enters itself on one object is a cycle fault, never a silent false", async () => {
-    const cyclic = declareKind({
+    const cyclic = throwawayDeclaration({
       kind: ApiResourceKind.agent,
       schema: AgentSchema,
-      source: "test/cyclic.fga",
       relations: [
         ["a", computed("b")],
         ["b", computed("a")],
@@ -324,102 +314,5 @@ describe("the walk itself", () => {
         person("ida_nobody"),
       ),
     ).rejects.toBeInstanceOf(AuthorizationEvaluationError);
-  });
-});
-
-describe("declareKind validates a transcript at load", () => {
-  it("refuses a computed or tupleset reference to a relation the kind does not declare", () => {
-    expect(() =>
-      declareKind({
-        kind: ApiResourceKind.agent,
-        schema: AgentSchema,
-        source: "test/bad.fga",
-        relations: [["can_view", computed("viewer")]],
-      }),
-    ).toThrow("relation 'viewer'");
-    expect(() =>
-      declareKind({
-        kind: ApiResourceKind.agent,
-        schema: AgentSchema,
-        source: "test/bad.fga",
-        relations: [["owner", from("admin", "organization")]],
-      }),
-    ).toThrow("tupleset 'organization'");
-  });
-
-  it("refuses a relation declared twice", () => {
-    expect(() =>
-      declareKind({
-        kind: ApiResourceKind.agent,
-        schema: AgentSchema,
-        source: "test/bad.fga",
-        relations: [
-          ["viewer", direct(objectOf("identity_account"))],
-          ["viewer", direct(usersetOf("organization", "viewer"))],
-        ],
-      }),
-    ).toThrow("declared twice");
-  });
-
-  it("refuses a line no .fga file could hold without parentheses, and an operator over one member", () => {
-    const declare = (rewrite: Rewrite) =>
-      declareKind({
-        kind: ApiResourceKind.agent,
-        schema: AgentSchema,
-        source: "test/bad.fga",
-        relations: [
-          ["organization", direct(objectOf("organization"))],
-          ["viewer", rewrite],
-        ],
-      });
-    expect(() =>
-      declare(
-        intersection(
-          union(direct(objectOf("identity_account")), computed("organization")),
-          from("viewer", "organization"),
-        ),
-      ),
-    ).toThrow("nests or inside and");
-    expect(() =>
-      declare(
-        union(
-          intersection(
-            direct(objectOf("identity_account")),
-            from("viewer", "organization"),
-          ),
-          computed("organization"),
-        ),
-      ),
-    ).toThrow("nests and inside or");
-    expect(() =>
-      declare(intersection(direct(objectOf("identity_account")))),
-    ).toThrow("fewer than two members");
-    expect(() =>
-      declare(
-        intersection(
-          direct(objectOf("identity_account")),
-          from("viewer", "organization"),
-        ),
-      ),
-    ).not.toThrow();
-  });
-
-  it("carries the FGA type name of its kind and its relations in file order", () => {
-    const declaration = declareKind({
-      kind: ApiResourceKind.mcp_server,
-      schema: AgentSchema,
-      source: "test/order.fga",
-      relations: [
-        ["organization", direct(objectOf("organization"))],
-        ["owner", direct(usersetOf("organization", "admin"))],
-        ["can_edit", computed("owner")],
-      ],
-    });
-    expect(declaration.type).toBe("mcp_server");
-    expect([...declaration.relations.keys()]).toEqual([
-      "organization",
-      "owner",
-      "can_edit",
-    ]);
   });
 });

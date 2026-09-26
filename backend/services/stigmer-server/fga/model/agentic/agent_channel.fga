@@ -1,0 +1,85 @@
+module agentic
+
+# ========================================
+# AGENT CHANNEL TYPE (Organization-scoped, Owner-managed Connection Config)
+# ========================================
+# A channel is a connection binding an agent to an external messaging
+# platform workspace (a first-class kind since 2026-07-13): provider selection,
+# the serving switch, and — via the install flow — workspace identity and
+# credentials. Like a share, it is a distribution channel for the agent's
+# runtime, independent of the agent blueprint it references.
+#
+# Authorization model (OWNER-SCOPED — deliberately narrow, the agent_share
+# template): the creator owns the channel; view/edit/delete/install require
+# ownership or an explicit grant. Plain org members get NO implicit access:
+# a channel carries billing-affecting levers (enabled, the install itself —
+# workspace messages consume the owning org's credits) whose consent bar is
+# can_edit on the referenced agent at creation time, and ownership after.
+# Org admins inherit owner (since 2026-07-13) — an admin who can edit the
+# agent can also manage its distribution channels.
+#
+# CRITICAL: a channel writes NO visitor-facing visibility tuples. The
+# channel's public surface is the provider webhook, which authenticates by
+# signature; workspace-user admission is app-level (channel caller identity
+# + per-turn connection gates), never FGA. A wildcard viewer tuple here
+# would expose the referenced agent's blueprint to unrelated accounts.
+#
+# FGA tuples on creation (config-driven from the agent_channel kind config:
+# ORGANIZATION scope + DIRECT owner):
+# - agent_channel:<id>#organization@organization:<org>
+# - agent_channel:<id>#owner@identity_account:<creator>
+
+type agent_channel
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    # The creator, plus org admins by inheritance (since 2026-07-13, closing
+    # the org-Owner-is-not-agent-owner gap platform-wide).
+    define owner: [identity_account] or admin from organization
+
+    # ========================================
+    # CONVERSATION PARTICIPANTS (Explicit Grants)
+    # ========================================
+    # Org humans who may read this channel's conversations and speak to
+    # its customers as the business (reply, take over, hand back, clear
+    # attention). NOT channel configurators — config stays owner-only.
+    # The "dedicated relation" seam named when channel sessions became
+    # observable (2026-07-17), materialized on 2026-08-06. Includes owner so
+    # connectors and org admins participate by construction — no
+    # double-granting. An Enterprise team's members participate through
+    # team#member, bounded by the organization in team.fga.
+    define participant: [identity_account, team#member] or owner
+
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants)
+    # ========================================
+    # viewer includes participants: conversation READ rides the existing
+    # session.can_view composition (`viewer from channel`) unchanged, and
+    # participants can see the channel card they participate on. Behavior
+    # for existing grants is preserved: owner ⊆ participant ⊆ viewer. A
+    # read-only grant may name a team's members too (team#member).
+    define viewer: [identity_account, team#member] or participant
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    # Reply / takeOver / handBack / clearAttention on the channel's
+    # conversations (the participation permission map, 2026-08-06). Deliberately
+    # distinct from can_edit: "may talk to this channel's customers" and
+    # "may configure this channel" are different powers.
+    define can_participate: participant
+
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

@@ -14,8 +14,8 @@
  * source, an absent object answering nothing, a store fault propagating
  * as the fault it is — the ratified store-fault mapping, which is what
  * lets the driver above fold it to `unavailable` and never to a denial.
- * Its grants-to-teams arm evaluates the Enterprise team type
- * (enterprise-model.ts): a grant to a team reaches its members and nobody
+ * Its grants-to-teams arm evaluates the built-in model's Enterprise team
+ * type: a grant to a team reaches its members and nobody
  * who left the organization, and a person in no team — every open-source
  * caller — still costs the source exactly one read.
  */
@@ -44,21 +44,12 @@ import { deriveTuples, newDerivedTupleSource } from "../derived-tuples.js";
 import { checkRelation } from "../evaluator.js";
 import { rowFactsOf } from "../facts.js";
 import { builtInModel } from "../model/index.js";
-import type { KindDeclaration } from "../model/rewrite.js";
 import type { Person } from "../tuples.js";
 import { formatTuple, parseObjectRef } from "../tuples.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
-import { enterpriseModel, teamDeclaration } from "./enterprise-model.js";
-import { fixtureRow } from "./support.js";
-
-function declared(type: string): KindDeclaration {
-  const declaration = builtInModel.byType(type);
-  if (declaration === undefined) {
-    throw new Error(`${type} is declared in this slice`);
-  }
-  return declaration;
-}
+import { fixtureRow, storedDeclaration } from "./support.js";
+import type { StoredKindDeclaration } from "./support.js";
 
 function derivedFor(
   type: string,
@@ -69,7 +60,7 @@ function derivedFor(
     spec?: Readonly<Record<string, unknown>>;
   },
 ): string[] {
-  const declaration = declared(type);
+  const declaration = storedDeclaration(type);
   const row = fixtureRow(declaration, {
     id: `${type}-1`,
     org: facts.org ?? "acme",
@@ -301,7 +292,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         opened = await fixture.open();
         counted = countingPolicies(newResourceIamPolicyStore(opened.store));
         accounts = newResourceIdentityAccountStore(opened.store);
-        const organization = declared("organization");
+        const organization = storedDeclaration("organization");
         await opened.store.saveResource(
           ApiResourceKind.organization,
           "acme",
@@ -313,7 +304,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             createdBy: ROOT.accountId,
           }),
         );
-        const agent = declared("agent");
+        const agent = storedDeclaration("agent");
         await opened.store.saveResource(
           ApiResourceKind.agent,
           "agt_team",
@@ -439,14 +430,25 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ).toEqual([]);
       });
 
-      it("an absent object, or an object of a kind this edition does not declare, answers no tuples", async () => {
+      it("an absent object, a declared kind this edition stores no row of, a rowless kind, or a kind the model does not declare answers no tuples", async () => {
         const source = sourceFor(ROOT);
         expect(
           await source.tuplesOf(parseObjectRef("agent:agt_missing"), "owner"),
         ).toEqual([]);
+        // Declared, served by the wider editions: the store has no such row.
         expect(
           await source.tuplesOf(
             parseObjectRef("identity_provider:idp"),
+            "owner",
+          ),
+        ).toEqual([]);
+        // Rowless: no row is loaded for it at all.
+        expect(
+          await source.tuplesOf(parseObjectRef("platform:stigmer"), "operator"),
+        ).toEqual([]);
+        expect(
+          await source.tuplesOf(
+            parseObjectRef("api_resource_version:v1"),
             "owner",
           ),
         ).toEqual([]);
@@ -468,7 +470,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       it("a source seeded with a candidate's facts derives that object's tuples WITHOUT loading its row; the parent hop still loads", async () => {
         let rowReads = 0;
-        const agent = declared("agent");
+        const agent = storedDeclaration("agent");
         const seeded = newDerivedTupleSource(
           {
             store: {
@@ -523,7 +525,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         // carry, so the rule loads the row — one read, stated in the list
         // scope's cost pin as well.
         let rowReads = 0;
-        const instance = declared("agent_instance");
+        const instance = storedDeclaration("agent_instance");
         const row = fixtureRow(instance, {
           id: "ai_seeded",
           org: "acme",
@@ -575,7 +577,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
     /**
      * The grants made to a person's teams, through the real source and the
-     * evaluator over the Enterprise team type (enterprise-model.ts). Seeded:
+     * evaluator over the built-in model's Enterprise team type. Seeded:
      * `acme` with Dave a member and Root its owner; `tm_core` and
      * `tm_other` in `acme`; Dave and Erin granted `member` on `tm_core`,
      * Erin holding no organization role (she left); `agt_core` shared with
@@ -591,7 +593,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       };
 
       async function seed(
-        declaration: KindDeclaration,
+        declaration: StoredKindDeclaration,
         facts: Parameters<typeof fixtureRow>[1],
       ): Promise<void> {
         await opened.store.saveResource(
@@ -605,14 +607,14 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       beforeEach(async () => {
         opened = await fixture.open();
         counted = countingPolicies(newResourceIamPolicyStore(opened.store));
-        await seed(declared("organization"), {
+        await seed(storedDeclaration("organization"), {
           id: "acme",
           org: "",
           visibility: ApiResourceVisibility.visibility_private,
           createdBy: ROOT.accountId,
         });
         for (const id of ["tm_core", "tm_other"]) {
-          await seed(teamDeclaration, {
+          await seed(storedDeclaration("team"), {
             id,
             org: "acme",
             visibility: ApiResourceVisibility.visibility_private,
@@ -623,7 +625,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           ["agt_core", "tm_core"],
           ["agt_other", "tm_other"],
         ] as const) {
-          await seed(declared("agent"), {
+          await seed(storedDeclaration("agent"), {
             id,
             org: "acme",
             visibility: ApiResourceVisibility.visibility_private,
@@ -664,7 +666,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             store: opened.store,
             policies: counted.policies,
             accounts: newResourceIdentityAccountStore(opened.store),
-            model: enterpriseModel,
+            model: builtInModel,
           },
           person,
         );
@@ -676,7 +678,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         relation: string,
       ): Promise<boolean> {
         return checkRelation(
-          { model: enterpriseModel, source: sourceFor(person) },
+          { model: builtInModel, source: sourceFor(person) },
           parseObjectRef(object),
           relation,
           person,
@@ -762,7 +764,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         id: string,
         facts: Omit<Parameters<typeof fixtureRow>[1], "id">,
       ): Promise<void> {
-        const declaration = declared(type);
+        const declaration = storedDeclaration(type);
         await opened.store.saveResource(
           declaration.kind,
           id,

@@ -11,27 +11,35 @@ reading aggregates it does not own — resources through the generic `Store`,
 accounts through the `IdentityAccountStore` port, roles through the
 `IamPolicyStore` port — and writes nothing.
 
-The idea, once: in the cloud, authorization is the OpenFGA model evaluated over
-stored tuples, and every tuple is derived from a row by
-`kind_meta.authorization` except the one that is a fact, the IamPolicy row. So
-open source evaluates the same model over the same tuples, derived from the row
-when a check asks instead of stored. One meaning of authorization in both
-editions; the cloud stores what open source computes.
+The idea, once: authorization is one OpenFGA model (`../../fga/model`, compiled
+into `model/data/authorization-model.json`), and every tuple it reads is derived
+from a row by `kind_meta.authorization` except the one that is a fact, the
+IamPolicy row. An edition that runs OpenFGA applies that model and stores the
+tuples; this server evaluates the same bytes over the same tuples, derived from
+the row when a check asks instead of stored. One model and one meaning of
+authorization in every edition; the hosted edition stores what open source
+computes.
 
 ## Parts
 
-- `model/rewrite.ts` — the four relation-rewrite forms the 27 `.fga` files use
-  (`this` with its type restrictions, `computed`, `from`, `union`), the
-  builders, and `declareKind`, which refuses a transcript that cannot be right
-  at module load.
-- `model/<kind>.ts` — one transcript per open-source kind (twenty-four), the
-  `.fga` file's relations in the file's order, its path in the header.
-  `model/index.ts` registers them in `fga.mod` order and answers by kind or by
-  FGA type name. Two relations no row carries as a `kind_meta` fact have a
-  `derived` rule beside their transcript: `default_of` on the two instance kinds
-  (`model/default-of.ts`, from the blueprint's `status.default_instance_id`) and
-  `execution_viewer` on the workflow instance (from
-  `spec.execution_visibility`).
+- `model/rewrite.ts` — the evaluator's vocabulary: the five relation-rewrite
+  forms the model uses (`this` with its type restrictions, `computed`, `from`,
+  `union`, `intersection`, nested to any depth) and a kind's declaration.
+- `model/openfga-json.ts` — the reader of the compiled model: OpenFGA's JSON as
+  `unknown`, turned into that vocabulary, every unknown key and every form the
+  evaluator does not run (`but not`, wildcards, conditions) refused by name at
+  module load, and what OpenFGA's validator proved re-asserted, so a hand edit
+  fails the boot, never an answer.
+- `model/bindings.ts` — what JSON cannot carry: each type's row schema
+  (`ROWLESS` for `platform`, which resolves over tuples alone) and the two
+  relations no row carries as a `kind_meta` fact: `default_of` on the two
+  instance kinds (`model/default-of.ts`, from the blueprint's
+  `status.default_instance_id`) and `execution_viewer` on the workflow instance
+  (`model/execution-viewer.ts`, from `spec.execution_visibility`).
+- `model/index.ts` — the built-in model: the reader joined with the bindings,
+  every type in `fga.mod` order, answered by kind or by FGA type name. It
+  declares every type, whichever edition serves it; the tier decides what an
+  edition evaluates (`authorizer.ts`, arm 2).
 - `tuples.ts` — the tuple vocabulary (object, relation, subject; the string
   notation), the `Person` type (the caller as the model sees them: account id
   plus the aliases a creator stamp may carry). The model declares no wildcard
@@ -61,14 +69,9 @@ editions; the cloud stores what open source computes.
   source may be seeded with candidates' facts (the list scope), so a seeded
   object's tuples derive without a read of its row; a `derived` rule still reads
   the row it needs.
-- `store-test-kit.ts` — runs an OpenFGA store test (`.fga.yaml`) against the
-  evaluator, vitest-free, exported from the barrel. Open source runs it over
-  pinned copies of the cloud's own model tests (`__tests__/fixtures/fga/`, a
-  byte-exact mirror of the cloud's `fga/tests/`); the cloud runs it over the
-  live files at the re-pin. What it does not run it reports in three reasons: a
-  target kind the model does not declare, a `list_objects` assertion, and an
-  assertion whose walk read a grant through a type the model does not declare
-  (the cloud's platform tenancy, `identity_provider#platform_user`).
+- `strict-json.ts` — the strict reads both data inputs share (the compiled
+  model and the store tests): an unknown key or a wrong shape is a fault naming
+  where, never a half-read input.
 
 - `authorizer.ts` — the `Authorizer` driver, arm for arm the cloud's
   (`stigmer-cloud src/authorizer/fga-authorizer.ts`): the four pre-check denials
@@ -103,14 +106,18 @@ editions; the cloud stores what open source computes.
 ## Proof
 
 `__tests__/store-tests.test.ts` is the proof that this evaluator answers the
-cloud's model the cloud's way: every `checkRelation` assertion of all twenty
-documents on a declared kind, in the documents' own words, with what is not run
-pinned as a named list. `__tests__/facts.test.ts` pins that the derivation reads
-a row to the same links and shapes the tuple lifecycle writes from, for every
-kind. `model/__tests__/registry.test.ts` pins the declared set to the
-open-source tier and each kind's wire permissions to its file;
-`__tests__/wire-permissions.test.ts` pins that every static `(kind, permission)`
-a served RPC asks about is a declared relation. The rest pin the machinery:
+model the way OpenFGA does: it runs every suite under `../../fga/tests/` through
+the store-test kit (`__tests__/store-test-kit.ts`), every `check` and every
+`list_objects` assertion, nothing skipped, and the same suites run on the real
+engine (`make test-authorization-model`, CI's `ci.authorization-model`).
+`__tests__/facts.test.ts` pins that the derivation reads a row to the same links
+and shapes the tuple lifecycle writes from, for every kind with stored rows.
+`model/__tests__/registry.test.ts` pins the model to `fga.mod`, each binding to
+the message `kind_meta` names, and the team grants to `team_grantable_roles`;
+`model/__tests__/openfga-json.test.ts` pins every refusal of the reader;
+`__tests__/wire-permissions.test.ts` pins that every question an RPC annotation
+in `@stigmer/protos` asks is a relation the model defines, today's known gaps
+pinned by name. The rest pin the machinery:
 alias matching, the memo, the bounds, the source and the two derived rules on
 both store drivers. The four drivers are pinned arm by arm on both store drivers
 (`__tests__/authorizer.test.ts`, `organization-directory.test.ts`,

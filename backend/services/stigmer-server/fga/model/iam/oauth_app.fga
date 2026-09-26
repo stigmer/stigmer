@@ -1,0 +1,54 @@
+module iam
+
+# ========================================
+# OAUTH APP TYPE (Organization-scoped)
+# ========================================
+# Registered OAuth applications with external vendors (Slack, Salesforce, Figma, etc.).
+# Holds client credentials for vendor-specific OAuth flows.
+# Scoped to organization — each OAuth app is owned by an org.
+#
+# Access model: RESTRICTED
+# OAuth apps contain sensitive client credentials (client_secret). Only owners
+# and org admins can see them. Regular org members have no access.
+# Public visibility is intentionally unsupported to prevent credential leakage.
+#
+# Permission pattern:
+# - Org Admin: Can view (administrative visibility)
+# - Creator (Owner): Full CRUD access
+# - Org Members: No access (administrative resource)
+#
+# FGA tuples on creation:
+# - oauth_app:oa_abc#organization@organization:acme
+# - oauth_app:oa_abc#owner@identity_account:alice
+
+type oauth_app
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # OWNERSHIP
+    # ========================================
+    define owner: [identity_account]
+    
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # Restricted: only owner and org admins can view
+    # Regular org members cannot see OAuth apps
+    define viewer: [identity_account] or owner or admin from organization
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

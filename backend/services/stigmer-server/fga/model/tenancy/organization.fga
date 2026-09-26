@@ -1,0 +1,104 @@
+module tenancy
+
+# ========================================
+# ORGANIZATION TYPE (Root-level Resource)
+# ========================================
+# Organizations are top-level containers for resources.
+# No parent - created at platform level.
+# Creator automatically becomes owner.
+#
+# Permission hierarchy: owner > admin > member > viewer
+#
+# Platform operators access organizations via can_impersonate
+# (on-behalf-of), not through transitive FGA relations.
+#
+# FGA tuples on org creation:
+# - organization:acme#owner@identity_account:alice
+
+type organization
+  relations
+    # ========================================
+    # ORGANIZATIONAL ROLES
+    # ========================================
+    # Organization owner (creator)
+    # FGA tuple: organization:<org_id>#owner@identity_account:<user_id>
+    define owner: [identity_account]
+    
+    # Organization admins (can manage org settings and members)
+    # FGA tuple: organization:<org_id>#admin@identity_account:<user_id>
+    define admin: [identity_account] or owner
+    
+    # Organization members (users with access to org resources)
+    # FGA tuple: organization:<org_id>#member@identity_account:<user_id>
+    define member: [identity_account] or admin
+    
+    # Organization viewers (read-only access, no cost exposure)
+    # FGA tuple: organization:<org_id>#viewer@identity_account:<user_id>
+    define viewer: [identity_account] or member
+
+    # Anonymous shared-agent visitors (one identity account per org).
+    # Grants session/execution creation only — not member/viewer inheritance.
+    # FGA tuple: organization:<org_id>#guest@identity_account:<guest_account_id>
+    define guest: [identity_account]
+    
+    # ========================================
+    # CRUD OPERATIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: admin
+    define can_delete: owner
+    
+    # ========================================
+    # MEMBER MANAGEMENT
+    # ========================================
+    define can_manage_members: admin
+    define can_assign_roles: owner
+    
+    # ========================================
+    # RESOURCE CREATION PERMISSIONS
+    # ========================================
+    define can_create_agent: admin
+    define can_create_workflow: admin
+    define can_create_session: member or guest
+    define can_create_environment: member
+    define can_create_skill: admin
+    # A plugin install writes several resources in one act — the skill bar.
+    define can_create_plugin: admin
+    # An MCP server is an organization's blueprint, authored by admins like
+    # agents, workflows and skills; members connect one with their own
+    # credentials (stigmer#1209, the release note of v3.22.0).
+    define can_create_mcp_server: admin
+    define can_create_idp: admin
+    define can_create_identity_account: admin
+    define can_create_oauth_app: admin
+    define can_create_platform_client: admin
+    # Channel apps hold org-wide webhook + OAuth credentials — admin-gated
+    # like can_create_oauth_app.
+    define can_create_channel_app: admin
+    define can_create_execution_in: member or guest
+    # Asked on every agent share create, beside can_edit on the shared
+    # agent: a share spends THIS org's credits on the open internet, an
+    # admin-level act, whichever agent it offers. A share's agent lives in
+    # the share's own organization since the public level retired
+    # (stigmer#1211), so the two questions are always one organization's.
+    define can_create_agent_share: admin
+    # A personal instance's organization is the caller's, not the agent's
+    # (the tenant-family case), so the create asks this beside the agent's
+    # can_create_instance. A viewer-role account may run an org-visible
+    # agent and still lacks this standing; a guest never holds it
+    # (stigmer#1209).
+    define can_create_agent_instance: member
+    # Teams are the organization's, managed by its admins (team.fga).
+    define can_create_team: admin
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: admin
+    define can_view_access: viewer
+    
+    # ========================================
+    # BILLING PERMISSIONS
+    # ========================================
+    define can_view_billing: viewer
+    define can_manage_billing: admin

@@ -1,0 +1,98 @@
+# =============================================================================
+# Authorization model gate: backend/services/stigmer-server/fga
+# =============================================================================
+# The authorization model is the .fga files under
+# backend/services/stigmer-server/fga/model, compiled by OpenFGA's own parser
+# into src/authorization/model/data/authorization-model.json: the bytes the
+# built-in evaluator runs and every edition applies. On every change to the
+# model, its compiled file or its generator, this lane proves:
+#   - the generator's own tests (tools/codegen, src/authorization-model);
+#   - the committed JSON is exactly what the .fga files compile to
+#     (make gen-authorization-model-check);
+#   - every suite under fga/tests passes on the real OpenFGA engine, at the
+#     version production runs. The fga CLI embeds the engine, and its release
+#     tarball is verified against a pinned SHA-256 because the engine version
+#     is the proof's premise. FGA_CLI_VERSION below and in the Makefile name
+#     the same version (a step fails when they disagree), and both move with
+#     production's engine.
+#
+# The same suites run through the built-in evaluator in ci.stigmer-server's
+# make test-server, whose filter covers the whole server package.
+# =============================================================================
+
+name: ci.authorization-model
+
+on:
+  pull_request:
+    paths:
+      - "backend/services/stigmer-server/fga/**"
+      - "backend/services/stigmer-server/src/authorization/model/data/**"
+      - "tools/codegen/src/authorization-model/**"
+      - "tools/codegen/package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.authorization-model.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/services/stigmer-server/fga/**"
+      - "backend/services/stigmer-server/src/authorization/model/data/**"
+      - "tools/codegen/src/authorization-model/**"
+      - "tools/codegen/package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.authorization-model.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: authorization-model-${{ github.head_ref || github.ref }}
+  # PR pushes cancel superseded runs; main and dispatch runs queue.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  FGA_CLI_VERSION: "0.7.20"
+  # sha256 of fga_0.7.20_linux_amd64.tar.gz, from the release's checksums.txt.
+  FGA_CLI_SHA256: f0136868bdced6f8fded1876d41aa8d594d23588183497f6d876c1a5343529a4
+
+jobs:
+  model:
+    name: generator, freshness and the engine suites
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Test the generator
+        run: npm run test -w @stigmer/codegen
+
+      - name: Check the committed JSON is what the .fga files compile to
+        run: make gen-authorization-model-check
+
+      - name: Check the workflow and the Makefile pin one engine version
+        run: |
+          grep -qx "FGA_CLI_VERSION := ${FGA_CLI_VERSION}" Makefile || {
+            echo "error: FGA_CLI_VERSION here (${FGA_CLI_VERSION}) differs from the Makefile's"; exit 1; }
+
+      - name: Install the fga CLI, verified by checksum
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/fga.tar.gz" \
+            "https://github.com/openfga/cli/releases/download/v${FGA_CLI_VERSION}/fga_${FGA_CLI_VERSION}_linux_amd64.tar.gz"
+          echo "${FGA_CLI_SHA256}  $RUNNER_TEMP/fga.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/fga"
+          tar -xzf "$RUNNER_TEMP/fga.tar.gz" -C "$RUNNER_TEMP/fga" fga
+          echo "$RUNNER_TEMP/fga" >> "$GITHUB_PATH"
+
+      - name: Run the suites on the engine
+        working-directory: backend/services/stigmer-server
+        run: |
+          fga version
+          fga model test --tests 'fga/tests/*.fga.yaml'

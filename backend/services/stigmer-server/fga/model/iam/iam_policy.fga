@@ -1,0 +1,44 @@
+module iam
+
+# ========================================
+# IAM POLICY TYPE (Organization-scoped)
+# ========================================
+# IAM policies for fine-grained access control within organizations.
+# Scoped to organization - all policies belong to an organization.
+#
+# Permission pattern:
+# - Org Owner: Full access (org IAM admin)
+# - Org Admin: View only (can see policies but not modify)
+# - Policy Creator: Full access to their policies
+#
+# FGA tuples on creation:
+# - iam_policy:policy1#organization@organization:acme
+# - iam_policy:policy1#owner@identity_account:alice
+
+type iam_policy
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # OWNERSHIP
+    # ========================================
+    define owner: [identity_account] or admin from organization
+    
+    # Viewers (org admins can view)
+    define viewer: admin from organization
+    
+    # ========================================
+    # CRUD OPERATIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

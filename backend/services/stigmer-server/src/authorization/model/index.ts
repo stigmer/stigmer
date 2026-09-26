@@ -1,52 +1,37 @@
 /**
- * The built-in model — every kind declaration open source evaluates,
- * registered once in the order the cloud's `fga.mod` files them, and
- * reached by kind (the driver's `AuthzCheck.resourceKind`) or by FGA type
- * name (an object reference inside a tuple). A kind with no declaration
- * is one this edition does not evaluate: as a check TARGET that is a
- * registry gap the evaluator throws on (the driver refuses unserved kinds
- * before any evaluation, so the throw is a backstop); reached through a
- * tuple it is simply an object with no relations.
+ * The built-in model: every type of the authorization model, reached by
+ * kind (the driver's `AuthzCheck.resourceKind`) or by FGA type name (an
+ * object reference inside a tuple), in `fga.mod` order.
+ *
+ * It is built at module load from the one set of bytes every edition
+ * reads: data/authorization-model.json, OpenFGA's JSON compiled from the
+ * `.fga` files under fga/model (`make gen-authorization-model`), which the
+ * engine suites under fga/tests also run against. The reader
+ * (openfga-json.ts) turns it into the evaluator's vocabulary, and the
+ * binding table (bindings.ts) adds what JSON cannot carry: each kind's row
+ * schema and its derived rules. A model this server cannot evaluate, or a
+ * type and a binding that disagree, fails the load, so it fails the boot
+ * and every test that imports the model, never an answer.
+ *
+ * The model declares every type, whichever edition serves it. Which kinds
+ * an edition evaluates is the tier's question, answered before any
+ * evaluation (authorizer.ts, `kindServedByEdition`): open source refuses a
+ * check that targets `team`, `identity_provider`, `invitation` or
+ * `platform`, and a tuple that names one resolves over tuples alone, since
+ * this edition stores no row of those kinds.
  *
  * `newModel` exists for tests that need a throwaway model (a cycle, a
- * chain past the depth bound) and for the cloud's drift test, which
- * builds a model from the live `.fga` files and compares.
- *
- * Registered: every kind of the open-source tier — the twenty-four
- * `kind_meta.tier: open_source` members — and nothing else. The three
- * files `fga.mod` lists that have no declaration here (`platform`,
- * `identity_provider`, `invitation`) are kinds this edition does not
- * serve: a check that targets one is refused by the
- * driver, and a tuple that names one (`identity_provider#platform_user`)
- * resolves to nobody. The registry test pins the list against the tier.
+ * chain past the depth bound).
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { agentDeclaration } from "./agent.js";
-import { agentChannelDeclaration } from "./agent_channel.js";
-import { agentExecutionDeclaration } from "./agent_execution.js";
-import { agentInstanceDeclaration } from "./agent_instance.js";
-import { agentShareDeclaration } from "./agent_share.js";
-import { apiKeyDeclaration } from "./api_key.js";
-import { artifactDeclaration } from "./artifact.js";
-import { channelAppDeclaration } from "./channel_app.js";
-import { environmentDeclaration } from "./environment.js";
-import { executionContextDeclaration } from "./execution_context.js";
-import { iamPolicyDeclaration } from "./iam_policy.js";
-import { identityAccountDeclaration } from "./identity_account.js";
-import { mcpServerDeclaration } from "./mcp_server.js";
-import { memoryDeclaration } from "./memory.js";
-import { oauthAppDeclaration } from "./oauth_app.js";
-import { organizationDeclaration } from "./organization.js";
-import { platformClientDeclaration } from "./platform_client.js";
-import { pluginDeclaration } from "./plugin.js";
-import type { KindDeclaration } from "./rewrite.js";
-import { scheduleDeclaration } from "./schedule.js";
-import { sessionDeclaration } from "./session.js";
-import { skillDeclaration } from "./skill.js";
-import { workflowDeclaration } from "./workflow.js";
-import { workflowExecutionDeclaration } from "./workflow_execution.js";
-import { workflowInstanceDeclaration } from "./workflow_instance.js";
+import { kindByEnumName } from "../../pipeline/apiresource-meta.js";
+import type { KindBinding } from "./bindings.js";
+import { KIND_BINDINGS } from "./bindings.js";
+import compiledModel from "./data/authorization-model.json" with { type: "json" };
+import type { ModelType } from "./openfga-json.js";
+import { readOpenFgaModel } from "./openfga-json.js";
+import type { DerivedRelation, KindDeclaration } from "./rewrite.js";
 
 export interface Model {
   /** In registry order. */
@@ -72,35 +57,59 @@ export function newModel(declarations: ReadonlyArray<KindDeclaration>): Model {
   };
 }
 
-/** The declarations this edition evaluates, in `fga.mod` order. */
-export const builtInModel: Model = newModel([
-  identityAccountDeclaration,
-  iamPolicyDeclaration,
-  apiKeyDeclaration,
-  oauthAppDeclaration,
-  platformClientDeclaration,
-  organizationDeclaration,
-  agentDeclaration,
-  agentChannelDeclaration,
-  agentShareDeclaration,
-  channelAppDeclaration,
-  agentInstanceDeclaration,
-  agentExecutionDeclaration,
-  artifactDeclaration,
-  environmentDeclaration,
-  executionContextDeclaration,
-  mcpServerDeclaration,
-  memoryDeclaration,
-  scheduleDeclaration,
-  sessionDeclaration,
-  skillDeclaration,
-  workflowDeclaration,
-  workflowInstanceDeclaration,
-  workflowExecutionDeclaration,
-  pluginDeclaration,
-]);
+/**
+ * Joins the compiled model's types with their bindings, in the model's
+ * order. Refuses a type that names no `ApiResourceKind`, a type with no
+ * binding, a binding with no type, and a derived rule for a relation the
+ * type does not define.
+ */
+export function bindModel(
+  types: ReadonlyArray<ModelType>,
+  bindings: ReadonlyMap<ApiResourceKind, KindBinding>,
+): ReadonlyArray<KindDeclaration> {
+  const bound = new Set<ApiResourceKind>();
+  const declarations = types.map((entry): KindDeclaration => {
+    const kind = kindByEnumName(entry.type);
+    if (kind === ApiResourceKind.api_resource_kind_unknown) {
+      throw new Error(`${entry.source}: type '${entry.type}' names no ApiResourceKind`);
+    }
+    const binding = bindings.get(kind);
+    if (binding === undefined) {
+      throw new Error(`${entry.source}: type '${entry.type}' has no binding (model/bindings.ts)`);
+    }
+    bound.add(kind);
+    const derived = new Map<string, DerivedRelation>();
+    for (const [relation, rule] of Object.entries(binding.derived ?? {})) {
+      if (!entry.relations.has(relation)) {
+        throw new Error(
+          `model/bindings.ts: a derived rule for '${entry.type}#${relation}', which ${entry.source} does not define`,
+        );
+      }
+      derived.set(relation, rule);
+    }
+    return {
+      kind,
+      type: entry.type,
+      schema: binding.schema,
+      source: entry.source,
+      relations: entry.relations,
+      derived,
+    };
+  });
+  for (const kind of bindings.keys()) {
+    if (!bound.has(kind)) {
+      throw new Error(`model/bindings.ts: a binding for '${ApiResourceKind[kind]}', which the model does not define`);
+    }
+  }
+  return declarations;
+}
 
-/** The built-in model's declaration for a kind, or undefined for a kind it does not evaluate. */
+/** Every type of the authorization model, in `fga.mod` order. */
+export const builtInModel: Model = newModel(
+  bindModel(readOpenFgaModel(compiledModel as unknown), KIND_BINDINGS),
+);
+
+/** The built-in model's declaration for a kind, or undefined for a kind the model does not define. */
 export function declarationFor(
   kind: ApiResourceKind,
 ): KindDeclaration | undefined {

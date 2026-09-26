@@ -63,7 +63,7 @@ import { builtInModel } from "../model/index.js";
 import type { KindDeclaration } from "../model/rewrite.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
-import { fixtureRow } from "./support.js";
+import { fixtureRow, storedDeclaration } from "./support.js";
 import type { FixtureRowFacts } from "./support.js";
 
 const FOUNDER = accountIdFor("auth0|founder");
@@ -93,14 +93,6 @@ const SEEDED_KINDS = [
   ApiResourceKind.environment,
   ApiResourceKind.agent_instance,
 ];
-
-function declared(type: string): KindDeclaration {
-  const declaration = builtInModel.byType(type);
-  if (declaration === undefined) {
-    throw new Error(`${type} is declared`);
-  }
-  return declaration;
-}
 
 function resolved(accountId: string): CallerIdentity {
   return {
@@ -161,7 +153,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           type: string,
           facts: FixtureRowFacts,
         ): Promise<void> {
-          const declaration = declared(type);
+          const declaration = storedDeclaration(type);
           const row = fixtureRow(declaration, facts);
           await opened.store.saveResource(
             declaration.kind,

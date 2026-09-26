@@ -50,11 +50,10 @@ import {
   newBuiltInAuthorizer,
 } from "../authorizer.js";
 import { builtInModel, newModel } from "../model/index.js";
-import type { KindDeclaration } from "../model/rewrite.js";
-import { computed, declareKind } from "../model/rewrite.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
-import { fixtureRow } from "./support.js";
+import { fixtureRow, storedDeclaration } from "./support.js";
+import { computed, throwawayDeclaration } from "./throwaway-model.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -102,14 +101,6 @@ function check(
   resourceId: string,
 ): AuthzCheck {
   return { permission, resourceKind, resourceId };
-}
-
-function declared(type: string): KindDeclaration {
-  const declaration = builtInModel.byType(type);
-  if (declaration === undefined) {
-    throw new Error(`${type} is declared`);
-  }
-  return declaration;
 }
 
 const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
@@ -200,7 +191,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           spec?: Record<string, unknown>;
         },
       ) {
-        const declaration = declared(type);
+        const declaration = storedDeclaration(type);
         await opened.store.saveResource(
           declaration.kind,
           id,
@@ -649,9 +640,9 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         });
 
         it("a broken model (a relation cycle) is a fault, not a lockout", async () => {
-          const cyclic = declareKind({
+          const cyclic = throwawayDeclaration({
             kind: ApiResourceKind.agent,
-            schema: declared("agent").schema,
+            schema: storedDeclaration("agent").schema,
             source: "test",
             relations: [
               ["a", computed("b")],

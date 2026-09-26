@@ -764,16 +764,13 @@ describe("built-in list scope (C4: two boots, one seed — the scope is the only
     let unscopedStore: Store | undefined;
     const passThrough: ListReadScope = {
       async authorizedResourceIds(_caller, kind) {
-        const declaration = builtInModel.byKind(kind);
-        if (unscopedStore === undefined || declaration === undefined) {
+        const schema = builtInModel.byKind(kind)?.schema;
+        if (unscopedStore === undefined || schema === undefined) {
           throw new Error("the pass-through is bound to a booted server");
         }
         const rows = await unscopedStore.listResources(kind);
         return new Set(
-          rows.map(
-            (bytes) =>
-              metadataOf(fromBinary(declaration.schema, bytes))?.id ?? "",
-          ),
+          rows.map((bytes) => metadataOf(fromBinary(schema, bytes))?.id ?? ""),
         );
       },
       restrictListEntries: (_caller, _kind, entries) =>

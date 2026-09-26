@@ -1,0 +1,210 @@
+# Store tests for schedule-session read-only observability (the session
+# `schedule` structural link — since 2026-08-02, the channel-session
+# idiom's second application).
+#
+# A session created by the schedule runtime carries a single
+#   session#schedule@schedule:<id>
+# tuple and inherits the schedule's viewer set (creator owner + org admins
+# via `admin from organization` on schedule + explicit grantees) into
+# can_view ONLY — `viewer from schedule` is composed into session.can_view,
+# deliberately NOT into session.viewer, so schedule observers never gain
+# can_create_execution_in / can_edit / can_delete / can_grant_access
+# (injecting a console message into an unattended run is not
+# observability). Executions follow through agent_execution's
+# `can_view: viewer or can_view from session`.
+#
+# The personal-session invariant is untouched: console sessions never carry
+# a schedule tuple, so `viewer from schedule` resolves to nothing for them
+# (pinned below and by session-personal-resource.fga.yaml).
+#
+# Run with:
+#   fga model test --tests schedule-session-visibility.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (who created the
+# fee-reminder schedule and owns it), member carol (no relation to the
+# schedule), and member dave (an explicit schedule viewer grant — the
+# console "share this schedule" affordance). "rival" is another org whose
+# admin eve must see nothing. The schedule session is owned by acme's
+# system-schedule account; bob also has a normal personal console session
+# to prove the invariant.
+name: schedule-session-visibility
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:alice
+    relation: admin
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:eve
+    relation: admin
+    object: organization:rival
+
+  # --- The Schedule (tuples written on create: org link + creator owner) ---
+  - user: organization:acme
+    relation: organization
+    object: schedule:fee-reminder
+  - user: identity_account:bob
+    relation: owner
+    object: schedule:fee-reminder
+  # dave's explicit viewer grant on the schedule (never on the session):
+  - user: identity_account:dave
+    relation: viewer
+    object: schedule:fee-reminder
+
+  # --- The schedule session (owned by the org's system-schedule account) ---
+  - user: organization:acme
+    relation: organization
+    object: session:scheduled-run
+  - user: identity_account:sys-schedule-acme
+    relation: owner
+    object: session:scheduled-run
+  # The structural link written by ScheduleSessionLinkStep:
+  - user: schedule:fee-reminder
+    relation: schedule
+    object: session:scheduled-run
+
+  # --- An execution inside the schedule session ---
+  - user: session:scheduled-run
+    relation: session
+    object: agent_execution:scheduled-run-1
+
+  # --- bob's ordinary personal console session (NO schedule tuple) ---
+  - user: organization:acme
+    relation: organization
+    object: session:bobs-chat
+  - user: identity_account:bob
+    relation: owner
+    object: session:bobs-chat
+  - user: session:bobs-chat
+    relation: session
+    object: agent_execution:bobs-run-1
+
+tests:
+  - name: schedule creator can view the run but only view it
+    check:
+      - user: identity_account:bob
+        object: session:scheduled-run
+        assertions:
+          can_view: true
+          can_create_execution_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: org admin inherits view through the schedule, read-only
+    check:
+      - user: identity_account:alice
+        object: session:scheduled-run
+        assertions:
+          can_view: true
+          can_create_execution_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+
+  - name: plain org member without schedule access sees nothing
+    check:
+      - user: identity_account:carol
+        object: session:scheduled-run
+        assertions:
+          can_view: false
+          can_create_execution_in: false
+
+  - name: another org's admin sees nothing
+    check:
+      - user: identity_account:eve
+        object: session:scheduled-run
+        assertions:
+          can_view: false
+
+  - name: the system-schedule account keeps full session ownership
+    check:
+      - user: identity_account:sys-schedule-acme
+        object: session:scheduled-run
+        assertions:
+          can_view: true
+          can_create_execution_in: true
+          can_edit: true
+          can_delete: true
+
+  - name: executions inherit read-only schedule observability
+    check:
+      - user: identity_account:bob
+        object: agent_execution:scheduled-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:alice
+        object: agent_execution:scheduled-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:carol
+        object: agent_execution:scheduled-run-1
+        assertions:
+          can_view: false
+
+  - name: an explicit schedule viewer grant reaches the run read-only
+    check:
+      # dave holds schedule viewer only — he can open the runs, still
+      # read-only, and gains nothing on the schedule's management levers.
+      - user: identity_account:dave
+        object: session:scheduled-run
+        assertions:
+          can_view: true
+          can_create_execution_in: false
+          can_edit: false
+      - user: identity_account:dave
+        object: agent_execution:scheduled-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+
+  - name: personal-session invariant is untouched by the schedule model
+    check:
+      # Admin still has no path into a console session (no schedule tuple).
+      - user: identity_account:alice
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:alice
+        object: agent_execution:bobs-run-1
+        assertions:
+          can_view: false
+      # And the owner's own access is unchanged.
+      - user: identity_account:bob
+        object: session:bobs-chat
+        assertions:
+          can_view: true
+          can_edit: true
+          can_create_execution_in: true
+
+  - name: list viewable sessions resolves the schedule chain
+    list_objects:
+      - user: identity_account:alice
+        type: session
+        assertions:
+          can_view:
+            - session:scheduled-run
+      - user: identity_account:bob
+        type: session
+        assertions:
+          can_view:
+            - session:scheduled-run
+            - session:bobs-chat
+      - user: identity_account:carol
+        type: session
+        assertions:
+          can_view: []

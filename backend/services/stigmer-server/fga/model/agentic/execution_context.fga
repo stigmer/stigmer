@@ -1,0 +1,29 @@
+module agentic
+
+# ========================================
+# EXECUTION CONTEXT TYPE (Owner-scoped)
+# ========================================
+# Ephemeral runtime configuration and encrypted secrets for executions.
+# Created at execution start (agent, workflow, or MCP discovery),
+# deleted when the operation completes.
+#
+# Security model:
+# - Owner: The identity that initiated the execution or discovery
+# - No sharing: ECs contain secrets and are always private to the owner
+# - No org/session inheritance: OWNER_ONLY scope prevents broader access
+#
+# FGA tuples on creation:
+# - execution_context:<ec_id>#owner@identity_account:<creator_id>
+
+type execution_context
+  relations
+    # ========================================
+    # OWNERSHIP
+    # ========================================
+    define owner: [identity_account]
+
+    # ========================================
+    # OPERATIONS
+    # ========================================
+    define can_view: owner
+    define can_edit: owner

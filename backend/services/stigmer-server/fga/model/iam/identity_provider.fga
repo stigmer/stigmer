@@ -1,0 +1,91 @@
+module iam
+
+# ========================================
+# IDENTITY PROVIDER TYPE (Organization-scoped)
+# ========================================
+# External platform trust relationships for federated authentication.
+# Scoped to organization - each identity provider is owned by an org.
+#
+# Access model: RESTRICTED, with an operator of last resort
+# Identity providers are administrative infrastructure, not discoverable
+# content: they carry an organization's trust configuration. Plain members
+# and viewer-role members of the organization see nothing. Org admins
+# compose into `owner` (the invitation and iam_policy line), so every
+# provider stays manageable when its creator leaves or when no creator was
+# ever recorded. Admins already hold `can_create_idp` on the organization,
+# so inheriting management of what they may create is no escalation.
+#
+# Permission pattern:
+# - Org Admin (and org owner, through admin): full management
+# - Creator (Owner): full management
+# - Direct viewer grant: can see the provider and who has access to it
+# - Org Members and Viewers: no access (administrative resource)
+#
+# FGA tuples on creation (the kind's creation event: organization scope,
+# direct owner; private, so no visibility tuple):
+# - identity_provider:idp_abc#organization@organization:planton
+# - identity_provider:idp_abc#owner@identity_account:alice
+#
+# Checks the handlers make: `can_create_idp` on the organization to
+# create; `can_view` to get, get by reference, and to keep a row in the
+# organization's list; `can_edit` to update and to link a managed
+# organization; `can_delete` to delete.
+#
+# Platform tenancy (managed orgs):
+# Each platform_managed organization is linked back to the identity
+# provider that operates it. This makes the identity provider the FGA hub
+# for the platform's tenant family, enabling visibility_platform: a
+# blueprint in the platform's own org grants platform_viewer to
+# identity_provider:<idp>#platform_user, which fans out to the members of
+# every managed org — including orgs created later, with no per-resource
+# backfill.
+#
+# FGA tuple on platform_managed org creation:
+# - identity_provider:idp_abc#managed_org@organization:acme
+
+type identity_provider
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # MANAGED ORGANIZATIONS (Platform Tenancy)
+    # ========================================
+    # Organizations operated by this identity provider on behalf of the
+    # external platform (OrganizationSpec.identity_provider_ref mirrors
+    # this edge in the data model).
+    # FGA tuple: identity_provider:<idp_id>#managed_org@organization:<org_id>
+    define managed_org: [organization]
+    
+    # All members of all managed organizations. This is the userset that
+    # visibility_platform blueprints grant platform_viewer to.
+    define platform_user: member from managed_org
+    
+    # ========================================
+    # OWNERSHIP
+    # ========================================
+    # The creator, and every admin of the provider's organization: the
+    # operator of last resort.
+    define owner: [identity_account] or admin from organization
+    
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # Owners (admins included) and direct viewer grants. Organization
+    # members and viewers are deliberately absent.
+    define viewer: [identity_account] or owner
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

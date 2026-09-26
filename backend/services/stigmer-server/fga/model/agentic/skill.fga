@@ -1,0 +1,77 @@
+module agentic
+
+# ========================================
+# SKILL TYPE (Organization-scoped)
+# ========================================
+# Knowledge bases (markdown docs) for agents.
+# Every skill belongs to an organization. Visibility is handled entirely
+# through FGA tuples written by VisibilityTupleReconciler, across three
+# levels (private / org / platform) — see agent.fga for the full pattern
+# docs, including the org floor (PLATFORM also carries the org tuple so
+# shared skills stay listable in their own org).
+#
+# Authorization model (visibility is REAL — no unconditional org grant):
+# - PRIVATE: owner (incl. org admins, see below) + explicit grants only.
+# - ORG and above: org members can view/use via the explicit viewer tuple.
+# - Owners (creators) and org admins can edit/delete (admin inheritance —
+#   mirrors mcp_server).
+#
+# FGA tuples on creation:
+# - skill:web-search#organization@organization:stigmer
+# - skill:web-search#owner@identity_account:alice
+# - skill:web-search#viewer@organization:stigmer#viewer (if visibility>=ORG)
+# - skill:web-search#platform_viewer@identity_provider:<idp>#platform_user (if visibility=PLATFORM)
+#
+# Platform visibility (visibility_platform):
+# - Grants view/use to members of all orgs managed by the owning org's
+#   IdentityProvider (see agent.fga for the full pattern docs). Skills have
+#   no can_execute; can_use/can_clone derive from viewer.
+
+type skill
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    # Structural link only for viewer access — org ADMINS still inherit
+    # owner through it (see owner below), so a private skill remains
+    # manageable by org admins while invisible to plain members.
+    define organization: [organization]
+    
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    define owner: [identity_account] or admin from organization
+    
+    # ========================================
+    # PLATFORM VISIBILITY (Structural)
+    # ========================================
+    # Members of all orgs managed by the owning org's IdentityProvider.
+    # FGA tuple: skill:<id>#platform_viewer@identity_provider:<idp_id>#platform_user
+    define platform_viewer: [identity_provider#platform_user]
+    
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # organization#viewer is the shape VisibilityTupleReconciler writes — the
+    # org's FULL read audience (roles flow downward: owner/admin/member all
+    # satisfy organization#viewer). organization#member is the legacy
+    # pre-2026-08-11 shape, accepted so tuples written before the flip keep
+    # resolving until the boot backfill converges them. team#member is an
+    # Enterprise team's grant: every member, bounded by the organization
+    # in team.fga.
+    define viewer: [identity_account, organization#member, organization#viewer, team#member] or owner or platform_viewer
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    define can_use: viewer
+    define can_clone: viewer
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

@@ -385,13 +385,15 @@ export async function composeServer(
     requireAuthentication,
   });
   const builtInAuthorization = authorizationPosture !== "unit-authorizer";
-  // The built-in authorizer declares the open-source kinds and no other
-  // (its registry is pinned set-equal to that tier), so a composition
-  // that serves a wider edition must bring its own Authorizer: every
-  // check on a kind the model does not declare would otherwise fault
-  // INTERNAL per request. Refused at boot, the same class as a
-  // misconfigured registry (DD-006 §2b) and the verifierless posture
-  // below — caught before any side effect.
+  // The built-in authorizer evaluates the one model every edition reads,
+  // but it derives each resource's tuples from the rows in this server's
+  // store. A wider edition's kinds are served by extensions that keep
+  // their rows in stores of their own, which the built-in tuple source
+  // cannot read, so a composition that serves a wider edition must bring
+  // its own Authorizer rather than get answers derived from rows that are
+  // not there. Refused at boot, the same class as a misconfigured
+  // registry and the verifierless posture below: caught before any side
+  // effect.
   if (
     authorizationPosture === "built-in" &&
     extensions.edition !== ServerEdition.oss

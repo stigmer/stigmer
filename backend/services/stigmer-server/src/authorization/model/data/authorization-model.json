@@ -1,0 +1,3114 @@
+{
+  "schema_version": "1.2",
+  "type_definitions": [
+    {
+      "metadata": {
+        "module": "stigmer",
+        "relations": {
+          "can_bootstrap_iam": {},
+          "can_execute_billing_ops": {},
+          "can_grant_access": {},
+          "can_impersonate": {},
+          "can_issue_license": {},
+          "can_manage_cursor_accounts": {},
+          "can_manage_identity_accounts": {},
+          "can_manage_model_pricing": {},
+          "can_update_usage": {},
+          "can_view_access": {},
+          "can_view_provider_standing": {},
+          "can_write_reserved_labels": {},
+          "operator": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "platform.fga"
+        }
+      },
+      "relations": {
+        "can_bootstrap_iam": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_execute_billing_ops": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_impersonate": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_issue_license": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_manage_cursor_accounts": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_manage_identity_accounts": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_manage_model_pricing": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_update_usage": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_view_provider_standing": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_write_reserved_labels": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "operator": {
+          "this": {}
+        }
+      },
+      "type": "platform"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "iam/identity_account.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "owner": {
+          "this": {}
+        }
+      },
+      "type": "identity_account"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "managed_org": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "platform_user": {},
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "iam/identity_provider.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "managed_org": {
+          "this": {}
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "platform_user": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "member"
+            },
+            "tupleset": {
+              "relation": "managed_org"
+            }
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "identity_provider"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "iam/iam_policy.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        }
+      },
+      "type": "iam_policy"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_revoke": {},
+          "can_rotate": {},
+          "can_use": {},
+          "can_view": {},
+          "can_view_access": {},
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "iam/api_key.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_revoke": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_rotate": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_use": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "owner": {
+          "this": {}
+        }
+      },
+      "type": "api_key"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "iam/oauth_app.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "oauth_app"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "iam/platform_client.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "platform_client"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_view": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "iam/invitation.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        }
+      },
+      "type": "invitation"
+    },
+    {
+      "metadata": {
+        "module": "iam",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "member": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "iam/team.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        },
+        "can_edit": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        },
+        "can_grant_access": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "member": {
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "viewer": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "viewer"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        }
+      },
+      "type": "team"
+    },
+    {
+      "metadata": {
+        "module": "tenancy",
+        "relations": {
+          "admin": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "can_assign_roles": {},
+          "can_create_agent": {},
+          "can_create_agent_instance": {},
+          "can_create_agent_share": {},
+          "can_create_channel_app": {},
+          "can_create_environment": {},
+          "can_create_execution_in": {},
+          "can_create_identity_account": {},
+          "can_create_idp": {},
+          "can_create_mcp_server": {},
+          "can_create_oauth_app": {},
+          "can_create_platform_client": {},
+          "can_create_plugin": {},
+          "can_create_session": {},
+          "can_create_skill": {},
+          "can_create_team": {},
+          "can_create_workflow": {},
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_manage_billing": {},
+          "can_manage_members": {},
+          "can_view": {},
+          "can_view_access": {},
+          "can_view_billing": {},
+          "guest": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "member": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "tenancy/organization.fga"
+        }
+      },
+      "relations": {
+        "admin": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        },
+        "can_assign_roles": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_create_agent": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_agent_instance": {
+          "computedUserset": {
+            "relation": "member"
+          }
+        },
+        "can_create_agent_share": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_channel_app": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_environment": {
+          "computedUserset": {
+            "relation": "member"
+          }
+        },
+        "can_create_execution_in": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "member"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "guest"
+                }
+              }
+            ]
+          }
+        },
+        "can_create_identity_account": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_idp": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_mcp_server": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_oauth_app": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_platform_client": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_plugin": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_session": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "member"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "guest"
+                }
+              }
+            ]
+          }
+        },
+        "can_create_skill": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_team": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_workflow": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_manage_billing": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_manage_members": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_billing": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "guest": {
+          "this": {}
+        },
+        "member": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "admin"
+                }
+              }
+            ]
+          }
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "member"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "organization"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_clone": {},
+          "can_create_instance": {},
+          "can_delete": {},
+          "can_edit": {},
+          "can_execute": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "platform_viewer": {
+            "directly_related_user_types": [
+              {
+                "relation": "platform_user",
+                "type": "identity_provider"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/agent.fga"
+        }
+      },
+      "relations": {
+        "can_clone": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_create_instance": {
+          "computedUserset": {
+            "relation": "can_execute"
+          }
+        },
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_execute": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "platform_viewer": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "platform_viewer"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "agent"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_participate": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "participant": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/agent_channel.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_participate": {
+          "computedUserset": {
+            "relation": "participant"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "participant": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "participant"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "agent_channel"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/agent_share.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "agent_share"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/channel_app.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "channel_app"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "agent": {
+            "directly_related_user_types": [
+              {
+                "type": "agent"
+              }
+            ]
+          },
+          "can_delete": {},
+          "can_edit": {},
+          "can_execute": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "default_of": {
+            "directly_related_user_types": [
+              {
+                "type": "agent"
+              }
+            ]
+          },
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/agent_instance.fga"
+        }
+      },
+      "relations": {
+        "agent": {
+          "this": {}
+        },
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_execute": {
+          "computedUserset": {
+            "relation": "can_view"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "default_of": {
+          "this": {}
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "default_of"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "agent_instance"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_edit": {},
+          "can_view": {},
+          "owner": {},
+          "session": {
+            "directly_related_user_types": [
+              {
+                "type": "session"
+              }
+            ]
+          },
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "agentic/agent_execution.fga"
+        }
+      },
+      "relations": {
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "can_view"
+                  },
+                  "tupleset": {
+                    "relation": "session"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "owner": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "owner"
+            },
+            "tupleset": {
+              "relation": "session"
+            }
+          }
+        },
+        "session": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "session"
+                  }
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "agent_execution"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_edit": {},
+          "can_view": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/artifact.fga"
+        }
+      },
+      "relations": {
+        "can_edit": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        },
+        "can_view": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              }
+            ]
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "artifact"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_read_secrets": {},
+          "can_view": {},
+          "can_view_access": {},
+          "creator": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/environment.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_read_secrets": {
+          "computedUserset": {
+            "relation": "creator"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "creator": {
+          "this": {}
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "environment"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_edit": {},
+          "can_view": {},
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/execution_context.fga"
+        }
+      },
+      "relations": {
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "owner": {
+          "this": {}
+        }
+      },
+      "type": "execution_context"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_clone": {},
+          "can_connect": {},
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_use": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "platform_viewer": {
+            "directly_related_user_types": [
+              {
+                "relation": "platform_user",
+                "type": "identity_provider"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/mcp_server.fga"
+        }
+      },
+      "relations": {
+        "can_clone": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_connect": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_use": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "platform_viewer": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "platform_viewer"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "mcp_server"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_view": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "subject": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/memory.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "subject"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "subject"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "subject"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "subject": {
+          "this": {}
+        }
+      },
+      "type": "memory"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_use": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "platform_viewer": {
+            "directly_related_user_types": [
+              {
+                "relation": "platform_user",
+                "type": "identity_provider"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/plugin.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_use": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "platform_viewer": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "platform_viewer"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "plugin"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/schedule.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "schedule"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "agent_instance": {
+            "directly_related_user_types": [
+              {
+                "type": "agent_instance"
+              }
+            ]
+          },
+          "can_create_execution_in": {},
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "channel": {
+            "directly_related_user_types": [
+              {
+                "type": "agent_channel"
+              }
+            ]
+          },
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "schedule": {
+            "directly_related_user_types": [
+              {
+                "type": "schedule"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/session.fga"
+        }
+      },
+      "relations": {
+        "agent_instance": {
+          "this": {}
+        },
+        "can_create_execution_in": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "channel"
+                  }
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "schedule"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "channel": {
+          "this": {}
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "schedule": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "session"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_clone": {},
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_use": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "platform_viewer": {
+            "directly_related_user_types": [
+              {
+                "relation": "platform_user",
+                "type": "identity_provider"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/skill.fga"
+        }
+      },
+      "relations": {
+        "can_clone": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_use": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "platform_viewer": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "platform_viewer"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "skill"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_clone": {},
+          "can_delete": {},
+          "can_edit": {},
+          "can_execute": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "platform_viewer": {
+            "directly_related_user_types": [
+              {
+                "relation": "platform_user",
+                "type": "identity_provider"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/workflow.fga"
+        }
+      },
+      "relations": {
+        "can_clone": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_execute": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "platform_viewer": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "platform_viewer"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "workflow"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_execute": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "default_of": {
+            "directly_related_user_types": [
+              {
+                "type": "workflow"
+              }
+            ]
+          },
+          "execution_viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              }
+            ]
+          },
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "organization"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          },
+          "workflow": {
+            "directly_related_user_types": [
+              {
+                "type": "workflow"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/workflow_instance.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_execute": {
+          "computedUserset": {
+            "relation": "can_view"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "default_of": {
+          "this": {}
+        },
+        "execution_viewer": {
+          "this": {}
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "default_of"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "workflow": {
+          "this": {}
+        }
+      },
+      "type": "workflow_instance"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          },
+          "workflow_instance": {
+            "directly_related_user_types": [
+              {
+                "type": "workflow_instance"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/workflow_execution.fga"
+        }
+      },
+      "relations": {
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "execution_viewer"
+                  },
+                  "tupleset": {
+                    "relation": "workflow_instance"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "workflow_instance": {
+          "this": {}
+        }
+      },
+      "type": "workflow_execution"
+    }
+  ]
+}

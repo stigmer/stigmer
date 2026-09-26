@@ -1,0 +1,57 @@
+module agentic
+
+# ========================================
+# CHANNEL APP TYPE (Organization-scoped, Owner-managed Credentials)
+# ========================================
+# Customer-owned messaging-platform apps (e.g. a Slack app) that agent
+# channels install through instead of the shared platform app (BYO,
+# since 2026-07-15). Holds provider credentials: OAuth client id/secret and
+# the webhook signing secret.
+#
+# Access model: RESTRICTED (the oauth_app posture) with org-admin
+# inheritance (the agent_channel shape). Channel apps contain sensitive
+# credentials, so plain org members get NO implicit access. Org admins
+# inherit owner — the operator-of-last-resort rationale applies with
+# force to a credential holder: an ex-employee owner must never strand
+# secret rotation. (oauth_app predates admin owner inheritance and gives
+# admins view-only; this type follows the newer platform-wide direction.)
+#
+# Public visibility is intentionally unsupported to prevent credential
+# leakage.
+#
+# FGA tuples on creation (config-driven from the channel_app kind config:
+# ORGANIZATION scope + DIRECT owner):
+# - channel_app:<id>#organization@organization:<org>
+# - channel_app:<id>#owner@identity_account:<creator>
+
+type channel_app
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    # The creator, plus org admins by inheritance (the operator of last resort).
+    define owner: [identity_account] or admin from organization
+
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants)
+    # ========================================
+    # Restricted: regular org members cannot see channel apps.
+    define viewer: [identity_account] or owner
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

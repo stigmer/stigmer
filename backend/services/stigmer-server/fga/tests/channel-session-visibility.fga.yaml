@@ -1,0 +1,183 @@
+# Store tests for channel-session read-only observability (the session
+# `channel` structural link).
+#
+# A session created by the channel runtime carries a single
+#   session#channel@agent_channel:<id>
+# tuple and inherits the channel's viewer set (connector owner + org admins
+# via `admin from organization` on agent_channel) into can_view ONLY —
+# `viewer from channel` is composed into session.can_view, deliberately NOT
+# into session.viewer, so channel observers never gain
+# can_create_execution_in / can_edit / can_delete / can_grant_access.
+# Executions follow through agent_execution's
+# `can_view: viewer or can_view from session`.
+#
+# The personal-session invariant is untouched: console sessions never carry
+# a channel tuple, so `viewer from channel` resolves to nothing for them
+# (pinned below and by session-personal-resource.fga.yaml).
+#
+# Run with:
+#   fga model test --tests channel-session-visibility.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (who connected the Slack
+# channel and owns it), and member carol (no relation to the channel).
+# "rival" is another org whose admin eve must see nothing. The channel
+# session is owned by acme's system-channel account; bob also has a normal
+# personal console session to prove the invariant.
+name: channel-session-visibility
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:alice
+    relation: admin
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:eve
+    relation: admin
+    object: organization:rival
+
+  # --- The AgentChannel (tuples written on create: org link + creator owner) ---
+  - user: organization:acme
+    relation: organization
+    object: agent_channel:slack-conn
+  - user: identity_account:bob
+    relation: owner
+    object: agent_channel:slack-conn
+
+  # --- The channel session (owned by the org's system-channel account) ---
+  - user: organization:acme
+    relation: organization
+    object: session:channel-chat
+  - user: identity_account:sys-channel-acme
+    relation: owner
+    object: session:channel-chat
+  # The structural link written by ChannelSessionLinkStep:
+  - user: agent_channel:slack-conn
+    relation: channel
+    object: session:channel-chat
+
+  # --- An execution inside the channel session ---
+  - user: session:channel-chat
+    relation: session
+    object: agent_execution:channel-run-1
+
+  # --- bob's ordinary personal console session (NO channel tuple) ---
+  - user: organization:acme
+    relation: organization
+    object: session:bobs-chat
+  - user: identity_account:bob
+    relation: owner
+    object: session:bobs-chat
+  - user: session:bobs-chat
+    relation: session
+    object: agent_execution:bobs-run-1
+
+tests:
+  - name: channel connector can view the conversation but only view it
+    check:
+      - user: identity_account:bob
+        object: session:channel-chat
+        assertions:
+          can_view: true
+          can_create_execution_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: org admin inherits view through the channel, read-only
+    check:
+      - user: identity_account:alice
+        object: session:channel-chat
+        assertions:
+          can_view: true
+          can_create_execution_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+
+  - name: plain org member without channel access sees nothing
+    check:
+      - user: identity_account:carol
+        object: session:channel-chat
+        assertions:
+          can_view: false
+          can_create_execution_in: false
+
+  - name: another org's admin sees nothing
+    check:
+      - user: identity_account:eve
+        object: session:channel-chat
+        assertions:
+          can_view: false
+
+  - name: the system-channel account keeps full session ownership
+    check:
+      - user: identity_account:sys-channel-acme
+        object: session:channel-chat
+        assertions:
+          can_view: true
+          can_create_execution_in: true
+          can_edit: true
+          can_delete: true
+
+  - name: executions inherit read-only channel observability
+    check:
+      - user: identity_account:bob
+        object: agent_execution:channel-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:alice
+        object: agent_execution:channel-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:carol
+        object: agent_execution:channel-run-1
+        assertions:
+          can_view: false
+
+  - name: personal-session invariant is untouched by the channel model
+    check:
+      # Admin still has no path into a console session (no channel tuple).
+      - user: identity_account:alice
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:alice
+        object: agent_execution:bobs-run-1
+        assertions:
+          can_view: false
+      # And the owner's own access is unchanged.
+      - user: identity_account:bob
+        object: session:bobs-chat
+        assertions:
+          can_view: true
+          can_edit: true
+          can_create_execution_in: true
+
+  - name: list viewable sessions resolves the channel chain (drives listByChannel)
+    list_objects:
+      - user: identity_account:alice
+        type: session
+        assertions:
+          can_view:
+            - session:channel-chat
+      - user: identity_account:bob
+        type: session
+        assertions:
+          can_view:
+            - session:channel-chat
+            - session:bobs-chat
+      - user: identity_account:carol
+        type: session
+        assertions:
+          can_view: []

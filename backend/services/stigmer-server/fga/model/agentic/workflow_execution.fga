@@ -1,0 +1,84 @@
+module agentic
+
+# ========================================
+# WORKFLOW EXECUTION TYPE (Private by default, opt-in observability)
+# ========================================
+# Runtime execution of a workflow instance — holds a single user's run
+# inputs and outputs. Every execution belongs to an organization with user
+# attribution.
+#
+# Authorization model (PRIVATE BY DEFAULT):
+# A workflow execution is private to the user who triggered it (its owner).
+# Run visibility is deliberately DECOUPLED from the parent instance's own
+# visibility: making an instance org-runnable (workflow_instance ORG
+# visibility) lets teammates SEE and RUN the shared workflow, but does NOT
+# expose each other's run history. Observability is opt-in via the instance's
+# separate `execution_viewer` relation.
+#
+# Why this differs from agent_execution:
+# Agent runs hang off a per-user `session` (a personal container) and inherit
+# its privacy. Workflow runs hang off a SHARED `workflow_instance`, so the
+# execution's own `owner` is the privacy boundary. Inheriting the instance's
+# `viewer` would override that boundary — hence the dedicated `execution_viewer`.
+#
+# Default case (private instance, no opt-in):
+# - viewer resolves to just the execution owner (the triggerer)
+# - Only the triggerer sees their execution; zero per-execution tuples needed
+#
+# Opt-in org observability:
+# - Org writes workflow_instance#execution_viewer@organization:<org>#viewer
+# - All executions of that instance become viewable org-wide (every org role)
+# - Still zero per-execution tuples (inherited via the workflow_instance link)
+#
+# Per-execution overrides remain possible via explicit viewer grants.
+#
+# FGA tuples on creation (always):
+# - workflow_execution:<id>#organization@organization:<org>
+# - workflow_execution:<id>#workflow_instance@workflow_instance:<instance>
+# - workflow_execution:<id>#owner@identity_account:<triggerer>
+
+type workflow_execution
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # PARENT WORKFLOW INSTANCE
+    # ========================================
+    # Links execution to its parent instance for visibility inheritance.
+    define workflow_instance: [workflow_instance]
+    
+    # ========================================
+    # OWNERSHIP (Attribution)
+    # ========================================
+    # The user who triggered this execution.
+    define owner: [identity_account]
+    
+    # ========================================
+    # VIEWER ACCESS (Private by default, opt-in observability)
+    # ========================================
+    # Owner-only by default. Inherits the parent instance's OPT-IN
+    # `execution_viewer` (NOT its `viewer`), so org-runnable instances do not
+    # leak run history. Explicit per-execution grants are also supported,
+    # to a person or to an Enterprise team's members (team#member, bounded
+    # by the organization in team.fga).
+    define viewer: [identity_account, team#member] or owner or execution_viewer from workflow_instance
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    # Enables the generic IamPolicy share flow for individual runs: the
+    # triggerer (owner) can grant viewer access to a specific execution, and
+    # anyone who can view the run can see who it is shared with. Mirrors
+    # session.fga — runs are personal resources, so org admins are deliberately
+    # NOT granted these relations.
+    define can_grant_access: owner
+    define can_view_access: viewer

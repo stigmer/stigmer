@@ -38,7 +38,7 @@ import { builtInModel } from "../model/index.js";
 import { newBuiltInOrganizationDirectory } from "../organization-directory.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
-import { fixtureRow } from "./support.js";
+import { fixtureRow, storedDeclaration } from "./support.js";
 
 const FOUNDER = accountIdFor("auth0|founder");
 const MEMBER = accountIdFor("auth0|member");
@@ -81,7 +81,7 @@ describe.each(
     let principalReads: number;
 
     async function organization(id: string) {
-      const declaration = builtInModel.byType("organization")!;
+      const declaration = storedDeclaration("organization");
       await opened.store.saveResource(
         ApiResourceKind.organization,
         id,

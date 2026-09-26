@@ -1,0 +1,146 @@
+# Store tests for the plugin type: the unit of install, modelled like a
+# skill. The narrowness these pin: the installer and org admins upgrade,
+# re-level and remove (can_edit / can_delete); a PRIVATE plugin is invisible
+# to plain members and visible to org admins (admin owner inheritance); an
+# ORG plugin is readable by every org role and by nobody outside the org; the
+# organization-level can_create_plugin permission is admin-only, the same
+# bar as can_create_skill, because an install writes several resources in
+# one act.
+#
+# Run: fga model test --tests plugin-owner.fga.yaml
+
+name: plugin-owner
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org acme: alice installs, oscar administers, dave is a plain member,
+  # vera a read-only viewer; mallory belongs to an unrelated org.
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:oscar
+    relation: admin
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:vera
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:other
+
+  # A PRIVATE plugin alice installed (no visibility tuples).
+  - user: organization:acme
+    relation: organization
+    object: plugin:secret-tools
+  - user: identity_account:alice
+    relation: owner
+    object: plugin:secret-tools
+
+  # An ORG plugin alice installed (the reconciler's org tuple).
+  - user: organization:acme
+    relation: organization
+    object: plugin:thermos
+  - user: identity_account:alice
+    relation: owner
+    object: plugin:thermos
+  - user: organization:acme#viewer
+    relation: viewer
+    object: plugin:thermos
+
+tests:
+  - name: the installer upgrades, re-levels and removes what they installed
+    check:
+      - user: identity_account:alice
+        object: plugin:thermos
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_use: true
+          can_grant_access: true
+          can_view_access: true
+
+  - name: an org admin manages a plugin they did not install, private ones included
+    check:
+      - user: identity_account:oscar
+        object: plugin:secret-tools
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:oscar
+        object: plugin:thermos
+        assertions:
+          can_edit: true
+          can_delete: true
+
+  - name: a plain member reads an ORG plugin and cannot touch it
+    check:
+      - user: identity_account:dave
+        object: plugin:thermos
+        assertions:
+          can_view: true
+          can_use: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+      - user: identity_account:vera
+        object: plugin:thermos
+        assertions:
+          can_view: true
+          can_edit: false
+
+  - name: a PRIVATE plugin is invisible to plain members and to outsiders
+    check:
+      - user: identity_account:dave
+        object: plugin:secret-tools
+        assertions:
+          can_view: false
+          can_use: false
+          can_edit: false
+      - user: identity_account:mallory
+        object: plugin:secret-tools
+        assertions:
+          can_view: false
+      - user: identity_account:mallory
+        object: plugin:thermos
+        assertions:
+          can_view: false
+          can_edit: false
+
+  - name: installing is an admin act, the same bar as pushing a skill
+    check:
+      - user: identity_account:oscar
+        object: organization:acme
+        assertions:
+          can_create_plugin: true
+          can_create_skill: true
+      - user: identity_account:alice
+        object: organization:acme
+        assertions:
+          can_create_plugin: false
+      - user: identity_account:vera
+        object: organization:acme
+        assertions:
+          can_create_plugin: false
+
+  - name: ListObjects under the org scope lists what each role may read
+    list_objects:
+      - user: identity_account:dave
+        type: plugin
+        assertions:
+          can_view:
+            - plugin:thermos
+      - user: identity_account:oscar
+        type: plugin
+        assertions:
+          can_view:
+            - plugin:secret-tools
+            - plugin:thermos
+      - user: identity_account:mallory
+        type: plugin
+        assertions:
+          can_view: []

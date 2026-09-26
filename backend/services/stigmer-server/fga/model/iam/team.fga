@@ -1,0 +1,68 @@
+module iam
+
+# ========================================
+# TEAM TYPE (Organization-scoped, Enterprise)
+# ========================================
+# A named group of an organization's people that access is shared with
+# as one: a grant to `team:<id>#member` reaches every member, and joining
+# or leaving the team moves that access at once.
+#
+# Access model: BOUNDED MEMBERSHIP
+# A member must also be one of the organization's viewers. The bound is
+# the one intersection in this model, and it is what makes leaving the
+# organization safe: no application cleanup can express "lost the last
+# organization role" (a person may lose one role and hold another), so
+# the model asks it on every check instead. Guests hold
+# `organization#guest`, never viewer, so a guest is never a member.
+#
+# Members only: nobody administers a team but the organization's admins,
+# and a team never contains another team (nesting multiplies fan-out on
+# every check that reaches a team grant).
+#
+# Where a team may be granted: the relations each kind lists in its
+# `team_grantable_roles` (the proto), which the server's registry test
+# holds equal to this model. Never ownership, never an organization role.
+#
+# FGA tuples on creation:
+# - team:tm_abc#organization@organization:acme
+# Membership (an IamPolicy grant of `member` on the team):
+# - team:tm_abc#member@identity_account:alice
+# A share with the team (an IamPolicy grant naming the team's members):
+# - agent:agt_xyz#viewer@team:tm_abc#member
+
+type team
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # MEMBERSHIP (bounded by the organization)
+    # ========================================
+    # Top-level only and never mixed with `or`: the open-source
+    # evaluator and the composition's model reader both refuse a line
+    # that would need parentheses.
+    define member: [identity_account] and viewer from organization
+
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # Every organization viewer sees every team, so anyone who can share
+    # a resource can pick a team to share it with.
+    define viewer: viewer from organization
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: admin from organization
+    define can_delete: admin from organization
+
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    # Membership is granted and revoked through the IAM policy service,
+    # so managing members is granting access on the team.
+    define can_grant_access: admin from organization
+    define can_view_access: viewer

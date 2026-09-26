@@ -5,8 +5,8 @@
  * tuples this row would have had, derived on the fly (evaluator.ts over
  * derived-tuples.ts). Every arm below mirrors the cloud's driver
  * (stigmer-cloud src/authorizer/fga-authorizer.ts) by name and copy, so
- * the two editions answer one question the same way and the drift test
- * can pin the arms and not only the model.
+ * the two editions answer one question the same way, over the one model
+ * both read (model/index.ts).
  *
  * The arms, in order:
  *   1. The cloud's four pre-checks with the Java service's copy, each a
@@ -87,7 +87,7 @@ import { formatObjectRef } from "./tuples.js";
  * their rows live in its own tables, out of its probe's reach; matching
  * the set here keeps the wire identical across editions (an unknown
  * platform client's id is PERMISSION_DENIED with the annotation's copy in
- * both). The cloud's model drift test pins every kind here inside its
+ * both). The cloud pins every kind here inside its own
  * `PROBE_EXEMPT_KINDS`, which is why this set is exported; a kind that
  * moves into open source joins this set in the same change.
  *

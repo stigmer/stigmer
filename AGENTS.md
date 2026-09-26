@@ -33,7 +33,8 @@ skill" when it could be misread.
   committed generated stubs (`stubs/{go,java,python,ts}`). The single source of
   truth for the resource model.
 - `backend/services/stigmer-server/`: the control plane, published as
-  `@stigmer/server`. Own lockfile.
+  `@stigmer/server`. Own lockfile. `backend/services/stigmer-server/fga/` is the
+  authorization model every edition reads.
 - `backend/services/runner/`: the Temporal worker that executes agent sessions
   and workflow tasks through two harnesses (Cursor, native deep-agent). Own
   lockfile.
@@ -103,6 +104,9 @@ summary line in the final message. Never report unverified work as done.
   `make check-docs-yaml gen-proto-sdk-docs-check gen-task-docs-check gen-task-registry-check`,
   and `buf breaking` runs in CI.
 - `backend/services/stigmer-server/**`: `make test-server`.
+  `backend/services/stigmer-server/fga/**`: also
+  `make test-authorization-model`. `tools/codegen/src/authorization-model/**`:
+  `npm run test -w @stigmer/codegen && make gen-authorization-model-check`.
 - `backend/services/runner/**`: `make test-runner`.
 - `sdk/typescript/**`: `npm run typecheck -w @stigmer/sdk`. `sdk/react/**`:
   `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react && npm run test -w @stigmer/react`.
@@ -138,8 +142,9 @@ summary line in the final message. Never report unverified work as done.
   finding ids, stage names. Write the reason in your own words, or cite a PR, an
   issue, a SHA, a file.
 - Generated files are never hand-edited: `apis/stubs/**`, every `gen` directory,
-  generated docs under `docs/sdk/`, the task registry data, the Cursor shims in
-  `.cursor/rules/agents-*.mdc` and `.cursor/hooks.json`. Re-run the generator.
+  generated docs under `docs/sdk/`, the task registry data, the compiled
+  authorization model, the Cursor shims in `.cursor/rules/agents-*.mdc` and
+  `.cursor/hooks.json`. Re-run the generator.
 - Wire identifiers are pinned bytes: Temporal workflow, activity and queue
   names, proto field names, event kinds. A rename is a protocol break, not a
   cleanup.

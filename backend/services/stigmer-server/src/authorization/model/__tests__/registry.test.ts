@@ -1,33 +1,40 @@
 /**
- * Pins the built-in model's registry: which kinds are declared — every
- * kind of the open-source tier, in `fga.mod` order, and nothing else —
- * that each declaration names its `.fga` source by its own type, that a
- * kind is reached by enum and by FGA type name alike, and that every
- * permission the wire can ask about (the IamPermission vocabulary) is
- * either a declared relation of the kind or absent from its `.fga` file —
- * never a relation the transcript forgot — and that the relations whose
- * direct list admits a team (`team#member`) are exactly the roles the
- * kind's `team_grantable_roles` names, a subset of what a person can be
- * granted and never ownership, so the grant step and the model cannot
- * disagree about where a team may be granted.
+ * Pins the built-in model against its sources and the contract:
+ *   - its types are the files `fga.mod` lists, in that order, one type per
+ *     file named by the file, and every one is bound (bindings.ts);
+ *   - every binding's schema is the message `kind_meta` spells for the
+ *     kind (`ai.stigmer.<group>.<name>.<version>.<Name>`), `platform`
+ *     excepted by name as the one rowless type, so the explicit table
+ *     cannot bind a kind to the wrong message;
+ *   - every declaration names a `.fga` file that exists under fga/model;
+ *   - the model declares every open-source-tier kind, and outside the tier
+ *     exactly the four kinds the wider editions serve, so a kind the
+ *     contract moves between tiers is a visible diff here;
+ *   - a kind is reached by enum and by FGA type name alike;
+ *   - the relations whose direct list admits a team (`team#member`) are
+ *     exactly the roles the kind's `team_grantable_roles` names, a subset
+ *     of what a person can be granted and never ownership, so the grant
+ *     step and the model cannot disagree about where a team may be
+ *     granted;
+ *   - the derived rules are exactly the three relations `kind_meta` cannot
+ *     derive.
  *
- * The kind list is pinned twice on purpose: as the literal in registry
- * order (a reordering or a dropped file is a visible diff) and as
- * set-equal to the `kind_meta.tier` open-source members (a kind the
- * contract moves into or out of the tier is a visible diff here before
- * it is a silent gap in enforcement).
+ * Whether the model defines what the wire asks is the whole contract's
+ * question, pinned in __tests__/wire-permissions.test.ts.
  */
+import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
+import { ApiResourceGroup } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
+  ApiResourceVersion,
   ResourceTier,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import {
-  IamPermissionSchema,
-  IamRole,
-} from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
   getKindMeta,
@@ -35,221 +42,40 @@ import {
   kindEnumName,
   teamGrantableRolesFor,
 } from "../../../pipeline/apiresource-meta.js";
+import { KIND_BINDINGS, ROWLESS } from "../bindings.js";
 import { builtInModel, declarationFor } from "../index.js";
 import type { Rewrite, SubjectType } from "../rewrite.js";
 
-/** The open-source tier, in registry order (the `fga.mod` order of their files). */
-const DECLARED_KINDS = [
-  ApiResourceKind.identity_account,
-  ApiResourceKind.iam_policy,
-  ApiResourceKind.api_key,
-  ApiResourceKind.oauth_app,
-  ApiResourceKind.platform_client,
-  ApiResourceKind.organization,
-  ApiResourceKind.agent,
-  ApiResourceKind.agent_channel,
-  ApiResourceKind.agent_share,
-  ApiResourceKind.channel_app,
-  ApiResourceKind.agent_instance,
-  ApiResourceKind.agent_execution,
-  ApiResourceKind.artifact,
-  ApiResourceKind.environment,
-  ApiResourceKind.execution_context,
-  ApiResourceKind.mcp_server,
-  ApiResourceKind.memory,
-  ApiResourceKind.schedule,
-  ApiResourceKind.session,
-  ApiResourceKind.skill,
-  ApiResourceKind.workflow,
-  ApiResourceKind.workflow_instance,
-  ApiResourceKind.workflow_execution,
-  ApiResourceKind.plugin,
-] as const;
+/** The server package root, where fga/model lives. */
+const PACKAGE_ROOT = new URL("../../../../", import.meta.url);
 
-/**
- * The permissions each `.fga` file defines that the wire vocabulary also
- * names, in the file's order — derived by hand from the files at the
- * pinned commit. A relation in the file and not here, or here and not in
- * the transcript, fails. Verbs the files define outside the vocabulary
- * (`can_use`, `can_clone`, `can_rotate`, `can_revoke`) are the model's
- * own and are not listed.
- */
-const WIRE_PERMISSIONS_BY_TYPE: Readonly<
-  Record<string, ReadonlyArray<string>>
-> = {
-  identity_account: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  iam_policy: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  api_key: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  oauth_app: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  platform_client: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  organization: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_create_agent",
-    "can_create_workflow",
-    "can_create_session",
-    "can_create_environment",
-    "can_create_skill",
-    "can_create_plugin",
-    "can_create_mcp_server",
-    "can_create_idp",
-    "can_create_identity_account",
-    "can_create_oauth_app",
-    "can_create_platform_client",
-    "can_create_channel_app",
-    "can_create_execution_in",
-    "can_create_agent_share",
-    "can_create_agent_instance",
-    "can_create_team",
-    "can_grant_access",
-    "can_view_access",
-    "can_view_billing",
-    "can_manage_billing",
-  ],
-  agent: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_execute",
-    "can_create_instance",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  agent_channel: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_participate",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  agent_share: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  channel_app: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  agent_instance: [
-    "can_view",
-    "can_execute",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  agent_execution: ["can_view", "can_edit"],
-  artifact: ["can_view", "can_edit"],
-  environment: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_read_secrets",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  execution_context: ["can_view", "can_edit"],
-  mcp_server: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_connect",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  memory: ["can_view", "can_edit", "can_delete"],
-  schedule: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  session: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_create_execution_in",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  skill: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  workflow: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_execute",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  plugin: [
-    "can_view",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  workflow_instance: [
-    "can_view",
-    "can_execute",
-    "can_edit",
-    "can_delete",
-    "can_grant_access",
-    "can_view_access",
-  ],
-  workflow_execution: [
-    "can_view",
-    "can_edit",
-    "can_grant_access",
-    "can_view_access",
-  ],
-};
+/** The kinds the model defines outside the open-source tier: the ones the wider editions serve. */
+const WIDER_EDITION_KINDS: ReadonlyArray<ApiResourceKind> = [
+  ApiResourceKind.platform,
+  ApiResourceKind.identity_provider,
+  ApiResourceKind.invitation,
+  ApiResourceKind.team,
+];
 
-/** The subject types a relation's direct lists name, wherever they sit in its rewrite. */
+/** The files `fga.mod` lists, in its order. */
+function modFiles(): ReadonlyArray<string> {
+  const text = readFileSync(fileURLToPath(new URL("fga/model/fga.mod", PACKAGE_ROOT)), "utf8");
+  return [...text.matchAll(/^\s*-\s*(\S+\.fga)\s*$/gm)].map((match) => match[1] ?? "");
+}
+
+/** The message `kind_meta` spells for a kind. */
+function kindMetaMessageName(kind: ApiResourceKind): string {
+  const meta = getKindMeta(kind);
+  return [
+    "ai",
+    "stigmer",
+    ApiResourceGroup[meta.group],
+    meta.name.toLowerCase(),
+    ApiResourceVersion[meta.version],
+    meta.name,
+  ].join(".");
+}
+
 function directSubjects(rewrite: Rewrite): ReadonlyArray<SubjectType> {
   switch (rewrite.node) {
     case "this":
@@ -268,14 +94,10 @@ function directSubjects(rewrite: Rewrite): ReadonlyArray<SubjectType> {
 }
 
 function isTeamMembers(subject: SubjectType): boolean {
-  return (
-    subject.form === "userset" &&
-    subject.type === "team" &&
-    subject.relation === "member"
-  );
+  return subject.form === "userset" && subject.type === "team" && subject.relation === "member";
 }
 
-/** Every kind whose `kind_meta.tier` is the open-source tier, by enum number. */
+/** Every kind whose `kind_meta.tier` is the open-source tier. */
 function openSourceTierKinds(): ReadonlySet<ApiResourceKind> {
   const kinds = new Set<ApiResourceKind>();
   for (const value of ApiResourceKindSchema.values) {
@@ -290,59 +112,63 @@ function openSourceTierKinds(): ReadonlySet<ApiResourceKind> {
   return kinds;
 }
 
-describe("the built-in model's registry", () => {
-  it("declares exactly the open-source tier's kinds, in fga.mod order", () => {
-    expect(builtInModel.declarations.map((d) => d.kind)).toEqual([
-      ...DECLARED_KINDS,
-    ]);
-    expect(new Set(DECLARED_KINDS)).toEqual(openSourceTierKinds());
+describe("the built-in model", () => {
+  it("defines one type per file fga.mod lists, named by the file, in fga.mod order, every one bound", () => {
+    const files = modFiles();
+    expect(files.length).toBeGreaterThan(0);
+    expect(builtInModel.declarations.map((d) => d.type)).toEqual(
+      files.map((file) => file.replace(/^.*\//, "").replace(/\.fga$/, "")),
+    );
+    expect(builtInModel.declarations.map((d) => d.source)).toEqual(
+      files.map((file) => `fga/model/${file}`),
+    );
+    expect([...KIND_BINDINGS.keys()].map(kindEnumName)).toEqual(
+      builtInModel.declarations.map((d) => d.type),
+    );
   });
 
-  it("reaches a declaration by kind and by FGA type name, and answers undefined for the kinds this edition does not serve", () => {
-    for (const kind of DECLARED_KINDS) {
-      const byKind = declarationFor(kind);
-      expect(byKind?.kind).toBe(kind);
-      expect(builtInModel.byType(kindEnumName(kind))).toBe(byKind);
+  it("binds every kind to the message kind_meta spells, and platform alone to ROWLESS", () => {
+    for (const declaration of builtInModel.declarations) {
+      if (declaration.kind === ApiResourceKind.platform) {
+        expect(declaration.schema).toBe(ROWLESS);
+        continue;
+      }
+      expect(declaration.schema?.typeName, declaration.type).toBe(
+        kindMetaMessageName(declaration.kind),
+      );
     }
-    for (const unserved of [
-      ApiResourceKind.platform,
-      ApiResourceKind.identity_provider,
-      ApiResourceKind.invitation,
-      ApiResourceKind.team,
-    ]) {
-      expect(declarationFor(unserved), kindEnumName(unserved)).toBeUndefined();
+  });
+
+  it("names a .fga source that exists", () => {
+    for (const declaration of builtInModel.declarations) {
+      expect(
+        existsSync(fileURLToPath(new URL(declaration.source, PACKAGE_ROOT))),
+        declaration.source,
+      ).toBe(true);
     }
+  });
+
+  it("defines every open-source-tier kind, and outside the tier exactly the kinds the wider editions serve", () => {
+    const declared = new Set(builtInModel.declarations.map((d) => d.kind));
+    const tier = openSourceTierKinds();
+    for (const kind of tier) {
+      expect(declared.has(kind), kindEnumName(kind)).toBe(true);
+    }
+    expect(
+      [...declared].filter((kind) => !tier.has(kind)).map(kindEnumName).sort(),
+    ).toEqual(WIDER_EDITION_KINDS.map(kindEnumName).sort());
+  });
+
+  it("reaches a declaration by kind and by FGA type name", () => {
+    for (const declaration of builtInModel.declarations) {
+      expect(declarationFor(declaration.kind)).toBe(declaration);
+      expect(builtInModel.byType(kindEnumName(declaration.kind))).toBe(declaration);
+    }
+    expect(declarationFor(ApiResourceKind.api_resource_kind_unknown)).toBeUndefined();
     expect(builtInModel.byType("")).toBeUndefined();
   });
 
-  it("names its `.fga` source by the kind's own type, under the module the fga.mod files it in", () => {
-    for (const declaration of builtInModel.declarations) {
-      expect(declaration.source).toMatch(
-        new RegExp(
-          `^fga/model/(tenancy|agentic|iam)/${declaration.type}\\.fga$`,
-        ),
-      );
-    }
-  });
-
-  it("declares, for every kind, exactly the wire permissions its `.fga` file defines", () => {
-    const wireVocabulary = new Set(
-      IamPermissionSchema.values.map((value) => value.name),
-    );
-    expect(Object.keys(WIRE_PERMISSIONS_BY_TYPE).sort()).toEqual(
-      builtInModel.declarations.map((d) => d.type).sort(),
-    );
-    for (const declaration of builtInModel.declarations) {
-      const declaredWirePermissions = [...declaration.relations.keys()].filter(
-        (relation) => wireVocabulary.has(relation),
-      );
-      expect(declaredWirePermissions, declaration.type).toEqual(
-        WIRE_PERMISSIONS_BY_TYPE[declaration.type],
-      );
-    }
-  });
-
-  it("admits a team exactly on the roles each kind's team_grantable_roles lists — the transcript and the contract say one thing", () => {
+  it("admits a team exactly on the roles each kind's team_grantable_roles lists — the model and the contract say one thing", () => {
     for (const declaration of builtInModel.declarations) {
       const admitsTeam = [...declaration.relations]
         .filter(([, rewrite]) => directSubjects(rewrite).some(isTeamMembers))

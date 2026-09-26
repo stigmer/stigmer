@@ -1,0 +1,140 @@
+# Store tests for org-shared environments (since 2026-07-12).
+#
+# Environments are personal resources with opt-in org sharing. Setting
+# visibility_org writes one tuple (viewer@organization:<org>#viewer — the
+# org's full read audience, stigmer#465) that grants everyone in the org
+# REDACTED view only. The creator-only secret-reveal
+# invariant holds at every level: can_read_secrets never widens with
+# sharing. Runtime resolution for executions is app-level (server-side
+# policy on metadata.visibility), deliberately NOT modeled here — no FGA
+# relation could allow a member's execution to use a secret while denying
+# the same member's reveal.
+#
+# Run with:
+#   fga model test --tests org-shared-environment.fga.yaml
+#
+# Scenario: org "acme" has creator carol, plain member dave, read-only
+# viewer vera, and an explicit viewer grant for frank on the private
+# environment; mallory belongs to an unrelated org. Carol owns a PRIVATE environment and an
+# ORG-shared environment.
+name: org-shared-environment
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org memberships ---
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:frank
+    relation: member
+    object: organization:acme
+  - user: identity_account:vera
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:outsider
+
+  # --- PRIVATE environment (creation tuples only) ---
+  - user: organization:acme
+    relation: organization
+    object: environment:private-creds
+  - user: identity_account:carol
+    relation: owner
+    object: environment:private-creds
+  - user: identity_account:carol
+    relation: creator
+    object: environment:private-creds
+  # Explicit viewer grant to frank (redacted view, no secret reveal).
+  - user: identity_account:frank
+    relation: viewer
+    object: environment:private-creds
+
+  # --- ORG-shared environment (creation tuples + the org viewer tuple) ---
+  - user: organization:acme
+    relation: organization
+    object: environment:team-creds
+  - user: identity_account:carol
+    relation: owner
+    object: environment:team-creds
+  - user: identity_account:carol
+    relation: creator
+    object: environment:team-creds
+  - user: organization:acme#viewer
+    relation: viewer
+    object: environment:team-creds
+
+tests:
+  - name: private-environment-invisible-to-org-members
+    check:
+      - user: identity_account:dave
+        object: environment:private-creds
+        assertions:
+          can_view: false
+          can_edit: false
+          can_read_secrets: false
+
+  - name: explicit-viewer-grant-is-redacted-view-only
+    check:
+      - user: identity_account:frank
+        object: environment:private-creds
+        assertions:
+          can_view: true
+          can_edit: false
+          can_read_secrets: false
+
+  - name: org-sharing-grants-members-redacted-view-only
+    check:
+      - user: identity_account:dave
+        object: environment:team-creds
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          # THE invariant: org sharing never widens secret reveal.
+          can_read_secrets: false
+
+  - name: org-sharing-reaches-read-only-viewers-redacted-too
+    check:
+      # stigmer#465: the org viewer role is read-only by definition — an
+      # org-shared environment is readable (REDACTED) to vera, secrets never.
+      - user: identity_account:vera
+        object: environment:team-creds
+        assertions:
+          can_view: true
+          can_edit: false
+          can_read_secrets: false
+      - user: identity_account:vera
+        object: environment:private-creds
+        assertions:
+          can_view: false
+
+  - name: creator-keeps-full-access-on-shared-environment
+    check:
+      - user: identity_account:carol
+        object: environment:team-creds
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_read_secrets: true
+
+  - name: org-sharing-does-not-leak-across-orgs
+    check:
+      - user: identity_account:mallory
+        object: environment:team-creds
+        assertions:
+          can_view: false
+          can_read_secrets: false
+
+  - name: org-members-can-list-shared-environments-only
+    list_objects:
+      - user: identity_account:dave
+        type: environment
+        assertions:
+          can_view:
+            - environment:team-creds

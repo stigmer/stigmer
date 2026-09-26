@@ -48,8 +48,8 @@
  *
  * Every shape states what its caller keeps, so a measurement over an
  * evaluator that answered wrongly measures nothing. The model is the
- * built-in one with the Enterprise team type beside it
- * (enterprise-model.ts); the open-source shapes answer the same under it.
+ * built-in one, which declares the Enterprise team type beside the
+ * open-source ones.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -84,8 +84,8 @@ import { newBuiltInListReadScope } from "../list-read-scope.js";
 import type { KindDeclaration } from "../model/rewrite.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
-import { enterpriseModel, teamDeclaration } from "./enterprise-model.js";
-import { fixtureRow } from "./support.js";
+import { builtInModel } from "../model/index.js";
+import { fixtureRow, storedDeclaration } from "./support.js";
 import type { FixtureRowFacts } from "./support.js";
 
 const MEASURE = process.env["AUTHORIZATION_MEASURE"] === "1";
@@ -141,14 +141,6 @@ function teamGrantedOn(i: number): number | undefined {
 /** Whether `DIRECT` is granted `viewer` on agent `i`: 2% of the agents. */
 function directGrantOn(i: number): boolean {
   return i % 50 === 1;
-}
-
-function declared(type: string): KindDeclaration {
-  const declaration = enterpriseModel.byType(type);
-  if (declaration === undefined) {
-    throw new Error(`${type} is declared`);
-  }
-  return declaration;
 }
 
 function resolved(accountId: string): CallerIdentity {
@@ -461,7 +453,7 @@ describe
     let accounts: IdentityAccountStore;
 
     async function save(type: string, facts: FixtureRowFacts): Promise<object> {
-      const declaration = declared(type);
+      const declaration = storedDeclaration(type);
       const row = fixtureRow(declaration, facts);
       await opened.store.saveResource(
         declaration.kind,
@@ -530,8 +522,8 @@ describe
         await opened.store.saveResource(
           ApiResourceKind.team,
           teamId(team),
-          teamDeclaration.schema,
-          fixtureRow(teamDeclaration, {
+          storedDeclaration("team").schema,
+          fixtureRow(storedDeclaration("team"), {
             id: teamId(team),
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
@@ -550,7 +542,7 @@ describe
         it(
           `${shape.name} at ${n} rows`,
           async () => {
-            const declaration = declared(shape.kind);
+            const declaration = storedDeclaration(shape.kind);
             const policyRows = await seedPopulation(n);
             for (const parent of shape.parents ?? []) {
               await save(parent.type, parent.facts);
@@ -568,7 +560,7 @@ describe
               policies,
               accounts,
               logger: silentLogger,
-              model: enterpriseModel,
+              model: builtInModel,
             });
             const started = performance.now();
             const kept =
@@ -599,7 +591,7 @@ describe
       it(
         `pages: ${shape.name}, at a ${PAGE_POPULATION}-row population`,
         async () => {
-          const declaration = declared("agent");
+          const declaration = storedDeclaration("agent");
           const policyRows = await seedPopulation(PAGE_POPULATION);
           const entries: ListEntryMeta[] = [];
           for (let i = 0; i < PAGE_EXAMINE_BUDGET; i += 1) {
@@ -614,7 +606,7 @@ describe
             policies,
             accounts,
             logger: silentLogger,
-            model: enterpriseModel,
+            model: builtInModel,
           });
           const caller = resolved(shape.caller);
           // A page's batches run one after another, each through the scope
@@ -659,7 +651,7 @@ describe
               accounts,
               edition: ServerEdition.oss,
               logger: silentLogger,
-              model: enterpriseModel,
+              model: builtInModel,
             });
             const check = {
               permission: IamPermission.can_view,

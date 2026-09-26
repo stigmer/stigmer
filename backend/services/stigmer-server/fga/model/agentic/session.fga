@@ -1,0 +1,127 @@
+module agentic
+
+# ========================================
+# SESSION TYPE (Organization-scoped, Personal Resource)
+# ========================================
+# Conversation sessions with an agent instance.
+# Every session belongs to an organization with user attribution.
+#
+# Authorization model (PERSONAL RESOURCE — always private):
+# Sessions are always personal by default. Even if the parent agent instance
+# has ORG or PUBLIC visibility, the session does NOT inherit that visibility.
+# This preserves conversation privacy: my chat with a public bot is private.
+#
+# Sharing a session requires explicit viewer grants per-session.
+# Agent executions inherit permissions from their parent session.
+#
+# Default access:
+# - Owner (creator) can view/edit/delete
+# - Other org members must be explicitly granted viewer access
+# - Org admins have NO implicit access (personal resource)
+#
+# CHANNEL SESSIONS (structural read-only observability — the default_of
+# idiom, composed narrower): sessions created by the channel runtime
+# (Slack/WhatsApp turns, owned by the per-org system-channel account) carry
+# a single session#channel@agent_channel:<id> tuple and inherit the parent
+# channel's viewer set (connector + org admins) into can_view ONLY. Unlike
+# default_of — which composes into full `viewer` because default instances
+# must be runnable — the channel link deliberately bypasses `viewer` so
+# channel observers never gain can_create_execution_in (injecting a console
+# message into a live external conversation would run an execution whose
+# reply never reaches the channel). Console sessions never get a channel
+# tuple, so the personal-resource invariant above is untouched.
+#
+# SCHEDULE SESSIONS (the channel idiom, second application, since
+# 2026-08-02): sessions created by the schedule runtime (a Schedule resource
+# firing, owned by the per-org system-schedule account) carry a single
+# session#schedule@schedule:<id> tuple and inherit the parent schedule's
+# viewer set (creator + org admins + grantees) into can_view ONLY. Without
+# it a scheduled run is invisible to every human, including the schedule's
+# owner. Read-only for the same reason as the channel link: injecting a
+# console message into an unattended run is not observability. Console
+# sessions never get a schedule tuple.
+#
+# Deletion cascades to the session's agent executions. The billing trail is
+# unaffected: llm_call_usage_record rows are immutable and carry their own
+# denormalized copies of session/execution/org identifiers (owners may
+# delete their own sessions since 2026-07-08).
+#
+# FGA tuples on creation:
+# - session:<id>#organization@organization:<org>
+# - session:<id>#agent_instance@agent_instance:<instance>
+# - session:<id>#owner@identity_account:<creator>
+# - session:<id>#channel@agent_channel:<channel>  (channel sessions only)
+# - session:<id>#schedule@schedule:<schedule>     (schedule sessions only)
+
+type session
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # PARENT AGENT INSTANCE
+    # ========================================
+    # Tracks which agent instance this session belongs to for audit
+    # and query purposes. Does NOT propagate visibility — sessions
+    # are always personal regardless of instance visibility.
+    define agent_instance: [agent_instance]
+
+    # ========================================
+    # CHANNEL LINK (Structural Read-Only Inheritance)
+    # ========================================
+    # Written ONLY on sessions the channel runtime creates — invariant: the
+    # tuple is written by ChannelSessionLinkStep from the validated channel
+    # JWT's channel_id claim, never derived from the client-suppliable
+    # stigmer.ai/channel-id label. Composes the channel's viewer set
+    # (connector + org admins) into can_view below — and ONLY can_view, so
+    # channel observers cannot inject executions, edit, delete, or manage
+    # grants. Console sessions never carry this tuple.
+    define channel: [agent_channel]
+
+    # ========================================
+    # SCHEDULE LINK (Structural Read-Only Inheritance)
+    # ========================================
+    # The channel link's twin for the schedule runtime (since 2026-08-02)
+    # — written ONLY by ScheduleSessionLinkStep from the validated schedule
+    # JWT's schedule_id claim, never derived from the client-suppliable
+    # stigmer.ai/schedule-id label. Composes the schedule's viewer set
+    # (creator + org admins + grantees) into can_view below — and ONLY
+    # can_view, so schedule observers cannot inject executions into an
+    # unattended run. Console sessions never carry this tuple.
+    define schedule: [schedule]
+
+    # ========================================
+    # OWNERSHIP (Personal Resource)
+    # ========================================
+    # Org admins explicitly excluded — sessions are personal resources
+    # containing private conversations that admins have no business accessing.
+    define owner: [identity_account]
+    
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants)
+    # ========================================
+    define viewer: [identity_account] or owner
+    
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    # can_view adds `viewer from channel` (channel sessions only) and
+    # `viewer from schedule` (schedule sessions only) WITHOUT widening
+    # `viewer`, because can_create_execution_in and can_view_access derive
+    # from viewer — runtime-surface observability must stay read-only.
+    define can_view: viewer or viewer from channel or viewer from schedule
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # SESSION INTERACTION
+    # ========================================
+    define can_create_execution_in: viewer
+    
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

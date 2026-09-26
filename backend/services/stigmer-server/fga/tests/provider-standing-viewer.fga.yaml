@@ -1,0 +1,36 @@
+# Store tests for the provider-standing view permission (stigmer#732).
+#
+# can_view_provider_standing gates the read-only operator console view of
+# platform provider standing (the canary-probe verdicts the hourly
+# probe records). It derives from the platform operator role — provider
+# account health is platform-internal, so ordinary tenants (even org
+# owners) never see it, regardless of what they own.
+#
+# Run with:
+#   fga model test --tests provider-standing-viewer.fga.yaml
+name: provider-standing-viewer
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # A platform operator.
+  - user: identity_account:opal
+    relation: operator
+    object: platform:stigmer
+
+  # A tenant org owner — owns everything in their org, nothing on the
+  # platform.
+  - user: identity_account:mallory
+    relation: owner
+    object: organization:acme
+
+tests:
+  - name: operator may view provider standing, tenants may not
+    check:
+      - user: identity_account:opal
+        object: platform:stigmer
+        assertions:
+          can_view_provider_standing: true
+      - user: identity_account:mallory
+        object: platform:stigmer
+        assertions:
+          can_view_provider_standing: false

@@ -1,0 +1,109 @@
+# Schedules are owner-scoped operational config (since 2026-08-02,
+# cloned from the agent_channel model): the
+# creator owns the schedule; view/edit/delete require ownership or an
+# explicit grant. Plain org members get NO implicit access — a schedule's
+# levers are billing-affecting (every fire spends the owning org's
+# credits, unattended). Creation is target-gated (can_edit on the
+# referenced agent, checked in-handler), so no organization-level
+# can_create_schedule relation exists to test.
+#
+# Org ADMINS inherit owner (since 2026-07-13, consistent with agents and
+# channels — an admin who can edit the agent can manage its schedules).
+# The narrowness these tests pin: owner + admins have control, granted
+# viewers read, plain members have nothing.
+#
+# Run: fga model test --tests schedule-owner.fga.yaml
+
+name: schedule-owner
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org membership for both accounts — proving membership grants nothing.
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:acme
+
+  # Org admin — proving admin owner inheritance reaches schedules.
+  - user: identity_account:ana
+    relation: admin
+    object: organization:acme
+
+  # The schedule, created by alice (the config-driven create tuples).
+  - user: organization:acme
+    relation: organization
+    object: schedule:daily-fee-reminders
+  - user: identity_account:alice
+    relation: owner
+    object: schedule:daily-fee-reminders
+
+  # An explicit viewer grant to carol (not even an org member).
+  - user: identity_account:carol
+    relation: viewer
+    object: schedule:daily-fee-reminders
+
+tests:
+  - name: owner has full control including grant management
+    check:
+      - user: identity_account:alice
+        object: schedule:daily-fee-reminders
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_view_access: true
+
+  - name: explicitly granted viewer can read but not mutate
+    check:
+      - user: identity_account:carol
+        object: schedule:daily-fee-reminders
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: true
+
+  - name: fellow org member has no implicit access
+    check:
+      - user: identity_account:mallory
+        object: schedule:daily-fee-reminders
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: org admin inherits schedule management
+    check:
+      - user: identity_account:ana
+        object: schedule:daily-fee-reminders
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+
+  - name: listing schedules reflects ownership and grants, not membership
+    list_objects:
+      - user: identity_account:alice
+        type: schedule
+        assertions:
+          can_view:
+            - schedule:daily-fee-reminders
+          can_edit:
+            - schedule:daily-fee-reminders
+      - user: identity_account:carol
+        type: schedule
+        assertions:
+          can_view:
+            - schedule:daily-fee-reminders
+          can_edit: []
+      - user: identity_account:mallory
+        type: schedule
+        assertions:
+          can_view: []

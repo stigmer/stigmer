@@ -1,0 +1,121 @@
+# Channel apps are owner-scoped provider credentials (bring your own app,
+# the oauth_app RESTRICTED posture with org-admin inheritance): the creator
+# owns the app; view/edit/delete require ownership or an explicit grant.
+# Plain org members get NO implicit access — the resource carries the
+# org's webhook signing secret and OAuth client secret.
+#
+# Org ADMINS inherit owner (as on blueprints): a credential holder needs an
+# operator of last resort more than any blueprint does — an ex-employee
+# owner must never strand secret rotation. The narrowness these tests
+# pin: owner + admins have control, granted viewers read, plain members
+# have nothing, and only admins can create.
+#
+# Run: fga model test --tests channel-app-owner.fga.yaml
+
+name: channel-app-owner
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org membership for both accounts — proving membership grants nothing.
+  # alice created the app while she was an admin and was later demoted to
+  # member (creation is admin-gated; the owner tuple survives demotion) —
+  # this keeps the direct-owner path distinct from admin inheritance.
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:acme
+
+  # Org admin — proving admin owner inheritance reaches channel apps.
+  - user: identity_account:ana
+    relation: admin
+    object: organization:acme
+
+  # The channel app, created by alice (the config-driven create tuples).
+  - user: organization:acme
+    relation: organization
+    object: channel_app:acme-support-bot
+  - user: identity_account:alice
+    relation: owner
+    object: channel_app:acme-support-bot
+
+  # An explicit viewer grant to carol (not even an org member).
+  - user: identity_account:carol
+    relation: viewer
+    object: channel_app:acme-support-bot
+
+tests:
+  - name: owner has full control including grant management
+    check:
+      - user: identity_account:alice
+        object: channel_app:acme-support-bot
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_view_access: true
+
+  - name: explicitly granted viewer can read but not mutate
+    check:
+      - user: identity_account:carol
+        object: channel_app:acme-support-bot
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: true
+
+  - name: fellow org member has no implicit access
+    check:
+      - user: identity_account:mallory
+        object: channel_app:acme-support-bot
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: org admin inherits channel app management
+    check:
+      - user: identity_account:ana
+        object: channel_app:acme-support-bot
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+
+  - name: creation is admin-gated on the organization
+    check:
+      - user: identity_account:ana
+        object: organization:acme
+        assertions:
+          can_create_channel_app: true
+      - user: identity_account:mallory
+        object: organization:acme
+        assertions:
+          can_create_channel_app: false
+
+  - name: listing channel apps reflects ownership and grants, not membership
+    list_objects:
+      - user: identity_account:alice
+        type: channel_app
+        assertions:
+          can_view:
+            - channel_app:acme-support-bot
+          can_edit:
+            - channel_app:acme-support-bot
+      - user: identity_account:carol
+        type: channel_app
+        assertions:
+          can_view:
+            - channel_app:acme-support-bot
+          can_edit: []
+      - user: identity_account:mallory
+        type: channel_app
+        assertions:
+          can_view: []

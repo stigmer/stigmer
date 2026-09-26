@@ -1,0 +1,69 @@
+module agentic
+
+# ========================================
+# PLUGIN TYPE (Organization-scoped)
+# ========================================
+# The unit of install: an Agent Plugins package whose push materialises
+# skills, MCP servers, an agent and workflows in the organization, each
+# labelled with the plugin's id. The plugin head is a blueprint-shaped kind
+# and follows the skill model exactly: org-scoped, owner-attributed, four
+# visibility levels through the tuples VisibilityTupleReconciler writes
+# (see agent.fga for the pattern, including the org floor).
+#
+# What the model does NOT do: a member's permission is the member kind's
+# own. The OSS server materialises members through the owning domain's
+# full chain AS THE INSTALLING CALLER, so a skill the plugin installed has
+# the same owner and visibility tuples as one pushed by hand, and its
+# `can_edit` is answered by skill.fga. The plugin's `can_edit` gates
+# push (upgrade) and updateVisibility of the head; `can_delete` gates the
+# cascade. Membership itself is a label on the member, never a tuple here.
+#
+# Authorization model (visibility is REAL — no unconditional org grant):
+# - PRIVATE: owner (incl. org admins, see below) + explicit grants only.
+# - ORG and above: org members can view/use via the explicit viewer tuple.
+# - Owners (installers) and org admins can upgrade/re-level/remove (admin
+#   inheritance — mirrors skill and mcp_server).
+#
+# FGA tuples on install:
+# - plugin:thermos#organization@organization:stigmer
+# - plugin:thermos#owner@identity_account:alice
+# - plugin:thermos#viewer@organization:stigmer#viewer (if visibility>=ORG)
+# - plugin:thermos#platform_viewer@identity_provider:<idp>#platform_user (if visibility=PLATFORM)
+
+type plugin
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    define owner: [identity_account] or admin from organization
+
+    # ========================================
+    # PLATFORM VISIBILITY (Structural)
+    # ========================================
+    define platform_viewer: [identity_provider#platform_user]
+
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # team#member is an Enterprise team's grant: every member, bounded by
+    # the organization in team.fga.
+    define viewer: [identity_account, organization#member, organization#viewer, team#member] or owner or platform_viewer
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    define can_use: viewer
+
+    # ========================================
+    # IAM POLICY MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

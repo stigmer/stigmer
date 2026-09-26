@@ -1,0 +1,149 @@
+# Team membership is bounded by the organization, and a team grant reaches
+# exactly the team's bounded members.
+#
+# Cast (organization acme unless named):
+#   ana  - acme admin; manages teams, is in none
+#   vic  - acme viewer-role member of team sre
+#   mem  - acme member-role member of team sre
+#   gus  - acme guest with a membership row on sre (never a member)
+#   left - a membership row on sre and no acme role (left the organization)
+#   back - left and rejoined: the same membership row and an acme viewer role
+#   out  - a member of organization other, with a membership row on sre
+#   ext  - an organization-other viewer in other's team partners
+#
+# Team ghost has membership rows and a grant but no organization link, the
+# state its members are left in when the link is gone: nobody is a member.
+# Team partners belongs to organization other and holds a grant on an acme
+# agent. The model grants it, because it cannot see which organization a
+# grant crosses into; the IAM policy grant gate refuses such a grant before
+# it is written.
+name: team-membership
+model_file: ../../src/authorization/model/data/authorization-model.json
+tuples:
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:vic, relation: viewer, object: organization:acme}
+  - {user: identity_account:mem, relation: member, object: organization:acme}
+  - {user: identity_account:gus, relation: guest, object: organization:acme}
+  - {user: identity_account:back, relation: viewer, object: organization:acme}
+  - {user: identity_account:out, relation: member, object: organization:other}
+  - {user: identity_account:ext, relation: viewer, object: organization:other}
+  - {user: organization:acme, relation: organization, object: team:sre}
+  - {user: identity_account:vic, relation: member, object: team:sre}
+  - {user: identity_account:mem, relation: member, object: team:sre}
+  - {user: identity_account:gus, relation: member, object: team:sre}
+  - {user: identity_account:left, relation: member, object: team:sre}
+  - {user: identity_account:back, relation: member, object: team:sre}
+  - {user: identity_account:out, relation: member, object: team:sre}
+  - {user: identity_account:vic, relation: member, object: team:ghost}
+  - {user: organization:other, relation: organization, object: team:partners}
+  - {user: identity_account:ext, relation: member, object: team:partners}
+  - {user: organization:acme, relation: organization, object: agent:triage}
+  - {user: team:sre#member, relation: viewer, object: agent:triage}
+  - {user: team:ghost#member, relation: viewer, object: agent:triage}
+  - {user: organization:acme, relation: organization, object: agent:partner}
+  - {user: team:partners#member, relation: viewer, object: agent:partner}
+  - {user: organization:acme, relation: organization, object: agent_channel:support}
+  - {user: team:sre#member, relation: participant, object: agent_channel:support}
+  - {user: organization:acme, relation: organization, object: agent_channel:alerts}
+  - {user: team:sre#member, relation: viewer, object: agent_channel:alerts}
+  - {user: organization:acme, relation: organization, object: schedule:nightly}
+  - {user: team:sre#member, relation: viewer, object: schedule:nightly}
+  - {user: organization:acme, relation: organization, object: workflow_execution:run1}
+  - {user: team:sre#member, relation: viewer, object: workflow_execution:run1}
+tests:
+  - name: team members who are org viewers reach the team's grants; nobody else does
+    check:
+      - user: identity_account:vic
+        object: agent:triage
+        assertions: {viewer: true, can_view: true, can_execute: true, can_edit: false}
+      - user: identity_account:mem
+        object: agent:triage
+        assertions: {viewer: true, can_edit: false}
+      - user: identity_account:back
+        object: agent:triage
+        assertions: {viewer: true}
+      - user: identity_account:gus
+        object: agent:triage
+        assertions: {viewer: false}
+      - user: identity_account:left
+        object: agent:triage
+        assertions: {viewer: false}
+      - user: identity_account:out
+        object: agent:triage
+        assertions: {viewer: false}
+  - name: a team grant reaches schedules, runs and channels the same way
+    check:
+      - user: identity_account:vic
+        object: schedule:nightly
+        assertions: {viewer: true, can_view: true, can_edit: false}
+      - user: identity_account:left
+        object: schedule:nightly
+        assertions: {viewer: false}
+      - user: identity_account:vic
+        object: workflow_execution:run1
+        assertions: {viewer: true, can_view: true}
+      - user: identity_account:gus
+        object: workflow_execution:run1
+        assertions: {viewer: false}
+      - user: identity_account:vic
+        object: agent_channel:support
+        assertions: {participant: true, viewer: true, can_edit: false}
+      - user: identity_account:left
+        object: agent_channel:support
+        assertions: {participant: false, viewer: false}
+      - user: identity_account:vic
+        object: agent_channel:alerts
+        assertions: {participant: false, viewer: true}
+  - name: a team without its organization link has no members, so its grants reach nobody
+    check:
+      - user: identity_account:vic
+        object: team:ghost
+        assertions: {member: false, can_view: false}
+      - user: identity_account:ana
+        object: team:ghost
+        assertions: {can_edit: false, can_delete: false, can_grant_access: false}
+  - name: the model grants a team of another organization; the grant gate is what refuses it
+    check:
+      - user: identity_account:ext
+        object: agent:partner
+        assertions: {viewer: true}
+      - user: identity_account:vic
+        object: agent:partner
+        assertions: {viewer: false}
+  - name: the team itself is org-visible and org-admin managed
+    check:
+      - user: identity_account:vic
+        object: team:sre
+        assertions: {member: true, can_view: true, can_grant_access: false, can_edit: false}
+      - user: identity_account:ana
+        object: team:sre
+        assertions: {member: false, can_view: true, can_view_access: true, can_grant_access: true, can_edit: true, can_delete: true}
+      - user: identity_account:mem
+        object: team:sre
+        assertions: {member: true, can_grant_access: false, can_delete: false}
+      - user: identity_account:gus
+        object: team:sre
+        assertions: {member: false, can_view: false}
+      - user: identity_account:out
+        object: team:sre
+        assertions: {member: false, can_view: false}
+      - user: identity_account:ana
+        object: organization:acme
+        assertions: {can_create_team: true}
+      - user: identity_account:mem
+        object: organization:acme
+        assertions: {can_create_team: false}
+  - name: list objects expand the team through the org bound
+    list_objects:
+      - user: identity_account:vic
+        type: agent
+        assertions: {viewer: [agent:triage]}
+      - user: identity_account:left
+        type: agent
+        assertions: {viewer: []}
+      - user: identity_account:back
+        type: agent
+        assertions: {viewer: [agent:triage]}
+      - user: identity_account:ext
+        type: agent
+        assertions: {viewer: [agent:partner]}

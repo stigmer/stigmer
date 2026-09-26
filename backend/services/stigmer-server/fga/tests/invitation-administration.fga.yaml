@@ -1,0 +1,84 @@
+# An invitation is its organization's administrative resource: its admins
+# view and manage it, its creator manages it, and nobody else in the
+# organization sees it. An invitation carries its token, the credential
+# that grants the invitation's role, so `can_view` is the question every
+# read of it asks.
+#
+# Cast (organization acme unless named):
+#   root  - acme owner (an admin through the role hierarchy)
+#   ana   - acme admin; created nothing
+#   carl  - created invitation `link` as an acme admin, since demoted to
+#           member (his direct owner row outlives the role)
+#   dave  - acme member-role member
+#   vera  - acme viewer-role member
+#   zara  - admin of the unrelated organization other
+#
+# Invitation `link` carries both creation tuples. Invitation `relinked`
+# carries only its organization link: every invitation written before its
+# creation event existed, as the boot reconcile repairs it. Invitation
+# `bare` carries no tuple at all, the state before that repair: nobody,
+# not even an admin, sees it.
+name: invitation-administration
+model_file: ../../src/authorization/model/data/authorization-model.json
+tuples:
+  - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:carl, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:zara, relation: admin, object: organization:other}
+  - {user: organization:acme, relation: organization, object: invitation:link}
+  - {user: identity_account:carl, relation: owner, object: invitation:link}
+  - {user: organization:acme, relation: organization, object: invitation:relinked}
+tests:
+  - name: every admin of the organization views and manages its invitations
+    check:
+      - user: identity_account:ana
+        object: invitation:link
+        assertions: {owner: true, viewer: true, can_view: true, can_edit: true, can_delete: true}
+      - user: identity_account:root
+        object: invitation:link
+        assertions: {owner: true, viewer: true, can_view: true, can_edit: true, can_delete: true}
+  - name: an invitation relinked by the reconcile is managed by the organization's admins
+    check:
+      - user: identity_account:ana
+        object: invitation:relinked
+        assertions: {can_view: true, can_edit: true, can_delete: true}
+      - user: identity_account:vera
+        object: invitation:relinked
+        assertions: {can_view: false}
+  - name: an invitation with no tuple is invisible to everyone, its admins included
+    check:
+      - user: identity_account:ana
+        object: invitation:bare
+        assertions: {can_view: false, can_edit: false}
+  - name: the organization's members and viewers neither see nor manage its invitations
+    check:
+      - user: identity_account:dave
+        object: invitation:link
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+      - user: identity_account:vera
+        object: invitation:link
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+  - name: a creator who is no longer an admin still manages the link and cannot view it
+    check:
+      - user: identity_account:carl
+        object: invitation:link
+        assertions: {owner: true, can_edit: true, can_delete: true, viewer: false, can_view: false}
+  - name: an admin of another organization has nothing
+    check:
+      - user: identity_account:zara
+        object: invitation:link
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+  - name: only the organization's admins list its invitations
+    list_objects:
+      - user: identity_account:ana
+        type: invitation
+        assertions:
+          can_view:
+            - invitation:link
+            - invitation:relinked
+      - user: identity_account:vera
+        type: invitation
+        assertions:
+          can_view: []

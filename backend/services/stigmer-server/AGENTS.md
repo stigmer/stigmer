@@ -22,6 +22,8 @@ advances. This guide is an index; the files it names are the truth.
   discipline.
 - `src/query/README.md`: the two read-side services that are not domains.
 - `docs/authorization-coverage.md`: every entry point's authorization posture.
+- `fga/model/README.md`: the authorization model and its compiled file's
+  contract.
 - `test/conformance/README.md`: the cross-edition suite this server is held to.
 
 ## Laws
@@ -63,6 +65,8 @@ advances. This guide is an index; the files it names are the truth.
   laws above, the extension-point conventions, the error contract in full, and
   how a core change reaches the cloud edition. Load it before changing a chain,
   an extension point, a store driver or a workflow.
+- `.agents/skills/model-fga-authorization/SKILL.md`: the order of work for an
+  authorization-model change.
 
 ## Verify
 

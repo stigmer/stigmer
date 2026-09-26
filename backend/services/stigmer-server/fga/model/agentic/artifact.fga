@@ -1,0 +1,70 @@
+module agentic
+
+# ========================================
+# ARTIFACT TYPE (Organization-scoped, System-created)
+# ========================================
+# Persisted blobs produced during workflow or agent execution.
+# Created by runners (system-level RPC, authorization skipped on create).
+# Every artifact belongs to an organization, derived from its source
+# execution at creation time.
+#
+# Authorization model:
+# - The creator (owner) can view artifacts their executions produced
+# - Organization members (viewer and above) can view artifacts in their org
+# - Organization admins can edit/delete artifacts in their org
+#
+# The philosophy: "if you can view resources in the org, you can view its
+# artifacts" — artifacts are outputs of executions, not user-created
+# documents. Creator ownership exists on top of that for readers who are
+# NOT org viewers: guest share visitors and embedded platform-client users
+# run executions of their own (runner tokens carry the acting identity as
+# sub, so the create caller IS the executing user), and their sessions
+# render artifact-backed content (review payloads in approval gates, the
+# artifacts tab). Without the owner arm, enabling artifact authorization
+# would have cut those audiences off from their own executions' outputs.
+#
+# can_edit stays org-admin-only deliberately: delete has no user-facing
+# surface today, and all guests of an org share one guest identity
+# account, so owner-edit would let one guest soft-delete another guest's
+# artifacts. Grant owner edit rights deliberately if a delete surface
+# ships (grantable_roles in the kind registry already names owner).
+#
+# Tuples written on create (config-driven from the kind registry:
+# ORGANIZATION scope, DIRECT owner attribution):
+# - artifact:<id>#organization@organization:<org>
+# - artifact:<id>#owner@identity_account:<creator>
+# Pre-existing artifacts are backfilled by ArtifactAuthorizationBackfill
+# at service boot, deriving org and creator from the source execution.
+
+type artifact
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    # Every artifact belongs to exactly one organization, derived from
+    # the source execution's org at creation time.
+    # FGA tuple: artifact:<artifact_id>#organization@organization:<org_id>
+    define organization: [organization]
+
+    # ========================================
+    # CREATOR OWNERSHIP
+    # ========================================
+    # The identity the runner acted on behalf of when the artifact was
+    # created — the user, guest, or machine account whose execution
+    # produced it. Grants read access independent of org membership
+    # (guest share visitors are org guests, not org viewers).
+    # FGA tuple: artifact:<artifact_id>#owner@identity_account:<creator_id>
+    define owner: [identity_account]
+
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # All org viewers (and above) can view artifacts in their org.
+    # No per-artifact viewer grants needed for the common case.
+    define viewer: [identity_account] or viewer from organization
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: owner or viewer
+    define can_edit: admin from organization
