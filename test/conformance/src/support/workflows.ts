@@ -434,38 +434,58 @@ export const EVAL_AFTER_TASK_NAME = "afterEval";
 // The scoring modes and failure policies EvalTaskConfig declares, as the full
 // proto enum strings the json-schema and the server converter expect (the
 // human_input fixture's on_timeout convention).
-export type EvalScoringMode = "EVAL_PASS_FAIL" | "EVAL_NUMERIC_SCORE";
+export type EvalScoringMode = "EVAL_PASS_FAIL" | "EVAL_NUMERIC_SCORE" | "EVAL_MULTI_CRITERIA";
 export type EvalFailPolicy = "EVAL_FAIL_RAISE" | "EVAL_FAIL_WARN";
+
+// One named dimension of an EVAL_MULTI_CRITERIA judgment (EvalCriterion):
+// the judge scores each 0..1 and the eval weights them into its score.
+export interface EvalCriterionOption {
+  name: string;
+  description: string;
+  weight: number;
+}
 
 export interface EvalWorkflowOptions {
   org: string;
   name: string;
   // The text under judgment, exported by the preceding set_vars as `subject`.
+  // Passed through literally: the engine evaluates a string only when the
+  // WHOLE of it is a `${ … }` expression, so a subject must not be one.
   subject: string;
   rubric: string;
   scoringMode: EvalScoringMode;
   // Minimum passing score for EVAL_NUMERIC_SCORE; ignored for pass/fail.
   threshold?: number;
   onFail: EvalFailPolicy;
+  // Registry id of the judge (eval.model). Defaults to LLM_TASK_MODEL, the
+  // model the mock-scripted suites answer as; a live caller pins its own.
+  model?: string;
+  // The dimensions EVAL_MULTI_CRITERIA scores (required by that mode).
+  criteria?: readonly EvalCriterionOption[];
   // Append a trailing set_vars (EVAL_AFTER_TASK_NAME) so the suite can prove the
   // run continued past a failing eval under the WARN policy.
   withAfterTask?: boolean;
 }
 
-// A Workflow of set_vars -> eval (-> set_vars). The judge is the mock LLM: the
-// runner binds a forced `extract` tool for the eval's structured verdict
-// (withStructuredOutput), so the suite scripts one anthropicToolUse turn named
-// `extract` with the verdict fields (EVAL_EXTRACT_TOOL_NAME) — the same shape
-// the classifier arms use. The taskConfig is the typed EvalTaskConfig.
+// A Workflow of set_vars -> eval (-> set_vars). Under the mock the judge is
+// scripted: the runner binds a forced `extract` tool for the eval's
+// structured verdict (withStructuredOutput), so the suite scripts one
+// anthropicToolUse turn named `extract` with the verdict fields
+// (EVAL_EXTRACT_TOOL_NAME) — the same shape the classifier arms use. The live
+// harness benchmark grades its quality tasks through this same shape with a
+// real judge. The taskConfig is the typed EvalTaskConfig.
 export function makeEvalWorkflow(opts: EvalWorkflowOptions): InitShape<typeof WorkflowSchema> {
-  const { org, name, subject, rubric, scoringMode, threshold, onFail, withAfterTask = false } = opts;
+  const { org, name, subject, rubric, scoringMode, threshold, onFail, model, criteria, withAfterTask = false } = opts;
   const evalConfig: JsonObject = {
-    model: LLM_TASK_MODEL,
+    model: model ?? LLM_TASK_MODEL,
     subject: `\${ $context.${EVAL_SUBJECT_TASK_NAME}.subject }`,
     rubric,
     scoring_mode: scoringMode,
     ...(threshold !== undefined ? { threshold } : {}),
     on_fail: onFail,
+    ...(criteria !== undefined
+      ? { criteria: criteria.map((criterion) => ({ name: criterion.name, description: criterion.description, weight: criterion.weight })) }
+      : {}),
   };
   return {
     apiVersion: WORKFLOW_API_VERSION,
