@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEioAMKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEhcKD2FsbG93ZWRfaXNzdWVycxgDIAMoCRIjChFleHBlY3RlZF9hdWRpZW5jZRgEIAEoCUIIukgFcgMYyAESGQoRcmF0ZV9saW1pdF9idWRnZXQYBSABKAUSIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYCSABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYCiABKAgSMwoPYXV0b19ncmFudF9yb2xlGAsgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIiChB0ZW5hbnRfb3JnX2NsYWltGAwgASgJQgi6SAVyAxiAAmIGcHJvdG8z", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEixwQKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEhcKD2FsbG93ZWRfaXNzdWVycxgDIAMoCRIjChFleHBlY3RlZF9hdWRpZW5jZRgEIAEoCUIIukgFcgMYyAESGQoRcmF0ZV9saW1pdF9idWRnZXQYBSABKAUSIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYCSABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYCiABKAgSMwoPYXV0b19ncmFudF9yb2xlGAsgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIiChB0ZW5hbnRfb3JnX2NsYWltGAwgASgJQgi6SAVyAxiAAjqkAbpIoAEanQEKK2lkZW50aXR5X3Byb3ZpZGVyLmF1dG9fZ3JhbnRfcm9sZV9ub3Rfb3duZXISU2F1dG9fZ3JhbnRfcm9sZSBjYW5ub3QgYmUgb3duZXI7IG9yZ2FuaXphdGlvbiBvd25lcnNoaXAgbXVzdCBiZSBhc3NpZ25lZCBleHBsaWNpdGx5Ghl0aGlzLmF1dG9fZ3JhbnRfcm9sZSAhPSAxYgZwcm90bzM", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
 
 /**
  * IdentityProviderSpec defines the configuration for an external identity provider.
@@ -275,7 +275,9 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    * The role to grant when auto_grant_on_org is true.
    *
    * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
+   * is not permitted — organization ownership must be assigned explicitly —
+   * and a provider that asks for it is refused with
+   * `identity_provider.auto_grant_role_not_owner`.
    *
    * This field is only meaningful when auto_grant_on_org is true. When
    * auto_grant_on_org is false, this field is ignored regardless of its value.

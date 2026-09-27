@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { PrincipalAccess, RoleGrant } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import {
   IamPolicySpecSchema,
@@ -16,6 +16,7 @@ import {
   iamRoleToString,
 } from "@stigmer/sdk";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { useOwnerAssignment } from "./useOwnerAssignment.js";
 import { useResourceAccess } from "./useResourceAccess.js";
 import { usePrincipalsCount } from "./usePrincipalsCount.js";
 import { useWhoAmI } from "./useWhoAmI.js";
@@ -52,6 +53,13 @@ export interface OrgMembersPanelProps {
  * `identityAccount.whoAmI()` for self-protection (disabling
  * destructive actions on yourself).
  *
+ * Owner is assigned by owners: the server asks `can_assign_roles` on the
+ * organization before any change to the owner role. The panel asks the
+ * same question once, and for a caller without it offers no owner in the
+ * role picker and no change or removal on an owner's row. A role change
+ * grants the new role before it revokes the old one, so a refused step
+ * leaves the member with the role they had.
+ *
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * @example
@@ -69,6 +77,7 @@ export function OrgMembersPanel({
   const { count, refetch: refetchCount } = usePrincipalsCount(orgId || null);
   const { account: currentAccount } = useWhoAmI();
   const currentAccountId = currentAccount?.metadata?.id ?? null;
+  const { canAssignOwner, unassignable } = useOwnerAssignment(orgId || null);
 
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
 
@@ -133,6 +142,8 @@ export function OrgMembersPanel({
                 entry={entry}
                 orgId={orgId}
                 isSelf={memberId === currentAccountId}
+                canAssignOwner={canAssignOwner}
+                unassignable={unassignable}
                 isActioning={actionMemberId === memberId}
                 onStartAction={() => setActionMemberId(memberId)}
                 onEndAction={() => setActionMemberId(null)}
@@ -154,6 +165,8 @@ function MemberRow({
   entry,
   orgId,
   isSelf,
+  canAssignOwner,
+  unassignable,
   isActioning,
   onStartAction,
   onEndAction,
@@ -162,6 +175,10 @@ function MemberRow({
   entry: PrincipalAccess;
   orgId: string;
   isSelf: boolean;
+  /** Whether the caller may grant, revoke or remove the owner role here. */
+  canAssignOwner: boolean;
+  /** The roles the caller may not assign, left out of the role picker. */
+  unassignable: readonly IamRole[];
   isActioning: boolean;
   onStartAction: () => void;
   onEndAction: () => void;
@@ -177,6 +194,11 @@ function MemberRow({
   const email = principal?.email ?? "";
   const initial = name.charAt(0).toUpperCase();
   const directRoles = entry.roles.filter((r) => !r.isInherited);
+  const holdsOwner = directRoles.some(
+    (grant) => grant.role?.code === iamRoleToString(IamRole.owner),
+  );
+  // Changing or removing an owner changes the owner role: an owner's act.
+  const mayAct = !isSelf && (canAssignOwner || !holdsOwner);
 
   const startAction = (type: "remove" | "change-role") => {
     setActionType(type);
@@ -208,6 +230,7 @@ function MemberRow({
       <ChangeRoleRow
         entry={entry}
         orgId={orgId}
+        omitRoles={unassignable}
         onDone={() => {
           cancelAction();
           onMutated();
@@ -255,7 +278,7 @@ function MemberRow({
       </div>
 
       {/* Actions */}
-      {!isSelf && (
+      {mayAct && (
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
           <button
             type="button"
@@ -398,11 +421,14 @@ function RemoveConfirmation({
 function ChangeRoleRow({
   entry,
   orgId,
+  omitRoles,
   onDone,
   onCancel,
 }: {
   entry: PrincipalAccess;
   orgId: string;
+  /** The roles the caller may not assign, left out of the picker. */
+  omitRoles: readonly IamRole[];
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -429,19 +455,9 @@ function ChangeRoleRow({
     setError(null);
 
     try {
-      const deleteSpec = create(IamPolicySpecSchema, {
-        principal: create(ApiResourceRefSchema, {
-          kind: "identity_account",
-          id: memberId,
-        }),
-        resource: create(ApiResourceRefSchema, {
-          kind: "organization",
-          id: orgId,
-        }),
-        relation: currentRoleCode,
-      });
-      await deletePolicy(deleteSpec);
-
+      // Grant first, then revoke: a refusal of either step (the owner rule,
+      // an organization's last owner) leaves the member holding a role, never
+      // none, and the revoke is the one that can be retried.
       const createSpec = create(IamPolicySpecSchema, {
         principal: create(ApiResourceRefSchema, {
           kind: "identity_account",
@@ -454,6 +470,19 @@ function ChangeRoleRow({
         relation: iamRoleToString(selectedRole),
       });
       await createPolicy(createSpec);
+
+      const deleteSpec = create(IamPolicySpecSchema, {
+        principal: create(ApiResourceRefSchema, {
+          kind: "identity_account",
+          id: memberId,
+        }),
+        resource: create(ApiResourceRefSchema, {
+          kind: "organization",
+          id: orgId,
+        }),
+        relation: currentRoleCode,
+      });
+      await deletePolicy(deleteSpec);
 
       onDone();
     } catch (err) {
@@ -482,6 +511,7 @@ function ChangeRoleRow({
         kind={ApiResourceKind.organization}
         selected={selectedRole ?? currentRole}
         onSelect={setSelectedRole}
+        omitRoles={omitRoles}
         disabled={isWorking}
       />
 

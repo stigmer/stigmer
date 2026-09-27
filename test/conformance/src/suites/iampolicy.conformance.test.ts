@@ -98,7 +98,10 @@
 // member the owner made through the ordinary `create` — the one arm where a
 // grant's EFFECT is read back on the wire — sees the roster
 // (can_view_access: viewer) and is refused promoting itself to owner
-// (can_grant_access: admin). Where a target lends no lane the arms skip
+// (can_grant_access: admin). An admin the owner made grants every role up
+// to admin, and is refused granting owner, revoking it and removing an
+// owner (can_assign_roles: owner); the owner does each, and the
+// organization's last owner is never revoked or removed. Where a target lends no lane the arms skip
 // VISIBLY with its reason. (PREDICTED RED on the retired oracle where its
 // handlers ran no authorization (listAuthorizedPrincipalIds, L264) or found
 // no row before authorizing (`delete`, L124), and for every NOT_FOUND cell.)
@@ -131,8 +134,7 @@
 // pre-existing organizations (needs a restart; unit-pinned); the
 // first-caller arm of the membership rules taken positively (an
 // organization whose creator stamp is not a person needs a store from
-// before this entry; unit-pinned); revoking an organization's last owner
-// (plan finding 3, a product rule nobody owns yet); an empty resource id
+// before this entry; unit-pinned); an empty resource id
 // (the A28 class, entry 3's handoff); the guest visitor-isolation
 // consequence of checkMyPermission through the composed Authorizer (S2
 // finding 33 ii — no guest caller exists in this harness).
@@ -154,7 +156,9 @@ import {
   BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
   CLEANUP_RESOURCE_POLICIES_DENIED_MESSAGE,
   GRANT_DENIED_MESSAGE,
+  LAST_OWNER_MESSAGE,
   NON_ACCOUNT_PRINCIPAL_MESSAGE,
+  OWNER_ASSIGNMENT_DENIED_MESSAGE,
   ORGANIZATION_ROLES,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   PRINCIPAL_NOT_CALLER_MESSAGE,
@@ -1172,6 +1176,103 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
       );
       expect(error.rawMessage).toBe(GRANT_DENIED_MESSAGE);
       expect(await rolesOf(member.id, org, lane.clients)).toEqual(["member"]);
+    });
+  });
+
+  describe("owner is assigned by owners", () => {
+    // An admin holds can_grant_access and so grants every role up to
+    // admin; the owner role also needs can_assign_roles, its owners'
+    // (organization.fga). The founder is the organization's one owner.
+    it("an admin grants up to admin, and is refused granting owner, revoking it and removing an owner", async (ctx) => {
+      const lane = laneOrSkip(ctx);
+      const org = await createOwnedOrganization(lane.clients, laneFixtures);
+      const founderId = await lane.accountIdOf(lane.clients);
+      const admin = await outsider(lane);
+      const newcomer = await outsider(lane);
+      await lane.clients.iamPolicyCommand.create(
+        organizationRole(admin.id, "admin", org),
+      );
+
+      await admin.clients.iamPolicyCommand.create(
+        organizationRole(newcomer.id, "admin", org),
+      );
+      expect(await rolesOf(newcomer.id, org, lane.clients)).toEqual(["admin"]);
+
+      const grant = await expectGrpcCode(
+        () =>
+          admin.clients.iamPolicyCommand.create(
+            organizationRole(admin.id, "owner", org),
+          ),
+        Code.PermissionDenied,
+        "an admin granting itself owner",
+      );
+      expect(grant.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+      const revoke = await expectGrpcCode(
+        () =>
+          admin.clients.iamPolicyCommand.delete(
+            organizationRole(founderId, "owner", org),
+          ),
+        Code.PermissionDenied,
+        "an admin revoking the owner's role",
+      );
+      expect(revoke.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+      const remove = await expectGrpcCode(
+        () =>
+          admin.clients.iamPolicyCommand.revokeOrgAccess({
+            identityAccountId: founderId,
+            organizationId: org,
+          }),
+        Code.PermissionDenied,
+        "an admin removing the owner",
+      );
+      expect(remove.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+      expect(await rolesOf(founderId, org, lane.clients)).toEqual(["owner"]);
+      expect(await rolesOf(admin.id, org, lane.clients)).toEqual(["admin"]);
+    });
+
+    it("the owner grants, revokes and removes owner, and the last owner is kept", async (ctx) => {
+      const lane = laneOrSkip(ctx);
+      const org = await createOwnedOrganization(lane.clients, laneFixtures);
+      const founderId = await lane.accountIdOf(lane.clients);
+      const second = await outsider(lane);
+
+      await lane.clients.iamPolicyCommand.create(
+        organizationRole(second.id, "owner", org),
+      );
+      expect(await rolesOf(second.id, org, lane.clients)).toEqual(["owner"]);
+      await lane.clients.iamPolicyCommand.delete(
+        organizationRole(second.id, "owner", org),
+      );
+      expect(await rolesOf(second.id, org, lane.clients)).toEqual([]);
+      await lane.clients.iamPolicyCommand.create(
+        organizationRole(second.id, "owner", org),
+      );
+      await lane.clients.iamPolicyCommand.revokeOrgAccess({
+        identityAccountId: second.id,
+        organizationId: org,
+      });
+      expect(await rolesOf(second.id, org, lane.clients)).toEqual([]);
+
+      const revoke = await expectGrpcCode(
+        () =>
+          lane.clients.iamPolicyCommand.delete(
+            organizationRole(founderId, "owner", org),
+          ),
+        Code.FailedPrecondition,
+        "the last owner revoking its own role",
+      );
+      expect(revoke.rawMessage).toBe(LAST_OWNER_MESSAGE);
+      const remove = await expectGrpcCode(
+        () =>
+          lane.clients.iamPolicyCommand.revokeOrgAccess({
+            identityAccountId: founderId,
+            organizationId: org,
+          }),
+        Code.FailedPrecondition,
+        "the last owner removing itself",
+      );
+      expect(remove.rawMessage).toBe(LAST_OWNER_MESSAGE);
+      expect(await rolesOf(founderId, org, lane.clients)).toEqual(["owner"]);
     });
   });
 });

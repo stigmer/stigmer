@@ -307,6 +307,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
      *   enum name, `field_path` its id); the annotation drives the check in every edition
+     * - Granting `owner` on an organization also requires 'can_assign_roles' on it
+     *   (its owners): an admin grants every role up to admin, and only an owner
+     *   makes an owner. PERMISSION_DENIED otherwise
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -340,6 +343,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - The check runs against the spec-named resource BEFORE the policy is looked up
      *   (the annotation-driven order), so a caller without the permission is refused
      *   even when no matching policy exists
+     * - Revoking `owner` on an organization also requires 'can_assign_roles' on it
+     *   (PERMISSION_DENIED otherwise), and never leaves the organization without an
+     *   owner: revoking its last owner's role is FAILED_PRECONDITION
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -450,6 +456,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - System flows running as the platform machine account cannot satisfy this
      *   check (the machine account holds no org-scoped grants by design) and must
      *   use bootstrapRevokeOrgAccess instead
+     * - Removing an account that holds `owner` on the organization also requires
+     *   'can_assign_roles' on it (PERMISSION_DENIED otherwise), and removing its
+     *   last owner is FAILED_PRECONDITION: an organization always keeps an owner
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -573,6 +582,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
      *   enum name, `field_path` its id); the annotation drives the check in every edition
+     * - Granting `owner` on an organization also requires 'can_assign_roles' on it
+     *   (its owners): an admin grants every role up to admin, and only an owner
+     *   makes an owner. PERMISSION_DENIED otherwise
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -607,6 +619,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - The check runs against the spec-named resource BEFORE the policy is looked up
      *   (the annotation-driven order), so a caller without the permission is refused
      *   even when no matching policy exists
+     * - Revoking `owner` on an organization also requires 'can_assign_roles' on it
+     *   (PERMISSION_DENIED otherwise), and never leaves the organization without an
+     *   owner: revoking its last owner's role is FAILED_PRECONDITION
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -720,6 +735,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - System flows running as the platform machine account cannot satisfy this
      *   check (the machine account holds no org-scoped grants by design) and must
      *   use bootstrapRevokeOrgAccess instead
+     * - Removing an account that holds `owner` on the organization also requires
+     *   'can_assign_roles' on it (PERMISSION_DENIED otherwise), and removing its
+     *   last owner is FAILED_PRECONDITION: an organization always keeps an owner
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -819,6 +837,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
      *   enum name, `field_path` its id); the annotation drives the check in every edition
+     * - Granting `owner` on an organization also requires 'can_assign_roles' on it
+     *   (its owners): an admin grants every role up to admin, and only an owner
+     *   makes an owner. PERMISSION_DENIED otherwise
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -852,6 +873,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - The check runs against the spec-named resource BEFORE the policy is looked up
      *   (the annotation-driven order), so a caller without the permission is refused
      *   even when no matching policy exists
+     * - Revoking `owner` on an organization also requires 'can_assign_roles' on it
+     *   (PERMISSION_DENIED otherwise), and never leaves the organization without an
+     *   owner: revoking its last owner's role is FAILED_PRECONDITION
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -962,6 +986,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - System flows running as the platform machine account cannot satisfy this
      *   check (the machine account holds no org-scoped grants by design) and must
      *   use bootstrapRevokeOrgAccess instead
+     * - Removing an account that holds `owner` on the organization also requires
+     *   'can_assign_roles' on it (PERMISSION_DENIED otherwise), and removing its
+     *   last owner is FAILED_PRECONDITION: an organization always keeps an owner
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -1059,6 +1086,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
      *   enum name, `field_path` its id); the annotation drives the check in every edition
+     * - Granting `owner` on an organization also requires 'can_assign_roles' on it
+     *   (its owners): an admin grants every role up to admin, and only an owner
+     *   makes an owner. PERMISSION_DENIED otherwise
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -1092,6 +1122,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - The check runs against the spec-named resource BEFORE the policy is looked up
      *   (the annotation-driven order), so a caller without the permission is refused
      *   even when no matching policy exists
+     * - Revoking `owner` on an organization also requires 'can_assign_roles' on it
+     *   (PERMISSION_DENIED otherwise), and never leaves the organization without an
+     *   owner: revoking its last owner's role is FAILED_PRECONDITION
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -1202,6 +1235,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - System flows running as the platform machine account cannot satisfy this
      *   check (the machine account holds no org-scoped grants by design) and must
      *   use bootstrapRevokeOrgAccess instead
+     * - Removing an account that holds `owner` on the organization also requires
+     *   'can_assign_roles' on it (PERMISSION_DENIED otherwise), and removing its
+     *   last owner is FAILED_PRECONDITION: an organization always keeps an owner
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -1299,6 +1335,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
      *   enum name, `field_path` its id); the annotation drives the check in every edition
+     * - Granting `owner` on an organization also requires 'can_assign_roles' on it
+     *   (its owners): an admin grants every role up to admin, and only an owner
+     *   makes an owner. PERMISSION_DENIED otherwise
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -1333,6 +1372,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - The check runs against the spec-named resource BEFORE the policy is looked up
      *   (the annotation-driven order), so a caller without the permission is refused
      *   even when no matching policy exists
+     * - Revoking `owner` on an organization also requires 'can_assign_roles' on it
+     *   (PERMISSION_DENIED otherwise), and never leaves the organization without an
+     *   owner: revoking its last owner's role is FAILED_PRECONDITION
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -1446,6 +1488,9 @@ public final class IamPolicyCommandControllerGrpc {
      * - System flows running as the platform machine account cannot satisfy this
      *   check (the machine account holds no org-scoped grants by design) and must
      *   use bootstrapRevokeOrgAccess instead
+     * - Removing an account that holds `owner` on the organization also requires
+     *   'can_assign_roles' on it (PERMISSION_DENIED otherwise), and removing its
+     *   last owner is FAILED_PRECONDITION: an organization always keeps an owner
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation

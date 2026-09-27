@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
           "outputType": "Invitation",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
-          "description": "Create an invitation link for an organization.\n\n Generates a cryptographically random token and returns the full\n invitation resource including the token. The invite URL is\n constructed as: https://\u003chost\u003e/invite/\u003ctoken\u003e\n\n The specified role must be in the organization's grantable_roles.\n Platform-managed organizations cannot create invitations."
+          "description": "Create an invitation link for an organization.\n\n Generates a cryptographically random token and returns the full\n invitation resource including the token. The invite URL is\n constructed as: https://\u003chost\u003e/invite/\u003ctoken\u003e\n\n The specified role must be in the organization's grantable_roles, and\n only an owner of the organization may create an invitation for owner.\n Platform-managed organizations cannot create invitations."
         },
         {
           "name": "Revoke",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.RedeemInvitationInput",
           "outputType": "Invitation",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
-          "description": "Redeem an invitation to join an organization.\n\n Creates an IAM policy granting the invitation's configured role to\n the authenticated user on the invitation's organization. The\n redemption is atomic: the IAM policy is created and the redemption\n count is incremented in a single operation.\n\n Validation:\n - Invitation must be in active state\n - Invitation must not be expired\n - Invitation must not have reached max_redemptions (if \u003e 0)\n - Redeemer must not already be a member of the organization"
+          "description": "Redeem an invitation to join an organization.\n\n Creates an IAM policy granting the invitation's configured role to\n the authenticated user on the invitation's organization. The\n redemption is atomic: the IAM policy is created and the redemption\n count is incremented in a single operation.\n\n Validation:\n - Invitation must be in active state\n - Invitation must not be expired\n - Invitation must not have reached max_redemptions (if \u003e 0)\n - Redeemer must not already be a member of the organization\n - The invitation's creator must still be able to create it: a link\n   carries its creator's authority, so it stops redeeming once they no\n   longer hold the role it needed (FAILED_PRECONDITION)"
         }
       ]
     },

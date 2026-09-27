@@ -1,0 +1,45 @@
+# Who may assign an organization's roles. An admin holds can_grant_access
+# and so grants every role up to admin; only an owner holds
+# can_assign_roles, which the IamPolicy lanes and the invitation lane ask
+# whenever a change grants, revokes or removes the owner role. The
+# hierarchy owner > admin > member > viewer is what makes this one
+# relation the whole of "no role above your own".
+#
+# Cast (organization acme unless named):
+#   root  - acme owner
+#   ana   - acme admin
+#   dave  - acme member-role member
+#   vera  - acme viewer-role member
+#   zara  - owner of the unrelated organization other
+name: organization-role-assignment
+model_file: ../../src/authorization/model/data/authorization-model.json
+tuples:
+  - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:zara, relation: owner, object: organization:other}
+tests:
+  - name: an owner grants every role, owner included
+    check:
+      - user: identity_account:root
+        object: organization:acme
+        assertions: {can_grant_access: true, can_assign_roles: true}
+  - name: an admin grants every role up to admin, and never owner
+    check:
+      - user: identity_account:ana
+        object: organization:acme
+        assertions: {can_grant_access: true, can_assign_roles: false}
+  - name: members and viewers grant nothing
+    check:
+      - user: identity_account:dave
+        object: organization:acme
+        assertions: {can_grant_access: false, can_assign_roles: false}
+      - user: identity_account:vera
+        object: organization:acme
+        assertions: {can_grant_access: false, can_assign_roles: false}
+  - name: another organization's owner assigns nothing here
+    check:
+      - user: identity_account:zara
+        object: organization:acme
+        assertions: {can_grant_access: false, can_assign_roles: false}

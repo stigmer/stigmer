@@ -45,7 +45,8 @@ export function MembersSection() {
       </h2>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Manage who has access to this organization and what they can do.
-        Members can be granted owner, admin, member, or viewer roles.
+        Members can be granted owner, admin, member, or viewer roles; only
+        an owner grants or removes owner.
         {!invitationsAvailable && (
           <>
             {" "}

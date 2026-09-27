@@ -43,7 +43,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/iam/identityprovider/v1/spe" +
       "c.proto\022\"ai.stigmer.iam.identityprovider" +
       ".v1\032\034ai/stigmer/iam/v1/enum.proto\032\033buf/v" +
-      "alidate/validate.proto\"\336\004\n\024IdentityProvi" +
+      "alidate/validate.proto\"\205\006\n\024IdentityProvi" +
       "derSpec\022+\n\014display_name\030\001 \001(\tB\010\272H\005r\003\030\310\001R" +
       "\013displayName\022#\n\010jwks_uri\030\002 \001(\tB\010\272H\005r\003\030\200\020" +
       "R\007jwksUri\022\'\n\017allowed_issuers\030\003 \003(\tR\016allo" +
@@ -58,12 +58,16 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "nt_on_org\030\n \001(\010R\016autoGrantOnOrg\022B\n\017auto_" +
       "grant_role\030\013 \001(\0162\032.ai.stigmer.iam.v1.Iam" +
       "RoleR\rautoGrantRole\0222\n\020tenant_org_claim\030" +
-      "\014 \001(\tB\010\272H\005r\003\030\200\002R\016tenantOrgClaimB\270\001B\tSpec" +
-      "ProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identity" +
-      "provider.V1\312\002\"Ai\\Stigmer\\Iam\\Identitypro" +
-      "vider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovid" +
-      "er\\V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::Id" +
-      "entityprovider::V1b\006proto3"
+      "\014 \001(\tB\010\272H\005r\003\030\200\002R\016tenantOrgClaim:\244\001\272H\240\001\032\235" +
+      "\001\n+identity_provider.auto_grant_role_not" +
+      "_owner\022Sauto_grant_role cannot be owner;" +
+      " organization ownership must be assigned" +
+      " explicitly\032\031this.auto_grant_role != 1B\270" +
+      "\001B\tSpecProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.I" +
+      "dentityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Iden" +
+      "tityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identit" +
+      "yprovider\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
+      "Iam::Identityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -83,6 +87,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

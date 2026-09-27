@@ -36,7 +36,8 @@ type InvitationCommandControllerClient interface {
 	// invitation resource including the token. The invite URL is
 	// constructed as: https://<host>/invite/<token>
 	//
-	// The specified role must be in the organization's grantable_roles.
+	// The specified role must be in the organization's grantable_roles, and
+	// only an owner of the organization may create an invitation for owner.
 	// Platform-managed organizations cannot create invitations.
 	Create(ctx context.Context, in *Invitation, opts ...grpc.CallOption) (*Invitation, error)
 	// Revoke an active invitation, preventing further redemptions.
@@ -52,10 +53,13 @@ type InvitationCommandControllerClient interface {
 	// count is incremented in a single operation.
 	//
 	// Validation:
-	// - Invitation must be in active state
-	// - Invitation must not be expired
-	// - Invitation must not have reached max_redemptions (if > 0)
-	// - Redeemer must not already be a member of the organization
+	//   - Invitation must be in active state
+	//   - Invitation must not be expired
+	//   - Invitation must not have reached max_redemptions (if > 0)
+	//   - Redeemer must not already be a member of the organization
+	//   - The invitation's creator must still be able to create it: a link
+	//     carries its creator's authority, so it stops redeeming once they no
+	//     longer hold the role it needed (FAILED_PRECONDITION)
 	Redeem(ctx context.Context, in *RedeemInvitationInput, opts ...grpc.CallOption) (*Invitation, error)
 }
 
@@ -109,7 +113,8 @@ type InvitationCommandControllerServer interface {
 	// invitation resource including the token. The invite URL is
 	// constructed as: https://<host>/invite/<token>
 	//
-	// The specified role must be in the organization's grantable_roles.
+	// The specified role must be in the organization's grantable_roles, and
+	// only an owner of the organization may create an invitation for owner.
 	// Platform-managed organizations cannot create invitations.
 	Create(context.Context, *Invitation) (*Invitation, error)
 	// Revoke an active invitation, preventing further redemptions.
@@ -125,10 +130,13 @@ type InvitationCommandControllerServer interface {
 	// count is incremented in a single operation.
 	//
 	// Validation:
-	// - Invitation must be in active state
-	// - Invitation must not be expired
-	// - Invitation must not have reached max_redemptions (if > 0)
-	// - Redeemer must not already be a member of the organization
+	//   - Invitation must be in active state
+	//   - Invitation must not be expired
+	//   - Invitation must not have reached max_redemptions (if > 0)
+	//   - Redeemer must not already be a member of the organization
+	//   - The invitation's creator must still be able to create it: a link
+	//     carries its creator's authority, so it stops redeeming once they no
+	//     longer hold the role it needed (FAILED_PRECONDITION)
 	Redeem(context.Context, *RedeemInvitationInput) (*Invitation, error)
 }
 

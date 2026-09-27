@@ -24,6 +24,17 @@ enum IamPermission {
   can_grant_access = 4;
   can_view_access = 5;
 
+  // Whether the caller may grant, revoke or remove the owner role on an
+  // organization: only its owners hold it.
+  //
+  // @internal
+  // The organization relation `can_assign_roles`. The IamPolicy lanes and
+  // the invitation lane ask it whenever a change touches the owner role, on
+  // top of can_grant_access. Every caller that reaches them already holds
+  // can_grant_access (admin), so this one question is the whole of "no role
+  // above your own".
+  can_assign_roles = 47;
+
   // Organization-level create permissions.
   can_create_agent = 6;
   can_create_workflow = 7;

@@ -233,7 +233,9 @@ type IdentityProviderSpec struct {
 	// The role to grant when auto_grant_on_org is true.
 	//
 	// Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-	// is not permitted — organization ownership must be assigned explicitly.
+	// is not permitted — organization ownership must be assigned explicitly —
+	// and a provider that asks for it is refused with
+	// `identity_provider.auto_grant_role_not_owner`.
 	//
 	// This field is only meaningful when auto_grant_on_org is true. When
 	// auto_grant_on_org is false, this field is ignored regardless of its value.
@@ -392,7 +394,7 @@ var File_ai_stigmer_iam_identityprovider_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xde\x04\n" +
+	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x85\x06\n" +
 	"\x14IdentityProviderSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
 	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12'\n" +
@@ -406,7 +408,8 @@ const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\x11auto_grant_on_org\x18\n" +
 	" \x01(\bR\x0eautoGrantOnOrg\x12B\n" +
 	"\x0fauto_grant_role\x18\v \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x122\n" +
-	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaimB\xc2\x02\n" +
+	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaim:\xa4\x01\xbaH\xa0\x01\x1a\x9d\x01\n" +
+	"+identity_provider.auto_grant_role_not_owner\x12Sauto_grant_role cannot be owner; organization ownership must be assigned explicitly\x1a\x19this.auto_grant_role != 1B\xc2\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (

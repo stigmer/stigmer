@@ -42,6 +42,9 @@ const (
 	// Access management permissions.
 	IamPermission_can_grant_access IamPermission = 4
 	IamPermission_can_view_access  IamPermission = 5
+	// Whether the caller may grant, revoke or remove the owner role on an
+	// organization: only its owners hold it.
+	IamPermission_can_assign_roles IamPermission = 47
 	// Organization-level create permissions.
 	IamPermission_can_create_agent            IamPermission = 6
 	IamPermission_can_create_workflow         IamPermission = 7
@@ -160,6 +163,7 @@ var (
 		3:  "can_delete",
 		4:  "can_grant_access",
 		5:  "can_view_access",
+		47: "can_assign_roles",
 		6:  "can_create_agent",
 		7:  "can_create_workflow",
 		8:  "can_create_session",
@@ -204,6 +208,7 @@ var (
 		"can_delete":                   3,
 		"can_grant_access":             4,
 		"can_view_access":              5,
+		"can_assign_roles":             47,
 		"can_create_agent":             6,
 		"can_create_workflow":          7,
 		"can_create_session":           8,
@@ -349,7 +354,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x81\t\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x97\t\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -358,6 +363,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"can_delete\x10\x03\x12\x14\n" +
 	"\x10can_grant_access\x10\x04\x12\x13\n" +
 	"\x0fcan_view_access\x10\x05\x12\x14\n" +
+	"\x10can_assign_roles\x10/\x12\x14\n" +
 	"\x10can_create_agent\x10\x06\x12\x17\n" +
 	"\x13can_create_workflow\x10\a\x12\x16\n" +
 	"\x12can_create_session\x10\b\x12\x14\n" +

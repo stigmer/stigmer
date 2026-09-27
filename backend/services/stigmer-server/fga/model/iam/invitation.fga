@@ -8,13 +8,17 @@ module iam
 # Scoped to organization - all invitations belong to an organization.
 #
 # Permission pattern:
-# - Org Admin: Can view all invitations (administrative visibility)
-# - Invitation Creator (Owner): Full CRUD access
+# - Org Admin (and org owner, through admin): view, edit and revoke every
+#   invitation of the organization
 # - Org Members/Viewers: No access (administrative resource)
 #
-# FGA tuples on creation:
+# `owner` is computed, never stored: an invitation is the organization's,
+# managed by its current admins, as a team is, so a creator who is demoted
+# below admin or removed loses control of their links with the role. The
+# creator is recorded in the audit trail (kind_meta `owner_type` NONE).
+#
+# FGA tuple on creation:
 # - invitation:<inv_id>#organization@organization:acme
-# - invitation:<inv_id>#owner@identity_account:alice
 
 type invitation
   relations
@@ -26,7 +30,8 @@ type invitation
     # ========================================
     # OWNERSHIP
     # ========================================
-    define owner: [identity_account] or admin from organization
+    # Every current admin of the invitation's organization, and nobody else.
+    define owner: admin from organization
     
     # Viewers (org admins can view)
     define viewer: admin from organization

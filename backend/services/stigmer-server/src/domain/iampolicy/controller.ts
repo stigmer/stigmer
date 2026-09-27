@@ -13,7 +13,9 @@
  * in-process RPCs (Q-OR-1), never through an exported constructor.
  *
  * Shape (Q-S5-1). The six command RPCs are pipeline chains, each
- * `Authorize → ValidateProto → <one domain step>` (steps.ts): the write is
+ * `Authorize → ValidateProto → <one domain step>` (steps.ts), with the two
+ * owner steps before the write on `create`, `delete` and `revokeOrgAccess`
+ * (owner is assigned by owners, steps.ts's last section): the write is
  * the grant path's, the annotation drives position 1, and the executor's
  * fault mapping covers a store fault from inside the path. The eight
  * query RPCs are direct handlers over `authorizeDirect` (the cloud's
@@ -181,11 +183,15 @@ import {
 } from "./roles.js";
 import {
   POLICY_RESULT_KEY,
+  newAuthorizeOwnerAssignmentStep,
   newCleanupResourceStep,
   newGrantStep,
+  newKeepOneOwnerStep,
   newRevokeOrgAccessStep,
   newRevokeStep,
   newValidateGrantableRoleStep,
+  orgAccessOwnerRoleChange,
+  specOwnerRoleChange,
 } from "./steps.js";
 import type { IamPolicyStore } from "./store.js";
 import {
@@ -243,7 +249,7 @@ export function registerIamPolicyServices(
       return cleanupResourcePolicies(deps, ref, ctx);
     },
     revokeOrgAccess: (input, ctx) =>
-      revokeOrgAccess(deps, command.revokeOrgAccess, input, ctx),
+      revokeOrgAccess(deps, command.revokeOrgAccess, input, ctx, true),
     bootstrapRevokeOrgAccess: (input, ctx) => {
       guardSystemRpc(command.bootstrapRevokeOrgAccess, callerIdentityOf(ctx));
       return revokeOrgAccess(
@@ -251,6 +257,7 @@ export function registerIamPolicyServices(
         command.bootstrapRevokeOrgAccess,
         input,
         ctx,
+        false,
       );
     },
   });
@@ -296,7 +303,8 @@ function guardSystemRpc(method: DescMethod, caller: CallerIdentity): void {
 
 /**
  * `create`: the wire refusal, then Authorize → ValidateProto →
- * ValidateGrantableRole → [iam-policy-create:pre-side-effect-gate] → Grant.
+ * ValidateGrantableRole → AuthorizeOwnerAssignment →
+ * [iam-policy-create:pre-side-effect-gate] → Grant.
  */
 function createPolicy(
   deps: IamPolicyControllerDeps,
@@ -315,8 +323,9 @@ function createPolicy(
 
 /**
  * The grant chain both `create` and `bootstrapPolicy` run; only the user
- * lane validates the role and runs the create gate slot — bootstrap writes
- * structural relations no scope would admit and no edition gates.
+ * lane validates the role, asks for an owner's authority when it grants
+ * owner, and runs the create gate slot — bootstrap writes structural
+ * relations no scope would admit and no edition gates.
  */
 async function grantThroughChain(
   deps: IamPolicyControllerDeps,
@@ -339,6 +348,9 @@ async function grantThroughChain(
     .addStep(newValidateProtoStep());
   if (validateRole) {
     pipeline.addStep(newValidateGrantableRoleStep(deps.grantScope));
+    pipeline.addStep(
+      newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
+    );
     for (const step of stepsForSlot<typeof IamPolicySpecSchema>(
       deps.gateSteps,
       "iam-policy-create:pre-side-effect-gate",
@@ -350,7 +362,11 @@ async function grantThroughChain(
   return policyResultOf(reqCtx, method);
 }
 
-/** `delete`: the wire refusal, then Authorize → ValidateProto → Revoke; the revoked row, or the default instance. */
+/**
+ * `delete`: the wire refusal, then Authorize → ValidateProto →
+ * AuthorizeOwnerAssignment → KeepOneOwner → Revoke; the revoked row, or the
+ * default instance.
+ */
 async function deletePolicy(
   deps: IamPolicyControllerDeps,
   spec: IamPolicySpec,
@@ -367,18 +383,29 @@ async function deletePolicy(
   await newPipeline<typeof IamPolicySpecSchema>("iampolicy-delete", deps.logger)
     .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newValidateProtoStep())
+    .addStep(
+      newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
+    )
+    .addStep(newKeepOneOwnerStep(deps.policies, specOwnerRoleChange))
     .addStep(newRevokeStep(deps.grantPath))
     .build()
     .execute(reqCtx);
   return policyResultOf(reqCtx, method);
 }
 
-/** `revokeOrgAccess` and its system twin share one chain; only the annotation differs. */
+/**
+ * `revokeOrgAccess` and its system twin share one chain: Authorize →
+ * ValidateProto → RevokeOrgAccess, and on the caller lane
+ * AuthorizeOwnerAssignment → KeepOneOwner before the revoke. The twin's
+ * platform-pipeline callers hold no organization role, and removing an
+ * account is theirs to decide.
+ */
 async function revokeOrgAccess(
   deps: IamPolicyControllerDeps,
   method: DescMethod,
   input: RevokeOrgAccessInput,
   ctx: HandlerContext,
+  guardOwners: boolean,
 ): Promise<Empty> {
   const reqCtx = new RequestContext(
     RevokeOrgAccessInputSchema,
@@ -386,12 +413,19 @@ async function revokeOrgAccess(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof RevokeOrgAccessInputSchema>(
+  const pipeline = newPipeline<typeof RevokeOrgAccessInputSchema>(
     `iampolicy-${method.localName}`,
     deps.logger,
   )
     .addStep(newAuthorizeStep(method, deps.authorizer))
-    .addStep(newValidateProtoStep())
+    .addStep(newValidateProtoStep());
+  if (guardOwners) {
+    const ownerRoleChange = orgAccessOwnerRoleChange(deps.policies);
+    pipeline
+      .addStep(newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange))
+      .addStep(newKeepOneOwnerStep(deps.policies, ownerRoleChange));
+  }
+  await pipeline
     .addStep(newRevokeOrgAccessStep(deps.grantPath))
     .build()
     .execute(reqCtx);

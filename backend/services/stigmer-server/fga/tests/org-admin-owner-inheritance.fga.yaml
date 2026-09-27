@@ -5,8 +5,8 @@
 #
 #   define owner: [identity_account] or admin from organization
 #
-# This is the GitHub-org-admin model (precedent: mcp_server, iam_policy,
-# invitation): every org asset has an operator of last resort, so
+# This is the GitHub-org-admin model (precedent: mcp_server, iam_policy):
+# every org asset has an operator of last resort, so
 # machine-provisioned and ex-employee resources stay manageable. Because
 # owner feeds viewer (and can_execute on agents), admins also see, list,
 # and run PRIVATE blueprints — a deliberate trade, accepted when the

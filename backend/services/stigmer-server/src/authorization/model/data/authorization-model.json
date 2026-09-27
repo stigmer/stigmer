@@ -199,13 +199,7 @@
               }
             ]
           },
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
+          "owner": {},
           "platform_user": {},
           "viewer": {
             "directly_related_user_types": [
@@ -252,22 +246,13 @@
           "this": {}
         },
         "owner": {
-          "union": {
-            "child": [
-              {
-                "this": {}
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
           }
         },
         "platform_user": {
@@ -660,13 +645,7 @@
               }
             ]
           },
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
+          "owner": {},
           "viewer": {}
         },
         "source_info": {
@@ -693,22 +672,13 @@
           "this": {}
         },
         "owner": {
-          "union": {
-            "child": [
-              {
-                "this": {}
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
           }
         },
         "viewer": {

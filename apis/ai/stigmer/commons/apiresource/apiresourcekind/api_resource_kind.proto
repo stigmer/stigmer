@@ -191,7 +191,11 @@ enum ApiResourceKind {
     tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      // No owner: an invitation is the organization's, managed by its
+      // current administrators, so creating one confers nothing that
+      // outlives the creator's role. The creator is recorded in the audit
+      // trail, and the link redeems only while they could still create it.
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
     }
   }];
 
@@ -212,11 +216,14 @@ enum ApiResourceKind {
     tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [
-        owner,
-        viewer
-      ]
+      // No owner: a provider carries its organization's trust configuration
+      // and is managed by the organization's current administrators, so a
+      // creator who loses admin loses control of it. The creator is
+      // recorded in the audit trail.
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      // A direct grant can only let someone read the provider; managing it
+      // is its organization's admins' alone.
+      grantable_roles: [viewer]
     }
   }];
 

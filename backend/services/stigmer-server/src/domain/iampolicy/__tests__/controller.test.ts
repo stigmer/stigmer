@@ -25,7 +25,11 @@
  *     the row's kind and id as the target); delete authorizes before it
  *     loads; create validates the role before it writes, then runs the
  *     `iam-policy-create:pre-side-effect-gate` slot, whose refusal leaves
- *     no row; bootstrapPolicy never runs that slot.
+ *     no row; bootstrapPolicy never runs that slot;
+ *   - owner is assigned by owners: an admin is refused granting owner,
+ *     revoking it and removing an owner, after position 1 and before any
+ *     write; an owner is allowed each; the last owner is kept; the
+ *     bootstrap twins run neither owner step.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -76,6 +80,8 @@ import {
 import {
   AUTHENTICATION_REQUIRED_MESSAGE,
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+  LAST_OWNER_MESSAGE,
+  OWNER_ASSIGNMENT_DENIED_MESSAGE,
   policyIdFor,
   policyNotFoundMessage,
   principalNotGrantableMessage,
@@ -129,7 +135,8 @@ function stampCaller(identity: CallerIdentity): Interceptor {
 
 interface RecordingAuthorizer extends Authorizer {
   readonly checks: AuthzCheck[];
-  decision: AuthzDecision | (() => never);
+  /** One answer for every check, or one per check (a throw is an outage). */
+  decision: AuthzDecision | ((check: AuthzCheck) => AuthzDecision);
 }
 
 function recordingAuthorizer(): RecordingAuthorizer {
@@ -140,7 +147,7 @@ function recordingAuthorizer(): RecordingAuthorizer {
     authorize(_caller, check) {
       checks.push(check);
       if (typeof authorizer.decision === "function") {
-        return authorizer.decision();
+        return Promise.resolve(authorizer.decision(check));
       }
       return Promise.resolve(authorizer.decision);
     },
@@ -930,6 +937,95 @@ describe("the write lanes' order", () => {
     await h.command.bootstrapPolicy(orgRole(ALICE_ID, "member", "acme"));
     expect(seen).toEqual([]);
     expect(h.policies.rows.size).toBe(1);
+  });
+});
+
+describe("owner is assigned by owners, on the three caller lanes", () => {
+  /** alice is an admin of acme: she may grant access there, and may not assign owner. */
+  const adminOfAcme = (check: AuthzCheck): AuthzDecision =>
+    check.permission === IamPermission.can_assign_roles
+      ? { kind: "deny", reason: "" }
+      : { kind: "allow" };
+  const assignRolesOnAcme: AuthzCheck = {
+    permission: IamPermission.can_assign_roles,
+    resourceKind: ApiResourceKind.organization,
+    resourceId: "acme",
+  };
+
+  /** acme's roles, written straight through the grant path under the harness's store. */
+  async function acmeWith(
+    h: Harness,
+    roles: ReadonlyArray<readonly [string, string]>,
+  ): Promise<void> {
+    const path = newIamPolicyGrantPath({ policies: h.policies, lifecycle: undefined, logger: silent });
+    for (const [account, role] of roles) {
+      await path.grant(orgRole(account, role, "acme"), internal);
+    }
+  }
+
+  it("an admin is refused granting owner, after the role check and before the gate and the write", async () => {
+    const seen: string[] = [];
+    const h = await harness({
+      caller: alice,
+      createGate: { name: "RecordForTest", execute: () => void seen.push("gate") },
+    });
+    h.authorizer.decision = adminOfAcme;
+    const error = await refusal(() => h.command.create(orgRole("ida_bob", "owner", "acme")));
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+    expect(h.authorizer.checks.at(-1)).toEqual(assignRolesOnAcme);
+    expect(seen).toEqual([]);
+    expect(h.policies.rows.size).toBe(0);
+
+    // Every role up to admin is still hers to grant, and asks nothing more.
+    await h.command.create(orgRole("ida_bob", "admin", "acme"));
+    expect(h.authorizer.checks.at(-1)?.permission).toBe(IamPermission.can_grant_access);
+  });
+
+  it("an admin is refused revoking owner and removing an owner, and neither row moves", async () => {
+    const asAlice = await harness({ caller: alice });
+    await acmeWith(asAlice, [["ida_root", "owner"], ["ida_rhea", "owner"]]);
+    asAlice.authorizer.decision = adminOfAcme;
+
+    const revoke = await refusal(() => asAlice.command.delete(orgRole("ida_rhea", "owner", "acme")));
+    expect(revoke.code).toBe(Code.PermissionDenied);
+    expect(revoke.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+    const remove = await refusal(() =>
+      asAlice.command.revokeOrgAccess({ identityAccountId: "ida_rhea", organizationId: "acme" }),
+    );
+    expect(remove.code).toBe(Code.PermissionDenied);
+    expect(remove.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+    expect(asAlice.policies.rows.size).toBe(2);
+  });
+
+  it("an owner grants, revokes and removes owner, but never the last one", async () => {
+    const h = await harness({ caller: alice });
+    await acmeWith(h, [["ida_alice", "owner"]]);
+
+    await h.command.create(orgRole("ida_bob", "owner", "acme"));
+    await h.command.delete(orgRole("ida_bob", "owner", "acme"));
+    await h.command.create(orgRole("ida_bob", "owner", "acme"));
+    await h.command.revokeOrgAccess({ identityAccountId: "ida_bob", organizationId: "acme" });
+    expect([...h.policies.rows.values()].map((row) => row.spec?.principal?.id)).toEqual(["ida_alice"]);
+
+    const revoke = await refusal(() => h.command.delete(orgRole("ida_alice", "owner", "acme")));
+    expect(revoke.code).toBe(Code.FailedPrecondition);
+    expect(revoke.rawMessage).toBe(LAST_OWNER_MESSAGE);
+    const remove = await refusal(() =>
+      h.command.revokeOrgAccess({ identityAccountId: "ida_alice", organizationId: "acme" }),
+    );
+    expect(remove.code).toBe(Code.FailedPrecondition);
+    expect(remove.rawMessage).toBe(LAST_OWNER_MESSAGE);
+    expect(h.policies.rows.size).toBe(1);
+  });
+
+  it("the bootstrap twins run neither owner step: the platform removes the last owner", async () => {
+    const h = await harness({ caller: machine });
+    await acmeWith(h, [["ida_root", "owner"]]);
+    h.authorizer.decision = adminOfAcme;
+    await h.command.bootstrapRevokeOrgAccess({ identityAccountId: "ida_root", organizationId: "acme" });
+    expect(h.policies.rows.size).toBe(0);
+    expect(h.authorizer.checks.map((check) => check.permission)).not.toContain(IamPermission.can_assign_roles);
   });
 });
 

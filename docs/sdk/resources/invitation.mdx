@@ -172,7 +172,7 @@ Create an invitation link for an organization.
 
 Generates a cryptographically random token and returns the full invitation resource including the token. The invite URL is constructed as: https://&lt;host&gt;/invite/&lt;token&gt;
 
-The specified role must be in the organization's grantable_roles. Platform-managed organizations cannot create invitations.
+The specified role must be in the organization's grantable_roles, and only an owner of the organization may create an invitation for owner. Platform-managed organizations cannot create invitations.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -243,7 +243,7 @@ Redeem an invitation to join an organization.
 
 Creates an IAM policy granting the invitation's configured role to the authenticated user on the invitation's organization. The redemption is atomic: the IAM policy is created and the redemption count is incremented in a single operation.
 
-Validation: - Invitation must be in active state - Invitation must not be expired - Invitation must not have reached max_redemptions (if &gt; 0) - Redeemer must not already be a member of the organization
+Validation: - Invitation must be in active state - Invitation must not be expired - Invitation must not have reached max_redemptions (if &gt; 0) - Redeemer must not already be a member of the organization - The invitation's creator must still be able to create it: a link carries its creator's authority, so it stops redeeming once they no longer hold the role it needed (FAILED_PRECONDITION)
 
 <SDKTabs>
 <Tab value="TypeScript">
