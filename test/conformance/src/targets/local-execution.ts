@@ -90,6 +90,7 @@ export class LocalExecutionTarget implements TargetProfile {
     billingGates: false,
     // The cloud-capability surfaces (E1): absent by DD-001, as on local.
     billingLedger: false,
+    billingPlans: false,
     sideChannelProxy: false,
     publicLane: false,
     // Open source serves PlatformClient; the minting lane is the OIDC

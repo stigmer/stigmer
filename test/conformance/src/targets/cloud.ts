@@ -145,6 +145,8 @@ export class CloudTarget implements TargetProfile {
     // their arms are RED against the composition until then, by design (the
     // flag is the edition's contract; the lane address is CLOUD_ENV's).
     billingLedger: true,
+    // The plan catalog and subscriptions (the Cloud's subscription engine).
+    billingPlans: true,
     sideChannelProxy: true,
     publicLane: true,
   };

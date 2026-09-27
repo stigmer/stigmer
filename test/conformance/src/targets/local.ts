@@ -75,6 +75,8 @@ export class LocalTarget implements TargetProfile {
     // Unimplemented answer, ruling Q10), no side-channel proxy (runners dial
     // providers directly), no marketing-site lane.
     billingLedger: false,
+    // Plans and subscriptions are cloud_only kinds: the suite pins Unimplemented.
+    billingPlans: false,
     sideChannelProxy: false,
     publicLane: false,
     // Open source serves PlatformClient; the minting lane is the OIDC

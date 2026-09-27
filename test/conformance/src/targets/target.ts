@@ -354,6 +354,19 @@ export interface CapabilityFlags {
   // orgOAuthAppConfiguration posture — ruling Q10 of E1): the boundary is an
   // observable contract the SDK relies on, not an absence to skip past.
   billingLedger: boolean;
+  // The plan catalog and subscriptions are served here: PlanCommandController
+  // and PlanQueryController (the catalog an organization subscribes against),
+  // SubscriptionCommandController and SubscriptionQueryController (the
+  // organization's binding to a plan and the entitlements it derives). A flag
+  // of its own because the four controllers are separate kinds from the
+  // ledger's 23 RPCs: a target can own the ledger and not the plan engine,
+  // as the Cloud did until the engine landed.
+  //
+  // True for cloud. False for the local OSS targets by the same edition
+  // boundary as the ledger (the kinds are cloud_only): OSS routes none of the
+  // four controllers, and where false the suite pins Unimplemented on each
+  // RPC.
+  billingPlans: boolean;
   // The side-channel proxy is served here: the HTTP lanes runners use so they
   // carry zero provider secrets — llm (/v1/proxy/llm/{provider}/**), cursor
   // (/v1/proxy/cursor/{host}/**), cursor-bidi (Connect streams on its own

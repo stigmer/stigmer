@@ -271,8 +271,10 @@ stigmer-cloud entry `20260906.04`) cover the three surfaces the Java service
 owned alone until the composition takes them: the billing ledger
 (`billing.conformance.test.ts` + `suites-execution/billing-gates`), the
 side-channel proxy (`proxy.conformance.test.ts`) and the public REST lane
-(`public-lane.conformance.test.ts`). Three things make them different from the
-CRUD suites:
+(`public-lane.conformance.test.ts`). The plan catalog and subscriptions, which
+the Cloud serves with no Java predecessor, joined them as the billing plans
+facet (`billing-plans.conformance.test.ts`, gated on `billingPlans`). Three
+things make them different from the CRUD suites:
 
 - **They are enumerated from an inventory, not written from taste.**
   `inventory/cloud-capabilities.yaml` lists every behavior of those surfaces
@@ -293,9 +295,10 @@ CRUD suites:
 - **Lanes have their own addresses.** `STIGMER_CONFORMANCE_CLOUD_{PROXY,CURSOR_BIDI,PUBLIC,STRIPE_WEBHOOK}_ADDRESS`
   (+ `_STRIPE_WEBHOOK_SECRET`, `_FIXTURES_CONTROL_URL`), because the
   composition serves extension-owned lanes on separate listeners. The flags
-  (`billingLedger`, `sideChannelProxy`, `publicLane`) state the EDITION's
-  contract; the addresses state where the environment serves it — a cloud
-  target whose flag is true and whose lane is missing FAILS, never skips.
+  (`billingLedger`, `billingPlans`, `sideChannelProxy`, `publicLane`) state
+  the EDITION's contract; the addresses state where the environment serves
+  it — a cloud target whose flag is true and whose lane is missing FAILS,
+  never skips.
   That red is the implementing entry's acceptance.
 
 **Edge posture.** The authentication-class arms — 401 without a bearer, foreign

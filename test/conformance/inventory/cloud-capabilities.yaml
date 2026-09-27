@@ -509,6 +509,98 @@ rows:
     observability: launcher
     caller: outsider
     needs: [unfunded-org, fake-stripe]
+
+  # --- the plan catalog and subscriptions (cloud_only kinds; no Java) ---------
+  - id: billing.rpc.plan-list.buyable-rows-only
+    surface: billing
+    lane: >-
+      rpc.Plan.list
+    behavior: >-
+      Plan list (no include_retired) answers at least one plan, every one active, under a pln_ id with a slug and a set instrument, each subscription plan naming a monthly minimum; get by id answers the same row to any signed-in caller, an outsider included.
+    java_source: >-
+      none (added with apis billing/plan/v1, served by the Cloud composition)
+    java_test: >-
+      none
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [outsider]
+  - id: billing.rpc.plan-create.operator-only
+    surface: billing
+    lane: >-
+      rpc.Plan.create
+    behavior: >-
+      An organization owner's Plan create answers PERMISSION_DENIED "only platform operators can manage plans" and the catalog, retired rows included, is unchanged.
+    java_source: >-
+      apis billing/plan/v1/command.proto
+    java_test: >-
+      none
+    class: adversarial
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [none]
+  - id: billing.rpc.get-entitlements.free-by-default
+    surface: billing
+    lane: >-
+      rpc.Subscription.getEntitlements
+    behavior: >-
+      For an organization that never subscribed, getEntitlements answers an empty plan_id and Free's features, exactly [channels, sharing]; getForOrganization answers NOT_FOUND.
+    java_source: >-
+      none (added with apis billing/subscription/v1, served by the Cloud composition)
+    java_test: >-
+      none
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [unfunded-org]
+  - id: billing.rpc.change-plan.requires-payment-method
+    surface: billing
+    lane: >-
+      rpc.Subscription.changePlan
+    behavior: >-
+      changePlan to a subscription plan for an organization with no saved payment method answers FAILED_PRECONDITION "A saved payment method is required to subscribe to a plan. Add a payment method first."; afterwards getForOrganization still answers NOT_FOUND, getEntitlements an empty plan_id, and no request reached Stripe.
+    java_source: >-
+      none (added with apis billing/subscription/v1, served by the Cloud composition)
+    java_test: >-
+      none
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [unfunded-org, fake-stripe]
+  - id: billing.rpc.subscription.outsider-permission-denied
+    surface: billing
+    lane: >-
+      rpc.Subscription.changePlan
+    behavior: >-
+      An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan" and its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements".
+    java_source: >-
+      apis billing/subscription/v1/command.proto, query.proto
+    java_test: >-
+      none
+    class: adversarial
+    disposition: conformance
+    observability: launcher
+    caller: outsider
+    needs: [unfunded-org, outsider]
+  - id: billing.rpc.oss-boundary.every-plan-rpc-unimplemented
+    surface: billing
+    lane: >-
+      rpc.Plan.list
+    behavior: >-
+      On a target where billingPlans is false (the local OSS server), every RPC of the Plan and Subscription controllers answers Unimplemented — the edition boundary (the kinds are cloud_only) as an observable contract.
+    java_source: >-
+      n/a (OSS routes none of the four controllers)
+    java_test: >-
+      none
+    class: carve-out
+    disposition: conformance
+    observability: none
+    caller: primary
+    needs: [none]
   - id: billing.rpc.set-auto-recharge-config.persists-and-validates
     surface: billing
     lane: >-

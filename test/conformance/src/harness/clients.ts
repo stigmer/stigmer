@@ -30,6 +30,10 @@ import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/ar
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
+import { PlanCommandController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/command_pb";
+import { PlanQueryController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/query_pb";
+import { SubscriptionCommandController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/command_pb";
+import { SubscriptionQueryController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/query_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
@@ -80,6 +84,13 @@ export interface ConformanceClients {
   // boundary the billing suite pins where `billingLedger` is false.
   billingCommand: Client<typeof BillingCommandController>;
   billingQuery: Client<typeof BillingQueryController>;
+  // The plan catalog and subscriptions: cloud_only kinds, so the local OSS
+  // targets route none of the four and the plans facet pins Unimplemented
+  // where `billingPlans` is false.
+  planCommand: Client<typeof PlanCommandController>;
+  planQuery: Client<typeof PlanQueryController>;
+  subscriptionCommand: Client<typeof SubscriptionCommandController>;
+  subscriptionQuery: Client<typeof SubscriptionQueryController>;
   apiKeyQuery: Client<typeof ApiKeyQueryController>;
   agentChannelCommand: Client<typeof AgentChannelCommandController>;
   agentChannelQuery: Client<typeof AgentChannelQueryController>;
@@ -217,6 +228,10 @@ export function makeClients(transport: Transport): ConformanceClients {
     apiKeyCommand: createClient(ApiKeyCommandController, transport),
     billingCommand: createClient(BillingCommandController, transport),
     billingQuery: createClient(BillingQueryController, transport),
+    planCommand: createClient(PlanCommandController, transport),
+    planQuery: createClient(PlanQueryController, transport),
+    subscriptionCommand: createClient(SubscriptionCommandController, transport),
+    subscriptionQuery: createClient(SubscriptionQueryController, transport),
     apiKeyQuery: createClient(ApiKeyQueryController, transport),
     identityAccountCommand: createClient(
       IdentityAccountCommandController,
