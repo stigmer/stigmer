@@ -22,6 +22,9 @@
 import os from "node:os";
 import path from "node:path";
 
+import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
+import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
+
 export interface ServerConfig {
   /** Unified transport port: gRPC, gRPC-Web, Connect, and the REST lanes. */
   readonly grpcPort: number;
@@ -63,6 +66,15 @@ export interface ServerConfig {
    */
   readonly temporalHostPort: string;
   readonly temporalNamespace: string;
+  /**
+   * How both Temporal connections authenticate to that frontend: TLS,
+   * mutual TLS or an API key, read from the `STIGMER_TEMPORAL_*` settings
+   * by `@stigmer/temporal-codecs`' `loadTemporalConnectionConfig` (its
+   * header lists them and says why they are not Temporal's own names).
+   * `{}` is today's plaintext connection. A contradictory or unreadable
+   * setting fails the boot, like OIDC's half configuration.
+   */
+  readonly temporalConnection: TemporalConnectionConfig;
   /**
    * Artifact blob storage (attachments + execution outputs; Go
    * config.ArtifactStorage). "local" is the OSS default; "r2" boot-fails
@@ -302,6 +314,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ...r2,
     temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),
+    temporalConnection: loadTemporalConnectionConfig((name) => env[name]),
     artifactStorageType,
     artifactLocalBasePath: envString(
       env,

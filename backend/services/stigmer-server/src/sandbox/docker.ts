@@ -142,14 +142,20 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       "--env",
       `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
       "--env",
+      `TEMPORAL_NAMESPACE=${config.temporalNamespace}`,
+      "--env",
       `WORKSPACE_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}`,
     ];
+    // Value-less --env inherits from the CLI's environment (module header:
+    // the token must never appear in argv). The Temporal connection
+    // settings ride the same channel: they carry credentials, and PEM text
+    // does not belong on a command line.
+    const secretEnv: Record<string, string> = { ...config.temporalConnectionEnv };
+    if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
     let runEnv: NodeJS.ProcessEnv | undefined;
-    if (env.stigmerToken !== "") {
-      // Value-less --env inherits from the CLI's environment (module
-      // header: the token must never appear in argv).
-      runArgs.push("--env", "STIGMER_TOKEN");
-      runEnv = { ...process.env, STIGMER_TOKEN: env.stigmerToken };
+    if (Object.keys(secretEnv).length > 0) {
+      for (const name of Object.keys(secretEnv)) runArgs.push("--env", name);
+      runEnv = { ...process.env, ...secretEnv };
     }
     runArgs.push(config.runnerImage, ...RUNNER_CONTAINER_COMMAND);
     await docker(runArgs, runEnv);

@@ -34,6 +34,8 @@ const silentLogger = { info: () => {} };
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer-server.stigmer.svc:7234",
   temporalAddress: "temporal.stigmer.svc:7233",
+  temporalNamespace: "stigmer",
+  temporalConnectionEnv: {},
   runnerImage: "ghcr.io/stigmer/runner:latest",
   runnerCommand: "stigmer-runner",
   kubernetesNamespace: "stigmer-sandboxes",
@@ -205,6 +207,7 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
     expect(envByName.get("TEMPORAL_SERVICE_ADDRESS")?.value).toBe(
       config.temporalAddress,
     );
+    expect(envByName.get("TEMPORAL_NAMESPACE")?.value).toBe("stigmer");
     expect(envByName.get("WORKSPACE_ROOT_DIR")?.value).toBe("/workspace");
     expect(envByName.get("STIGMER_TOKEN")?.valueFrom?.secretKeyRef?.name).toBe(
       `${sandboxBaseName("session", "ses_1")}-env`,
@@ -232,5 +235,29 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
     expect(names).not.toContain("STIGMER_TOKEN");
     const secret = buildSandboxSecret("session", "ses_1", "");
     expect(secret.stringData).toEqual({});
+  });
+
+  it("an authenticated Temporal's settings live in the Secret and are only named by the Deployment", () => {
+    const connectionEnv = {
+      STIGMER_TEMPORAL_TLS: "true",
+      STIGMER_TEMPORAL_API_KEY: "api-key-1",
+      STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_DATA: "-----BEGIN CERTIFICATE-----\nca\n-----END CERTIFICATE-----\n",
+    };
+    const authenticated = { ...config, temporalConnectionEnv: connectionEnv };
+    const env = { taskQueue: "session:ses_1", stigmerToken: "tok", callerClass: "user" };
+
+    const secret = buildSandboxSecret("session", "ses_1", "tok", connectionEnv);
+    expect(secret.stringData).toEqual({ ...connectionEnv, STIGMER_TOKEN: "tok" });
+
+    const container = buildSandboxDeployment("session", "ses_1", env, authenticated).spec?.template.spec
+      ?.containers[0];
+    for (const name of Object.keys(connectionEnv)) {
+      const entry = (container?.env ?? []).find((candidate) => candidate.name === name);
+      expect(entry?.value, `${name} must not be a plain manifest value`).toBeUndefined();
+      expect(entry?.valueFrom?.secretKeyRef).toEqual({
+        name: `${sandboxBaseName("session", "ses_1")}-env`,
+        key: name,
+      });
+    }
   });
 });

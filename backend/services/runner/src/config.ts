@@ -72,6 +72,8 @@ export const DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS = 120_000;
 export { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
 import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
+import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
+import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
 /**
  * A shared mutable credential reference. The root that owns a credential
@@ -88,6 +90,13 @@ export interface Config {
   readonly taskQueue: string;
   readonly temporalAddress: string;
   readonly temporalNamespace: string;
+  /**
+   * TLS, mutual TLS or an API key for the Temporal connection, read from
+   * the `STIGMER_TEMPORAL_*` settings through the credential store (the
+   * API key and the client key are in its custody list, so they never
+   * stay in the environment agent tools inherit). `{}` is plaintext.
+   */
+  readonly temporalConnection: TemporalConnectionConfig;
   readonly stigmerBackendEndpoint: string;
   /**
    * The control-plane credential, read per use (the module header). The
@@ -272,6 +281,7 @@ export function loadConfig(): Config {
     taskQueue,
     temporalAddress,
     temporalNamespace,
+    temporalConnection: loadTemporalConnectionConfig(getRunnerSecret),
     stigmerBackendEndpoint,
     stigmerTokenRef,
     mcpBridgeEndpoint,

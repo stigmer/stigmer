@@ -11,6 +11,9 @@
  *     lives forever — latent until #21/#22 add factories);
  *   - the Go availability parity: getClient() is undefined only until
  *     the first successful connect;
+ *   - both connections, the client's and the workers' native one, carry
+ *     the configured connection security (TLS and API key) beside the
+ *     address, and a plaintext manager passes neither;
  *   - deps.createWorker builds through THIS package's Worker.create with
  *     the manager's connection, namespace, and codec chain pre-wired
  *     (the finding-16 seam — factories never see the NativeConnection);
@@ -34,14 +37,34 @@ const sdkSpy = vi.hoisted(() => ({
   createCalls: [] as Record<string, unknown>[],
   /** The connection object the mocked NativeConnection.connect returned last. */
   lastConnection: undefined as unknown,
+  /** Options of every NativeConnection.connect and Connection.connect call. */
+  nativeConnectCalls: [] as Record<string, unknown>[],
+  clientConnectCalls: [] as Record<string, unknown>[],
 }));
+
+vi.mock("@temporalio/client", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@temporalio/client")>();
+  return {
+    ...original,
+    Connection: {
+      connect: async (options: Record<string, unknown>) => {
+        sdkSpy.clientConnectCalls.push(options);
+        return { close: async () => {}, healthService: { check: async () => ({ status: 1 }) } };
+      },
+    },
+    Client: class {
+      constructor(readonly options: Record<string, unknown>) {}
+    },
+  };
+});
 
 vi.mock("@temporalio/worker", async (importOriginal) => {
   const original = await importOriginal<typeof import("@temporalio/worker")>();
   return {
     ...original,
     NativeConnection: {
-      connect: async () => {
+      connect: async (options: Record<string, unknown>) => {
+        sdkSpy.nativeConnectCalls.push(options);
         const connection = { close: async () => {} };
         sdkSpy.lastConnection = connection;
         return connection;
@@ -74,6 +97,8 @@ const managers: TemporalManager[] = [];
 afterEach(async () => {
   sdkSpy.createCalls.length = 0;
   sdkSpy.lastConnection = undefined;
+  sdkSpy.nativeConnectCalls.length = 0;
+  sdkSpy.clientConnectCalls.length = 0;
   for (const manager of managers.splice(0)) {
     await manager.close();
   }
@@ -108,11 +133,13 @@ function newManager(
     payloadCodecs?: ConstructorParameters<
       typeof TemporalManager
     >[0]["payloadCodecs"];
+    connection?: ConstructorParameters<typeof TemporalManager>[0]["connection"];
   },
 ): TemporalManager {
   const manager = new TemporalManager({
     hostPort: "127.0.0.1:1",
     namespace: "default",
+    connection: options?.connection ?? {},
     logger: options?.logger ?? silentLogger,
     payloadCodecs: options?.payloadCodecs ?? [],
     workerFactories: factories,
@@ -280,6 +307,37 @@ describe("TemporalManager createWorker capability (the finding-16 seam)", () => 
     const created = sdkSpy.createCalls[0]!;
     expect("dataConverter" in created).toBe(false);
     expect(created["workflowBundle"]).toEqual({ code: "bundled" });
+  });
+});
+
+describe("TemporalManager connection security", () => {
+  it("spreads TLS and the API key into both the client's and the workers' connections", async () => {
+    const security = {
+      tls: { serverNameOverride: "temporal.internal" },
+      apiKey: "api-key-1",
+    };
+    const manager = newManager([fakeWorkerFactory({ shutdowns: 0 })], {
+      connection: security,
+    });
+
+    await manager.initialConnect();
+    await manager.startWorkers();
+
+    expect(sdkSpy.clientConnectCalls).toHaveLength(1);
+    expect(sdkSpy.clientConnectCalls[0]).toMatchObject({ address: "127.0.0.1:1", ...security });
+    expect(sdkSpy.nativeConnectCalls).toHaveLength(1);
+    expect(sdkSpy.nativeConnectCalls[0]).toEqual({ address: "127.0.0.1:1", ...security });
+  });
+
+  it("passes neither for a plaintext manager", async () => {
+    const manager = newManager([fakeWorkerFactory({ shutdowns: 0 })]);
+
+    await manager.initialConnect();
+    await manager.startWorkers();
+
+    expect(sdkSpy.clientConnectCalls[0]).not.toHaveProperty("tls");
+    expect(sdkSpy.clientConnectCalls[0]).not.toHaveProperty("apiKey");
+    expect(sdkSpy.nativeConnectCalls[0]).toEqual({ address: "127.0.0.1:1" });
   });
 });
 

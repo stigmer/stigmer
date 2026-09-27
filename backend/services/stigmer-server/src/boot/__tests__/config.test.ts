@@ -3,7 +3,10 @@
  * getEnvInt/getEnvString): defaults on absence, defaults on malformed
  * values (silently — Go's shipped leniency is contract), explicit values
  * win. The model-registry refresh switch is only disabled by the literal
- * "off" (model_registry_store.go).
+ * "off" (model_registry_store.go). The Temporal connection settings are
+ * the security exception: their reader (`@stigmer/temporal-codecs`) fails
+ * the boot on a contradiction, and its own suite pins each rule; here the
+ * config only has to carry its result.
  */
 import { describe, expect, it } from "vitest";
 
@@ -72,6 +75,25 @@ describe("loadConfig", () => {
   // id is lenient on purpose — a CLI-only self-host that set the issuer
   // before this knob existed must keep booting on upgrade, and the served
   // console reports the gap itself (Q-CL-2).
+  describe("temporalConnection (the STIGMER_TEMPORAL_* settings)", () => {
+    it("is a plaintext connection when nothing is set", () => {
+      expect(loadConfig({}).temporalConnection).toEqual({});
+    });
+
+    it("carries an API key, which implies TLS", () => {
+      expect(loadConfig({ STIGMER_TEMPORAL_API_KEY: "k-1" }).temporalConnection).toEqual({
+        tls: {},
+        apiKey: "k-1",
+      });
+    });
+
+    it("fails the boot on half a client pair", () => {
+      expect(() =>
+        loadConfig({ STIGMER_TEMPORAL_TLS_CLIENT_CERT_DATA: "-----BEGIN CERTIFICATE-----" }),
+      ).toThrow(/mutual TLS needs both/);
+    });
+  });
+
   describe("STIGMER_OIDC_CONSOLE_CLIENT_ID (the console's sign-in client)", () => {
     const OIDC = {
       STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main",

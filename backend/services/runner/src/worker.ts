@@ -39,6 +39,7 @@ export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
 
   const connection = await NativeConnection.connect({
     address: config.temporalAddress,
+    ...config.temporalConnection,
   });
 
   const { createWorkflowMetricsSinks } = await import("./interceptors/workflow-metrics-sink.js");

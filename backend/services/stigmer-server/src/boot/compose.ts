@@ -88,6 +88,7 @@ import { newResourceIdentityAccountStore } from "../domain/identityaccount/resou
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
 import { asFetch, guardedFetch, nodeLookup } from "@stigmer/outbound/egress";
+import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
 import { newOrganizationOnlyGrantScope } from "../domain/iampolicy/grant-scope.js";
 import { newMembershipRules } from "../domain/iampolicy/membership.js";
 import { newResourceIamPolicyStore } from "../domain/iampolicy/resource-store.js";
@@ -761,6 +762,8 @@ export async function composeServer(
       config: {
         backendEndpoint: config.sandboxBackendEndpoint,
         temporalAddress: config.sandboxTemporalAddress,
+        temporalNamespace: config.temporalNamespace,
+        temporalConnectionEnv: temporalConnectionEnv(config.temporalConnection),
         runnerImage: config.sandboxRunnerImage,
         runnerCommand: config.sandboxRunnerCommand,
         kubernetesNamespace: config.sandboxKubernetesNamespace,
@@ -883,6 +886,7 @@ export async function composeServer(
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
+    connection: config.temporalConnection,
     logger,
     // The composed provider's optional resolvePayloadKey capability rides
     // the decode codec (C4 Stage 2): database-resident rpk_ keys for

@@ -41,6 +41,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     taskQueue: "test-task-queue",
     temporalAddress: "127.0.0.1:1",
     temporalNamespace: "default",
+    temporalConnection: {},
     stigmerBackendEndpoint: INERT_ENDPOINT,
     stigmerTokenRef: { current: null },
     mcpBridgeEndpoint: null,

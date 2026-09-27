@@ -34,6 +34,8 @@ const silentLogger = createLogger({
 const driverConfig: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
   temporalAddress: "host.docker.internal:7233",
+  temporalNamespace: "default",
+  temporalConnectionEnv: {},
   runnerImage: "ghcr.io/stigmer/runner:latest",
   runnerCommand: "stigmer-runner",
   kubernetesNamespace: "stigmer-sandboxes",

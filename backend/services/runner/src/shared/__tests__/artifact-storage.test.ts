@@ -644,6 +644,7 @@ describe("loadArtifactStorageConfig", () => {
     taskQueue: "q",
     temporalAddress: "localhost:7233",
     temporalNamespace: "default",
+    temporalConnection: {},
     stigmerBackendEndpoint: "http://localhost:7234",
     mcpBridgeEndpoint: null,
     cursorApiKey: "",

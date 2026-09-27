@@ -112,6 +112,26 @@ describe("StigmerRunnerOptions type contract", () => {
  * credential (it mints no separate proxy token), and the config carries no
  * credential by value (config.ts header).
  */
+describe("mapOptionsToConfig — Temporal connection security", () => {
+  const base: StigmerRunnerOptions = {
+    taskQueue: "session:test-123",
+    temporalAddress: "localhost:7233",
+    stigmerEndpoint: "http://localhost:7234",
+  };
+  const refs = (): [TokenRef, TokenRef] => [{ current: null }, { current: null }];
+
+  it("carries an embedder's explicit settings", () => {
+    const temporalConnection = { tls: { serverNameOverride: "temporal.internal" }, apiKey: "k" };
+    expect(mapOptionsToConfig({ ...base, temporalConnection }, ...refs()).temporalConnection).toEqual(
+      temporalConnection,
+    );
+  });
+
+  it("falls back to the environment's STIGMER_TEMPORAL_* settings, plaintext when none is set", () => {
+    expect(mapOptionsToConfig(base, ...refs()).temporalConnection).toEqual({});
+  });
+});
+
 describe("mapOptionsToConfig — execution mode", () => {
   const base: StigmerRunnerOptions = {
     taskQueue: "session:test-123",
