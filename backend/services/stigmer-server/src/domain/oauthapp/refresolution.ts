@@ -7,8 +7,9 @@
  * answers): the read-path oauth_status enricher (mcpserver, #9), the
  * OAuth initiate and token-refresh paths (#19 — refresh MUST use the app
  * initiate selected or it runs against the wrong vendor credentials), and
- * the OAuthApp delete guard (#13). This file seeds src/domain/oauthapp/;
- * the domain's controllers arrive with #13.
+ * the OAuthApp delete guard (#13). Every consumer imports it from here,
+ * so there is one ladder to change (stigmer/stigmer#1173 removed a
+ * second copy the delete guard had read).
  *
  * Resolution semantics: OSS has a flat OAuthApp store — no org-override
  * chain like the cloud's OAuthAppResolutionService, so the ref is the

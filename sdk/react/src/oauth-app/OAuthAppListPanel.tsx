@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -23,13 +24,20 @@ export interface OAuthAppListPanelProps {
   readonly onEdit?: (app: OAuthApp) => void;
   /** Re-expose refetch so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
+  /**
+   * Shown when the list is empty. Defaults to "No OAuth apps configured
+   * yet." The list holds only the apps the caller may view (each app's
+   * creator and the organization's admins), so a host that knows the
+   * caller may not manage OAuth apps should say who does instead.
+   */
+  readonly emptyState?: ReactNode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
- * Displays a list of {@link OAuthApp} resources owned by an
- * organization.
+ * Displays the {@link OAuthApp} resources of an organization that the
+ * caller may view.
  *
  * Each row shows the provider name, client ID (non-secret), and
  * creation date. When `onEdit` is provided, rows include a pencil
@@ -56,6 +64,7 @@ export function OAuthAppListPanel({
   org,
   onEdit,
   onRefetchRef,
+  emptyState = "No OAuth apps configured yet.",
   className,
 }: OAuthAppListPanelProps) {
   const { oauthApps, isLoading, error, refetch } = useOAuthAppList(org);
@@ -97,7 +106,7 @@ export function OAuthAppListPanel({
           className,
         )}
       >
-        No OAuth apps configured yet.
+        {emptyState}
       </p>
     );
   }

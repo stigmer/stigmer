@@ -11,6 +11,7 @@ import {
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { useUpdateOAuthApp } from "./useUpdateOAuthApp.js";
 import { useDeleteOAuthApp } from "./useDeleteOAuthApp.js";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
@@ -35,7 +36,11 @@ export interface OAuthAppDetailPanelProps {
  * View and edit panel for an existing OAuth app.
  *
  * In **view mode**, displays all OAuth configuration fields in a
- * structured label/value layout with "Edit" and "Delete" buttons.
+ * structured label/value layout, with an "Edit" button for a caller who
+ * may edit the app (`can_edit`) and a "Delete" button for one who may
+ * delete it (`can_delete`). Both belong to the app's creator alone: the
+ * organization's admins may view an app they did not create, never change
+ * it.
  *
  * In **edit mode**, fields become editable inputs. The client secret
  * field shows a placeholder — leave it empty to keep the existing
@@ -223,31 +228,41 @@ export function OAuthAppDetailPanel({
 
         {mode === "view" && (
           <div className="stg:flex stg:items-center stg:gap-1">
-            <button
-              type="button"
-              onClick={enterEdit}
-              className={cn(
-                "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:transition-colors",
-              )}
+            <PermissionGate
+              resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
+              relation="can_edit"
             >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                clearDeleteError();
-                setConfirmingDelete(true);
-              }}
-              className={cn(
-                "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle",
-                "stg:transition-colors",
-              )}
+              <button
+                type="button"
+                onClick={enterEdit}
+                className={cn(
+                  "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+                  "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                  "stg:transition-colors",
+                )}
+              >
+                Edit
+              </button>
+            </PermissionGate>
+            <PermissionGate
+              resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
+              relation="can_delete"
             >
-              Delete
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearDeleteError();
+                  setConfirmingDelete(true);
+                }}
+                className={cn(
+                  "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+                  "stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle",
+                  "stg:transition-colors",
+                )}
+              >
+                Delete
+              </button>
+            </PermissionGate>
           </div>
         )}
       </div>

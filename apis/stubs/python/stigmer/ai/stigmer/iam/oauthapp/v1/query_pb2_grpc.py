@@ -58,8 +58,8 @@ class OAuthAppQueryControllerServicer(object):
     def listByOrg(self, request, context):
         """List all OAuth apps belonging to an organization.
 
-        Returns every OAuthApp whose metadata.org matches the input org.
-        Typically a small set (1-5 per org), so results are not paginated.
+        Returns the OAuthApps of the input org that the caller may view, newest
+        first. Typically a small set (1-5 per org), so results are not paginated.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
