@@ -9,6 +9,7 @@
 
 export * from "../../workflows/index.js";
 
-// Must equal INLINE_MODEL_WORKFLOW_TYPE in inline-model.ts: an ES2022
-// export alias must be a literal, so this line cannot import it.
+// Equals INLINE_MODEL_WORKFLOW_TYPE in inline-model.ts, pinned by
+// `workflows/__tests__/barrel.test.ts`: an ES2022 export alias must be a
+// literal, so this line cannot import it.
 export { executeInlineModel as "test/workflow/execute-inline" } from "./inline-model.js";

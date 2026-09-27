@@ -11,7 +11,7 @@ import "buf/validate/validate.proto";
 // with an external vendor like Slack, Salesforce, or Figma.
 //
 // Created by org admins or platform operators. Referenced by McpServer
-// resources that need vendor OAuth authentication via McpServerVendorOAuth.
+// resources that need vendor OAuth authentication via McpServerAuth.
 //
 // Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
 // outbound auth — how Stigmer authenticates with external services on

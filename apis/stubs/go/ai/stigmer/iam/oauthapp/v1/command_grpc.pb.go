@@ -46,8 +46,9 @@ type OAuthAppCommandControllerClient interface {
 	Update(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Delete an OAuth app.
 	//
-	// Deletion should be blocked if any McpServer resources reference this
-	// OAuth app via McpServerVendorOAuth.oauth_app_ref.
+	// Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
+	// this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
+	// like every read.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*OAuthApp, error)
 }
 
@@ -119,8 +120,9 @@ type OAuthAppCommandControllerServer interface {
 	Update(context.Context, *OAuthApp) (*OAuthApp, error)
 	// Delete an OAuth app.
 	//
-	// Deletion should be blocked if any McpServer resources reference this
-	// OAuth app via McpServerVendorOAuth.oauth_app_ref.
+	// Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
+	// this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
+	// like every read.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*OAuthApp, error)
 }
 

@@ -11,15 +11,17 @@
  *     ciphertext (no double encryption);
  *   - the keyless WARN-degrade path stores plaintext yet still redacts on
  *     read, and the enc:v<N>: shape rejection stays UNCONDITIONAL (oss#395);
- *   - the delete RPC returns the STORED secret unredacted — Go behavior
- *     ported byte-faithfully (delete is absent from RedactOAuthApp's
- *     response list) and disclosed in the PR;
+ *   - the delete RPC answers the removed app REDACTED, never the stored
+ *     secret: not the ciphertext on a keyed server, not the plaintext on
+ *     a keyless one (stigmer/stigmer#1257; the Go port returned it);
  *   - the referential delete guard's resolution semantics (stigmer#584),
  *     proven by seeding McpServer rows directly through the store — the
  *     McpServer RPC surface belongs to #9 and is not required here.
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
- * before its file steps — the real ~/.stigmer is never touched.
+ * before its file steps — the real ~/.stigmer is never touched. Who may
+ * read or list an app is the enforcing lane's conformance suite's
+ * (role-enforcement.conformance.test.ts).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -50,7 +52,7 @@ import {
   REDACTED_MARKER,
   deleteBlockedByMcpServerMessage,
 } from "../constants.js";
-import { resolveOAuthAppRef } from "../refresolution/refresolution.js";
+import { resolveOAuthAppRef } from "../refresolution.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -285,14 +287,12 @@ describe("oauthapp domain (encryption enabled)", () => {
     expect(listed.entries[1]?.metadata?.id).toBe(first.metadata?.id);
   });
 
-  it("delete returns the STORED resource unredacted — the ported Go behavior (disclosed)", async () => {
+  it("delete answers the removed app redacted — never the stored ciphertext", async () => {
     const created = await ts.command.create(appInput());
     const deleted = await ts.command.delete({ resourceId: created.metadata!.id });
 
-    // Go's delete path never calls RedactOAuthApp: the response carries the
-    // stored ciphertext (plaintext on a keyless server). Pinned so the
-    // faithful port cannot silently "fix" the divergence candidate.
-    expect(deleted.spec?.clientSecret.startsWith(ENCRYPTED_PREFIX)).toBe(true);
+    expect(deleted.metadata?.id).toBe(created.metadata?.id);
+    expect(deleted.spec?.clientSecret).toBe(REDACTED_MARKER);
 
     const err = await grpcError(() => ts.query.get({ value: created.metadata!.id }));
     expect(err.code).toBe(Code.NotFound);
@@ -403,6 +403,13 @@ describe("oauthapp domain (encryption disabled)", () => {
 
     const stored = await storedApp(ts.server.store, created.metadata!.id);
     expect(stored.spec?.clientSecret).toBe("test-client-secret");
+  });
+
+  it("delete answers the removed app redacted — never the stored plaintext", async () => {
+    const created = await ts.command.create(appInput());
+    const deleted = await ts.command.delete({ resourceId: created.metadata!.id });
+
+    expect(deleted.spec?.clientSecret).toBe(REDACTED_MARKER);
   });
 
   it("still rejects ciphertext-shaped secrets — the oss#395 boundary is not gated on key state", async () => {

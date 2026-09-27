@@ -8,8 +8,9 @@
 // Three surfaces make the domain distinct, and all three are asserted here:
 //
 //   - The SECRET contract: client_secret is encrypted at rest and REDACTED to
-//     the ***REDACTED*** marker on every read; re-submitting the marker on
-//     apply means "keep the stored secret" (the Environment convention); and
+//     the ***REDACTED*** marker on every response, the delete's included
+//     (stigmer/stigmer#1257); re-submitting the marker on apply means "keep
+//     the stored secret" (the Environment convention); and
 //     a client-supplied enc:v<N>:-shaped secret is refused with
 //     InvalidArgument on every write door — the prefix is server-reserved, so
 //     a prefixed request value is either forged ciphertext or an attempt to
@@ -226,6 +227,17 @@ describe("OAuthApp conformance — the client-secret contract", () => {
       Code.InvalidArgument,
       "update with ciphertext-shaped client_secret",
     );
+  });
+
+  it("delete answers the removed app with its secret redacted, like every read", async () => {
+    const { org } = await target.provisionTenancy();
+    // No deferred cleanup: this test deletes the app itself.
+    const created = await clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("oauth-app")));
+
+    const deleted = await clients.oauthAppCommand.delete({ resourceId: created.metadata!.id });
+
+    expect(deleted.metadata?.id).toBe(created.metadata?.id);
+    expect(deleted.spec?.clientSecret).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 });
 

@@ -45,13 +45,15 @@ import type {
 const SUPPORTED_LANGUAGES = ["js", "python"];
 
 /**
- * The namespace of the platform's own Temporal workflow types: every type a
- * runner registers (`workflows/index.ts`) and every type the server starts.
- * A child started by `run.workflow` runs on the parent's task queue, so a
- * name in this namespace would reach the runner's own types directly: work
- * the server never dispatched, outside the run it belongs to. A workflow
- * therefore cannot name one. `workflows/__tests__/barrel.test.ts` pins that
- * every registered type carries this prefix, so the refusal covers each.
+ * The namespace of the platform's own Temporal workflow types. A child
+ * started by `run.workflow` runs on the parent's task queue, which is a
+ * runner's queue, so the types a name can reach are exactly the ones a
+ * runner registers (`workflows/index.ts`): work the server never
+ * dispatched, outside the run it belongs to. A workflow therefore cannot
+ * name one. `workflows/__tests__/barrel.test.ts` pins that every registered
+ * type carries this prefix, so the refusal covers each. (Server types need
+ * not carry it, `schedule/tick` does not: they run on the server's own
+ * queues, which a child here never reaches.)
  */
 export const PLATFORM_WORKFLOW_TYPE_PREFIX = "stigmer/";
 

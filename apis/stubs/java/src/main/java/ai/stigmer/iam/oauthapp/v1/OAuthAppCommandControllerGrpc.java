@@ -258,8 +258,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Deletion should be blocked if any McpServer resources reference this
-     * OAuth app via McpServerVendorOAuth.oauth_app_ref.
+     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
+     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
+     * like every read.
      * &#64;internal
      * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
@@ -359,8 +360,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Deletion should be blocked if any McpServer resources reference this
-     * OAuth app via McpServerVendorOAuth.oauth_app_ref.
+     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
+     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
+     * like every read.
      * &#64;internal
      * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
@@ -440,8 +442,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Deletion should be blocked if any McpServer resources reference this
-     * OAuth app via McpServerVendorOAuth.oauth_app_ref.
+     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
+     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
+     * like every read.
      * &#64;internal
      * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
@@ -520,8 +523,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Deletion should be blocked if any McpServer resources reference this
-     * OAuth app via McpServerVendorOAuth.oauth_app_ref.
+     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
+     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
+     * like every read.
      * &#64;internal
      * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
@@ -603,8 +607,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Deletion should be blocked if any McpServer resources reference this
-     * OAuth app via McpServerVendorOAuth.oauth_app_ref.
+     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
+     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
+     * like every read.
      * &#64;internal
      * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
