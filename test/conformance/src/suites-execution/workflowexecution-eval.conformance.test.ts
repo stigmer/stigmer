@@ -8,10 +8,16 @@
 // for the verdict (LangChain's withStructuredOutput, tool name `extract`), so
 // the script is one tool_use turn named `extract` carrying the verdict fields:
 // `{pass, reasoning}` for EVAL_PASS_FAIL, `{score, reasoning}` for
-// EVAL_NUMERIC_SCORE. Pinned (DD-001 of entry 20260910.02; the Go offline
-// suite's eval_offline_test.go):
+// EVAL_NUMERIC_SCORE, `{criteria: [{name, score, reasoning}]}` for
+// EVAL_MULTI_CRITERIA. Pinned (DD-001 of entry 20260910.02; the Go offline
+// suite's eval_offline_test.go; stigmer#1293):
 // - a passing pass/fail verdict completes the run;
 // - a numeric score above the threshold completes the run;
+// - a multi-criteria eval binds the judge's `extract` tool to the verdict's
+//   shape, its criterion names limited to the configured ones (an object
+//   with no declared fields left a real judge to guess, and it came back
+//   with none), and the task output carries the named scores and their
+//   weighted score;
 // - a numeric score BELOW the threshold under EVAL_FAIL_WARN does not fail the
 //   run: the eval task completes, the next task runs, the run completes. (The
 //   RAISE policy on a failing score is the raise_error contract the recover
@@ -23,6 +29,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import { anthropicToolUse } from "../harness/mock-llm";
+import { readAnthropicRequest } from "../harness/llm-wire";
 import { requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
@@ -102,6 +109,44 @@ describe("WorkflowExecution eval — scoring modes", () => {
     expectTaskCompleted(final, EVAL_SUBJECT_TASK_NAME);
     expectTaskCompleted(final, EVAL_TASK_NAME);
     expect(mock.consumed(), "one judge call").toBe(1);
+  });
+
+  it("a multi-criteria eval binds the judge to the configured criteria and reads their weighted score", async () => {
+    const before = mock.scriptedRequests().length;
+    mock.enqueue(
+      anthropicToolUse("toolu_eval_criteria", EVAL_EXTRACT_TOOL_NAME, {
+        criteria: [
+          { name: "accurate", score: 1, reasoning: "Matches the source." },
+          { name: "concise", score: 0.5, reasoning: "Longer than it needs to be." },
+        ],
+      }),
+    );
+
+    const final = await runEvalWorkflow({
+      subject: "Machine learning is a subset of artificial intelligence that learns patterns from data.",
+      rubric: "Grade the definition.",
+      scoringMode: "EVAL_MULTI_CRITERIA",
+      criteria: [
+        { name: "accurate", description: "The definition is correct.", weight: 3 },
+        { name: "concise", description: "It says it in few words.", weight: 1 },
+      ],
+      threshold: 0,
+      onFail: "EVAL_FAIL_WARN",
+    });
+
+    expectCompleted(final);
+    expectTaskCompleted(final, EVAL_TASK_NAME);
+    const request = readAnthropicRequest(mock.scriptedRequests()[before]!.body);
+    const extract = (request.tools ?? []).find((tool) => tool.name === EVAL_EXTRACT_TOOL_NAME);
+    const item = (extract?.input_schema as { properties?: { criteria?: { items?: { properties?: { name?: { enum?: string[] } }; required?: string[] } } } })
+      ?.properties?.criteria?.items;
+    expect(item?.properties?.name?.enum, "the judge may name only the configured criteria").toEqual(["accurate", "concise"]);
+    expect(item?.required, "every criterion carries its name, score and reasoning").toEqual(["name", "score", "reasoning"]);
+
+    const output = taskByName(final, EVAL_TASK_NAME)?.output ?? {};
+    const criteria = (output["criteria"] as Array<{ name: string; score: number }> | undefined) ?? [];
+    expect(criteria.map((criterion) => criterion.name)).toEqual(["accurate", "concise"]);
+    expect(output["score"], "weighted 3:1").toBeCloseTo(0.875, 5);
   });
 
   it("a numeric-score eval above its threshold completes", async () => {

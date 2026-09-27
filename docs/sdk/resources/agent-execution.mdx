@@ -2406,7 +2406,7 @@ Represents a tool call made by the agent during execution.
   type={{
     id: { type: "string", description: "Unique identifier for this tool call." },
     name: { type: "string", description: "Name of the tool being called." },
-    args: { type: "object", description: "Arguments passed to the tool (JSON structure)." },
+    args: { type: "object", description: "Arguments passed to the tool (JSON structure), with the value of every secret-named top-level argument (password, token, secret, api_key, apikey, credentials, auth, authorization; any case) replaced by \"[REDACTED]\", as in args_preview." },
     result: { type: "string", description: "Result returned by the tool (optional, populated after execution)." },
     status: { type: "ToolCallStatus", description: "Status of the tool call execution.", typeDescriptionLink: "#toolcallstatus" },
     startedAt: { type: "string", description: "ISO 8601 timestamp when the tool call started." },

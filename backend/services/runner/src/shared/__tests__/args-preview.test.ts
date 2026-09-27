@@ -12,8 +12,25 @@
  * caller left.)
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
-import { buildElidedArgsPreview, redactSensitiveArgs, SALIENT_ARG_FIELDS } from "../args-preview.js";
+import { buildElidedArgsPreview, redactSensitiveArgs, SALIENT_ARG_FIELDS, SENSITIVE_ARG_KEYS } from "../args-preview.js";
+import { EDIT_NEW_FIELDS, EDIT_OLD_FIELDS, WRITE_CONTENT_FIELDS, extractFilePath } from "../file-tools.js";
+
+interface SecretArgsFixture {
+  keys: string[];
+  marker: string;
+  cases: { name: string; args: Record<string, unknown>; redacted: Record<string, unknown> }[];
+}
+
+// The cross-surface contract the @stigmer/sdk reader asserts too
+// (sdk/typescript/src/execution/__tests__/tool-view.fixtures.test.ts).
+const here = dirname(fileURLToPath(import.meta.url));
+const secretArgs = JSON.parse(
+  readFileSync(resolve(here, "../../../../../../test/fixtures/tool-view/secret-args.json"), "utf8"),
+) as SecretArgsFixture;
 
 describe("SALIENT_ARG_FIELDS", () => {
   it("spans both harnesses' shapes for a file and a shell command, in priority order", () => {
@@ -24,6 +41,38 @@ describe("SALIENT_ARG_FIELDS", () => {
 describe("redactSensitiveArgs", () => {
   it("redacts secret keys case-insensitively and keeps everything else verbatim", () => {
     expect(redactSensitiveArgs({ Api_Key: "sk-123", path: "a.txt", n: 1 })).toEqual({ Api_Key: "[REDACTED]", path: "a.txt", n: 1 });
+  });
+});
+
+describe("the secret-args wire contract (test/fixtures/tool-view/secret-args.json)", () => {
+  it("SENSITIVE_ARG_KEYS is the fixture's key set, the one the SDK reader mirrors", () => {
+    expect([...SENSITIVE_ARG_KEYS].sort()).toEqual([...secretArgs.keys].sort());
+  });
+
+  for (const c of secretArgs.cases) {
+    it(`redacts ${c.name}`, () => {
+      expect(redactSensitiveArgs(c.args)).toEqual(c.redacted);
+    });
+  }
+});
+
+// A row's args are redacted at creation (stigmer#1119), and three readers act
+// on them afterwards: exact-apply writes an approved file from the path and
+// content, the Cursor approval identity keys on the salient field, and the
+// content digest hashes the write or edit content. Widening the secret set into
+// one of those fields would make an approved write land as the marker on disk.
+describe("secret keys never overlap the fields a row's args are acted on by", () => {
+  const actedOn = [...SALIENT_ARG_FIELDS, ...WRITE_CONTENT_FIELDS, ...EDIT_OLD_FIELDS, ...EDIT_NEW_FIELDS];
+
+  it("no salient, write-content or edit field is a secret key", () => {
+    const overlap = actedOn.filter((field) => SENSITIVE_ARG_KEYS.has(field.toLowerCase()));
+    expect(overlap).toEqual([]);
+  });
+
+  it("no secret-keyed argument resolves as a file path", () => {
+    for (const key of SENSITIVE_ARG_KEYS) {
+      expect(extractFilePath({ [key]: "/w/a.txt" })).toBeNull();
+    }
   });
 });
 

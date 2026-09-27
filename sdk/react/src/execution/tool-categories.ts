@@ -3,6 +3,7 @@ import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import type { JsonObject } from "@bufbuild/protobuf";
 import {
   ToolKind,
+  isSecretArgKey,
   resolveToolKind,
   resolveToolKindByName,
   shellIntentFromArgs,
@@ -414,10 +415,12 @@ export function extractPrimaryArg(toolCall: ToolCall): string | null {
 
   if (result) return result;
 
+  // The first argument that is not a secret: a secret is never a row title
+  // (stigmer#1119), and `[REDACTED]` would read as content.
   if ((info.category === "unknown" || info.category === "mcp") && toolCall.args) {
-    const keys = Object.keys(toolCall.args);
-    if (keys.length > 0) {
-      const val = toolCall.args[keys[0]];
+    const first = Object.keys(toolCall.args).find((key) => !isSecretArgKey(key));
+    if (first !== undefined) {
+      const val = toolCall.args[first];
       if (typeof val === "string") return val;
     }
   }

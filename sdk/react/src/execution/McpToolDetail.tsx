@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { redactSecretArgs } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { formatDuration } from "./ToolCallDetail.js";
@@ -247,10 +248,13 @@ export interface McpArgsViewProps {
  * Renders MCP tool arguments as a structured key-value list.
  *
  * Scalars display inline; objects and arrays collapse into
- * formatted JSON blocks via {@link CollapsibleJsonBlock}.
+ * formatted JSON blocks via {@link CollapsibleJsonBlock}. A secret-keyed
+ * value renders as `[REDACTED]` (`redactSecretArgs`): the runner redacts a
+ * row's `args` at creation, but a row persisted before it did (stigmer#1119)
+ * still carries the value, and this is where it would become visible.
  */
 export function McpArgsView({ args }: McpArgsViewProps) {
-  const entries = Object.entries(args);
+  const entries = Object.entries(redactSecretArgs(args));
   if (entries.length === 0) return null;
 
   const scalars: [string, string][] = [];

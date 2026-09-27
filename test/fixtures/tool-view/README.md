@@ -21,6 +21,12 @@ in one place, instead of silently drifting across client implementations.
   the wire key, SHELL-kind scoping, and blank/non-string degradation to null.
   Asserted by BOTH the runner middleware tests (writer side) and the
   `@stigmer/sdk` tool-view tests (reader side).
+- `secret-args.json` — the secret-keyed tool arguments (stigmer#1119): the key
+  set, the redaction marker, and `args` -> redacted cases. The runner redacts
+  them on a row's `args`, its preview and its approval message; clients hide
+  them on rows persisted before that. Asserted by BOTH the runner's
+  args-preview tests (writer side) and the `@stigmer/sdk` tool-view tests
+  (reader side).
 
 ## Contract
 
@@ -65,6 +71,7 @@ so they are asserted in each surface's own unit tests (e.g.
 
 - TS reader: `sdk/typescript/src/execution/__tests__/tool-view.fixtures.test.ts`
 - Runner writer (intent-title): `backend/services/runner/src/middleware/__tests__/tool-intent.test.ts`
+- Runner writer (secret-args): `backend/services/runner/src/shared/__tests__/args-preview.test.ts`
 - React reader (intent-title rendering): `sdk/react/src/execution/__tests__/intent-title.test.tsx`
 
 When you change an engine's result format, update the fixture here; the test

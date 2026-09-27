@@ -357,6 +357,8 @@ export {
   SHELL_INTENT_ARG_FIELD,
   extractShellIntent,
   shellIntentFromArgs,
+  isSecretArgKey,
+  redactSecretArgs,
   type ToolResultView,
   type ToolSearchMatch,
   type ToolContentBlock,

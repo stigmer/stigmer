@@ -34,8 +34,13 @@
  */
 
 /**
- * Argument keys whose values are secrets and must never appear in a preview.
- * Matched case-insensitively against the top-level key name.
+ * Argument keys whose values are secrets and must never appear in a preview,
+ * on a row's `args`, or in an approval message (stigmer#1119). Matched
+ * case-insensitively against the top-level key name. Clients mirror this set
+ * to hide the values on rows persisted before the runner redacted `args`
+ * (`@stigmer/sdk`'s `isSecretArgKey`); the shared, machine-checked contract is
+ * `test/fixtures/tool-view/secret-args.json` — keep this set and that fixture
+ * in lockstep.
  */
 export const SENSITIVE_ARG_KEYS: ReadonlySet<string> = new Set([
   "password", "token", "secret", "api_key", "apikey",
@@ -60,9 +65,11 @@ export const SALIENT_ARG_FIELDS = ["file_path", "path", "target_notebook", "comm
 /**
  * Redact secret-keyed values (see {@link SENSITIVE_ARG_KEYS}), preserving every
  * other entry verbatim. The first step of the preview builder, and the shape
- * stamped as `args` on a proposed row the harness recovered from its engine's
- * state (issue #754's header fix): full enough for the UI's path/primary-arg
- * extraction, never carrying a secret value.
+ * stamped as `args` on every row: by the transcript builder on every row with
+ * args (since stigmer#1119), and on a proposed row the harness recovered from
+ * its engine's state (issue #754's header fix). Full enough for the UI's
+ * path/primary-arg extraction and for exact-apply, never carrying a secret
+ * value.
  */
 export function redactSensitiveArgs(
   args: Record<string, unknown>,

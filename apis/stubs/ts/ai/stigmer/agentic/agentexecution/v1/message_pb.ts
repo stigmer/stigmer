@@ -97,7 +97,10 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
   name: string;
 
   /**
-   * Arguments passed to the tool (JSON structure).
+   * Arguments passed to the tool (JSON structure), with the value of every
+   * secret-named top-level argument (password, token, secret, api_key, apikey,
+   * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+   * in args_preview.
    *
    * @generated from field: google.protobuf.Struct args = 3;
    */

@@ -18,6 +18,7 @@
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { SENSITIVE_ARG_KEYS } from "./args-preview.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 
@@ -451,6 +452,11 @@ export function lookupMcpToolPolicy(
  * - {{args.field_name}} — replaced with the argument value
  * - {{tool_name}} — replaced with the tool name
  * - Missing fields are replaced with "<unknown>"
+ * - A secret-keyed field ({@link SENSITIVE_ARG_KEYS}) is replaced with
+ *   "[REDACTED]" (stigmer#1119): the message is stored on the row and shown on
+ *   the approval card, which must carry no more than the redacted preview.
+ *   Every approval message in the runner, native and Cursor alike, resolves
+ *   here, so this is the one place the rule applies to it.
  */
 export function resolveApprovalMessage(
   template: string,
@@ -460,6 +466,7 @@ export function resolveApprovalMessage(
   return template
     .replace(/\{\{tool_name\}\}/g, toolName)
     .replace(/\{\{args\.(\w+)\}\}/g, (_match, field: string) => {
+      if (SENSITIVE_ARG_KEYS.has(field.toLowerCase())) return "[REDACTED]";
       const value = args[field];
       if (value === undefined || value === null) return "<unknown>";
       if (typeof value === "string") return value;

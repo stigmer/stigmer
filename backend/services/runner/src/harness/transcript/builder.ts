@@ -39,8 +39,9 @@
  *     RUNNING (a WAITING row on native's durable-checkpoint resume; an
  *     INTERRUPTED row on a recovery replay, the enum's supersede rule) and
  *     takes the args and preview it lacked — never duplicated. Every row
- *     with args carries `argsPreview`, elided and redacted, salient fields
- *     verbatim. A finish or an error is an upsert: status
+ *     with args carries them with secret-keyed values redacted
+ *     (stigmer#1119), and an `argsPreview` elided and redacted, salient
+ *     fields verbatim. A finish or an error is an upsert: status
  *     monotonic, `completedAt` once, a non-empty result or message
  *     overwrites, an empty one never clears; a re-emit that
  *     changes nothing forces no persist; a fact the harness
@@ -124,7 +125,7 @@ import {
   ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
-import { SALIENT_ARG_FIELDS, buildElidedArgsPreview } from "../../shared/args-preview.js";
+import { SALIENT_ARG_FIELDS, buildElidedArgsPreview, redactSensitiveArgs } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { utcTimestamp } from "../../shared/status.js";
@@ -453,7 +454,7 @@ export class TranscriptBuilder {
         existing.status = ToolCallStatus.TOOL_CALL_RUNNING;
       }
       if (Object.keys(input).length > 0) {
-        if (!existing.args) existing.args = input as JsonObject;
+        if (!existing.args) existing.args = rowArgs(input);
         if (!existing.argsPreview) stampArgsPreview(existing, input);
       }
       this._dirty = true;
@@ -479,7 +480,7 @@ export class TranscriptBuilder {
     });
 
     if (Object.keys(input).length > 0) {
-      tc.args = input as JsonObject;
+      tc.args = rowArgs(input);
       stampArgsPreview(tc, input);
     }
 
@@ -596,10 +597,16 @@ export class TranscriptBuilder {
     const buffer = (scope.argBuffers.get(callId) ?? "") + argsChunk;
     scope.argBuffers.set(callId, buffer);
 
+    let parsed: unknown;
     try {
-      tc.args = JSON.parse(buffer) as JsonObject;
+      parsed = JSON.parse(buffer);
     } catch {
       // Partial JSON — will parse on next chunk or tool-finished
+      return;
+    }
+    // A tool's arguments are an object (a proto Struct); anything else is not args.
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      tc.args = rowArgs(parsed as Record<string, unknown>);
     }
   }
 
@@ -641,7 +648,7 @@ export class TranscriptBuilder {
       // and they re-derive the preview. Absent, the row
       // keeps what it had.
       if (event.args && Object.keys(event.args).length > 0) {
-        existing.args = event.args as JsonObject;
+        existing.args = rowArgs(event.args);
         stampArgsPreview(existing, event.args);
       }
       if (event.contentDigest) existing.approvalContentDigest = event.contentDigest;
@@ -671,7 +678,7 @@ export class TranscriptBuilder {
       tc.policyEngineVersion = POLICY_ENGINE_VERSION;
     }
     if (event.args && Object.keys(event.args).length > 0) {
-      tc.args = event.args as JsonObject;
+      tc.args = rowArgs(event.args);
       stampArgsPreview(tc, event.args);
     }
     if (event.contentDigest) tc.approvalContentDigest = event.contentDigest;
@@ -752,6 +759,20 @@ function finalizeStreaming(transcript: Transcript): void {
     message.isStreaming = false;
     for (const tc of message.toolCalls) stopStreaming(tc);
   }
+}
+
+/**
+ * The row's `args`, on every row with args: the call's arguments with every
+ * secret-keyed value redacted (`redactSensitiveArgs`, the preview's own
+ * first step). Until stigmer#1119 the row stored them raw and only the
+ * preview was redacted, so a settled row's detail view showed a token the
+ * waiting row had hidden. Nothing that reads a row's args back needs a
+ * secret: exact-apply, the approval identity and the content digest read
+ * path, content, edit and command fields, which
+ * `shared/__tests__/args-preview.test.ts` pins disjoint from the secret keys.
+ */
+function rowArgs(args: Record<string, unknown>): JsonObject {
+  return redactSensitiveArgs(args) as JsonObject;
 }
 
 /**

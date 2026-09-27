@@ -307,6 +307,49 @@ export function extractShellIntent(
 }
 
 // ---------------------------------------------------------------------------
+// Secrets: isSecretArgKey, redactSecretArgs
+// ---------------------------------------------------------------------------
+
+/**
+ * Tool-argument keys whose top-level values are secrets (stigmer#1119),
+ * matched case-insensitively. The runner redacts them on a row's `args`, in
+ * its `args_preview` and in an approval message
+ * (`backend/services/runner/src/shared/args-preview.ts`,
+ * `SENSITIVE_ARG_KEYS`); a surface applies them again because rows persisted
+ * before the runner redacted `args` still carry the values. The shared,
+ * machine-checked contract is `test/fixtures/tool-view/secret-args.json` —
+ * keep the writer and this reader in lockstep.
+ */
+const SECRET_ARG_KEYS: ReadonlySet<string> = new Set([
+  "password", "token", "secret", "api_key", "apikey",
+  "credentials", "auth", "authorization",
+]);
+
+/** The value a redacted argument shows; the runner writes the same marker. */
+const REDACTED_ARG_VALUE = "[REDACTED]";
+
+/** Whether a top-level tool-argument key names a secret. See {@link redactSecretArgs}. */
+export function isSecretArgKey(key: string): boolean {
+  return SECRET_ARG_KEYS.has(key.toLowerCase());
+}
+
+/**
+ * A tool call's arguments with every secret-keyed value replaced by
+ * `[REDACTED]` and every other entry kept verbatim — what a surface may show.
+ * Top-level keys only, like the runner's rule: a secret nested inside an
+ * object argument is not recognised. Returns `args` itself when nothing is
+ * secret-keyed, so memoized consumers keep their reference.
+ */
+export function redactSecretArgs(args: Record<string, unknown>): Record<string, unknown> {
+  if (!Object.keys(args).some(isSecretArgKey)) return args;
+  const redacted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(args)) {
+    redacted[key] = isSecretArgKey(key) ? REDACTED_ARG_VALUE : value;
+  }
+  return redacted;
+}
+
+// ---------------------------------------------------------------------------
 // Result: normalizeToolResult
 // ---------------------------------------------------------------------------
 

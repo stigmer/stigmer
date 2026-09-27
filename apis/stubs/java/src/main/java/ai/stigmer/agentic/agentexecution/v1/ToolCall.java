@@ -171,7 +171,17 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Struct args_;
   /**
    * <pre>
-   * Arguments passed to the tool (JSON structure).
+   * Arguments passed to the tool (JSON structure), with the value of every
+   * secret-named top-level argument (password, token, secret, api_key, apikey,
+   * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+   * in args_preview.
+   *
+   * &#64;internal
+   * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+   * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+   * before that may carry the values; clients hide them on display through
+   * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+   * test/fixtures/tool-view/secret-args.json.
    * </pre>
    *
    * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -183,7 +193,17 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Arguments passed to the tool (JSON structure).
+   * Arguments passed to the tool (JSON structure), with the value of every
+   * secret-named top-level argument (password, token, secret, api_key, apikey,
+   * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+   * in args_preview.
+   *
+   * &#64;internal
+   * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+   * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+   * before that may carry the values; clients hide them on display through
+   * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+   * test/fixtures/tool-view/secret-args.json.
    * </pre>
    *
    * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -195,7 +215,17 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Arguments passed to the tool (JSON structure).
+   * Arguments passed to the tool (JSON structure), with the value of every
+   * secret-named top-level argument (password, token, secret, api_key, apikey,
+   * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+   * in args_preview.
+   *
+   * &#64;internal
+   * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+   * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+   * before that may carry the values; clients hide them on display through
+   * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+   * test/fixtures/tool-view/secret-args.json.
    * </pre>
    *
    * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2345,7 +2375,17 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> argsBuilder_;
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2356,7 +2396,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2371,7 +2421,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2391,7 +2451,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2409,7 +2479,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2434,7 +2514,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2451,7 +2541,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2463,7 +2563,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2478,7 +2588,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Arguments passed to the tool (JSON structure).
+     * Arguments passed to the tool (JSON structure), with the value of every
+     * secret-named top-level argument (password, token, secret, api_key, apikey,
+     * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+     * in args_preview.
+     *
+     * &#64;internal
+     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
+     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+     * before that may carry the values; clients hide them on display through
+     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
