@@ -3,13 +3,13 @@
 // may name as its child.
 //
 // The contract pinned here: a workflow cannot start one of the platform's own
-// workflow types. Those types live under the `stigmer/` namespace (the
-// runner's registered set and the server's orchestrators). A child started by
-// `run_workflow` runs on the parent's own task queue, so such a name would
-// reach the runner's types directly, outside the run the server dispatched.
-// The runner refuses the name when it builds the model, before any child is
-// started, and the execution ends FAILED with a reason that names the task
-// and the type. The refusal reaches the user through the execution's status.
+// workflow types, the `stigmer/` namespace every type the runner registers
+// carries. A child started by `run_workflow` runs on the parent's own task
+// queue, so such a name would reach the runner's types directly, outside the
+// run the server dispatched. The runner refuses the name when it reaches the
+// task, before any child is started (tasks ahead of it run as usual), and the
+// execution ends FAILED with a reason that names the task and the type. The
+// refusal reaches the user through the execution's status.
 //
 // Deliberately out of scope here:
 // - a `run_workflow` naming an ordinary child, whose resolution to a Workflow

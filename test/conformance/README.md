@@ -592,9 +592,10 @@ on `local-execution`. See the project's
 task may name as its child. A child runs on the parent's own task queue. So a
 name in the platform's `stigmer/` namespace would reach the runner's own
 workflow types outside the run the server dispatched. The runner refuses such
-a name when it builds the model, and the execution ends `EXECUTION_FAILED`
-with the task and the type in `status.error`. The runner's registered set
-itself is pinned at the Temporal wire by the runner's own tests, not here.
+a name when it reaches the task, before any child starts, and the execution
+ends `EXECUTION_FAILED` with the task and the type in `status.error`. The
+runner's registered set itself is pinned at the Temporal wire by the runner's
+own tests, not here.
 
 **The runner-behavior facets** (stigmer-cloud entry 20260910.02, DD-001)
 replaced the Go `test/integration-offline` suite, arm for arm, with its
