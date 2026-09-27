@@ -26,8 +26,12 @@
  * The identity is the account the token was minted for: `sub` IS the
  * account id (the mint signs it), so no account read is needed; class
  * `user`, issuer "stigmer", the token carried (the memory-capture gate and
- * the origin guard read its `platform_client_id`), and the email and name
- * the platform asserted, for display only.
+ * the origin guard read its `platform_client_id`, guards decoding their
+ * own skip logic from the raw token as extensions/caller-guards.ts
+ * prescribes), the email and name the platform asserted, for display
+ * only, and the minting client as `platformClientId` for the audit-actor
+ * seam, so every resource a minted user writes names the client they came
+ * through (stigmer/stigmer#1256).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -100,6 +104,7 @@ export function newPlatformClientTokenVerifier(
         rawToken: token,
         ...(email !== undefined ? { email } : {}),
         ...(displayName !== undefined ? { displayName } : {}),
+        platformClientId,
       };
     },
   };

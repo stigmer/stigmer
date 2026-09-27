@@ -41,6 +41,7 @@ private static final long serialVersionUID = 0L;
     avatar_ = "";
     displayName_ = "";
     email_ = "";
+    platformClientId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -265,6 +266,77 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int PLATFORM_CLIENT_ID_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object platformClientId_ = "";
+  /**
+   * <pre>
+   * The PlatformClient whose minted user token the actor acted through.
+   * Empty for every other credential, and on an actor that records no act
+   * (an account's profile lookup).
+   *
+   * &#64;internal
+   * Server-stamped from the verified token by the PlatformClient
+   * verifier (CallerIdentity.platformClientId), never from the request.
+   * The account alone cannot name the client: an end user has one account
+   * per organization whichever of its clients they came through, so this
+   * is the one durable record of which client a resource was written
+   * through. The execution-context builder keys the PlatformClient
+   * environment layer on the execution's created_by value (spec.proto,
+   * PlatformClientSpec.environment_refs).
+   * </pre>
+   *
+   * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+   * @return The platformClientId.
+   */
+  @java.lang.Override
+  public java.lang.String getPlatformClientId() {
+    java.lang.Object ref = platformClientId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      platformClientId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The PlatformClient whose minted user token the actor acted through.
+   * Empty for every other credential, and on an actor that records no act
+   * (an account's profile lookup).
+   *
+   * &#64;internal
+   * Server-stamped from the verified token by the PlatformClient
+   * verifier (CallerIdentity.platformClientId), never from the request.
+   * The account alone cannot name the client: an end user has one account
+   * per organization whichever of its clients they came through, so this
+   * is the one durable record of which client a resource was written
+   * through. The execution-context builder keys the PlatformClient
+   * environment layer on the execution's created_by value (spec.proto,
+   * PlatformClientSpec.environment_refs).
+   * </pre>
+   *
+   * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+   * @return The bytes for platformClientId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPlatformClientIdBytes() {
+    java.lang.Object ref = platformClientId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      platformClientId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -291,6 +363,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(email_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, email_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(platformClientId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, platformClientId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -311,6 +386,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(email_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, email_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(platformClientId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, platformClientId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -335,6 +413,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDisplayName())) return false;
     if (!getEmail()
         .equals(other.getEmail())) return false;
+    if (!getPlatformClientId()
+        .equals(other.getPlatformClientId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -354,6 +434,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDisplayName().hashCode();
     hash = (37 * hash) + EMAIL_FIELD_NUMBER;
     hash = (53 * hash) + getEmail().hashCode();
+    hash = (37 * hash) + PLATFORM_CLIENT_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getPlatformClientId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -498,6 +580,7 @@ private static final long serialVersionUID = 0L;
       avatar_ = "";
       displayName_ = "";
       email_ = "";
+      platformClientId_ = "";
       return this;
     }
 
@@ -543,6 +626,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.email_ = email_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.platformClientId_ = platformClientId_;
+      }
     }
 
     @java.lang.Override
@@ -575,6 +661,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getEmail().isEmpty()) {
         email_ = other.email_;
         bitField0_ |= 0x00000008;
+        onChanged();
+      }
+      if (!other.getPlatformClientId().isEmpty()) {
+        platformClientId_ = other.platformClientId_;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -623,6 +714,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 42: {
+              platformClientId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1044,6 +1140,158 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       email_ = value;
       bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object platformClientId_ = "";
+    /**
+     * <pre>
+     * The PlatformClient whose minted user token the actor acted through.
+     * Empty for every other credential, and on an actor that records no act
+     * (an account's profile lookup).
+     *
+     * &#64;internal
+     * Server-stamped from the verified token by the PlatformClient
+     * verifier (CallerIdentity.platformClientId), never from the request.
+     * The account alone cannot name the client: an end user has one account
+     * per organization whichever of its clients they came through, so this
+     * is the one durable record of which client a resource was written
+     * through. The execution-context builder keys the PlatformClient
+     * environment layer on the execution's created_by value (spec.proto,
+     * PlatformClientSpec.environment_refs).
+     * </pre>
+     *
+     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+     * @return The platformClientId.
+     */
+    public java.lang.String getPlatformClientId() {
+      java.lang.Object ref = platformClientId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        platformClientId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The PlatformClient whose minted user token the actor acted through.
+     * Empty for every other credential, and on an actor that records no act
+     * (an account's profile lookup).
+     *
+     * &#64;internal
+     * Server-stamped from the verified token by the PlatformClient
+     * verifier (CallerIdentity.platformClientId), never from the request.
+     * The account alone cannot name the client: an end user has one account
+     * per organization whichever of its clients they came through, so this
+     * is the one durable record of which client a resource was written
+     * through. The execution-context builder keys the PlatformClient
+     * environment layer on the execution's created_by value (spec.proto,
+     * PlatformClientSpec.environment_refs).
+     * </pre>
+     *
+     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+     * @return The bytes for platformClientId.
+     */
+    public com.google.protobuf.ByteString
+        getPlatformClientIdBytes() {
+      java.lang.Object ref = platformClientId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        platformClientId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The PlatformClient whose minted user token the actor acted through.
+     * Empty for every other credential, and on an actor that records no act
+     * (an account's profile lookup).
+     *
+     * &#64;internal
+     * Server-stamped from the verified token by the PlatformClient
+     * verifier (CallerIdentity.platformClientId), never from the request.
+     * The account alone cannot name the client: an end user has one account
+     * per organization whichever of its clients they came through, so this
+     * is the one durable record of which client a resource was written
+     * through. The execution-context builder keys the PlatformClient
+     * environment layer on the execution's created_by value (spec.proto,
+     * PlatformClientSpec.environment_refs).
+     * </pre>
+     *
+     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+     * @param value The platformClientId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPlatformClientId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      platformClientId_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The PlatformClient whose minted user token the actor acted through.
+     * Empty for every other credential, and on an actor that records no act
+     * (an account's profile lookup).
+     *
+     * &#64;internal
+     * Server-stamped from the verified token by the PlatformClient
+     * verifier (CallerIdentity.platformClientId), never from the request.
+     * The account alone cannot name the client: an end user has one account
+     * per organization whichever of its clients they came through, so this
+     * is the one durable record of which client a resource was written
+     * through. The execution-context builder keys the PlatformClient
+     * environment layer on the execution's created_by value (spec.proto,
+     * PlatformClientSpec.environment_refs).
+     * </pre>
+     *
+     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPlatformClientId() {
+      platformClientId_ = getDefaultInstance().getPlatformClientId();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The PlatformClient whose minted user token the actor acted through.
+     * Empty for every other credential, and on an actor that records no act
+     * (an account's profile lookup).
+     *
+     * &#64;internal
+     * Server-stamped from the verified token by the PlatformClient
+     * verifier (CallerIdentity.platformClientId), never from the request.
+     * The account alone cannot name the client: an end user has one account
+     * per organization whichever of its clients they came through, so this
+     * is the one durable record of which client a resource was written
+     * through. The execution-context builder keys the PlatformClient
+     * environment layer on the execution's created_by value (spec.proto,
+     * PlatformClientSpec.environment_refs).
+     * </pre>
+     *
+     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+     * @param value The bytes for platformClientId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPlatformClientIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      platformClientId_ = value;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }

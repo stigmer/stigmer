@@ -4,7 +4,8 @@
  *   - no ring (a server that trusts every request) and a verify-only ring
  *     refuse FAILED_PRECONDITION before any credential is read;
  *   - an unknown client_id and a wrong secret answer one UNAUTHENTICATED
- *     copy; an expired secret refuses, an unset or never-expiring one mints;
+ *     copy; an expired secret refuses with copy naming the owner's fix (not
+ *     rotation, #1254), an unset or never-expiring one mints;
  *     an org_id other than the owning organization refuses;
  *   - an existing platform-client account is reused with no grant and no
  *     write; an account under the subject in any other mode is refused;
@@ -232,6 +233,11 @@ describe("mintUserToken — the server and the client", () => {
     );
     expect(expired.code).toBe(Code.FailedPrecondition);
     expect(expired.rawMessage).toBe(EXPIRED_CLIENT_SECRET_MESSAGE);
+    // The literal, so a change to the copy is deliberate: it names the
+    // owner's fix, never rotation, which leaves the expiry as it is (#1254).
+    expect(expired.rawMessage).toBe(
+      "PlatformClient secret has expired. Rotating the secret does not extend it; the client's owner must set a later expires_at or set never_expires.",
+    );
 
     await mintUserToken(harness({ client: platformClient() }).deps, request());
     await mintUserToken(

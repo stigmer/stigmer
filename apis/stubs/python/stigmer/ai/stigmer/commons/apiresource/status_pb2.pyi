@@ -37,13 +37,15 @@ class ApiResourceAuditInfo(_message.Message):
     def __init__(self, created_by: _Optional[_Union[ApiResourceAuditActor, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_by: _Optional[_Union[ApiResourceAuditActor, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., event: _Optional[str] = ...) -> None: ...
 
 class ApiResourceAuditActor(_message.Message):
-    __slots__ = ("id", "avatar", "display_name", "email")
+    __slots__ = ("id", "avatar", "display_name", "email", "platform_client_id")
     ID_FIELD_NUMBER: _ClassVar[int]
     AVATAR_FIELD_NUMBER: _ClassVar[int]
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     EMAIL_FIELD_NUMBER: _ClassVar[int]
+    PLATFORM_CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     id: str
     avatar: str
     display_name: str
     email: str
-    def __init__(self, id: _Optional[str] = ..., avatar: _Optional[str] = ..., display_name: _Optional[str] = ..., email: _Optional[str] = ...) -> None: ...
+    platform_client_id: str
+    def __init__(self, id: _Optional[str] = ..., avatar: _Optional[str] = ..., display_name: _Optional[str] = ..., email: _Optional[str] = ..., platform_client_id: _Optional[str] = ...) -> None: ...

@@ -2,13 +2,17 @@
 # Rust crate quality gate: stigmer-runner-host
 # =============================================================================
 # This is the only CI that exercises the Rust crate as a standalone artifact
-# (elsewhere Rust is compiled solely inside release.desktop). It guards the
-# crate before it ships to crates.io, so it must stay green on `main`.
+# (the desktop shell that links it is checked by ci.ts-workspace's
+# desktop-rust job and built by release.desktop). It guards the crate before it
+# ships to crates.io, so it must stay green on `main`.
 #
 # Two independent jobs:
 #   - `rust`         — fmt, clippy (both feature sets), build + test. The crate
 #                      MUST build without Tauri (framework-agnostic core) and
-#                      with it (the desktop binding), so we check both.
+#                      with it (the desktop binding), so we check both. Then
+#                      the desktop shell, its one consumer, is checked against
+#                      it: the shell links the crate by path, which the
+#                      workspace lane's turbo gate cannot see.
 #   - `ipc-fixtures` — proves the crate's vendored IPC fixture is still
 #                      byte-identical to what the canonical runner contract
 #                      (backend/services/runner/src/ipc-protocol.ts) generates.
@@ -63,14 +67,14 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: "crates/stigmer-runner-host -> target"
+          workspaces: |
+            crates/stigmer-runner-host -> target
+            client-apps/desktop/src-tauri -> target
 
       # The `tauri` feature pulls in the Tauri crate, which needs system webkit
-      # libraries to compile on Linux (mirrors release.desktop's Linux deps).
-      - name: Install Tauri system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      # libraries to compile on Linux.
+      - name: Install Tauri's Linux packages
+        uses: ./.github/actions/tauri-linux-deps
 
       - name: Format check
         run: cargo fmt --check
@@ -86,6 +90,13 @@ jobs:
 
       - name: Build (tauri feature)
         run: cargo build --features tauri
+
+      # The desktop shell re-exports this crate's Tauri commands; a change to
+      # the crate's API has to compile there too, and no other lane runs for a
+      # crate-only change.
+      - name: Check the desktop shell against this crate
+        working-directory: .
+        run: make check-desktop-rust
 
   ipc-fixtures:
     name: IPC fixture freshness

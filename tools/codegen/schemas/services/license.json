@@ -288,6 +288,16 @@
           },
           "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
           "required": false
+        },
+        {
+          "name": "PlatformClientId",
+          "jsonName": "platformClientId",
+          "protoField": "platform_client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "required": false
         }
       ]
     },
