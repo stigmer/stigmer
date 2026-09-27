@@ -163,26 +163,31 @@ describe("dispatch surface E2E — Temporal TestWorkflowEnvironment", () => {
       workflowExecutionTimeout: "60s",
     });
 
-    // The worker answers the first workflow task with a failure; poll the
-    // history for it rather than sleeping.
+    // The worker answers the first workflow task with a failure and the
+    // workflow stays open. Poll the history until that failure appears, or
+    // until the workflow closes (which only a worker that ran it can cause).
     const deadline = Date.now() + 30_000;
     let taskFailure: string | undefined;
     let scheduledActivities = 0;
-    while (Date.now() < deadline && taskFailure === undefined) {
+    let running = true;
+    while (Date.now() < deadline && taskFailure === undefined && running) {
       const history = await handle.fetchHistory();
       const events = history.events ?? [];
       scheduledActivities = events.filter((e) => e.activityTaskScheduledEventAttributes).length;
       const failed = events.find((e) => e.workflowTaskFailedEventAttributes);
       taskFailure = failed?.workflowTaskFailedEventAttributes?.failure?.message ?? undefined;
-      if (taskFailure === undefined) await new Promise((r) => setTimeout(r, 200));
+      running = (await handle.describe()).status.name === "RUNNING";
+      if (taskFailure === undefined && running) await new Promise((r) => setTimeout(r, 200));
     }
-    await handle.terminate("dispatch-surface e2e: the removed type is never executed");
+    if (running) {
+      await handle.terminate("dispatch-surface e2e: the removed type is never executed");
+    }
 
+    expect(ran, "no activity of the handed model may run").toEqual([]);
+    expect(scheduledActivities).toBe(0);
+    expect(running, "the workflow must stay open: nothing ran it").toBe(true);
     expect(taskFailure, "the workflow task must fail for the unregistered type").toBeDefined();
     expect(taskFailure).toContain(REMOVED_INLINE_TYPE);
-    expect(scheduledActivities).toBe(0);
-    expect(ran).not.toContain("RunShell");
-    expect(ran).toEqual([]);
   }, 60_000);
 
   it("still runs the type the server starts, on the same worker", async (testCtx) => {
