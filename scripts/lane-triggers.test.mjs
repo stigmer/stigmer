@@ -1,5 +1,5 @@
-// A path-filtered CI lane that builds a package outside the npm workspace runs
-// when anything that package links changes.
+// A path-filtered workflow (a CI lane or a deploy) that builds a package
+// outside the npm workspace runs when anything that package links changes.
 // Run via `node --test scripts/lane-triggers.test.mjs` (wired into root `npm test`).
 //
 // ci.ts-workspace asks turbo which workspace packages a change reaches, so a
@@ -8,8 +8,10 @@
 // lockfiles, outside the root `workspaces`) link libraries with `file:`
 // specifiers turbo never sees, and the lanes that build them decide when to
 // run from `paths:` lists kept by hand. A list that misses a link lets a change
-// to that library merge without the lane that builds against it: #1055, where
-// ci.stigmer-server ran for none of the four backend libs the server links.
+// to that library merge without the lane that builds against it (#1055, where
+// ci.stigmer-server ran for none of the four backend libs the server links),
+// or reach main without the deploy that ships it (#1307, where stigmer.ai
+// waited for the next site edit to pick up an SDK change).
 //
 // A lane watches a package when one of its trigger lists matches the package's
 // manifest: the manifest declares the links, so a lane that triggers on it has
@@ -23,7 +25,7 @@
 // devDependencies are its own build tools.
 //
 // Trigger lists are `on.pull_request.paths`, `on.push.paths` and every
-// dorny/paths-filter filter of a `ci.*` workflow, matched with the glob dialect
+// dorny/paths-filter filter of every workflow, matched with the glob dialect
 // the guidance gate already uses (`matchesGlob` in agents-check.mjs: `**`, `*`,
 // `?`). Syntax outside it is refused, not guessed at: on `?` and `+` (GitHub
 // quantifiers), `!` and the bracket forms, GitHub's filter, paths-filter's
@@ -209,10 +211,10 @@ export function watches(patterns, dir) {
   );
 }
 
-function ciWorkflows(rootDir = root) {
+function readWorkflows(rootDir = root) {
   const dir = join(rootDir, ".github/workflows");
   return readdirSync(dir)
-    .filter((file) => /^ci\..+\.ya?ml$/.test(file))
+    .filter((file) => /\.ya?ml$/.test(file))
     .sort()
     .map((file) => ({
       file,
@@ -228,7 +230,7 @@ const closures = new Map(
     linkClosure(dir, manifests, byName),
   ]),
 );
-const workflows = ciWorkflows();
+const workflows = readWorkflows();
 
 /** Every (lane, list, standalone package) where the list watches the package. */
 function watchedPairs() {
@@ -305,6 +307,8 @@ test("the guard still finds the packages and lanes it exists for", () => {
     "ci.stigmer-server.yaml test/extension-consumer",
     "ci.runner.yaml backend/services/runner",
     "ci.docs.yaml site",
+    "release.website.yaml site",
+    "release.sandbox-cloud.yaml backend/services/runner",
   ]) {
     assert.ok(pairs.has(expected), `no trigger list pairs ${expected}`);
   }

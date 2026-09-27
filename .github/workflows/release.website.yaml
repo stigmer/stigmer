@@ -14,6 +14,16 @@ on:
       - "docs/**"
       - "demos/**"
       - "vale/**"
+      # What the site and the demo tours link and this job builds from source
+      # (build:libs, then the site and the tour bundles), so a change to one
+      # reaches stigmer.ai with its merge (scripts/lane-triggers.test.mjs fails
+      # when one is missing).
+      - "apis/stubs/ts/**"
+      - "sdk/typescript/**"
+      - "sdk/react/**"
+      - "sdk/theme/**"
+      - "sdk/embed/**"
+      - "backend/libs/ts/plugin-package/**"
       - ".github/workflows/release.website.yaml"
   workflow_dispatch:
 
