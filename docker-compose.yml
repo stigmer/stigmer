@@ -16,6 +16,14 @@
 #                   servers spawn INSIDE this container — they can reach this
 #                   container's filesystem and network, not your host's.
 #
+# One trust domain: every service on this network, the runner's own tools
+# included, can reach Temporal, which authenticates nothing here. Whoever
+# reaches it can start work on the runner's queue; the runner runs only the
+# workflow types the server starts, reading each run back from the server.
+# Temporal's port is not published to the host. For a Temporal outside this
+# boundary, use the Helm chart with an authenticated external Temporal
+# (externalTemporal.tls, externalTemporal.apiKey).
+#
 # Image pins: the STIGMER_VERSION default below is bumped in the release
 # commit the tag is cut from (`make release` and the release procedure refuse
 # to tag without it, alongside the mcp-server bridge pin); release.npm-libs

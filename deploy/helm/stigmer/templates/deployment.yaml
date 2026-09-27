@@ -94,6 +94,9 @@ spec:
               value: {{ include "stigmer.temporalHostPort" . | quote }}
             - name: TEMPORAL_NAMESPACE
               value: {{ include "stigmer.temporalNamespace" . | quote }}
+            {{- with include "stigmer.temporalConnectionEnv" . | trim }}
+            {{- . | nindent 12 }}
+            {{- end }}
             # The ONE runner task queue, set on both sides (compose's anchor).
             - name: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
               value: stigmer_runner
@@ -196,6 +199,9 @@ spec:
               value: {{ include "stigmer.temporalHostPort" . | quote }}
             - name: TEMPORAL_NAMESPACE
               value: {{ include "stigmer.temporalNamespace" . | quote }}
+            {{- with include "stigmer.temporalConnectionEnv" . | trim }}
+            {{- . | nindent 12 }}
+            {{- end }}
             - name: STIGMER_TASK_QUEUE
               value: stigmer_runner
             - name: WORKSPACE_ROOT_DIR

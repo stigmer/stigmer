@@ -11,7 +11,9 @@
  *   - an Enterprise key turned on: the sentence naming P4's sp.helm-ee;
  *   - an unknown top-level key (a typo): refused, never silently ignored;
  *   - OIDC on without a runner token: the two-step sentence (F3);
- *   - Postgres disabled without an external host, Temporal likewise.
+ *   - Postgres disabled without an external host, Temporal likewise;
+ *   - Temporal authentication against the bundled Temporal, TLS keys without
+ *     TLS or without their Secret, and half a mutual-TLS pair.
  */
 
 import assert from "node:assert/strict";
@@ -88,6 +90,37 @@ test("postgres.enabled=false without externalDatabase.host is refused", () => {
 test("temporal.enabled=false without externalTemporal.hostPort is refused", () => {
   const result = helmTemplate("bundled", { sets: ["temporal.enabled=false"] });
   expectRefusal(result, /externalTemporal\.hostPort/, "no Temporal");
+});
+
+test("Temporal authentication is refused against the bundled Temporal", () => {
+  for (const set of ["externalTemporal.tls.enabled=true", "externalTemporal.apiKey.existingSecret=k"]) {
+    const result = helmTemplate("bundled", { sets: [set] });
+    expectRefusal(result, /the bundled Temporal speaks neither/, set);
+  }
+});
+
+test("TLS keys without TLS, or without their Secret, are refused", () => {
+  expectRefusal(
+    helmTemplate("byo", { sets: ["externalTemporal.tls.caKey=ca.crt", "externalTemporal.tls.existingSecret=s"] }),
+    /externalTemporal\.tls\.enabled is false/,
+    "keys without TLS",
+  );
+  expectRefusal(
+    helmTemplate("byo", { sets: ["externalTemporal.tls.enabled=true", "externalTemporal.tls.caKey=ca.crt"] }),
+    /names keys but not their Secret/,
+    "keys without a Secret",
+  );
+});
+
+test("half a mutual-TLS pair is refused", () => {
+  const result = helmTemplate("byo", {
+    sets: [
+      "externalTemporal.tls.enabled=true",
+      "externalTemporal.tls.existingSecret=s",
+      "externalTemporal.tls.certKey=tls.crt",
+    ],
+  });
+  expectRefusal(result, /certKey and keyKey go together/, "cert without key");
 });
 
 test("an Ingress without a host is refused", () => {

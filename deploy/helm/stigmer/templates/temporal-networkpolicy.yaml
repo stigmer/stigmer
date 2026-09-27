@@ -1,0 +1,46 @@
+{{- /*
+The bundled Temporal's fence. That Temporal authenticates nothing, and
+whoever reaches its frontend can start work on the runner's task queue, so
+only this release's stigmer pod may connect: the server, the runner and the
+init container that waits for the frontend all carry its labels, and they
+are admitted to the frontend port alone. Temporal's own pod is admitted on
+every port, because auto-setup runs every Temporal service in one pod and
+they reach one another on its address. Ingress only: Temporal's connection
+to Postgres is not restricted here.
+
+What it cannot fence: the runner's own tools and stdio MCP servers run inside
+the stigmer pod, so they are inside this boundary; the runner registers only
+the workflow types the server starts, which is the layer that holds there.
+A cluster whose network plugin does not enforce NetworkPolicy ignores this
+object; the README says so.
+*/ -}}
+{{- if and .Values.temporal.enabled .Values.temporal.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "stigmer.fullname" . }}-temporal
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "stigmer.selectorLabels" (dict "root" . "component" "temporal") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    # The stigmer pod: the frontend only.
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "stigmer.selectorLabels" (dict "root" . "component" "stigmer") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: frontend
+    # Temporal itself: every port, for its services' own traffic (history,
+    # matching and membership listen beside the frontend).
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "stigmer.selectorLabels" (dict "root" . "component" "temporal") | nindent 14 }}
+{{- end }}

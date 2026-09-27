@@ -300,6 +300,30 @@ externalTemporal:
   namespace: default
 ```
 
+When your Temporal requires authentication (Temporal Cloud, or a frontend with
+an authorizer), name the Secrets that hold its credentials:
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+externalTemporal:
+  hostPort: my-namespace.a1b2c.tmprl.cloud:7233
+  namespace: my-namespace.a1b2c
+  tls:
+    enabled: true
+    existingSecret: temporal-tls # PEM items by key; each key optional
+    caKey: ca.crt # the frontend's CA; omit for publicly trusted roots
+    certKey: tls.crt # mutual TLS: the client certificate and its key
+    keyKey: tls.key
+  apiKey:
+    existingSecret: temporal-api-key # key STIGMER_TEMPORAL_API_KEY
+```
+
+The server and the runner both read them as `STIGMER_TEMPORAL_*` settings, and a
+runner the server starts per Session gets the same. The runner keeps the API key
+and the client key out of the environment its Agent's tools see. The names are
+Stigmer's own, so a `TEMPORAL_API_KEY` you use for your own Temporal work is
+never read. The bundled Temporal authenticates nothing; the chart fences it
+instead, so only the Stigmer pod may connect.
+
 Decide this before your first install: moving data from the bundled Postgres to
 yours later is a database restore, not a value change. The database password
 never appears in a rendered manifest; the server assembles its connection string
