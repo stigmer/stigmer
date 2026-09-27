@@ -3,7 +3,8 @@
 # =============================================================================
 # Quality gates for documentation changes: prose linting, formatting, site
 # build verification, SDK docs freshness, and link checking. Runs on every PR
-# and push to main that touches docs, the site, protos, or codegen tooling.
+# and push to main that touches docs, the site or a package it builds against,
+# protos, or codegen tooling.
 #
 # `Lint & Build` is a required status check on main. The workflow therefore
 # triggers on EVERY pull request and gates internally: the cheap `changes`
@@ -31,12 +32,21 @@ on:
       - "site/**"
       - "apis/**"
       - "tools/codegen/**"
+      # check-docs-yaml validates the raw manifests under these
+      # authoring surfaces too (Makefile: --authoring-dirs).
+      - "examples/**"
+      - "plugins/**"
       - "client-apps/cli/**"
       - "sdk/ink/**"
       - "sdk/react/**"
       # The docs site embeds the Ask AI panel through @stigmer/embed's
       # workspace source, so embed changes can break the site build/tests.
       - "sdk/embed/**"
+      # The rest of what the site links with `file:` and builds against
+      # (scripts/lane-triggers.test.mjs fails when one is missing).
+      - "sdk/typescript/**"
+      - "sdk/theme/**"
+      - "backend/libs/ts/plugin-package/**"
       - ".vale.ini"
       - ".prettierrc"
       - ".lychee.toml"
@@ -50,6 +60,7 @@ on:
       - ".cursor/rules/agents-*.mdc"
       - ".cursor/hooks.json"
       - "scripts/agents-check.mjs"
+      - ".github/workflows/ci.docs.yaml"
   workflow_dispatch:
 
 concurrency:
@@ -112,6 +123,12 @@ jobs:
               - "sdk/ink/**"
               - "sdk/react/**"
               - "sdk/embed/**"
+              # The rest of what the site links with `file:` and builds
+              # against (scripts/lane-triggers.test.mjs fails when one is
+              # missing).
+              - "sdk/typescript/**"
+              - "sdk/theme/**"
+              - "backend/libs/ts/plugin-package/**"
               - ".vale.ini"
               - ".prettierrc"
               - ".lychee.toml"
