@@ -134,12 +134,14 @@ type PlatformClientSpec struct {
 	// Edits apply to the next request: the client is read on every request
 	// that bears one of its tokens.
 	AllowedOrigins []string `protobuf:"bytes,9,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
-	// Environments whose values are delivered to every agent execution
-	// created by a session this PlatformClient minted. This is how an
+	// Environments whose values are delivered to every agent execution a
+	// user signed in through this PlatformClient creates. This is how an
 	// embedded assistant reaches secret-gated MCP servers: the client — the
 	// connection resource — carries the credentials (for example a shared
 	// API secret), and minted-user executions receive its values at
-	// runtime. The agent and its default instance stay untouched.
+	// runtime, at the lowest priority, so the agent instance's environments
+	// and the request's runtime values win on a key conflict. The agent and
+	// its default instance stay untouched.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,10,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache

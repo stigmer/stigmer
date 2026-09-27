@@ -222,9 +222,13 @@ type ApiResourceAuditActor struct {
 	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Email address of the actor. Empty when unknown or not applicable
 	// (e.g. machine accounts).
-	Email         string `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Email string `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	// The PlatformClient whose minted user token the actor acted through.
+	// Empty for every other credential, and on an actor that records no act
+	// (an account's profile lookup).
+	PlatformClientId string `protobuf:"bytes,5,opt,name=platform_client_id,json=platformClientId,proto3" json:"platform_client_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ApiResourceAuditActor) Reset() {
@@ -285,6 +289,13 @@ func (x *ApiResourceAuditActor) GetEmail() string {
 	return ""
 }
 
+func (x *ApiResourceAuditActor) GetPlatformClientId() string {
+	if x != nil {
+		return x.PlatformClientId
+	}
+	return ""
+}
+
 var File_ai_stigmer_commons_apiresource_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_status_proto_rawDesc = "" +
@@ -305,12 +316,13 @@ const file_ai_stigmer_commons_apiresource_status_proto_rawDesc = "" +
 	"updated_by\x18\x03 \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\tupdatedBy\x129\n" +
 	"\n" +
 	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x14\n" +
-	"\x05event\x18\x05 \x01(\tR\x05event\"x\n" +
+	"\x05event\x18\x05 \x01(\tR\x05event\"\xa6\x01\n" +
 	"\x15ApiResourceAuditActor\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06avatar\x18\x02 \x01(\tR\x06avatar\x12!\n" +
 	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12\x14\n" +
-	"\x05email\x18\x04 \x01(\tR\x05emailB\x96\x02\n" +
+	"\x05email\x18\x04 \x01(\tR\x05email\x12,\n" +
+	"\x12platform_client_id\x18\x05 \x01(\tR\x10platformClientIdB\x96\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\vStatusProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

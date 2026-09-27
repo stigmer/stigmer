@@ -1492,6 +1492,9 @@ export async function composeServer(
         executionContextCreator: () =>
           requireInProcess().executionContextCreator,
         managedEnvService,
+        // The minting client's environment layer reads the client through
+        // the port, which a composition's driver may serve (#1256).
+        platformClients,
         // The run-start token refresh dials the vendor's token endpoint;
         // it rides the same egress-guarded fetch as every other OAuth call.
         fetchImpl: asFetch(outboundFetch),

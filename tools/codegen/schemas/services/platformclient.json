@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientId",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation. Tokens already minted stay valid until they\n expire; delete the client to revoke them. A system-managed client's\n secret cannot be rotated."
+          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation. Tokens already minted stay valid until they\n expire; delete the client to revoke them. Rotating does not change\n expires_at: a client whose expiry has passed mints again only once its\n owner sets a later expires_at or never_expires with update. A\n system-managed client's secret cannot be rotated."
         }
       ]
     },
@@ -837,6 +837,16 @@
             "kind": "string"
           },
           "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "PlatformClientId",
+          "jsonName": "platformClientId",
+          "protoField": "platform_client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
           "required": false
         }
       ]

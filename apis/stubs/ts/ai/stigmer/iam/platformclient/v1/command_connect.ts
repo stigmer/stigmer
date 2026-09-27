@@ -83,8 +83,10 @@ export const PlatformClientCommandController = {
      * and returns the new raw secret in the response. The client_id remains
      * unchanged — platform builders do not need to update their client_id
      * configuration after rotation. Tokens already minted stay valid until they
-     * expire; delete the client to revoke them. A system-managed client's
-     * secret cannot be rotated.
+     * expire; delete the client to revoke them. Rotating does not change
+     * expires_at: a client whose expiry has passed mints again only once its
+     * owner sets a later expires_at or never_expires with update. A
+     * system-managed client's secret cannot be rotated.
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret
      */

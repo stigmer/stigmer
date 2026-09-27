@@ -16,10 +16,14 @@
  *     no instance layers, and the session's own MCP servers are the whole
  *     tool set.
  *
- * Merge priority (lowest to highest): schedule/workflow-task
- * environment_refs (the share/channel/schedule/agent_call layering) →
- * instance environment_refs (via the environment RuntimeResolutionService
- * — decrypted, the RPC surface redacts, oss#405) → spec.runtime_env.
+ * Merge priority (lowest to highest): the minting PlatformClient's
+ * environment_refs, for an execution a PlatformClient-minted user created
+ * (#1256) → schedule/workflow-task environment_refs (the
+ * share/channel/schedule/agent_call layering) → instance environment_refs
+ * (via the environment RuntimeResolutionService — decrypted, the RPC
+ * surface redacts, oss#405) → spec.runtime_env. Every layer is keyed on
+ * the persisted execution alone (its labels, its audit), never on the
+ * request's caller, so recovery rebuilds exactly what create built.
  *
  * Then ONE declaration rule for every shape: the run declares what its
  * agent declares and what its session's MCP servers declare, and the
@@ -96,6 +100,7 @@ import type { PersonalEnvironmentResolution } from "../environment/personal.js";
 import type { RuntimeResolutionService } from "../environment/resolution/resolution.js";
 import type { ManagedEnvironmentService } from "../mcpserver/oauth/managed-env.js";
 import { refreshTokenIfExpired } from "../mcpserver/oauth/refresh.js";
+import type { PlatformClientStore } from "../platformclient/store.js";
 import { unmarshalTaskConfig } from "../workflow/converter/unmarshal.js";
 
 import { DEFAULT_INSTANCE_ID_KEY } from "./create-steps.js";
@@ -160,6 +165,12 @@ export interface ExecutionContextBuilderDeps {
   readonly environmentResolution: RuntimeResolutionService;
   readonly executionContextCreator: () => ExecutionContextCreator;
   readonly managedEnvService: ManagedEnvironmentService;
+  /**
+   * The PlatformClient port the minting client's environment layer reads
+   * (4.7). The port, not the Store: a composition may keep client rows in
+   * a table of its own (domain/platformclient/store.ts).
+   */
+  readonly platformClients: Pick<PlatformClientStore, "findById">;
   /** Test seam forwarded to the OAuth token-endpoint refresh. */
   readonly fetchImpl?: typeof fetch;
 }
@@ -321,6 +332,22 @@ export async function buildAndPersistExecutionContext(
   );
   if (workflowEnvironments.length > 0) {
     environments = [...workflowEnvironments, ...environments];
+  }
+
+  // 4.7 PlatformClient-minted executions: the minting client's own
+  // environment_refs, BELOW every other layer — the fifth application of
+  // the connection-resource mechanism (#381, restored by #1256). The key
+  // is the execution's audit created_by, which the server stamped from
+  // the verified token, so it holds on recover, where no minted caller
+  // exists. Independent of 4.5/4.6: a minted user's own turn carries no
+  // schedule or workflow provenance, and a fire or a workflow task stamps
+  // no minted actor.
+  const platformClientEnvironments = await resolvePlatformClientEnvironments(
+    deps,
+    execution,
+  );
+  if (platformClientEnvironments.length > 0) {
+    environments = [...platformClientEnvironments, ...environments];
   }
 
   // 5. Merge all layers.
@@ -742,6 +769,85 @@ async function resolveScheduleEnvironments(
     return await resolveEnvironments(deps, resolved);
   } catch (error) {
     chainError(`resolve schedule ${scheduleId} environment_refs`, error);
+  }
+}
+
+/**
+ * Resolves the environment_refs of the PlatformClient whose minted user
+ * created this execution (its audit created_by.platform_client_id, stamped
+ * by the server from the verified token). No minting client — every
+ * execution not created by a minted user — answers empty without a read.
+ * A DELETED client degrades to no client environments (the schedule
+ * layer's posture; its tokens are already refused). A client of another
+ * organization than the execution's contributes nothing: no environment
+ * value crosses an organization, the run-time twin of the reference
+ * rule's cross-organization clause (pipeline/steps/references.ts). An
+ * expired client still contributes: expiry stops minting, not the tokens
+ * already minted. Environment visibility is not consulted, as for every
+ * layer (the reference rule's reasoning: the server resolves the
+ * environment on the run's behalf). An unresolvable REF fails the create.
+ */
+async function resolvePlatformClientEnvironments(
+  deps: ExecutionContextBuilderDeps,
+  execution: AgentExecution,
+): Promise<Environment[]> {
+  const platformClientId =
+    execution.status?.audit?.specAudit?.createdBy?.platformClientId ?? "";
+  if (platformClientId === "") {
+    return [];
+  }
+  const executionId = execution.metadata?.id ?? "";
+
+  let client;
+  try {
+    client = await deps.platformClients.findById(platformClientId);
+  } catch (error) {
+    throw new Error(
+      `load platform client ${platformClientId} for environment resolution: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  if (client === undefined) {
+    deps.logger.warn(
+      "Minting platform client is gone — running without its environments",
+      { platformClientId, executionId },
+    );
+    return [];
+  }
+
+  const clientOrg = client.metadata?.org ?? "";
+  const executionOrg = execution.metadata?.org ?? "";
+  if (clientOrg !== executionOrg) {
+    deps.logger.warn(
+      "Minting platform client belongs to another organization — its environments are not delivered",
+      { platformClientId, clientOrg, executionOrg, executionId },
+    );
+    return [];
+  }
+
+  const refs = client.spec?.environmentRefs ?? [];
+  if (refs.length === 0) {
+    return [];
+  }
+  // Stored refs are absolute (NormalizeReferences on the client's writes);
+  // an empty org is filled from the client's own, as the schedule layer
+  // does for its manifest refs.
+  const resolved = refs.map((ref) =>
+    ref.org === ""
+      ? create(ApiResourceReferenceSchema, {
+          kind: ref.kind,
+          org: clientOrg,
+          slug: ref.slug,
+        })
+      : ref,
+  );
+
+  try {
+    return await resolveEnvironments(deps, resolved);
+  } catch (error) {
+    chainError(
+      `resolve platform client ${platformClientId} environment_refs`,
+      error,
+    );
   }
 }
 

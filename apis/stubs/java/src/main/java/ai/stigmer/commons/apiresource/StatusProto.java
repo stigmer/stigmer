@@ -73,15 +73,16 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "tigmer.commons.apiresource.ApiResourceAu" +
       "ditActorR\tupdatedBy\0229\n\nupdated_at\030\004 \001(\0132" +
       "\032.google.protobuf.TimestampR\tupdatedAt\022\024" +
-      "\n\005event\030\005 \001(\tR\005event\"x\n\025ApiResourceAudit" +
-      "Actor\022\016\n\002id\030\001 \001(\tR\002id\022\026\n\006avatar\030\002 \001(\tR\006a" +
-      "vatar\022!\n\014display_name\030\003 \001(\tR\013displayName" +
-      "\022\024\n\005email\030\004 \001(\tR\005emailB\251\001B\013StatusProtoP\001" +
-      "\242\002\004ASCA\252\002\036Ai.Stigmer.Commons.Apiresource" +
-      "\312\002\036Ai\\Stigmer\\Commons\\Apiresource\342\002*Ai\\S" +
-      "tigmer\\Commons\\Apiresource\\GPBMetadata\352\002" +
-      "!Ai::Stigmer::Commons::Apiresourceb\006prot" +
-      "o3"
+      "\n\005event\030\005 \001(\tR\005event\"\246\001\n\025ApiResourceAudi" +
+      "tActor\022\016\n\002id\030\001 \001(\tR\002id\022\026\n\006avatar\030\002 \001(\tR\006" +
+      "avatar\022!\n\014display_name\030\003 \001(\tR\013displayNam" +
+      "e\022\024\n\005email\030\004 \001(\tR\005email\022,\n\022platform_clie" +
+      "nt_id\030\005 \001(\tR\020platformClientIdB\251\001B\013Status" +
+      "ProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Commons.Apir" +
+      "esource\312\002\036Ai\\Stigmer\\Commons\\Apiresource" +
+      "\342\002*Ai\\Stigmer\\Commons\\Apiresource\\GPBMet" +
+      "adata\352\002!Ai::Stigmer::Commons::Apiresourc" +
+      "eb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -111,7 +112,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_commons_apiresource_ApiResourceAuditActor_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_ApiResourceAuditActor_descriptor,
-        new java.lang.String[] { "Id", "Avatar", "DisplayName", "Email", });
+        new java.lang.String[] { "Id", "Avatar", "DisplayName", "Email", "PlatformClientId", });
     descriptor.resolveAllFeaturesImmutable();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

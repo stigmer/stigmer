@@ -11,6 +11,15 @@
  * agent's env united with the session servers' env, and a session
  * server's saved key reaching the run from the personal environment — for
  * an agent-bound run and for the built-in assistant alike.
+ *
+ * And the minting PlatformClient's layer (#1256): an execution whose audit
+ * names the client a minted user came through receives the client's
+ * environments BELOW the instance layer and runtime_env; a creator with no
+ * client reads no client at all; a deleted client or one of another
+ * organization contributes nothing; an unresolvable ref fails the create;
+ * and the layer survives the runner's status writes, so recovery — which
+ * rebuilds from the persisted execution with no minted caller — delivers
+ * it again.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,7 +31,10 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -30,6 +42,9 @@ import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/execut
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -38,12 +53,23 @@ import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-en
 
 import type { ExecutionContextBuilderDeps } from "../create-execution-context-step.js";
 import { buildAndPersistExecutionContext } from "../create-execution-context-step.js";
+import { applyUpdateStatusMerge } from "../update-status.js";
 
 const silentLogger = createLogger({
   level: "error",
   pretty: false,
   write: () => {},
 });
+
+/**
+ * The client port for every execution no minted user created: the layer
+ * answers from the execution's own audit, so reaching this is a failure.
+ */
+const unreadPlatformClients: ExecutionContextBuilderDeps["platformClients"] = {
+  findById: async () => {
+    throw new Error("no minting client: the client must not be read");
+  },
+};
 
 let dir: string;
 let store: Store;
@@ -113,6 +139,7 @@ it("an unresolvable environment ref surfaces the inner status code with Go's wra
       readSecretValue: async () => "",
       updateSecrets: async () => {},
     } as unknown as ManagedEnvironmentService,
+    platformClients: unreadPlatformClients,
   };
 
   const execution = create(AgentExecutionSchema, {
@@ -251,6 +278,7 @@ it("assembles merge → filter → OAuth injection → EC persist over a non-emp
       },
     }),
     managedEnvService,
+    platformClients: unreadPlatformClients,
     // The vendor's token endpoint: rotates the refresh token and issues
     // a fresh access token.
     fetchImpl: async () =>
@@ -394,6 +422,7 @@ it("a session-level server's declared key saved in the personal environment reac
       readSecretValue: async () => "",
       updateSecrets: async () => {},
     } as unknown as ManagedEnvironmentService,
+    platformClients: unreadPlatformClients,
   };
   const execution = create(AgentExecutionSchema, {
     metadata: { id: "aexec_rule", org: ORG },
@@ -480,6 +509,7 @@ it("the built-in assistant: no instance, no agent, the session's servers are the
       readSecretValue: async () => "",
       updateSecrets: async () => {},
     } as unknown as ManagedEnvironmentService,
+    platformClients: unreadPlatformClients,
   };
   const execution = create(AgentExecutionSchema, {
     metadata: { id: "aexec_assistant", org: ORG },
@@ -499,4 +529,303 @@ it("the built-in assistant: no instance, no agent, the session's servers are the
   // live: a stray runtime key is stripped, not passed through.
   expect(data["STRAY"]).toBeUndefined();
   expect(reads).toEqual(["NOTES_TOKEN"]);
+});
+
+// ---------------------------------------------------------------------------
+// The minting PlatformClient's layer (#1256): keyed on the execution's
+// audit created_by.platform_client_id, which the server stamped from the
+// verified token, below every other layer.
+// ---------------------------------------------------------------------------
+
+const PC_ORG = "acme";
+
+function environmentOf(
+  slug: string,
+  data: Record<string, string>,
+  org = PC_ORG,
+): ReturnType<typeof create<typeof EnvironmentSchema>> {
+  return create(EnvironmentSchema, {
+    metadata: { id: `env_${slug}`, org, slug },
+    spec: {
+      data: Object.fromEntries(
+        Object.entries(data).map(([key, value]) => [key, { value, isSecret: true }]),
+      ),
+    },
+  });
+}
+
+/** A PlatformClient of `org` whose environment_refs name `slugs`. */
+function mintingClient(org: string, ...slugs: string[]): PlatformClient {
+  return create(PlatformClientSchema, {
+    metadata: { id: "pcl_dashboard", org, slug: "dashboard" },
+    spec: {
+      environmentRefs: slugs.map((slug) => ({
+        kind: ApiResourceKind.environment,
+        org,
+        slug,
+      })),
+    },
+  });
+}
+
+/** An execution in PC_ORG created by an actor who came through `platformClientId`. */
+function executionCreatedThrough(
+  id: string,
+  platformClientId: string,
+  runtimeEnv: Record<string, string> = {},
+): AgentExecution {
+  return create(AgentExecutionSchema, {
+    metadata: { id, org: PC_ORG },
+    spec: {
+      sessionId: `ses_${id}`,
+      message: "hi",
+      runtimeEnv: Object.fromEntries(
+        Object.entries(runtimeEnv).map(([key, value]) => [key, { value, isSecret: true }]),
+      ),
+    },
+    status: {
+      audit: {
+        specAudit: { createdBy: { id: "ida_pat", platformClientId } },
+      },
+    },
+  });
+}
+
+/**
+ * Builder deps for an agent that declares nothing (every merged key passes
+ * the filter) over an instance whose one ref is `instance-secrets`. Every
+ * resolved reference and every client read is recorded.
+ */
+function platformClientLayerDeps(opts: {
+  readonly client: PlatformClient | undefined;
+  readonly environments: ReadonlyArray<ReturnType<typeof environmentOf>>;
+  readonly resolved: ApiResourceReference[];
+  readonly clientReads: string[];
+  readonly createdEcs: ExecutionContext[];
+}): ExecutionContextBuilderDeps {
+  return {
+    store,
+    logger: silentLogger,
+    agentLoader: () => ({
+      get: async () =>
+        create(AgentSchema, { metadata: { id: "agt_pc", org: PC_ORG } }),
+    }),
+    agentInstanceLoader: () => ({
+      get: async (instanceId) =>
+        create(AgentInstanceSchema, {
+          metadata: { id: instanceId, org: PC_ORG },
+          spec: {
+            agentId: "agt_pc",
+            environmentRefs: [
+              {
+                kind: ApiResourceKind.environment,
+                org: PC_ORG,
+                slug: "instance-secrets",
+              },
+            ],
+          },
+        }),
+    }),
+    sessionLoader: () => ({
+      get: async (sessionId) =>
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: PC_ORG },
+          spec: { agentInstanceId: "agi_pc" },
+        }),
+    }),
+    environmentReader: () => ({
+      list: async () => {
+        throw new Error("personal-env lookup not needed in this test");
+      },
+      getSecretValue: async () => {
+        throw new Error("personal-env lookup not needed in this test");
+      },
+    }),
+    environmentResolution: {
+      resolveByReference: async (ref: ApiResourceReference) => {
+        opts.resolved.push(ref);
+        const found = opts.environments.find(
+          (env) => env.metadata?.slug === ref.slug && env.metadata?.org === ref.org,
+        );
+        if (found === undefined) {
+          throw new ConnectError(`environment not found: ${ref.slug}`, Code.NotFound);
+        }
+        return found;
+      },
+    } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
+    executionContextCreator: () => ({
+      create: async (ec) => {
+        opts.createdEcs.push(ec);
+        return ec;
+      },
+    }),
+    managedEnvService: {
+      readSecretValue: async () => "",
+      updateSecrets: async () => {},
+    } as unknown as ManagedEnvironmentService,
+    platformClients: {
+      findById: async (id) => {
+        opts.clientReads.push(id);
+        return opts.client;
+      },
+    },
+  };
+}
+
+const instanceSecrets = environmentOf("instance-secrets", {
+  INSTANCE_WINS: "instance",
+});
+const clientSecrets = environmentOf("embed-secrets", {
+  SHARED_API_SECRET: "client-secret",
+  INSTANCE_WINS: "client",
+  RUNTIME_WINS: "client",
+});
+
+it("a minted user's execution receives its client's environments below the instance layer and runtime_env", async () => {
+  const resolved: ApiResourceReference[] = [];
+  const clientReads: string[] = [];
+  const createdEcs: ExecutionContext[] = [];
+  const deps = platformClientLayerDeps({
+    client: mintingClient(PC_ORG, "embed-secrets"),
+    environments: [instanceSecrets, clientSecrets],
+    resolved,
+    clientReads,
+    createdEcs,
+  });
+
+  await buildAndPersistExecutionContext(
+    deps,
+    executionCreatedThrough("aexec_pc_layer", "pcl_dashboard", {
+      RUNTIME_WINS: "runtime",
+    }),
+    "",
+  );
+
+  const data = createdEcs[0]?.spec?.data ?? {};
+  // The client's own key reaches the run.
+  expect(data["SHARED_API_SECRET"]?.value).toBe("client-secret");
+  // The precedence #1256 asks to pin: instance refs, then runtime_env,
+  // override the client on a key conflict.
+  expect(data["INSTANCE_WINS"]?.value).toBe("instance");
+  expect(data["RUNTIME_WINS"]?.value).toBe("runtime");
+  expect(clientReads).toEqual(["pcl_dashboard"]);
+  expect(resolved.map((ref) => `${ref.org}/${ref.slug}`)).toEqual([
+    "acme/instance-secrets",
+    "acme/embed-secrets",
+  ]);
+});
+
+it("no client, a deleted client and a client of another organization contribute nothing", async () => {
+  // A creator who came through no client: no client is read at all.
+  const noClient: ExecutionContext[] = [];
+  await buildAndPersistExecutionContext(
+    {
+      ...platformClientLayerDeps({
+        client: undefined,
+        environments: [instanceSecrets],
+        resolved: [],
+        clientReads: [],
+        createdEcs: noClient,
+      }),
+      platformClients: unreadPlatformClients,
+    },
+    executionCreatedThrough("aexec_pc_none", ""),
+    "",
+  );
+  expect(noClient[0]?.spec?.data["INSTANCE_WINS"]?.value).toBe("instance");
+
+  // The client was deleted since: the run proceeds without its layer.
+  const deleted: ExecutionContext[] = [];
+  const deletedReads: string[] = [];
+  await buildAndPersistExecutionContext(
+    platformClientLayerDeps({
+      client: undefined,
+      environments: [instanceSecrets, clientSecrets],
+      resolved: [],
+      clientReads: deletedReads,
+      createdEcs: deleted,
+    }),
+    executionCreatedThrough("aexec_pc_deleted", "pcl_dashboard"),
+    "",
+  );
+  expect(deletedReads).toEqual(["pcl_dashboard"]);
+  expect(deleted[0]?.spec?.data["SHARED_API_SECRET"]).toBeUndefined();
+  expect(deleted[0]?.spec?.data["INSTANCE_WINS"]?.value).toBe("instance");
+
+  // A client of another organization: no environment value crosses an
+  // organization, so its refs are never even resolved.
+  const foreign: ExecutionContext[] = [];
+  const foreignResolved: ApiResourceReference[] = [];
+  await buildAndPersistExecutionContext(
+    platformClientLayerDeps({
+      client: mintingClient("globex", "embed-secrets"),
+      environments: [instanceSecrets, environmentOf("embed-secrets", { SHARED_API_SECRET: "x" }, "globex")],
+      resolved: foreignResolved,
+      clientReads: [],
+      createdEcs: foreign,
+    }),
+    executionCreatedThrough("aexec_pc_foreign", "pcl_dashboard"),
+    "",
+  );
+  expect(foreign[0]?.spec?.data["SHARED_API_SECRET"]).toBeUndefined();
+  expect(foreignResolved.map((ref) => ref.org)).toEqual(["acme"]);
+});
+
+it("a client environment that no longer exists fails the create with the client named in the chain", async () => {
+  try {
+    await buildAndPersistExecutionContext(
+      platformClientLayerDeps({
+        client: mintingClient(PC_ORG, "gone-secrets"),
+        environments: [instanceSecrets],
+        resolved: [],
+        clientReads: [],
+        createdEcs: [],
+      }),
+      executionCreatedThrough("aexec_pc_gone", "pcl_dashboard"),
+      "",
+    );
+    expect.unreachable("expected NotFound");
+  } catch (error) {
+    const connectError = ConnectError.from(error);
+    expect(connectError.code).toBe(Code.NotFound);
+    expect(connectError.rawMessage).toBe(
+      "resolve platform client pcl_dashboard environment_refs: " +
+        "resolve environment ref (org=acme, slug=gone-secrets): " +
+        "rpc error: code = NotFound desc = environment not found: gone-secrets",
+    );
+  }
+});
+
+it("the layer survives the runner's status writes, so recovery delivers it again", async () => {
+  const execution = executionCreatedThrough("aexec_pc_recover", "pcl_dashboard");
+  // The runner's progressive status write, as UpdateStatus applies it.
+  applyUpdateStatusMerge(
+    execution,
+    create(AgentExecutionUpdateStatusInputSchema, {
+      executionId: "aexec_pc_recover",
+      status: { phase: ExecutionPhase.EXECUTION_FAILED, error: "boom" },
+    }),
+    silentLogger,
+  );
+  expect(
+    execution.status?.audit?.specAudit?.createdBy?.platformClientId,
+  ).toBe("pcl_dashboard");
+
+  // Recover rebuilds from the persisted execution with no pre-resolved
+  // instance and no minted caller (lifecycle.ts's recreate step).
+  const createdEcs: ExecutionContext[] = [];
+  await buildAndPersistExecutionContext(
+    platformClientLayerDeps({
+      client: mintingClient(PC_ORG, "embed-secrets"),
+      environments: [instanceSecrets, clientSecrets],
+      resolved: [],
+      clientReads: [],
+      createdEcs,
+    }),
+    execution,
+    "",
+  );
+  expect(createdEcs[0]?.spec?.data["SHARED_API_SECRET"]?.value).toBe(
+    "client-secret",
+  );
 });

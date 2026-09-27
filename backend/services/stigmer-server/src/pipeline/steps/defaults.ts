@@ -237,13 +237,18 @@ export function operatorIdentitySnapshot(): {
  * unconfigured → the "system" placeholder, which the runner deliberately
  * demotes to anonymous (SYSTEM_CREATOR_SENTINEL). Verifier-produced
  * identities (O3's OIDC claims onward) stamp their own email/displayName
- * when present, identityId alone otherwise.
+ * when present, identityId alone otherwise. A PlatformClient-minted
+ * caller also stamps the client it came through (platform_client_id):
+ * the account alone cannot say, and the execution-context builder keys
+ * the PlatformClient environment layer on this record (#1256). Every
+ * other identity stamps it empty, so local-posture bytes are unchanged.
  */
 export function auditActorFor(identity: CallerIdentity): ApiResourceAuditActor {
   return create(ApiResourceAuditActorSchema, {
     id: identity.identityId,
     email: identity.email ?? "",
     displayName: identity.displayName ?? "",
+    platformClientId: identity.platformClientId ?? "",
   });
 }
 

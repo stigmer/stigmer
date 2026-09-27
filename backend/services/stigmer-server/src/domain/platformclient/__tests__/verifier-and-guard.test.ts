@@ -5,7 +5,8 @@
  *     or typed one, refuses a bad one with the envelope's copy, refuses a
  *     token naming no client, refuses a deleted client's token with the
  *     cloud's liveness copy, lets a store fault propagate (never a
- *     revocation), and stamps the account from `sub` as a `user`;
+ *     revocation), and stamps the account from `sub` as a `user` with the
+ *     minting client it verified, for the audit actor (#1256);
  *   - the guard reads no client for a request without an Origin, passes an
  *     open allowlist and a listed origin case-insensitively, refuses an
  *     unlisted origin and the opaque "null" with the cloud's copy, and
@@ -83,7 +84,7 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("the PlatformClient user-token verifier", () => {
-  it("stamps the account the token was minted for as a user, with the asserted profile", async () => {
+  it("stamps the account the token was minted for as a user, with the asserted profile and the minting client", async () => {
     const token = userToken();
     const identity = await newPlatformClientTokenVerifier({
       keys: ring,
@@ -96,6 +97,7 @@ describe("the PlatformClient user-token verifier", () => {
       rawToken: token,
       email: "pat@example.com",
       displayName: "Pat",
+      platformClientId: "pcl_dashboard",
     });
   });
 

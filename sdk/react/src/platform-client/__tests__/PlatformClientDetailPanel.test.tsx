@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   PlatformClientSchema,
@@ -18,6 +18,11 @@ import { PlatformClientDetailPanel } from "../PlatformClientDetailPanel";
  * NEVER sent `environment_refs` — saving any edit silently wiped the
  * client's credential-delivery environment bindings. The panel must
  * spread `toPlatformClientUpdateInput` and override only what it edits.
+ *
+ * Also pins how the panel presents an expired client (#1254): the view
+ * says "Expired", and the rotate confirmation says rotating will not help,
+ * because rotation leaves the expiry as it is. A live client shows
+ * neither.
  */
 
 const PLATFORM_CLIENT: PlatformClient = create(PlatformClientSchema, {
@@ -41,16 +46,31 @@ const PLATFORM_CLIENT: PlatformClient = create(PlatformClientSchema, {
   },
 });
 
-function renderPanel(update: ReturnType<typeof vi.fn>) {
+function renderPanel(
+  update: ReturnType<typeof vi.fn>,
+  platformClient: PlatformClient = PLATFORM_CLIENT,
+) {
   const client = {
     platformclient: { update },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
-      <PlatformClientDetailPanel platformClient={PLATFORM_CLIENT} />
+      <PlatformClientDetailPanel platformClient={platformClient} />
     </StigmerContext.Provider>,
   );
 }
+
+/** PLATFORM_CLIENT with an expiry a day from now (+1) or a day ago (-1). */
+function clientExpiringInDays(days: 1 | -1): PlatformClient {
+  const platformClient = clone(PlatformClientSchema, PLATFORM_CLIENT);
+  platformClient.spec!.expiresAt = timestampFromDate(
+    new Date(Date.now() + days * 86_400_000),
+  );
+  return platformClient;
+}
+
+const ROTATE_WILL_NOT_HELP =
+  "This client has expired. Rotating does not extend it; edit its expiry instead.";
 
 afterEach(cleanup);
 
@@ -78,5 +98,27 @@ describe("PlatformClientDetailPanel save payload", () => {
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("embed-client");
     expect(input.name).toBe("Embed Client");
+  });
+});
+
+describe("PlatformClientDetailPanel expiry", () => {
+  it("an expired client reads Expired, and its rotate confirmation says rotating will not help", () => {
+    renderPanel(vi.fn(), clientExpiringInDays(-1));
+
+    expect(screen.getByText("Expired")).toBeTruthy();
+    expect(screen.queryByText("Expires")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rotate secret" }));
+    expect(screen.getByText(ROTATE_WILL_NOT_HELP)).toBeTruthy();
+  });
+
+  it("a live client reads Expires, and its rotate confirmation carries no expiry warning", () => {
+    renderPanel(vi.fn(), clientExpiringInDays(1));
+
+    expect(screen.getByText("Expires")).toBeTruthy();
+    expect(screen.queryByText("Expired")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rotate secret" }));
+    expect(screen.queryByText(ROTATE_WILL_NOT_HELP)).toBeNull();
   });
 });

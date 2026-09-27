@@ -16,9 +16,10 @@
 #
 # How the jobs are cut: by TASK, not by package group. `libs` builds and tests
 # the publishable @stigmer/* packages (the set publish-libs.mjs publishes);
-# `verify` typechecks and lints every affected package; three jobs run the
-# suites that need their own runner shape (a real Chromium, the web console,
-# the desktop shell); `typecheck-clean-room` is the one job that is not about
+# `verify` typechecks and lints every affected package; four jobs run what
+# needs its own runner shape (a real Chromium, the web console, the desktop
+# shell's suites, and its Rust crate with the Rust toolchain and Tauri's
+# system packages); `typecheck-clean-room` is the one job that is not about
 # the diff at all (below). No package is tested twice in one run.
 #
 # The gate (`changes`) runs scripts/turbo-affected.mjs, which asks
@@ -190,7 +191,8 @@ jobs:
   # are not turbo tasks: the web routing gate (client-apps/web/nginx.conf
   # against the static export), the Scenar tours (determinism, DD-006;
   # timeline shape; docs embed-id resolution — also wired in ci.docs for the
-  # docs half of that contract), and the desktop shell's Rust crate.
+  # docs half of that contract). The desktop shell's Rust crate has its own
+  # job, `desktop-rust`, below.
   verify:
     name: Lint + Typecheck
     runs-on: ubuntu-latest
@@ -227,13 +229,6 @@ jobs:
       - name: Verify Scenar tours
         if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/demos')
         run: node scripts/verify-scenar-tours.mjs
-
-      # continue-on-error since the desktop lane existed: the runner lacks
-      # Tauri's system packages. Recorded on the project's open list.
-      - name: Check desktop Rust crate
-        if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
-        run: make check-desktop-rust
-        continue-on-error: true
 
   # Browser-mode suites (sdk/react/vitest.a11y.config.ts): the workspace-panel
   # a11y audit (DD-22) plus layout-contract regressions (*.layout.test.tsx,
@@ -315,6 +310,33 @@ jobs:
 
       - name: Run desktop app tests
         run: node scripts/turbo-set.mjs workspace test --only=desktop
+
+  # The Tauri shell's Rust crate, compiled for real: `cargo check` needs the
+  # Rust toolchain and the system libraries Tauri links (the shared
+  # tauri-linux-deps action), which no other job here carries. No npm install:
+  # the check compiles Rust only and reads no frontend build.
+  desktop-rust:
+    name: Desktop Rust Check
+    runs-on: ubuntu-latest
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "client-apps/desktop/src-tauri -> target"
+
+      - name: Install Tauri's Linux packages
+        uses: ./.github/actions/tauri-linux-deps
+
+      - name: Check the desktop Rust crate
+        run: make check-desktop-rust
 
   # Fresh resolution, deliberately outside turbo: the lockfile is deleted
   # before the install, so the package graph turbo hashes from is the thing

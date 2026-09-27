@@ -5,7 +5,10 @@
  * state building (status clearing, ULID minting, audit slots #540,
  * visibility default + oss#573 immutability), the loaders' error copy, the
  * best-effort search indexing, visibility validation with cloud-identical
- * copy, reference normalization/validation, and operator identity (#400).
+ * copy, reference normalization/validation, operator identity (#400), and
+ * the PlatformClient provenance the audit actor records for a minted
+ * caller (#1256): stamped from the verified identity only, never from the
+ * request, and kept through an update by anyone else.
  *
  * Uses the organization resource (the vertical slice) and agent (whose
  * spec carries ApiResourceReference fields) as vehicles.
@@ -245,6 +248,74 @@ describe("operator identity (#400) → audit-actor derivation (O2 ruling Q5)", (
     expect(() => setOperatorIdentity("two@example.test", "Two")).toThrow(
       "operator identity already installed",
     );
+  });
+});
+
+describe("PlatformClient provenance on the audit actor (#1256)", () => {
+  const minted = testCallerIdentity({
+    identityId: "ida_pat",
+    issuer: "stigmer",
+    platformClientId: "pcl_dashboard",
+  });
+
+  it("a minted caller's actor names the client; every other identity stamps it empty", () => {
+    expect(auditActorFor(minted).platformClientId).toBe("pcl_dashboard");
+    expect(auditActorFor(minted).id).toBe("ida_pat");
+    expect(auditActorFor(trustedLocalIdentity()).platformClientId).toBe("");
+    expect(auditActorFor(testCallerIdentity()).platformClientId).toBe("");
+  });
+
+  it("BuildNewState stamps the caller's client and discards a client the request claimed", async () => {
+    const forged = create(OrganizationSchema, {
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: "Acme" },
+      spec: { description: "a test organization" },
+      status: {
+        audit: {
+          specAudit: {
+            createdBy: { id: "ida_pat", platformClientId: "pcl_forged" },
+          },
+        },
+      },
+    });
+    const byMinted = new RequestContext(
+      OrganizationSchema,
+      clone(OrganizationSchema, forged),
+      minted,
+      ORG,
+    );
+    await newBuildNewStateStep<typeof OrganizationSchema>().execute(byMinted);
+    expect(
+      byMinted.newState.status?.audit?.specAudit?.createdBy?.platformClientId,
+    ).toBe("pcl_dashboard");
+
+    const byOther = orgCtx(clone(OrganizationSchema, forged));
+    await newBuildNewStateStep<typeof OrganizationSchema>().execute(byOther);
+    expect(
+      byOther.newState.status?.audit?.specAudit?.createdBy?.platformClientId,
+    ).toBe("");
+  });
+
+  it("an update by another caller keeps the creator's client and stamps its own actor", async () => {
+    const createCtx = new RequestContext(
+      OrganizationSchema,
+      org({ name: "Acme" }),
+      minted,
+      ORG,
+    );
+    await newResolveSlugStep<typeof OrganizationSchema>().execute(createCtx);
+    await newBuildNewStateStep<typeof OrganizationSchema>().execute(createCtx);
+    const existing = createCtx.newState;
+
+    const ctx = orgCtx(org({ id: existing.metadata!.id, name: "Acme Renamed" }));
+    ctx.set(EXISTING_RESOURCE_KEY, clone(OrganizationSchema, existing));
+    await newBuildUpdateStateStep<typeof OrganizationSchema>().execute(ctx);
+
+    const audit = ctx.newState.status?.audit?.specAudit;
+    expect(audit?.createdBy?.platformClientId).toBe("pcl_dashboard");
+    expect(audit?.updatedBy?.id).toBe("test-caller");
+    expect(audit?.updatedBy?.platformClientId).toBe("");
   });
 });
 

@@ -20,6 +20,9 @@
 // The mint's contract:
 //   - the minted token IS the end user: one account per (organization,
 //     user_id), whichever of the organization's clients minted it;
+//   - so the audit tells the clients apart instead (stigmer/stigmer#1256):
+//     a resource a minted user writes records the minting client on its
+//     created_by actor, beside that one account;
 //   - an auto-provisioned user holds exactly the auto-grant role on the
 //     owning organization and sees that organization alone;
 //   - a wrong secret, an org_id that is not the owning organization, and a
@@ -42,6 +45,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { expectGrpcCode } from "../contract/errors";
 import { FixtureTracker } from "../harness/fixtures";
+import { makeEnvironment } from "../support/environments";
 import { uniqueName } from "../support/naming";
 import {
   createPlatformClient,
@@ -248,6 +252,44 @@ describe.skipIf(!enforcementServed)(
         viaMobile,
         "another client of the organization must resolve the same account",
       ).toBe(first);
+    });
+
+    it("a resource a minted user creates records the minting client beside the one account", async () => {
+      const context = await tenancy();
+      const dashboard = await platformClient(context.org, {
+        autoGrantRole: IamRole.member,
+      });
+      const mobile = await platformClient(context.org, {
+        autoGrantRole: IamRole.member,
+      });
+      const userId = uniqueName("enforcement-user");
+
+      // The same end user writes once through each client (a member may
+      // create an Environment), and reads each row back as its creator.
+      const createdThrough = async (client: ProvisionedPlatformClient) => {
+        const asUser = lane.clientsPresenting(
+          await mintUserToken(lane.clients, client.credentials, userId),
+        );
+        const created = await asUser.environmentCommand.create(
+          makeEnvironment({ org: context.org, name: uniqueName("enforcement-env") }),
+        );
+        fixtures.defer(() =>
+          asUser.environmentCommand.delete({ resourceId: created.metadata!.id }),
+        );
+        const read = await asUser.environmentQuery.get({
+          value: created.metadata!.id,
+        });
+        return read.status?.audit?.specAudit?.createdBy;
+      };
+      const viaDashboard = await createdThrough(dashboard);
+      const viaMobile = await createdThrough(mobile);
+
+      expect(
+        viaDashboard?.id,
+        "both writes are the one account the organization's clients share",
+      ).toBe(viaMobile?.id);
+      expect(viaDashboard?.platformClientId).toBe(dashboard.id);
+      expect(viaMobile?.platformClientId).toBe(mobile.id);
     });
 
     it("an auto-provisioned user holds the auto-grant role on the owning organization and sees it alone", async () => {
