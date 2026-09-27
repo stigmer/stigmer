@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Delete an OAuth app.\n\n Deletion should be blocked if any McpServer resources reference this\n OAuth app via McpServerVendorOAuth.oauth_app_ref."
+          "description": "Delete an OAuth app.\n\n Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to\n this OAuth app. Returns the deleted OAuthApp, its client_secret redacted\n like every read."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput",
           "outputType": "OAuthApps",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApps",
-          "description": "List all OAuth apps belonging to an organization.\n\n Returns every OAuthApp whose metadata.org matches the input org.\n Typically a small set (1-5 per org), so results are not paginated."
+          "description": "List all OAuth apps belonging to an organization.\n\n Returns the OAuthApps of the input org that the caller may view, newest\n first. Typically a small set (1-5 per org), so results are not paginated."
         }
       ]
     }
@@ -450,5 +450,5 @@
       ]
     }
   ],
-  "resourceDescription": "OAuthApp represents a registered OAuth application with an external vendor.\n\n An OAuthApp is owned by an organization and holds the client credentials\n needed for vendor-specific OAuth flows. It enables Stigmer to authenticate\n with external services (Slack, Salesforce, Figma, etc.) on behalf of users.\n\n OAuthApp is the outbound counterpart to IdentityProvider (inbound auth).\n While IdentityProvider configures how external platforms authenticate\n *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*\n to external services.\n\n Referenced by McpServer resources via McpServerVendorOAuth to enable\n automated credential acquisition for MCP servers that require\n vendor-specific OAuth.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: OAuthApp\n   metadata:\n     name: Slack OAuth\n     slug: slack-oauth\n     org: acme\n   spec:\n     provider: \"Slack\"\n     client_id: \"1234567890.abcdef\"\n     client_secret: \"xoxs-...\"\n     authorization_url: \"https://slack.com/oauth/v2/authorize\"\n     token_url: \"https://slack.com/api/oauth.v2.access\"\n     scopes: [\"channels:read\", \"chat:write\"]"
+  "resourceDescription": "OAuthApp represents a registered OAuth application with an external vendor.\n\n An OAuthApp is owned by an organization and holds the client credentials\n needed for vendor-specific OAuth flows. It enables Stigmer to authenticate\n with external services (Slack, Salesforce, Figma, etc.) on behalf of users.\n\n OAuthApp is the outbound counterpart to IdentityProvider (inbound auth).\n While IdentityProvider configures how external platforms authenticate\n *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*\n to external services.\n\n Referenced by McpServer resources via McpServerAuth to enable\n automated credential acquisition for MCP servers that require\n vendor-specific OAuth.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: OAuthApp\n   metadata:\n     name: Slack OAuth\n     slug: slack-oauth\n     org: acme\n   spec:\n     provider: \"Slack\"\n     client_id: \"1234567890.abcdef\"\n     client_secret: \"xoxs-...\"\n     authorization_url: \"https://slack.com/oauth/v2/authorize\"\n     token_url: \"https://slack.com/api/oauth.v2.access\"\n     scopes: [\"channels:read\", \"chat:write\"]"
 }

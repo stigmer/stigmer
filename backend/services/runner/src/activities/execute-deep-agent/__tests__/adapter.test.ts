@@ -23,6 +23,7 @@ const CONFIG: Config = {
   taskQueue: "adapter-test-queue",
   temporalAddress: "localhost:7233",
   temporalNamespace: "default",
+  temporalConnection: {},
   stigmerBackendEndpoint: "http://localhost:7234",
   mcpBridgeEndpoint: null,
   stigmerTokenRef: { current: "tok" },

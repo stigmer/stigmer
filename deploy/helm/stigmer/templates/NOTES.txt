@@ -23,6 +23,6 @@ There is no authentication: every caller that can reach the port has full contro
 Authentication is on (issuer {{ .Values.server.oidc.issuer }}). Register the console's redirect URI at your provider: {{ include "stigmer.publicUrl" . }}/auth/callback, and the post-logout redirect {{ include "stigmer.publicUrl" . }}/login.
 {{- end }}
 
-One trust domain: stdio MCP servers run inside the runner container and can reach its filesystem and network.
+One trust domain: stdio MCP servers run inside the runner container and can reach its filesystem and network. Whoever reaches Temporal can start work on the runner's queue{{ if and .Values.temporal.enabled .Values.temporal.networkPolicy.enabled }}; the bundled Temporal admits only the stigmer pod (a NetworkPolicy, enforced only by a network plugin that supports it){{ end }}.
 
 A complete backup is {{ ternary "the bundled Postgres's claim" "your database" .Values.postgres.enabled }}, the {{ include "stigmer.fullname" . }}-artifacts and {{ include "stigmer.fullname" . }}-server-data claims, and the Secret {{ .Values.secrets.existingSecret }}. `helm uninstall` leaves every claim in place.

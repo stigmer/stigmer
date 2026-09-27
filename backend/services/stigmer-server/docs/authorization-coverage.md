@@ -84,7 +84,7 @@ The first domain registered after this inventory's O2 baseline (registration ord
 | OAuthAppCommandController.delete | config: can_delete on oauth_app (field resource_id), error_msg yes | chain-with-Authorize |
 | OAuthAppQueryController.get | config: can_view on oauth_app (field value), error_msg yes | chain-with-Authorize |
 | OAuthAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; response redacted) |
-| OAuthAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
+| OAuthAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (a composed ListReadScope narrows to the apps the caller may view) |
 
 ## 5. ExecutionContext (`src/domain/executioncontext/controller.ts`)
 

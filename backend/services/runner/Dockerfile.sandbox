@@ -29,8 +29,9 @@
 #                    OSS-shape MCP attachments (see the stage comment).
 #
 # The image provides:
-#   1. Unified Temporal worker (Node.js) handling all execution types:
-#      ExecuteDeepAgent, ExecuteCursor, ExecuteServerlessWorkflow
+#   1. Unified Temporal worker (Node.js) handling all execution types: the
+#      agent activities (ExecuteDeepAgent, ExecuteCursor) and the workflow
+#      types in src/workflows/index.ts (its header is the list)
 #   2. Language runtimes for agent shell work: Node.js 22 LTS, Python (uv), Go
 #   3. Core utilities: git, curl, jq, yq, yamllint
 #

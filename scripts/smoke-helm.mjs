@@ -19,10 +19,13 @@
  *      all-in-one: health SERVING, the console's /config.json contract, the
  *      artifact file server, one END-TO-END `set_vars` workflow execution
  *      through the runner with zero LLM keys;
- *   3. (bundled profile) the adversarial arms: the pod is deleted and the
- *      execution is still there; `helm upgrade` with unchanged values moves
- *      no pod; `helm uninstall` leaves every claim; a second install of the
- *      same name adopts them and the execution is still there.
+ *   3. (bundled profile) the adversarial arms: the bundled Temporal admits
+ *      the stigmer pod and refuses a pod outside the release (its
+ *      NetworkPolicy, enforced by kind's network plugin); the pod is deleted
+ *      and the execution is still there; `helm upgrade` with unchanged
+ *      values moves no pod; `helm uninstall` leaves every claim; a second
+ *      install of the same name adopts them and the execution is still
+ *      there.
  *
  * The BYO profile first applies ci/byo-infra.yaml (a Postgres and a
  * Temporal the chart did not install) and proves the externalDatabase and
@@ -499,8 +502,76 @@ function claimNames(namespace) {
     .sort();
 }
 
+/**
+ * One TCP connect to the bundled Temporal's frontend, printed as CONNECTED
+ * or BLOCKED. A NetworkPolicy drops the packets rather than refusing them,
+ * so a fenced connect times out; the timeout is the refusal.
+ */
+function temporalProbeScript(namespace) {
+  const host = `${RELEASE}-temporal.${namespace}.svc.cluster.local`;
+  return (
+    `const s=require("net").connect(7233,"${host}");s.setTimeout(8000);` +
+    `s.on("connect",()=>{console.log("CONNECTED");process.exit(0)});` +
+    `s.on("timeout",()=>{console.log("BLOCKED");process.exit(0)});` +
+    `s.on("error",(e)=>{console.log("BLOCKED "+e.code);process.exit(0)});`
+  );
+}
+
+/**
+ * The bundled Temporal authenticates nothing, so its fence is what keeps the
+ * rest of the cluster off the runner's queue: the stigmer pod connects, and
+ * a pod outside the release (the server image, run bare) does not.
+ */
+async function temporalFenceArm(namespace) {
+  log("arm: the bundled Temporal admits the stigmer pod and no other");
+  const script = temporalProbeScript(namespace);
+  const inside = run(
+    "kubectl",
+    ["-n", namespace, "exec", `deployment/${RELEASE}`, "-c", "server", "--", "node", "-e", script],
+  ).trim();
+  if (inside !== "CONNECTED") {
+    throw new Error(`the stigmer pod could not reach its own Temporal: ${inside}`);
+  }
+  const image = kubectlJson(["-n", namespace, "get", "deployment", RELEASE]).spec.template.spec.containers.find(
+    (container) => container.name === "server",
+  ).image;
+  const probe = "temporal-fence-probe";
+  kubectl([
+    "-n",
+    namespace,
+    "run",
+    probe,
+    `--image=${image}`,
+    "--image-pull-policy=IfNotPresent",
+    "--restart=Never",
+    "--labels=app.kubernetes.io/component=fence-probe",
+    "--command",
+    "--",
+    "node",
+    "-e",
+    script,
+  ]);
+  const deadline = Date.now() + 120_000;
+  let phase = "";
+  while (Date.now() < deadline) {
+    phase = kubectlJson(["-n", namespace, "get", "pod", probe]).status?.phase ?? "";
+    if (phase === "Succeeded" || phase === "Failed") break;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  const outside = kubectl(["-n", namespace, "logs", probe]).trim();
+  kubectl(["-n", namespace, "delete", "pod", probe, "--wait=true"]);
+  if (!outside.startsWith("BLOCKED")) {
+    throw new Error(
+      `a pod outside the release reached the bundled Temporal (${phase}: ${outside}) — the NetworkPolicy is not enforced`,
+    );
+  }
+  log(`the stigmer pod: CONNECTED; a pod outside the release: ${outside}`);
+}
+
 /** The bundled profile's adversarial arms (the plan's test plan, Q-HC-16). */
 async function adversarialArms(namespace, profile, args, executionId) {
+  await temporalFenceArm(namespace);
+
   log("arm: deleting the stigmer pod");
   kubectl(
     [

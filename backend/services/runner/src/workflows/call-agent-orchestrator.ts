@@ -10,7 +10,7 @@
  *
  * The workflow engine's CallAgentTaskBuilder (workflow-engine/tasks/
  * call-agent.ts) calls `ctx.callAgent()`, which is wired to
- * `orchestrateAgentCall()` in execute-serverless-workflow.ts.
+ * `orchestrateAgentCall()` in engine-core.ts.
  *
  * SANDBOX RULES: Only @temporalio/workflow imports, type-only imports,
  * and pure logic. No Node.js built-ins.

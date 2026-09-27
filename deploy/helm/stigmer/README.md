@@ -66,10 +66,11 @@ kubectl -n stigmer port-forward svc/stigmer 7234:7234 7235:7235
 open http://localhost:7234
 ```
 
-Without an Ingress there is no authentication and the console is reachable only
-through that port-forward; every caller that can reach the port has full
-control. That is the laptop posture, and fine for trying it. For a team, add an
-Ingress and turn authentication on (below).
+Without authentication, every caller that can reach the port has full control.
+Without an Ingress the Service is a ClusterIP: reachable from outside the
+cluster only through that port-forward, but from every pod inside it. That is
+the laptop posture, and fine for trying it. For a team, add an Ingress and turn
+authentication on (below).
 
 Give the runner an LLM key so agents can run (workflows without agent tasks run
 key-free):
@@ -168,6 +169,29 @@ externalTemporal:
   namespace: default
 ```
 
+A Temporal that requires TLS, mutual TLS or an API key (Temporal Cloud, or a
+frontend with an authorizer) takes its credentials from Secrets:
+
+```yaml
+externalTemporal:
+  hostPort: my-namespace.a1b2c.tmprl.cloud:7233
+  namespace: my-namespace.a1b2c
+  tls:
+    enabled: true
+    existingSecret: temporal-tls # PEM items by key; each key optional
+    caKey: ca.crt # the frontend's CA; omit for publicly trusted roots
+    certKey: tls.crt # mutual TLS: the client certificate and its key
+    keyKey: tls.key
+  apiKey:
+    existingSecret: temporal-api-key # key STIGMER_TEMPORAL_API_KEY
+```
+
+Both containers receive them as the `STIGMER_TEMPORAL_*` settings, by
+`secretKeyRef`, never as a mount. The runner moves the API key and the client
+key out of its environment at boot, so its agent tools cannot read them. They
+are Stigmer's own names, so a developer's `TEMPORAL_API_KEY` for their own
+Temporal work is never picked up.
+
 The server's `DATABASE_URL` is assembled inside the container from these values
 and the password Secret, so the password never appears in rendered manifests.
 When Temporal stays bundled and Postgres is yours, Temporal's `auto-setup`
@@ -202,9 +226,19 @@ non-root server could not write to it) and the `server-data` volume into
 
 From the Compose file's header, which is the canonical statement: stdio MCP
 servers spawn **inside** the runner container; they can reach that container's
-filesystem and network, not your nodes'. Treat the pod as one trust domain. The
-chart adds no NetworkPolicy; add one at the namespace if your cluster's posture
-wants it.
+filesystem and network, not your nodes'. That network includes the cluster's
+Services. Treat the pod as one trust domain.
+
+Temporal belongs to that domain. Whoever reaches its frontend can start work on
+the runner's queue. The runner only runs the workflow types the server starts,
+and it reads each run's work back from the server. The bundled Temporal
+authenticates nothing, so the chart fences it with a NetworkPolicy
+(`temporal.networkPolicy`). Only the stigmer pod may connect, and a network
+plugin that ignores NetworkPolicy leaves it open. The runner's own tools share
+the stigmer pod and so sit inside the fence. For a Temporal outside that
+boundary, use your own with authentication on (`externalTemporal.tls`,
+`externalTemporal.apiKey`). The chart adds no NetworkPolicy for the stigmer pod
+itself; add one at the namespace if your cluster's posture wants it.
 
 ## What the server calls out to
 
@@ -230,8 +264,8 @@ the map.
 | `waitForDependencies`                             | The init container that waits for Postgres and Temporal (`enabled`, `image`).                                                                                               |
 | `postgres`                                        | The bundled Postgres: `enabled`, `image`, `persistence`, `resources`.                                                                                                       |
 | `externalDatabase`                                | `host`, `port`, `user`, `database`, `existingSecret`, `passwordKey` when Postgres is yours.                                                                                 |
-| `temporal`                                        | The bundled Temporal: `enabled`, `image`, `resources`.                                                                                                                      |
-| `externalTemporal`                                | `hostPort`, `namespace` when Temporal is yours.                                                                                                                             |
+| `temporal`                                        | The bundled Temporal: `enabled`, `image`, `resources`, `networkPolicy.enabled` (the fence to the stigmer pod, on by default).                                               |
+| `externalTemporal`                                | `hostPort`, `namespace` when Temporal is yours; `tls.{enabled,serverName,existingSecret,caKey,certKey,keyKey}` and `apiKey.{existingSecret,key}` when it authenticates.     |
 | `service`                                         | `type` (ClusterIP).                                                                                                                                                         |
 | `ingress`                                         | `enabled`, `className`, `api.{host,annotations,tlsSecretName}`, `artifacts.{host,annotations,tlsSecretName}`.                                                               |
 | `openfga`, `redis`, `openbao`, `licenseKeySecret` | Reserved for Stigmer Enterprise; refused in this version.                                                                                                                   |
@@ -248,5 +282,5 @@ nothing. Anything the chart does not model goes through `server.extraEnv` and
   hands a per-session runner no way to read artifacts yet
   ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)); the values
   arrive with the fix. One shared runner serves the team, as in Compose.
-- **A NetworkPolicy, an autoscaler, TLS inside the pod, `helm test` hooks.** See
-  the tail of `values.yaml` for why each.
+- **A NetworkPolicy for the stigmer pod, an autoscaler, TLS inside the pod,
+  `helm test` hooks.** See the tail of `values.yaml` for why each.

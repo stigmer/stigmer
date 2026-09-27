@@ -98,6 +98,30 @@ not as a confusing failure later.
   one token. You no longer pass `TEMPORAL_SERVICE_ADDRESS` for cloud embedding.
 </Callout>
 
+## An authenticated Temporal
+
+A self-managed Temporal can require TLS, mutual TLS or an API key. The runner
+reads how to authenticate from its environment, with the same names the server
+reads:
+
+- `STIGMER_TEMPORAL_API_KEY`: a bearer key, for Temporal Cloud or a frontend
+  with an authorizer. It implies TLS.
+- `STIGMER_TEMPORAL_TLS=true`: TLS against the system's trusted roots.
+- `STIGMER_TEMPORAL_TLS_SERVER_NAME`: the host name the frontend's certificate
+  carries, when it differs from the address.
+- `STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_DATA` or `_PATH`: the frontend's CA.
+- `STIGMER_TEMPORAL_TLS_CLIENT_CERT_DATA` and
+  `STIGMER_TEMPORAL_TLS_CLIENT_KEY_DATA`, or their `_PATH` forms: a client
+  certificate and its key, for mutual TLS.
+
+An embedder can pass the same settings as `temporalConnection` in the runner's
+options (the SDK's `tls` and `apiKey`), which wins over the environment. The
+runner moves the API key and the client key's text out of its environment at
+boot, so an Agent's tools never see them. A key given by `_PATH` stays a file
+those tools can read, so prefer the `_DATA` form. A contradiction, such as a
+certificate without its key, stops the runner at boot. The names are Stigmer's
+own: Temporal's `TEMPORAL_API_KEY` is left to your own Temporal work.
+
 ## Local versus cloud execution
 
 The execution target decides who provides the runner. The SDK exposes it as

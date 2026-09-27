@@ -240,6 +240,15 @@ temporal:
       memory: 512Mi
     limits:
       memory: 1Gi
+  networkPolicy:
+    # Admits connections to the bundled Temporal's frontend (7233) only from
+    # this release's stigmer pod and from Temporal itself. The bundled
+    # Temporal authenticates nothing, so without a fence every pod in the
+    # cluster could start work on the runner's queue. What it cannot fence:
+    # the runner's own tools and stdio MCP servers, which run inside the
+    # stigmer pod. A cluster whose network plugin ignores NetworkPolicy
+    # gets no fence at all.
+    enabled: true
 
 externalTemporal:
   # Used when temporal.enabled is false. Address and namespace always
@@ -247,6 +256,26 @@ externalTemporal:
   # coordinate.
   hostPort: ""
   namespace: default
+  # How the server and the runner authenticate to that frontend. Both read
+  # the same STIGMER_TEMPORAL_* settings, rendered from these values.
+  tls:
+    # TLS to the frontend; with only this set, its certificate is checked
+    # against the system's trusted roots.
+    enabled: false
+    # SNI / host-name override, when the frontend's certificate names a
+    # host other than hostPort's.
+    serverName: ""
+    # A Secret holding the PEM items below, by key; an empty key is unset.
+    existingSecret: ""
+    caKey: ""
+    # Mutual TLS: the client certificate and its key, both or neither.
+    certKey: ""
+    keyKey: ""
+  apiKey:
+    # A Secret holding the frontend's API key (Temporal Cloud, or a
+    # frontend with a JWT authorizer). An API key implies TLS.
+    existingSecret: ""
+    key: STIGMER_TEMPORAL_API_KEY
 
 service:
   # ClusterIP; reach it with `kubectl port-forward` or through the Ingress.
@@ -288,11 +317,14 @@ licenseKeySecret: ""
 #   a sandbox provisioner — the open-source kubernetes and docker drivers
 #     hand a per-session runner no artifact path (stigmer#1099); the values
 #     arrive with the artifact backend that fixes it.
-#   a NetworkPolicy — the pod is one trust domain (stdio MCP servers run
-#     inside the runner container and can reach its filesystem and
-#     network); the README says so in the compose header's words.
+#   a NetworkPolicy for the stigmer pod itself — the pod is one trust
+#     domain (stdio MCP servers run inside the runner container and can
+#     reach its filesystem and network); the README says so in the compose
+#     header's words. The bundled Temporal has its fence
+#     (temporal.networkPolicy), because it authenticates nothing.
 #   an HPA — nothing here scales horizontally yet.
-#   TLS inside the pod — terminate it at the Ingress, as behind Caddy or
-#     nginx with compose.
+#   TLS inside the pod — terminate the API's at the Ingress, as behind
+#     Caddy or nginx with compose. (TLS to an external Temporal is
+#     externalTemporal.tls.)
 #   helm test hooks — the smoke (scripts/smoke-helm.mjs) is the proof and
 #     runs the same probes as the compose stack and the all-in-one.

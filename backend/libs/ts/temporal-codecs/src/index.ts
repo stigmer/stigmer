@@ -1,11 +1,13 @@
 /**
- * @stigmer/temporal-codecs — Temporal payload codecs shared by Stigmer's
- * TypeScript Temporal processes (the runner today; the TS server at its
- * cutover). The encryption envelope is a cross-language wire contract
- * (the Java decode-only codec in stigmer-cloud's temporal-starter must
- * match it byte-for-byte, pinned by the fixture in
- * src/__tests__/fixtures/), which is why the codecs live in one library
- * instead of per-consumer copies that could fork.
+ * @stigmer/temporal-codecs — the Temporal plumbing Stigmer's TypeScript
+ * Temporal processes (the server and the runner) share: payload codecs,
+ * and the connection-security settings every Temporal connection reads
+ * (`connection/config.ts`). The encryption envelope is a cross-language
+ * wire contract (the Java decode-only codec in stigmer-cloud's
+ * temporal-starter must match it byte-for-byte, pinned by the fixture in
+ * src/__tests__/fixtures/), and the connection settings must mean the same
+ * on every connection, which is why both live in one library instead of
+ * per-consumer copies that could fork.
  *
  * This is the package's ONLY public boundary. Codec order at the consumer
  * is a correctness property: install [encryption, claimcheck] so encode
@@ -28,6 +30,18 @@ export type {
   PayloadKeyResolver,
   SecretReader,
 } from "./encryption/config.js";
+
+export {
+  loadTemporalConnectionConfig,
+  temporalConnectionEnv,
+  TEMPORAL_API_KEY_ENV,
+  TEMPORAL_CONNECTION_ENV_NAMES,
+  TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
+} from "./connection/config.js";
+export type {
+  TemporalConnectionConfig,
+  TemporalTls,
+} from "./connection/config.js";
 
 export { ClaimcheckPayloadCodec } from "./claimcheck/payload-codec.js";
 export { loadClaimcheckConfig } from "./claimcheck/config.js";

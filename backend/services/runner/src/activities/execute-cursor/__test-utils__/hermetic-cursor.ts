@@ -145,6 +145,7 @@ export function hermeticCursorConfig(env: HermeticEnvironment): Config {
     taskQueue: "hermetic-test-queue",
     temporalAddress: "localhost:7233",
     temporalNamespace: "default",
+    temporalConnection: {},
     stigmerBackendEndpoint: "http://localhost:7234",
     mcpBridgeEndpoint: null,
     stigmerTokenRef: { current: null },
