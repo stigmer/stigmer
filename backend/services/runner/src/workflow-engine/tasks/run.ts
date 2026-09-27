@@ -7,7 +7,9 @@
  * - `run.workflow`: Child Temporal workflow (await or fire-and-forget)
  *
  * The kernel validates configuration and delegates to `ctx.runCommand`
- * (for script/shell) or `ctx.runWorkflow` (for child workflows).
+ * (for script/shell) or `ctx.runWorkflow` (for child workflows). A child
+ * workflow's name may not be a platform workflow type
+ * ({@link PLATFORM_WORKFLOW_TYPE_PREFIX} says why).
  *
  * YAML shapes:
  *   - runScript:
@@ -41,6 +43,17 @@ import type {
 } from "../types.js";
 
 const SUPPORTED_LANGUAGES = ["js", "python"];
+
+/**
+ * The namespace of the platform's own Temporal workflow types: every type a
+ * runner registers (`workflows/index.ts`) and every type the server starts.
+ * A child started by `run.workflow` runs on the parent's task queue, so a
+ * name in this namespace would reach the runner's own types directly: work
+ * the server never dispatched, outside the run it belongs to. A workflow
+ * therefore cannot name one. `workflows/__tests__/barrel.test.ts` pins that
+ * every registered type carries this prefix, so the refusal covers each.
+ */
+export const PLATFORM_WORKFLOW_TYPE_PREFIX = "stigmer/";
 
 export class RunTaskBuilder implements TaskBuilder {
   readonly taskName: string;
@@ -137,6 +150,11 @@ function validateRunConfig(config: RunConfig, taskName: string): void {
   if (config.workflow) {
     if (!config.workflow.name) {
       throw new Error(`Run task '${taskName}': workflow.name is required`);
+    }
+    if (config.workflow.name.startsWith(PLATFORM_WORKFLOW_TYPE_PREFIX)) {
+      throw new Error(
+        `Run task '${taskName}': '${config.workflow.name}' is a platform workflow type, and a workflow cannot start one`,
+      );
     }
   }
 }

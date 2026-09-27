@@ -167,8 +167,8 @@ function nextSequence(): bigint {
  * failed run) returns the highest persisted sequence_number, so new
  * events continue from N+1.
  *
- * When executionId is empty (direct executeServerlessWorkflow without a
- * persisted execution), returns 0 as a safe fallback.
+ * When executionId is empty (an engine run with no persisted execution,
+ * as the test harness's inline entry makes), returns 0 as a safe fallback.
  *
  * Returns a plain number — the value crosses back into the workflow
  * through Temporal's JSON payload converter, which cannot carry BigInt.

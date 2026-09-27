@@ -588,6 +588,14 @@ UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a runn
 on `local-execution`. See the project's
 `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`.
 
+`workflowexecution-run-workflow.conformance.test.ts` pins what a `run_workflow`
+task may name as its child. A child runs on the parent's own task queue. So a
+name in the platform's `stigmer/` namespace would reach the runner's own
+workflow types outside the run the server dispatched. The runner refuses such
+a name when it builds the model, and the execution ends `EXECUTION_FAILED`
+with the task and the type in `status.error`. The runner's registered set
+itself is pinned at the Temporal wire by the runner's own tests, not here.
+
 **The runner-behavior facets** (stigmer-cloud entry 20260910.02, DD-001)
 replaced the Go `test/integration-offline` suite, arm for arm, with its
 accounting in that entry's `T01_1_arm-disposition.md`: a runner behavior a

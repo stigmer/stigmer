@@ -19,7 +19,7 @@ import { StigmerClient } from "../client/stigmer-client.js";
 import { loadWorkflowFromYaml } from "../workflow-engine/loader.js";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { Config } from "../config.js";
-import type { ExecuteServerlessWorkflowInput } from "../workflows/execute-serverless-workflow.js";
+import type { ExecuteServerlessWorkflowInput } from "../workflows/engine-core.js";
 
 export interface HydrateInput {
   readonly execution_id: string;

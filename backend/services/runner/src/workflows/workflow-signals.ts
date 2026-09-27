@@ -1,8 +1,8 @@
 /**
  * Shared pause/resume signal definitions and handler setup for
- * workflow execution. Used by both the hydration wrapper
- * ("stigmer/workflow/execute-from-execution") and the direct
- * invocation path ("stigmer/workflow/execute").
+ * workflow execution. Used by the hydration wrapper
+ * ("stigmer/workflow/execute-from-execution") and by the test harness's
+ * inline entry (`src/__test-utils__/workflows/inline-model.ts`).
  *
  * The Java/Go orchestrators forward pause and resume signals to
  * the child workflow. The engine checks a `checkPause` callback

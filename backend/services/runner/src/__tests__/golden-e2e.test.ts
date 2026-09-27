@@ -25,12 +25,13 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadWorkflowFromYaml } from "../workflow-engine/loader.js";
 import { evaluateExpressionBatch } from "../workflow-engine/expression.js";
-import type { ExecuteServerlessWorkflowInput } from "../workflows/execute-serverless-workflow.js";
+import type { ExecuteServerlessWorkflowInput } from "../workflows/engine-core.js";
 import type { WorkflowModel } from "../workflow-engine/types.js";
+import { INLINE_MODEL_WORKFLOW_TYPE } from "../__test-utils__/workflows/inline-model.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GOLDEN_DIR = join(__dirname, "../../test/golden");
-const WORKFLOWS_PATH = join(__dirname, "../workflows/index.ts");
+const WORKFLOWS_PATH = join(__dirname, "../__test-utils__/workflows/index.ts");
 const TASK_QUEUE = "golden-e2e-test";
 
 function loadGolden(filename: string): string {
@@ -91,7 +92,7 @@ async function runGoldenWorkflow(model: WorkflowModel, workflowInput: unknown = 
     env: {},
     metadata: { execution_id: "e2e-test" },
   };
-  return env.client.workflow.execute("stigmer/workflow/execute", {
+  return env.client.workflow.execute(INLINE_MODEL_WORKFLOW_TYPE, {
     taskQueue: TASK_QUEUE,
     workflowId: `golden-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     args: [input],

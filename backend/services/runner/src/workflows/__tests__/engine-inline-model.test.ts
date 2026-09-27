@@ -1,7 +1,19 @@
+/**
+ * The workflow engine (`engine-core.ts`) driven with a materialized model,
+ * through the test harness's inline entry
+ * (`src/__test-utils__/workflows/inline-model.ts`), with the Temporal
+ * workflow API mocked. It pins the engine's behaviour: task output,
+ * workflow-level `input.from` and `output.as`, expression evaluation
+ * through the local activity, error handling, event sequences and flow
+ * directives. Production reaches the same engine only through the
+ * hydration workflow; `barrel.test.ts` pins that no production type takes
+ * a model from its caller.
+ */
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { evaluateExpressionBatch } from "../../workflow-engine/expression.js";
 import type { WorkflowModel } from "../../workflow-engine/types.js";
-import type { ExecuteServerlessWorkflowInput } from "../execute-serverless-workflow.js";
+import type { ExecuteServerlessWorkflowInput } from "../engine-core.js";
 
 const mockEvaluateExpressions = vi.fn();
 const mockResetEventSequence = vi.fn();
@@ -51,7 +63,7 @@ vi.mock("@temporalio/workflow", () => ({
   isCancellation: vi.fn(() => false),
 }));
 
-describe("executeServerlessWorkflow", () => {
+describe("the engine, on a materialized model", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEvaluateExpressions.mockImplementation(
@@ -60,8 +72,8 @@ describe("executeServerlessWorkflow", () => {
   });
 
   async function runWorkflow(input: ExecuteServerlessWorkflowInput) {
-    const { executeServerlessWorkflow } = await import("../execute-serverless-workflow.js");
-    return executeServerlessWorkflow(input);
+    const { executeInlineModel } = await import("../../__test-utils__/workflows/inline-model.js");
+    return executeInlineModel(input);
   }
 
   describe("basic workflow execution", () => {

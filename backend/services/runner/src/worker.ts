@@ -3,10 +3,8 @@
  *
  * Registers both activities and workflows on a single queue.
  *
- * Workflows:
- * - "stigmer/mcp-server/connect" — ConnectMcpServerWorkflow (discover + classify)
- * - "stigmer/mcp-server/discover" — Legacy discover-only workflow
- * - "stigmer/workflow/execute" — CNCF Serverless Workflow execution
+ * Workflows: exactly the types in `workflows/index.ts`, each started by
+ * the server with ids (that file's header is the list and the rule).
  *
  * Architecture:
  * - Java backend starts connect workflows on the runner's task queue

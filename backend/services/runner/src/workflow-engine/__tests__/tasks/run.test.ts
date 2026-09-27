@@ -79,6 +79,31 @@ describe("RunTaskBuilder", () => {
       const builder = new RunTaskBuilder("task", taskDef);
       expect(() => builder.build()).toThrow("workflow.name is required");
     });
+
+    it.each([
+      "stigmer/workflow/execute",
+      "stigmer/workflow/execute-from-execution",
+      "stigmer/mcp-server/connect",
+      "stigmer/mcp-server/discover",
+      "stigmer/agent-execution/invoke",
+    ])("refuses the platform workflow type %s", (name) => {
+      const taskDef: RunTaskDef = {
+        kind: "run",
+        run: { workflow: { name, namespace: "default", version: "1.0.0" } },
+      };
+      const builder = new RunTaskBuilder("reachIn", taskDef);
+      expect(() => builder.build()).toThrow(
+        `Run task 'reachIn': '${name}' is a platform workflow type, and a workflow cannot start one`,
+      );
+    });
+
+    it("admits a name that only mentions the platform outside the prefix", () => {
+      const taskDef: RunTaskDef = {
+        kind: "run",
+        run: { workflow: { name: "my-stigmer/child", namespace: "default", version: "1.0.0" } },
+      };
+      expect(() => new RunTaskBuilder("child", taskDef).build()).not.toThrow();
+    });
   });
 
   describe("script execution", () => {

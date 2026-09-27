@@ -2,10 +2,13 @@
  * Shared workflow engine core — runs CNCF Serverless Workflow DSL
  * tasks inside the Temporal deterministic sandbox.
  *
- * Extracted from execute-serverless-workflow.ts so that both the
- * direct workflow ("stigmer/workflow/execute") and the hydration
- * wrapper ("stigmer/workflow/execute-from-execution") can share the
- * engine without code duplication.
+ * The engine runs a fully materialized {@link ExecuteServerlessWorkflowInput}
+ * and owns that type. Production reaches it only through the hydration
+ * workflow ("stigmer/workflow/execute-from-execution"), which reads the
+ * model, env and input back from the server by id; no registered workflow
+ * accepts a materialized model from its caller (see `index.ts`). The test
+ * harness runs goldens through an inline entry of its own
+ * (`src/__test-utils__/workflows/`).
  *
  * SANDBOX RULES: This file runs inside the Temporal deterministic V8
  * isolate. No Node.js built-ins (crypto, fs, net), no non-deterministic
@@ -46,9 +49,8 @@ import type {
   HumanInputExecutionConfig,
   TaskExecutionContext,
   WorkflowEventDescriptor,
+  WorkflowModel,
 } from "../workflow-engine/types.js";
-
-import type { ExecuteServerlessWorkflowInput } from "./execute-serverless-workflow.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Activity Proxies (module-level singletons — shared across all workflow
@@ -133,6 +135,30 @@ const promoteProxy = proxyLocalActivities<PromoteActivities>({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Engine Input
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * What the engine runs: a parsed model, the merged env and the workflow
+ * input. Built by the hydration activity from what the server holds
+ * (`activities/hydrate-workflow-execution.ts`), never taken from a caller.
+ */
+export interface ExecuteServerlessWorkflowInput {
+  model: WorkflowModel;
+  workflow_input: unknown;
+  env: Record<string, unknown>;
+  metadata?: ExecutionMetadata;
+}
+
+export interface ExecutionMetadata {
+  execution_id?: string;
+  workflow_id?: string;
+  workflow_instance_id?: string;
+  org_id?: string;
+  execution_target?: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Engine Core
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -149,9 +175,8 @@ export interface RunWorkflowEngineOptions {
  * executes all tasks via {@link executeDoTasks}, and returns the final
  * output.
  *
- * Called by both:
- * - `executeServerlessWorkflow` (direct invocation with pre-materialized input)
- * - `executeFromExecution` (wrapper that hydrates from slim IDs first)
+ * Called by `executeFromExecution` once it has hydrated the input from
+ * slim ids, and by the test harness's inline entry.
  *
  * @param options.checkPause Optional pause yield point callback. When
  *   provided, the engine calls this between tasks and allows the
