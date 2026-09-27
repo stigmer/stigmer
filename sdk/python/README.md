@@ -106,7 +106,11 @@ with StigmerClient("sk_live_abc123") as client:
 ## Billing
 
 Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Commands require the `can_manage_billing` permission on the org:
+organization. Queries require `can_view_billing` on the org and the org's own
+billing commands require `can_manage_billing`. Adding or removing credits
+without a purchase (`adjust_credits`, `grant_credits`) requires
+`can_manage_credits` on the platform, held by platform operators and by the
+funding identities Stigmer makes credit issuers:
 
 ```python
 from stigmer import StigmerClient, AdjustCreditsParams
@@ -117,8 +121,8 @@ with StigmerClient("sk_live_abc123") as client:
     entry = client.billing.adjust_credits(AdjustCreditsParams(
         org_id=org_id,
         amount_micros=25_000_000,  # +$25.00
-        reason="initial tenant funding",
-        idempotency_key=f"fund-{org_id}",
+        reason="support credit for an outage",
+        idempotency_key=f"support-{org_id}-2026-09",
     ))
 ```
 

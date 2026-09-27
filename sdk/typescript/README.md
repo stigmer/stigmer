@@ -67,7 +67,11 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 ### Billing
 
 Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Commands require the `can_manage_billing` permission on the org:
+organization. Queries require `can_view_billing` on the org and the org's own
+billing commands require `can_manage_billing`. Adding or removing credits
+without a purchase (`adjustCredits`, `grantCredits`) requires
+`can_manage_credits` on the platform, held by platform operators and by the
+funding identities Stigmer makes credit issuers:
 
 ```typescript
 const balance = await stigmer.billing.getCreditBalance(orgId);
@@ -75,8 +79,8 @@ const balance = await stigmer.billing.getCreditBalance(orgId);
 const entry = await stigmer.billing.adjustCredits({
   orgId,
   amountMicros: 25_000_000n, // +$25.00
-  reason: "initial tenant funding",
-  idempotencyKey: `fund-${orgId}`,
+  reason: "support credit for an outage",
+  idempotencyKey: `support-${orgId}-2026-09`,
 });
 ```
 

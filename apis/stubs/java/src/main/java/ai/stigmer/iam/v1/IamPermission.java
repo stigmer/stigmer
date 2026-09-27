@@ -366,6 +366,24 @@ public enum IamPermission
    * <code>can_create_team = 45;</code>
    */
   can_create_team(45),
+  /**
+   * <pre>
+   * Platform-level permission to add or remove an organization's credits
+   * without a purchase: BillingCommandController.adjustCredits and
+   * grantCredits, checked on the static platform target.
+   *
+   * &#64;internal
+   * Held by an operator (support, comps, corrections) and by a credit
+   * issuer: a funding identity the platform trusts by name, such as an
+   * integrator's wallet bridge, which holds this and nothing else on the
+   * platform. Owning an organization never confers it: credit made without
+   * money reaching the platform is the platform's decision, and every
+   * person owns an organization.
+   * </pre>
+   *
+   * <code>can_manage_credits = 46;</code>
+   */
+  can_manage_credits(46),
   UNRECOGNIZED(-1),
   ;
 
@@ -719,6 +737,24 @@ public enum IamPermission
    * <code>can_create_team = 45;</code>
    */
   public static final int can_create_team_VALUE = 45;
+  /**
+   * <pre>
+   * Platform-level permission to add or remove an organization's credits
+   * without a purchase: BillingCommandController.adjustCredits and
+   * grantCredits, checked on the static platform target.
+   *
+   * &#64;internal
+   * Held by an operator (support, comps, corrections) and by a credit
+   * issuer: a funding identity the platform trusts by name, such as an
+   * integrator's wallet bridge, which holds this and nothing else on the
+   * platform. Owning an organization never confers it: credit made without
+   * money reaching the platform is the platform's decision, and every
+   * person owns an organization.
+   * </pre>
+   *
+   * <code>can_manage_credits = 46;</code>
+   */
+  public static final int can_manage_credits_VALUE = 46;
 
 
   public final int getNumber() {
@@ -786,6 +822,7 @@ public enum IamPermission
       case 43: return can_create_mcp_server;
       case 44: return can_create_agent_instance;
       case 45: return can_create_team;
+      case 46: return can_manage_credits;
       default: return null;
     }
   }

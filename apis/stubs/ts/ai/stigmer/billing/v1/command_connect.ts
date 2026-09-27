@@ -14,7 +14,9 @@ import { ModelPricingBaseline } from "./model_pricing_baseline_pbjs";
  * BillingCommandController handles write operations for the billing bounded context.
  *
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
- * RPCs authorize against the organization resource kind.
+ * An organization's own billing RPCs authorize against the organization
+ * resource kind; the credit mutations, the execution pipeline and pricing
+ * governance authorize against the static platform target.
  *
  *
  * @generated from service ai.stigmer.billing.v1.BillingCommandController
@@ -36,7 +38,8 @@ export const BillingCommandController = {
     },
     /**
      * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires admin privileges.
+     * Produces an immutable ledger entry for audit. Requires can_manage_credits
+     * on the platform: a platform operator or a credit issuer.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.adjustCredits
      */
@@ -54,7 +57,8 @@ export const BillingCommandController = {
      * is set, any remainder unconsumed at that time is removed from the balance
      * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
      * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed.
+     * entry, even after the expiry has passed. Requires can_manage_credits on
+     * the platform, as adjustCredits does.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.grantCredits
      */

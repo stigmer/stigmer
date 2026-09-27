@@ -50,7 +50,8 @@ export const GetOrCreateBillingAccountInputSchema: GenMessage<GetOrCreateBilling
   messageDesc(file_ai_stigmer_billing_v1_io, 0);
 
 /**
- * AdjustCreditsInput allows platform admins to manually add or remove credits.
+ * AdjustCreditsInput adds or removes an organization's credits by hand: a
+ * platform operator's correction, or a credit issuer's funding.
  *
  * @generated from message ai.stigmer.billing.v1.AdjustCreditsInput
  */

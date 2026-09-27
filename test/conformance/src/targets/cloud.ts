@@ -350,22 +350,37 @@ export class CloudTarget implements TargetProfile {
   }
 
   // Seeds the org's billing account with the standard execution-credit
-  // allowance (TENANCY_SEED_CREDITS_MICROS) as the primary user — the owner of
-  // every org this target provisions, which is who the integration harness's
-  // org_helpers fund standalone orgs as. Billing accounts are keyed by the
-  // execution's metadata.org — the slug. Lives on the Class A target (moved
-  // up from cloud-execution in E1) so ledger arms that need a funded account
-  // — usage reports, settle, the STOP/WARNING thresholds — can run without a
-  // runner; the execution target delegates here.
+  // allowance (TENANCY_SEED_CREDITS_MICROS). The primary user, the owner of
+  // every org this target provisions, ensures the account; the credit itself
+  // comes from the operator, because adding credit without a purchase needs
+  // can_manage_credits on the platform, which owning the org never confers.
+  // Billing accounts are keyed by the execution's metadata.org — the slug.
+  // Lives on the Class A target (moved up from cloud-execution in E1) so
+  // ledger arms that need a funded account — usage reports, settle, the
+  // STOP/WARNING thresholds — can run without a runner; the execution target
+  // delegates here. Without an operator credential there is nobody who may
+  // fund, so the refusal names the credential instead of failing later on an
+  // empty wallet.
   async fundTenancy(org: string): Promise<void> {
-    const billingCommand = this.clients().billingCommand;
-    await billingCommand.getOrCreateBillingAccount({ orgId: org });
-    await billingCommand.adjustCredits({
+    await this.clients().billingCommand.getOrCreateBillingAccount({ orgId: org });
+    await this.creditIssuer().billingCommand.adjustCredits({
       orgId: org,
       amountMicros: TENANCY_SEED_CREDITS_MICROS,
       reason: "conformance execution tenancy seed",
       idempotencyKey: `conformance-seed-${org}`,
     });
+  }
+
+  // The clients that may add credit: the operator's. Exposed for the suites
+  // that move a funded org's balance (drain, refund) on the primary's org.
+  creditIssuer(): ConformanceClients {
+    if (this.operatorClients === undefined) {
+      throw new Error(
+        `funding a tenancy needs can_manage_credits on the platform: set ${CLOUD_ENV.operatorToken}, ` +
+          "or run against a hermetic substrate, whose bootstrap always mints the operator",
+      );
+    }
+    return this.operatorClients;
   }
 
   // Mints a brand-new user through the bootstrap PlatformClient. The fresh

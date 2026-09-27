@@ -206,6 +206,10 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.fundTenancy(org);
   }
 
+  creditIssuer(): ConformanceClients {
+    return this.cloud.creditIssuer();
+  }
+
   cleanupTenancy(context: TenancyContext): Promise<void> {
     return this.cloud.cleanupTenancy(context);
   }

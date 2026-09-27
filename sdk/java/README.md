@@ -140,7 +140,11 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
 ## Billing
 
 Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Commands require the `can_manage_billing` permission on the org:
+organization. Queries require `can_view_billing` on the org and the org's own
+billing commands require `can_manage_billing`. Adding or removing credits
+without a purchase (`adjustCredits`, `grantCredits`) requires
+`can_manage_credits` on the platform, held by platform operators and by the
+funding identities Stigmer makes credit issuers:
 
 ```java
 import ai.stigmer.sdk.BillingClient;
@@ -154,8 +158,8 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
         BillingClient.AdjustCreditsParams.builder()
             .orgId(orgId)
             .amountMicros(25_000_000L) // +$25.00
-            .reason("initial tenant funding")
-            .idempotencyKey("fund-" + orgId)
+            .reason("support credit for an outage")
+            .idempotencyKey("support-" + orgId + "-2026-09")
             .build());
 }
 ```

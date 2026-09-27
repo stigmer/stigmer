@@ -22,7 +22,8 @@ message GetOrCreateBillingAccountInput {
   string org_id = 1 [(buf.validate.field).required = true];
 }
 
-// AdjustCreditsInput allows platform admins to manually add or remove credits.
+// AdjustCreditsInput adds or removes an organization's credits by hand: a
+// platform operator's correction, or a credit issuer's funding.
 message AdjustCreditsInput {
   string org_id = 1 [(buf.validate.field).required = true];
 

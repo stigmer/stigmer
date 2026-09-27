@@ -122,7 +122,7 @@ class TestBillingClientWiring:
     def test_adjust_credits_wraps_grpc_error(self, client: StigmerClient) -> None:
         fake = _CapturingCommandStub()
         fake.adjust_credits_error = _FakeRpcError(
-            grpc.StatusCode.PERMISSION_DENIED, "can_manage_billing required"
+            grpc.StatusCode.PERMISSION_DENIED, "can_manage_credits required"
         )
         client.billing._command = fake
 
@@ -179,7 +179,7 @@ class TestBillingClientWiring:
     def test_grant_credits_wraps_grpc_error(self, client: StigmerClient) -> None:
         fake = _CapturingCommandStub()
         fake.grant_credits_error = _FakeRpcError(
-            grpc.StatusCode.PERMISSION_DENIED, "can_manage_billing required"
+            grpc.StatusCode.PERMISSION_DENIED, "can_manage_credits required"
         )
         client.billing._command = fake
 

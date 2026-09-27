@@ -5,11 +5,15 @@ module stigmer
 # ========================================
 # The Stigmer platform itself - the root of all authorization.
 #
-# The platform type defines the `operator` role and gates all platform-level
+# The platform type defines the `operator` role, and narrow roles for machine
+# lanes that must never hold the whole platform, and gates all platform-level
 # capabilities through specific `can_*` permissions. Operator access does NOT
 # propagate transitively to organizations or resources. Instead, each
 # platform-level operation is an explicit permission checked directly
 # against platform:stigmer.
+#
+# No platform role is granted through the API: the kind declares no
+# grantable roles, so every tuple here is written by the platform itself.
 #
 # FGA tuple for operator assignment:
 #   platform:stigmer#operator@identity_account:<operator_id>
@@ -20,11 +24,21 @@ type platform
     # OPERATOR (Role)
     # ========================================
     # Platform operators - users with elevated platform-level privileges.
-    # This is the sole role on the platform type. All permissions below
-    # derive from it, giving each a clear domain meaning for audit and
-    # future role splitting.
+    # Every permission below derives from it, giving each a clear domain
+    # meaning for audit and for splitting out a narrow role when a machine
+    # lane needs one permission and nothing else.
     # FGA tuple: platform:stigmer#operator@identity_account:<operator_id>
     define operator: [identity_account]
+
+    # ========================================
+    # CREDIT ISSUER (Role)
+    # ========================================
+    # A funding identity the platform trusts by name: an integrator's
+    # wallet bridge, the platform's own acceptance automation. It holds
+    # can_manage_credits and nothing else here, so a leaked credential can
+    # move money but never act as an operator.
+    # FGA tuple: platform:stigmer#credit_issuer@identity_account:<account_id>
+    define credit_issuer: [identity_account]
     
     # ========================================
     # IMPERSONATION
@@ -135,3 +149,14 @@ type platform
     # service can use but never export.
     # FGA check: identity_account:<caller_id> can_issue_license platform:stigmer
     define can_issue_license: operator
+
+    # ========================================
+    # CREDIT MUTATIONS
+    # ========================================
+    # Permission to add or remove an organization's credits without a
+    # purchase: adjustCredits and grantCredits. An operator's support and
+    # corrections, or a credit issuer's funding. Owning an organization never
+    # confers it, because every person owns one and credit made without
+    # money reaching the platform is the platform's decision.
+    # FGA check: identity_account:<caller_id> can_manage_credits platform:stigmer
+    define can_manage_credits: operator or credit_issuer

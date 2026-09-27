@@ -568,6 +568,15 @@ describe("role enforcement — the platform: no organization role holds a platfo
     expect(result.isAuthorized).toBe(false);
   });
 
+  it("checkMyPermission(can_manage_credits, platform:stigmer) is false for an owner — owning an organization never lets anyone make credit", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const result = await lane.clients.iamPolicyQuery.checkMyPermission({
+      resource: ref("platform", "stigmer"),
+      relation: "can_manage_credits",
+    });
+    expect(result.isAuthorized).toBe(false);
+  });
+
   it("the retired public level is refused for an owner as an invalid level — gated for nobody", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const tenancy = await lane.provisionTenancy();

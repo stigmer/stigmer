@@ -246,11 +246,17 @@ Promotional credits are consumed first (burn-order priority), so your purchased
 credits last longer. Within a priority tier, grants expiring soonest are
 consumed first, so expiring credits never lapse while permanent ones burn.
 
-Promotional grants can carry an expiry (use-it-or-lose-it): platforms funding
-managed organizations use the `grantCredits` API to issue allowances — for
-example a monthly free budget — that expire on a set date instead of banking
-indefinitely. Whatever remains unconsumed at expiry is removed from the balance
-with an `expiry_debit` ledger entry.
+Promotional grants can carry an expiry (use-it-or-lose-it): the `grantCredits`
+API issues allowances — for example a monthly free budget — that expire on a set
+date instead of banking indefinitely. Whatever remains unconsumed at expiry is
+removed from the balance with an `expiry_debit` ledger entry.
+
+Adding or removing credits without a purchase (`adjustCredits`, `grantCredits`)
+is the platform's act, never an Organization's: it requires `can_manage_credits`
+on the platform, which platform operators hold. A platform that funds the
+Organizations it manages does so through a funding identity Stigmer makes a
+credit issuer, by arrangement; owning an Organization does not let anyone add
+credit to it.
 
 ## Automatic recharge
 
@@ -289,7 +295,8 @@ Every balance-affecting operation produces an **immutable ledger entry**:
 - `usage_debit` — LLM call cost deduction
 - `reservation_hold` — credits reserved at execution start
 - `reservation_release` — unused credits returned after execution
-- `adjustment_credit` / `adjustment_debit` — manual admin adjustments
+- `adjustment_credit` / `adjustment_debit` — operator or credit-issuer
+  adjustments
 - `refund_reversal` — Stripe refund reversal
 - `expiry_debit` — expired credit removal
 

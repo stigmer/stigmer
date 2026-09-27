@@ -70,7 +70,11 @@ The client provides sub-clients for each resource type:
 ## Billing
 
 Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Commands require the `can_manage_billing` permission on the org:
+organization. Queries require `can_view_billing` on the org and the org's own
+billing commands require `can_manage_billing`. Adding or removing credits
+without a purchase (`AdjustCredits`, `GrantCredits`) requires
+`can_manage_credits` on the platform, held by platform operators and by the
+funding identities Stigmer makes credit issuers:
 
 ```go
 balance, err := client.Billing.GetCreditBalance(ctx, orgID)
@@ -78,8 +82,8 @@ balance, err := client.Billing.GetCreditBalance(ctx, orgID)
 entry, err := client.Billing.AdjustCredits(ctx, &stigmer.AdjustCreditsParams{
     OrgID:          orgID,
     AmountMicros:   25_000_000, // +$25.00
-    Reason:         "initial tenant funding",
-    IdempotencyKey: "fund-" + orgID,
+    Reason:         "support credit for an outage",
+    IdempotencyKey: "support-" + orgID + "-2026-09",
 })
 ```
 

@@ -147,7 +147,7 @@ Permission checks reference the bottom of the hierarchy:
 
 Authority to spend or create comes from an explicit permission checked at the door (`can_create_execution_in` on the organization, `can_create_<kind>`), never from the accidental shape of a read tuple: a read userset that happens to imply membership must not become the thing that lets a read-only viewer spend the organization's credits.
 
-Platform capabilities live on `platform:stigmer`: one `operator` role and one explicit `can_*` per platform-level act. Operator access does not propagate to organizations or resources, and no resource type carries an `operator` relation; a support path is an explicit platform permission checked at the door, never an implicit owner.
+Platform capabilities live on `platform:stigmer`: one `operator` role, narrow roles for machine lanes that must never hold the whole platform (`credit_issuer`), and one explicit `can_*` per platform-level act. Operator access does not propagate to organizations or resources, and no resource type carries an `operator` relation; a support path is an explicit platform permission checked at the door, never an implicit owner.
 
 ## Shapes to Avoid
 

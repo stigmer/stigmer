@@ -12,7 +12,9 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // BillingCommandController handles write operations for the billing bounded context.
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
-// RPCs authorize against the organization resource kind.
+// An organization's own billing RPCs authorize against the organization
+// resource kind; the credit mutations, the execution pipeline and pricing
+// governance authorize against the static platform target.
 //
 service BillingCommandController {
   // Provision or retrieve the billing account for an organization.
@@ -29,12 +31,19 @@ service BillingCommandController {
   }
 
   // Manually adjust an org's credit balance.
-  // Produces an immutable ledger entry for audit. Requires admin privileges.
+  // Produces an immutable ledger entry for audit. Requires can_manage_credits
+  // on the platform: a platform operator or a credit issuer.
+  //
+  // @internal
+  // Checked on platform:stigmer, never on the organization: credit made
+  // without a purchase is the platform's decision, and every person owns an
+  // organization. org_id names the wallet; an org with no billing account
+  // is NOT_FOUND.
   rpc adjustCredits(AdjustCreditsInput) returns (CreditLedgerEntry) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to adjust credits for this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_credits;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators and credit issuers can adjust credits";
   }
 
   // Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
@@ -44,12 +53,13 @@ service BillingCommandController {
   // is set, any remainder unconsumed at that time is removed from the balance
   // by the platform's grant-expiry sweep (an expiry_debit ledger entry).
   // Idempotent: replaying an applied idempotency key returns the original
-  // entry, even after the expiry has passed.
+  // entry, even after the expiry has passed. Requires can_manage_credits on
+  // the platform, as adjustCredits does.
   rpc grantCredits(GrantCreditsInput) returns (CreditLedgerEntry) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to grant credits for this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_credits;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators and credit issuers can grant credits";
   }
 
   // Reserve credits before starting an agent execution.

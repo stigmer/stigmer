@@ -55,6 +55,7 @@ const DOCUMENTS = [
   "channel-app-owner.fga.yaml",
   "channel-participation.fga.yaml",
   "channel-session-visibility.fga.yaml",
+  "credit-issuer.fga.yaml",
   "default-instance-inheritance.fga.yaml",
   "identity-provider-administration.fga.yaml",
   "invitation-administration.fga.yaml",

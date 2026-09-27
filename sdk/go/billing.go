@@ -211,10 +211,11 @@ func (b *BillingClient) GetCreditBalance(ctx context.Context, orgID string) (*Cr
 
 // AdjustCredits manually adjusts an organization's credit balance.
 //
-// Positive AmountMicros adds credits (e.g. funding a tenant org), negative
-// removes them. The adjustment is recorded as a ledger entry with the
-// supplied reason; the idempotency key deduplicates retries. Requires
-// can_manage_billing on the org.
+// Positive AmountMicros adds credits, negative removes them. The adjustment
+// is recorded as a ledger entry with the supplied reason; the idempotency key
+// deduplicates retries. Requires can_manage_credits on the platform: a
+// platform operator, or an identity Stigmer has made a credit issuer. Owning
+// the organization is not enough.
 func (b *BillingClient) AdjustCredits(ctx context.Context, params *AdjustCreditsParams) (*CreditLedgerEntry, error) {
 	resp, err := b.command.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
 		OrgId:          params.OrgID,
@@ -235,7 +236,8 @@ func (b *BillingClient) AdjustCredits(ctx context.Context, params *AdjustCredits
 // set, any remainder unconsumed at that time is removed from the balance by
 // the platform's grant-expiry sweep. Idempotent: replaying an applied
 // idempotency key returns the original ledger entry, even after the expiry
-// has passed. Requires can_manage_billing on the org.
+// has passed. Requires can_manage_credits on the platform, as AdjustCredits
+// does.
 func (b *BillingClient) GrantCredits(ctx context.Context, params *GrantCreditsParams) (*CreditLedgerEntry, error) {
 	req := &billingv1.GrantCreditsInput{
 		OrgId:          params.OrgID,

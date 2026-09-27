@@ -346,7 +346,8 @@ enum ApiResourceKind {
     // self-hosting Enterprise owns for its own instance. (getServerInfo on
     // PlatformQueryController is answered by every edition; it is not this
     // kind.) Billing-operator permissions on the platform stay gated by the
-    // cloud's billing unit, not by this tier.
+    // cloud's billing unit, not by this tier; the platform#credit_issuer
+    // seat is one of them, a cloud billing seat no self-hosted server uses.
     tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_NONE

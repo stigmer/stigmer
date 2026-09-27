@@ -6,7 +6,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * BillingCommandController handles write operations for the billing bounded context.
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
- * RPCs authorize against the organization resource kind.
+ * An organization's own billing RPCs authorize against the organization
+ * resource kind; the credit mutations, the execution pipeline and pricing
+ * governance authorize against the static platform target.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -483,7 +485,9 @@ public final class BillingCommandControllerGrpc {
    * <pre>
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
-   * RPCs authorize against the organization resource kind.
+   * An organization's own billing RPCs authorize against the organization
+   * resource kind; the credit mutations, the execution pipeline and pricing
+   * governance authorize against the static platform target.
    * </pre>
    */
   public interface AsyncService {
@@ -505,7 +509,13 @@ public final class BillingCommandControllerGrpc {
     /**
      * <pre>
      * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires admin privileges.
+     * Produces an immutable ledger entry for audit. Requires can_manage_credits
+     * on the platform: a platform operator or a credit issuer.
+     * &#64;internal
+     * Checked on platform:stigmer, never on the organization: credit made
+     * without a purchase is the platform's decision, and every person owns an
+     * organization. org_id names the wallet; an org with no billing account
+     * is NOT_FOUND.
      * </pre>
      */
     default void adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request,
@@ -521,7 +531,8 @@ public final class BillingCommandControllerGrpc {
      * is set, any remainder unconsumed at that time is removed from the balance
      * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
      * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed.
+     * entry, even after the expiry has passed. Requires can_manage_credits on
+     * the platform, as adjustCredits does.
      * </pre>
      */
     default void grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request,
@@ -674,7 +685,9 @@ public final class BillingCommandControllerGrpc {
    * <pre>
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
-   * RPCs authorize against the organization resource kind.
+   * An organization's own billing RPCs authorize against the organization
+   * resource kind; the credit mutations, the execution pipeline and pricing
+   * governance authorize against the static platform target.
    * </pre>
    */
   public static abstract class BillingCommandControllerImplBase
@@ -690,7 +703,9 @@ public final class BillingCommandControllerGrpc {
    * <pre>
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
-   * RPCs authorize against the organization resource kind.
+   * An organization's own billing RPCs authorize against the organization
+   * resource kind; the credit mutations, the execution pipeline and pricing
+   * governance authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerStub
@@ -724,7 +739,13 @@ public final class BillingCommandControllerGrpc {
     /**
      * <pre>
      * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires admin privileges.
+     * Produces an immutable ledger entry for audit. Requires can_manage_credits
+     * on the platform: a platform operator or a credit issuer.
+     * &#64;internal
+     * Checked on platform:stigmer, never on the organization: credit made
+     * without a purchase is the platform's decision, and every person owns an
+     * organization. org_id names the wallet; an org with no billing account
+     * is NOT_FOUND.
      * </pre>
      */
     public void adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request,
@@ -741,7 +762,8 @@ public final class BillingCommandControllerGrpc {
      * is set, any remainder unconsumed at that time is removed from the balance
      * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
      * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed.
+     * entry, even after the expiry has passed. Requires can_manage_credits on
+     * the platform, as adjustCredits does.
      * </pre>
      */
     public void grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request,
@@ -905,7 +927,9 @@ public final class BillingCommandControllerGrpc {
    * <pre>
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
-   * RPCs authorize against the organization resource kind.
+   * An organization's own billing RPCs authorize against the organization
+   * resource kind; the credit mutations, the execution pipeline and pricing
+   * governance authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingV2Stub
@@ -938,7 +962,13 @@ public final class BillingCommandControllerGrpc {
     /**
      * <pre>
      * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires admin privileges.
+     * Produces an immutable ledger entry for audit. Requires can_manage_credits
+     * on the platform: a platform operator or a credit issuer.
+     * &#64;internal
+     * Checked on platform:stigmer, never on the organization: credit made
+     * without a purchase is the platform's decision, and every person owns an
+     * organization. org_id names the wallet; an org with no billing account
+     * is NOT_FOUND.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreditLedgerEntry adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request) throws io.grpc.StatusException {
@@ -954,7 +984,8 @@ public final class BillingCommandControllerGrpc {
      * is set, any remainder unconsumed at that time is removed from the balance
      * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
      * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed.
+     * entry, even after the expiry has passed. Requires can_manage_credits on
+     * the platform, as adjustCredits does.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreditLedgerEntry grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request) throws io.grpc.StatusException {
@@ -1107,7 +1138,9 @@ public final class BillingCommandControllerGrpc {
    * <pre>
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
-   * RPCs authorize against the organization resource kind.
+   * An organization's own billing RPCs authorize against the organization
+   * resource kind; the credit mutations, the execution pipeline and pricing
+   * governance authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingStub
@@ -1140,7 +1173,13 @@ public final class BillingCommandControllerGrpc {
     /**
      * <pre>
      * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires admin privileges.
+     * Produces an immutable ledger entry for audit. Requires can_manage_credits
+     * on the platform: a platform operator or a credit issuer.
+     * &#64;internal
+     * Checked on platform:stigmer, never on the organization: credit made
+     * without a purchase is the platform's decision, and every person owns an
+     * organization. org_id names the wallet; an org with no billing account
+     * is NOT_FOUND.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreditLedgerEntry adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request) {
@@ -1156,7 +1195,8 @@ public final class BillingCommandControllerGrpc {
      * is set, any remainder unconsumed at that time is removed from the balance
      * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
      * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed.
+     * entry, even after the expiry has passed. Requires can_manage_credits on
+     * the platform, as adjustCredits does.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreditLedgerEntry grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request) {
@@ -1309,7 +1349,9 @@ public final class BillingCommandControllerGrpc {
    * <pre>
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
-   * RPCs authorize against the organization resource kind.
+   * An organization's own billing RPCs authorize against the organization
+   * resource kind; the credit mutations, the execution pipeline and pricing
+   * governance authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerFutureStub
@@ -1343,7 +1385,13 @@ public final class BillingCommandControllerGrpc {
     /**
      * <pre>
      * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires admin privileges.
+     * Produces an immutable ledger entry for audit. Requires can_manage_credits
+     * on the platform: a platform operator or a credit issuer.
+     * &#64;internal
+     * Checked on platform:stigmer, never on the organization: credit made
+     * without a purchase is the platform's decision, and every person owns an
+     * organization. org_id names the wallet; an org with no billing account
+     * is NOT_FOUND.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditLedgerEntry> adjustCredits(
@@ -1360,7 +1408,8 @@ public final class BillingCommandControllerGrpc {
      * is set, any remainder unconsumed at that time is removed from the balance
      * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
      * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed.
+     * entry, even after the expiry has passed. Requires can_manage_credits on
+     * the platform, as adjustCredits does.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditLedgerEntry> grantCredits(

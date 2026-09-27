@@ -198,10 +198,11 @@ class BillingClient:
     ) -> credit_pb2.CreditLedgerEntry:
         """Manually adjust an organization's credit balance.
 
-        Positive ``amount_micros`` adds credits (e.g. funding a tenant org),
-        negative removes them.  The adjustment is recorded as a ledger entry
-        with the supplied reason; the idempotency key deduplicates retries.
-        Requires ``can_manage_billing`` on the org.
+        Positive ``amount_micros`` adds credits, negative removes them.  The
+        adjustment is recorded as a ledger entry with the supplied reason; the
+        idempotency key deduplicates retries.  Requires ``can_manage_credits``
+        on the platform: a platform operator, or an identity Stigmer has made
+        a credit issuer.  Owning the organization is not enough.
         """
         req = billing_io_pb2.AdjustCreditsInput(
             org_id=params.org_id,
@@ -224,7 +225,8 @@ class BillingClient:
         unconsumed at that time is removed from the balance by the platform's
         grant-expiry sweep.  Idempotent: replaying an applied idempotency key
         returns the original ledger entry, even after the expiry has passed.
-        Requires ``can_manage_billing`` on the org.
+        Requires ``can_manage_credits`` on the platform, as
+        ``adjust_credits`` does.
         """
         req = billing_io_pb2.GrantCreditsInput(
             org_id=params.org_id,

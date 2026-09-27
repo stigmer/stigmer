@@ -41,13 +41,16 @@ const (
 // BillingCommandController handles write operations for the billing bounded context.
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
-// RPCs authorize against the organization resource kind.
+// An organization's own billing RPCs authorize against the organization
+// resource kind; the credit mutations, the execution pipeline and pricing
+// governance authorize against the static platform target.
 type BillingCommandControllerClient interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
 	GetOrCreateBillingAccount(ctx context.Context, in *GetOrCreateBillingAccountInput, opts ...grpc.CallOption) (*BillingAccount, error)
 	// Manually adjust an org's credit balance.
-	// Produces an immutable ledger entry for audit. Requires admin privileges.
+	// Produces an immutable ledger entry for audit. Requires can_manage_credits
+	// on the platform: a platform operator or a credit issuer.
 	AdjustCredits(ctx context.Context, in *AdjustCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
 	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
 	// Produces an immutable promotional_credit ledger entry for audit.
@@ -56,7 +59,8 @@ type BillingCommandControllerClient interface {
 	// is set, any remainder unconsumed at that time is removed from the balance
 	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
 	// Idempotent: replaying an applied idempotency key returns the original
-	// entry, even after the expiry has passed.
+	// entry, even after the expiry has passed. Requires can_manage_credits on
+	// the platform, as adjustCredits does.
 	GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.
@@ -256,13 +260,16 @@ func (c *billingCommandControllerClient) RetireModelPricingBaseline(ctx context.
 // BillingCommandController handles write operations for the billing bounded context.
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
-// RPCs authorize against the organization resource kind.
+// An organization's own billing RPCs authorize against the organization
+// resource kind; the credit mutations, the execution pipeline and pricing
+// governance authorize against the static platform target.
 type BillingCommandControllerServer interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
 	GetOrCreateBillingAccount(context.Context, *GetOrCreateBillingAccountInput) (*BillingAccount, error)
 	// Manually adjust an org's credit balance.
-	// Produces an immutable ledger entry for audit. Requires admin privileges.
+	// Produces an immutable ledger entry for audit. Requires can_manage_credits
+	// on the platform: a platform operator or a credit issuer.
 	AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error)
 	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
 	// Produces an immutable promotional_credit ledger entry for audit.
@@ -271,7 +278,8 @@ type BillingCommandControllerServer interface {
 	// is set, any remainder unconsumed at that time is removed from the balance
 	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
 	// Idempotent: replaying an applied idempotency key returns the original
-	// entry, even after the expiry has passed.
+	// entry, even after the expiry has passed. Requires can_manage_credits on
+	// the platform, as adjustCredits does.
 	GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.

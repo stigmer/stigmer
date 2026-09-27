@@ -71,7 +71,8 @@ func (x *GetOrCreateBillingAccountInput) GetOrgId() string {
 	return ""
 }
 
-// AdjustCreditsInput allows platform admins to manually add or remove credits.
+// AdjustCreditsInput adds or removes an organization's credits by hand: a
+// platform operator's correction, or a credit issuer's funding.
 type AdjustCreditsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`

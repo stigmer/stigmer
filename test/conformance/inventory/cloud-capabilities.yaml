@@ -173,7 +173,8 @@ rows:
     caller: primary
     needs: [unfunded-org]
 
-  # --- credit mutations (org lanes, can_manage_billing) ----------------------
+  # --- the account (org lane, can_manage_billing) and the credit mutations
+  # (platform lane, can_manage_credits: an operator or a credit issuer) --------
   - id: billing.rpc.get-or-create-billing-account.idempotent-for-existing
     surface: billing
     lane: >-
@@ -209,7 +210,7 @@ rows:
     lane: >-
       rpc.adjustCredits
     behavior: >-
-      adjustCredits with a positive then a negative amount_micros returns a ledger entry each time and the balance reflects both, with the reason and source recorded on the entries.
+      adjustCredits by a caller holding can_manage_credits on the platform, with a positive then a negative amount_micros, returns a ledger entry each time and the balance reflects both, with the reason and source recorded on the entries.
     java_source: >-
       domain/billing/request/handler/AdjustCreditsHandler.java; domain/billing/service/CreditLedgerService.java
     java_test: >-
@@ -217,7 +218,7 @@ rows:
     class: behavior
     disposition: conformance
     observability: launcher
-    caller: primary
+    caller: operator
     needs: [unfunded-org]
   - id: billing.rpc.adjust-credits.zero-amount-invalid-argument
     surface: billing
@@ -232,7 +233,7 @@ rows:
     class: adversarial
     disposition: conformance
     observability: launcher
-    caller: primary
+    caller: operator
     needs: [unfunded-org]
   - id: billing.rpc.adjust-credits.idempotency-key-replays-once
     surface: billing
@@ -247,14 +248,14 @@ rows:
     class: adversarial
     disposition: conformance
     observability: launcher
-    caller: primary
+    caller: operator
     needs: [unfunded-org]
   - id: billing.rpc.adjust-credits.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.adjustCredits
     behavior: >-
-      An outsider's adjustCredits answers PERMISSION_DENIED "unauthorized to adjust credits for this organization".
+      An outsider's adjustCredits answers PERMISSION_DENIED "only platform operators and credit issuers can adjust credits".
     java_source: >-
       apis billing/v1/command.proto
     java_test: >-
@@ -264,6 +265,36 @@ rows:
     observability: launcher
     caller: outsider
     needs: [unfunded-org]
+  - id: billing.rpc.adjust-credits.owner-permission-denied
+    surface: billing
+    lane: >-
+      rpc.adjustCredits
+    behavior: >-
+      The org's own owner's adjustCredits answers PERMISSION_DENIED "only platform operators and credit issuers can adjust credits" and the balance does not move: owning an organization never lets anyone add credit to it.
+    java_source: >-
+      apis billing/v1/command.proto
+    java_test: >-
+      none
+    class: adversarial
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [unfunded-org]
+  - id: billing.rpc.adjust-credits.no-billing-account-not-found
+    surface: billing
+    lane: >-
+      rpc.adjustCredits
+    behavior: >-
+      adjustCredits by a credit issuer on an org id with no billing account answers NOT_FOUND "No billing account for <org>" and writes nothing.
+    java_source: >-
+      apis billing/v1/command.proto
+    java_test: >-
+      none
+    class: adversarial
+    disposition: conformance
+    observability: launcher
+    caller: operator
+    needs: [none]
   - id: billing.rpc.grant-credits.grants-with-expiry
     surface: billing
     lane: >-
@@ -277,7 +308,7 @@ rows:
     class: behavior
     disposition: conformance
     observability: launcher
-    caller: primary
+    caller: operator
     needs: [unfunded-org]
   - id: billing.rpc.grant-credits.non-positive-invalid-argument
     surface: billing
@@ -292,14 +323,44 @@ rows:
     class: adversarial
     disposition: conformance
     observability: launcher
+    caller: operator
+    needs: [unfunded-org]
+  - id: billing.rpc.grant-credits.owner-permission-denied
+    surface: billing
+    lane: >-
+      rpc.grantCredits
+    behavior: >-
+      The org's own owner's grantCredits answers PERMISSION_DENIED "only platform operators and credit issuers can grant credits" and the balance does not move.
+    java_source: >-
+      apis billing/v1/command.proto
+    java_test: >-
+      none
+    class: adversarial
+    disposition: conformance
+    observability: launcher
     caller: primary
     needs: [unfunded-org]
+  - id: billing.rpc.grant-credits.no-billing-account-not-found
+    surface: billing
+    lane: >-
+      rpc.grantCredits
+    behavior: >-
+      grantCredits by a credit issuer on an org id with no billing account answers NOT_FOUND "No billing account for <org>" and writes nothing.
+    java_source: >-
+      apis billing/v1/command.proto
+    java_test: >-
+      none
+    class: adversarial
+    disposition: conformance
+    observability: launcher
+    caller: operator
+    needs: [none]
   - id: billing.rpc.grant-credits.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.grantCredits
     behavior: >-
-      An outsider's grantCredits answers PERMISSION_DENIED "unauthorized to grant credits for this organization".
+      An outsider's grantCredits answers PERMISSION_DENIED "only platform operators and credit issuers can grant credits".
     java_source: >-
       apis billing/v1/command.proto
     java_test: >-

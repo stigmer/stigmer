@@ -650,6 +650,14 @@ export interface TargetProfile {
   // targets.
   fundTenancy?(org: string): Promise<void>;
 
+  // The clients that may add or remove an org's credits without a purchase
+  // (can_manage_credits on the platform, which owning the org never
+  // confers): the suites that move a funded org's balance between two
+  // observations drive them. Present only on billingGates targets; throws
+  // with the missing credential's name when the target was set up without
+  // one. Valid only after setup().
+  creditIssuer?(): ConformanceClients;
+
   // The programmable mock LLM proxy backing agent-execution runs. Present only on
   // execution targets that provision an engine + mock; absent on CRUD/cloud
   // targets. Agent execution suites obtain it via requireLlmProxy().

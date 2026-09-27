@@ -54,7 +54,9 @@ import java.util.Objects;
  *
  * <p>Billing is not an API Resource: RPCs authorize against the owning
  * organization ({@code can_view_billing} for queries,
- * {@code can_manage_billing} for commands), and the pricing-governance
+ * {@code can_manage_billing} for the organization's own commands). The
+ * credit mutations ({@code adjustCredits}, {@code grantCredits}) require
+ * {@code can_manage_credits} on the platform, and the pricing-governance
  * methods require platform-operator privileges.
  *
  * <pre>{@code
@@ -125,8 +127,10 @@ public final class BillingClient {
     /**
      * Manually adjusts an organization's credit balance.
      *
-     * <p>Produces an immutable ledger entry for audit. Requires the
-     * {@code can_manage_billing} permission on the organization.
+     * <p>Produces an immutable ledger entry for audit. Requires
+     * {@code can_manage_credits} on the platform: a platform operator, or an
+     * identity Stigmer has made a credit issuer. Owning the organization is
+     * not enough.
      */
     public CreditLedgerEntry adjustCredits(AdjustCreditsParams params) {
         try {
@@ -144,8 +148,8 @@ public final class BillingClient {
      * expiry is set, any remainder unconsumed at that time is removed from
      * the balance by the platform's grant-expiry sweep. Idempotent: replaying
      * an applied idempotency key returns the original ledger entry, even
-     * after the expiry has passed. Requires the {@code can_manage_billing}
-     * permission on the organization.
+     * after the expiry has passed. Requires {@code can_manage_credits} on
+     * the platform, as {@link #adjustCredits} does.
      */
     public CreditLedgerEntry grantCredits(GrantCreditsParams params) {
         try {

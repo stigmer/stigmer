@@ -198,6 +198,19 @@ enum IamPermission {
   // one is the organization's administrators' decision, like who may grant
   // access. The Team kind is served by the Enterprise and Cloud editions.
   can_create_team = 45;
+
+  // Platform-level permission to add or remove an organization's credits
+  // without a purchase: BillingCommandController.adjustCredits and
+  // grantCredits, checked on the static platform target.
+  //
+  // @internal
+  // Held by an operator (support, comps, corrections) and by a credit
+  // issuer: a funding identity the platform trusts by name, such as an
+  // integrator's wallet bridge, which holds this and nothing else on the
+  // platform. Owning an organization never confers it: credit made without
+  // money reaching the platform is the platform's decision, and every
+  // person owns an organization.
+  can_manage_credits = 46;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

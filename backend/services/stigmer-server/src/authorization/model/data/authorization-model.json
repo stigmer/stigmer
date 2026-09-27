@@ -10,6 +10,7 @@
           "can_grant_access": {},
           "can_impersonate": {},
           "can_issue_license": {},
+          "can_manage_credits": {},
           "can_manage_cursor_accounts": {},
           "can_manage_identity_accounts": {},
           "can_manage_model_pricing": {},
@@ -17,6 +18,13 @@
           "can_view_access": {},
           "can_view_provider_standing": {},
           "can_write_reserved_labels": {},
+          "credit_issuer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
           "operator": {
             "directly_related_user_types": [
               {
@@ -55,6 +63,22 @@
             "relation": "operator"
           }
         },
+        "can_manage_credits": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "operator"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "credit_issuer"
+                }
+              }
+            ]
+          }
+        },
         "can_manage_cursor_accounts": {
           "computedUserset": {
             "relation": "operator"
@@ -89,6 +113,9 @@
           "computedUserset": {
             "relation": "operator"
           }
+        },
+        "credit_issuer": {
+          "this": {}
         },
         "operator": {
           "this": {}

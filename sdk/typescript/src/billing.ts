@@ -219,10 +219,11 @@ export class BillingClient {
   /**
    * Manually adjust an organization's credit balance.
    *
-   * Positive `amountMicros` adds credits (e.g. funding a tenant org),
-   * negative removes them. The adjustment is recorded as a ledger entry
-   * with the supplied reason; the idempotency key deduplicates retries.
-   * Requires `can_manage_billing` on the org.
+   * Positive `amountMicros` adds credits, negative removes them. The
+   * adjustment is recorded as a ledger entry with the supplied reason; the
+   * idempotency key deduplicates retries. Requires `can_manage_credits` on
+   * the platform: a platform operator, or an identity Stigmer has made a
+   * credit issuer. Owning the organization is not enough.
    */
   async adjustCredits(params: AdjustCreditsParams): Promise<CreditLedgerEntry> {
     try {
@@ -247,8 +248,8 @@ export class BillingClient {
    * `expiresAt` is set, any remainder unconsumed at that time is removed
    * from the balance by the platform's grant-expiry sweep. Idempotent:
    * replaying an applied idempotency key returns the original ledger entry,
-   * even after the expiry has passed. Requires `can_manage_billing` on
-   * the org.
+   * even after the expiry has passed. Requires `can_manage_credits` on the
+   * platform, as `adjustCredits` does.
    */
   async grantCredits(params: GrantCreditsParams): Promise<CreditLedgerEntry> {
     try {

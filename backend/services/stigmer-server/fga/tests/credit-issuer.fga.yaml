@@ -1,0 +1,76 @@
+# Store tests for the credit-mutation permission and the credit issuer role.
+#
+# can_manage_credits gates adjustCredits and grantCredits: credit added or
+# removed without a purchase. The platform operator holds it, and so does a
+# credit issuer, a funding identity the platform trusts by name (an
+# integrator's wallet bridge, the platform's own acceptance automation).
+# An organization's owner never does: every person owns an organization, so
+# owning one cannot be what lets someone make credit.
+#
+# The second test is the reason the role exists: a credit issuer holds this
+# one permission and nothing else on the platform, and nothing in any
+# organization it does not otherwise belong to.
+#
+# Run with:
+#   fga model test --tests credit-issuer.fga.yaml
+name: credit-issuer
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # The bootstrap machine account is the platform operator
+  # (BootstrapIdentitySeeder re-asserts this tuple on every boot).
+  - user: identity_account:machine
+    relation: operator
+    object: platform:stigmer
+
+  # An integrator's funding identity, trusted by the platform by name.
+  - user: identity_account:funder
+    relation: credit_issuer
+    object: platform:stigmer
+
+  # A tenant org owner — owns everything in their org, nothing on the
+  # platform.
+  - user: identity_account:mallory
+    relation: owner
+    object: organization:acme
+
+tests:
+  - name: operators and credit issuers may change credits, org owners may not
+    check:
+      - user: identity_account:machine
+        object: platform:stigmer
+        assertions:
+          can_manage_credits: true
+      - user: identity_account:funder
+        object: platform:stigmer
+        assertions:
+          can_manage_credits: true
+      - user: identity_account:mallory
+        object: platform:stigmer
+        assertions:
+          can_manage_credits: false
+
+  - name: a credit issuer holds nothing else on the platform or in an organization
+    check:
+      - user: identity_account:funder
+        object: platform:stigmer
+        assertions:
+          operator: false
+          can_impersonate: false
+          can_bootstrap_iam: false
+          can_manage_identity_accounts: false
+          can_grant_access: false
+          can_view_access: false
+          can_update_usage: false
+          can_execute_billing_ops: false
+          can_manage_model_pricing: false
+          can_manage_cursor_accounts: false
+          can_view_provider_standing: false
+          can_write_reserved_labels: false
+          can_issue_license: false
+      - user: identity_account:funder
+        object: organization:acme
+        assertions:
+          can_view: false
+          can_view_billing: false
+          can_manage_billing: false

@@ -10,9 +10,12 @@
 // fails when a `conformance` row has no test here or a tag names no row.
 //
 // Where `billingLedger` is TRUE (cloud): the org lanes are driven as the org
-// owner (the primary user) and an outsider; the engine and pricing-admin
-// lanes as the platform operator (`provisionPrivilegedScope` — the FGA model
-// derives can_execute_billing_ops and can_manage_model_pricing from
+// owner (the primary user) and an outsider; the credit mutations as the
+// target's credit issuer (`creditIssuer` — can_manage_credits on the
+// platform, which owning an org never confers), with the owner's and the
+// outsider's refusals pinned; the engine and pricing-admin lanes as the
+// platform operator (`provisionPrivilegedScope` — the FGA model derives
+// can_execute_billing_ops and can_manage_model_pricing from
 // platform#operator) with the ordinary caller's refusal pinned to the proto's
 // own error_msg. The purchase money path runs against the run's fake Stripe
 // (harness/fake-stripe.ts): Java's outbound calls land there, and the suite
@@ -84,8 +87,8 @@ afterAll(async () => {
 const COPY = {
   viewBilling: "unauthorized to view billing for this organization",
   manageBilling: "unauthorized to manage billing for this organization",
-  adjustCredits: "unauthorized to adjust credits for this organization",
-  grantCredits: "unauthorized to grant credits for this organization",
+  adjustCredits: "only platform operators and credit issuers can adjust credits",
+  grantCredits: "only platform operators and credit issuers can grant credits",
   purchaseCredits: "unauthorized to purchase credits for this organization",
   engineOps: "only platform operators can execute billing operations",
   pricingDecide: "only platform operators can decide pricing overrides",
@@ -159,10 +162,20 @@ async function operator(): Promise<PrivilegedScope> {
   return scope;
 }
 
-// Funds an org AS the given caller — the operator's scope org is owned by the
-// operator, not by the primary user the target's fundTenancy acts as. The
-// amount is a parameter because the auto-recharge journey needs a balance
-// SMALL enough for one debit to trip the low-balance signal.
+// The target's credit issuer: the clients that may add or remove credit
+// without a purchase. A billingLedger target without one is a target bug.
+function issuer(): ConformanceClients {
+  if (target.creditIssuer === undefined) {
+    throw new Error(`target ${target.name} declares billingLedger but provides no creditIssuer()`);
+  }
+  return target.creditIssuer();
+}
+
+// Funds an org AS the given caller, who must own it (the account ensure is
+// the org's own can_manage_billing) and hold can_manage_credits (the credit):
+// the operator funding its own scope org, which the primary user does not
+// own. The amount is a parameter because the auto-recharge journey needs a
+// balance SMALL enough for one debit to trip the low-balance signal.
 async function fundAs(as: ConformanceClients, org: string, amountMicros = 100_000_000n): Promise<void> {
   await as.billingCommand.getOrCreateBillingAccount({ orgId: org });
   await as.billingCommand.adjustCredits({ orgId: org, amountMicros, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
@@ -385,7 +398,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
 
   it("[billing.rpc.adjust-credits.positive-and-negative-move-balance] [billing.rpc.get-credit-balance.reflects-adjustments] [billing.rpc.get-credit-ledger.lists-entries-newest-first-with-shape] adjustments move the balance and land on the ledger with their shape", async () => {
     const { org } = await unfundedOrg();
-    const up = await clients.billingCommand.adjustCredits({
+    const up = await issuer().billingCommand.adjustCredits({
       orgId: org,
       amountMicros: 5_000_000n,
       reason: "conformance credit",
@@ -396,7 +409,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(up.orgId).toBe(org);
     expect(up.entryId).not.toBe("");
 
-    const down = await clients.billingCommand.adjustCredits({
+    const down = await issuer().billingCommand.adjustCredits({
       orgId: org,
       amountMicros: -2_000_000n,
       reason: "conformance debit",
@@ -418,7 +431,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
   it("[billing.rpc.adjust-credits.zero-amount-invalid-argument] a zero adjustment is refused INVALID_ARGUMENT with the handler's copy", async () => {
     const { org } = await unfundedOrg();
     const refused = await expectGrpcCode(
-      () => clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 0n, reason: "zero", idempotencyKey: uniqueName("zero") }),
+      () => issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 0n, reason: "zero", idempotencyKey: uniqueName("zero") }),
       Code.InvalidArgument,
       "adjustCredits amount 0",
     );
@@ -428,8 +441,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
   it("[billing.rpc.adjust-credits.idempotency-key-replays-once] the same idempotency key applies the amount once and returns the original entry", async () => {
     const { org } = await unfundedOrg();
     const key = uniqueName("adj-idem");
-    const first = await clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
-    const replay = await clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
+    const first = await issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
+    const replay = await issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
     expect(replay.entryId).toBe(first.entryId);
     expect(await balanceOf(org)).toBe(1_000_000n);
   });
@@ -451,10 +464,45 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(grant.rawMessage).toBe(COPY.grantCredits);
   });
 
+  it("[billing.rpc.adjust-credits.owner-permission-denied] [billing.rpc.grant-credits.owner-permission-denied] the org's own owner cannot adjust or grant its credits, and the balance does not move", async () => {
+    const { org } = await unfundedOrg();
+    const adjust = await expectGrpcCode(
+      () => clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "self-funding", idempotencyKey: uniqueName("own") }),
+      Code.PermissionDenied,
+      "owner adjustCredits",
+    );
+    expect(adjust.rawMessage).toBe(COPY.adjustCredits);
+    const grant = await expectGrpcCode(
+      () => clients.billingCommand.grantCredits({ orgId: org, amountMicros: 1_000_000n, reason: "self-granting", idempotencyKey: uniqueName("owng") }),
+      Code.PermissionDenied,
+      "owner grantCredits",
+    );
+    expect(grant.rawMessage).toBe(COPY.grantCredits);
+    expect(await balanceOf(org)).toBe(0n);
+  });
+
+  it("[billing.rpc.adjust-credits.no-billing-account-not-found] [billing.rpc.grant-credits.no-billing-account-not-found] a credit issuer's adjust and grant on an org with no billing account are NOT_FOUND", async () => {
+    // The platform check names no organization, so the org id is data the
+    // handler must answer for; an org that was never created has no account.
+    const org = uniqueName("no-such-org");
+    const adjust = await expectGrpcCode(
+      () => issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nf") }),
+      Code.NotFound,
+      "issuer adjustCredits on an org with no account",
+    );
+    expect(adjust.rawMessage).toBe(DOMAIN_COPY.noAccountFor(org));
+    const grant = await expectGrpcCode(
+      () => issuer().billingCommand.grantCredits({ orgId: org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nfg") }),
+      Code.NotFound,
+      "issuer grantCredits on an org with no account",
+    );
+    expect(grant.rawMessage).toBe(DOMAIN_COPY.noAccountFor(org));
+  });
+
   it("[billing.rpc.grant-credits.grants-with-expiry] a grant raises the balance and records its expiry", async () => {
     const { org } = await unfundedOrg();
     const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
-    const grant = await clients.billingCommand.grantCredits({
+    const grant = await issuer().billingCommand.grantCredits({
       orgId: org,
       amountMicros: 4_000_000n,
       expiresAt: timestampFromDate(expiresAt),
@@ -472,7 +520,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     // the code is pinned here.
     for (const amountMicros of [0n, -1n]) {
       await expectGrpcCode(
-        () => clients.billingCommand.grantCredits({ orgId: org, amountMicros, reason: "bad", idempotencyKey: uniqueName("bad") }),
+        () => issuer().billingCommand.grantCredits({ orgId: org, amountMicros, reason: "bad", idempotencyKey: uniqueName("bad") }),
         Code.InvalidArgument,
         `grantCredits amount ${amountMicros}`,
       );

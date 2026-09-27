@@ -134,7 +134,7 @@ func TestBillingAdjustCredits_MapsParams(t *testing.T) {
 
 func TestBillingAdjustCredits_WrapsGRPCError(t *testing.T) {
 	fake := &fakeBillingCommand{
-		adjustCreditsErr: status.Error(codes.PermissionDenied, "can_manage_billing required"),
+		adjustCreditsErr: status.Error(codes.PermissionDenied, "can_manage_credits required"),
 	}
 	client := &BillingClient{command: fake}
 
@@ -207,7 +207,7 @@ func TestBillingGrantCredits_OmitsUnsetExpiry(t *testing.T) {
 
 func TestBillingGrantCredits_WrapsGRPCError(t *testing.T) {
 	fake := &fakeBillingCommand{
-		grantCreditsErr: status.Error(codes.PermissionDenied, "can_manage_billing required"),
+		grantCreditsErr: status.Error(codes.PermissionDenied, "can_manage_credits required"),
 	}
 	client := &BillingClient{command: fake}
 

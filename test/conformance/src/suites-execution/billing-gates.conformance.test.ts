@@ -10,7 +10,8 @@
 // approval and recover gates read the reservation's signal — so the
 // execution target's runner and mock LLM drive the run while the ledger is
 // read through the billing RPCs. Credits are moved between phases with
-// adjustCredits (the org owner may) so a gate can be observed flipping.
+// adjustCredits, through the target's credit issuer (owning the org does not
+// let anyone change its credits), so a gate can be observed flipping.
 //
 // Java's copy is the contract (byte-pinned by the C5 facade's gates.ts too):
 //   approval on STOP  → FAILED_PRECONDITION "Insufficient credits to continue
@@ -72,12 +73,20 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     return context;
   }
 
+  // A billingGates target that offers no credit issuer is a harness gap.
+  function creditIssuer(): ConformanceClients {
+    if (target.creditIssuer === undefined) {
+      throw new Error("a billingGates target must provide creditIssuer() to move a funded org's balance");
+    }
+    return target.creditIssuer();
+  }
+
   async function balance(org: string) {
     return clients.billingQuery.getCreditBalance({ orgId: org });
   }
 
   // Drives the org's available balance BELOW the point where the gates flip,
-  // as its owner — the lever between two observations. Zero is not enough:
+  // through the credit issuer — the lever between two observations. Zero is not enough:
   // the engine grants an org `allowed_negative_balance_micros` of overdraft,
   // and the approval signal counts the run's live reservation as headroom
   // (ExecutionBillingService.querySignal: STOP when
@@ -90,7 +99,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const available = account.balance?.availableMicros ?? 0n;
     const allowedNegative = account.allowedNegativeBalanceMicros;
     const amount = -(available + allowedNegative + beyondMicros);
-    await clients.billingCommand.adjustCredits({
+    await creditIssuer().billingCommand.adjustCredits({
       orgId: org,
       amountMicros: amount,
       reason: "conformance drain past the gate threshold",
@@ -103,7 +112,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
   // already consumed — replaying it adds nothing (billing.rpc.adjust-credits
   // .idempotency-key-replays-once), so a refund must be its own adjustment.
   async function refund(org: string): Promise<void> {
-    await clients.billingCommand.adjustCredits({
+    await creditIssuer().billingCommand.adjustCredits({
       orgId: org,
       amountMicros: 200_000_000n,
       reason: "conformance refund after drain",
