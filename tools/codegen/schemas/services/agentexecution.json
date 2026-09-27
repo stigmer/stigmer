@@ -5599,7 +5599,7 @@
           "type": {
             "kind": "struct"
           },
-          "description": "Arguments passed to the tool (JSON structure).",
+          "description": "Arguments passed to the tool (JSON structure), with the value of every\n secret-named top-level argument (password, token, secret, api_key, apikey,\n credentials, auth, authorization; any case) replaced by \"[REDACTED]\", as\n in args_preview.",
           "required": false
         },
         {

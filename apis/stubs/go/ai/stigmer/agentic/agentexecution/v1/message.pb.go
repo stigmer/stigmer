@@ -125,7 +125,10 @@ type ToolCall struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Name of the tool being called.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	// Arguments passed to the tool (JSON structure).
+	// Arguments passed to the tool (JSON structure), with the value of every
+	// secret-named top-level argument (password, token, secret, api_key, apikey,
+	// credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+	// in args_preview.
 	Args *structpb.Struct `protobuf:"bytes,3,opt,name=args,proto3" json:"args,omitempty"`
 	// Result returned by the tool (optional, populated after execution).
 	Result string `protobuf:"bytes,4,opt,name=result,proto3" json:"result,omitempty"`

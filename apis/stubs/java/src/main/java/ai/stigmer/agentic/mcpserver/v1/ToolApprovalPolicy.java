@@ -19,6 +19,9 @@ package ai.stigmer.agentic.mcpserver.v1;
  * {{tool_name}} - Replaced with the tool name (always available)
  *
  * If a placeholder references a missing argument, it's replaced with "&lt;unknown&gt;".
+ * A placeholder naming a secret-named argument (password, token, secret,
+ * api_key, apikey, credentials, auth, authorization; any case) is replaced with
+ * "[REDACTED]": the message is shown to users, and a secret never is.
  *
  * Policy chain (lowest to highest priority):
  * 1. McpServerStatus.tool_approvals - System-generated defaults
@@ -405,6 +408,9 @@ private static final long serialVersionUID = 0L;
    * {{tool_name}} - Replaced with the tool name (always available)
    *
    * If a placeholder references a missing argument, it's replaced with "&lt;unknown&gt;".
+   * A placeholder naming a secret-named argument (password, token, secret,
+   * api_key, apikey, credentials, auth, authorization; any case) is replaced with
+   * "[REDACTED]": the message is shown to users, and a secret never is.
    *
    * Policy chain (lowest to highest priority):
    * 1. McpServerStatus.tool_approvals - System-generated defaults

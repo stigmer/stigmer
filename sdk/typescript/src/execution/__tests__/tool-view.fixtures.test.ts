@@ -1,7 +1,7 @@
 // Validates the tool-view layer against the shared cross-surface contract in
 // test/fixtures/tool-view/. The runner's middleware tests assert the same
 // fixtures from the writer side, so producers and this reader cannot drift in
-// classification, result interpretation, or intent extraction.
+// classification, result interpretation, intent extraction, or secret redaction.
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,8 @@ import {
   normalizeToolResult,
   extractShellIntent,
   SHELL_INTENT_ARG_FIELD,
+  isSecretArgKey,
+  redactSecretArgs,
 } from "../tool-view";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -158,6 +160,36 @@ describe("intent-title fixtures", () => {
       expect(extractShellIntent(toolCall)).toBe(c.intent);
     });
   }
+});
+
+describe("secret-args fixtures", () => {
+  // The runner's args-preview tests assert the same file from the writer side.
+  const { keys, marker, cases } = loadFixture<{
+    keys: string[];
+    marker: string;
+    cases: { name: string; args: Record<string, unknown>; redacted: Record<string, unknown> }[];
+  }>("secret-args.json");
+
+  it("recognises every secret key, in any case, and nothing that merely contains one", () => {
+    for (const key of keys) {
+      expect(isSecretArgKey(key)).toBe(true);
+      expect(isSecretArgKey(key.toUpperCase())).toBe(true);
+    }
+    expect(isSecretArgKey("token_count")).toBe(false);
+    expect(isSecretArgKey("repo")).toBe(false);
+  });
+
+  for (const c of cases) {
+    it(`redacts ${c.name}`, () => {
+      expect(redactSecretArgs(c.args)).toEqual(c.redacted);
+    });
+  }
+
+  it("writes the runner's marker and keeps the reference when nothing is secret", () => {
+    expect(redactSecretArgs({ token: "t" }).token).toBe(marker);
+    const clean = { repo: "acme/x" };
+    expect(redactSecretArgs(clean)).toBe(clean);
+  });
 });
 
 describe("resolveToolKind wire field precedence", () => {

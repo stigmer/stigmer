@@ -11,6 +11,16 @@
  *
  * Uses callLlmAction for the underlying LLM call, keeping proxy/auth
  * handling in one place.
+ *
+ * The judge answers through structured output, and the schema it is given is
+ * the verdict's own shape for its scoring mode (verdictSchema): the forced
+ * `extract` tool a provider binds describes exactly the fields the parsers
+ * below read, with a multi-criteria `name` limited to the configured
+ * criteria. An object schema with no fields left the model to guess the
+ * shape from the prompt's prose alone, and on a real judge the multi-criteria
+ * mode came back with no criteria or with nameless ones, read as a score of
+ * 0 or an average over "unknown" (stigmer#1293). The prompts still spell the
+ * format out; the schema is what binds it.
  */
 
 import { ApplicationFailure } from "@temporalio/activity";
@@ -52,6 +62,54 @@ export interface EvalResult {
   subject: unknown;
   input_tokens: number;
   output_tokens: number;
+}
+
+// ─── Verdict Schemas ─────────────────────────────────────────────────────
+
+/**
+ * The structured-output schema of a judge's verdict, per scoring mode: the
+ * fields the mode's parser reads, all required. For EVAL_MULTI_CRITERIA each
+ * returned criterion's `name` is one of the configured criteria's names.
+ */
+export function verdictSchema(scoringMode: string, criteria: readonly EvalCriterion[] = []): Record<string, unknown> {
+  switch (scoringMode) {
+    case "EVAL_PASS_FAIL":
+      return {
+        type: "object",
+        properties: { pass: { type: "boolean" }, reasoning: { type: "string" } },
+        required: ["pass", "reasoning"],
+      };
+    case "EVAL_NUMERIC_SCORE":
+      return {
+        type: "object",
+        properties: { score: { type: "number" }, reasoning: { type: "string" } },
+        required: ["score", "reasoning"],
+      };
+    case "EVAL_MULTI_CRITERIA":
+      return {
+        type: "object",
+        properties: {
+          criteria: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", enum: criteria.map((c) => c.name) },
+                score: { type: "number" },
+                reasoning: { type: "string" },
+              },
+              required: ["name", "score", "reasoning"],
+            },
+          },
+        },
+        required: ["criteria"],
+      };
+    default:
+      throw ApplicationFailure.nonRetryable(
+        `Unknown scoring_mode '${scoringMode}'. Supported: EVAL_PASS_FAIL, EVAL_NUMERIC_SCORE, EVAL_MULTI_CRITERIA`,
+        "EVAL_UNKNOWN_SCORING_MODE",
+      );
+  }
 }
 
 // ─── Judge Prompt Builders ───────────────────────────────────────────────
@@ -272,7 +330,7 @@ export async function callEvalAction(
       model: config.model,
       prompt,
       system_prompt: config.system_prompt,
-      response_schema: { type: "object" },
+      response_schema: verdictSchema(scoringMode, config.criteria),
     },
     runtimeEnv,
     executionId,
