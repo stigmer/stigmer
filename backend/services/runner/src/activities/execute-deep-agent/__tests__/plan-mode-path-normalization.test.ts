@@ -11,8 +11,10 @@
  * relative paths to VIRTUAL-absolute at our seam, before enforcement sees
  * them. The read boundary #528 built out of rules is structural since #754:
  * the backend is virtual-rooted, so every expressible path resolves inside
- * the workspace — an out-of-root name is simply nonexistent, and the
- * `.stigmer` symlink keeps platform-dir reads addressable in-root.
+ * the workspace — an out-of-root name is simply nonexistent. Platform-dir
+ * reads stay addressable in-root at `.stigmer/…`: the virtual-rooted backend
+ * refuses to follow the workspace link out of the root, so the platform dir is
+ * mounted read-only at that prefix (`platform-route.ts`).
  *
  * The graph here is composed exactly the way turn-setup.ts composes the parent:
  * the PRODUCTION buildMiddlewareStack (pathNormalization present on every
@@ -36,30 +38,36 @@ import { createDeepAgent } from "deepagents";
 import { buildPlanModePermissions } from "../../../shared/plan-mode-permissions.js";
 import { buildMiddlewareStack } from "../../../middleware/index.js";
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
+import { mountPlatformRoute } from "../platform-route.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { ScriptedModel, type ScriptSelector } from "../__test-utils__/scripted-model.js";
 
 const SEEDED_CONTENT = "PLAN_MODE_README_TOKEN: hello from the seeded file";
 const OUTSIDE_CONTENT = "OUT_OF_ROOT_SECRET_TOKEN: must never cross the boundary";
-const PLATFORM_CONTENT = "PLATFORM_SKILL_TOKEN: reached through the .stigmer symlink";
+const PLATFORM_CONTENT = "PLATFORM_SKILL_TOKEN: reached through the .stigmer route";
 
 /**
  * Build a plan-mode parent graph the way turn-setup.ts does: the production
  * middleware stack with pathNormalization set (derived, like the graph's
  * permissions, from the plan-mode rules), a filesystem-only CAS capture
- * backend (no shellEnv — plan mode clears it), and the production
- * buildPlanModePermissions rules on the graph.
+ * backend (no shellEnv — plan mode clears it) with the read-only platform
+ * route mounted when the workspace link points at `platformDir`, and the
+ * production buildPlanModePermissions rules on the graph.
  */
 async function buildPlanModeParent(
   root: string,
   observer: CasCaptureObserver,
   script: ScriptSelector,
+  platformDir?: string,
 ) {
   const { middleware } = buildMiddlewareStack({
     approvalGate: null,
     pathNormalization: { rootDir: root },
   });
-  const backend = await createCasCaptureBackend({ rootDir: root, observer });
+  const backend = await mountPlatformRoute(await createCasCaptureBackend({ rootDir: root, observer }), {
+    workspaceDir: root,
+    platformDir,
+  });
   return createDeepAgent({
     model: new ScriptedModel(script),
     checkpointer: new MemorySaver() as never,
@@ -215,7 +223,7 @@ describe("plan-mode workspace read boundary (issue #528)", () => {
   });
 
   async function invokeOnce(script: ScriptSelector, threadId: string) {
-    const agent = await buildPlanModeParent(root, observer, script);
+    const agent = await buildPlanModeParent(root, observer, script, platform);
     return (await agent.invoke(
       { messages: [new HumanMessage({ content: "go" })] },
       { configurable: { thread_id: threadId }, recursionLimit: 50 },
@@ -256,7 +264,7 @@ describe("plan-mode workspace read boundary (issue #528)", () => {
     expect(lsResult).not.toMatch(/permission denied/i);
   });
 
-  it("reads platform-dir material through the .stigmer symlink — in-root strings, out-of-root bytes", async () => {
+  it("reads platform-dir material at .stigmer — in-root strings, out-of-root bytes", async () => {
     const result = await invokeOnce(
       () => ({
         toolCalls: [

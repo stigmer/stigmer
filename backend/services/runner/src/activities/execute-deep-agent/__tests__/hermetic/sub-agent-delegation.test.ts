@@ -47,6 +47,13 @@
  * the blocks array the image offload reads — where they were the whole
  * serialized Command. Those two lines are the whole of that hunk.
  *
+ * Since deepagents 1.14 (2026-09-28): the `task` tool returns the
+ * sub-agent's last non-empty text as a plain string, so the same two lines
+ * read `"The fixture value is forty-two."` instead of the blocks array. The
+ * status offload is size-driven and treats either form the same; an image
+ * could only ever have ridden a `task` result inside the sub-agent's final
+ * AI message. Those two lines are the whole of that hunk.
+ *
  * Also since #1097: the `task` row sits on the AI message whose text
  * delegated ("Delegating to the helper."), not on an empty AI message of its
  * own after it — two root AI messages (the delegating text with the row, the

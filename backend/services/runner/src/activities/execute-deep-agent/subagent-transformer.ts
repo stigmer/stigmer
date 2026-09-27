@@ -23,7 +23,7 @@
  */
 
 import { createDeepAgent, FilesystemBackend, LocalShellBackend, DEFAULT_GENERAL_PURPOSE_DESCRIPTION, DEFAULT_SUBAGENT_PROMPT } from "deepagents";
-import type { CompiledSubAgent, FilesystemPermission } from "deepagents";
+import type { AnyBackendProtocol, CompiledSubAgent, FilesystemPermission } from "deepagents";
 import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
@@ -33,6 +33,7 @@ import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agenti
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
+import { mountPlatformRoute } from "./platform-route.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createThinkTool, createWebFetchTool, type GuardPosture } from "../../tools/index.js";
@@ -472,9 +473,23 @@ export function modelHasNativeThinking(modelId: string): boolean {
  *
  * Every variant is virtual-rooted (`virtualMode: true`) like the parent's —
  * see the cas-capture-backend.ts header (issue #754): workspace confinement
- * is structural on every graph, sub-agents included.
+ * is structural on every graph, sub-agents included. Every variant also gets
+ * the parent's read-only `.stigmer/` platform mount (`platform-route.ts`), so
+ * a sub-agent reads its skills where its prompt says they are.
  */
 async function buildSubagentBackend(opts: {
+  readonly workspaceRootDir: string;
+  readonly platformDir?: string;
+  readonly casObserver?: CasCaptureObserver;
+  readonly shellEnv?: Record<string, string>;
+}): Promise<AnyBackendProtocol> {
+  return mountPlatformRoute(await buildSubagentWorkspaceBackend(opts), {
+    workspaceDir: opts.workspaceRootDir,
+    platformDir: opts.platformDir,
+  });
+}
+
+async function buildSubagentWorkspaceBackend(opts: {
   readonly workspaceRootDir: string;
   readonly casObserver?: CasCaptureObserver;
   readonly shellEnv?: Record<string, string>;
@@ -516,6 +531,8 @@ export async function compileSubagents(
     readonly approvalGate?: ApprovalGateConfig | null;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
+    /** The session's platform dir, mounted read-only at `.stigmer/` (`platform-route.ts`). */
+    readonly platformDir?: string;
     /** Shared CAS observer (capture mode only); see {@link SubagentTransformOptions.casObserver}. */
     readonly casObserver?: CasCaptureObserver;
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
@@ -697,11 +714,27 @@ export async function transformAndCompileSubagents(
     }
   }
 
-  // Step 3: Merge built-ins with transformed (proto overrides take precedence)
-  const protoNames = new Set(transformed.map((t) => t.name));
+  // Step 3: Merge built-ins with transformed (proto overrides take precedence).
+  // Names are unique by the time deepagents sees them: since 1.14 it refuses
+  // a duplicate sub-agent name and fails the turn, where it used to let the
+  // later one win. Nothing upstream of the runner validates the names, so the
+  // runner keeps the behaviour agents were written against — a later
+  // declaration overrides an earlier one of the same name, as a proto
+  // definition overrides a built-in.
+  const declared = new Map<string, TransformedSubagent>();
+  for (const spec of transformed) {
+    if (declared.has(spec.name)) {
+      console.warn(
+        `[subagent-transformer] Sub-agent name '${spec.name}' is declared more than once. ` +
+        "The later declaration overrides the earlier one.",
+      );
+      declared.delete(spec.name);
+    }
+    declared.set(spec.name, spec);
+  }
   const allSpecs = [
-    ...builtins.filter((b) => !protoNames.has(b.name)),
-    ...transformed,
+    ...builtins.filter((b) => !declared.has(b.name)),
+    ...declared.values(),
   ];
 
   if (allSpecs.length === 0) {
@@ -715,6 +748,7 @@ export async function transformAndCompileSubagents(
     approvalGate,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,
+    platformDir: workspaceBackend.platformDir,
     casObserver,
     modelFactory,
     shellEnv,

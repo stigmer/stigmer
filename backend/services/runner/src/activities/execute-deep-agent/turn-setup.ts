@@ -40,6 +40,7 @@ import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
+import { todoListMiddleware } from "langchain";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import type { Config } from "../../config.js";
@@ -71,6 +72,7 @@ import { resolveRecursionLimit, UNBOUNDED_ADVISORY_RECURSION_LIMIT } from "../..
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
+import { mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv } from "./shell-env.js";
@@ -454,8 +456,14 @@ export async function buildEngine(
   // File capture point: the CAS-observing backend — git-tracked edits flow to
   // disk (the boundary's git diff is authoritative) and the shared observer
   // records the pre-turn bytes of every CAS-owned path. Gate-independent, so
-  // it holds even under the global bypass.
-  const fileBackend = await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv });
+  // it holds even under the global bypass. Platform content (skills, inputs,
+  // the approved plan) is mounted over it read-only at `.stigmer/`
+  // (`platform-route.ts`): the virtual-rooted backend refuses to follow the
+  // workspace link out of the root.
+  const fileBackend = await mountPlatformRoute(
+    await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv }),
+    { workspaceDir: primaryDir, platformDir: workspace.backend.platformDir },
+  );
   const graph = await createDeepAgent({
     model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -463,8 +471,14 @@ export async function buildEngine(
     backend: fileBackend,
     systemPrompt,
     tools: graphTools,
+    // The to-do list rides ahead of Stigmer's stack: deepagents stopped
+    // installing it by default (1.12), and the product reads it — the parent's
+    // `write_todos` is what `status.todos` projects and what plan mode's
+    // build progress is instructed through (`shared/implement-plan-prompt.ts`).
+    // The framework's own middleware, with its default texts. Parent only: a
+    // sub-agent's list never reaches the execution (`harness/transcript/builder.ts`).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    middleware: middleware as any,
+    middleware: [todoListMiddleware(), ...middleware] as any,
     subagents: compiledSubagents ?? undefined,
     ...(responseFormat ? { responseFormat } : {}),
     ...(planModePermissions ? { permissions: planModePermissions } : {}),

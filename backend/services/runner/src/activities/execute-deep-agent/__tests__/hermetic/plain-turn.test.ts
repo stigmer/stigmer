@@ -15,12 +15,16 @@
  * model streams, so the events under this golden are the ones a provider
  * produces (`scripted-model.ts` header).
  *
- * Two shapes of the activity's wire contract ride on the same golden, and
- * matching the SAME file is the assertion that they are invisible to the
- * status: the legacy positional `(executionId, threadId)` form the control
- * planes still may send (`shared/activity-input.ts`), and an empty
- * `thread_id` (carried from `index.test.ts`: "handles empty threadId
- * gracefully").
+ * The legacy positional `(executionId, threadId)` form the control planes
+ * still may send (`shared/activity-input.ts`) rides on the same golden, and
+ * matching the SAME file is the assertion that it is invisible to the status.
+ * An empty `thread_id` rode here too (carried from `index.test.ts`: "handles
+ * empty threadId gracefully") until @langchain/langgraph-checkpoint 1.1's
+ * memory saver started refusing an empty key. That arm was only ever true of
+ * the test-only memory saver: the native thread id is runtime-minted
+ * (`EnsureThread` sends `thread-{sessionId}` on every invocation), and the
+ * sqlite saver the runner ships has always refused an empty one
+ * (`shared/checkpointer/sqlite-saver.ts`), so no saver left to prove it on.
  *
  * Since #1096 the activity is the turn runtime over the native adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
@@ -128,13 +132,6 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
 
   it("produces the same status from the legacy positional wire shape", async () => {
     const { record, invocation } = await runPlainTurn({ positional: true });
-    expect(invocation.outcome.kind).toBe("returned");
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot(GOLDEN);
-  });
-
-  it("produces the same status with an empty thread_id", async () => {
-    const { record, invocation } = await runPlainTurn({ threadId: "" });
     expect(invocation.outcome.kind).toBe("returned");
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot(GOLDEN);

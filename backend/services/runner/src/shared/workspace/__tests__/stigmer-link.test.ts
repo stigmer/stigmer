@@ -2,25 +2,29 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile, readFile, lstat, readlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FilesystemBackend } from "deepagents";
 
 import {
   ensureStigmerSymlink,
   removeStigmerSymlink,
+  stigmerSymlinkPointsAt,
   STIGMER_LOCAL_STATE_DIR,
 } from "../stigmer-link.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
 
 /**
  * The `.stigmer` symlink is the bridge that makes platform-mounted content
- * (approved plan, skills, attachment inputs) readable by the agent's file
- * tools in BOTH harnesses. The lifecycle tests pin the ownership contract
- * (ensure replaces, remove is symlink-only); the convergence tests pin the
- * end-to-end physics the native harness depends on: content written through
- * the platform-routing LocalWorkspaceBackend must be readable at the same
- * `.stigmer/…` path through a stock deepagents FilesystemBackend rooted at
- * the workspace — which is exactly what broke when the native harness had no
- * symlink (the "plan file doesn't exist" bug).
+ * (approved plan, skills, attachment inputs) readable at `.stigmer/…` by
+ * whatever reads from the workspace: the Cursor SDK and shell commands on
+ * both harnesses. The lifecycle tests pin the ownership contract (ensure
+ * replaces, remove is symlink-only); the convergence tests pin the physics:
+ * content written through the platform-routing LocalWorkspaceBackend is
+ * readable at the same `.stigmer/…` path from inside the workspace once the
+ * link exists, and not before (the "plan file doesn't exist" bug).
+ *
+ * The native harness's FILE tools do not read through the link — their
+ * virtual-rooted backend refuses a path whose real location leaves the
+ * workspace — so their side of the convergence is pinned on the production
+ * backends in `activities/execute-deep-agent/__tests__/platform-route.test.ts`.
  */
 describe("stigmer-link", () => {
   let workspaceDir: string;
@@ -104,16 +108,35 @@ describe("stigmer-link", () => {
     });
   });
 
-  // ── Write/read convergence (the native-harness bug, pinned) ─────────
+  describe("stigmerSymlinkPointsAt", () => {
+    it("is true only while the link points at this platform dir", async () => {
+      expect(await stigmerSymlinkPointsAt(workspaceDir, platformDir), "no link yet").toBe(false);
+      await ensureStigmerSymlink(workspaceDir, platformDir);
+      expect(await stigmerSymlinkPointsAt(workspaceDir, platformDir)).toBe(true);
+      expect(await stigmerSymlinkPointsAt(workspaceDir, join(platformDir, "elsewhere")), "another dir").toBe(false);
+      await removeStigmerSymlink(workspaceDir);
+      expect(await stigmerSymlinkPointsAt(workspaceDir, platformDir), "removed at turn end").toBe(false);
+    });
+
+    it("is false for a real .stigmer directory", async () => {
+      await mkdir(linkPath());
+      expect(await stigmerSymlinkPointsAt(workspaceDir, platformDir)).toBe(false);
+    });
+  });
+
+  // ── Write/read convergence (the link, pinned) ─────────
 
   describe("platform write / agent read convergence", () => {
-    /** Read through the agent's actual file-tool backend. */
-    function agentRead(path: string): Promise<{ content?: string; error?: string }> {
-      const agentBackend = new FilesystemBackend({ rootDir: workspaceDir });
-      return agentBackend.read(path) as Promise<{ content?: string; error?: string }>;
+    /** Read the way a process in the workspace does (the shell, the Cursor SDK): a path relative to its CWD. */
+    async function agentRead(path: string): Promise<{ content?: string; error?: string }> {
+      try {
+        return { content: await readFile(join(workspaceDir, path), "utf8") };
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : String(err) };
+      }
     }
 
-    it("an approved plan mounted under .stigmer/inputs is readable by the deepagents backend once the link exists", async () => {
+    it("an approved plan mounted under .stigmer/inputs is readable from the workspace once the link exists", async () => {
       const planFileName = "notes_ab12cd34.plan.md";
       const planText = "# The Approved Plan\n\nStep 1: do the thing.\n";
 
@@ -125,9 +148,9 @@ describe("stigmer-link", () => {
       const workspaceBackend = new LocalWorkspaceBackend(workspaceDir, platformDir);
       await workspaceBackend.writeFile(`.stigmer/inputs/${planFileName}`, planText);
 
-      // Without the symlink the agent cannot see the plan — the bug this
-      // module fixes for the native harness. Pinned so the link stays
-      // load-bearing in reviewers' and agents' mental models.
+      // Without the symlink nothing in the workspace can see the plan — the
+      // bug this module fixes. Pinned so the link stays load-bearing in
+      // reviewers' and agents' mental models.
       const before = await agentRead(`.stigmer/inputs/${planFileName}`);
       expect(before.content ?? "").not.toContain("The Approved Plan");
 

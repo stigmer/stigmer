@@ -59,6 +59,20 @@ describe("CasCaptureFilesystemBackend (thin CAS adapter)", () => {
     expect(Buffer.from(observer.before.get("ignored/cfg.txt")!).toString("utf8")).toBe("v0");
   });
 
+  it("a whole-file write over an existing gitignored file records its pre-turn bytes (a MODIFY)", async () => {
+    // deepagents (1.12+) lets write_file replace an existing file; before, it
+    // refused and the model had to edit. The before side is what makes file
+    // review author a MODIFY rather than an ADD.
+    await writeFile(join(root, "ignored/cfg.txt"), "v0");
+    const { backend, observer } = makeBackend();
+
+    const result = await backend.write("ignored/cfg.txt", "v1 replaced");
+
+    expect(result.error).toBeUndefined();
+    expect(await readFile(join(root, "ignored/cfg.txt"), "utf8")).toBe("v1 replaced");
+    expect(Buffer.from(observer.before.get("ignored/cfg.txt")!).toString("utf8")).toBe("v0");
+  });
+
   it("a git-tracked write applies to disk but is NOT observed (the git diff owns it)", async () => {
     const { backend, observer } = makeBackend();
 

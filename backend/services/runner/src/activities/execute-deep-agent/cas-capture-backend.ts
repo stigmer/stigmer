@@ -19,11 +19,16 @@
  * deepagents rejects filesystem `permissions` combined with an execution-capable
  * backend — plan mode is read-only by construction, so no shell tool there.
  *
- * deepagents mutates only via `write` (create/overwrite) and `edit` (modify);
- * there is no backend delete/rename, so this observes CREATE and MODIFY. A
- * delete-category tool consequently cannot be observed here — the approval gate
- * records its before-bytes at authorization time instead (`captureDeleteBefore`,
- * issue #303). A delete via shell (`rm`) stays on the approval gate as always.
+ * The observed mutations are `write` (create, or since deepagents 1.12 a
+ * whole-file overwrite — `recordBefore` reads the existing bytes either way)
+ * and `edit` (modify), so this observes CREATE and MODIFY. deepagents 1.13
+ * added a recursive backend `delete` and a `delete` tool over it; the native
+ * harness does not expose that tool (`deepagents-profiles.ts`), and these
+ * backends refuse a backend delete outright, so a graph whose model no profile
+ * resolves cannot delete a subtree behind the observer's back. Deleting stays
+ * on the shell (`rm`), which the approval gate holds as always, and a
+ * delete-category tool from elsewhere has its before-bytes recorded by the gate
+ * at authorization time (`captureDeleteBefore`, issue #303).
  *
  * VIRTUAL ROOT — THE ONE PATH DIALECT (issue #754)
  * ------------------------------------------------
@@ -47,7 +52,7 @@
  */
 
 import { FilesystemBackend, LocalShellBackend } from "deepagents";
-import type { LocalShellBackendOptions } from "deepagents";
+import type { DeleteResult, LocalShellBackendOptions } from "deepagents";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 
 export type { CasBeforeMap } from "./cas-capture-observer.js";
@@ -57,6 +62,12 @@ type FilesystemBackendOptions = NonNullable<
 >;
 
 type CasCaptureDeps = { readonly observer: CasCaptureObserver };
+
+function refusedDelete(filePath: string): DeleteResult {
+  return {
+    error: `Error: deleting '${filePath}' through the file tools is not available; use the shell (rm)`,
+  };
+}
 
 export class CasCaptureFilesystemBackend extends FilesystemBackend {
   private readonly observer: CasCaptureObserver;
@@ -79,6 +90,10 @@ export class CasCaptureFilesystemBackend extends FilesystemBackend {
   ) {
     await this.observer.recordBefore(filePath);
     return super.edit(filePath, oldString, newString, replaceAll);
+  }
+
+  override async delete(filePath: string): Promise<DeleteResult> {
+    return refusedDelete(filePath);
   }
 }
 
@@ -103,6 +118,10 @@ export class CasCaptureShellBackend extends LocalShellBackend {
   ) {
     await this.observer.recordBefore(filePath);
     return super.edit(filePath, oldString, newString, replaceAll);
+  }
+
+  override async delete(filePath: string): Promise<DeleteResult> {
+    return refusedDelete(filePath);
   }
 }
 

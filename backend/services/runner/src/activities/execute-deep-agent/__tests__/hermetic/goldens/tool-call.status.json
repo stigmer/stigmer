@@ -11,7 +11,7 @@
           "args": {
             "file_path": "/README.md"
           },
-          "result": "[{\"type\":\"text\",\"text\":\"     1\\t# Hermetic\\n     2\\t\\n     3\\tA fixture readme.\"}]",
+          "result": "[{\"type\":\"text\",\"text\":\"@@ lines 1-3 of 3 @@\\n# Hermetic\\n\\nA fixture readme.\"}]",
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",

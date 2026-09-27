@@ -457,13 +457,32 @@ function normalizeWrite(args: Args): ToolResultView {
 
 function normalizeRead(args: Args, result: string): ToolResultView {
   const path = firstString(args, PATH_FIELDS) ?? "";
+  const framed = splitNativeReadFrame(result);
   return {
     type: "file",
     path,
-    content: result,
+    content: framed?.body ?? result,
     language: languageFromPath(path),
-    truncated: isTruncated(result),
+    truncated: framed?.truncated || isTruncated(result),
   };
+}
+
+// The native engine (deepagents 1.12+) frames a text read as zero or more
+// one-line bracketed notices, one status header — `@@ lines A-B[ of T][ | next
+// offset N] @@`, with `truncated …` fields when it cut the window — and then the
+// file's lines unmodified. Format owned by the engine; covered by
+// test/fixtures/tool-view/result-views.json. The view shows the file, so the
+// frame is dropped and a truncation it reports is kept.
+const NATIVE_READ_NOTICE = /^\[.*\]$/;
+const NATIVE_READ_HEADER = /^@@ ((?:lines \d+-\d+|truncated)[^\n]*) @@$/;
+
+function splitNativeReadFrame(result: string): { body: string; truncated: boolean } | undefined {
+  const lines = result.split("\n");
+  let at = 0;
+  while (NATIVE_READ_NOTICE.test(lines[at] ?? "")) at += 1;
+  const fields = NATIVE_READ_HEADER.exec(lines[at] ?? "")?.[1];
+  if (fields === undefined) return undefined;
+  return { body: lines.slice(at + 1).join("\n"), truncated: fields.includes("truncated") };
 }
 
 // Matches the deepagents shell marker, e.g. "[Command failed with exit code 2]"

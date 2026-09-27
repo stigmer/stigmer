@@ -54,9 +54,10 @@ export class WorkspaceProvisionError extends Error {
  * routed to the platform directory instead of the workspace root, keeping
  * platform files (skills, inputs) physically separate from the user's
  * workspace. The routing covers the RUNNER's own reads/writes through
- * this interface; the agent's file tools resolve against the workspace
- * root and see the same files through the per-turn `.stigmer` symlink
- * (see stigmer-link.ts).
+ * this interface; the agent sees the same files through the per-turn
+ * `.stigmer` symlink (see stigmer-link.ts), and the native file tools
+ * through their read-only `.stigmer/` route over the same dir
+ * (`activities/execute-deep-agent/platform-route.ts`).
  */
 export interface WorkspaceBackend {
   readonly rootDir: string;
