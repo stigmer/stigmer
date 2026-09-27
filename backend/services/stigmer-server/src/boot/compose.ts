@@ -1332,6 +1332,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope,
     });
     // PlatformClient, OAuthApp's inbound counterpart: served in every
     // composition over the store PORT bound above. The token service is

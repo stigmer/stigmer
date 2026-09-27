@@ -55,9 +55,10 @@ Mutation hook that wraps `oauthapp.delete()` with loading and error
 state.
 
 Deletes an OAuth app by its resource ID. Returns the deleted
-`OAuthApp` on success so callers can confirm which app was
-removed. The deletion is permanent — any MCP server overrides
-referencing this app will lose their binding.
+`OAuthApp` on success, its client secret redacted like every
+read, so callers can confirm which app was removed. The deletion is
+permanent, and the server refuses it while an MCP server's
+`oauth_app_ref` still resolves to the app.
 
 **Signature**
 
@@ -86,11 +87,13 @@ refetch(); // refresh the list after deletion
 
 ### useOAuthAppList
 
-Data hook that fetches all `OAuthApp` entries for an organization.
+Data hook that fetches the `OAuthApp` entries of an organization
+that the caller may view.
 
-Returns every OAuthApp whose `metadata.org` matches the input. In
-practice these are the BYOA OAuth apps created through the "Bring
-your own app" flow on MCP server detail pages.
+Returns the organization's OAuthApps that a `get` would return to the
+caller: each app's creator and the organization's admins see it, other
+members and viewers see none. In practice these are the BYOA OAuth apps
+created through the "Bring your own app" flow on MCP server detail pages.
 
 Pass `null` for `org` to skip fetching (stable no-op). Useful when
 the active organization has not been resolved yet.
@@ -214,7 +217,11 @@ All visual properties flow through `--stgm-*` design tokens.
 View and edit panel for an existing OAuth app.
 
 In **view mode**, displays all OAuth configuration fields in a
-structured label/value layout with "Edit" and "Delete" buttons.
+structured label/value layout, with an "Edit" button for a caller who
+may edit the app (`can_edit`) and a "Delete" button for one who may
+delete it (`can_delete`). Both belong to the app's creator alone: the
+organization's admins may view an app they did not create, never change
+it.
 
 In **edit mode**, fields become editable inputs. The client secret
 field shows a placeholder — leave it empty to keep the existing
@@ -251,8 +258,8 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### OAuthAppListPanel
 
-Displays a list of `OAuthApp` resources owned by an
-organization.
+Displays the `OAuthApp` resources of an organization that the
+caller may view.
 
 Each row shows the provider name, client ID (non-secret), and
 creation date. When `onEdit` is provided, rows include a pencil
@@ -266,6 +273,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No OAuth apps configured yet.\" The list holds only the apps the caller may view (each app's creator and the organization's admins), so a host that knows the caller may not manage OAuth apps should say who does instead." },
     onEdit: { type: "(app: OAuthApp) => void", description: "Fired when the user wants to view/edit an OAuth app. When provided, rows become interactive with a pencil icon button. When absent, rows remain static (backward compatible)." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can trigger a list refresh." },
     org: { type: "string", description: "Organization slug to list OAuth apps for.", required: true },

@@ -14,7 +14,7 @@ package ai.stigmer.iam.oauthapp.v1;
  * with an external vendor like Slack, Salesforce, or Figma.
  *
  * Created by org admins or platform operators. Referenced by McpServer
- * resources that need vendor OAuth authentication via McpServerVendorOAuth.
+ * resources that need vendor OAuth authentication via McpServerAuth.
  *
  * Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
  * outbound auth — how Stigmer authenticates with external services on
@@ -942,7 +942,7 @@ private static final long serialVersionUID = 0L;
    * with an external vendor like Slack, Salesforce, or Figma.
    *
    * Created by org admins or platform operators. Referenced by McpServer
-   * resources that need vendor OAuth authentication via McpServerVendorOAuth.
+   * resources that need vendor OAuth authentication via McpServerAuth.
    *
    * Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
    * outbound auth — how Stigmer authenticates with external services on

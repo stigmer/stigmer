@@ -40,8 +40,8 @@ type OAuthAppQueryControllerClient interface {
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*OAuthApp, error)
 	// List all OAuth apps belonging to an organization.
 	//
-	// Returns every OAuthApp whose metadata.org matches the input org.
-	// Typically a small set (1-5 per org), so results are not paginated.
+	// Returns the OAuthApps of the input org that the caller may view, newest
+	// first. Typically a small set (1-5 per org), so results are not paginated.
 	ListByOrg(ctx context.Context, in *ListOAuthAppsByOrgInput, opts ...grpc.CallOption) (*OAuthApps, error)
 }
 
@@ -98,8 +98,8 @@ type OAuthAppQueryControllerServer interface {
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*OAuthApp, error)
 	// List all OAuth apps belonging to an organization.
 	//
-	// Returns every OAuthApp whose metadata.org matches the input org.
-	// Typically a small set (1-5 per org), so results are not paginated.
+	// Returns the OAuthApps of the input org that the caller may view, newest
+	// first. Typically a small set (1-5 per org), so results are not paginated.
 	ListByOrg(context.Context, *ListOAuthAppsByOrgInput) (*OAuthApps, error)
 }
 

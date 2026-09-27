@@ -21,11 +21,13 @@ export interface UseOAuthAppListReturn {
 }
 
 /**
- * Data hook that fetches all {@link OAuthApp} entries for an organization.
+ * Data hook that fetches the {@link OAuthApp} entries of an organization
+ * that the caller may view.
  *
- * Returns every OAuthApp whose `metadata.org` matches the input. In
- * practice these are the BYOA OAuth apps created through the "Bring
- * your own app" flow on MCP server detail pages.
+ * Returns the organization's OAuthApps that a `get` would return to the
+ * caller: each app's creator and the organization's admins see it, other
+ * members and viewers see none. In practice these are the BYOA OAuth apps
+ * created through the "Bring your own app" flow on MCP server detail pages.
  *
  * Pass `null` for `org` to skip fetching (stable no-op). Useful when
  * the active organization has not been resolved yet.

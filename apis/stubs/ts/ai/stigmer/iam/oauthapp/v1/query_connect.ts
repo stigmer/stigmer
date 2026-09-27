@@ -44,8 +44,8 @@ export const OAuthAppQueryController = {
     /**
      * List all OAuth apps belonging to an organization.
      *
-     * Returns every OAuthApp whose metadata.org matches the input org.
-     * Typically a small set (1-5 per org), so results are not paginated.
+     * Returns the OAuthApps of the input org that the caller may view, newest
+     * first. Typically a small set (1-5 per org), so results are not paginated.
      *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.listByOrg
      */
