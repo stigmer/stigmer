@@ -174,12 +174,67 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts", () =>
   });
 });
 
-describe("TranscriptBuilder — every row with args carries an elided, redacted argsPreview", () => {
+describe("TranscriptBuilder — every row with args carries them redacted, and an elided, redacted argsPreview", () => {
   it("an ungated row's preview is its args, secret keys redacted", () => {
     const { status } = feed(builder(), [
       { kind: "tool_started", callId: "c-1", name: "connect", input: { host: "localhost", password: "super-secret" }, mcpServerSlug: "db" },
     ]);
     expect(JSON.parse(rowOf(status, "c-1").argsPreview)).toEqual({ host: "localhost", password: "[REDACTED]" });
+  });
+
+  // stigmer#1119: the row's own args were stored raw, so a settled row's
+  // detail view showed what the waiting row's preview hid. Every path that
+  // writes a row's args redacts them; every other key stays verbatim.
+  describe("the row's args never carry a secret-keyed value, on every path that writes them", () => {
+    const input = { host: "localhost", password: "super-secret" };
+    const redacted = { host: "localhost", password: "[REDACTED]" };
+
+    it("a started call", () => {
+      const { status } = feed(builder(), [{ kind: "tool_started", callId: "c-1", name: "connect", input, mcpServerSlug: "db" }]);
+      expect(rowOf(status, "c-1").args).toEqual(redacted);
+    });
+
+    it("a re-emitted start filling the args the row lacked", () => {
+      const { status } = feed(builder(), [
+        { kind: "tool_started", callId: "c-1", name: "connect", input: {}, mcpServerSlug: "db" },
+        { kind: "tool_started", callId: "c-1", name: "connect", input, mcpServerSlug: "db" },
+      ]);
+      expect(rowOf(status, "c-1").args).toEqual(redacted);
+      expect(JSON.parse(rowOf(status, "c-1").argsPreview)).toEqual(redacted);
+    });
+
+    it("arguments streamed in chunks, once they parse", () => {
+      const { status } = feed(builder(), [
+        { kind: "tool_started", callId: "c-1", name: "connect", input: {}, mcpServerSlug: "db" },
+        { kind: "tool_arg_delta", callId: "c-1", argsChunk: '{"host":"localhost",' },
+        { kind: "tool_arg_delta", callId: "c-1", argsChunk: '"password":"super-secret"}' },
+      ]);
+      expect(rowOf(status, "c-1").args).toEqual(redacted);
+    });
+
+    it("streamed arguments that parse to something other than an object are not args", () => {
+      const { status } = feed(builder(), [
+        { kind: "tool_started", callId: "c-1", name: "connect", input: {}, mcpServerSlug: "db" },
+        { kind: "tool_arg_delta", callId: "c-1", argsChunk: '"super-secret"' },
+      ]);
+      expect(rowOf(status, "c-1").args).toBeUndefined();
+    });
+
+    it("an approval that reopens a streamed row with the proposal's args", () => {
+      const { status } = feed(builder(), [
+        { kind: "tool_started", callId: "c-1", name: "connect", input: { host: "localhost" }, mcpServerSlug: "db" },
+        { kind: "approval_proposed", callId: "c-1", name: "connect", mcpServerSlug: "db", message: "Connect?", args: input },
+      ]);
+      expect(rowOf(status, "c-1").args).toEqual(redacted);
+      expect(JSON.parse(rowOf(status, "c-1").argsPreview)).toEqual(redacted);
+    });
+
+    it("an approval for a call the stream never showed", () => {
+      const { status } = feed(builder(), [
+        { kind: "approval_proposed", callId: "c-1", name: "connect", mcpServerSlug: "db", message: "Connect?", args: input },
+      ]);
+      expect(rowOf(status, "c-1").args).toEqual(redacted);
+    });
   });
 
   it("a long non-salient value is left out of the preview; a salient one (the command) survives verbatim", () => {

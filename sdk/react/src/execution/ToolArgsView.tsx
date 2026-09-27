@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { isSecretArgKey, redactSecretArgs } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import {
   resolveToolCategory,
@@ -229,9 +230,11 @@ function McpArgsPreview({
   );
 }
 
+// Secret-keyed values are hidden here, at the sink: a row persisted before the
+// runner redacted `args` (stigmer#1119) still carries them.
 function GenericArgsView({ args }: { args: Record<string, unknown> }) {
   return (
-    <CollapsibleCode label="Arguments" content={formatJson(args)} />
+    <CollapsibleCode label="Arguments" content={formatJson(redactSecretArgs(args))} />
   );
 }
 
@@ -261,10 +264,12 @@ function extractPrimaryArgValue(
     if (v) return v;
   }
 
+  // The first argument that is not a secret: a secret is never a title
+  // (stigmer#1119), and `[REDACTED]` would read as content.
   if (info.category === "unknown" || info.category === "mcp") {
-    const keys = Object.keys(args);
-    if (keys.length > 0) {
-      const val = args[keys[0]];
+    const first = Object.keys(args).find((key) => !isSecretArgKey(key));
+    if (first !== undefined) {
+      const val = args[first];
       if (typeof val === "string") return val;
     }
   }

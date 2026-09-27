@@ -418,6 +418,16 @@ describe("resolveApprovalMessage", () => {
     )).toBe("Set 42");
   });
 
+  // stigmer#1119: the message is stored on the row and shown on the approval
+  // card, so a secret-keyed placeholder never resolves to the secret.
+  it("redacts a secret-keyed placeholder, whatever the key's case, and keeps the rest", () => {
+    expect(resolveApprovalMessage(
+      "Push to {{args.repo}} with {{args.token}} ({{args.Api_Key}})?",
+      "push",
+      { repo: "acme/x", token: "s3cret", Api_Key: "sk-123" },
+    )).toBe("Push to acme/x with [REDACTED] ([REDACTED])?");
+  });
+
   it("handles null arg values", () => {
     expect(resolveApprovalMessage(
       "Value: {{args.val}}",

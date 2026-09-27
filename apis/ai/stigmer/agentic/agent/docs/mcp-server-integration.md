@@ -63,7 +63,7 @@ Defined by `ToolApprovalOverride` in `ai/stigmer/agentic/agent/v1/spec.proto`.
 |---|---|---|
 | `tool_name` | Yes | Must match the MCP server's tool name exactly (case-sensitive). Minimum 1 character. |
 | `requires_approval` | Yes | `true`: requires approval (even if the McpServer default doesn't). `false`: no approval needed (overrides any McpServer default). |
-| `message` | No | Approval prompt shown to users. Supports `{{args.field}}` template placeholders. See [Message Inheritance](#message-inheritance). |
+| `message` | No | Approval prompt shown to users. Supports `{{args.field}}` template placeholders; a placeholder naming a secret argument (`password`, `token`, `secret`, `api_key`, `apikey`, `credentials`, `auth`, `authorization`) shows `[REDACTED]`. See [Message Inheritance](#message-inheritance). |
 
 ### Message Inheritance
 

@@ -1740,7 +1740,10 @@ All visual properties flow through `--stgm-*` tokens.
 Renders MCP tool arguments as a structured key-value list.
 
 Scalars display inline; objects and arrays collapse into
-formatted JSON blocks via `CollapsibleJsonBlock`.
+formatted JSON blocks via `CollapsibleJsonBlock`. A secret-keyed
+value renders as `[REDACTED]` (`redactSecretArgs`): the runner redacts a
+row's `args` at creation, but a row persisted before it did (stigmer#1119)
+still carries the value, and this is where it would become visible.
 
 **Props** — `McpArgsViewProps`
 
