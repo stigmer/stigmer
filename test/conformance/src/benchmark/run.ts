@@ -1,32 +1,41 @@
 // The live benchmark's driver: boots the process kit in DIRECT mode (no mock
 // proxy: the runner talks to the real providers with the keys in its
-// environment), runs every planned cell against it, reads each execution
-// through the five readers, and assembles the report.
+// environment), runs every planned cell against it, and assembles the report.
 // Domain: conformance benchmark (the live half; an experiment, never a test).
 //
 // The stack is the local execution target's boot order (targets/local-
-// execution.ts) with the runner spawned WITHOUT `proxy` and WITH a log file
-// under the run's directory; the target itself is not reused because it
-// hard-wires the mock proxy and the MCP fixture into every boot. The runner
-// child inherits this process's environment, which is how ANTHROPIC_API_KEY
-// and CURSOR_API_KEY reach it; nothing is written anywhere.
+// execution.ts): the MCP tool fixture, Temporal, the server, then the runner
+// spawned WITHOUT `proxy` and WITH a log file under the run's directory. The
+// target itself is not reused because it hard-wires the mock proxy into every
+// boot. The runner child inherits this process's environment, which is how
+// ANTHROPIC_API_KEY and CURSOR_API_KEY reach it; nothing is written anywhere.
 //
-// Per execution, in order: the clock is read, the execution is created with
-// the one-call session bootstrap (a FRESH session per execution, with a fixed
-// subject so the background titling activity returns early), the subscribe
-// stream is watched to the terminal phase, then the status facts, the runner's
-// two timing lines (re-read from the log until present) and the Temporal
-// history are joined by execution id. Nothing is retried: a provider fault or
-// a stall is a fact about the harness under measurement and stays on the
-// sample as its outcome. Each cell's first attempt is a discarded warm-up;
-// the run's first call per harness and served model is the cold call.
+// Every turn of every cell goes through one driver (session.ts), so a turn
+// means the same thing wherever it is measured. Per attempt, a cell gets a
+// fresh agent: the bare agent in a fresh org, or a freshly provisioned working
+// agent (support/working-agent.ts) with its workspace re-seeded at one fixed
+// path outside this repository. Everything an attempt created is removed when
+// it ends. Each cell's first attempt is a discarded warm-up. The run's first
+// call per harness, served model and agent shape is the cold call.
+//
+// A quality task runs as a real session on the working agent. After the last
+// turn, its end state is read (workspace-facts.ts), the judge's subject is
+// composed (subject.ts), and the platform's `eval` task grades it
+// (quality.ts). A session with a failed turn is recorded, not graded: the
+// medians are over completed sessions, as the timing medians are.
+//
+// Nothing aborts the run but the stack itself. A provisioning or create error
+// fails its attempt with `failure.stage: "create"`, and the run goes on.
 import { mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { FixtureTracker } from "../harness/fixtures";
 import { awaitGrpcReady } from "../harness/grpc-ready";
-import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import { createTransport, makeClients } from "../harness/clients";
+import { McpToolFixture } from "../harness/mcp-server";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
@@ -34,10 +43,14 @@ import { spawnServer, type RunningServer } from "../harness/server-process";
 import { spawnTemporal, type RunningTemporal } from "../harness/temporal";
 import { ensureTsServerEntry } from "../harness/ts-build";
 import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentexecutions";
 import { uniqueName, uniqueOrg } from "../support/naming";
-import { awaitTerminal as awaitWorkflowTerminal, makeWorkflowExecution } from "../support/workflowexecutions";
-import { makeGradedAgentCallWorkflow } from "../support/workflows";
+import {
+  provisionWorkingAgent,
+  WORKING_AGENT_FIXTURE_DIR,
+  WORKING_AGENT_MCP_TOOLS,
+  WORKING_AGENT_WORKSPACE_NAME,
+  workingAgentSessionSpec,
+} from "../support/working-agent";
 import {
   BENCHMARK_SESSION_SUBJECT,
   JUDGE_MODEL,
@@ -46,11 +59,13 @@ import {
   type CellPlan,
   type QualityCell as PlannedQualityCell,
 } from "./cells";
-import { verdictOf } from "./quality";
+import { judge } from "./quality";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
   costRatio,
   summarize,
+  summarizeQuality,
+  type AgentShape,
   type BenchmarkComparison,
   type BenchmarkHarness,
   type BenchmarkReport,
@@ -60,37 +75,43 @@ import {
   type RefusedCell,
   type SiblingTurn,
 } from "./report";
-import { nullAxes, statusFacts } from "./status-facts";
-import { subscribeTo, watchExecution } from "./stream-watch";
-import { executeActivityNameFor, historyAxes, invokeWorkflowIdFor, showWorkflow } from "./temporal-history";
-import { awaitTimingLines, axesFromTiming } from "./timing-lines";
+import { EXECUTION_BUDGET_MS, failedAtCreate, measureSession, type MeasuredTurn, type SessionPlan, type SessionStack } from "./session";
+import { composeSubject } from "./subject";
+import { changedFiles, readWorkspaceFile, runChecks } from "./workspace-facts";
 
-/** How long one execution may take before the sample is a `timeout`: a live codegen turn outlives the poll core's default. */
-export const EXECUTION_BUDGET_MS = 10 * 60_000;
+/**
+ * Where the working agent's workspace is seeded before every session: one
+ * fixed path, so the prompt that names it is the same in every session, and
+ * outside this repository, so its go.work cannot capture the agent's `go`.
+ */
+export const WORKING_WORKSPACE_DIR = join(tmpdir(), "stigmer-benchmark", WORKING_AGENT_WORKSPACE_NAME);
 
-export interface BenchmarkStack {
-  clients: ConformanceClients;
+export interface BenchmarkStack extends SessionStack {
   serverBaseUrl: string;
-  temporal: { hostPort: string; namespace: string };
-  runnerLogFile: string;
+  /** The tool fixture the working agent's MCP server points at. */
+  mcpFixture: McpToolFixture;
   stop(): Promise<void>;
 }
 
-/** Temporal, then the server on it, then the runner in direct mode; `stop()` reverses. */
+/** The MCP fixture, Temporal, then the server on it, then the runner in direct mode; `stop()` reverses. */
 export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack> {
   await mkdir(runDir, { recursive: true });
   const serverEntry = await ensureTsServerEntry();
   const runnerEntry = await ensureRunnerBuilt();
 
-  const temporal: RunningTemporal = await spawnTemporal();
+  const mcpFixture = new McpToolFixture();
+  await mcpFixture.start();
+  let temporal: RunningTemporal | undefined;
   let server: RunningServer | undefined;
   let runner: RunningRunner | undefined;
   const stop = async (): Promise<void> => {
     await runner?.stop();
     await server?.stop();
-    await temporal.stop();
+    await temporal?.stop();
+    await mcpFixture.close();
   };
   try {
+    temporal = await spawnTemporal();
     server = await spawnServer(process.execPath, { args: [serverEntry], temporalHostPort: temporal.hostPort });
     const clients = makeClients(createTransport(server.baseUrl));
     await awaitGrpcReady(clients, () => server?.logTail() ?? "(no server)");
@@ -108,6 +129,7 @@ export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack
       serverBaseUrl: server.baseUrl,
       temporal: { hostPort: temporal.hostPort, namespace: temporal.namespace },
       runnerLogFile: runner.logFile,
+      mcpFixture,
       stop,
     };
   } catch (error) {
@@ -124,6 +146,8 @@ export interface RunIo {
 
 export interface RunOptions {
   reps: number;
+  /** Graded attempts per quality task per harness. */
+  qualityReps: number;
   git: BenchmarkReport["git"];
   titlingSuppressed: true;
 }
@@ -151,8 +175,8 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     return true;
   });
 
-  // The run's first call per harness and served model is the cold call; a
-  // key is claimed by the cell whose warm-up first reports that model.
+  // The run's first call per harness, served model and agent shape is the
+  // cold call; a key is claimed by the cell whose warm-up first reports it.
   const coldSeen = new Set<string>();
   const statsByScenario = new Map<string, Partial<Record<BenchmarkHarness, BenchmarkStat>>>();
 
@@ -162,7 +186,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     const warmup = await measure(0);
     const samples: BenchmarkSample[] = [];
     for (let i = 1; i <= options.reps; i++) samples.push(await measure(i));
-    const coldKey = `${cell.harness}|${warmup.model_reported}`;
+    const coldKey = `${cell.harness}|${warmup.model_reported}|${cell.scenario.agent}`;
     let cold: BenchmarkSample | null = null;
     if (warmup.model_reported !== "" && !coldSeen.has(coldKey)) {
       coldSeen.add(coldKey);
@@ -179,21 +203,27 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
   for (const cell of cells) {
     if (comparisons.some((comparison) => comparison.scenario === cell.scenario.name)) continue;
     const sides = statsByScenario.get(cell.scenario.name) ?? {};
+    const ratio = costRatio(sides["deep-agent"], sides.cursor);
     comparisons.push({
       scenario: cell.scenario.name,
       prompts: [...cell.scenario.prompts],
       mode: cell.scenario.mode,
       session_shape: cell.scenario.sessionShape,
+      agent: cell.scenario.agent,
       ...(sides["deep-agent"] !== undefined ? { native: sides["deep-agent"] } : {}),
       ...(sides.cursor !== undefined ? { cursor: sides.cursor } : {}),
-      ...(costRatio(sides["deep-agent"], sides.cursor) !== undefined ? { cost_ratio: costRatio(sides["deep-agent"], sides.cursor) } : {}),
+      ...(ratio !== undefined ? { cost_ratio: ratio } : {}),
     });
   }
 
   const graded: QualityCell[] = [];
   for (const cell of quality) {
-    io.log(`quality ${cell.id}`);
-    graded.push(await gradeCell(stack, cell));
+    for (let rep = 1; rep <= options.qualityReps; rep++) {
+      io.log(`quality ${cell.id} rep ${rep}/${options.qualityReps}`);
+      const grade = await gradeQualityCell(stack, cell, rep, io);
+      io.log(`quality ${cell.id} rep ${rep}: ${grade.outcome} score=${grade.score ?? "n/a"}${grade.failure ? ` (${grade.failure.stage}: ${grade.failure.message})` : ""}`);
+      graded.push(grade);
+    }
   }
 
   return {
@@ -203,13 +233,16 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     host: { platform: `${process.platform}/${process.arch}`, node: process.version },
     methodology: {
       reps: options.reps,
+      quality_reps: options.qualityReps,
       warmup_discarded: true,
-      cold: "first-call-of-run-per-harness-and-model",
+      cold: "first-call-of-run-per-harness-model-and-agent",
       titling_suppressed: options.titlingSuppressed,
+      file_review: "approved-at-review-ready",
     },
     models: { parity_native: PARITY_MODEL["deep-agent"], parity_cursor: PARITY_MODEL.cursor, judge_requested: JUDGE_MODEL },
     comparisons,
     quality: graded,
+    quality_summary: summarizeQuality(graded),
     refused,
   };
 }
@@ -223,175 +256,163 @@ function sessionHarness(harness: BenchmarkHarness): Harness {
   return harness === "cursor" ? Harness.CURSOR : Harness.NATIVE;
 }
 
-/** One attempt of a cell: one execution, or one three-turn session for a turn-2 cell. */
-async function measureCell(stack: BenchmarkStack, cell: BenchmarkCell, attempt: number, io: RunIo): Promise<BenchmarkSample> {
+/** The agent an attempt runs, provisioned fresh; its resources are deferred on `fixtures`. */
+interface ProvisionedAgent {
+  org: string;
+  agentId: string;
+  sessionSpec: MessageInitShape<typeof SessionSpecSchema>;
+}
+
+async function provisionAgent(
+  stack: BenchmarkStack,
+  fixtures: FixtureTracker,
+  cell: { agent: AgentShape; harness: BenchmarkHarness },
+): Promise<ProvisionedAgent> {
+  const harness = sessionHarness(cell.harness);
+  if (cell.agent === "working") {
+    const agent = await provisionWorkingAgent(stack.clients, fixtures, {
+      mcpUrl: stack.mcpFixture.url(WORKING_AGENT_MCP_TOOLS),
+      workspaceDir: WORKING_WORKSPACE_DIR,
+    });
+    return { org: agent.org, agentId: agent.agentId, sessionSpec: workingAgentSessionSpec(agent, harness, BENCHMARK_SESSION_SUBJECT) };
+  }
   const org = uniqueOrg();
   const agent = await stack.clients.agentCommand.create(
     makeAgent({ org, name: uniqueName("bench-agent"), instructions: BARE_AGENT_INSTRUCTIONS }),
   );
-  const agentId = agent.metadata!.id;
-  const executionConfig: MessageInitShape<typeof ExecutionConfigSchema> | undefined =
-    cell.modelRequested === null ? undefined : { modelName: cell.modelRequested };
-
-  if (cell.scenario.sessionShape === "fresh-per-execution") {
-    return measureExecution(stack, cell, {
-      org,
-      agentId,
-      prompt: cell.scenario.prompts[0] ?? "",
-      executionConfig,
-      sessionId: undefined,
-      label: `${cell.id}#${attempt}`,
-    }, io);
-  }
-
-  // One session, three turns: the second turn is the sample, the others ride
-  // on it as siblings. A session whose first turn failed still runs on, so
-  // the failure is recorded where it happened.
-  const first = await measureExecution(stack, cell, {
-    org,
-    agentId,
-    prompt: cell.scenario.prompts[0] ?? "",
-    executionConfig,
-    sessionId: undefined,
-    label: `${cell.id}#${attempt}.1`,
-  }, io);
-  const sessionId = first.session_id;
-  const second = await measureExecution(stack, cell, {
-    org,
-    agentId,
-    prompt: cell.scenario.prompts[1] ?? "",
-    executionConfig,
-    sessionId,
-    label: `${cell.id}#${attempt}.2`,
-  }, io);
-  const third = await measureExecution(stack, cell, {
-    org,
-    agentId,
-    prompt: cell.scenario.prompts[2] ?? "",
-    executionConfig,
-    sessionId,
-    label: `${cell.id}#${attempt}.3`,
-  }, io);
-  const sibling = (turnSeq: number, sample: BenchmarkSample): SiblingTurn => ({
-    turn_seq: turnSeq,
-    execution_id: sample.execution_id,
-    measures: sample.measures,
-    timing: sample.timing,
-    outcome: sample.outcome,
-  });
-  return { ...second, sibling_turns: [sibling(1, first), sibling(3, third)] };
+  fixtures.defer(() => stack.clients.agentCommand.delete({ value: agent.metadata!.id }));
+  return { org, agentId: agent.metadata!.id, sessionSpec: { harness, subject: BENCHMARK_SESSION_SUBJECT } };
 }
 
-interface ExecutionRequest {
-  org: string;
-  agentId: string;
-  prompt: string;
-  executionConfig: MessageInitShape<typeof ExecutionConfigSchema> | undefined;
-  /** Set for the later turns of a turn-2 session; a fresh session otherwise. */
-  sessionId: string | undefined;
-  label: string;
-}
-
-async function measureExecution(stack: BenchmarkStack, cell: BenchmarkCell, request: ExecutionRequest, io: RunIo): Promise<BenchmarkSample> {
-  const startedAtMs = Date.now();
-  const created = await stack.clients.agentExecutionCommand.create(
-    makeAgentExecution({
-      org: request.org,
-      name: uniqueName("bench-aex"),
-      ...(request.sessionId === undefined
-        ? { agentId: request.agentId, sessionSpec: { harness: sessionHarness(cell.harness), subject: BENCHMARK_SESSION_SUBJECT } }
-        : { sessionId: request.sessionId }),
-      message: request.prompt,
-      autoApproveAll: true,
-      ...(request.executionConfig !== undefined ? { executionConfig: request.executionConfig } : {}),
-    }),
-  );
-  const executionId = created.metadata!.id;
-
-  const watched = await watchExecution(subscribeTo(stack.clients, executionId), { startedAtMs, timeoutMs: EXECUTION_BUDGET_MS });
-  let terminal = watched.final ?? created;
-  let outcomeOverride: BenchmarkSample["outcome"] | undefined;
-  if (watched.outcome !== "until") {
-    // The budget passed (or the server closed early): cancel what is still
-    // running and record the attempt as a timeout, never as a sample.
-    outcomeOverride = "timeout";
-    try {
-      terminal = await stack.clients.agentExecutionCommand.cancel({ id: executionId, reason: "benchmark budget exceeded" });
-    } catch {
-      // Already terminal, or gone: the snapshot we hold is what there is.
-    }
-    io.log(`${request.label}: ${executionId} did not reach a terminal phase within ${EXECUTION_BUDGET_MS}ms; recorded as timeout`);
-  }
-
-  const facts = statusFacts(terminal);
-  const timing = await awaitTimingLines(stack.runnerLogFile, executionId);
-  const history = await showWorkflow(stack.temporal.hostPort, stack.temporal.namespace, invokeWorkflowIdFor(executionId)).catch(
-    () => ({ events: [] }),
-  );
-  const fromHistory = historyAxes(history, executeActivityNameFor(cell.harness));
-
-  return {
-    execution_id: executionId,
-    session_id: facts.session_id || created.spec?.sessionId || "",
-    model_requested: cell.modelRequested ?? "default",
-    model_reported: facts.model_reported,
-    measures: {
-      ...nullAxes(),
-      end_to_end_ms: watched.end_to_end_ms,
-      client_first_visible_token_ms: watched.client_first_visible_token_ms,
-      client_first_text_ms: watched.client_first_text_ms,
-      before_activity_ms: fromHistory.before_activity_ms,
-      ensure_thread_ms: fromHistory.ensure_thread_ms,
-      ...axesFromTiming(timing),
-      estimated_cost_micros: facts.estimated_cost_micros,
-      tokens: facts.tokens,
-    },
-    cost_source: "runner-rate-card-estimate",
-    server: facts.server,
-    timing,
-    outcome: outcomeOverride ?? facts.outcome,
-  };
-}
-
-async function gradeCell(stack: BenchmarkStack, cell: PlannedQualityCell): Promise<QualityCell> {
-  const org = uniqueOrg();
-  const agent = await stack.clients.agentCommand.create(
-    makeAgent({ org, name: uniqueName("bench-graded-agent"), instructions: BARE_AGENT_INSTRUCTIONS }),
-  );
-  const workflow = await stack.clients.workflowCommand.create(
-    makeGradedAgentCallWorkflow({
-      org,
-      name: uniqueName("bench-graded"),
-      agentSlug: agent.metadata!.slug,
-      message: cell.task.prompt,
-      rubric: cell.task.rubric,
-      harness: cell.harness === "cursor" ? "cursor" : "native",
-      modelName: cell.modelRequested,
-      judgeModel: JUDGE_MODEL,
-    }),
-  );
-  const execution = await stack.clients.workflowExecutionCommand.create(
-    makeWorkflowExecution({ org, name: uniqueName("bench-graded-run"), workflowId: workflow.metadata!.id }),
-  );
-  const executionId = execution.metadata!.id;
-  let verdict;
+/** One attempt of a cell: one execution, or one three-turn session whose second turn is the sample. */
+async function measureCell(stack: BenchmarkStack, cell: BenchmarkCell, attempt: number, io: RunIo): Promise<BenchmarkSample> {
+  const fixtures = new FixtureTracker();
+  const label = `${cell.id}#${attempt}`;
   try {
-    verdict = verdictOf(await awaitWorkflowTerminal(stack.clients, executionId, { timeoutMs: EXECUTION_BUDGET_MS }));
-  } catch {
-    verdict = { score: null, reasoning: "", judge_model: "", agent_execution_id: "", outcome: "timeout" as const };
+    let agent: ProvisionedAgent;
+    try {
+      agent = await provisionAgent(stack, fixtures, { agent: cell.scenario.agent, harness: cell.harness });
+    } catch (error) {
+      io.log(`${label}: provisioning failed: ${errorMessage(error)}`);
+      return failedAtCreate(cell.modelRequested, `provision the agent: ${errorMessage(error)}`);
+    }
+    const plan: SessionPlan = {
+      org: agent.org,
+      agentId: agent.agentId,
+      harness: cell.harness,
+      modelRequested: cell.modelRequested,
+      sessionSpec: agent.sessionSpec,
+      prompts: cell.scenario.sessionShape === "fresh-per-execution" ? cell.scenario.prompts.slice(0, 1) : cell.scenario.prompts,
+      label,
+    };
+    const turns = await measureSession(stack, plan, io);
+    if (cell.scenario.sessionShape === "fresh-per-execution") return turns[0]!.sample;
+    // One session, three turns: the second turn is the sample, the others
+    // ride on it as siblings.
+    const sibling = (turnSeq: number, turn: MeasuredTurn): SiblingTurn => ({
+      turn_seq: turnSeq,
+      execution_id: turn.sample.execution_id,
+      measures: turn.sample.measures,
+      timing: turn.sample.timing,
+      outcome: turn.sample.outcome,
+      ...(turn.sample.failure !== undefined ? { failure: turn.sample.failure } : {}),
+    });
+    return { ...turns[1]!.sample, sibling_turns: [sibling(1, turns[0]!), sibling(3, turns[2]!)] };
+  } finally {
+    await fixtures.cleanup();
   }
-  return {
+}
+
+/** One graded attempt of a quality task: the session, its end state, the subject and the verdict. */
+async function gradeQualityCell(stack: BenchmarkStack, cell: PlannedQualityCell, rep: number, io: RunIo): Promise<QualityCell> {
+  const fixtures = new FixtureTracker();
+  const label = `${cell.id}#${rep}`;
+  const base = {
     task_id: cell.task.id,
     placeholder: cell.task.placeholder,
     harness: cell.harness,
+    rep,
     model_requested: cell.modelRequested,
-    judge_model: verdict.judge_model,
-    score: verdict.score,
-    reasoning: verdict.reasoning,
-    workflow_execution_id: executionId,
-    agent_execution_id: verdict.agent_execution_id,
-    outcome: verdict.outcome,
-  };
+    judge_model: "",
+    score: null,
+    criteria: [],
+    reasoning: "",
+    subject: "",
+    files_changed: [],
+    checks: [],
+    turns: [],
+    workflow_execution_id: "",
+  } satisfies Omit<QualityCell, "outcome" | "failure">;
+  try {
+    let agent: ProvisionedAgent;
+    try {
+      agent = await provisionAgent(stack, fixtures, { agent: "working", harness: cell.harness });
+    } catch (error) {
+      io.log(`${label}: provisioning failed: ${errorMessage(error)}`);
+      return { ...base, outcome: "failed", failure: { stage: "create", message: `provision the working agent: ${errorMessage(error)}` } };
+    }
+    const turns = await measureSession(
+      stack,
+      {
+        org: agent.org,
+        agentId: agent.agentId,
+        harness: cell.harness,
+        modelRequested: cell.modelRequested,
+        sessionSpec: agent.sessionSpec,
+        prompts: cell.task.turns,
+        label,
+      },
+      io,
+    );
+    const samples = turns.map((turn) => turn.sample);
+    const failedTurn = samples.find((sample) => sample.outcome !== "completed");
+    if (failedTurn !== undefined) {
+      return { ...base, turns: samples, outcome: failedTurn.outcome, ...(failedTurn.failure !== undefined ? { failure: failedTurn.failure } : {}) };
+    }
+
+    const filesChanged = await changedFiles(join(WORKING_AGENT_FIXTURE_DIR, "workspace"), WORKING_WORKSPACE_DIR);
+    const namedFiles = await Promise.all(
+      cell.task.files.map(async (path) => ({ path, content: await readWorkspaceFile(WORKING_WORKSPACE_DIR, path) })),
+    );
+    const checks = await runChecks(cell.task.checks, WORKING_WORKSPACE_DIR);
+    const subject = composeSubject({
+      turns: cell.task.turns.map((prompt, index) => ({
+        prompt,
+        reply: turns[index]?.reply ?? "",
+        outcome: turns[index]?.sample.outcome ?? "failed",
+      })),
+      filesChanged,
+      namedFiles,
+      checks,
+    });
+    const verdict = await judge(stack.clients, fixtures, {
+      org: agent.org,
+      task: cell.task,
+      subject,
+      judgeModel: JUDGE_MODEL,
+      timeoutMs: EXECUTION_BUDGET_MS,
+    });
+    return {
+      ...base,
+      judge_model: verdict.judge_model,
+      score: verdict.score,
+      criteria: verdict.criteria,
+      reasoning: verdict.reasoning,
+      subject,
+      files_changed: filesChanged,
+      checks,
+      turns: samples,
+      workflow_execution_id: verdict.workflow_execution_id,
+      outcome: verdict.outcome,
+      ...(verdict.failure !== undefined ? { failure: verdict.failure } : {}),
+    };
+  } finally {
+    await fixtures.cleanup();
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /** Writes the report as `<timestamp>-<sha>.json` under `dir` and returns the path. */
@@ -404,28 +425,36 @@ export async function writeReport(dir: string, report: BenchmarkReport): Promise
   return path;
 }
 
-/** One row per cell: the medians a reader wants at a glance, and the refusals. Markdown, for stdout. */
+/** One row per cell: the medians a reader wants at a glance, the quality medians, and the refusals. Markdown, for stdout. */
 export function renderSummary(report: BenchmarkReport): string {
   const lines: string[] = [];
-  lines.push(`| scenario | harness | n | failed | e2e ms | first token ms | runner first token ms | before activity ms | rounds | est. cost µ$ | cache hit | model |`);
-  lines.push(`|---|---|---|---|---|---|---|---|---|---|---|---|`);
+  const cell = (value: number | null | undefined): string => (value === null || value === undefined ? "n/a" : String(Math.round(value)));
+  lines.push(
+    `| scenario | harness | n | failed | e2e ms | first token ms | runner first token ms | before activity ms | rounds | tool calls | mcp connect ms | cursor send ms | est. cost µ$ | cache hit | model |`,
+  );
+  lines.push(`|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|`);
   for (const comparison of report.comparisons) {
     for (const side of [comparison.native, comparison.cursor]) {
       if (side === undefined) continue;
       const m = side.median;
-      const cell = (value: number | null | undefined): string => (value === null || value === undefined ? "n/a" : String(Math.round(value)));
       lines.push(
-        `| ${comparison.scenario} | ${side.harness} | ${side.n} | ${side.failed} | ${cell(m?.end_to_end_ms)} | ${cell(m?.client_first_visible_token_ms)} | ${cell(m?.runner_first_visible_token_ms)} | ${cell(m?.before_activity_ms)} | ${cell(m?.rounds)} | ${cell(m?.estimated_cost_micros)} | ${Math.round(side.cache_hit_ratio * 100)}% | ${side.models.join(",") || "n/a"} |`,
+        `| ${comparison.scenario} | ${side.harness} | ${side.n} | ${side.failed} | ${cell(m?.end_to_end_ms)} | ${cell(m?.client_first_visible_token_ms)} | ${cell(m?.runner_first_visible_token_ms)} | ${cell(m?.before_activity_ms)} | ${cell(m?.rounds)} | ${cell(m?.tool_calls)} | ${cell(m?.mcp_connect_ms)} | ${cell(m?.cursor_send_returned_ms)} | ${cell(m?.estimated_cost_micros)} | ${Math.round(side.cache_hit_ratio * 100)}% | ${side.models.join(",") || "n/a"} |`,
       );
     }
   }
-  if (report.quality.length > 0) {
+  if (report.quality_summary.length > 0) {
     lines.push("");
-    lines.push(`| quality task | harness | score | judge | placeholder | outcome |`);
-    lines.push(`|---|---|---|---|---|---|`);
-    for (const cell of report.quality) {
-      lines.push(`| ${cell.task_id} | ${cell.harness} | ${cell.score ?? "n/a"} | ${cell.judge_model || "n/a"} | ${cell.placeholder ? "yes" : "no"} | ${cell.outcome} |`);
+    lines.push(`| quality task | harness | graded | failed | median score |`);
+    lines.push(`|---|---|---|---|---|`);
+    for (const summary of report.quality_summary) {
+      lines.push(`| ${summary.task_id} | ${summary.harness} | ${summary.graded} | ${summary.failed} | ${summary.median_score ?? "n/a"} |`);
     }
+  }
+  const failures = report.quality.filter((grade) => grade.failure !== undefined);
+  if (failures.length > 0) {
+    lines.push("");
+    lines.push("Quality attempts not graded:");
+    for (const grade of failures) lines.push(`- ${grade.task_id}/${grade.harness}#${grade.rep}: ${grade.failure!.stage}: ${grade.failure!.message}`);
   }
   if (report.refused.length > 0) {
     lines.push("");

@@ -45,14 +45,45 @@ export const ECHO_TOOL_NAME = "echo";
 // the messages suite; the Go test server's `fail`).
 export const FAIL_TOOL_NAME = "fail";
 
+// A read-only data tool: looks an order up in a fixed table and answers its
+// record as JSON, or a tool error naming an unknown id. The harness benchmark's
+// working agent needs a tool whose answer a grader can check against the
+// source (the order in the reply must be the order in the table), which an
+// echo cannot be; the table is fixed so every run of every harness reads the
+// same bytes.
+export const LOOKUP_ORDER_TOOL_NAME = "lookup_order";
+
+// The orders `lookup_order` answers, keyed by id. Exported so a consumer that
+// grades a reply states the truth by reference, never by a second copy.
+export const FIXTURE_ORDERS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
+  "ORD-4821": {
+    order_id: "ORD-4821",
+    status: "shipped",
+    carrier: "UPS",
+    tracking_number: "1Z999AA10123456784",
+    shipped_on: "2026-09-24",
+    estimated_delivery: "2026-09-29",
+    items: [{ sku: "KTL-200", name: "Electric kettle, 1.7 L", quantity: 1 }],
+  },
+  "ORD-7733": {
+    order_id: "ORD-7733",
+    status: "processing",
+    carrier: null,
+    tracking_number: null,
+    shipped_on: null,
+    estimated_delivery: "2026-10-03",
+    items: [{ sku: "MUG-310", name: "Ceramic mug, blue", quantity: 2 }],
+  },
+};
+
 // The tool surfaces the fixture can expose. A registered McpServer names its
 // surface IN ITS URL (see url()), so every existing suite keeps the one-tool
 // `echo` server it pins by exact tool list, and a suite that needs `fail`
 // registers a second McpServer resource pointing at the same fixture process.
 // Per-request construction (stateless mode) is what makes this free: the tool
 // set is read off the path each time, no per-file posture involved.
-export type FixtureTool = typeof ECHO_TOOL_NAME | typeof FAIL_TOOL_NAME;
-const FIXTURE_TOOLS: ReadonlySet<string> = new Set<FixtureTool>([ECHO_TOOL_NAME, FAIL_TOOL_NAME]);
+export type FixtureTool = typeof ECHO_TOOL_NAME | typeof FAIL_TOOL_NAME | typeof LOOKUP_ORDER_TOOL_NAME;
+const FIXTURE_TOOLS: ReadonlySet<string> = new Set<FixtureTool>([ECHO_TOOL_NAME, FAIL_TOOL_NAME, LOOKUP_ORDER_TOOL_NAME]);
 
 // Build a fresh MCP server exposing exactly `tools`. Called per request
 // (stateless mode), so registration is cheap and self-contained.
@@ -78,6 +109,21 @@ function buildFixtureServer(tools: readonly FixtureTool[]): McpServer {
             inputSchema: { message: z.string().describe("the failure message to report") },
           },
           ({ message }) => ({ isError: true, content: [{ type: "text", text: `fail tool: ${message}` }] }),
+        );
+        break;
+      case LOOKUP_ORDER_TOOL_NAME:
+        server.registerTool(
+          LOOKUP_ORDER_TOOL_NAME,
+          {
+            description: "Looks up an order by its id (for example ORD-4821) and returns its status, shipment and items as JSON.",
+            inputSchema: { order_id: z.string().describe("the order id, for example ORD-4821") },
+          },
+          ({ order_id }) => {
+            const order = FIXTURE_ORDERS[order_id];
+            return order === undefined
+              ? { isError: true, content: [{ type: "text", text: `no order with id ${order_id}` }] }
+              : { content: [{ type: "text", text: JSON.stringify(order) }] };
+          },
         );
         break;
       default: {

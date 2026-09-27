@@ -17,6 +17,14 @@ export const NULL_AXES: BenchmarkAxes = {
   max_gap_ms: null,
   rounds: null,
   tool_calls: null,
+  sub_agent_calls: null,
+  review_ready_ms: null,
+  mcp_connect_ms: null,
+  cursor_send_returned_ms: null,
+  mcp_server_count: null,
+  attachment_count: null,
+  skill_count: null,
+  workspace_entry_count: null,
 };
 
 export function makeMeasures(overrides: Partial<BenchmarkMeasures> = {}): BenchmarkMeasures {
@@ -45,7 +53,7 @@ export function makeSample(
     measures: makeMeasures(measures),
     cost_source: "runner-rate-card-estimate",
     server: { created_at: "2026-09-19T00:00:00Z", started_at: "2026-09-19T00:00:00Z", completed_at: "2026-09-19T00:00:01Z" },
-    timing: { turn_phases: null, execution_setup: null },
+    timing: { turn_phases: null, execution_setup: null, turn_first_event: null },
     outcome: "completed",
     ...rest,
   };

@@ -1,0 +1,7 @@
+# Order sync settings, read once at service startup.
+sync:
+  interval: 5m
+  retry:
+    max_attempts: 50
+    backoff: 2s
+  timout: 30s

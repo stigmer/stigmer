@@ -74,15 +74,20 @@ export function makeSessionSpec(opts: SessionSpecOptions): InitShape<typeof Sess
       mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
     })),
     skillRefs: (opts.skillRefs ?? []).map((slug) => ({ slug, kind: ApiResourceKind.skill })),
-    ...(opts.localWorkspaces !== undefined
-      ? {
-          workspaceEntries: opts.localWorkspaces.map((workspace) => ({
-            name: workspace.name,
-            source: { source: { case: "localPath" as const, value: { path: workspace.path } } },
-          })),
-        }
-      : {}),
+    ...(opts.localWorkspaces !== undefined ? { workspaceEntries: localWorkspaceEntries(opts.localWorkspaces) } : {}),
   };
+}
+
+// spec.workspace_entries for local-path workspaces, the one projection both
+// the Session builder above and an execution's one-call bootstrap
+// (AgentExecution.spec.session_spec) mount a host directory through.
+export function localWorkspaceEntries(
+  workspaces: readonly LocalWorkspaceOption[],
+): NonNullable<InitShape<typeof SessionSpecSchema>["workspaceEntries"]> {
+  return workspaces.map((workspace) => ({
+    name: workspace.name,
+    source: { source: { case: "localPath" as const, value: { path: workspace.path } } },
+  }));
 }
 
 export interface SessionOptions extends SessionSpecOptions {

@@ -434,38 +434,58 @@ export const EVAL_AFTER_TASK_NAME = "afterEval";
 // The scoring modes and failure policies EvalTaskConfig declares, as the full
 // proto enum strings the json-schema and the server converter expect (the
 // human_input fixture's on_timeout convention).
-export type EvalScoringMode = "EVAL_PASS_FAIL" | "EVAL_NUMERIC_SCORE";
+export type EvalScoringMode = "EVAL_PASS_FAIL" | "EVAL_NUMERIC_SCORE" | "EVAL_MULTI_CRITERIA";
 export type EvalFailPolicy = "EVAL_FAIL_RAISE" | "EVAL_FAIL_WARN";
+
+// One named dimension of an EVAL_MULTI_CRITERIA judgment (EvalCriterion):
+// the judge scores each 0..1 and the eval weights them into its score.
+export interface EvalCriterionOption {
+  name: string;
+  description: string;
+  weight: number;
+}
 
 export interface EvalWorkflowOptions {
   org: string;
   name: string;
   // The text under judgment, exported by the preceding set_vars as `subject`.
+  // Passed through literally: the engine evaluates a string only when the
+  // WHOLE of it is a `${ … }` expression, so a subject must not be one.
   subject: string;
   rubric: string;
   scoringMode: EvalScoringMode;
   // Minimum passing score for EVAL_NUMERIC_SCORE; ignored for pass/fail.
   threshold?: number;
   onFail: EvalFailPolicy;
+  // Registry id of the judge (eval.model). Defaults to LLM_TASK_MODEL, the
+  // model the mock-scripted suites answer as; a live caller pins its own.
+  model?: string;
+  // The dimensions EVAL_MULTI_CRITERIA scores (required by that mode).
+  criteria?: readonly EvalCriterionOption[];
   // Append a trailing set_vars (EVAL_AFTER_TASK_NAME) so the suite can prove the
   // run continued past a failing eval under the WARN policy.
   withAfterTask?: boolean;
 }
 
-// A Workflow of set_vars -> eval (-> set_vars). The judge is the mock LLM: the
-// runner binds a forced `extract` tool for the eval's structured verdict
-// (withStructuredOutput), so the suite scripts one anthropicToolUse turn named
-// `extract` with the verdict fields (EVAL_EXTRACT_TOOL_NAME) — the same shape
-// the classifier arms use. The taskConfig is the typed EvalTaskConfig.
+// A Workflow of set_vars -> eval (-> set_vars). Under the mock the judge is
+// scripted: the runner binds a forced `extract` tool for the eval's
+// structured verdict (withStructuredOutput), so the suite scripts one
+// anthropicToolUse turn named `extract` with the verdict fields
+// (EVAL_EXTRACT_TOOL_NAME) — the same shape the classifier arms use. The live
+// harness benchmark grades its quality tasks through this same shape with a
+// real judge. The taskConfig is the typed EvalTaskConfig.
 export function makeEvalWorkflow(opts: EvalWorkflowOptions): InitShape<typeof WorkflowSchema> {
-  const { org, name, subject, rubric, scoringMode, threshold, onFail, withAfterTask = false } = opts;
+  const { org, name, subject, rubric, scoringMode, threshold, onFail, model, criteria, withAfterTask = false } = opts;
   const evalConfig: JsonObject = {
-    model: LLM_TASK_MODEL,
+    model: model ?? LLM_TASK_MODEL,
     subject: `\${ $context.${EVAL_SUBJECT_TASK_NAME}.subject }`,
     rubric,
     scoring_mode: scoringMode,
     ...(threshold !== undefined ? { threshold } : {}),
     on_fail: onFail,
+    ...(criteria !== undefined
+      ? { criteria: criteria.map((criterion) => ({ name: criterion.name, description: criterion.description, weight: criterion.weight })) }
+      : {}),
   };
   return {
     apiVersion: WORKFLOW_API_VERSION,
@@ -504,81 +524,6 @@ export function makeEvalWorkflow(opts: EvalWorkflowOptions): InitShape<typeof Wo
 // The tool name LangChain's withStructuredOutput binds for a forced structured
 // verdict; the judge's turn must be a tool_use of exactly this name.
 export const EVAL_EXTRACT_TOOL_NAME = "extract";
-
-// The graded agent call's task names, exported so the benchmark's verdict
-// reader and its smoke read the two tasks by the identifiers the fixture
-// defines.
-export const GRADED_AGENT_TASK_NAME = "callAgent";
-export const GRADED_JUDGE_TASK_NAME = "judge";
-
-export interface GradedAgentCallWorkflowOptions {
-  org: string;
-  name: string;
-  // Slug of the agent the agent_call invokes (Agent.metadata.slug).
-  agentSlug: string;
-  // The task the agent is set: a constant is a valid expression.
-  message: string;
-  // The judge's criteria, in natural language, describing the scoring scale.
-  rubric: string;
-  // The harness the child session is created with, as the agent_call schema's
-  // shorthand ("native" | "cursor"); the server normalizes it to the enum.
-  harness: "native" | "cursor";
-  // Registry model id the child run is pinned to (run_config.model_name);
-  // omitted, the harness's default stands.
-  modelName?: string;
-  // Registry model id of the judge (eval.model, a required field).
-  judgeModel: string;
-}
-
-// A Workflow of agent_call -> eval: the agent answers a task, then a judge on a
-// pinned model scores the answer 0..1. The judge reads the agent task's
-// `final_text` — the field the server's callback result places the agent's
-// final response under (stigmer-server temporal/agentexecution/workflows/
-// invoke-agent-execution.ts, buildCallbackResult), beside `agent_execution_id`
-// which lets a reader join the grade to the child run. `threshold: 0` and
-// EVAL_FAIL_WARN make a low grade a recorded fact, never a failed run: the
-// benchmark wants the number, not a verdict on it. Needs a real or scripted
-// model for both tasks, so it pairs with an execution target.
-export function makeGradedAgentCallWorkflow(opts: GradedAgentCallWorkflowOptions): InitShape<typeof WorkflowSchema> {
-  const { org, name, agentSlug, message, rubric, harness, modelName, judgeModel } = opts;
-  const agentConfig: JsonObject = {
-    agent: agentSlug,
-    message,
-    harness,
-    ...(modelName !== undefined ? { run_config: { model_name: modelName } } : {}),
-  };
-  const evalConfig: JsonObject = {
-    model: judgeModel,
-    subject: `\${ $context.${GRADED_AGENT_TASK_NAME}.final_text }`,
-    rubric,
-    scoring_mode: "EVAL_NUMERIC_SCORE",
-    threshold: 0,
-    on_fail: "EVAL_FAIL_WARN",
-  };
-  return {
-    apiVersion: WORKFLOW_API_VERSION,
-    kind: WORKFLOW_KIND,
-    metadata: { name, org },
-    spec: {
-      description: "graded agent call fixture",
-      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
-      tasks: [
-        {
-          name: GRADED_AGENT_TASK_NAME,
-          kind: WorkflowTaskKind.agent_call,
-          taskConfig: agentConfig,
-          export: { as: "${ . }" },
-        },
-        {
-          name: GRADED_JUDGE_TASK_NAME,
-          kind: WorkflowTaskKind.eval,
-          taskConfig: evalConfig,
-          export: { as: "${ . }" },
-        },
-      ],
-    },
-  };
-}
 
 // The agent_call task name and its downstream continue-task name, exported so the
 // child-approval suite refers to the same identifiers the fixture defines (the

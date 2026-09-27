@@ -1,30 +1,292 @@
-# The quality tasks the harness benchmark grades both harnesses on: each task
-# is one prompt the agent answers and one rubric a judge on a pinned model
-# scores 0..1. Applied per task per harness by `make benchmark-harnesses`
-# (scripts/benchmark-harnesses.ts, --tasks to point at another file).
+# The quality tasks the harness benchmark grades both harnesses on
+# (`make benchmark-harnesses`; scripts/benchmark-harnesses.ts, `--tasks` to
+# point at another file). The format and its checks are
+# src/benchmark/quality-tasks.ts.
 #
-# A task marked `placeholder: true` keeps this file's shape until the real
-# task set replaces it; a default run SKIPS placeholders (the lane is proven
-# hermetically by the benchmark-readers smoke, and a paid grade nobody
-# publishes buys nothing), `--include-placeholders` runs them, and the report
-# carries the flag through so the docs page never publishes a placeholder.
+# Each task is what a user would ask the WORKING agent
+# (src/support/working-agent.ts) in its seeded repository
+# (fixtures/working-agent/workspace, whose README lists the planted defects),
+# over one or more turns of one session. After the last turn the judge, the
+# platform's own `eval` task on a pinned model, is shown the user's messages,
+# the agent's final replies, the files that differ from the starting state,
+# the content of the `files` named here, and the result of any `checks`. It
+# never learns which harness ran. It scores every criterion 0..1 and the eval
+# weights them into the task's score.
 #
-# Replace the placeholders with the real tasks (six to ten is the intended
-# set), each with an id a report can be read by, the prompt as the user
-# would put it, and a rubric that describes the scoring scale in the judge's
-# own terms.
+# The tasks are drawn from what the product is used for: answering from a
+# repository, fixing a bug with its test, reviewing code without touching
+# it, support answers from a written policy and from an order system,
+# repairing a config, summarising data, using what the organization's memory
+# holds, and refining an edit over several turns. Each rubric states the
+# reference facts the grade rests on, taken from the fixture, so the judge
+# grades against the source and not against its own guess.
+#
+# A task marked `placeholder: true` is skipped unless `--include-placeholders`
+# is passed, and the report carries the flag through.
 tasks:
-  - id: placeholder-exact-reply
-    placeholder: true
-    prompt: "Reply with exactly: hello"
+  - id: repo-question
+    turns:
+      - "Where is the retry limit for the order sync set, and what is it?"
     rubric: >-
-      Score 1.0 if the reply is exactly the single word "hello" with no other
-      text or punctuation, 0.5 if it contains "hello" with anything else, 0.0
-      otherwise.
-  - id: placeholder-one-sentence-definition
-    placeholder: true
-    prompt: "Explain in one sentence what a hash table is."
+      Grade the agent's answer to a question about its repository. Reference
+      facts: config/sync.yaml sets sync.retry.max_attempts to 50. The code
+      default is DefaultMaxAttempts = 5 in syncer/syncer.go, used only when
+      the config does not set the value. The agent was not asked to change
+      anything.
+    criteria:
+      - name: grounded
+        weight: 3
+        description: >-
+          The answer names where the limit is set (config/sync.yaml,
+          sync.retry.max_attempts) and makes no claim the repository does not
+          support.
+      - name: correct_value
+        weight: 3
+        description: >-
+          The answer gives the effective value, 50. Also naming the code
+          default of 5 as the fallback is correct; calling 5 the effective
+          value is wrong.
+      - name: concise
+        weight: 1
+        description: The answer leads with the location and the value and stays short.
+
+  - id: fix-bug-with-test
+    turns:
+      - >-
+        ParseMinutes in duration/duration.go returns an error for "90s". Make
+        it accept seconds, rounding down to whole minutes, and add a test
+        case for it.
+    files:
+      - duration/duration.go
+      - duration/duration_test.go
+    checks:
+      - go_test
     rubric: >-
-      Score 1.0 for one correct, complete sentence naming keys, hashing and
-      buckets or slots; 0.5 for a correct answer in more than one sentence or
-      missing one of those ideas; 0.0 for an incorrect or empty answer.
+      Grade a bug fix in a Go repository. Reference facts: after the fix,
+      ParseMinutes("90s") returns 1, "30s" returns 0, "1h30m45s" returns 90,
+      and every case that worked before still works ("1h30m" is 90, "45m" is
+      45, "2h" is 120, and "", "abc" and "10" are errors). The repository's
+      conventions: errors are wrapped with context, tests are table-driven
+      with one table per function, the standard library only, and a doc
+      comment that stays true. The go_test check shows whether the tests
+      pass after the agent's last turn. A line in CHANGELOG.md is allowed
+      (the conventions ask for one); any other file changed outside
+      duration/ is unrelated.
+    criteria:
+      - name: correct_fix
+        weight: 3
+        description: >-
+          duration.go handles the "s" unit, rounding down to whole minutes,
+          with the reference cases right and no earlier behaviour broken; the
+          go_test check passed.
+      - name: meaningful_test
+        weight: 2
+        description: >-
+          duration_test.go gains at least one row covering seconds (for
+          example "90s" is 1) in the existing table.
+      - name: no_unrelated_edits
+        weight: 2
+        description: >-
+          Only duration/ files and, optionally, CHANGELOG.md differ from the
+          starting state.
+      - name: follows_conventions
+        weight: 1
+        description: >-
+          The change follows the conventions above: wrapped errors, the
+          table-driven test, no new dependency, a true doc comment.
+
+  - id: code-review-no-edit
+    turns:
+      - "Review orders/store.go for correctness and security problems. Don't change anything."
+    files:
+      - orders/store.go
+    rubric: >-
+      Grade a code review. Reference facts: FindByCustomer builds its SQL by
+      formatting the customer string into the query, which is SQL injection
+      (the fix is a parameterised query). It computes the offset as page *
+      pageSize although pages are numbered from 1, so page 1 skips the first
+      page of results (the fix is (page - 1) * pageSize, with page < 1
+      refused). CountByStatus has no defect of that kind. The user asked for
+      no changes.
+    criteria:
+      - name: finds_the_defects
+        weight: 3
+        description: >-
+          The review finds both the SQL injection and the pagination
+          off-by-one, says why each matters, and proposes a correct fix for
+          each.
+      - name: severity_ordered
+        weight: 2
+        description: >-
+          It opens with a short overall assessment and orders its findings by
+          severity, the injection first; it invents no defect that is not
+          there.
+      - name: no_file_changed
+        weight: 2
+        description: No file differs from the starting state.
+
+  - id: support-policy
+    turns:
+      - >-
+        A customer says the kettle they ordered arrived defective, and it was
+        delivered 40 days ago. Can they still return it? Write the reply I
+        should send them.
+    rubric: >-
+      Grade a support reply written from the company's policy
+      (policies/returns.md). Reference facts: standard returns close 30 days
+      after delivery, but a defective item can be returned within 90 days of
+      delivery, with free return shipping and the customer's choice of a
+      refund or a replacement. The customer starts the return from the
+      support portal with the order number and a photo or description of the
+      defect. So at 40 days, the defective kettle can be returned.
+    criteria:
+      - name: correct_per_policy
+        weight: 3
+        description: >-
+          The reply says yes, under the 90-day defective-item rule, and does
+          not apply the 30-day standard window.
+      - name: cites_the_rule
+        weight: 1
+        description: >-
+          It states the rule the answer rests on: 90 days for defective
+          items, free return shipping, refund or replacement.
+      - name: next_step
+        weight: 1
+        description: >-
+          It tells the customer how to start the return: the support portal,
+          the order number and a photo or description of the defect.
+
+  - id: tool-lookup
+    turns:
+      - "What's the status of order ORD-4821, and when will it arrive?"
+    rubric: >-
+      Grade an answer about an order, which the agent can look up with its
+      order tool. Reference facts: ORD-4821 is shipped. It shipped on
+      2026-09-24 with UPS, tracking number 1Z999AA10123456784, and its
+      estimated delivery is 2026-09-29. It holds one electric kettle, 1.7 L.
+    criteria:
+      - name: uses_the_order_data
+        weight: 3
+        description: >-
+          The answer gives the status (shipped) and the estimated delivery
+          (2026-09-29) exactly as the order record has them.
+      - name: invents_nothing
+        weight: 2
+        description: >-
+          Every detail stated matches the reference facts; nothing is
+          guessed, and no other order's details appear.
+      - name: next_step
+        weight: 1
+        description: The answer gives the carrier and the tracking number so the customer can follow the parcel.
+
+  - id: config-fix
+    turns:
+      - >-
+        The service refuses to start with config/sync.yaml. It reports:
+        "sync.retry.max_attempts: must be at most 10 (got 50)" and "sync:
+        unknown field \"timout\"". Fix the config.
+    files:
+      - config/sync.yaml
+    rubric: >-
+      Grade a repair of a YAML config file. Reference facts: the starting
+      file sets sync.retry.max_attempts to 50, above the limit of 10, and
+      misspells the key timeout as "timout". A correct repair sets
+      max_attempts to a value from 1 to 10 and renames "timout" to
+      "timeout", keeping its value of 30s, and changes nothing else.
+    criteria:
+      - name: both_errors_resolved
+        weight: 3
+        description: >-
+          After the last turn, config/sync.yaml has max_attempts between 1
+          and 10 and a "timeout" key (value 30s) with no "timout" key.
+      - name: minimal_change
+        weight: 2
+        description: >-
+          Every other setting (interval 5m, backoff 2s) and the comment are
+          unchanged, and no other file differs from the starting state.
+      - name: explains_the_fix
+        weight: 1
+        description: >-
+          The reply says what was changed and why, including which value was
+          chosen for max_attempts.
+
+  - id: data-summary
+    turns:
+      - "Summarise data/signups.csv for this week's team update."
+    rubric: >-
+      Grade a summary of a weekly signups table. Reference facts: the table
+      has eight weeks, 2026-08-03 to 2026-09-21, with organic, referral and
+      paid columns. Weekly totals are 658, 648, 671, 664, 686, 676, 694 and
+      840. The latest week, 2026-09-21, is 840, up 146 (about 21%) on the
+      week before (694) and well above the earlier seven weeks' average of
+      671. The jump is paid: 310 against 148 to 153 in every earlier week.
+      Organic is flat (398 to 431; 409 in the latest week). Referral grew
+      steadily, from 96 to 121.
+    criteria:
+      - name: key_finding_first
+        weight: 2
+        description: >-
+          The summary opens with the latest week's jump and that paid signups
+          drove it.
+      - name: numbers_with_baseline
+        weight: 2
+        description: >-
+          Every number it reports comes with its comparison: the previous
+          week, the earlier average, or the total it is part of.
+      - name: arithmetic_correct
+        weight: 3
+        description: >-
+          Every number it states matches the reference facts; a wrong total,
+          change or percentage fails this criterion.
+
+  - id: memory-recall
+    turns:
+      - "I've just fixed the duration parsing bug. Which branch should the fix ship on?"
+    rubric: >-
+      Grade an answer that depends on what the user's organization has asked
+      the agent to remember. Reference facts: the organization's memory holds
+      "Fixes to the orders-sync service ship on the release/2026.10 branch;
+      main is frozen until the October release." Nothing in the repository
+      says which branch fixes ship on.
+    criteria:
+      - name: uses_the_recalled_fact
+        weight: 3
+        description: >-
+          The answer is release/2026.10, not main, and does not present a
+          guess as fact.
+      - name: says_where_it_came_from
+        weight: 1
+        description: >-
+          It says the answer comes from what it was told or remembers (or
+          mentions that main is frozen), not from the repository.
+
+  - id: refine-over-turns
+    turns:
+      - "Add a CHANGELOG.md entry for the fix that lets ParseMinutes accept seconds."
+      - "Put it under Fixed rather than Added, and cite ticket BUG-112."
+      - "Show me the final Unreleased section."
+    files:
+      - CHANGELOG.md
+    rubric: >-
+      Grade an edit refined over three turns. Reference facts: the starting
+      CHANGELOG.md has an "## [Unreleased]" section whose "### Added" holds
+      one entry for orders.CountByStatus, then a released "## [1.4.0]"
+      section. After the three turns, the Unreleased section should keep
+      that Added entry untouched and carry a "### Fixed" section, after
+      Added (the Keep a Changelog order), with one entry saying ParseMinutes
+      now accepts seconds and ending "(BUG-112)". The entry must not also
+      remain under Added, and the 1.4.0 section must be unchanged. The final
+      reply should show the Unreleased section as it is in the file.
+    criteria:
+      - name: final_file_correct
+        weight: 3
+        description: >-
+          After the last turn, CHANGELOG.md matches the reference: the entry
+          under Fixed with (BUG-112), the Added entry kept, no duplicate, and
+          1.4.0 unchanged.
+      - name: correction_followed
+        weight: 2
+        description: The second turn's instructions were followed exactly, moving the entry rather than copying it.
+      - name: reply_matches_file
+        weight: 1
+        description: The third turn's reply shows the Unreleased section as it actually is in the file.

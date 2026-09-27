@@ -3,15 +3,17 @@
 // Domain: conformance benchmark.
 //
 // Pinned: int64 token counts become numbers; the cost estimate becomes
-// micros; the priced model is read as reported; each terminal phase maps to
-// its outcome; a THINKING row counts as visible but not as text; sub-agent
-// rows never count.
+// micros; the priced model is read as reported; `status.error` is kept
+// verbatim; memory on the spec is one platform attachment; each terminal
+// phase maps to its outcome; a THINKING row counts as visible but not as
+// text; sub-agent rows never count; the final reply is the last root AI row
+// with content.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { describe, expect, it } from "vitest";
-import { outcomeOf, statusFacts, visibleRows } from "../status-facts";
+import { finalReply, outcomeOf, statusFacts, visibleRows } from "../status-facts";
 
 describe("statusFacts", () => {
   it("reads tokens, the cost estimate in micros, the priced model and the server's stamps", () => {
@@ -47,7 +49,20 @@ describe("statusFacts", () => {
         completed_at: "2026-09-19T18:00:05Z",
       },
       outcome: "completed",
+      error: "",
+      attachment_count: 0,
     });
+  });
+
+  it("keeps the platform's error on a failed turn and counts memory on the spec as one attachment", () => {
+    const facts = statusFacts(
+      create(AgentExecutionSchema, {
+        spec: { recalledMemories: { enabled: true } },
+        status: { phase: ExecutionPhase.EXECUTION_FAILED, error: "provider returned 529 overloaded" },
+      }),
+    );
+    expect(facts.error).toBe("provider returned 529 overloaded");
+    expect(facts.attachment_count).toBe(1);
   });
 
   it("reads zeros and an empty model when the runner reported no usage", () => {
@@ -65,6 +80,24 @@ describe("outcomeOf", () => {
     expect(outcomeOf(ExecutionPhase.EXECUTION_CANCELLED)).toBe("cancelled");
     expect(outcomeOf(ExecutionPhase.EXECUTION_TERMINATED)).toBe("cancelled");
     expect(outcomeOf(undefined)).toBe("failed");
+  });
+});
+
+describe("finalReply", () => {
+  it("is the last root AI row with content, never a sub-agent's or an empty row", () => {
+    const execution = create(AgentExecutionSchema, {
+      status: {
+        messages: [
+          { type: MessageType.MESSAGE_HUMAN, content: "fix it" },
+          { type: MessageType.MESSAGE_AI, content: "Reading the file." },
+          { type: MessageType.MESSAGE_AI, content: "Fixed: 90s is now 1 minute." },
+          { type: MessageType.MESSAGE_AI, content: "" },
+        ],
+        subAgentExecutions: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],
+      },
+    });
+    expect(finalReply(execution)).toBe("Fixed: 90s is now 1 minute.");
+    expect(finalReply(create(AgentExecutionSchema, {}))).toBe("");
   });
 });
 

@@ -5,17 +5,31 @@
 // Pinned: the first-visible and first-text stamps are taken at the arrival
 // of the first snapshot that shows them and never move; the end-to-end stamp
 // is the terminal snapshot's arrival; every axis is relative to the create
-// call's start; a stream that never reaches a terminal phase reports a
-// timeout with a null end-to-end and keeps what it did see.
+// call's start; a snapshot offering a change set for review stops the watch
+// there by default, stamped and marked awaiting review, and a watch told not
+// to stop there follows on to the end; a stream that never reaches a
+// terminal phase reports a timeout with a null end-to-end and keeps what it
+// did see.
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, FileChangeSetStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { watchExecution } from "../stream-watch";
 
 function snapshot(phase: ExecutionPhase, rows: Array<{ type: MessageType; content: string }>): AgentExecution {
   return create(AgentExecutionSchema, { metadata: { id: "aex_1" }, status: { phase, messages: rows } });
+}
+
+function awaitingReview(): AgentExecution {
+  return create(AgentExecutionSchema, {
+    metadata: { id: "aex_1" },
+    status: {
+      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      messages: [{ type: MessageType.MESSAGE_AI, content: "Done." }],
+      fileChangeSets: [{ id: "fcs_1", status: FileChangeSetStatus.AWAITING_REVIEW }],
+    },
+  });
 }
 
 function scripted(snapshots: AgentExecution[]): (signal: AbortSignal) => AsyncIterable<AgentExecution> {
@@ -49,6 +63,40 @@ describe("watchExecution", () => {
     expect(watched.client_first_text_ms).toBe(1600);
     expect(watched.end_to_end_ms).toBe(2500);
     expect(watched.outcome).toBe("until");
+    expect(watched.final?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  });
+
+  it("stops at the first snapshot offering review, stamped, with no end-to-end", async () => {
+    const clock = [1000, 1800];
+    let tick = 0;
+    const watched = await watchExecution(
+      scripted([
+        snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS, [{ type: MessageType.MESSAGE_AI, content: "Editing." }]),
+        awaitingReview(),
+        snapshot(ExecutionPhase.EXECUTION_COMPLETED, [{ type: MessageType.MESSAGE_AI, content: "Done." }]),
+      ]),
+      { startedAtMs: 500, timeoutMs: 10_000, now: () => clock[tick++] ?? 9999 },
+    );
+    expect(watched.awaiting_review).toBe(true);
+    expect(watched.review_ready_ms).toBe(1300);
+    expect(watched.end_to_end_ms).toBeNull();
+    expect(watched.final?.status?.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+  });
+
+  it("told not to stop at review, follows the reconcile to the terminal snapshot", async () => {
+    const clock = [1000, 1800, 2600];
+    let tick = 0;
+    const watched = await watchExecution(
+      scripted([
+        awaitingReview(),
+        awaitingReview(),
+        snapshot(ExecutionPhase.EXECUTION_COMPLETED, [{ type: MessageType.MESSAGE_AI, content: "Done." }]),
+      ]),
+      { startedAtMs: 500, timeoutMs: 10_000, now: () => clock[tick++] ?? 9999, stopAtReview: false },
+    );
+    expect(watched.awaiting_review).toBe(false);
+    expect(watched.review_ready_ms).toBe(500);
+    expect(watched.end_to_end_ms).toBe(2100);
     expect(watched.final?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 

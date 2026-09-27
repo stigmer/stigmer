@@ -11,6 +11,15 @@
 // Token counts arrive as int64 (`bigint` in the stubs) and become `number`
 // here, the one place that conversion happens, because the report contract
 // is a leaf read outside this workspace and carries no `bigint`.
+//
+// Two further facts come off the execution itself. `status.error` is the
+// platform's own account of a failed turn, kept verbatim on the sample. The
+// platform-attachment count is derived, because no line or field carries one:
+// the runner's `mcp_server_count` counts only the declared servers, and on
+// this stack memory is the only attachment the runtime adds beside them,
+// offered exactly when the server set `spec.recalled_memories.enabled` at
+// create. The other runtime attachments (channel messaging, conversation)
+// need a channel or conversation label the benchmark never sets.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -26,6 +35,10 @@ export interface StatusFacts {
   estimated_cost_micros: number;
   server: { created_at: string; started_at: string; completed_at: string };
   outcome: SampleOutcome;
+  /** `status.error`, set by the platform on a failed turn; "" otherwise. */
+  error: string;
+  /** Runtime attachments beside the declared MCP servers (memory, on this stack). */
+  attachment_count: number;
 }
 
 /** The status-borne half of a sample, from the terminal execution as the client received it. */
@@ -51,6 +64,8 @@ export function statusFacts(execution: AgentExecution): StatusFacts {
       completed_at: execution.status?.completedAt ?? "",
     },
     outcome: outcomeOf(execution.status?.phase),
+    error: execution.status?.error ?? "",
+    attachment_count: execution.spec?.recalledMemories?.enabled === true ? 1 : 0,
   };
 }
 
@@ -96,6 +111,20 @@ export function visibleRows(execution: AgentExecution): { visible: boolean; text
   return { visible, text };
 }
 
+/**
+ * The agent's final reply on the turn: the content of the last ROOT AI row
+ * with content (sub-agent rows live under `sub_agent_executions`), "" when
+ * the turn produced none. What a user reads as the turn's answer.
+ */
+export function finalReply(execution: AgentExecution): string {
+  const messages = execution.status?.messages ?? [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message !== undefined && message.type === MessageType.MESSAGE_AI && message.content.length > 0) return message.content;
+  }
+  return "";
+}
+
 /** The axes nothing observed yet: every field `null`, the sample's starting point. */
 export function nullAxes(): BenchmarkAxes {
   return {
@@ -111,6 +140,14 @@ export function nullAxes(): BenchmarkAxes {
     max_gap_ms: null,
     rounds: null,
     tool_calls: null,
+    sub_agent_calls: null,
+    review_ready_ms: null,
+    mcp_connect_ms: null,
+    cursor_send_returned_ms: null,
+    mcp_server_count: null,
+    attachment_count: null,
+    skill_count: null,
+    workspace_entry_count: null,
   };
 }
 
