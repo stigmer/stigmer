@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { usePlatformClientList } from "./usePlatformClientList.js";
 import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { isPlatformClientExpired } from "./expiry.js";
 
 /** Props for {@link PlatformClientListPanel}. */
 export interface PlatformClientListPanelProps {
@@ -314,7 +315,7 @@ function ExpiryBadge({ spec }: { spec: PlatformClient["spec"] }) {
   }
   if (spec?.expiresAt) {
     const date = timestampDate(spec.expiresAt);
-    const isExpired = date < new Date();
+    const isExpired = isPlatformClientExpired(spec);
     return (
       <Tooltip>
         <TooltipTrigger
