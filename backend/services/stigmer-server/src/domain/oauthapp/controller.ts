@@ -12,15 +12,20 @@
  * The secret contract: client_secret is AES-256-GCM encrypted at rest via
  * the SAME SecretService instance the Environment controller uses (Go
  * wires one service for both), and redacted to ***REDACTED*** on every
- * read surface; the marker round-trips on update/apply as "keep the stored
- * secret"; client-supplied enc:v<N>:-shaped values are refused on every
- * write door (oss#395). Deletion is blocked while an McpServer's
- * oauth_app_ref resolves to the app (stigmer/stigmer#584).
+ * response, the delete's included; the marker round-trips on update/apply
+ * as "keep the stored secret"; client-supplied enc:v<N>:-shaped values are
+ * refused on every write door (oss#395). Deletion is blocked while an
+ * McpServer's oauth_app_ref resolves to the app (stigmer/stigmer#584).
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and
- * Publish steps (no multi-tenant auth, IAM/FGA, or event publishing), and
- * OAuthApp is deliberately not search-indexed (a configuration resource;
- * `not_search_indexed` in the kind registry).
+ * Every chain opens with Authorize; create and delete run the shared
+ * tuple-lifecycle steps against the composed lifecycle; getByReference
+ * loads, then authorizes the loaded app exactly as `get` would
+ * (AuthorizeResolvedTarget); listByOrg narrows through the list read
+ * scope, so a caller who may not `get` an app does not see it listed
+ * either: the model shows an app to its creator and the organization's
+ * admins, never to members or viewers (fga/model/iam/oauth_app.fga,
+ * stigmer/stigmer#1257). OAuthApp is deliberately not search-indexed (a
+ * configuration resource; `not_search_indexed` in the kind registry).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
@@ -43,6 +48,8 @@ import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
@@ -105,6 +112,8 @@ export interface OAuthAppControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — listByOrg narrows through it; undefined = the OSS full scan (stigmer/stigmer#1257). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both OAuthApp services on the router (routes stage). */
@@ -261,8 +270,10 @@ async function apply(
  * between load and delete. The RESOURCE_ID_KEY is set manually because
  * ApiResourceDeleteInput carries resourceId, not the value field
  * ExtractResourceId expects (the environment-domain pattern). Returns the
- * deleted resource for the audit trail — unredacted, exactly as Go does
- * (see redactOAuthApp's header for the disclosure).
+ * deleted app for the audit trail, redacted like every other response (the
+ * ChannelApp and Environment delete shape): the chain has already
+ * destroyed the sealed secret, so the stored value could only leak
+ * (stigmer/stigmer#1257).
  */
 async function deleteOAuthApp(
   deps: OAuthAppControllerDeps,
@@ -311,7 +322,9 @@ async function deleteOAuthApp(
       "deleted OAuthApp not found in context",
     );
   }
-  return deleted as OAuthApp;
+  const app = deleted as OAuthApp;
+  redactOAuthApp(app);
+  return app;
 }
 
 /** Get — LoadTarget by id, then redact (Go buildGetPipeline). */
@@ -382,9 +395,11 @@ async function getByReference(
 const LIST_RESULT_KEY = "listResult";
 
 /**
- * ListByOrg — all OAuthApps whose metadata.org matches, each redacted,
- * sorted created_at descending (Go listByOrgStep). No pagination:
- * typically 1–5 per org. No authorization filtering in OSS.
+ * ListByOrg — the organization's OAuthApps the caller may view, each
+ * redacted, sorted created_at descending (Go listByOrgStep). No
+ * pagination: typically 1–5 per org. The annotation admits anyone who can
+ * view the organization; the list read scope then keeps only the apps a
+ * `get` would return (stigmer/stigmer#1257).
  */
 async function listByOrg(
   deps: OAuthAppControllerDeps,
@@ -408,7 +423,7 @@ async function listByOrg(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgStep(deps.store, deps.logger))
+    .addStep(newListByOrgStep(deps.store, deps.listReadScope, deps.logger))
     .build()
     .execute(reqCtx);
 
@@ -422,9 +437,17 @@ async function listByOrg(
   return list as OAuthApps;
 }
 
-/** The domain-local list step: load all, filter by org, redact, sort. */
+/**
+ * The domain-local list step: load all, keep the request's org, narrow to
+ * the caller's apps, redact, sort. The org predicate stays the step's own
+ * because with no scope composed the helper returns its input unchanged
+ * and never reads the org (the trusted-local full scan); with one, the
+ * scope is the last per-row predicate, so a composed driver is asked about
+ * the org's apps, never every tenant's (the environment list's order).
+ */
 function newListByOrgStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
   logger: Logger,
 ): PipelineStep<typeof OAuthAppQueryController.method.listByOrg.input> {
   return {
@@ -443,7 +466,7 @@ function newListByOrgStep(
         throw internalError(error, "failed to list OAuthApps");
       }
 
-      const apps: OAuthApp[] = [];
+      const requested: OAuthApp[] = [];
       for (const data of resources) {
         let app: OAuthApp;
         try {
@@ -457,8 +480,18 @@ function newListByOrgStep(
         if ((app.metadata?.org ?? "") !== org) {
           continue;
         }
+        requested.push(app);
+      }
+
+      const apps = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.oauth_app,
+        requested,
+        "",
+      );
+      for (const app of apps) {
         redactOAuthApp(app);
-        apps.push(app);
       }
 
       apps.sort((a, b) =>

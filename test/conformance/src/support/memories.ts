@@ -130,10 +130,25 @@ export interface OrgWithConfirmedFacts {
 // consent lifecycle: captured via create, confirmed via the consent RPC.
 // Shared by the memory-retrieval (no-embedder) and memory-selection
 // (embedder) execution suites, which differ only in the mock's posture.
-export async function provisionOrgWithConfirmedFacts(
+export function provisionOrgWithConfirmedFacts(
   clients: ConformanceClients,
   fixtures: FixtureTracker,
   count: number,
+): Promise<OrgWithConfirmedFacts> {
+  return provisionOrgWithFacts(
+    clients,
+    fixtures,
+    Array.from({ length: count }, (_, i) => `Durable fact number ${i} about this user.`),
+  );
+}
+
+// The same org and lifecycle with the facts' own words: for a consumer whose
+// agent must USE a recalled fact (the harness benchmark's working agent), so
+// the fact's content is part of the fixture, not a counter.
+export async function provisionOrgWithFacts(
+  clients: ConformanceClients,
+  fixtures: FixtureTracker,
+  facts: readonly string[],
 ): Promise<OrgWithConfirmedFacts> {
   const org = await clients.organizationCommand.create({
     apiVersion: "tenancy.stigmer.ai/v1",
@@ -145,10 +160,8 @@ export async function provisionOrgWithConfirmedFacts(
   const slug = org.metadata!.slug;
 
   const memoryIds: string[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const memory = await clients.memoryCommand.create(
-      makeMemory(slug, { content: `Durable fact number ${i} about this user.` }),
-    );
+  for (const content of facts) {
+    const memory = await clients.memoryCommand.create(makeMemory(slug, { content }));
     fixtures.defer(async () => {
       try {
         await clients.memoryCommand.delete({ value: memory.metadata!.id });

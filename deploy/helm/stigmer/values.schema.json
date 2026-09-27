@@ -117,7 +117,14 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "image": { "type": "string", "minLength": 1 },
-        "resources": { "$ref": "#/$defs/resources" }
+        "resources": { "$ref": "#/$defs/resources" },
+        "networkPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" }
+          }
+        }
       }
     },
     "externalTemporal": {
@@ -125,7 +132,27 @@
       "additionalProperties": false,
       "properties": {
         "hostPort": { "type": "string" },
-        "namespace": { "type": "string", "minLength": 1 }
+        "namespace": { "type": "string", "minLength": 1 },
+        "tls": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "serverName": { "type": "string" },
+            "existingSecret": { "type": "string" },
+            "caKey": { "type": "string" },
+            "certKey": { "type": "string" },
+            "keyKey": { "type": "string" }
+          }
+        },
+        "apiKey": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": { "type": "string" },
+            "key": { "type": "string", "minLength": 1 }
+          }
+        }
       }
     },
     "service": {

@@ -483,12 +483,14 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 
 # The live harness benchmark is an EXPERIMENT, not a test: it drives both
 # harnesses against real providers and spends real money. It is in no vitest
-# config. No `stigmer` CLI check here, unlike the execution suites: the bare
-# agent it measures has no memory attachment, so no `stigmer mcp-server`
-# child is ever spawned. Flags pass through BENCHMARK_ARGS
+# config. No `stigmer` CLI check here, unlike the execution suites: the
+# benchmark's own planner refuses, by name in the report, every cell on the
+# working agent (whose memory spawns `stigmer mcp-server`) when the CLI is
+# not on PATH, and runs the rest; the check lives there so `npm run` refuses
+# the same way. Flags pass through BENCHMARK_ARGS
 # (e.g. BENCHMARK_ARGS="--reps 3 --only native").
 .PHONY: benchmark-harnesses
-benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on real providers and write the internal benchmark report (needs the `temporal` CLI, ANTHROPIC_API_KEY, CURSOR_API_KEY; spends money)
+benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on real providers and write the internal benchmark report (needs the `temporal` and `stigmer` CLIs, ANTHROPIC_API_KEY, CURSOR_API_KEY; spends money)
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the benchmark stack"; \
 		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \

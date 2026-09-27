@@ -68,6 +68,9 @@ export interface AgentSpecOptions {
   // Richer mcp_server_usages, for tests that attach tool_approval_overrides.
   // Combined with mcpServerRefs (which are the simple, override-free form).
   mcpServerUsages?: McpServerUsageOption[];
+  // Skill slugs to reference via spec.skill_refs, each with kind=skill. Org is
+  // left empty so the server normalizes it to the agent's org.
+  skillRefs?: string[];
   // Blueprint env-var declarations projected into spec.env — the least-privilege
   // key whitelist the execution engine filters the merged environment against.
   // Declarations carry no value (that is the instance/runtime job); see envmerge.
@@ -93,6 +96,9 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     description: opts.description ?? "conformance fixture",
     instructions: opts.instructions ?? "Review code carefully and suggest improvements.",
     mcpServerUsages: [...refUsages, ...richUsages],
+    ...(opts.skillRefs !== undefined
+      ? { skillRefs: opts.skillRefs.map((slug) => ({ slug, kind: ApiResourceKind.skill })) }
+      : {}),
     ...(opts.subAgents !== undefined
       ? {
           subAgents: opts.subAgents.map((sub) => ({
@@ -117,11 +123,11 @@ export interface AgentOptions extends AgentSpecOptions {
 
 // A complete, valid Agent resource ready to hand to create/apply/update.
 export function makeAgent(opts: AgentOptions): InitShape<typeof AgentSchema> {
-  const { org, name, labels, description, instructions, subAgents, mcpServerRefs, mcpServerUsages, env } = opts;
+  const { org, name, labels, description, instructions, subAgents, mcpServerRefs, mcpServerUsages, skillRefs, env } = opts;
   return {
     apiVersion: AGENT_API_VERSION,
     kind: AGENT_KIND,
     metadata: { name, org, ...(labels !== undefined ? { labels } : {}) },
-    spec: makeAgentSpec({ description, instructions, subAgents, mcpServerRefs, mcpServerUsages, env }),
+    spec: makeAgentSpec({ description, instructions, subAgents, mcpServerRefs, mcpServerUsages, skillRefs, env }),
   };
 }

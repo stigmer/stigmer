@@ -1,13 +1,15 @@
 // Unit arms for the MCP tool fixture's path-named tool surfaces (entry
 // 20260910.02): the default `/mcp` stays the one-tool echo server every
 // existing suite pins by exact tool list, an explicit `/mcp/echo,fail` exposes
-// both, and an unknown name is refused rather than served as a guess. Driven
-// over loopback with the real MCP client; no runner, no target.
+// both, `/mcp/lookup_order` serves the fixed order table and refuses an
+// unknown id as a tool error, and an unknown name is refused rather than
+// served as a guess. Driven over loopback with the real MCP client; no
+// runner, no target.
 // Domain: conformance harness (execution engine).
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, McpToolFixture, toolsForPath } from "../mcp-server";
+import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, FIXTURE_ORDERS, LOOKUP_ORDER_TOOL_NAME, McpToolFixture, toolsForPath } from "../mcp-server";
 
 const fixture = new McpToolFixture();
 
@@ -30,6 +32,7 @@ describe("toolsForPath", () => {
     expect(toolsForPath("/mcp")).toEqual([ECHO_TOOL_NAME]);
     expect(toolsForPath("/mcp/echo,fail")).toEqual([ECHO_TOOL_NAME, FAIL_TOOL_NAME]);
     expect(toolsForPath("/mcp/fail")).toEqual([FAIL_TOOL_NAME]);
+    expect(toolsForPath("/mcp/lookup_order")).toEqual([LOOKUP_ORDER_TOOL_NAME]);
   });
 
   it("refuses an unknown tool name or a foreign path", () => {
@@ -58,6 +61,25 @@ describe("McpToolFixture tool surfaces", () => {
       const result = await client.callTool({ name: FAIL_TOOL_NAME, arguments: { message: "boom" } });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain("boom");
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("serves lookup_order alone at its url: a known id answers its record, an unknown id a tool error", async () => {
+    const client = await connect(fixture.url([LOOKUP_ORDER_TOOL_NAME]));
+    try {
+      const { tools } = await client.listTools();
+      expect(tools.map((t) => t.name)).toEqual([LOOKUP_ORDER_TOOL_NAME]);
+
+      const found = await client.callTool({ name: LOOKUP_ORDER_TOOL_NAME, arguments: { order_id: "ORD-4821" } });
+      expect(found.isError).toBeFalsy();
+      const [first] = found.content as Array<{ type: string; text: string }>;
+      expect(JSON.parse(first!.text)).toEqual(FIXTURE_ORDERS["ORD-4821"]);
+
+      const missing = await client.callTool({ name: LOOKUP_ORDER_TOOL_NAME, arguments: { order_id: "ORD-0000" } });
+      expect(missing.isError).toBe(true);
+      expect(JSON.stringify(missing.content)).toContain("ORD-0000");
     } finally {
       await client.close();
     }

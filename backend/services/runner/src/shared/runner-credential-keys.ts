@@ -27,6 +27,11 @@
  * ambient aws/gcloud auth), and on a local backend the shell can read the
  * credential files off disk regardless (owner ruling on #385).
  */
+import {
+  TEMPORAL_API_KEY_ENV,
+  TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
+} from "@stigmer/temporal-codecs";
+
 export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // Derives HITL approval fingerprints (fingerprint-secret.ts) — an agent
   // that reads this could forge approval receipts.
@@ -49,6 +54,13 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // Bedrock backend bearer credential, read by the AWS SDK's chain
   // (llm-backend.ts documents it as a supported auth path).
   "AWS_BEARER_TOKEN_BEDROCK",
+  // The Temporal frontend's API key and the mutual-TLS client key, read by
+  // the Temporal connection settings (@stigmer/temporal-codecs'
+  // connection config). Whoever holds either can reach Temporal as this
+  // runner. Stigmer's own names, never Temporal's TEMPORAL_API_KEY, which
+  // is the user's (that module's header).
+  TEMPORAL_API_KEY_ENV,
+  TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
 ];
 
 /**

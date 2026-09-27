@@ -135,6 +135,12 @@ Two consequences for a team:
   on, that is your Organization's members; before it, anyone who can reach the
   port. The runner's network is your team's network: give the container the
   reach your team may have, and no more.
+- **Temporal is inside the domain too.** Whoever reaches Temporal can start work
+  on the runner's queue. The runner runs only the workflow types the server
+  starts, and reads each run's work back from the server. The chart fences its
+  bundled Temporal to the Stigmer pod. The runner's own tools share that pod, so
+  for a stronger boundary run your own Temporal with authentication on
+  ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
 - **One runner, one replica.** The chart runs one replica on purpose and
   replaces the pod rather than rolling it, because two runners on one disk would
   race for the same working directories and checkpoints. Running a second shared
@@ -150,7 +156,10 @@ Session) and `kubernetes` (a Deployment per Session in the namespace
 `STIGMER_SANDBOX_K8S_NAMESPACE` names). The container drivers need the addresses
 a sandbox reaches the server and Temporal on, `STIGMER_SANDBOX_BACKEND_ENDPOINT`
 and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and take the image and command from
-`STIGMER_SANDBOX_RUNNER_IMAGE` and `STIGMER_SANDBOX_RUNNER_COMMAND`.
+`STIGMER_SANDBOX_RUNNER_IMAGE` and `STIGMER_SANDBOX_RUNNER_COMMAND`. Each
+sandboxed runner gets the server's Temporal namespace and its
+`STIGMER_TEMPORAL_*` connection settings, the credentials through the same
+channel as the runner's token.
 
 A provisioner changes how runs are routed. Each Session gets its own queue,
 `session:<id>`, which is `STIGMER_ACTIVITY_ROUTING=session`; and a Session is

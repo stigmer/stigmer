@@ -1,4 +1,44 @@
 ---
+# Source: stigmer/templates/temporal-networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: stigmer-temporal
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: temporal
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: stigmer
+      app.kubernetes.io/instance: stigmer
+      app.kubernetes.io/component: temporal
+  policyTypes:
+    - Ingress
+  ingress:
+    # The stigmer pod: the frontend only.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: stigmer
+              app.kubernetes.io/instance: stigmer
+              app.kubernetes.io/component: stigmer
+      ports:
+        - protocol: TCP
+          port: frontend
+    # Temporal itself: every port, for its services' own traffic (history,
+    # matching and membership listen beside the frontend).
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: stigmer
+              app.kubernetes.io/instance: stigmer
+              app.kubernetes.io/component: temporal
+---
 # Source: stigmer/templates/pvc.yaml
 # the server's /data: the skill content store and everything under ~/.stigmer except artifacts
 apiVersion: v1

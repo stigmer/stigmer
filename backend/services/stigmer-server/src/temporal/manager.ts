@@ -32,6 +32,12 @@
  * connection errors exactly as Go's stale-client operations do, and the
  * health monitor swaps in a fresh client when the server returns.
  *
+ * One choke point for connection security: `connection` (TLS, mutual TLS,
+ * an API key; `@stigmer/temporal-codecs`' `loadTemporalConnectionConfig`)
+ * is spread into BOTH connects, the client's and the workers' native one,
+ * so every worker, OSS and extension alike, authenticates the same way
+ * through createWorker. Absent settings keep the plaintext connection.
+ *
  * One choke point for payload decryption: the codecs are installed on the
  * client at dial AND wired into every worker by the deps' createWorker
  * capability (the TS SDK's Worker.create takes its own dataConverter; Go
@@ -40,6 +46,7 @@
  */
 import { Client, Connection } from "@temporalio/client";
 import type { PayloadCodec } from "@temporalio/common";
+import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import {
   NativeConnection,
   Worker,
@@ -150,6 +157,8 @@ export type WorkerFactory = (deps: WorkerFactoryDeps) => Promise<Worker>;
 export interface TemporalManagerOptions {
   readonly hostPort: string;
   readonly namespace: string;
+  /** TLS and API key for both connections; `{}` for plaintext. */
+  readonly connection: TemporalConnectionConfig;
   readonly logger: Logger;
   readonly payloadCodecs: PayloadCodec[];
   readonly workerFactories: readonly WorkerFactory[];
@@ -163,6 +172,7 @@ interface RunningWorker {
 export class TemporalManager {
   private readonly hostPort: string;
   private readonly namespace: string;
+  private readonly connectionSecurity: TemporalConnectionConfig;
   private readonly logger: Logger;
   private readonly payloadCodecs: PayloadCodec[];
   private readonly workerFactories: readonly WorkerFactory[];
@@ -184,6 +194,7 @@ export class TemporalManager {
   constructor(options: TemporalManagerOptions) {
     this.hostPort = options.hostPort;
     this.namespace = options.namespace;
+    this.connectionSecurity = options.connection;
     this.logger = options.logger;
     this.payloadCodecs = options.payloadCodecs;
     this.workerFactories = options.workerFactories;
@@ -328,6 +339,7 @@ export class TemporalManager {
     const connection = await Connection.connect({
       address: this.hostPort,
       connectTimeout: DIAL_CONNECT_TIMEOUT_MS,
+      ...this.connectionSecurity,
     });
     const client = new Client({
       connection,
@@ -494,6 +506,7 @@ export class TemporalManager {
   private async createAndRunWorkers(): Promise<void> {
     const nativeConnection = await NativeConnection.connect({
       address: this.hostPort,
+      ...this.connectionSecurity,
     });
     this.nativeConnection = nativeConnection;
 

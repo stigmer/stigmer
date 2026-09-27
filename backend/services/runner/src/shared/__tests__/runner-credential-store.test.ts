@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import {
   captureRunnerSecrets,
   getRunnerSecret,
@@ -86,6 +87,25 @@ describe("captureRunnerSecrets", () => {
     for (const key of [...RUNNER_CREDENTIAL_ENV_KEYS, ...RUNNER_ENCRYPTION_ENV_KEYS]) {
       expect(RUNNER_SECRET_ENV_KEYS, `'${key}' must be in the scrub list`).toContain(key);
     }
+  });
+
+  it("takes the Temporal API key and client key into custody, and the connection settings still read them", () => {
+    // Pinned by name, like the encryption keys: a runner that left either
+    // in process.env would hand every agent shell a credential to Temporal.
+    // Temporal's own TEMPORAL_API_KEY is the user's and stays untouched.
+    for (const key of ["STIGMER_TEMPORAL_API_KEY", "STIGMER_TEMPORAL_TLS_CLIENT_KEY_DATA"]) {
+      expect(RUNNER_CREDENTIAL_ENV_KEYS, `'${key}' must be a captured credential`).toContain(key);
+    }
+    expect(RUNNER_SECRET_ENV_KEYS).not.toContain("TEMPORAL_API_KEY");
+
+    process.env.STIGMER_TEMPORAL_API_KEY = "temporal-key";
+    captureRunnerSecrets();
+
+    expect(process.env.STIGMER_TEMPORAL_API_KEY).toBeUndefined();
+    expect(loadTemporalConnectionConfig(getRunnerSecret)).toEqual({
+      tls: {},
+      apiKey: "temporal-key",
+    });
   });
 });
 

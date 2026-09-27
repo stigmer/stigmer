@@ -15,8 +15,8 @@
  *     server does start, so the refusal is the barrel's and not a dead worker.
  *
  * The inline type's name is written out here on purpose: it is the removed
- * type, and this test is what keeps it removed at the wire. Skipped, like
- * the golden E2E, when a local Temporal cannot boot.
+ * type, and this test is what keeps it removed at the wire. Skipped when a
+ * local Temporal cannot boot.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -142,7 +142,7 @@ describe("dispatch surface E2E — Temporal TestWorkflowEnvironment", () => {
   afterAll(async () => {
     if (worker) {
       worker.shutdown();
-      await workerRunPromise;
+      await workerRunPromise?.catch(() => {});
     }
     await env?.teardown();
   });

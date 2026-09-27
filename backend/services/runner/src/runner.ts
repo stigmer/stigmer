@@ -24,8 +24,11 @@ import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
 import {
   captureRunnerSecrets,
+  getRunnerSecret,
   setRunnerSecret,
 } from "./shared/runner-credential-store.js";
+import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
+import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
 
 /**
@@ -50,6 +53,15 @@ export interface StigmerRunnerOptions {
 
   /** Temporal namespace. @default "default" */
   readonly temporalNamespace?: string;
+
+  /**
+   * How the runner authenticates to the Temporal frontend: TLS, mutual TLS
+   * or an API key, in the SDK's own shape (`@stigmer/temporal-codecs`'
+   * `TemporalConnectionConfig`). When omitted, the runner reads the
+   * `STIGMER_TEMPORAL_*` settings from its environment, through its secret
+   * store. `{}` forces a plaintext connection.
+   */
+  readonly temporalConnection?: TemporalConnectionConfig;
 
   /** Auth token for authenticating with the Stigmer server. */
   readonly stigmerToken?: string;
@@ -419,6 +431,8 @@ export function mapOptionsToConfig(
     // resolveRunnerBootstrap before the worker connects to Temporal.
     temporalAddress: options.temporalAddress ?? "",
     temporalNamespace: options.temporalNamespace ?? "default",
+    temporalConnection:
+      options.temporalConnection ?? loadTemporalConnectionConfig(getRunnerSecret),
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,

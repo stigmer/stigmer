@@ -26,12 +26,26 @@
 //   harnesses report `input_tokens` cache-INCLUSIVE (the cache buckets are
 //   subsets of it); dividing by input + cache buckets would read a fully
 //   cached prompt as a 50% hit rate.
-// - "Cold" is the run's FIRST call per harness and served model, not each
-//   cell's first attempt: every cell of a harness sends the same prompt
-//   prefix on the same served model, so the provider's prompt cache is warm
-//   for every cell after the first. Each cell's first attempt is a discarded
-//   `warmup`; `cold_first_call` is present on the one cell that paid the
-//   cache write and `null` elsewhere.
+// - "Cold" is the run's FIRST call per harness, served model and agent shape,
+//   not each cell's first attempt: every cell of one agent shape sends the
+//   same prompt prefix on the same served model, so the provider's prompt
+//   cache is warm for every such cell after the first. The bare and the
+//   working agent send different prefixes, so each pays its own cache write.
+//   Each cell's first attempt is a discarded `warmup`; `cold_first_call` is
+//   present on the one cell that paid the cache write and `null` elsewhere.
+// - `rounds` and `tool_calls` are the runtime's fold of each harness's own
+//   events (runner harness/turn-timeline.ts) and are NOT one unit across
+//   harnesses: both count a sub-agent's work, a native round is a provider
+//   call, and a Cursor round is a stretch of output between tool calls, with
+//   a sub-agent's transcript synthesized into rounds of its own (stigmer#1289).
+//   Compare a harness with itself across runs; across harnesses, read them as
+//   shape.
+// - A turn that edits files parks for review before it ends (the runner
+//   captures the edits and the execution waits for a decision). The
+//   benchmark approves at once and records when the agent's work was done
+//   (`review_ready_ms`) beside when the execution ended (`end_to_end_ms`).
+// - Every failed attempt says where it failed (`failure.stage`) and why, in
+//   the platform's own words.
 // - Two SHAs: the repository squash-merges, so a branch HEAD alone resolves
 //   on nothing after the merge. `main_sha` (the merge base with main) is the
 //   SHA a readout cites; `head_sha` and the PR locate the instrument's exact
@@ -40,14 +54,20 @@
 //   axes start at the create call; the Temporal axes are on Temporal's clock;
 //   the runner axes are on the runner's own origin (the activity's start).
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 2;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 3;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
 
-export type ComparisonMode = "parity" | "default" | "turn-2";
+export type ComparisonMode = "parity" | "default" | "turn-2" | "working-agent";
 
 export type SessionShape = "fresh-per-execution" | "one-session-three-turns";
+
+/**
+ * Which agent a cell measures: the bare agent the request-shape goldens
+ * photograph (support/agents.ts), or the working agent (support/working-agent.ts).
+ */
+export type AgentShape = "bare" | "working";
 
 export type SampleOutcome = "completed" | "failed" | "cancelled" | "timeout";
 
@@ -56,7 +76,17 @@ export type RefusalReason =
   | "missing CURSOR_API_KEY"
   | "excluded by --only"
   | "excluded by --cells"
-  | "model not in registry for harness";
+  | "model not in registry for harness"
+  | "missing stigmer CLI";
+
+/** Where an attempt failed: creating it, running it, or grading it. */
+export type FailureStage = "create" | "execution" | "judge";
+
+export interface SampleFailure {
+  stage: FailureStage;
+  /** The platform's own words: the RPC error, `status.error`, or why a verdict was refused. */
+  message: string;
+}
 
 /**
  * The runner's `stigmer_timing` line, kept whole: `segments` are what the
@@ -104,8 +134,39 @@ export interface BenchmarkAxes {
   turn_total_ms: number | null;
   /** Runner clock: `turn_phases.max_gap_ms`. */
   max_gap_ms: number | null;
+  /** `turn_phases.rounds`; see the header on comparing it across harnesses. */
   rounds: number | null;
+  /** `turn_phases.tool_calls`, sub-agent calls included. */
   tool_calls: number | null;
+  /** `turn_phases.sub_agents`: delegations in the turn, not the sub-agents declared. */
+  sub_agent_calls: number | null;
+  /**
+   * Client clock: the create call's start to the first subscribe message
+   * carrying a change set AWAITING_REVIEW, the instant the agent's work was
+   * done. Null on a turn that offered nothing for review.
+   */
+  review_ready_ms: number | null;
+  /**
+   * Runner clock: the `connect_mcp` segment of `execution_setup`. Null on
+   * every Cursor sample by construction: the Cursor SDK connects its servers
+   * inside `send()`, after setup is written (see `cursor_send_returned_ms`).
+   * Null on a native turn with no server to connect.
+   */
+  mcp_connect_ms: number | null;
+  /**
+   * Runner clock: the `send_returned` segment of the Cursor-only
+   * `turn_first_event` line, the window in which the SDK acquires its
+   * executor and spawns stdio servers. Null on every native sample.
+   */
+  cursor_send_returned_ms: number | null;
+  /** `execution_setup.mcp_server_count`: the servers the agent and session declare, attachments excluded. */
+  mcp_server_count: number | null;
+  /** Platform attachments the runtime adds beside the declared servers (memory, on this stack). */
+  attachment_count: number | null;
+  /** `execution_setup.skill_count`: the skill references, as declared. */
+  skill_count: number | null;
+  /** `execution_setup.workspace_entry_count`. */
+  workspace_entry_count: number | null;
 }
 
 export interface TokenCounts {
@@ -122,17 +183,26 @@ export interface BenchmarkMeasures extends BenchmarkAxes {
   tokens: TokenCounts;
 }
 
+/**
+ * A turn of a sampled session other than the sampled one. `turn_seq` is the
+ * turn's place in the session (1-based); the runner's own `turn_seq` field on
+ * its timing lines is an approval-cycle index within one execution, a
+ * different count.
+ */
 export interface SiblingTurn {
   turn_seq: number;
   execution_id: string;
   measures: BenchmarkMeasures;
   timing: SampleTiming;
   outcome: SampleOutcome;
+  failure?: SampleFailure;
 }
 
 export interface SampleTiming {
   turn_phases: TimingLine | null;
   execution_setup: TimingLine | null;
+  /** The Cursor-only first-event line; `null` on every native sample. */
+  turn_first_event: TimingLine | null;
 }
 
 export interface BenchmarkSample {
@@ -148,7 +218,9 @@ export interface BenchmarkSample {
   server: { created_at: string; started_at: string; completed_at: string };
   timing: SampleTiming;
   outcome: SampleOutcome;
-  /** A turn-2 sample keeps its session's first and third turns here. */
+  /** Present on every attempt whose outcome is not `completed`. */
+  failure?: SampleFailure;
+  /** A three-turn sample keeps its session's first and third turns here. */
   sibling_turns?: SiblingTurn[];
 }
 
@@ -175,28 +247,78 @@ export interface BenchmarkStat {
 
 export interface BenchmarkComparison {
   scenario: string;
-  /** One prompt for a first-turn cell, three for a turn-2 cell. */
+  /** One prompt for a first-turn cell, three for a three-turn cell. */
   prompts: string[];
   mode: ComparisonMode;
   session_shape: SessionShape;
+  agent: AgentShape;
   native?: BenchmarkStat;
   cursor?: BenchmarkStat;
   /** Warm median cost, native over cursor; absent when a side is. */
   cost_ratio?: number;
 }
 
+/** One criterion of a task's rubric, as the judge scored it. */
+export interface CriterionGrade {
+  name: string;
+  weight: number;
+  score: number;
+  reasoning: string;
+}
+
+export type QualityCheckName = "go_test";
+
+/** A check the benchmark ran on the workspace after the task's last turn. */
+export interface QualityCheck {
+  name: QualityCheckName;
+  /** `not-run` names why in `detail` (for example, no `go` on PATH); never silent. */
+  outcome: "passed" | "failed" | "not-run";
+  /** The command's exit code and output tail, or why it did not run. */
+  detail: string;
+}
+
+/** A file whose bytes differ from the fixture's after the task's last turn. */
+export interface FileChangeFact {
+  path: string;
+  change: "added" | "modified" | "deleted";
+}
+
+/**
+ * One graded attempt of a quality task on one harness: the session the
+ * working agent ran (`turns`), what the workspace held afterwards
+ * (`files_changed`, `checks`), exactly what the judge was shown (`subject`)
+ * and its verdict. A verdict whose criteria are not exactly the rubric's is
+ * refused (`failure.stage: "judge"`, `score: null`), never read as a grade.
+ */
 export interface QualityCell {
   task_id: string;
   placeholder: boolean;
   harness: BenchmarkHarness;
+  /** 1-based, of `methodology.quality_reps`. */
+  rep: number;
   model_requested: string;
   /** The judge model the eval task reports it used. */
   judge_model: string;
+  /** The eval's weighted score, 0..1. */
   score: number | null;
+  criteria: CriterionGrade[];
   reasoning: string;
+  subject: string;
+  files_changed: FileChangeFact[];
+  checks: QualityCheck[];
+  turns: BenchmarkSample[];
   workflow_execution_id: string;
-  agent_execution_id: string;
   outcome: SampleOutcome;
+  failure?: SampleFailure;
+}
+
+/** A task's grades on one harness, summarised: the median over the graded attempts. */
+export interface QualitySummary {
+  task_id: string;
+  harness: BenchmarkHarness;
+  graded: number;
+  failed: number;
+  median_score: number | null;
 }
 
 export interface RefusedCell {
@@ -218,13 +340,17 @@ export interface BenchmarkReport {
   host: { platform: string; node: string };
   methodology: {
     reps: number;
+    quality_reps: number;
     warmup_discarded: true;
-    cold: "first-call-of-run-per-harness-and-model";
+    cold: "first-call-of-run-per-harness-model-and-agent";
     titling_suppressed: boolean;
+    /** Every turn that offered a change set for review was approved whole, at once. */
+    file_review: "approved-at-review-ready";
   };
   models: { parity_native: string; parity_cursor: string; judge_requested: string };
   comparisons: BenchmarkComparison[];
   quality: QualityCell[];
+  quality_summary: QualitySummary[];
   refused: RefusedCell[];
 }
 
@@ -281,6 +407,14 @@ const AXIS_KEYS: readonly (keyof BenchmarkAxes)[] = [
   "max_gap_ms",
   "rounds",
   "tool_calls",
+  "sub_agent_calls",
+  "review_ready_ms",
+  "mcp_connect_ms",
+  "cursor_send_returned_ms",
+  "mcp_server_count",
+  "attachment_count",
+  "skill_count",
+  "workspace_entry_count",
 ];
 
 const TOKEN_KEYS: readonly (keyof TokenCounts)[] = ["input", "output", "cache_read", "cache_write", "total"];
@@ -343,6 +477,25 @@ export function summarize(
   };
 }
 
+/** Per task and harness, in first-seen order: the graded count, the failed count and the median score. */
+export function summarizeQuality(cells: readonly QualityCell[]): QualitySummary[] {
+  const byKey = new Map<string, { task_id: string; harness: BenchmarkHarness; scores: number[]; failed: number }>();
+  for (const cell of cells) {
+    const key = `${cell.task_id}|${cell.harness}`;
+    const entry = byKey.get(key) ?? { task_id: cell.task_id, harness: cell.harness, scores: [], failed: 0 };
+    if (cell.outcome === "completed" && cell.score !== null) entry.scores.push(cell.score);
+    else entry.failed += 1;
+    byKey.set(key, entry);
+  }
+  return [...byKey.values()].map((entry) => ({
+    task_id: entry.task_id,
+    harness: entry.harness,
+    graded: entry.scores.length,
+    failed: entry.failed,
+    median_score: median(entry.scores),
+  }));
+}
+
 /** Native warm median cost over cursor's; `undefined` when either side has no median or cursor's cost is 0. */
 export function costRatio(native: BenchmarkStat | undefined, cursor: BenchmarkStat | undefined): number | undefined {
   if (native?.median === null || native?.median === undefined) return undefined;
@@ -374,12 +527,14 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
   requireString(git, "main_sha", "report.git");
   const methodology = asRecord(root["methodology"], "report.methodology");
   requireNumber(methodology, "reps", "report.methodology");
+  requireNumber(methodology, "quality_reps", "report.methodology");
   const comparisons = root["comparisons"];
   if (!Array.isArray(comparisons)) throw new Error("not a benchmark report: comparisons is not an array");
   comparisons.forEach((entry, index) => {
     const comparison = asRecord(entry, `report.comparisons[${index}]`);
     requireString(comparison, "scenario", `report.comparisons[${index}]`);
     requireString(comparison, "mode", `report.comparisons[${index}]`);
+    requireString(comparison, "agent", `report.comparisons[${index}]`);
     for (const side of ["native", "cursor"] as const) {
       if (comparison[side] === undefined) continue;
       const stat = asRecord(comparison[side], `report.comparisons[${index}].${side}`);
@@ -395,6 +550,7 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
     }
   });
   if (!Array.isArray(root["quality"])) throw new Error("not a benchmark report: quality is not an array");
+  if (!Array.isArray(root["quality_summary"])) throw new Error("not a benchmark report: quality_summary is not an array");
   if (!Array.isArray(root["refused"])) throw new Error("not a benchmark report: refused is not an array");
   return root as unknown as BenchmarkReport;
 }

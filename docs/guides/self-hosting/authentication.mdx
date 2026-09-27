@@ -312,9 +312,12 @@ From the boot that read the issuer, every request needs a credential:
   authentication on belongs to no signed-in person and stops with a message
   saying so; start it again while signed in. A run's credential is written into
   the run's Temporal history and stays valid for ten minutes after the run ends,
-  so protect Temporal the way you protect the database. To end a run's
-  credential, end the run: cancel it and the credential is dead ten minutes
-  later. To end every run's credential at once, rotate
+  so protect Temporal the way you protect the database. The Helm chart's bundled
+  Temporal admits only the Stigmer pod; a Temporal of your own can require TLS,
+  mutual TLS or an API key, and both the server and the runner can present them
+  ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
+  To end a run's credential, end the run: cancel it and the credential is dead
+  ten minutes later. To end every run's credential at once, rotate
   `STIGMER_RUNNER_TOKEN_KEY`; every run in flight stops and must be started
   again.
 - Requests without a credential are rejected with

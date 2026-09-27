@@ -22,9 +22,10 @@ export interface UseDeleteOAuthAppReturn {
  * state.
  *
  * Deletes an OAuth app by its resource ID. Returns the deleted
- * {@link OAuthApp} on success so callers can confirm which app was
- * removed. The deletion is permanent — any MCP server overrides
- * referencing this app will lose their binding.
+ * {@link OAuthApp} on success, its client secret redacted like every
+ * read, so callers can confirm which app was removed. The deletion is
+ * permanent, and the server refuses it while an MCP server's
+ * `oauth_app_ref` still resolves to the app.
  *
  * @example
  * ```tsx

@@ -6,7 +6,8 @@
  * @kubernetes/client-node, the official client — this driver is the one
  * the cloud composition will eventually run in production, C4).
  *
- * Each sandbox = a per-sandbox Secret (STIGMER_TOKEN) + a single-replica
+ * Each sandbox = a per-sandbox Secret (STIGMER_TOKEN, plus the Temporal
+ * connection settings when the server's Temporal is authenticated) + a single-replica
  * Deployment (strategy Recreate) + a PVC-backed /workspace for the
  * persistent scopes (session, workflow — the Java persistent-scope
  * split; connect rides emptyDir). One shared namespace, never
@@ -255,6 +256,7 @@ export function buildSandboxSecret(
   scope: SandboxScope,
   id: string,
   stigmerToken: string,
+  temporalConnectionEnv: Readonly<Record<string, string>> = {},
 ): V1Secret {
   return {
     metadata: {
@@ -264,7 +266,10 @@ export function buildSandboxSecret(
     type: "Opaque",
     // A token-less sandbox still gets its (empty) Secret — the object
     // must exist for uniform cleanup (the Java posture).
-    stringData: stigmerToken !== "" ? { STIGMER_TOKEN: stigmerToken } : {},
+    stringData: {
+      ...temporalConnectionEnv,
+      ...(stigmerToken !== "" ? { STIGMER_TOKEN: stigmerToken } : {}),
+    },
   };
 }
 
@@ -308,6 +313,7 @@ export function buildSandboxDeployment(
     { name: "STIGMER_TASK_QUEUE", value: env.taskQueue },
     { name: "STIGMER_BACKEND_ENDPOINT", value: config.backendEndpoint },
     { name: "TEMPORAL_SERVICE_ADDRESS", value: config.temporalAddress },
+    { name: "TEMPORAL_NAMESPACE", value: config.temporalNamespace },
     { name: "WORKSPACE_ROOT_DIR", value: WORKSPACE_MOUNT_PATH },
   ];
   if (env.stigmerToken !== "") {
@@ -316,6 +322,15 @@ export function buildSandboxDeployment(
       valueFrom: {
         secretKeyRef: { name: `${baseName}-env`, key: "STIGMER_TOKEN" },
       },
+    });
+  }
+  // The Temporal connection settings sit in the same per-sandbox Secret as
+  // the token (buildSandboxSecret): they carry credentials, so the
+  // Deployment names them and never holds their values.
+  for (const name of Object.keys(config.temporalConnectionEnv)) {
+    containerEnv.push({
+      name,
+      valueFrom: { secretKeyRef: { name: `${baseName}-env`, key: name } },
     });
   }
 
@@ -417,7 +432,7 @@ export function newKubernetesSandboxProvisionerOverGateway(
       // references it), claim (reused when it survived a repair), then
       // the Deployment. No readiness wait (module header).
       await gateway.applySecret(
-        buildSandboxSecret(scope, id, env.stigmerToken),
+        buildSandboxSecret(scope, id, env.stigmerToken, config.temporalConnectionEnv),
       );
       if (PERSISTENT_SCOPES.has(scope)) {
         await gateway.applyPvc(buildWorkspacePvc(scope, id));

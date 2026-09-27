@@ -35,6 +35,12 @@
 //     admin arm is the oracle the cloud's model gives: an admin manages the
 //     organization's blueprints and members and never reads a member's
 //     conversations, keys or environments.
+//   - Administrative rows (an OAuth app, which carries its organization's
+//     vendor credentials): its creator's and the organization's admins' —
+//     an admin who did not create the row reads and lists it through
+//     `admin from organization` — and never a member's or a viewer's, who
+//     are refused on `get` and whose lists omit it (stigmer/stigmer#1257:
+//     the list once showed every member what `get` refused them).
 //   - The organization: `find` is UNIMPLEMENTED on every enforcing lane (the
 //     cloud leaves it unrouted; the built-in directory refuses enumeration);
 //     `findMyOrganizations` is the caller's organizations — a member of one
@@ -81,6 +87,7 @@ import {
   MCPSERVER_KIND,
 } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
+import { makeOAuthApp } from "../support/oauthapps";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import { makeWorkflow } from "../support/workflows";
@@ -488,6 +495,93 @@ describe("role enforcement — personal rows: a member's own, and nobody else's,
       expect(
         await kind.listIds(c.admin, c.org),
         `the admin's ${kind.name} list`,
+      ).not.toContain(id);
+    });
+  });
+});
+
+// One administrative kind as the wire offers it: created by the owner (the
+// create bar is the organization's admins), read, listed for the
+// organization, and deleted by its creator — the only one who may.
+interface AdministrativeKind {
+  readonly name: string;
+  create(using: ConformanceClients, org: string): Promise<string>;
+  get(using: ConformanceClients, id: string): Promise<unknown>;
+  listIds(
+    using: ConformanceClients,
+    org: string,
+  ): Promise<ReadonlyArray<string>>;
+  delete(using: ConformanceClients, id: string): Promise<unknown>;
+}
+
+const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
+  {
+    name: "oauth_app",
+    async create(using, org) {
+      const created = await using.oauthAppCommand.create(
+        makeOAuthApp(org, uniqueName("role-oauth-app")),
+      );
+      return created.metadata!.id;
+    },
+    get: (using, id) => using.oauthAppQuery.get({ value: id }),
+    listIds: async (using, org) =>
+      (await using.oauthAppQuery.listByOrg({ org })).entries.map(
+        (a) => a.metadata?.id ?? "",
+      ),
+    delete: (using, id) => using.oauthAppCommand.delete({ resourceId: id }),
+  },
+];
+
+describe("role enforcement — administrative rows: their creator's and the organization's admins', never a member's or a viewer's", () => {
+  let cast: Cast | undefined;
+
+  beforeAll(async () => {
+    if (enforcing.lane === undefined) return;
+    cast = await castOf(enforcing.lane);
+  });
+
+  function castOrSkip(ctx: { skip: (note?: string) => never }): Cast {
+    laneOrSkip(ctx);
+    if (cast === undefined) ctx.skip("the block's people were not provisioned");
+    return cast;
+  }
+
+  describe.each(ADMINISTRATIVE_KINDS)("$name", (kind) => {
+    it("the creator and an admin who did not create the row read and list it; a member and a viewer are refused and do not list it", async (ctx) => {
+      const c = castOrSkip(ctx);
+      const id = await kind.create(c.owner, c.org);
+      fixtures.defer(() => kind.delete(c.owner, id).catch(() => undefined));
+
+      await kind.get(c.owner, id);
+      expect(
+        await kind.listIds(c.owner, c.org),
+        `the creator's ${kind.name} list`,
+      ).toContain(id);
+
+      await kind.get(c.admin, id);
+      expect(
+        await kind.listIds(c.admin, c.org),
+        `an admin's ${kind.name} list`,
+      ).toContain(id);
+
+      await expectGrpcCode(
+        () => kind.get(c.member, id),
+        Code.PermissionDenied,
+        `a member's get on the organization's ${kind.name}`,
+      );
+      expect(
+        await kind.listIds(c.member, c.org),
+        `a member's ${kind.name} list`,
+      ).not.toContain(id);
+
+      await expectGrpcCode(
+        () => kind.get(c.viewer, id),
+        Code.PermissionDenied,
+        `a viewer's get on the organization's ${kind.name}`,
+      );
+      expect(
+        await kind.listIds(c.viewer, c.org),
+        `a viewer's ${kind.name} list`,
       ).not.toContain(id);
     });
   });

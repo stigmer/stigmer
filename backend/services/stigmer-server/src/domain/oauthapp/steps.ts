@@ -33,18 +33,18 @@ import {
   REDACTED_MARKER,
   deleteBlockedByMcpServerMessage,
 } from "./constants.js";
-import { resolveOAuthAppRef } from "./refresolution/refresolution.js";
+import { resolveOAuthAppRef } from "./refresolution.js";
 
 /**
  * Replaces client_secret with the redaction marker (Go RedactOAuthApp).
  *
  * A function rather than a pipeline step because redaction applies at
  * different points per operation: create/update after persist on newState;
- * get/getByReference after load on the target; listByOrg per entry. Go's
- * response list deliberately excludes DELETE — the delete RPC returns the
- * STORED resource with its encrypted secret intact, ported byte-faithfully
- * and disclosed in the PR (a cross-edition follow-up candidate: with
- * encryption disabled the stored value is plaintext).
+ * get/getByReference after load on the target; listByOrg per entry; delete
+ * on the removed row after its chain. Every response is redacted, the
+ * delete's included: the Go port returned the stored secret from delete —
+ * ciphertext, or plaintext on a keyless server — which no reader needs
+ * once the chain has destroyed the sealed value (stigmer/stigmer#1257).
  */
 export function redactOAuthApp(app: OAuthApp): void {
   if (app.spec !== undefined && app.spec.clientSecret !== "") {

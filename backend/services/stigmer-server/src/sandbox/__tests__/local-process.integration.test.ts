@@ -54,6 +54,8 @@ describe.skipIf(process.platform === "win32")(
     const config: SandboxDriverConfig = {
       backendEndpoint: "http://127.0.0.1:7234",
       temporalAddress: "127.0.0.1:7233",
+      temporalNamespace: "stigmer-smoke",
+      temporalConnectionEnv: { STIGMER_TEMPORAL_TLS: "true", STIGMER_TEMPORAL_API_KEY: "k-smoke" },
       runnerImage: "unused-by-this-driver",
       runnerCommand: script,
       kubernetesNamespace: "unused-by-this-driver",
@@ -78,6 +80,9 @@ describe.skipIf(process.platform === "win32")(
     }
 
     it("ensure spawns once, injects the runner env contract, and is idempotent", async () => {
+      // A server configured by path: the child must get the rendered
+      // settings only, never the inherited _PATH item beside them.
+      process.env["STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH"] = "/etc/inherited-ca.pem";
       await driver.ensureSessionSandbox("ses_smoke", {
         taskQueue: "session:ses_smoke",
         stigmerToken: "tok-smoke",
@@ -111,6 +116,11 @@ describe.skipIf(process.platform === "win32")(
         `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
       );
       expect(dump).toMatch(/WORKSPACE_ROOT_DIR=.+session-ses_smoke/);
+      expect(dump).toContain("TEMPORAL_NAMESPACE=stigmer-smoke");
+      expect(dump).toContain("STIGMER_TEMPORAL_TLS=true");
+      expect(dump).toContain("STIGMER_TEMPORAL_API_KEY=k-smoke");
+      expect(dump).not.toContain("STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH");
+      delete process.env["STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH"];
     });
 
     it("deprovision kills the child; probe reports absent; re-ensure respawns", async () => {

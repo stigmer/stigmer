@@ -47,6 +47,8 @@ describe.skipIf(!optedIn || !dockerAnswers())(
       // them (the runner tolerates an unreachable backend at boot).
       backendEndpoint: "http://host.docker.internal:7234",
       temporalAddress: "host.docker.internal:7233",
+      temporalNamespace: "default",
+      temporalConnectionEnv: {},
       runnerImage:
         process.env["STIGMER_SANDBOX_RUNNER_IMAGE"] ??
         "ghcr.io/stigmer/runner:latest",

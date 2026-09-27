@@ -9,8 +9,8 @@
 # The service began as the parity-gated TS port of the retired Go server
 # (go-server-retirement, D4 #25) — see the directory's README.md. Like the
 # runner, it is NOT part of the root npm workspaces: own package-lock.json,
-# file:-linked @stigmer/protos, installed and built separately (this mirrors
-# ci.runner.yaml, the per-service CI pattern).
+# the proto stubs and the backend libraries linked with `file:`, installed and
+# built separately (this mirrors ci.runner.yaml, the per-service CI pattern).
 #
 # The boot checks exist for the #399 failure class: vitest/tsx module
 # interop tolerates ESM/CJS import shapes that Node's real loader rejects,
@@ -18,8 +18,9 @@
 # scripts/verify-boot.mjs runs the full lifecycle (bind → listening →
 # SIGTERM → exit 0) the way the CLI daemon will.
 #
-# Path filter mirrors ci.runner.yaml's: the service's own tree, the proto
-# stubs it links, the Makefile (test-server lives there), and this file.
+# Path filter: the service's own tree, every package it links with `file:`
+# (scripts/lane-triggers.test.mjs fails when one is missing), the tooling that
+# builds them, the Makefile (test-server lives there), and this file.
 # =============================================================================
 
 name: ci.stigmer-server
@@ -35,11 +36,12 @@ on:
   pull_request:
     paths:
       - "backend/services/stigmer-server/**"
+      # The packages the server links with `file:` and builds against.
       - "apis/stubs/ts/**"
+      - "backend/libs/ts/**"
       # `npm run build:runner-deps` is the turbo wrapper, its task graph and
-      # the set it resolves from. A change to any of them must exercise this
-      # lane (2026-09-11, stigmer-cloud project 20260904.04 D-S6c: the Stage B
-      # merge reached main without this lane running).
+      # the set it resolves from. A change to any of them changes what this
+      # lane builds, so it must run here in its own PR.
       - "package.json"
       - "package-lock.json"
       - "turbo.json"
@@ -60,11 +62,12 @@ on:
     branches: [main]
     paths:
       - "backend/services/stigmer-server/**"
+      # The packages the server links with `file:` and builds against.
       - "apis/stubs/ts/**"
+      - "backend/libs/ts/**"
       # `npm run build:runner-deps` is the turbo wrapper, its task graph and
-      # the set it resolves from. A change to any of them must exercise this
-      # lane (2026-09-11, stigmer-cloud project 20260904.04 D-S6c: the Stage B
-      # merge reached main without this lane running).
+      # the set it resolves from. A change to any of them changes what this
+      # lane builds, so it must run here in its own PR.
       - "package.json"
       - "package-lock.json"
       - "turbo.json"
@@ -126,10 +129,11 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The server file:-links @stigmer/protos AND @stigmer/temporal-codecs
-      # (the decode-only payload codec wraps the lib since D4 #18) and
-      # imports their built dists — build:runner-deps builds exactly both.
-      - name: Build the proto stubs and temporal-codecs
+      # The server imports the built dists of the packages it links with
+      # `file:`. build:runner-deps builds exactly that set, which
+      # scripts/turbo-set.mjs reads from the server's and the runner's
+      # manifests.
+      - name: Build the libraries the server links
         run: npm run build:runner-deps
 
       # Standalone package with its own lockfile (mirrors ci.runner.yaml).
@@ -278,7 +282,7 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      - name: Build the proto stubs and temporal-codecs
+      - name: Build the libraries the server links
         run: npm run build:runner-deps
 
       - name: Install server dependencies

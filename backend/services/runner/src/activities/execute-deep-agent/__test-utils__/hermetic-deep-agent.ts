@@ -143,6 +143,7 @@ export function hermeticDeepAgentConfig(env: HermeticEnvironment, checkpointerTy
     taskQueue: "hermetic-test-queue",
     temporalAddress: "localhost:7233",
     temporalNamespace: "default",
+    temporalConnection: {},
     stigmerBackendEndpoint: "http://localhost:7234",
     mcpBridgeEndpoint: null,
     stigmerTokenRef: { current: null },

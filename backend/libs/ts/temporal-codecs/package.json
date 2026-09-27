@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/temporal-codecs",
   "version": "0.0.0-dev",
-  "description": "Temporal payload codecs shared by Stigmer's TypeScript Temporal processes — AES-256-GCM payload encryption and claim-check offloading, the one home for the cross-language envelope contract",
+  "description": "The Temporal plumbing Stigmer's TypeScript Temporal processes share — AES-256-GCM payload encryption and claim-check offloading (the one home for the cross-language envelope contract), and the connection-security settings every Temporal connection reads",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -29,7 +29,8 @@
     "temporal",
     "payload-codec",
     "encryption",
-    "claim-check"
+    "claim-check",
+    "tls"
   ],
   "publishConfig": {
     "access": "public",

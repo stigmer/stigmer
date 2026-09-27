@@ -5,20 +5,37 @@ import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb
 import { OAuthAppListPanel } from "../oauth-app/OAuthAppListPanel.js";
 import { CreateOAuthAppForm } from "../oauth-app/CreateOAuthAppForm.js";
 import { OAuthAppDetailPanel } from "../oauth-app/OAuthAppDetailPanel.js";
+import { OAUTH_APPS_MANAGED_BY_ADMINS } from "../oauth-app/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
-import { useActiveOrgSlug } from "../organization/OrgProvider.js";
+import { useActiveOrgId, useActiveOrgSlug } from "../organization/OrgProvider.js";
 
 type FlowState =
   | { phase: "idle" }
   | { phase: "creating" }
   | { phase: "editing"; oauthApp: OAuthApp };
 
-/** Settings section for organization OAuth app credentials. */
+/**
+ * Settings section for organization OAuth app credentials.
+ *
+ * "New OAuth app" is offered once the server confirms the caller holds
+ * `can_create_oauth_app` on the organization. The list shows only the apps
+ * the caller may view (each app's creator and the organization's admins),
+ * so a caller who may not create OAuth apps is told that the
+ * organization's admins manage them rather than that none is configured.
+ */
 export function OAuthAppsSection() {
   const headingId = useId();
   const org = useActiveOrgSlug();
+  const orgId = useActiveOrgId();
   const oauthAppsAvailable = useResourceAvailable(ApiResourceKind.oauth_app);
+  const createCheck = useCheckPermission(
+    oauthAppsAvailable && orgId ? { kind: "organization", id: orgId } : null,
+    "can_create_oauth_app",
+  );
+  const canCreate = !createCheck.isLoading && createCheck.allowed;
+  const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);
@@ -52,7 +69,7 @@ export function OAuthAppsSection() {
           OAuth Apps
         </h2>
 
-        {oauthAppsAvailable && org && flow.phase === "idle" && (
+        {oauthAppsAvailable && org && canCreate && flow.phase === "idle" && (
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
@@ -94,6 +111,7 @@ export function OAuthAppsSection() {
           org={org}
           onEdit={(app) => setFlow({ phase: "editing", oauthApp: app })}
           onRefetchRef={handleRefetchRef}
+          emptyState={deniedCreate ? OAUTH_APPS_MANAGED_BY_ADMINS : undefined}
         />
       )}
     </section>

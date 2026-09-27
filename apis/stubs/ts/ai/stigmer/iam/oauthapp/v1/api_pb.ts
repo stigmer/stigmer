@@ -31,7 +31,7 @@ export const file_ai_stigmer_iam_oauthapp_v1_api: GenFile = /*@__PURE__*/
  * *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*
  * to external services.
  *
- * Referenced by McpServer resources via McpServerVendorOAuth to enable
+ * Referenced by McpServer resources via McpServerAuth to enable
  * automated credential acquisition for MCP servers that require
  * vendor-specific OAuth.
  *

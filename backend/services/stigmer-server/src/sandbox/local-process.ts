@@ -33,6 +33,8 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import { TEMPORAL_CONNECTION_ENV_NAMES } from "@stigmer/temporal-codecs";
+
 import type { Logger } from "../boot/logger.js";
 import type {
   SandboxEnvironment,
@@ -86,10 +88,18 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
     );
     mkdirSync(workspaceRoot, { recursive: true });
 
+    // The server's own Temporal connection settings are replaced by their
+    // rendered form, never inherited beside it: an inherited _PATH item
+    // next to its rendered _DATA twin is a boot refusal in the runner.
+    const inherited = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => !TEMPORAL_CONNECTION_ENV_NAMES.includes(name)),
+    );
     const childEnv: NodeJS.ProcessEnv = {
-      ...process.env,
+      ...inherited,
+      ...config.temporalConnectionEnv,
       MODE: "local",
       STIGMER_TASK_QUEUE: env.taskQueue,
+      TEMPORAL_NAMESPACE: config.temporalNamespace,
       WORKSPACE_ROOT_DIR: workspaceRoot,
     };
     if (config.backendEndpoint !== "") {

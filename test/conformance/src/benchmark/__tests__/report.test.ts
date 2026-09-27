@@ -1,12 +1,13 @@
 // Unit arms for the benchmark report contract: the statistics a stat is built
-// from and the reader the site script trusts a report through.
+// from and the reader a tool outside this workspace trusts a report through.
 // Domain: conformance benchmark.
 //
 // Pinned: the median is an observed sample for odd and even counts; a null
 // axis is left out of its median, never counted as zero; the cache-hit ratio
 // divides by cache-inclusive input tokens; failed samples are counted and kept
-// but excluded from every median; the reader refuses a wrong version, a
-// missing field and a malformed side by name.
+// but excluded from every median; a task's quality median is over its graded
+// attempts only; the reader refuses a wrong version, a missing field and a
+// malformed side by name.
 import { describe, expect, it } from "vitest";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
@@ -17,7 +18,9 @@ import {
   readBenchmarkReport,
   spread,
   summarize,
+  summarizeQuality,
   type BenchmarkReport,
+  type QualityCell,
 } from "../report";
 import { makeSample } from "./sample-fixture";
 
@@ -91,6 +94,41 @@ describe("summarize", () => {
   });
 });
 
+describe("summarizeQuality", () => {
+  function grade(taskId: string, harness: "deep-agent" | "cursor", score: number | null, outcome: QualityCell["outcome"]): QualityCell {
+    return {
+      task_id: taskId,
+      placeholder: false,
+      harness,
+      rep: 1,
+      model_requested: "claude-sonnet-4.6",
+      judge_model: "claude-sonnet-4-6",
+      score,
+      criteria: [],
+      reasoning: "",
+      subject: "",
+      files_changed: [],
+      checks: [],
+      turns: [],
+      workflow_execution_id: "",
+      outcome,
+    };
+  }
+
+  it("medians each task per harness over its graded attempts and counts the rest as failed", () => {
+    const summary = summarizeQuality([
+      grade("fix", "deep-agent", 0.9, "completed"),
+      grade("fix", "deep-agent", 0.5, "completed"),
+      grade("fix", "deep-agent", null, "failed"),
+      grade("fix", "cursor", 0.7, "completed"),
+    ]);
+    expect(summary).toEqual([
+      { task_id: "fix", harness: "deep-agent", graded: 2, failed: 1, median_score: 0.9 },
+      { task_id: "fix", harness: "cursor", graded: 1, failed: 0, median_score: 0.7 },
+    ]);
+  });
+});
+
 describe("readBenchmarkReport", () => {
   function validReport(): BenchmarkReport {
     return {
@@ -98,7 +136,14 @@ describe("readBenchmarkReport", () => {
       timestamp: "2026-09-19T00:00:00Z",
       git: { head_sha: "abc", main_sha: "def" },
       host: { platform: "darwin", node: "v22" },
-      methodology: { reps: 5, warmup_discarded: true, cold: "first-call-of-run-per-harness-and-model", titling_suppressed: true },
+      methodology: {
+        reps: 5,
+        quality_reps: 3,
+        warmup_discarded: true,
+        cold: "first-call-of-run-per-harness-model-and-agent",
+        titling_suppressed: true,
+        file_review: "approved-at-review-ready",
+      },
       models: { parity_native: "claude-sonnet-4.6", parity_cursor: "claude-sonnet-4-6", judge_requested: "claude-sonnet-4.6" },
       comparisons: [
         {
@@ -106,10 +151,12 @@ describe("readBenchmarkReport", () => {
           prompts: ["Reply with exactly: hello"],
           mode: "parity",
           session_shape: "fresh-per-execution",
+          agent: "bare",
           native: summarize("deep-agent", makeSample(), [makeSample()], null),
         },
       ],
       quality: [],
+      quality_summary: [],
       refused: [],
     };
   }
@@ -119,8 +166,17 @@ describe("readBenchmarkReport", () => {
     expect(readBenchmarkReport(JSON.parse(JSON.stringify(report)))).toEqual(report);
   });
 
-  it("refuses a wrong schema version by value", () => {
-    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 1 })).toThrow("schema_version is 1");
+  it("refuses a wrong schema version by value, the v2 reports before the working agent included", () => {
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 2 })).toThrow("schema_version is 2");
+  });
+
+  it("refuses a report without the quality summary or the comparison's agent", () => {
+    const withoutSummary = validReport() as unknown as Record<string, unknown>;
+    delete withoutSummary["quality_summary"];
+    expect(() => readBenchmarkReport(withoutSummary)).toThrow("quality_summary is not an array");
+    const withoutAgent = validReport();
+    delete (withoutAgent.comparisons[0] as unknown as Record<string, unknown>)["agent"];
+    expect(() => readBenchmarkReport(withoutAgent)).toThrow("report.comparisons[0].agent is missing");
   });
 
   it("refuses a missing field by name", () => {

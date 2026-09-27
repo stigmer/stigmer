@@ -14,7 +14,13 @@
  *   - both Service ports carry `appProtocol`;
  *   - the init container waits for the dependencies compose orders with
  *     `depends_on` (F12, F14);
- *   - every top-level values key is documented in the README.
+ *   - every top-level values key is documented in the README;
+ *   - the bundled Temporal's NetworkPolicy admits the stigmer pod on the
+ *     frontend port and Temporal itself, and nothing else; it is absent
+ *     when turned off or when Temporal is external;
+ *   - an authenticated external Temporal reaches both containers as the
+ *     STIGMER_TEMPORAL_* settings, every secret by secretKeyRef and no
+ *     volume, while a plaintext install carries none of those names.
  *
  * Goldens live in `golden/<profile>.yaml` with the chart version replaced by
  * a placeholder so a release-pin bump does not churn them. Regenerate with
@@ -30,6 +36,7 @@ import { fileURLToPath } from "node:url";
 import {
   CHART_DIR,
   containerNamed,
+  envMap,
   findAll,
   findOne,
   helmTemplate,
@@ -233,6 +240,83 @@ test("the byo profile renders no bundled Postgres or Temporal", () => {
   const docs = renderProfile("byo");
   assert.equal(findAll(docs, "StatefulSet").length, 0);
   assert.equal(findAll(docs, "Deployment", `${RELEASE}-temporal`).length, 0);
+});
+
+test("the bundled Temporal is fenced to the stigmer pod", () => {
+  const policy = findOne(renderProfile("bundled"), "NetworkPolicy", `${RELEASE}-temporal`);
+  assert.equal(policy.spec.podSelector.matchLabels["app.kubernetes.io/component"], "temporal");
+  assert.deepEqual(policy.spec.policyTypes, ["Ingress"]);
+  const [fromStigmer, fromTemporal] = policy.spec.ingress;
+  assert.equal(policy.spec.ingress.length, 2);
+  assert.equal(
+    fromStigmer.from[0].podSelector.matchLabels["app.kubernetes.io/component"],
+    "stigmer",
+  );
+  assert.deepEqual(fromStigmer.ports, [{ protocol: "TCP", port: "frontend" }]);
+  assert.equal(
+    fromTemporal.from[0].podSelector.matchLabels["app.kubernetes.io/component"],
+    "temporal",
+  );
+  // The stigmer pod's selector labels are exactly what its pods carry.
+  const pod = findOne(renderProfile("bundled"), "Deployment", RELEASE).spec.template.metadata.labels;
+  for (const [key, value] of Object.entries(fromStigmer.from[0].podSelector.matchLabels)) {
+    assert.equal(pod[key], value, `the stigmer pod carries ${key}`);
+  }
+});
+
+test("the Temporal fence is absent when turned off or when Temporal is external", () => {
+  const off = renderProfile("bundled", { sets: ["temporal.networkPolicy.enabled=false"] });
+  assert.equal(findAll(off, "NetworkPolicy").length, 0);
+  assert.equal(findAll(renderProfile("byo"), "NetworkPolicy").length, 0);
+});
+
+const AUTHENTICATED_TEMPORAL = [
+  "externalTemporal.tls.enabled=true",
+  "externalTemporal.tls.serverName=temporal.internal",
+  "externalTemporal.tls.existingSecret=temporal-tls",
+  "externalTemporal.tls.caKey=ca.crt",
+  "externalTemporal.tls.certKey=tls.crt",
+  "externalTemporal.tls.keyKey=tls.key",
+  "externalTemporal.apiKey.existingSecret=temporal-api-key",
+];
+
+test("an authenticated external Temporal reaches both containers by secretKeyRef, with no volume", () => {
+  const deployment = findOne(renderProfile("byo", { sets: AUTHENTICATED_TEMPORAL }), "Deployment", RELEASE);
+  const spec = deployment.spec.template.spec;
+  const fromSecret = {
+    STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_DATA: { name: "temporal-tls", key: "ca.crt" },
+    STIGMER_TEMPORAL_TLS_CLIENT_CERT_DATA: { name: "temporal-tls", key: "tls.crt" },
+    STIGMER_TEMPORAL_TLS_CLIENT_KEY_DATA: { name: "temporal-tls", key: "tls.key" },
+    STIGMER_TEMPORAL_API_KEY: { name: "temporal-api-key", key: "STIGMER_TEMPORAL_API_KEY" },
+  };
+  for (const name of ["server", "runner"]) {
+    const env = envMap(containerNamed(spec, name));
+    assert.equal(env.get("STIGMER_TEMPORAL_TLS")?.value, "true", `${name}: TLS on`);
+    assert.equal(env.get("STIGMER_TEMPORAL_TLS_SERVER_NAME")?.value, "temporal.internal");
+    for (const [setting, ref] of Object.entries(fromSecret)) {
+      assert.equal(env.get(setting)?.value, undefined, `${name}: ${setting} is never a plain value`);
+      assert.deepEqual(env.get(setting)?.valueFrom?.secretKeyRef, ref, `${name}: ${setting}`);
+    }
+  }
+  const volumeNames = (spec.volumes ?? []).map((volume) => volume.name);
+  assert.ok(
+    !volumeNames.some((volume) => volume.includes("temporal")),
+    "the Temporal settings are env, not mounts",
+  );
+});
+
+test("a plaintext install carries no STIGMER_TEMPORAL_* setting", () => {
+  for (const profile of PROFILES) {
+    const spec = findOne(renderProfile(profile), "Deployment", RELEASE).spec.template.spec;
+    for (const name of ["server", "runner"]) {
+      const names = [...envMap(containerNamed(spec, name)).keys()];
+      assert.deepEqual(
+        names.filter((env) => env.startsWith("STIGMER_TEMPORAL_")),
+        [],
+        `[${profile}] ${name}`,
+      );
+    }
+  }
 });
 
 test("every top-level values key is documented in the chart README", () => {

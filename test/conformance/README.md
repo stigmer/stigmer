@@ -160,33 +160,71 @@ their failure message, so a reproduced failure says what the runner published
 `make benchmark-harnesses` (or `npm run benchmark:harnesses -w @stigmer/conformance -- <flags>`)
 drives the native and Cursor harnesses against **real providers** and writes
 the report the harness work is judged on. It boots the same
-Temporal + server + runner stack the execution suites use, but with the runner
-in **direct mode** (no mock proxy) reading `ANTHROPIC_API_KEY` and
-`CURSOR_API_KEY` from the environment; a missing key refuses the cells that
-need it by name and the run continues with the rest. It is in no vitest
-config, `npm test` cannot reach it, and it spends money: at the defaults, seven
-scenarios on two harnesses with one warm-up plus five samples each (108
-executions) plus any quality tasks. Its numbers are a new baseline for the
-machine, model versions and runner they were taken on, never a comparison with
-an earlier page.
+MCP fixture + Temporal + server + runner stack the execution suites use, but
+with the runner in **direct mode** (no mock proxy) reading
+`ANTHROPIC_API_KEY` and `CURSOR_API_KEY` from the environment. A missing key,
+or a missing `stigmer` CLI for the cells that need it, refuses those cells by
+name and the run continues with the rest. It is in no vitest config, `npm
+test` cannot reach it, and it spends money: at the defaults, eight scenarios
+on two harnesses with one warm-up plus five samples each (144 executions),
+plus every quality task's turns three times on each harness, each graded by
+one judge call. Its numbers are a new baseline for the machine, model versions
+and runner they were taken on, never a comparison with an earlier page.
 
-Per execution it reads five sources and joins them by execution id: the
-`subscribe` stream (when the user first saw a token, when the turn ended), the
-terminal status (`streaming_usage`: tokens and the runner's rate-card cost
-ESTIMATE), the runner's `turn_phases` and `execution_setup` timing lines from
-its tee'd log, the Temporal history through the `temporal` CLI (the wait before
-the runner's activity started, the `EnsureThread` hop), and, for a quality
-task, the `eval` judge's verdict off a graded `agent_call` workflow
-(`scripts/benchmark-harnesses/quality-tasks.yaml`; placeholder tasks run only
-under `--include-placeholders`). Every sample is kept whole, failed attempts
-included; the run's first call per harness and served model is the cold call.
-The report's contract is `src/benchmark/report.ts`. The benchmark is an
-internal instrument: a run's report is kept by the maintainers with the record
-of the work it measured, and its numbers are never published on the docs site
-(`.agents/skills/docs-writing/SKILL.md` carries the rule and its reason under
-"What to refuse"). The readers' wiring is
-proven hermetically by `benchmark-readers.harness.smoke.test.ts` on the
-execution lane, which asserts presence and shape and never a number.
+Two agents are measured. The **bare** agent (`support/agents.ts`
+`BARE_AGENT_INSTRUCTIONS`, the one the request-shape goldens photograph) runs
+the July cost benchmark's seven scenarios. The **working** agent
+(`src/support/working-agent.ts`) is shaped like the agents people run:
+- an HTTP MCP server on the tool fixture (`lookup_order`);
+- memory on, through a real Organization, which needs the `stigmer` CLI on
+  PATH (`make install-cli-shim`);
+- eight skills;
+- a sub-agent;
+- a seeded non-git Go workspace, copied fresh before every session to one
+  fixed directory outside the repository (`fixtures/working-agent/README.md`
+  says why and what is planted in it).
+
+It runs one timing scenario, `working-read-edit` (read, edit, follow up, three
+turns in one session with the edit sampled), and every quality task.
+
+A turn that edits files parks for review before it ends. The benchmark
+approves the change set whole at once, stamps when the agent's work was done
+(`review_ready_ms`), and sends the next turn only after the terminal phase.
+
+Per execution it reads its sources and joins them by execution id:
+- the `subscribe` stream: when the user first saw a token, when the work was
+  offered for review, when the turn ended;
+- the terminal status: `streaming_usage` (tokens and the runner's rate-card
+  cost ESTIMATE), `status.error` on a failure, memory on the spec as the
+  platform attachment;
+- the runner's `turn_phases`, `execution_setup` and Cursor-only
+  `turn_first_event` timing lines, from its tee'd log (rounds, tool calls,
+  MCP connect on native, the SDK's send window on Cursor, the declared counts);
+- the Temporal history, through the `temporal` CLI (the wait before the
+  runner's activity started, the `EnsureThread` hop).
+
+A **quality task** (`scripts/benchmark-harnesses/quality-tasks.yaml`, format
+in `src/benchmark/quality-tasks.ts`) is a real session on the working agent.
+After its last turn the judge is shown a blind subject: the user's messages,
+the agent's final replies, the files changed, the named files' content and
+the result of any `go_test` check. That judge is the platform's own `eval`
+task in `EVAL_MULTI_CRITERIA` mode on a pinned model. A verdict whose
+criteria are not exactly the task's is refused as a judge failure, never read
+as a score. Placeholder tasks run only under `--include-placeholders`.
+
+Every sample is kept whole, failed attempts included with the stage and the
+platform's words for what failed. The run's first call per harness, served
+model and agent shape is the cold call. The report's contract is
+`src/benchmark/report.ts`.
+
+The benchmark is an internal instrument: a run's report is kept by the
+maintainers with the record of the work it measured, and its numbers are
+never published on the docs site (`.agents/skills/docs-writing/SKILL.md`
+carries the rule and its reason under "What to refuse"). The instrument's
+wiring (the readers, the working agent through review, its prompt stability
+across sessions, the judge) is proven hermetically by
+`benchmark-readers.harness.smoke.test.ts` on the execution lane, which
+asserts presence and shape and never a number.
 
 ### Cloud targets (Class A and the execution class vs the cloud composition)
 
@@ -592,9 +630,10 @@ on `local-execution`. See the project's
 task may name as its child. A child runs on the parent's own task queue. So a
 name in the platform's `stigmer/` namespace would reach the runner's own
 workflow types outside the run the server dispatched. The runner refuses such
-a name when it builds the model, and the execution ends `EXECUTION_FAILED`
-with the task and the type in `status.error`. The runner's registered set
-itself is pinned at the Temporal wire by the runner's own tests, not here.
+a name when it reaches the task, before any child starts, and the execution
+ends `EXECUTION_FAILED` with the task and the type in `status.error`. The
+runner's registered set itself is pinned at the Temporal wire by the runner's
+own tests, not here.
 
 **The runner-behavior facets** (stigmer-cloud entry 20260910.02, DD-001)
 replaced the Go `test/integration-offline` suite, arm for arm, with its
@@ -646,11 +685,13 @@ src/
                     + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
-  support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval + graded agent_call), execution-poll,
-                    workflowexecutions, agentexecutions, file-review, workflow-architect, agents, mcpservers, memories, skills,
-                    environments, executioncontexts, sessions, request-shape (the golden renderers), …
-  benchmark/        report (the contract the site imports), cells, run (the direct-mode stack and driver), and the five readers:
-                    stream-watch, status-facts, timing-lines, temporal-history, quality  (the live benchmark's library; pure parts unit-tested)
+  support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll,
+                    workflowexecutions, agentexecutions, file-review, workflow-architect, working-agent (the benchmark's
+                    working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
+                    request-shape (the golden renderers), …
+  benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
+                    (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
+                    workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.smoke.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers)
                     + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
@@ -660,6 +701,7 @@ src/
                     + mcpserver-connect, mcp-caller-identity, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses (+ benchmark-harnesses/quality-tasks.yaml)
+fixtures/           working-agent/ (the working agent's Go workspace and skills: data, outside the TypeScript include)
 ```
 
 ## Adding a domain

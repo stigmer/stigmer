@@ -82,6 +82,41 @@ app.kubernetes.io/component: {{ .component }}
 {{- if .Values.temporal.enabled -}}default{{- else -}}{{ .Values.externalTemporal.namespace }}{{- end -}}
 {{- end -}}
 
+{{- /*
+How the server and the runner authenticate to an external Temporal: the
+STIGMER_TEMPORAL_* settings both read (@stigmer/temporal-codecs' connection
+config), every secret value through secretKeyRef from the operator's Secret,
+the PEM items in their _DATA form so nothing is mounted into the pod. Renders
+nothing for a plaintext Temporal, bundled or external.
+*/ -}}
+{{- define "stigmer.temporalConnectionEnv" -}}
+{{- $tls := .Values.externalTemporal.tls -}}
+{{- if $tls.enabled }}
+- name: STIGMER_TEMPORAL_TLS
+  value: "true"
+{{- with $tls.serverName }}
+- name: STIGMER_TEMPORAL_TLS_SERVER_NAME
+  value: {{ . | quote }}
+{{- end }}
+{{- range $item := list (list "STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_DATA" $tls.caKey) (list "STIGMER_TEMPORAL_TLS_CLIENT_CERT_DATA" $tls.certKey) (list "STIGMER_TEMPORAL_TLS_CLIENT_KEY_DATA" $tls.keyKey) }}
+{{- if index $item 1 }}
+- name: {{ index $item 0 }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $tls.existingSecret }}
+      key: {{ index $item 1 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- with .Values.externalTemporal.apiKey.existingSecret }}
+- name: STIGMER_TEMPORAL_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ . }}
+      key: {{ $.Values.externalTemporal.apiKey.key }}
+{{- end }}
+{{- end -}}
+
 {{- /* The scheme an Ingress host is reached on: https once it has a TLS Secret. */ -}}
 {{- define "stigmer.ingressScheme" -}}
 {{- if .tlsSecretName -}}https{{- else -}}http{{- end -}}
@@ -134,6 +169,19 @@ handles shape; these handle "set both or neither" and "you forgot the Secret".
 {{- end -}}
 {{- if and (not .Values.temporal.enabled) (not .Values.externalTemporal.hostPort) -}}
 {{- fail "\n\ntemporal.enabled is false but externalTemporal.hostPort is empty. Name the Temporal frontend the server and runner should dial (externalTemporal.hostPort, with externalTemporal.namespace), or leave temporal.enabled true for the bundled one.\n" -}}
+{{- end -}}
+{{- $ttls := .Values.externalTemporal.tls -}}
+{{- if and .Values.temporal.enabled (or $ttls.enabled .Values.externalTemporal.apiKey.existingSecret) -}}
+{{- fail "\n\nexternalTemporal.tls and externalTemporal.apiKey authenticate an external Temporal, but temporal.enabled is true and the bundled Temporal speaks neither. Set temporal.enabled=false with externalTemporal.hostPort, or drop the TLS and API-key values.\n" -}}
+{{- end -}}
+{{- if and (or $ttls.caKey $ttls.certKey $ttls.keyKey) (not $ttls.enabled) -}}
+{{- fail "\n\nexternalTemporal.tls.caKey, certKey or keyKey is set but externalTemporal.tls.enabled is false. They configure TLS; set enabled: true, or clear them.\n" -}}
+{{- end -}}
+{{- if and (or $ttls.caKey $ttls.certKey $ttls.keyKey) (not $ttls.existingSecret) -}}
+{{- fail "\n\nexternalTemporal.tls names keys but not their Secret. Set externalTemporal.tls.existingSecret to the Secret holding the PEM items.\n" -}}
+{{- end -}}
+{{- if ne (empty $ttls.certKey) (empty $ttls.keyKey) -}}
+{{- fail "\n\nexternalTemporal.tls.certKey and keyKey go together: mutual TLS needs the client certificate and its key. Set both or neither (the server and the runner refuse half a pair at boot).\n" -}}
 {{- end -}}
 {{- if and .Values.ingress.enabled (not .Values.ingress.api.host) -}}
 {{- fail "\n\ningress.enabled is true but ingress.api.host is empty. The API needs a hostname (and the artifact lane its own, ingress.artifacts.host): storage keys carry full paths, so the two lanes cannot share one host by path prefix.\n" -}}
