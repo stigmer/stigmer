@@ -29,6 +29,8 @@ type (
 	CreateCreditCheckoutSessionResponse = billingv1.CreateCreditCheckoutSessionResponse
 	// CreateBillingPortalSessionResponse holds the Stripe-hosted portal URL.
 	CreateBillingPortalSessionResponse = billingv1.CreateBillingPortalSessionResponse
+	// CreatePaymentMethodSetupSessionResponse holds the Stripe-hosted setup URL.
+	CreatePaymentMethodSetupSessionResponse = billingv1.CreatePaymentMethodSetupSessionResponse
 	// CustomerModelPricingResponse is the customer-facing model price list.
 	CustomerModelPricingResponse = billingv1.CustomerModelPricingResponse
 	// ModelPricingGovernanceResponse is the operator pricing governance view.
@@ -107,6 +109,14 @@ type CreateCheckoutSessionParams struct {
 type CreateBillingPortalSessionParams struct {
 	OrgID     string
 	ReturnURL string
+}
+
+// CreatePaymentMethodSetupSessionParams configures a Stripe Checkout Session
+// that saves a payment method without charging it.
+type CreatePaymentMethodSetupSessionParams struct {
+	OrgID      string
+	SuccessURL string
+	CancelURL  string
 }
 
 // SetAutoRechargeConfigParams configures automatic credit recharge.
@@ -316,6 +326,22 @@ func (b *BillingClient) CreateBillingPortalSession(ctx context.Context, params *
 	resp, err := b.command.CreateBillingPortalSession(ctx, &billingv1.CreateBillingPortalSessionInput{
 		OrgId:     params.OrgID,
 		ReturnUrl: params.ReturnURL,
+	})
+	if err != nil {
+		return nil, gen.WrapErr(err)
+	}
+	return resp, nil
+}
+
+// CreatePaymentMethodSetupSession creates a Stripe Checkout Session that
+// saves a payment method without charging it. The caller should redirect the
+// user to the returned setup URL; this is how an organization that has never
+// bought credit puts a card on file.
+func (b *BillingClient) CreatePaymentMethodSetupSession(ctx context.Context, params *CreatePaymentMethodSetupSessionParams) (*CreatePaymentMethodSetupSessionResponse, error) {
+	resp, err := b.command.CreatePaymentMethodSetupSession(ctx, &billingv1.CreatePaymentMethodSetupSessionInput{
+		OrgId:      params.OrgID,
+		SuccessUrl: params.SuccessURL,
+		CancelUrl:  params.CancelURL,
 	})
 	if err != nil {
 		return nil, gen.WrapErr(err)

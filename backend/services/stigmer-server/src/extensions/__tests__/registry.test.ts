@@ -488,6 +488,9 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       // personal-organization ensure and backfill ride it).
       "identity-account-provision:post-persist",
       "org-create:post-persist",
+      // The ninth: the organization create chain before Persist, where a
+      // limit on which organizations may exist refuses with nothing written.
+      "org-create:pre-side-effect-gate",
       "sandbox-acquisition:gate",
       "session-create:pre-side-effect-gate",
     ]);

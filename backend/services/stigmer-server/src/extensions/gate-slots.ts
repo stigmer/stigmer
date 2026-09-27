@@ -43,6 +43,16 @@
  * resource, and a team member who is not one of the organization's
  * viewers. Never on `bootstrapPolicy`, the platform's structural lane.
  *
+ * The ninth, `org-create:pre-side-effect-gate`: the organization create
+ * chain after its last pure step (CopySlugToId) and before Persist, the
+ * position the session chain's slot holds. It exists for a refusal that
+ * must leave nothing behind: `org-create:post-persist` runs after the row
+ * is written, so a limit enforced there would leave the organization it
+ * refused. The Cloud refuses a platform-managed organization its
+ * integrator's plan does not admit; a licensed deployment's organization
+ * limit belongs here too. `apply` delegates to create on its create arm,
+ * so the slot fires there as well.
+ *
  * Two enforcement layers, deliberately redundant, both derived from the
  * ONE literal tuple below (lockstep by construction):
  *   - GateSlotName (compile time): the union of declared slot literals.
@@ -81,6 +91,7 @@ export const GATE_SLOT_NAMES = [
   "sandbox-acquisition:gate",
   "identity-account-provision:post-persist",
   "iam-policy-create:pre-side-effect-gate",
+  "org-create:pre-side-effect-gate",
 ] as const;
 
 /** The declared slot-name union — a registration outside it fails tsc. */

@@ -9,6 +9,8 @@ import ai.stigmer.billing.v1.CreateBillingPortalSessionInput;
 import ai.stigmer.billing.v1.CreateBillingPortalSessionResponse;
 import ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput;
 import ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse;
+import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput;
+import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse;
 import ai.stigmer.billing.v1.CreditBalance;
 import ai.stigmer.billing.v1.CreditLedgerEntry;
 import ai.stigmer.billing.v1.CreditLedgerResponse;
@@ -211,6 +213,22 @@ public final class BillingClient {
             CreateBillingPortalSessionParams params) {
         try {
             return command.createBillingPortalSession(params.toProto());
+        } catch (StatusRuntimeException e) {
+            throw StigmerException.wrap(e);
+        }
+    }
+
+    /**
+     * Creates a Stripe Checkout Session that saves a payment method without
+     * charging it.
+     *
+     * <p>Returns the Stripe-hosted setup URL; redirect the user there. This is
+     * how an organization that has never bought credit puts a card on file.
+     */
+    public CreatePaymentMethodSetupSessionResponse createPaymentMethodSetupSession(
+            CreatePaymentMethodSetupSessionParams params) {
+        try {
+            return command.createPaymentMethodSetupSession(params.toProto());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
         }
@@ -771,6 +789,64 @@ public final class BillingClient {
                 Objects.requireNonNull(orgId, "orgId is required");
                 Objects.requireNonNull(returnUrl, "returnUrl is required");
                 return new CreateBillingPortalSessionParams(this);
+            }
+        }
+    }
+
+    // -- CreatePaymentMethodSetupSessionParams ---------------------------------------
+
+    /** Parameters for {@link #createPaymentMethodSetupSession}. */
+    public static final class CreatePaymentMethodSetupSessionParams {
+        final String orgId;
+        final String successUrl;
+        final String cancelUrl;
+
+        private CreatePaymentMethodSetupSessionParams(Builder builder) {
+            this.orgId = builder.orgId;
+            this.successUrl = builder.successUrl;
+            this.cancelUrl = builder.cancelUrl;
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        CreatePaymentMethodSetupSessionInput toProto() {
+            return CreatePaymentMethodSetupSessionInput.newBuilder()
+                    .setOrgId(orgId)
+                    .setSuccessUrl(successUrl)
+                    .setCancelUrl(cancelUrl)
+                    .build();
+        }
+
+        public static final class Builder {
+            private String orgId;
+            private String successUrl;
+            private String cancelUrl;
+
+            private Builder() {}
+
+            /** Organization to save the payment method for (required). */
+            public Builder orgId(String orgId) {
+                this.orgId = Objects.requireNonNull(orgId);
+                return this;
+            }
+
+            /** URL to redirect to after the payment method is saved (required). */
+            public Builder successUrl(String successUrl) {
+                this.successUrl = Objects.requireNonNull(successUrl);
+                return this;
+            }
+
+            /** URL to redirect to if the user leaves without saving one (required). */
+            public Builder cancelUrl(String cancelUrl) {
+                this.cancelUrl = Objects.requireNonNull(cancelUrl);
+                return this;
+            }
+
+            public CreatePaymentMethodSetupSessionParams build() {
+                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(successUrl, "successUrl is required");
+                Objects.requireNonNull(cancelUrl, "cancelUrl is required");
+                return new CreatePaymentMethodSetupSessionParams(this);
             }
         }
     }

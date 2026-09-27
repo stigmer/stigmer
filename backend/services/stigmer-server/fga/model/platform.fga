@@ -151,6 +151,19 @@ type platform
     define can_issue_license: operator
 
     # ========================================
+    # PLAN CATALOG
+    # ========================================
+    # Permission to create and retire plans: the catalog rows a
+    # subscription or a license is bought against. A plan belongs to the
+    # platform, not to any organization (its authorization scope is NONE),
+    # and its reads need no permission because every signed-in caller may
+    # see what is on sale. Writing one sets what customers pay, so it is a
+    # human operator act, kept distinct from the machine account's
+    # can_execute_billing_ops pipeline the way can_manage_model_pricing is.
+    # FGA check: identity_account:<caller_id> can_manage_plans platform:stigmer
+    define can_manage_plans: operator
+
+    # ========================================
     # CREDIT MUTATIONS
     # ========================================
     # Permission to add or remove an organization's credits without a

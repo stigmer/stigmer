@@ -736,9 +736,10 @@ describe("extension composition (O5 driver substitution)", () => {
 /**
  * The O4 gate-slot + status-hook arms: an extension gate spliced into a
  * declared slot refuses with its own ConnectError code and copy — before
- * the side effect on the pre-side-effect slot (nothing persisted), after
- * it on the post-persist slot (the row survives the failed request, the
- * inherited Java semantics — O4 verification V1); the status observers
+ * the side effect on a pre-side-effect slot (nothing persisted: the
+ * session and organization chains), after it on the post-persist slot
+ * (the row survives the failed request, the inherited Java semantics — O4
+ * verification V1); the status observers
  * see the terminal updateStatus transition exactly once (the Q4
  * phase-change rule) and the response decorator contributes the control
  * signal on the shared reply schema.
@@ -746,6 +747,7 @@ describe("extension composition (O5 driver substitution)", () => {
 describe("extension composition (O4 gate slots + status hooks)", () => {
   const REFUSED_SESSION = "o4-refused-session";
   const REFUSED_ORG_SLUG = "o4refusedorg";
+  const PRE_REFUSED_ORG_SLUG = "prerefusedorg";
   let server: ComposedServer;
   let dir: string;
   let portTransport: Transport;
@@ -777,11 +779,25 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
     },
   };
 
+  const orgPreSideEffectGate: PipelineStep<DescMessage> = {
+    name: "FakeOrgPreSideEffectGate",
+    execute: (ctx) => {
+      const org = ctx.newState as { metadata?: { slug?: string } };
+      if (org.metadata?.slug === PRE_REFUSED_ORG_SLUG) {
+        throw new ConnectError(
+          "fake organization limit reached",
+          Code.FailedPrecondition,
+        );
+      }
+    },
+  };
+
   const gateExtension: ServerExtension = {
     name: "fake-gates-and-hooks",
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
       ["session-create:pre-side-effect-gate", [sessionGate]],
       ["org-create:post-persist", [orgPostPersistGate]],
+      ["org-create:pre-side-effect-gate", [orgPreSideEffectGate]],
     ]),
     statusTransitionHooks: {
       observers: [
@@ -890,6 +906,36 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
     // refused — healed by idempotent retry, never rolled back (V1).
     const org = await query.get({ value: REFUSED_ORG_SLUG });
     expect(org.metadata?.slug).toBe(REFUSED_ORG_SLUG);
+  });
+
+  it("a pre-side-effect gate refusal aborts organization create with no row written", async () => {
+    const command = createClient(OrganizationCommandController, portTransport);
+    const query = createClient(OrganizationQueryController, portTransport);
+
+    let refused: ConnectError | undefined;
+    try {
+      await command.create(
+        create(OrganizationSchema, {
+          apiVersion: "tenancy.stigmer.ai/v1",
+          kind: "Organization",
+          metadata: { name: "Pre Refused Org", slug: PRE_REFUSED_ORG_SLUG },
+        }),
+      );
+    } catch (error) {
+      refused = ConnectError.from(error);
+    }
+    expect(refused?.code).toBe(Code.FailedPrecondition);
+    expect(refused?.rawMessage).toBe("fake organization limit reached");
+
+    // The slot sits BEFORE Persist: the refused organization was never
+    // written, which is the whole reason the slot exists.
+    let getError: ConnectError | undefined;
+    try {
+      await query.get({ value: PRE_REFUSED_ORG_SLUG });
+    } catch (error) {
+      getError = ConnectError.from(error);
+    }
+    expect(getError?.code).toBe(Code.NotFound);
   });
 
   it("observers see the terminal updateStatus transition once and the decorator contributes the signal", async () => {

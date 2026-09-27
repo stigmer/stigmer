@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, CreatePaymentMethodSetupSessionInput, CreatePaymentMethodSetupSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -149,6 +149,25 @@ export const BillingCommandController = {
       name: "createBillingPortalSession",
       I: CreateBillingPortalSessionInput,
       O: CreateBillingPortalSessionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create a Stripe Checkout Session in setup mode, which saves a payment
+     * method without charging it. Returns a URL for the client to redirect
+     * the user.
+     *
+     * This is how an organization that has never bought credit gets a card
+     * on file (the billing portal needs an existing Stripe Customer, which
+     * this call creates on first use). The saved card becomes the account's
+     * default payment method through the payment_method.attached webhook,
+     * the same path a card saved at credit checkout takes.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createPaymentMethodSetupSession
+     */
+    createPaymentMethodSetupSession: {
+      name: "createPaymentMethodSetupSession",
+      I: CreatePaymentMethodSetupSessionInput,
+      O: CreatePaymentMethodSetupSessionResponse,
       kind: MethodKind.Unary,
     },
     /**

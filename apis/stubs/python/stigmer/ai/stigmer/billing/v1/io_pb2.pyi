@@ -205,6 +205,24 @@ class CreateBillingPortalSessionResponse(_message.Message):
     portal_url: str
     def __init__(self, portal_url: _Optional[str] = ...) -> None: ...
 
+class CreatePaymentMethodSetupSessionInput(_message.Message):
+    __slots__ = ("org_id", "success_url", "cancel_url")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_URL_FIELD_NUMBER: _ClassVar[int]
+    CANCEL_URL_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    success_url: str
+    cancel_url: str
+    def __init__(self, org_id: _Optional[str] = ..., success_url: _Optional[str] = ..., cancel_url: _Optional[str] = ...) -> None: ...
+
+class CreatePaymentMethodSetupSessionResponse(_message.Message):
+    __slots__ = ("setup_url", "checkout_session_id")
+    SETUP_URL_FIELD_NUMBER: _ClassVar[int]
+    CHECKOUT_SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    setup_url: str
+    checkout_session_id: str
+    def __init__(self, setup_url: _Optional[str] = ..., checkout_session_id: _Optional[str] = ...) -> None: ...
+
 class SetAutoRechargeConfigInput(_message.Message):
     __slots__ = ("org_id", "enabled", "threshold_micros", "recharge_amount_micros", "monthly_cap_micros")
     ORG_ID_FIELD_NUMBER: _ClassVar[int]

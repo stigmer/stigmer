@@ -1,4 +1,4 @@
-// Billing ledger conformance — the 22 RPCs of the billing engine and the
+// Billing ledger conformance — the 23 RPCs of the billing engine and the
 // Stripe webhook (Class A; no runner). E1 of the convergence program's
 // DD-012 reset (entry 20260906.04): Java's behavior is the spec, written
 // green against the hermetic Java launcher, then run against the TS
@@ -655,6 +655,38 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(request?.params["return_url"]).toBe("https://x.test/back");
   });
 
+  it("[billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session] a setup session saves a card for an org that never purchased, charging nothing", async () => {
+    const { org } = await unfundedOrg();
+    const input = { orgId: org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" };
+    const first = await clients.billingCommand.createPaymentMethodSetupSession(input);
+    expect(first.setupUrl).toMatch(/^https:\/\/checkout\.stripe\.test\//);
+    expect(first.checkoutSessionId).not.toBe("");
+    await clients.billingCommand.createPaymentMethodSetupSession(input);
+
+    const requests = await control.stripe.requests();
+    const customers = requests.filter((r) => r.path === "/v1/customers" && r.method === "POST");
+    expect(customers, "the customer is created once and reused").toHaveLength(1);
+    const sessions = requests.filter((r) => r.path === "/v1/checkout/sessions" && r.method === "POST");
+    expect(sessions).toHaveLength(2);
+    expect(sessions[0]?.params["mode"]).toBe("setup");
+    expect(sessions[0]?.params["customer"]).not.toBeUndefined();
+    expect(sessions[0]?.params["success_url"]).toBe("https://x.test/saved");
+    expect(sessions[0]?.params["cancel_url"]).toBe("https://x.test/back");
+    expect(await balanceOf(org)).toBe(0n);
+  });
+
+  it("[billing.rpc.create-payment-method-setup-session.outsider-permission-denied] an outsider cannot save a card for the org", async () => {
+    const { org } = await unfundedOrg();
+    const other = await outsider();
+    const denied = await expectGrpcCode(
+      () => other.billingCommand.createPaymentMethodSetupSession({ orgId: org, successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
+      Code.PermissionDenied,
+      "outsider setup session",
+    );
+    expect(denied.rawMessage).toBe(COPY.manageBilling);
+    expect((await control.stripe.requests()).filter((r) => r.path.startsWith("/v1/checkout"))).toEqual([]);
+  });
+
   it("[billing.rpc.set-auto-recharge-config.persists-and-validates] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
     const { org } = await unfundedOrg();
     const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ orgId: org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
@@ -1245,6 +1277,7 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ executionId })],
       ["createCreditCheckoutSession", () => clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
       ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ orgId: org, returnUrl: "https://x/back" })],
+      ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ orgId: org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
       ["setAutoRechargeConfig", () => clients.billingCommand.setAutoRechargeConfig({ orgId: org })],
       ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({ overrideId: "ovr_x" })],
       ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "native", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
@@ -1259,7 +1292,7 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ orgId: org })],
       ["getExecutionBillingSignal", () => clients.billingQuery.getExecutionBillingSignal({ executionId })],
     ];
-    expect(lanes, "the 22 RPCs, no more, no fewer").toHaveLength(22);
+    expect(lanes, "the 23 RPCs, no more, no fewer").toHaveLength(23);
     for (const [name, op] of lanes) {
       await expectGrpcCode(op, Code.Unimplemented, `OSS ${name}`);
     }

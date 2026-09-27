@@ -326,6 +326,31 @@ message CreateBillingPortalSessionResponse {
   string portal_url = 1;
 }
 
+// CreatePaymentMethodSetupSessionInput opens a Stripe Checkout Session in
+// setup mode, to save a payment method without a purchase.
+//
+// The caller's email is resolved from their identity account for Stripe
+// Customer creation, as for a credit checkout.
+message CreatePaymentMethodSetupSessionInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // URL to redirect to after the payment method is saved.
+  string success_url = 2 [(buf.validate.field).required = true];
+
+  // URL to redirect to if the user leaves without saving one.
+  string cancel_url = 3 [(buf.validate.field).required = true];
+}
+
+// CreatePaymentMethodSetupSessionResponse returns the Stripe-hosted setup
+// page URL.
+message CreatePaymentMethodSetupSessionResponse {
+  // Stripe Checkout setup page URL. Redirect the user here.
+  string setup_url = 1;
+
+  // Stripe Checkout Session ID.
+  string checkout_session_id = 2;
+}
+
 // SetAutoRechargeConfigInput configures automatic credit top-up for an org.
 //
 // When enabled, the billing system charges the account's saved payment

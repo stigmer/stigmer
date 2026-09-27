@@ -37,7 +37,7 @@
 # entry's tasks/T01_1_review.md; the row's `disposition` is the ruling's
 # durable form. `debris-candidate` rows await that ruling.
 #
-# The record's counts, reconciled here from code: 22 billing RPCs (13 command
+# The record's counts, reconciled here from code: 23 billing RPCs (14 command
 # + 9 query), 5 gate steps + 2 status hooks, 7 Stripe handlers over 8 event
 # strings, 6 billing schedule ids from 5 starters.
 #
@@ -479,6 +479,36 @@ rows:
     observability: launcher
     caller: primary
     needs: [unfunded-org, fake-stripe]
+  - id: billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session
+    surface: billing
+    lane: >-
+      rpc.createPaymentMethodSetupSession
+    behavior: >-
+      For an org that never purchased, createPaymentMethodSetupSession ensures a Stripe customer (POST /v1/customers, once across calls), creates a checkout session in setup mode for that customer (POST /v1/checkout/sessions, mode setup, the given success and cancel URLs) and returns its URL and id. Nothing is charged and no purchase is recorded.
+    java_source: >-
+      none (added with apis billing/v1/command.proto createPaymentMethodSetupSession)
+    java_test: >-
+      none
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [unfunded-org, fake-stripe]
+  - id: billing.rpc.create-payment-method-setup-session.outsider-permission-denied
+    surface: billing
+    lane: >-
+      rpc.createPaymentMethodSetupSession
+    behavior: >-
+      An outsider's createPaymentMethodSetupSession answers PERMISSION_DENIED "unauthorized to manage billing for this organization" and makes no Stripe call.
+    java_source: >-
+      apis billing/v1/command.proto
+    java_test: >-
+      none
+    class: carve-out
+    disposition: conformance
+    observability: launcher
+    caller: outsider
+    needs: [unfunded-org, fake-stripe]
   - id: billing.rpc.set-auto-recharge-config.persists-and-validates
     surface: billing
     lane: >-
@@ -776,7 +806,7 @@ rows:
     lane: >-
       rpc.getBillingAccount
     behavior: >-
-      On a target where billingLedger is false (the local OSS server), every one of the 22 billing RPCs answers Unimplemented — the DD-001 boundary as an observable contract.
+      On a target where billingLedger is false (the local OSS server), every one of the 23 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
     java_source: >-
       n/a (OSS routes neither controller)
     java_test: >-

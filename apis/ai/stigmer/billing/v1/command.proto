@@ -142,6 +142,22 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
   }
 
+  // Create a Stripe Checkout Session in setup mode, which saves a payment
+  // method without charging it. Returns a URL for the client to redirect
+  // the user.
+  //
+  // This is how an organization that has never bought credit gets a card
+  // on file (the billing portal needs an existing Stripe Customer, which
+  // this call creates on first use). The saved card becomes the account's
+  // default payment method through the payment_method.attached webhook,
+  // the same path a card saved at credit checkout takes.
+  rpc createPaymentMethodSetupSession(CreatePaymentMethodSetupSessionInput) returns (CreatePaymentMethodSetupSessionResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
+  }
+
   // Configure automatic credit recharge for an organization.
   // Returns the updated BillingAccount with the new config applied.
   //

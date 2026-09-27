@@ -41,7 +41,9 @@ type Plan struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata. A plan has no organization: metadata.org is
-	// empty, and the slug is the plan's stable handle ("team", "business").
+	// empty, and the slug names one set of terms ("team", "business"). Slugs
+	// are never reused: because a plan is immutable, new terms are a new plan
+	// under a new slug, and the retired one keeps its own.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Operator-provided plan definition: the instrument, the entitlements and
 	// the terms.

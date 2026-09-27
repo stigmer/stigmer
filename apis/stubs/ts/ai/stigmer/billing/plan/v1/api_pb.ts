@@ -51,7 +51,9 @@ export type Plan = Message<"ai.stigmer.billing.plan.v1.Plan"> & {
 
   /**
    * Standard resource metadata. A plan has no organization: metadata.org is
-   * empty, and the slug is the plan's stable handle ("team", "business").
+   * empty, and the slug names one set of terms ("team", "business"). Slugs
+   * are never reused: because a plan is immutable, new terms are a new plan
+   * under a new slug, and the retired one keeps its own.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */

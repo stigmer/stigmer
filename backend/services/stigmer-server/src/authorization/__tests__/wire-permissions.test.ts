@@ -63,12 +63,6 @@ import { builtInModel } from "../model/index.js";
  * until its line is removed here.
  */
 const KNOWN_GAPS: ReadonlyArray<string> = [
-  // Contract ahead of model, on purpose: Plan's proto says the relation
-  // lands in the model with the entry that serves the kind
-  // (apis/ai/stigmer/billing/plan/v1/command.proto), and no edition serves
-  // Plan yet.
-  "ai.stigmer.billing.plan.v1.PlanCommandController/create asks can_manage_plans on platform",
-  "ai.stigmer.billing.plan.v1.PlanCommandController/retire asks can_manage_plans on platform",
   // Artifacts are grantable in kind_meta, but the model defines no access
   // relations on them: https://github.com/stigmer/stigmer/issues/1268.
   "the resource_kind_path lanes ask can_grant_access on artifact",

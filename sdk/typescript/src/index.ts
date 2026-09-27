@@ -112,6 +112,7 @@ export {
   type AdjustCreditsParams,
   type CreateCheckoutSessionParams,
   type CreateBillingPortalSessionParams,
+  type CreatePaymentMethodSetupSessionParams,
   type SetAutoRechargeConfigParams,
   type GetCreditLedgerParams,
   type GetBillingUsageReportParams,

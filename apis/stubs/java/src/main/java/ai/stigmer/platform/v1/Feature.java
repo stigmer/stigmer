@@ -74,6 +74,32 @@ public enum Feature
    * <code>sharing = 5;</code>
    */
   sharing(5),
+  /**
+   * <pre>
+   * Creating teams and adding members to them. The team kind is Enterprise
+   * and Cloud; this feature tiers it inside Cloud plans, so an organization
+   * on a plan without it keeps its existing teams but cannot create one or
+   * add a member. It is not an edition gate: an Enterprise deployment
+   * includes teams by the kind's tier, and a license never lists it.
+   * </pre>
+   *
+   * <code>teams = 6;</code>
+   */
+  teams(6),
+  /**
+   * <pre>
+   * Creating platform-managed organizations under the tenant's identity
+   * provider, the organizations an integrator runs for its own customers.
+   * A plan lists it together with included_managed_organizations: the
+   * feature admits new managed organizations, and the limit is how many
+   * the plan includes before the per-organization fee. Without it, existing
+   * managed organizations keep working and no new one is admitted. It tiers
+   * the Cloud runtime and is not an edition gate; a license never lists it.
+   * </pre>
+   *
+   * <code>managed_organizations = 7;</code>
+   */
+  managed_organizations(7),
   UNRECOGNIZED(-1),
   ;
 
@@ -140,6 +166,32 @@ public enum Feature
    * <code>sharing = 5;</code>
    */
   public static final int sharing_VALUE = 5;
+  /**
+   * <pre>
+   * Creating teams and adding members to them. The team kind is Enterprise
+   * and Cloud; this feature tiers it inside Cloud plans, so an organization
+   * on a plan without it keeps its existing teams but cannot create one or
+   * add a member. It is not an edition gate: an Enterprise deployment
+   * includes teams by the kind's tier, and a license never lists it.
+   * </pre>
+   *
+   * <code>teams = 6;</code>
+   */
+  public static final int teams_VALUE = 6;
+  /**
+   * <pre>
+   * Creating platform-managed organizations under the tenant's identity
+   * provider, the organizations an integrator runs for its own customers.
+   * A plan lists it together with included_managed_organizations: the
+   * feature admits new managed organizations, and the limit is how many
+   * the plan includes before the per-organization fee. Without it, existing
+   * managed organizations keep working and no new one is admitted. It tiers
+   * the Cloud runtime and is not an edition gate; a license never lists it.
+   * </pre>
+   *
+   * <code>managed_organizations = 7;</code>
+   */
+  public static final int managed_organizations_VALUE = 7;
 
 
   public final int getNumber() {
@@ -172,6 +224,8 @@ public enum Feature
       case 3: return byo_provider_keys;
       case 4: return channels;
       case 5: return sharing;
+      case 6: return teams;
+      case 7: return managed_organizations;
       default: return null;
     }
   }

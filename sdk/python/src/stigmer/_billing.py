@@ -98,6 +98,15 @@ class CreateBillingPortalSessionParams:
 
 
 @dataclass
+class CreatePaymentMethodSetupSessionParams:
+    """Parameters for creating a Stripe Checkout Session that saves a card."""
+
+    org_id: str
+    success_url: str
+    cancel_url: str
+
+
+@dataclass
 class SetAutoRechargeConfigParams:
     """Parameters for configuring auto-recharge."""
 
@@ -315,6 +324,25 @@ class BillingClient:
         )
         try:
             return self._command.createBillingPortalSession(req)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def create_payment_method_setup_session(
+        self, params: CreatePaymentMethodSetupSessionParams
+    ) -> billing_io_pb2.CreatePaymentMethodSetupSessionResponse:
+        """Create a Stripe Checkout Session that saves a payment method.
+
+        Returns the Stripe-hosted setup URL.  The caller should redirect the
+        user to ``setup_url``.  This is how an organization that has never
+        bought credit puts a card on file; nothing is charged.
+        """
+        req = billing_io_pb2.CreatePaymentMethodSetupSessionInput(
+            org_id=params.org_id,
+            success_url=params.success_url,
+            cancel_url=params.cancel_url,
+        )
+        try:
+            return self._command.createPaymentMethodSetupSession(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

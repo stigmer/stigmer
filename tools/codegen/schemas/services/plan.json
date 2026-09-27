@@ -183,6 +183,16 @@
           "name": "sharing",
           "number": 5,
           "description": "Sharing an agent with individuals and guests through hosted share\n links. The agent-share kind itself is open source; this feature tiers\n the hosted sharing lane inside Cloud plans and licenses. It is not an\n edition gate: the open-source server stores shares freely."
+        },
+        {
+          "name": "teams",
+          "number": 6,
+          "description": "Creating teams and adding members to them. The team kind is Enterprise\n and Cloud; this feature tiers it inside Cloud plans, so an organization\n on a plan without it keeps its existing teams but cannot create one or\n add a member. It is not an edition gate: an Enterprise deployment\n includes teams by the kind's tier, and a license never lists it."
+        },
+        {
+          "name": "managed_organizations",
+          "number": 7,
+          "description": "Creating platform-managed organizations under the tenant's identity\n provider, the organizations an integrator runs for its own customers.\n A plan lists it together with included_managed_organizations: the\n feature admits new managed organizations, and the limit is how many\n the plan includes before the per-organization fee. Without it, existing\n managed organizations keep working and no new one is admitted. It tiers\n the Cloud runtime and is not an edition gate; a license never lists it."
         }
       ]
     }

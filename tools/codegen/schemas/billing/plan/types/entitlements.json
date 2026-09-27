@@ -29,7 +29,9 @@
             "platform_client",
             "byo_provider_keys",
             "channels",
-            "sharing"
+            "sharing",
+            "teams",
+            "managed_organizations"
           ]
         }
       },

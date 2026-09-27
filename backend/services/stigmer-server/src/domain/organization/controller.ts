@@ -156,6 +156,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * ValidateProto so clients can omit the slug and have it derived before
  * field constraints (slug pattern, 2–15 chars) are checked.
  *
+ * The pre-side-effect gate slot splices before Persist, after the last pure
+ * step, the session chain's position: every step above it only reads, so a
+ * refusal there leaves no organization behind. It is where a limit on
+ * which organizations may exist is enforced.
+ *
  * The post-persist gate slot splices after Persist, before IndexSearch —
  * the verified Java OrganizationCreateHandler ordering (FGA tuple
  * seeding, billing account getOrCreate: synchronous, a failure fails the
@@ -190,11 +195,19 @@ async function createOrganization(
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newCopySlugToIdStep())
+    .addStep(newCopySlugToIdStep());
+  // The pre-side-effect gate slot (see the doc comment above). Empty in OSS.
+  for (const step of stepsForSlot<typeof OrganizationSchema>(
+    deps.gateSteps,
+    "org-create:pre-side-effect-gate",
+  )) {
+    builder.addStep(step);
+  }
+  builder
     .addStep(newPersistStep(deps.store))
-    // The C2 tuple step runs BEFORE the slot — the verified Java order
-    // (createAuthorizationTuples → linkManagedOrgToIdentityProvider →
-    // provisionBillingAccount). No-op with no driver composed.
+    // The C2 tuple step runs BEFORE the post-persist slot — the verified
+    // Java order (createAuthorizationTuples → linkManagedOrgToIdentityProvider
+    // → provisionBillingAccount). No-op with no driver composed.
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,

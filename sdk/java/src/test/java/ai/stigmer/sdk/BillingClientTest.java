@@ -3,6 +3,7 @@ package ai.stigmer.sdk;
 import ai.stigmer.billing.v1.AdjustCreditsInput;
 import ai.stigmer.billing.v1.CreateBillingPortalSessionInput;
 import ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput;
+import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput;
 import ai.stigmer.billing.v1.DecideModelPricingOverrideInput;
 import ai.stigmer.billing.v1.GetBillingUsageReportInput;
 import ai.stigmer.billing.v1.GetCreditLedgerInput;
@@ -223,6 +224,21 @@ class BillingClientTest {
 
         assertEquals("org_123", proto.getOrgId());
         assertEquals("https://app.example.com/billing", proto.getReturnUrl());
+    }
+
+    @Test
+    void createPaymentMethodSetupSession_toProto_mapsAllFields() {
+        CreatePaymentMethodSetupSessionInput proto =
+                BillingClient.CreatePaymentMethodSetupSessionParams.builder()
+                        .orgId("org_123")
+                        .successUrl("https://app.example.com/billing/saved")
+                        .cancelUrl("https://app.example.com/billing")
+                        .build()
+                        .toProto();
+
+        assertEquals("org_123", proto.getOrgId());
+        assertEquals("https://app.example.com/billing/saved", proto.getSuccessUrl());
+        assertEquals("https://app.example.com/billing", proto.getCancelUrl());
     }
 
     @Test

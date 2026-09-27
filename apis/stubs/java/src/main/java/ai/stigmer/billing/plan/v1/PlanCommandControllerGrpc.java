@@ -11,8 +11,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * &#64;internal
  * Served by the cloud composition only (the kind is cloud_only). Both RPCs
  * authorize against platform:stigmer with can_manage_plans, the same
- * operator seat can_manage_model_pricing uses; the relation lands in the
- * authorization model with the entry that serves the kind.
+ * operator seat can_manage_model_pricing uses (platform.fga).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -153,8 +152,7 @@ public final class PlanCommandControllerGrpc {
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
    * authorize against platform:stigmer with can_manage_plans, the same
-   * operator seat can_manage_model_pricing uses; the relation lands in the
-   * authorization model with the entry that serves the kind.
+   * operator seat can_manage_model_pricing uses (platform.fga).
    * </pre>
    */
   public interface AsyncService {
@@ -196,8 +194,7 @@ public final class PlanCommandControllerGrpc {
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
    * authorize against platform:stigmer with can_manage_plans, the same
-   * operator seat can_manage_model_pricing uses; the relation lands in the
-   * authorization model with the entry that serves the kind.
+   * operator seat can_manage_model_pricing uses (platform.fga).
    * </pre>
    */
   public static abstract class PlanCommandControllerImplBase
@@ -218,8 +215,7 @@ public final class PlanCommandControllerGrpc {
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
    * authorize against platform:stigmer with can_manage_plans, the same
-   * operator seat can_manage_model_pricing uses; the relation lands in the
-   * authorization model with the entry that serves the kind.
+   * operator seat can_manage_model_pricing uses (platform.fga).
    * </pre>
    */
   public static final class PlanCommandControllerStub
@@ -274,8 +270,7 @@ public final class PlanCommandControllerGrpc {
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
    * authorize against platform:stigmer with can_manage_plans, the same
-   * operator seat can_manage_model_pricing uses; the relation lands in the
-   * authorization model with the entry that serves the kind.
+   * operator seat can_manage_model_pricing uses (platform.fga).
    * </pre>
    */
   public static final class PlanCommandControllerBlockingV2Stub
@@ -328,8 +323,7 @@ public final class PlanCommandControllerGrpc {
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
    * authorize against platform:stigmer with can_manage_plans, the same
-   * operator seat can_manage_model_pricing uses; the relation lands in the
-   * authorization model with the entry that serves the kind.
+   * operator seat can_manage_model_pricing uses (platform.fga).
    * </pre>
    */
   public static final class PlanCommandControllerBlockingStub
@@ -382,8 +376,7 @@ public final class PlanCommandControllerGrpc {
    * &#64;internal
    * Served by the cloud composition only (the kind is cloud_only). Both RPCs
    * authorize against platform:stigmer with can_manage_plans, the same
-   * operator seat can_manage_model_pricing uses; the relation lands in the
-   * authorization model with the entry that serves the kind.
+   * operator seat can_manage_model_pricing uses (platform.fga).
    * </pre>
    */
   public static final class PlanCommandControllerFutureStub

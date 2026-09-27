@@ -1,11 +1,31 @@
 // The licenses surface's display vocabulary: "covered through" steps back
-// from the expiry instant, relative days count UTC days, and an absent
-// limit reads as unlimited rather than blank.
+// from the expiry instant, relative days count UTC days, an absent limit
+// reads as unlimited rather than blank, and the plan-only features are
+// never offered on a license.
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { EntitlementsSchema } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { coveredThroughDay, entitlementParts, formatDayFromToday } from "../license-format";
+import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import {
+  coveredThroughDay,
+  entitlementParts,
+  formatDayFromToday,
+  GRANTABLE_FEATURES,
+} from "../license-format";
+
+describe("GRANTABLE_FEATURES", () => {
+  it("offers every license feature and never a plan-only one", () => {
+    expect(GRANTABLE_FEATURES).toEqual([
+      Feature.sso_enforcement,
+      Feature.platform_client,
+      Feature.byo_provider_keys,
+      Feature.channels,
+      Feature.sharing,
+    ]);
+    expect(GRANTABLE_FEATURES).not.toContain(Feature.teams);
+    expect(GRANTABLE_FEATURES).not.toContain(Feature.managed_organizations);
+  });
+});
 
 describe("coveredThroughDay", () => {
   it("is the day before a midnight expiry and the same day for a mid-day one", () => {

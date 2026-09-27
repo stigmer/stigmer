@@ -16,12 +16,16 @@ class Feature(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     byo_provider_keys: _ClassVar[Feature]
     channels: _ClassVar[Feature]
     sharing: _ClassVar[Feature]
+    teams: _ClassVar[Feature]
+    managed_organizations: _ClassVar[Feature]
 feature_unspecified: Feature
 sso_enforcement: Feature
 platform_client: Feature
 byo_provider_keys: Feature
 channels: Feature
 sharing: Feature
+teams: Feature
+managed_organizations: Feature
 
 class Entitlements(_message.Message):
     __slots__ = ("limits", "features")

@@ -298,6 +298,37 @@ public final class BillingCommandControllerGrpc {
     return getCreateBillingPortalSessionMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput,
+      ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse> getCreatePaymentMethodSetupSessionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createPaymentMethodSetupSession",
+      requestType = ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput.class,
+      responseType = ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput,
+      ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse> getCreatePaymentMethodSetupSessionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput, ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse> getCreatePaymentMethodSetupSessionMethod;
+    if ((getCreatePaymentMethodSetupSessionMethod = BillingCommandControllerGrpc.getCreatePaymentMethodSetupSessionMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getCreatePaymentMethodSetupSessionMethod = BillingCommandControllerGrpc.getCreatePaymentMethodSetupSessionMethod) == null) {
+          BillingCommandControllerGrpc.getCreatePaymentMethodSetupSessionMethod = getCreatePaymentMethodSetupSessionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput, ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createPaymentMethodSetupSession"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("createPaymentMethodSetupSession"))
+              .build();
+        }
+      }
+    }
+    return getCreatePaymentMethodSetupSessionMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.SetAutoRechargeConfigInput,
       ai.stigmer.billing.v1.BillingAccount> getSetAutoRechargeConfigMethod;
 
@@ -628,6 +659,23 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a Stripe Checkout Session in setup mode, which saves a payment
+     * method without charging it. Returns a URL for the client to redirect
+     * the user.
+     * This is how an organization that has never bought credit gets a card
+     * on file (the billing portal needs an existing Stripe Customer, which
+     * this call creates on first use). The saved card becomes the account's
+     * default payment method through the payment_method.attached webhook,
+     * the same path a card saved at credit checkout takes.
+     * </pre>
+     */
+    default void createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreatePaymentMethodSetupSessionMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Configure automatic credit recharge for an organization.
      * Returns the updated BillingAccount with the new config applied.
      * Enabling requires an active account with a saved payment method.
@@ -866,6 +914,24 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a Stripe Checkout Session in setup mode, which saves a payment
+     * method without charging it. Returns a URL for the client to redirect
+     * the user.
+     * This is how an organization that has never bought credit gets a card
+     * on file (the billing portal needs an existing Stripe Customer, which
+     * this call creates on first use). The saved card becomes the account's
+     * default payment method through the payment_method.attached webhook,
+     * the same path a card saved at credit checkout takes.
+     * </pre>
+     */
+    public void createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreatePaymentMethodSetupSessionMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Configure automatic credit recharge for an organization.
      * Returns the updated BillingAccount with the new config applied.
      * Enabling requires an active account with a saved payment method.
@@ -1081,6 +1147,23 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a Stripe Checkout Session in setup mode, which saves a payment
+     * method without charging it. Returns a URL for the client to redirect
+     * the user.
+     * This is how an organization that has never bought credit gets a card
+     * on file (the billing portal needs an existing Stripe Customer, which
+     * this call creates on first use). The saved card becomes the account's
+     * default payment method through the payment_method.attached webhook,
+     * the same path a card saved at credit checkout takes.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreatePaymentMethodSetupSessionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Configure automatic credit recharge for an organization.
      * Returns the updated BillingAccount with the new config applied.
      * Enabling requires an active account with a saved payment method.
@@ -1288,6 +1371,23 @@ public final class BillingCommandControllerGrpc {
     public ai.stigmer.billing.v1.CreateBillingPortalSessionResponse createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCreateBillingPortalSessionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create a Stripe Checkout Session in setup mode, which saves a payment
+     * method without charging it. Returns a URL for the client to redirect
+     * the user.
+     * This is how an organization that has never bought credit gets a card
+     * on file (the billing portal needs an existing Stripe Customer, which
+     * this call creates on first use). The saved card becomes the account's
+     * default payment method through the payment_method.attached webhook,
+     * the same path a card saved at credit checkout takes.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreatePaymentMethodSetupSessionMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1512,6 +1612,24 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a Stripe Checkout Session in setup mode, which saves a payment
+     * method without charging it. Returns a URL for the client to redirect
+     * the user.
+     * This is how an organization that has never bought credit gets a card
+     * on file (the billing portal needs an existing Stripe Customer, which
+     * this call creates on first use). The saved card becomes the account's
+     * default payment method through the payment_method.attached webhook,
+     * the same path a card saved at credit checkout takes.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse> createPaymentMethodSetupSession(
+        ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreatePaymentMethodSetupSessionMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Configure automatic credit recharge for an organization.
      * Returns the updated BillingAccount with the new config applied.
      * Enabling requires an active account with a saved payment method.
@@ -1577,10 +1695,11 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_REARM_FOR_RECOVERY = 6;
   private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 7;
   private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 8;
-  private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 9;
-  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 10;
-  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 11;
-  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 12;
+  private static final int METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION = 9;
+  private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 10;
+  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 11;
+  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 12;
+  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 13;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1634,6 +1753,10 @@ public final class BillingCommandControllerGrpc {
         case METHODID_CREATE_BILLING_PORTAL_SESSION:
           serviceImpl.createBillingPortalSession((ai.stigmer.billing.v1.CreateBillingPortalSessionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateBillingPortalSessionResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION:
+          serviceImpl.createPaymentMethodSetupSession((ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse>) responseObserver);
           break;
         case METHODID_SET_AUTO_RECHARGE_CONFIG:
           serviceImpl.setAutoRechargeConfig((ai.stigmer.billing.v1.SetAutoRechargeConfigInput) request,
@@ -1733,6 +1856,13 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.CreateBillingPortalSessionResponse>(
                 service, METHODID_CREATE_BILLING_PORTAL_SESSION)))
         .addMethod(
+          getCreatePaymentMethodSetupSessionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput,
+              ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse>(
+                service, METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION)))
+        .addMethod(
           getSetAutoRechargeConfigMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -1817,6 +1947,7 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getRearmForRecoveryMethod())
               .addMethod(getCreateCreditCheckoutSessionMethod())
               .addMethod(getCreateBillingPortalSessionMethod())
+              .addMethod(getCreatePaymentMethodSetupSessionMethod())
               .addMethod(getSetAutoRechargeConfigMethod())
               .addMethod(getDecideModelPricingOverrideMethod())
               .addMethod(getUpsertModelPricingBaselineMethod())

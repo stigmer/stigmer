@@ -24,8 +24,24 @@ import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 /** A term an operator can issue; the unspecified zero value is not one. */
 export type IssuableTerm = LicenseTerm.trial | LicenseTerm.paid;
 
-/** A feature an operator can grant; the unspecified zero value is not one. */
-export type GrantableFeature = Exclude<Feature, Feature.feature_unspecified>;
+/**
+ * Features a Cloud plan sells but a license never carries: they tier the
+ * hosted runtime, and an Enterprise deployment has them by edition, so
+ * offering one on a license would sell a capability the license does not
+ * control.
+ */
+export type PlanOnlyFeature = Feature.teams | Feature.managed_organizations;
+
+/**
+ * A feature an operator can grant on a license: every feature but the
+ * unspecified zero value and the plan-only ones. Derived by exclusion, so
+ * a feature added to the contract lands here by default and must be given
+ * a label below, or be named plan-only above, before the package compiles.
+ */
+export type GrantableFeature = Exclude<
+  Feature,
+  Feature.feature_unspecified | PlanOnlyFeature
+>;
 
 /** Display labels for the issuable terms. */
 export const TERM_LABELS: Readonly<Record<IssuableTerm, string>> = {
@@ -35,7 +51,7 @@ export const TERM_LABELS: Readonly<Record<IssuableTerm, string>> = {
 
 /**
  * Label and one-line explanation per grantable feature. Keyed by every
- * non-zero `Feature` value, so a feature added to the contract fails to
+ * grantable `Feature` value, so a feature added to the contract fails to
  * compile here until it has words an operator can read.
  */
 export const FEATURE_LABELS: Readonly<

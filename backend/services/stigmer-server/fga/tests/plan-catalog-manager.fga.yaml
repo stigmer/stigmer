@@ -1,0 +1,46 @@
+# Store tests for the plan catalog permission.
+#
+# can_manage_plans gates PlanCommandController.create and .retire: the
+# catalog rows a subscription or license is bought against. It derives
+# from the platform operator role only. Owning an organization never
+# confers it, because a plan sets what every customer pays, and neither
+# the credit issuer nor any other platform role reaches it.
+#
+# Run with:
+#   fga model test --tests plan-catalog-manager.fga.yaml
+name: plan-catalog-manager
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # The bootstrap machine account is the platform operator
+  # (BootstrapIdentitySeeder re-asserts this tuple on every boot).
+  - user: identity_account:machine
+    relation: operator
+    object: platform:stigmer
+
+  # A credit issuer holds one platform role and nothing else.
+  - user: identity_account:funder
+    relation: credit_issuer
+    object: platform:stigmer
+
+  # A tenant org owner — owns everything in their org, nothing on the
+  # platform.
+  - user: identity_account:mallory
+    relation: owner
+    object: organization:acme
+
+tests:
+  - name: operator may manage plans, a credit issuer and tenants may not
+    check:
+      - user: identity_account:machine
+        object: platform:stigmer
+        assertions:
+          can_manage_plans: true
+      - user: identity_account:funder
+        object: platform:stigmer
+        assertions:
+          can_manage_plans: false
+      - user: identity_account:mallory
+        object: platform:stigmer
+        assertions:
+          can_manage_plans: false

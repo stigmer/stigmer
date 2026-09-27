@@ -335,7 +335,7 @@ export interface CapabilityFlags {
   // the edition sentence, never INTERNAL; where false, the suite PINS that
   // refusal on all four lanes.
   authorizationQueries: boolean;
-  // The billing LEDGER is served here: the 22 RPCs of BillingCommandController
+  // The billing LEDGER is served here: the 23 RPCs of BillingCommandController
   // and BillingQueryController (accounts, balances, ledger, usage reports,
   // pricing, the engine lanes), the Stripe webhook at POST /webhook/stripe,
   // and the workers' observable effects. Distinct from `billingGates` (the

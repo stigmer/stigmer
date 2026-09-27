@@ -52,6 +52,20 @@ const (
 	// the hosted sharing lane inside Cloud plans and licenses. It is not an
 	// edition gate: the open-source server stores shares freely.
 	Feature_sharing Feature = 5
+	// Creating teams and adding members to them. The team kind is Enterprise
+	// and Cloud; this feature tiers it inside Cloud plans, so an organization
+	// on a plan without it keeps its existing teams but cannot create one or
+	// add a member. It is not an edition gate: an Enterprise deployment
+	// includes teams by the kind's tier, and a license never lists it.
+	Feature_teams Feature = 6
+	// Creating platform-managed organizations under the tenant's identity
+	// provider, the organizations an integrator runs for its own customers.
+	// A plan lists it together with included_managed_organizations: the
+	// feature admits new managed organizations, and the limit is how many
+	// the plan includes before the per-organization fee. Without it, existing
+	// managed organizations keep working and no new one is admitted. It tiers
+	// the Cloud runtime and is not an edition gate; a license never lists it.
+	Feature_managed_organizations Feature = 7
 )
 
 // Enum value maps for Feature.
@@ -63,14 +77,18 @@ var (
 		3: "byo_provider_keys",
 		4: "channels",
 		5: "sharing",
+		6: "teams",
+		7: "managed_organizations",
 	}
 	Feature_value = map[string]int32{
-		"feature_unspecified": 0,
-		"sso_enforcement":     1,
-		"platform_client":     2,
-		"byo_provider_keys":   3,
-		"channels":            4,
-		"sharing":             5,
+		"feature_unspecified":   0,
+		"sso_enforcement":       1,
+		"platform_client":       2,
+		"byo_provider_keys":     3,
+		"channels":              4,
+		"sharing":               5,
+		"teams":                 6,
+		"managed_organizations": 7,
 	}
 )
 
@@ -185,7 +203,9 @@ type EntitlementLimits struct {
 	// per-organization fee applies. Read by a subscription only: an
 	// integrator's plan includes this many managed organizations, and the
 	// organizations resolve their own entitlements through the integrator's.
-	// A license ignores it.
+	// Whether managed organizations are admitted at all is the
+	// managed_organizations feature, since absent here means "no limit" and
+	// zero is refused. A license ignores it.
 	IncludedManagedOrganizations *int32 `protobuf:"varint,3,opt,name=included_managed_organizations,json=includedManagedOrganizations,proto3,oneof" json:"included_managed_organizations,omitempty"`
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
@@ -257,14 +277,16 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"\x12_max_organizationsB\f\n" +
 	"\n" +
 	"_max_usersB!\n" +
-	"\x1f_included_managed_organizations*~\n" +
+	"\x1f_included_managed_organizations*\xa4\x01\n" +
 	"\aFeature\x12\x17\n" +
 	"\x13feature_unspecified\x10\x00\x12\x13\n" +
 	"\x0fsso_enforcement\x10\x01\x12\x13\n" +
 	"\x0fplatform_client\x10\x02\x12\x15\n" +
 	"\x11byo_provider_keys\x10\x03\x12\f\n" +
 	"\bchannels\x10\x04\x12\v\n" +
-	"\asharing\x10\x05B\xf7\x01\n" +
+	"\asharing\x10\x05\x12\t\n" +
+	"\x05teams\x10\x06\x12\x19\n" +
+	"\x15managed_organizations\x10\aB\xf7\x01\n" +
 	"\x1acom.ai.stigmer.platform.v1B\x10EntitlementProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (

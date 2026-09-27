@@ -58,14 +58,15 @@ public final class EntitlementProto extends com.google.protobuf.GeneratedFile {
       "ged_organizations\030\003 \001(\005B\007\272H\004\032\002 \000H\002R\034incl" +
       "udedManagedOrganizations\210\001\001B\024\n\022_max_orga" +
       "nizationsB\014\n\n_max_usersB!\n\037_included_man" +
-      "aged_organizations*~\n\007Feature\022\027\n\023feature" +
-      "_unspecified\020\000\022\023\n\017sso_enforcement\020\001\022\023\n\017p" +
-      "latform_client\020\002\022\025\n\021byo_provider_keys\020\003\022" +
-      "\014\n\010channels\020\004\022\013\n\007sharing\020\005B\215\001B\020Entitleme" +
-      "ntProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Platform.V1" +
-      "\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\Stigmer\\P" +
-      "latform\\V1\\GPBMetadata\352\002\031Ai::Stigmer::Pl" +
-      "atform::V1b\006proto3"
+      "aged_organizations*\244\001\n\007Feature\022\027\n\023featur" +
+      "e_unspecified\020\000\022\023\n\017sso_enforcement\020\001\022\023\n\017" +
+      "platform_client\020\002\022\025\n\021byo_provider_keys\020\003" +
+      "\022\014\n\010channels\020\004\022\013\n\007sharing\020\005\022\t\n\005teams\020\006\022\031" +
+      "\n\025managed_organizations\020\007B\215\001B\020Entitlemen" +
+      "tProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Platform.V1\312" +
+      "\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\Stigmer\\Pl" +
+      "atform\\V1\\GPBMetadata\352\002\031Ai::Stigmer::Pla" +
+      "tform::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

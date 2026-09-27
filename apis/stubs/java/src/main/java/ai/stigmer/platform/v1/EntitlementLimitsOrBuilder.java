@@ -62,7 +62,9 @@ public interface EntitlementLimitsOrBuilder extends
    * per-organization fee applies. Read by a subscription only: an
    * integrator's plan includes this many managed organizations, and the
    * organizations resolve their own entitlements through the integrator's.
-   * A license ignores it.
+   * Whether managed organizations are admitted at all is the
+   * managed_organizations feature, since absent here means "no limit" and
+   * zero is refused. A license ignores it.
    * </pre>
    *
    * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
@@ -75,7 +77,9 @@ public interface EntitlementLimitsOrBuilder extends
    * per-organization fee applies. Read by a subscription only: an
    * integrator's plan includes this many managed organizations, and the
    * organizations resolve their own entitlements through the integrator's.
-   * A license ignores it.
+   * Whether managed organizations are admitted at all is the
+   * managed_organizations feature, since absent here means "no limit" and
+   * zero is refused. A license ignores it.
    * </pre>
    *
    * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>

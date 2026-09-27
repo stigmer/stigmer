@@ -14,6 +14,7 @@
           "can_manage_cursor_accounts": {},
           "can_manage_identity_accounts": {},
           "can_manage_model_pricing": {},
+          "can_manage_plans": {},
           "can_update_usage": {},
           "can_view_access": {},
           "can_view_provider_standing": {},
@@ -90,6 +91,11 @@
           }
         },
         "can_manage_model_pricing": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_manage_plans": {
           "computedUserset": {
             "relation": "operator"
           }

@@ -11,6 +11,7 @@ import {
   GetCreditLedgerInputSchema,
   CreateCreditCheckoutSessionInputSchema,
   CreateBillingPortalSessionInputSchema,
+  CreatePaymentMethodSetupSessionInputSchema,
   SetAutoRechargeConfigInputSchema,
   GetBillingUsageReportInputSchema,
   GetCustomerModelPricingInputSchema,
@@ -21,6 +22,7 @@ import {
   ListModelPricingBaselinesInputSchema,
   type CreateCreditCheckoutSessionResponse,
   type CreateBillingPortalSessionResponse,
+  type CreatePaymentMethodSetupSessionResponse,
   type CreditLedgerResponse,
   type BillingUsageReportResponse,
   type CustomerModelPricingResponse,
@@ -48,6 +50,13 @@ export interface CreateCheckoutSessionParams {
 export interface CreateBillingPortalSessionParams {
   readonly orgId: string;
   readonly returnUrl: string;
+}
+
+/** Parameters for creating a Stripe Checkout Session that saves a card. */
+export interface CreatePaymentMethodSetupSessionParams {
+  readonly orgId: string;
+  readonly successUrl: string;
+  readonly cancelUrl: string;
 }
 
 /** Parameters for configuring auto-recharge. */
@@ -330,6 +339,31 @@ export class BillingClient {
         create(CreateBillingPortalSessionInputSchema, {
           orgId: params.orgId,
           returnUrl: params.returnUrl,
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Create a Stripe Checkout Session that saves a payment method without
+   * charging it.
+   *
+   * Returns the Stripe-hosted setup URL. The caller should redirect the
+   * user to `setupUrl`. This is how an organization that has never
+   * bought credit puts a card on file; the saved card becomes the
+   * account's default via webhook.
+   */
+  async createPaymentMethodSetupSession(
+    params: CreatePaymentMethodSetupSessionParams,
+  ): Promise<CreatePaymentMethodSetupSessionResponse> {
+    try {
+      return await this.command.createPaymentMethodSetupSession(
+        create(CreatePaymentMethodSetupSessionInputSchema, {
+          orgId: params.orgId,
+          successUrl: params.successUrl,
+          cancelUrl: params.cancelUrl,
         }),
       );
     } catch (e) {

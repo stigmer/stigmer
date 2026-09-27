@@ -53,7 +53,9 @@ public interface PlanOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata. A plan has no organization: metadata.org is
-   * empty, and the slug is the plan's stable handle ("team", "business").
+   * empty, and the slug names one set of terms ("team", "business"). Slugs
+   * are never reused: because a plan is immutable, new terms are a new plan
+   * under a new slug, and the retired one keeps its own.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -63,7 +65,9 @@ public interface PlanOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata. A plan has no organization: metadata.org is
-   * empty, and the slug is the plan's stable handle ("team", "business").
+   * empty, and the slug names one set of terms ("team", "business"). Slugs
+   * are never reused: because a plan is immutable, new terms are a new plan
+   * under a new slug, and the retired one keeps its own.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -73,7 +77,9 @@ public interface PlanOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata. A plan has no organization: metadata.org is
-   * empty, and the slug is the plan's stable handle ("team", "business").
+   * empty, and the slug names one set of terms ("team", "business"). Slugs
+   * are never reused: because a plan is immutable, new terms are a new plan
+   * under a new slug, and the retired one keeps its own.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

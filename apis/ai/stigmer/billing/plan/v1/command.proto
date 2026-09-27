@@ -16,8 +16,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // @internal
 // Served by the cloud composition only (the kind is cloud_only). Both RPCs
 // authorize against platform:stigmer with can_manage_plans, the same
-// operator seat can_manage_model_pricing uses; the relation lands in the
-// authorization model with the entry that serves the kind.
+// operator seat can_manage_model_pricing uses (platform.fga).
 service PlanCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = plan;
 

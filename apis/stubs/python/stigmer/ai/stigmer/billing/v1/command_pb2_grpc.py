@@ -70,6 +70,11 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionResponse.FromString,
                 _registered_method=True)
+        self.createPaymentMethodSetupSession = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/createPaymentMethodSetupSession',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionResponse.FromString,
+                _registered_method=True)
         self.setAutoRechargeConfig = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.SetAutoRechargeConfigInput.SerializeToString,
@@ -193,6 +198,21 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def createPaymentMethodSetupSession(self, request, context):
+        """Create a Stripe Checkout Session in setup mode, which saves a payment
+        method without charging it. Returns a URL for the client to redirect
+        the user.
+
+        This is how an organization that has never bought credit gets a card
+        on file (the billing portal needs an existing Stripe Customer, which
+        this call creates on first use). The saved card becomes the account's
+        default payment method through the payment_method.attached webhook,
+        the same path a card saved at credit checkout takes.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def setAutoRechargeConfig(self, request, context):
         """Configure automatic credit recharge for an organization.
         Returns the updated BillingAccount with the new config applied.
@@ -282,6 +302,11 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     servicer.createBillingPortalSession,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionResponse.SerializeToString,
+            ),
+            'createPaymentMethodSetupSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.createPaymentMethodSetupSession,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionResponse.SerializeToString,
             ),
             'setAutoRechargeConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.setAutoRechargeConfig,
@@ -554,6 +579,33 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createPaymentMethodSetupSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/createPaymentMethodSetupSession',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionResponse.FromString,
             options,
             channel_credentials,
             insecure,

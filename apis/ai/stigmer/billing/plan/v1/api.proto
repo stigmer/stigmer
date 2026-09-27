@@ -26,7 +26,9 @@ message Plan {
   string kind = 2 [(buf.validate.field).string.const = 'Plan'];
 
   // Standard resource metadata. A plan has no organization: metadata.org is
-  // empty, and the slug is the plan's stable handle ("team", "business").
+  // empty, and the slug names one set of terms ("team", "business"). Slugs
+  // are never reused: because a plan is immutable, new terms are a new plan
+  // under a new slug, and the retired one keeps its own.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // Operator-provided plan definition: the instrument, the entitlements and

@@ -19,19 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BillingCommandController_GetOrCreateBillingAccount_FullMethodName   = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
-	BillingCommandController_AdjustCredits_FullMethodName               = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
-	BillingCommandController_GrantCredits_FullMethodName                = "/ai.stigmer.billing.v1.BillingCommandController/grantCredits"
-	BillingCommandController_AuthorizeExecution_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
-	BillingCommandController_RecordLlmCallUsage_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
-	BillingCommandController_FinalizeExecution_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
-	BillingCommandController_RearmForRecovery_FullMethodName            = "/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery"
-	BillingCommandController_CreateCreditCheckoutSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
-	BillingCommandController_CreateBillingPortalSession_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
-	BillingCommandController_SetAutoRechargeConfig_FullMethodName       = "/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig"
-	BillingCommandController_DecideModelPricingOverride_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/decideModelPricingOverride"
-	BillingCommandController_UpsertModelPricingBaseline_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/upsertModelPricingBaseline"
-	BillingCommandController_RetireModelPricingBaseline_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/retireModelPricingBaseline"
+	BillingCommandController_GetOrCreateBillingAccount_FullMethodName       = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
+	BillingCommandController_AdjustCredits_FullMethodName                   = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
+	BillingCommandController_GrantCredits_FullMethodName                    = "/ai.stigmer.billing.v1.BillingCommandController/grantCredits"
+	BillingCommandController_AuthorizeExecution_FullMethodName              = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
+	BillingCommandController_RecordLlmCallUsage_FullMethodName              = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
+	BillingCommandController_FinalizeExecution_FullMethodName               = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
+	BillingCommandController_RearmForRecovery_FullMethodName                = "/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery"
+	BillingCommandController_CreateCreditCheckoutSession_FullMethodName     = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
+	BillingCommandController_CreateBillingPortalSession_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
+	BillingCommandController_CreatePaymentMethodSetupSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createPaymentMethodSetupSession"
+	BillingCommandController_SetAutoRechargeConfig_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig"
+	BillingCommandController_DecideModelPricingOverride_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/decideModelPricingOverride"
+	BillingCommandController_UpsertModelPricingBaseline_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/upsertModelPricingBaseline"
+	BillingCommandController_RetireModelPricingBaseline_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/retireModelPricingBaseline"
 )
 
 // BillingCommandControllerClient is the client API for BillingCommandController service.
@@ -91,6 +92,16 @@ type BillingCommandControllerClient interface {
 	// Requires an existing Stripe Customer (created during first credit purchase).
 	// The portal allows users to add, update, or remove saved payment methods.
 	CreateBillingPortalSession(ctx context.Context, in *CreateBillingPortalSessionInput, opts ...grpc.CallOption) (*CreateBillingPortalSessionResponse, error)
+	// Create a Stripe Checkout Session in setup mode, which saves a payment
+	// method without charging it. Returns a URL for the client to redirect
+	// the user.
+	//
+	// This is how an organization that has never bought credit gets a card
+	// on file (the billing portal needs an existing Stripe Customer, which
+	// this call creates on first use). The saved card becomes the account's
+	// default payment method through the payment_method.attached webhook,
+	// the same path a card saved at credit checkout takes.
+	CreatePaymentMethodSetupSession(ctx context.Context, in *CreatePaymentMethodSetupSessionInput, opts ...grpc.CallOption) (*CreatePaymentMethodSetupSessionResponse, error)
 	// Configure automatic credit recharge for an organization.
 	// Returns the updated BillingAccount with the new config applied.
 	//
@@ -213,6 +224,16 @@ func (c *billingCommandControllerClient) CreateBillingPortalSession(ctx context.
 	return out, nil
 }
 
+func (c *billingCommandControllerClient) CreatePaymentMethodSetupSession(ctx context.Context, in *CreatePaymentMethodSetupSessionInput, opts ...grpc.CallOption) (*CreatePaymentMethodSetupSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreatePaymentMethodSetupSessionResponse)
+	err := c.cc.Invoke(ctx, BillingCommandController_CreatePaymentMethodSetupSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingCommandControllerClient) SetAutoRechargeConfig(ctx context.Context, in *SetAutoRechargeConfigInput, opts ...grpc.CallOption) (*BillingAccount, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BillingAccount)
@@ -310,6 +331,16 @@ type BillingCommandControllerServer interface {
 	// Requires an existing Stripe Customer (created during first credit purchase).
 	// The portal allows users to add, update, or remove saved payment methods.
 	CreateBillingPortalSession(context.Context, *CreateBillingPortalSessionInput) (*CreateBillingPortalSessionResponse, error)
+	// Create a Stripe Checkout Session in setup mode, which saves a payment
+	// method without charging it. Returns a URL for the client to redirect
+	// the user.
+	//
+	// This is how an organization that has never bought credit gets a card
+	// on file (the billing portal needs an existing Stripe Customer, which
+	// this call creates on first use). The saved card becomes the account's
+	// default payment method through the payment_method.attached webhook,
+	// the same path a card saved at credit checkout takes.
+	CreatePaymentMethodSetupSession(context.Context, *CreatePaymentMethodSetupSessionInput) (*CreatePaymentMethodSetupSessionResponse, error)
 	// Configure automatic credit recharge for an organization.
 	// Returns the updated BillingAccount with the new config applied.
 	//
@@ -367,6 +398,9 @@ func (UnimplementedBillingCommandControllerServer) CreateCreditCheckoutSession(c
 }
 func (UnimplementedBillingCommandControllerServer) CreateBillingPortalSession(context.Context, *CreateBillingPortalSessionInput) (*CreateBillingPortalSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateBillingPortalSession not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) CreatePaymentMethodSetupSession(context.Context, *CreatePaymentMethodSetupSessionInput) (*CreatePaymentMethodSetupSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreatePaymentMethodSetupSession not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) SetAutoRechargeConfig(context.Context, *SetAutoRechargeConfigInput) (*BillingAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAutoRechargeConfig not implemented")
@@ -562,6 +596,24 @@ func _BillingCommandController_CreateBillingPortalSession_Handler(srv interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingCommandController_CreatePaymentMethodSetupSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePaymentMethodSetupSessionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).CreatePaymentMethodSetupSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_CreatePaymentMethodSetupSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).CreatePaymentMethodSetupSession(ctx, req.(*CreatePaymentMethodSetupSessionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _BillingCommandController_SetAutoRechargeConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetAutoRechargeConfigInput)
 	if err := dec(in); err != nil {
@@ -676,6 +728,10 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "createBillingPortalSession",
 			Handler:    _BillingCommandController_CreateBillingPortalSession_Handler,
+		},
+		{
+			MethodName: "createPaymentMethodSetupSession",
+			Handler:    _BillingCommandController_CreatePaymentMethodSetupSession_Handler,
 		},
 		{
 			MethodName: "setAutoRechargeConfig",

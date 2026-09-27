@@ -1237,6 +1237,9 @@ export const fakeExtension: ServerExtension = {
     // The eighth: the IamPolicy create chain, before the grant is written
     // — where an edition that serves teams refuses a team it cannot admit.
     ["iam-policy-create:pre-side-effect-gate", [consumerGateStep()]],
+    // The ninth: the organization create chain before Persist — where a
+    // limit on which organizations may exist refuses with nothing written.
+    ["org-create:pre-side-effect-gate", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],

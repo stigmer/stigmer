@@ -102,6 +102,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_v1_CreateBillingPortalSessionResponse_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_billing_v1_SetAutoRechargeConfigInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -321,133 +331,139 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "SessionInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005or" +
       "gId\022%\n\nreturn_url\030\002 \001(\tB\006\272H\003\310\001\001R\treturnU" +
       "rl\"C\n\"CreateBillingPortalSessionResponse" +
-      "\022\035\n\nportal_url\030\001 \001(\tR\tportalUrl\"\344\001\n\032SetA" +
-      "utoRechargeConfigInput\022\035\n\006org_id\030\001 \001(\tB\006" +
-      "\272H\003\310\001\001R\005orgId\022\030\n\007enabled\030\002 \001(\010R\007enabled\022" +
-      ")\n\020threshold_micros\030\003 \001(\003R\017thresholdMicr" +
-      "os\0224\n\026recharge_amount_micros\030\004 \001(\003R\024rech" +
-      "argeAmountMicros\022,\n\022monthly_cap_micros\030\005" +
-      " \001(\003R\020monthlyCapMicros\"7\n\026GetBillingAcco" +
-      "untInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"" +
-      "6\n\025GetCreditBalanceInput\022\035\n\006org_id\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\005orgId\"\335\002\n\024GetCreditLedgerInput" +
-      "\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\0224\n\004page\030" +
-      "\002 \001(\0132 .ai.stigmer.commons.rpc.PageInfoR" +
-      "\004page\022G\n\013type_filter\030\003 \003(\0162&.ai.stigmer." +
-      "billing.v1.LedgerEntryTypeR\ntypeFilter\0229" +
-      "\n\nstart_time\030\004 \001(\0132\032.google.protobuf.Tim" +
-      "estampR\tstartTime\0225\n\010end_time\030\005 \001(\0132\032.go" +
-      "ogle.protobuf.TimestampR\007endTime\0225\n\004view" +
-      "\030\006 \001(\0162!.ai.stigmer.billing.v1.LedgerVie" +
-      "wR\004view\"{\n\024CreditLedgerResponse\022B\n\007entri" +
-      "es\030\001 \003(\0132(.ai.stigmer.billing.v1.CreditL" +
-      "edgerEntryR\007entries\022\037\n\013total_pages\030\002 \001(\005" +
-      "R\ntotalPages\"\275\001\n\032GetBillingUsageReportIn" +
-      "put\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\022A\n\nst" +
-      "art_time\030\002 \001(\0132\032.google.protobuf.Timesta" +
-      "mpB\006\272H\003\310\001\001R\tstartTime\022=\n\010end_time\030\003 \001(\0132" +
-      "\032.google.protobuf.TimestampB\006\272H\003\310\001\001R\007end" +
-      "Time\"\300\002\n\032BillingUsageReportResponse\022;\n\032t" +
-      "otal_provider_cost_micros\030\001 \001(\003R\027totalPr" +
-      "oviderCostMicros\022?\n\034total_billable_amoun" +
-      "t_micros\030\002 \001(\003R\031totalBillableAmountMicro" +
-      "s\022\'\n\017execution_count\030\003 \001(\005R\016executionCou" +
-      "nt\022$\n\016llm_call_count\030\004 \001(\005R\014llmCallCount" +
-      "\022U\n\017model_breakdown\030\005 \003(\0132,.ai.stigmer.b" +
-      "illing.v1.ModelBillingBreakdownR\016modelBr" +
-      "eakdown\"\353\001\n\025ModelBillingBreakdown\022\024\n\005mod" +
-      "el\030\001 \001(\tR\005model\022\030\n\007harness\030\002 \001(\tR\007harnes" +
-      "s\022\033\n\tcost_tier\030\003 \001(\tR\010costTier\0220\n\024provid" +
-      "er_cost_micros\030\004 \001(\003R\022providerCostMicros" +
-      "\0224\n\026billable_amount_micros\030\005 \001(\003R\024billab" +
-      "leAmountMicros\022\035\n\ncall_count\030\006 \001(\005R\tcall" +
-      "Count\"5\n\034GetCustomerModelPricingInput\022\025\n" +
-      "\006org_id\030\001 \001(\tR\005orgId\"j\n\034CustomerModelPri" +
-      "cingResponse\022J\n\007entries\030\001 \003(\01320.ai.stigm" +
-      "er.billing.v1.CustomerModelPricingEntryR" +
-      "\007entries\" \n\036GetModelPricingGovernanceInp" +
-      "ut\"\310\001\n\036ModelPricingGovernanceResponse\022L\n" +
-      "\007entries\030\001 \003(\01322.ai.stigmer.billing.v1.M" +
-      "odelPricingGovernanceEntryR\007entries\022X\n\021p" +
-      "ending_overrides\030\002 \003(\0132+.ai.stigmer.bill" +
-      "ing.v1.ModelPricingOverrideR\020pendingOver" +
-      "rides\"\227\t\n\033ModelPricingGovernanceEntry\022\031\n" +
-      "\010model_id\030\001 \001(\tR\007modelId\022!\n\014display_name" +
-      "\030\002 \001(\tR\013displayName\022\032\n\010provider\030\003 \001(\tR\010p" +
-      "rovider\022\030\n\007harness\030\004 \001(\tR\007harness\022\033\n\tcos" +
-      "t_tier\030\005 \001(\tR\010costTier\022\030\n\007variant\030\006 \001(\tR" +
-      "\007variant\022H\n!baseline_input_micros_per_mi" +
-      "llion\030\007 \001(\003R\035baselineInputMicrosPerMilli" +
-      "on\022J\n\"baseline_output_micros_per_million" +
-      "\030\010 \001(\003R\036baselineOutputMicrosPerMillion\022S" +
-      "\n\'baseline_cache_write_micros_per_millio" +
-      "n\030\t \001(\003R\"baselineCacheWriteMicrosPerMill" +
-      "ion\022Q\n&baseline_cache_read_micros_per_mi" +
-      "llion\030\n \001(\003R!baselineCacheReadMicrosPerM" +
-      "illion\022^\n-baseline_cursor_token_rate_mic" +
-      "ros_per_million\030\013 \001(\003R\'baselineCursorTok" +
-      "enRateMicrosPerMillion\022J\n\"effective_inpu" +
-      "t_micros_per_million\030\014 \001(\003R\036effectiveInp" +
-      "utMicrosPerMillion\022L\n#effective_output_m" +
-      "icros_per_million\030\r \001(\003R\037effectiveOutput" +
-      "MicrosPerMillion\022U\n(effective_cache_writ" +
-      "e_micros_per_million\030\016 \001(\003R#effectiveCac" +
-      "heWriteMicrosPerMillion\022S\n\'effective_cac" +
-      "he_read_micros_per_million\030\017 \001(\003R\"effect" +
-      "iveCacheReadMicrosPerMillion\022`\n.effectiv" +
-      "e_cursor_token_rate_micros_per_million\030\020" +
-      " \001(\003R(effectiveCursorTokenRateMicrosPerM" +
-      "illion\022V\n\020active_overrides\030\021 \003(\0132+.ai.st" +
-      "igmer.billing.v1.ModelPricingOverrideR\017a" +
-      "ctiveOverrides\022/\n\023ledger_reconcilable\030\022 " +
-      "\001(\010R\022ledgerReconcilable\"\211\001\n\037DecideModelP" +
-      "ricingOverrideInput\022\'\n\013override_id\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\noverrideId\022\030\n\007approve\030\002 \001(\010R\007a" +
-      "pprove\022#\n\rdecision_note\030\003 \001(\tR\014decisionN" +
-      "ote\"\241\001\n\037UpsertModelPricingBaselineInput\022" +
-      "O\n\010baseline\030\001 \001(\0132+.ai.stigmer.billing.v" +
-      "1.ModelPricingBaselineB\006\272H\003\310\001\001R\010baseline" +
-      "\022-\n\rrevision_note\030\002 \001(\tB\010\272H\005r\003\030\200\010R\014revis" +
-      "ionNote\"\271\001\n\037RetireModelPricingBaselineIn" +
-      "put\022!\n\010model_id\030\001 \001(\tB\006\272H\003\310\001\001R\007modelId\022\"" +
-      "\n\010provider\030\002 \001(\tB\006\272H\003\310\001\001R\010provider\022 \n\007ha" +
-      "rness\030\003 \001(\tB\006\272H\003\310\001\001R\007harness\022-\n\rrevision" +
-      "_note\030\004 \001(\tB\010\272H\005r\003\030\200\010R\014revisionNote\"I\n\036L" +
-      "istModelPricingBaselinesInput\022\'\n\017include" +
-      "_history\030\001 \001(\010R\016includeHistory\"j\n\035ModelP" +
-      "ricingBaselinesResponse\022I\n\tbaselines\030\001 \003" +
-      "(\0132+.ai.stigmer.billing.v1.ModelPricingB" +
-      "aselineR\tbaselines\"\264\004\n\031CustomerModelPric" +
-      "ingEntry\022\031\n\010model_id\030\001 \001(\tR\007modelId\022!\n\014d" +
-      "isplay_name\030\002 \001(\tR\013displayName\022\032\n\010provid" +
-      "er\030\003 \001(\tR\010provider\022\030\n\007harness\030\004 \001(\tR\007har" +
-      "ness\022\033\n\tcost_tier\030\005 \001(\tR\010costTier\022B\n\036inp" +
-      "ut_price_micros_per_million\030\006 \001(\003R\032input" +
-      "PriceMicrosPerMillion\022D\n\037output_price_mi" +
-      "cros_per_million\030\007 \001(\003R\033outputPriceMicro" +
-      "sPerMillion\022S\n\'cache_creation_price_micr" +
-      "os_per_million\030\010 \001(\003R\"cacheCreationPrice" +
-      "MicrosPerMillion\022K\n#cache_read_price_mic" +
-      "ros_per_million\030\t \001(\003R\036cacheReadPriceMic" +
-      "rosPerMillion\022*\n\021pricing_policy_id\030\n \001(\t" +
-      "R\017pricingPolicyId\022.\n\023markup_basis_points" +
-      "\030\013 \001(\005R\021markupBasisPoints\"s\n\031PreviewAuth" +
-      "orizationInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005" +
-      "orgId\0227\n\030expected_cost_cap_micros\030\002 \001(\003R" +
-      "\025expectedCostCapMicros\"\227\001\n\034PreviewAuthor" +
-      "izationResponse\022\036\n\nauthorized\030\001 \001(\010R\naut" +
-      "horized\022#\n\rdenial_reason\030\002 \001(\tR\014denialRe" +
-      "ason\0222\n\025reserve_amount_micros\030\003 \001(\003R\023res" +
-      "erveAmountMicros\"K\n\036GetExecutionBillingS" +
-      "ignalInput\022)\n\014execution_id\030\001 \001(\tB\006\272H\003\310\001\001" +
-      "R\013executionId\"\202\001\n!GetExecutionBillingSig" +
-      "nalResponse\022E\n\006signal\030\001 \001(\0162-.ai.stigmer" +
-      ".billing.v1.ExecutionBillingSignalR\006sign" +
-      "al\022\026\n\006reason\030\002 \001(\tR\006reasonB\200\001B\007IoProtoP\001" +
-      "\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stig" +
-      "mer\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\G" +
-      "PBMetadata\352\002\030Ai::Stigmer::Billing::V1b\006p" +
-      "roto3"
+      "\022\035\n\nportal_url\030\001 \001(\tR\tportalUrl\"\225\001\n$Crea" +
+      "tePaymentMethodSetupSessionInput\022\035\n\006org_" +
+      "id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\022\'\n\013success_url\030\002" +
+      " \001(\tB\006\272H\003\310\001\001R\nsuccessUrl\022%\n\ncancel_url\030\003" +
+      " \001(\tB\006\272H\003\310\001\001R\tcancelUrl\"v\n\'CreatePayment" +
+      "MethodSetupSessionResponse\022\033\n\tsetup_url\030" +
+      "\001 \001(\tR\010setupUrl\022.\n\023checkout_session_id\030\002" +
+      " \001(\tR\021checkoutSessionId\"\344\001\n\032SetAutoRecha" +
+      "rgeConfigInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005" +
+      "orgId\022\030\n\007enabled\030\002 \001(\010R\007enabled\022)\n\020thres" +
+      "hold_micros\030\003 \001(\003R\017thresholdMicros\0224\n\026re" +
+      "charge_amount_micros\030\004 \001(\003R\024rechargeAmou" +
+      "ntMicros\022,\n\022monthly_cap_micros\030\005 \001(\003R\020mo" +
+      "nthlyCapMicros\"7\n\026GetBillingAccountInput" +
+      "\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"6\n\025GetCr" +
+      "editBalanceInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001" +
+      "R\005orgId\"\335\002\n\024GetCreditLedgerInput\022\035\n\006org_" +
+      "id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\0224\n\004page\030\002 \001(\0132 ." +
+      "ai.stigmer.commons.rpc.PageInfoR\004page\022G\n" +
+      "\013type_filter\030\003 \003(\0162&.ai.stigmer.billing." +
+      "v1.LedgerEntryTypeR\ntypeFilter\0229\n\nstart_" +
+      "time\030\004 \001(\0132\032.google.protobuf.TimestampR\t" +
+      "startTime\0225\n\010end_time\030\005 \001(\0132\032.google.pro" +
+      "tobuf.TimestampR\007endTime\0225\n\004view\030\006 \001(\0162!" +
+      ".ai.stigmer.billing.v1.LedgerViewR\004view\"" +
+      "{\n\024CreditLedgerResponse\022B\n\007entries\030\001 \003(\013" +
+      "2(.ai.stigmer.billing.v1.CreditLedgerEnt" +
+      "ryR\007entries\022\037\n\013total_pages\030\002 \001(\005R\ntotalP" +
+      "ages\"\275\001\n\032GetBillingUsageReportInput\022\035\n\006o" +
+      "rg_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\022A\n\nstart_time" +
+      "\030\002 \001(\0132\032.google.protobuf.TimestampB\006\272H\003\310" +
+      "\001\001R\tstartTime\022=\n\010end_time\030\003 \001(\0132\032.google" +
+      ".protobuf.TimestampB\006\272H\003\310\001\001R\007endTime\"\300\002\n" +
+      "\032BillingUsageReportResponse\022;\n\032total_pro" +
+      "vider_cost_micros\030\001 \001(\003R\027totalProviderCo" +
+      "stMicros\022?\n\034total_billable_amount_micros" +
+      "\030\002 \001(\003R\031totalBillableAmountMicros\022\'\n\017exe" +
+      "cution_count\030\003 \001(\005R\016executionCount\022$\n\016ll" +
+      "m_call_count\030\004 \001(\005R\014llmCallCount\022U\n\017mode" +
+      "l_breakdown\030\005 \003(\0132,.ai.stigmer.billing.v" +
+      "1.ModelBillingBreakdownR\016modelBreakdown\"" +
+      "\353\001\n\025ModelBillingBreakdown\022\024\n\005model\030\001 \001(\t" +
+      "R\005model\022\030\n\007harness\030\002 \001(\tR\007harness\022\033\n\tcos" +
+      "t_tier\030\003 \001(\tR\010costTier\0220\n\024provider_cost_" +
+      "micros\030\004 \001(\003R\022providerCostMicros\0224\n\026bill" +
+      "able_amount_micros\030\005 \001(\003R\024billableAmount" +
+      "Micros\022\035\n\ncall_count\030\006 \001(\005R\tcallCount\"5\n" +
+      "\034GetCustomerModelPricingInput\022\025\n\006org_id\030" +
+      "\001 \001(\tR\005orgId\"j\n\034CustomerModelPricingResp" +
+      "onse\022J\n\007entries\030\001 \003(\01320.ai.stigmer.billi" +
+      "ng.v1.CustomerModelPricingEntryR\007entries" +
+      "\" \n\036GetModelPricingGovernanceInput\"\310\001\n\036M" +
+      "odelPricingGovernanceResponse\022L\n\007entries" +
+      "\030\001 \003(\01322.ai.stigmer.billing.v1.ModelPric" +
+      "ingGovernanceEntryR\007entries\022X\n\021pending_o" +
+      "verrides\030\002 \003(\0132+.ai.stigmer.billing.v1.M" +
+      "odelPricingOverrideR\020pendingOverrides\"\227\t" +
+      "\n\033ModelPricingGovernanceEntry\022\031\n\010model_i" +
+      "d\030\001 \001(\tR\007modelId\022!\n\014display_name\030\002 \001(\tR\013" +
+      "displayName\022\032\n\010provider\030\003 \001(\tR\010provider\022" +
+      "\030\n\007harness\030\004 \001(\tR\007harness\022\033\n\tcost_tier\030\005" +
+      " \001(\tR\010costTier\022\030\n\007variant\030\006 \001(\tR\007variant" +
+      "\022H\n!baseline_input_micros_per_million\030\007 " +
+      "\001(\003R\035baselineInputMicrosPerMillion\022J\n\"ba" +
+      "seline_output_micros_per_million\030\010 \001(\003R\036" +
+      "baselineOutputMicrosPerMillion\022S\n\'baseli" +
+      "ne_cache_write_micros_per_million\030\t \001(\003R" +
+      "\"baselineCacheWriteMicrosPerMillion\022Q\n&b" +
+      "aseline_cache_read_micros_per_million\030\n " +
+      "\001(\003R!baselineCacheReadMicrosPerMillion\022^" +
+      "\n-baseline_cursor_token_rate_micros_per_" +
+      "million\030\013 \001(\003R\'baselineCursorTokenRateMi" +
+      "crosPerMillion\022J\n\"effective_input_micros" +
+      "_per_million\030\014 \001(\003R\036effectiveInputMicros" +
+      "PerMillion\022L\n#effective_output_micros_pe" +
+      "r_million\030\r \001(\003R\037effectiveOutputMicrosPe" +
+      "rMillion\022U\n(effective_cache_write_micros" +
+      "_per_million\030\016 \001(\003R#effectiveCacheWriteM" +
+      "icrosPerMillion\022S\n\'effective_cache_read_" +
+      "micros_per_million\030\017 \001(\003R\"effectiveCache" +
+      "ReadMicrosPerMillion\022`\n.effective_cursor" +
+      "_token_rate_micros_per_million\030\020 \001(\003R(ef" +
+      "fectiveCursorTokenRateMicrosPerMillion\022V" +
+      "\n\020active_overrides\030\021 \003(\0132+.ai.stigmer.bi" +
+      "lling.v1.ModelPricingOverrideR\017activeOve" +
+      "rrides\022/\n\023ledger_reconcilable\030\022 \001(\010R\022led" +
+      "gerReconcilable\"\211\001\n\037DecideModelPricingOv" +
+      "errideInput\022\'\n\013override_id\030\001 \001(\tB\006\272H\003\310\001\001" +
+      "R\noverrideId\022\030\n\007approve\030\002 \001(\010R\007approve\022#" +
+      "\n\rdecision_note\030\003 \001(\tR\014decisionNote\"\241\001\n\037" +
+      "UpsertModelPricingBaselineInput\022O\n\010basel" +
+      "ine\030\001 \001(\0132+.ai.stigmer.billing.v1.ModelP" +
+      "ricingBaselineB\006\272H\003\310\001\001R\010baseline\022-\n\rrevi" +
+      "sion_note\030\002 \001(\tB\010\272H\005r\003\030\200\010R\014revisionNote\"" +
+      "\271\001\n\037RetireModelPricingBaselineInput\022!\n\010m" +
+      "odel_id\030\001 \001(\tB\006\272H\003\310\001\001R\007modelId\022\"\n\010provid" +
+      "er\030\002 \001(\tB\006\272H\003\310\001\001R\010provider\022 \n\007harness\030\003 " +
+      "\001(\tB\006\272H\003\310\001\001R\007harness\022-\n\rrevision_note\030\004 " +
+      "\001(\tB\010\272H\005r\003\030\200\010R\014revisionNote\"I\n\036ListModel" +
+      "PricingBaselinesInput\022\'\n\017include_history" +
+      "\030\001 \001(\010R\016includeHistory\"j\n\035ModelPricingBa" +
+      "selinesResponse\022I\n\tbaselines\030\001 \003(\0132+.ai." +
+      "stigmer.billing.v1.ModelPricingBaselineR" +
+      "\tbaselines\"\264\004\n\031CustomerModelPricingEntry" +
+      "\022\031\n\010model_id\030\001 \001(\tR\007modelId\022!\n\014display_n" +
+      "ame\030\002 \001(\tR\013displayName\022\032\n\010provider\030\003 \001(\t" +
+      "R\010provider\022\030\n\007harness\030\004 \001(\tR\007harness\022\033\n\t" +
+      "cost_tier\030\005 \001(\tR\010costTier\022B\n\036input_price" +
+      "_micros_per_million\030\006 \001(\003R\032inputPriceMic" +
+      "rosPerMillion\022D\n\037output_price_micros_per" +
+      "_million\030\007 \001(\003R\033outputPriceMicrosPerMill" +
+      "ion\022S\n\'cache_creation_price_micros_per_m" +
+      "illion\030\010 \001(\003R\"cacheCreationPriceMicrosPe" +
+      "rMillion\022K\n#cache_read_price_micros_per_" +
+      "million\030\t \001(\003R\036cacheReadPriceMicrosPerMi" +
+      "llion\022*\n\021pricing_policy_id\030\n \001(\tR\017pricin" +
+      "gPolicyId\022.\n\023markup_basis_points\030\013 \001(\005R\021" +
+      "markupBasisPoints\"s\n\031PreviewAuthorizatio" +
+      "nInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\0227\n" +
+      "\030expected_cost_cap_micros\030\002 \001(\003R\025expecte" +
+      "dCostCapMicros\"\227\001\n\034PreviewAuthorizationR" +
+      "esponse\022\036\n\nauthorized\030\001 \001(\010R\nauthorized\022" +
+      "#\n\rdenial_reason\030\002 \001(\tR\014denialReason\0222\n\025" +
+      "reserve_amount_micros\030\003 \001(\003R\023reserveAmou" +
+      "ntMicros\"K\n\036GetExecutionBillingSignalInp" +
+      "ut\022)\n\014execution_id\030\001 \001(\tB\006\272H\003\310\001\001R\013execut" +
+      "ionId\"\202\001\n!GetExecutionBillingSignalRespo" +
+      "nse\022E\n\006signal\030\001 \001(\0162-.ai.stigmer.billing" +
+      ".v1.ExecutionBillingSignalR\006signal\022\026\n\006re" +
+      "ason\030\002 \001(\tR\006reasonB\200\001B\007IoProtoP\001\242\002\003ASB\252\002" +
+      "\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\Bill" +
+      "ing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetada" +
+      "ta\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -552,140 +568,152 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CreateBillingPortalSessionResponse_descriptor,
         new java.lang.String[] { "PortalUrl", });
-    internal_static_ai_stigmer_billing_v1_SetAutoRechargeConfigInput_descriptor =
+    internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionInput_descriptor =
       getDescriptor().getMessageType(15);
+    internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionInput_descriptor,
+        new java.lang.String[] { "OrgId", "SuccessUrl", "CancelUrl", });
+    internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionResponse_descriptor =
+      getDescriptor().getMessageType(16);
+    internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_v1_CreatePaymentMethodSetupSessionResponse_descriptor,
+        new java.lang.String[] { "SetupUrl", "CheckoutSessionId", });
+    internal_static_ai_stigmer_billing_v1_SetAutoRechargeConfigInput_descriptor =
+      getDescriptor().getMessageType(17);
     internal_static_ai_stigmer_billing_v1_SetAutoRechargeConfigInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_SetAutoRechargeConfigInput_descriptor,
         new java.lang.String[] { "OrgId", "Enabled", "ThresholdMicros", "RechargeAmountMicros", "MonthlyCapMicros", });
     internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_descriptor =
-      getDescriptor().getMessageType(16);
+      getDescriptor().getMessageType(18);
     internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_descriptor,
         new java.lang.String[] { "OrgId", });
     internal_static_ai_stigmer_billing_v1_GetCreditBalanceInput_descriptor =
-      getDescriptor().getMessageType(17);
+      getDescriptor().getMessageType(19);
     internal_static_ai_stigmer_billing_v1_GetCreditBalanceInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetCreditBalanceInput_descriptor,
         new java.lang.String[] { "OrgId", });
     internal_static_ai_stigmer_billing_v1_GetCreditLedgerInput_descriptor =
-      getDescriptor().getMessageType(18);
+      getDescriptor().getMessageType(20);
     internal_static_ai_stigmer_billing_v1_GetCreditLedgerInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetCreditLedgerInput_descriptor,
         new java.lang.String[] { "OrgId", "Page", "TypeFilter", "StartTime", "EndTime", "View", });
     internal_static_ai_stigmer_billing_v1_CreditLedgerResponse_descriptor =
-      getDescriptor().getMessageType(19);
+      getDescriptor().getMessageType(21);
     internal_static_ai_stigmer_billing_v1_CreditLedgerResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CreditLedgerResponse_descriptor,
         new java.lang.String[] { "Entries", "TotalPages", });
     internal_static_ai_stigmer_billing_v1_GetBillingUsageReportInput_descriptor =
-      getDescriptor().getMessageType(20);
+      getDescriptor().getMessageType(22);
     internal_static_ai_stigmer_billing_v1_GetBillingUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetBillingUsageReportInput_descriptor,
         new java.lang.String[] { "OrgId", "StartTime", "EndTime", });
     internal_static_ai_stigmer_billing_v1_BillingUsageReportResponse_descriptor =
-      getDescriptor().getMessageType(21);
+      getDescriptor().getMessageType(23);
     internal_static_ai_stigmer_billing_v1_BillingUsageReportResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_BillingUsageReportResponse_descriptor,
         new java.lang.String[] { "TotalProviderCostMicros", "TotalBillableAmountMicros", "ExecutionCount", "LlmCallCount", "ModelBreakdown", });
     internal_static_ai_stigmer_billing_v1_ModelBillingBreakdown_descriptor =
-      getDescriptor().getMessageType(22);
+      getDescriptor().getMessageType(24);
     internal_static_ai_stigmer_billing_v1_ModelBillingBreakdown_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ModelBillingBreakdown_descriptor,
         new java.lang.String[] { "Model", "Harness", "CostTier", "ProviderCostMicros", "BillableAmountMicros", "CallCount", });
     internal_static_ai_stigmer_billing_v1_GetCustomerModelPricingInput_descriptor =
-      getDescriptor().getMessageType(23);
+      getDescriptor().getMessageType(25);
     internal_static_ai_stigmer_billing_v1_GetCustomerModelPricingInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetCustomerModelPricingInput_descriptor,
         new java.lang.String[] { "OrgId", });
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingResponse_descriptor =
-      getDescriptor().getMessageType(24);
+      getDescriptor().getMessageType(26);
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CustomerModelPricingResponse_descriptor,
         new java.lang.String[] { "Entries", });
     internal_static_ai_stigmer_billing_v1_GetModelPricingGovernanceInput_descriptor =
-      getDescriptor().getMessageType(25);
+      getDescriptor().getMessageType(27);
     internal_static_ai_stigmer_billing_v1_GetModelPricingGovernanceInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetModelPricingGovernanceInput_descriptor,
         new java.lang.String[] { });
     internal_static_ai_stigmer_billing_v1_ModelPricingGovernanceResponse_descriptor =
-      getDescriptor().getMessageType(26);
+      getDescriptor().getMessageType(28);
     internal_static_ai_stigmer_billing_v1_ModelPricingGovernanceResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ModelPricingGovernanceResponse_descriptor,
         new java.lang.String[] { "Entries", "PendingOverrides", });
     internal_static_ai_stigmer_billing_v1_ModelPricingGovernanceEntry_descriptor =
-      getDescriptor().getMessageType(27);
+      getDescriptor().getMessageType(29);
     internal_static_ai_stigmer_billing_v1_ModelPricingGovernanceEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ModelPricingGovernanceEntry_descriptor,
         new java.lang.String[] { "ModelId", "DisplayName", "Provider", "Harness", "CostTier", "Variant", "BaselineInputMicrosPerMillion", "BaselineOutputMicrosPerMillion", "BaselineCacheWriteMicrosPerMillion", "BaselineCacheReadMicrosPerMillion", "BaselineCursorTokenRateMicrosPerMillion", "EffectiveInputMicrosPerMillion", "EffectiveOutputMicrosPerMillion", "EffectiveCacheWriteMicrosPerMillion", "EffectiveCacheReadMicrosPerMillion", "EffectiveCursorTokenRateMicrosPerMillion", "ActiveOverrides", "LedgerReconcilable", });
     internal_static_ai_stigmer_billing_v1_DecideModelPricingOverrideInput_descriptor =
-      getDescriptor().getMessageType(28);
+      getDescriptor().getMessageType(30);
     internal_static_ai_stigmer_billing_v1_DecideModelPricingOverrideInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_DecideModelPricingOverrideInput_descriptor,
         new java.lang.String[] { "OverrideId", "Approve", "DecisionNote", });
     internal_static_ai_stigmer_billing_v1_UpsertModelPricingBaselineInput_descriptor =
-      getDescriptor().getMessageType(29);
+      getDescriptor().getMessageType(31);
     internal_static_ai_stigmer_billing_v1_UpsertModelPricingBaselineInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_UpsertModelPricingBaselineInput_descriptor,
         new java.lang.String[] { "Baseline", "RevisionNote", });
     internal_static_ai_stigmer_billing_v1_RetireModelPricingBaselineInput_descriptor =
-      getDescriptor().getMessageType(30);
+      getDescriptor().getMessageType(32);
     internal_static_ai_stigmer_billing_v1_RetireModelPricingBaselineInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_RetireModelPricingBaselineInput_descriptor,
         new java.lang.String[] { "ModelId", "Provider", "Harness", "RevisionNote", });
     internal_static_ai_stigmer_billing_v1_ListModelPricingBaselinesInput_descriptor =
-      getDescriptor().getMessageType(31);
+      getDescriptor().getMessageType(33);
     internal_static_ai_stigmer_billing_v1_ListModelPricingBaselinesInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ListModelPricingBaselinesInput_descriptor,
         new java.lang.String[] { "IncludeHistory", });
     internal_static_ai_stigmer_billing_v1_ModelPricingBaselinesResponse_descriptor =
-      getDescriptor().getMessageType(32);
+      getDescriptor().getMessageType(34);
     internal_static_ai_stigmer_billing_v1_ModelPricingBaselinesResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ModelPricingBaselinesResponse_descriptor,
         new java.lang.String[] { "Baselines", });
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingEntry_descriptor =
-      getDescriptor().getMessageType(33);
+      getDescriptor().getMessageType(35);
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CustomerModelPricingEntry_descriptor,
         new java.lang.String[] { "ModelId", "DisplayName", "Provider", "Harness", "CostTier", "InputPriceMicrosPerMillion", "OutputPriceMicrosPerMillion", "CacheCreationPriceMicrosPerMillion", "CacheReadPriceMicrosPerMillion", "PricingPolicyId", "MarkupBasisPoints", });
     internal_static_ai_stigmer_billing_v1_PreviewAuthorizationInput_descriptor =
-      getDescriptor().getMessageType(34);
+      getDescriptor().getMessageType(36);
     internal_static_ai_stigmer_billing_v1_PreviewAuthorizationInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_PreviewAuthorizationInput_descriptor,
         new java.lang.String[] { "OrgId", "ExpectedCostCapMicros", });
     internal_static_ai_stigmer_billing_v1_PreviewAuthorizationResponse_descriptor =
-      getDescriptor().getMessageType(35);
+      getDescriptor().getMessageType(37);
     internal_static_ai_stigmer_billing_v1_PreviewAuthorizationResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_PreviewAuthorizationResponse_descriptor,
         new java.lang.String[] { "Authorized", "DenialReason", "ReserveAmountMicros", });
     internal_static_ai_stigmer_billing_v1_GetExecutionBillingSignalInput_descriptor =
-      getDescriptor().getMessageType(36);
+      getDescriptor().getMessageType(38);
     internal_static_ai_stigmer_billing_v1_GetExecutionBillingSignalInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetExecutionBillingSignalInput_descriptor,
         new java.lang.String[] { "ExecutionId", });
     internal_static_ai_stigmer_billing_v1_GetExecutionBillingSignalResponse_descriptor =
-      getDescriptor().getMessageType(37);
+      getDescriptor().getMessageType(39);
     internal_static_ai_stigmer_billing_v1_GetExecutionBillingSignalResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetExecutionBillingSignalResponse_descriptor,

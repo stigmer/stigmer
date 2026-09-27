@@ -33,7 +33,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "The platform-managed organizations a subscription includes before the\n per-organization fee applies. Read by a subscription only: an\n integrator's plan includes this many managed organizations, and the\n organizations resolve their own entitlements through the integrator's.\n A license ignores it.",
+      "description": "The platform-managed organizations a subscription includes before the\n per-organization fee applies. Read by a subscription only: an\n integrator's plan includes this many managed organizations, and the\n organizations resolve their own entitlements through the integrator's.\n Whether managed organizations are admitted at all is the\n managed_organizations feature, since absent here means \"no limit\" and\n zero is refused. A license ignores it.",
       "required": false,
       "oneofGroup": "_included_managed_organizations"
     }
