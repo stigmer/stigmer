@@ -21,6 +21,16 @@
  *    infrastructure cancel it delivered — with the message the control
  *    planes recognise.
  *
+ * One stop has no copy here: the orchestrator's (a Pause or a Cancel, which
+ * reach the activity as the same workflow-requested cancellation). The turn
+ * cannot tell which it is, so its arm writes no phase and no row, and the
+ * invoke workflow, which knows, writes the phase and the stop row that the
+ * server's merge keeps last (stigmer#980;
+ * `backend/services/stigmer-server/src/domain/agentexecution/platform-rows.ts`).
+ * The pause row lived here until then, and a cancelled run ended with an
+ * instruction to resume it. The arm's throw messages keep their bytes: they
+ * are the wire copy the control planes see on the activity failure.
+ *
  * An arm's rows are appended exactly once, by `applyTerminalArm`, and an arm
  * is persisted exactly once, by `run-turn.ts`'s `settleWith` — the one
  * writer of a terminal. The orchestrator this table replaced appended the
@@ -47,6 +57,7 @@ export type TerminalDisposition = { readonly kind: "return" } | { readonly kind:
 
 /** One arm of the table: what to write, and how to end. */
 export interface TerminalArm {
+  /** `EXECUTION_PHASE_UNSPECIFIED` writes no phase: the merge applies a phase only when one is sent. */
   readonly phase: ExecutionPhase;
   /** `status.error`; absent leaves it as it is (a pause is not an error). */
   readonly error?: string;
@@ -61,8 +72,7 @@ const RETURN: TerminalDisposition = { kind: "return" };
 
 /** The fixed strings of the table, in one place. Every one is pinned by a golden or a hermetic assertion. */
 export const TERMINAL_COPY = {
-  pause: {
-    row: "Execution paused by user. Use resume to continue.",
+  orchestratorStop: {
     throwMessage: "Activity paused by orchestrator",
     throwMessageAfterError: "Activity paused by orchestrator (error during pause)",
   },
@@ -138,7 +148,7 @@ export function toolCallLimitArm(): TerminalArm {
   };
 }
 
-/** The runner is draining. Not a user pause: FAILED with the shutdown copy, thrown as cancelled. */
+/** The runner is draining. Not a user's stop: FAILED with the shutdown copy, thrown as cancelled. */
 export function workerShutdownArm(): TerminalArm {
   return {
     phase: ExecutionPhase.EXECUTION_FAILED,
@@ -149,13 +159,18 @@ export function workerShutdownArm(): TerminalArm {
   };
 }
 
-/** The orchestrator paused the execution. Not an error, not complete; thrown as cancelled. */
-export function pauseArm(): TerminalArm {
+/**
+ * The orchestrator stopped the turn: a Pause or a Cancel, indistinguishable
+ * here (the module header). The transcript is settled and persisted with no
+ * phase and no row, because the workflow writes both; not an error, not
+ * complete; thrown as cancelled so the workflow sees the activity stop.
+ */
+export function orchestratorStopArm(): TerminalArm {
   return {
-    phase: ExecutionPhase.EXECUTION_PAUSED,
-    rows: [TERMINAL_COPY.pause.row],
+    phase: ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    rows: [],
     completes: false,
-    disposition: { kind: "throw", message: TERMINAL_COPY.pause.throwMessage },
+    disposition: { kind: "throw", message: TERMINAL_COPY.orchestratorStop.throwMessage },
   };
 }
 

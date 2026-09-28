@@ -1,0 +1,8 @@
+{
+  "version": "22.22.1",
+  "sha256": {
+    "darwin-arm64": "679ad4966339e4ef4900f57996714864e4211b898825bb840c3086c419fbcef2",
+    "linux-x64": "07c8aafa60644fb81adefa1ee7da860eb1920851ffdc9a37020ab0be47fbc10e",
+    "win-x64": "923a41f268ab49ede2e3363fbdd9e790609e385c6f3ca880b4ee9a56a8133e5a"
+  }
+}

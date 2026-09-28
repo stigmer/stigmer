@@ -175,6 +175,9 @@ Errors are API surface: the CLI, the console and the SDKs render them directly.
   Presenting a locked file or a corrupted page as "not found" invites clients to
   discard real state, which is why the retired implementation's
   everything-is-not-found mapping was deliberately not ported.
+  `backend/services/stigmer-server/src/pipeline/__tests__/blind-not-found.test.ts`
+  holds the rule: it fails any catch that answers NotFound without testing the
+  error it caught.
 - Quoting: new messages quote identifiers with single quotes (`'${x}'`) and
   render lists with `quoteJoin` from
   `backend/services/stigmer-server/src/domain/mcpserver/enabledtools/enabledtools.ts`.

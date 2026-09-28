@@ -130,8 +130,16 @@ async function getRunnerConfig(): Promise<RunnerConfig> {
   const runnerEntry =
     devRunnerEntry || (await resolveResource("resources/runner/dist/main.js"));
 
+  // The runner's engine is the Node runtime this build carries (staged by
+  // scripts/stage-node-runtime.sh, pinned in node-runtime.json), in dev and
+  // packaged alike. Never a bare `node`: an app launched from Finder, the Dock
+  // or the Start menu does not see the shell's PATH, so a name would resolve to
+  // whatever the session offers, usually nothing (stigmer/stigmer#1068). Rust
+  // resolves it because Rust knows the platform's executable suffix.
+  const nodeBinary = await invoke<string>("bundled_node_path");
+
   return {
-    nodeBinary: "node",
+    nodeBinary,
     runnerEntry,
     // Omitted unless explicitly overridden — the runner self-discovers it.
     ...(temporalAddress ? { temporalAddress } : {}),

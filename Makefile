@@ -816,12 +816,14 @@ typecheck-desktop: ## Typecheck desktop app (TypeScript)
 # Its own target so the CI lane can run the Rust check alone: lint and
 # typecheck reach it there as turbo tasks over the affected packages.
 # tauri-build refuses a bundle resource path that does not exist, and
-# resources/runner is gitignored (setup-runner-dev.sh links it, the release
-# stages it). A type-check reads none of its contents, so a clean checkout
-# gets an empty directory, which both scripts replace.
+# resources/runner and resources/runtime are gitignored (setup-runner-dev.sh
+# links the runner and stages the runtime, the release stages both). A
+# type-check reads none of their contents, so a clean checkout gets empty
+# directories, which the scripts replace.
 check-desktop-rust: ## Type-check the Tauri shell's Rust crate
 	cd client-apps/desktop/src-tauri && \
 		{ test -e resources/runner || mkdir -p resources/runner; } && \
+		{ test -e resources/runtime || mkdir -p resources/runtime; } && \
 		cargo check --quiet
 
 verify-desktop: lint-desktop typecheck-desktop check-desktop-rust ## Lint + typecheck desktop (TS + Rust)

@@ -15,7 +15,11 @@ use stigmer_runner_host::{RunnerHost, RunnerConfig};
 
 let host = RunnerHost::new();
 host.start(RunnerConfig {
-    node_binary: "node".into(),
+    // Absolute path to the Node binary. A packaged GUI app should ship its own
+    // runtime and pass its path: an app launched from Finder, the Dock or the
+    // Start menu does not inherit the shell's PATH, so a bare "node" usually
+    // resolves to nothing (`NodeBinaryNotFound`).
+    node_binary: "/path/to/resources/runtime/node".into(),
     // Absolute path. In a packaged app, resolve it from the resource directory
     // (e.g. Tauri's `app.path().resolve(.., BaseDirectory::Resource)`) — `node`
     // resolves a relative entry against the working directory, which is `/` for a
@@ -44,8 +48,15 @@ host.remove_session("ses_abc123").await?;
 host.stop().await?;
 ```
 
-The crate does not bundle the Node runner; point `node_binary` + `runner_entry` at an
-installed `@stigmer/runner`.
+The crate drives the runner; it does not ship it. Your app supplies both halves: the
+runner's JavaScript (`runner_entry`, the slim `@stigmer/runner-slim` build is made for
+packaging) and the Node that runs it (`node_binary`). A bare name in `node_binary` is
+looked up on the host process's PATH, which suits a host started from a shell; a desktop
+app ships a pinned Node runtime and passes its absolute path. The runner embedding guide
+(`docs/guides/runners/embedding.mdx`, "Ship the runner and its engine") has the recipe, and
+the Stigmer desktop app (`client-apps/desktop/scripts/stage-node-runtime.sh`) is the
+reference implementation. A missing engine fails with `NodeBinaryNotFound`, which names the
+PATH a bare name was looked up on.
 
 ## LLM credentials (BYOK / direct mode)
 

@@ -44,6 +44,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type {
   Store,
   WorkflowExecutionEventRecord,
@@ -88,8 +89,11 @@ export async function* subscribeEvents(
       executionId,
       WorkflowExecutionSchema,
     );
-  } catch {
-    throw notFoundError("WorkflowExecution", executionId);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("WorkflowExecution", executionId);
+    }
+    throw internalError(error, "failed to load workflow execution");
   }
 
   let typeFilter: Set<string> | undefined;

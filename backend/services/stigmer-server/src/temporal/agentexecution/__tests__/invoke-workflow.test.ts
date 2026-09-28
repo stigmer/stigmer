@@ -16,6 +16,10 @@
  *   - bounded auto-recovery on worker-shutdown shapes (#776: IN_PROGRESS
  *     persisted, honest status copy on exhaustion);
  *   - EXECUTION_FAILED propagation with the fallback persist;
+ *   - the stop and failure copy each has one writer (stigmer#980): the
+ *     pause persist carries the pause row, a runner-reported failure's
+ *     write carries no lines (the runner explained it), and only a broken
+ *     flow gets the platform's two lines;
  *   - external cancellation cleanup (CANCELLED persisted quietly —
  *     stigmer#282 — and the EC deleted);
  *   - callback-token completion on success AND failure (the DD-001 lane,
@@ -50,8 +54,14 @@ import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/ag
 import {
   ExecutionPhase,
   FileChangeSetStatus,
+  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
+import {
+  CANCEL_STOP_ROW,
+  PAUSE_STOP_ROW,
+} from "../../../domain/agentexecution/platform-rows.js";
 
 import {
   INVOKE_AGENT_EXECUTION_WORKFLOW_NAME,
@@ -565,6 +575,12 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
         .includes(ExecutionPhase.EXECUTION_IN_PROGRESS),
       "resume re-asserts IN_PROGRESS after the PAUSED persist",
     ).toBe(true);
+    // The workflow is the pause row's one writer: the runner cannot tell
+    // this stop from a cancel, so it settles without a row.
+    expect(
+      script.persistedStatuses[pausedAt]!.status.messages.map((m) => [m.type, m.content]),
+      "the PAUSED persist carries the pause row",
+    ).toEqual([[MessageType.MESSAGE_SYSTEM, PAUSE_STOP_ROW]]);
   }, 60_000);
 
   it("auto-recovers a worker-shutdown interruption and persists IN_PROGRESS (#776)", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -611,6 +627,40 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     );
     expect(failed.length).toBeGreaterThan(0);
     expect(failed[0]!.status.error).toBe("agent blew up");
+    // The runner already explained its own failure in the transcript, so
+    // no FAILED write of the workflow adds a second explanation.
+    expect(
+      failed.flatMap((entry) => entry.status.messages),
+      "a runner-reported failure adds no platform lines",
+    ).toEqual([]);
+    expectExecutionContextDeleted();
+  }, 30_000);
+
+  it("explains a flow that broke without a runner verdict with the platform's two lines", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    const { ApplicationFailure } = await import("@temporalio/common");
+    script.executeBehaviors = [
+      async () => {
+        // Not recoverable (not a cancellation, heartbeat timeout or worker
+        // shutdown), so the flow breaks with no FAILED result to read.
+        throw ApplicationFailure.create({ message: "runner crashed", nonRetryable: true });
+      },
+    ];
+
+    const handle = await startWorkflow(workflowInput());
+    await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
+
+    const failed = script.persistedStatuses.filter(
+      (entry) => entry.status.phase === ExecutionPhase.EXECUTION_FAILED,
+    );
+    expect(failed.length).toBeGreaterThan(0);
+    const lines = failed.at(-1)!.status.messages;
+    expect(lines.map((m) => m.type)).toEqual([
+      MessageType.MESSAGE_SYSTEM,
+      MessageType.MESSAGE_SYSTEM,
+    ]);
+    // The details carry the wrapped activity error (wrapActivityError's
+    // operator-actionable prefix), not a runner-authored sentence.
+    expect(lines[1]!.content).toMatch(/^Error details: activity 'ExecuteDeepAgent'/);
     expectExecutionContextDeleted();
   }, 30_000);
 
@@ -638,7 +688,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // system message is the durable marker.
     expect(cancelled.status.error).toBe("");
     expect(cancelled.status.messages.map((message) => message.content)).toEqual([
-      "Execution was cancelled.",
+      CANCEL_STOP_ROW,
     ]);
     expectExecutionContextDeleted();
   }, 60_000);

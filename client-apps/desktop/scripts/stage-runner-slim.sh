@@ -29,6 +29,13 @@
 # Makefile targets, the release lane) inherits the invariant. Without an
 # identity the tree is left as built, the same as Tauri treats the app.
 #
+# The runner never ships without its engine: this script then stages the
+# pinned Node runtime beside it (stage-node-runtime.sh, into
+# src-tauri/resources/runtime), and last proves the pair by running
+# verify-staged-runtime.mjs on that engine. The proof runs after signing, so on
+# a signed macOS build it exercises the signed bytes: the engine's JIT grant,
+# and library validation of every native module the runner loads.
+#
 # Usage: ./scripts/stage-runner-slim.sh
 
 set -euo pipefail
@@ -65,3 +72,9 @@ echo "Staged slim runner: $RUNNER_DIR ($SIZE)"
 if [ "$(uname -s)" = Darwin ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
   "$SCRIPT_DIR/macos-codesign-tree.sh" sign "$RUNNER_DIR"
 fi
+
+"$SCRIPT_DIR/stage-node-runtime.sh"
+
+ENGINE="$RESOURCES_DIR/runtime/node"
+[ -f "$ENGINE" ] || ENGINE="$RESOURCES_DIR/runtime/node.exe"
+"$ENGINE" "$SCRIPT_DIR/verify-staged-runtime.mjs"

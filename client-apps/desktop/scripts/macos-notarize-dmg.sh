@@ -21,7 +21,13 @@
 #   - `codesign --verify --deep --strict` accepts the .app; and
 #   - every Mach-O inside the .app carries the signing identity
 #     (macos-codesign-tree.sh verify; --deep seals Resources/ as data and would
-#     not catch an ad-hoc binary in the embedded runner).
+#     not catch an ad-hoc binary in the embedded runner); and
+#   - the bundled Node runtime carries its entitlements
+#     (macos-entitlements/node-runtime.plist). The notary accepts a Node signed
+#     without them, and that Node cannot start under the hardened runtime, so
+#     this is the check that stands between a green build and a runner that
+#     never boots. It is scoped to the runtime directory: the runner's other
+#     executables carry no entitlements.
 #
 # Usage: macos-notarize-dmg.sh <path/to/Stigmer_x_aarch64.dmg> <path/to/Stigmer.app>
 #
@@ -90,5 +96,8 @@ grep -q 'source=Notarized Developer ID' <<<"$assessment" \
   || fail "Gatekeeper does not report the DMG as Notarized Developer ID"
 codesign --verify --deep --strict --verbose=2 "$APP"
 "$SCRIPT_DIR/macos-codesign-tree.sh" verify "$APP" "$APPLE_SIGNING_IDENTITY"
+"$SCRIPT_DIR/macos-codesign-tree.sh" verify \
+  --entitlements "$SCRIPT_DIR/macos-entitlements/node-runtime.plist" \
+  "$APP/Contents/Resources/resources/runtime" "$APPLE_SIGNING_IDENTITY"
 
 echo "macos-notarize-dmg: $(basename "$DMG") is notarized, stapled, and accepted by Gatekeeper"

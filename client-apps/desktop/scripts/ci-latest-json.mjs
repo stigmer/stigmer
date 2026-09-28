@@ -11,8 +11,9 @@
 //
 // macOS bundles are keyed by the Rust target triple in their path
 // (MACOS_TARGETS), so adding or removing a macOS leg is a matrix change in
-// release.desktop.yaml and nothing here. The lane builds aarch64 only today;
-// see stigmer-cloud 20260912.01 DD-001 for why the universal build was retired.
+// release.desktop.yaml and nothing here. The lane builds aarch64 only today:
+// the universal build was retired because the embedded runner's natives are
+// staged for the build host, so a universal shell carried arm64-only natives.
 //
 // Usage:
 //   node ci-latest-json.mjs fragment --target-dir <dir> --tag <vX.Y.Z> --out <file>

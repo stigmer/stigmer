@@ -119,7 +119,9 @@ impl RunnerHost {
         // stdin EOF (its IPC read loop ends when the parent's write end closes).
         cmd.kill_on_drop(true);
 
-        let mut child = cmd.spawn().map_err(RunnerHostError::Spawn)?;
+        let mut child = cmd
+            .spawn()
+            .map_err(|err| spawn_error(&config.node_binary, err))?;
         let stdin = child
             .stdin
             .take()
@@ -523,6 +525,29 @@ fn validate_extra_env(config: &RunnerConfig) -> Result<(), RunnerHostError> {
     Ok(())
 }
 
+/// Classify a failed spawn. A missing engine becomes [`RunnerHostError::NodeBinaryNotFound`],
+/// carrying the PATH a bare name was looked up on, because that PATH is the one fact a
+/// GUI-launched embedder cannot see. `NotFound` for a path that does exist (a script whose
+/// interpreter is missing) is not a missing engine and stays a plain `Spawn`.
+fn spawn_error(node_binary: &str, err: std::io::Error) -> RunnerHostError {
+    if err.kind() != std::io::ErrorKind::NotFound {
+        return RunnerHostError::Spawn(err);
+    }
+    if node_binary.contains(std::path::is_separator) {
+        if std::path::Path::new(node_binary).exists() {
+            return RunnerHostError::Spawn(err);
+        }
+        return RunnerHostError::NodeBinaryNotFound {
+            node_binary: node_binary.to_string(),
+            searched_path: None,
+        };
+    }
+    RunnerHostError::NodeBinaryNotFound {
+        node_binary: node_binary.to_string(),
+        searched_path: Some(std::env::var("PATH").unwrap_or_default()),
+    }
+}
+
 /// Ensure the runner entry points at a file that exists before we hand it to `node`.
 ///
 /// Unlike the pure seams above, this is intentionally I/O-bound: a relative entry only
@@ -853,5 +878,98 @@ mod tests {
             }
             other => panic!("expected RunnerEntryNotFound, got {other:?}"),
         }
+    }
+
+    fn not_found() -> std::io::Error {
+        std::io::Error::from(std::io::ErrorKind::NotFound)
+    }
+
+    #[test]
+    fn a_missing_bare_node_names_the_path_it_was_looked_up_on() {
+        // stigmer/stigmer#1068: a GUI-launched app spawning `node` by name gets ENOENT from a
+        // PATH it never chose. The error must say so and point at an absolute path.
+        match spawn_error("node", not_found()) {
+            RunnerHostError::NodeBinaryNotFound {
+                node_binary,
+                searched_path,
+            } => {
+                assert_eq!(node_binary, "node");
+                assert_eq!(
+                    searched_path,
+                    Some(std::env::var("PATH").unwrap_or_default())
+                );
+            }
+            other => panic!("expected NodeBinaryNotFound, got {other:?}"),
+        }
+        let message = spawn_error("node", not_found()).to_string();
+        assert!(
+            message.starts_with("node binary `node` was not found"),
+            "{message}"
+        );
+        assert!(
+            message.contains("does not inherit the shell's PATH"),
+            "{message}"
+        );
+        assert!(message.contains("absolute path"), "{message}");
+    }
+
+    #[test]
+    fn a_missing_node_path_says_no_file_exists_there() {
+        let missing = concat!(env!("CARGO_MANIFEST_DIR"), "/does-not-exist/node");
+        match spawn_error(missing, not_found()) {
+            RunnerHostError::NodeBinaryNotFound {
+                node_binary,
+                searched_path,
+            } => {
+                assert_eq!(node_binary, missing);
+                assert_eq!(searched_path, None, "a path is not looked up on PATH");
+            }
+            other => panic!("expected NodeBinaryNotFound, got {other:?}"),
+        }
+        assert!(spawn_error(missing, not_found())
+            .to_string()
+            .contains("no file exists at that path"));
+    }
+
+    #[test]
+    fn not_found_for_an_existing_file_and_other_spawn_failures_stay_spawn_errors() {
+        // ENOENT for a file that exists means its interpreter is missing, not the engine.
+        let existing = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
+        assert!(matches!(
+            spawn_error(existing, not_found()),
+            RunnerHostError::Spawn(_)
+        ));
+        let denied = std::io::Error::from(std::io::ErrorKind::PermissionDenied);
+        assert!(matches!(
+            spawn_error("node", denied),
+            RunnerHostError::Spawn(_)
+        ));
+    }
+
+    #[test]
+    fn start_reports_a_missing_engine_as_node_binary_not_found() {
+        // End to end through `start()`: the entry exists (the guard passes), the engine does
+        // not, and the host must hand back the typed error rather than a bare spawn failure.
+        let mut config = minimal_config();
+        config.node_binary =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/does-not-exist/node").to_string();
+        config.runner_entry = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml").to_string();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("current-thread runtime");
+        let err = runtime
+            .block_on(RunnerHost::new().start(config))
+            .unwrap_err();
+        assert!(
+            matches!(
+                err,
+                RunnerHostError::NodeBinaryNotFound {
+                    searched_path: None,
+                    ..
+                }
+            ),
+            "got {err:?}"
+        );
     }
 }

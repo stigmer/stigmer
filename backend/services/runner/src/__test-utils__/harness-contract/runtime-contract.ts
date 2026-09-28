@@ -594,12 +594,17 @@ function hangingTurn(before: string): TurnScenario {
 }
 
 /**
- * A user pause: Temporal's cancellation delivered while the engine hangs
- * persists PAUSED with the pause row written exactly once, no error, no
- * `completedAt`, and THROWS the pause `CancelledFailure` so the workflow
- * knows to wait.
+ * An orchestrator stop (a user's Pause or Cancel, one cancellation to the
+ * turn): Temporal's cancellation delivered while the engine hangs settles
+ * the transcript into one write that carries no phase and no row (the
+ * workflow writes both, stigmer#980), no error, no `completedAt`, and
+ * THROWS the stop's `CancelledFailure` so the workflow sees the activity
+ * stop.
  */
-export async function assertPausePersistsAndThrows(harness: RuntimeContractHarness, label = "rt-pause"): Promise<RuntimeArmResult> {
+export async function assertOrchestratorStopSettlesAndThrows(
+  harness: RuntimeContractHarness,
+  label = "rt-orchestrator-stop",
+): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
   let controls: InvocationControls | undefined;
@@ -607,16 +612,22 @@ export async function assertPausePersistsAndThrows(harness: RuntimeContractHarne
 
   const invocation = await driver.turn(hangingTurn("Starting on the parser."), { onControls: (c) => (controls = c) });
 
-  expect(threwCancelledFailure(invocation.outcome), `${subject.name}: a pause THROWS a CancelledFailure`).toBe(true);
+  expect(threwCancelledFailure(invocation.outcome), `${subject.name}: an orchestrator stop THROWS a CancelledFailure`).toBe(true);
   if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
-  expect(invocation.outcome.error.message).toBe(TERMINAL_COPY.pause.throwMessage);
-  expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_PAUSED);
-  const final = finalStatusOf(harness, driver);
-  expect(final.error, `${subject.name}: a pause is not an error`).toBe("");
-  expect(final.completedAt, `${subject.name}: a paused turn is not complete`).toBe("");
-  expect(systemMessages(final), `${subject.name}: the pause row, exactly once`).toEqual([TERMINAL_COPY.pause.row]);
-  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
-  return { driver, invocations: [invocation], final };
+  expect(invocation.outcome.error.message).toBe(TERMINAL_COPY.orchestratorStop.throwMessage);
+  expect(
+    driver.record.persistedPhases.at(-1),
+    `${subject.name}: the stop writes no phase; the last phase is the turn's own`,
+  ).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+  const settle = driver.record.persisted.at(-1);
+  if (!settle) throw new Error(`${subject.name}: the runtime persisted nothing`);
+  expect(settle.phase, `${subject.name}: the settle write carries no phase`).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+  assertTranscriptStreamsNothing(subject.name, settle);
+  expect(settle.error, `${subject.name}: a stop is not an error`).toBe("");
+  expect(settle.completedAt, `${subject.name}: a stopped turn is not complete`).toBe("");
+  expect(systemMessages(settle), `${subject.name}: no stop row; the workflow writes it`).toEqual([]);
+  expect(aiMessages(settle)).not.toContain(NEVER_SEEN);
+  return { driver, invocations: [invocation], final: settle };
 }
 
 /**
@@ -970,9 +981,9 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
         await assertNonExecutingDecisionSettlesSkipped(harness, action);
       });
     }
-    it("a user pause persists PAUSED with the pause row once and throws the pause CancelledFailure", async () => {
+    it("an orchestrator stop settles the transcript with no phase and no row, and throws the stop's CancelledFailure", async () => {
       clock.reset();
-      await assertPausePersistsAndThrows(harness);
+      await assertOrchestratorStopSettlesAndThrows(harness);
     });
     it("a worker shutdown persists FAILED with the shutdown copy once and throws the shutdown CancelledFailure", async () => {
       clock.reset();

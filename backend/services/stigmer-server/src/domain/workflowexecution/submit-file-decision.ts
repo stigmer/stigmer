@@ -36,6 +36,7 @@ import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
 /**
@@ -99,8 +100,11 @@ export async function submitFileDecision(
             ctx.input.executionId,
             WorkflowExecutionSchema,
           );
-        } catch {
-          throw notFoundError("workflow_execution", ctx.input.executionId);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            throw notFoundError("workflow_execution", ctx.input.executionId);
+          }
+          throw internalError(error, "failed to load workflow execution");
         }
         ctx.set(TARGET_EXECUTION_KEY, execution);
       },

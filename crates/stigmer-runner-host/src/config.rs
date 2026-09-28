@@ -8,9 +8,12 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-/// Inputs the host supplies to launch the runner. The crate does not bundle the Node
-/// runner; the embedder points `node_binary` + `runner_entry` at an installed
-/// `@stigmer/runner` and supplies the endpoints its deployment needs.
+/// Inputs the host supplies to launch the runner. The crate drives the runner but does not
+/// ship it: the embedder points `runner_entry` at the runner's JavaScript (the slim
+/// `@stigmer/runner-slim` build for a packaged app) and `node_binary` at the Node that runs
+/// it, and supplies the endpoints its deployment needs. A bare `node_binary` is looked up on
+/// the host's PATH; a GUI app does not inherit the shell's, so it ships its own runtime and
+/// passes the absolute path (a missing engine is `RunnerHostError::NodeBinaryNotFound`).
 #[derive(Debug, Clone, Deserialize)]
 pub struct RunnerConfig {
     pub node_binary: String,

@@ -19,6 +19,7 @@ backend/services/runner/stage/
 # Desktop embedded-runner staging: a symlink in dev (setup-runner-dev.sh),
 # the staged slim artifact in packaged builds (stage-runner-slim.sh).
 client-apps/desktop/src-tauri/resources/runner
+client-apps/desktop/src-tauri/resources/runtime
 
 # Test binary, built with `go test -c`
 *.test

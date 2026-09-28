@@ -48,6 +48,7 @@ pub fn run() {
             runner::remove_workflow_execution,
             runner::update_runner_token,
             runner::runner_status,
+            runner::bundled_node_path,
             workspace::list_workspace_files,
             workspace::read_workspace_file,
             workspace::search_workspace_content,
