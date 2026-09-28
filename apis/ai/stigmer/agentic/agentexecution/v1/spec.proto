@@ -374,8 +374,11 @@ message AgentExecutionSpec {
   // so external injection is moot by construction. Composed only for
   // first-party human operators (DD-002 D4 as amended 2026-08-15: never for
   // machine, impersonated, guest, channel, schedule, runner, or
-  // platform-client-user callers). The OSS server composes org_context only
-  // (single-user local mode; no IdentityAccount). A snapshot by design:
+  // platform-client-user callers; the server's org_context half does not
+  // yet follow this rule, stigmer#1401). user_context is composed only
+  // where callers are persons (the require-authentication posture, every
+  // edition; stigmer#1397); the single-operator posture (trusted-local)
+  // composes org_context only. A snapshot by design:
   // preferences are mutable, executions are immutable audit records — this
   // field records what the model actually saw. Composition is best-effort;
   // a preference load failure never fails the create. Top-level rather than
@@ -393,7 +396,9 @@ message AgentExecutionSpec {
   // callers — overwriting any caller-supplied value, so injection via
   // the create request is moot by construction); composed only for
   // first-party human operators with BOTH memory_enabled flags on (org
-  // AND caller; OSS: the org flag alone); confirmed records only —
+  // AND caller where callers are persons; the single-operator posture,
+  // trusted-local: the org flag alone — stigmer#1387); confirmed records
+  // only —
   // proposed and rejected are never injected (the consent gate is
   // meaningless otherwise); a SNAPSHOT (memories are mutable, executions
   // are immutable audit records — this field records the CANDIDATE set
@@ -826,8 +831,10 @@ message DeclaredPreferences {
   // The calling user's standing context, verbatim.
   //
   // @internal
-  // Cloud-only: the OSS server never sets it — OSS has no per-request user
-  // identity, so the user scope collapses into the org scope (DD-002 D1).
+  // Set only where callers are persons (the require-authentication
+  // posture, every edition; stigmer#1397), from the run's person's
+  // account. The single-operator posture (trusted-local) never sets it:
+  // its one operator's scope collapses into the org scope (DD-002 D1).
   string user_context = 2;
 }
 

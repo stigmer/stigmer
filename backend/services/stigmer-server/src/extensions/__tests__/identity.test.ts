@@ -13,10 +13,18 @@
  * in-process origin, and never a wire `machine` account — the one row
  * where the two predicates part, pinned so a step trusting server-composed
  * state can never be widened to the wire by picking the wrong one.
+ *
+ * And pins `isFirstPartyHumanOperator` (stigmer#1387), the allow-list
+ * memory recall and the person's declared preferences read: a wire `user`
+ * whose bearer is not a PlatformClient user token. Every other class, an
+ * in-process `user` (the open-source schedule fire's shape) and a
+ * platform token naming a PlatformClient are excluded; another issuer's
+ * token carrying the same claim is not a platform token (stigmer#1312).
  */
 import { describe, expect, it } from "vitest";
 
 import {
+  isFirstPartyHumanOperator,
   isPlatformPipelineCaller,
   isServerComposedRequest,
 } from "../identity.js";
@@ -101,5 +109,79 @@ describe("isServerComposedRequest", () => {
     expect(isServerComposedRequest(caller({ callerClass: "runner" }))).toBe(
       false,
     );
+  });
+});
+
+/** A JWT carrying `payload`, unsigned: the predicate reads, never verifies. */
+function jwtWith(payload: Record<string, unknown>): string {
+  const segment = (value: object) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${segment({ alg: "RS256", typ: "JWT" })}.${segment(payload)}.signature`;
+}
+
+describe("isFirstPartyHumanOperator", () => {
+  it("is true for a wire user — an OIDC login, an API key, the laptop's operator", () => {
+    expect(isFirstPartyHumanOperator(caller({}))).toBe(true);
+    expect(isFirstPartyHumanOperator(caller({ origin: "wire" }))).toBe(true);
+    expect(
+      isFirstPartyHumanOperator(
+        caller({
+          issuer: "https://issuer.example",
+          rawToken: jwtWith({ iss: "https://issuer.example", sub: "carol" }),
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("is false for every other class, a composition's own included", () => {
+    for (const callerClass of [
+      "machine",
+      "runner",
+      "internal",
+      "guest",
+      "channel",
+      "schedule",
+      "sandbox",
+    ]) {
+      expect(
+        isFirstPartyHumanOperator(caller({ callerClass })),
+        callerClass,
+      ).toBe(false);
+    }
+  });
+
+  it("is false for a user the server composed a request for (the schedule fire)", () => {
+    expect(
+      isFirstPartyHumanOperator(
+        caller({ callerClass: "user", origin: "in-process" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("is false for a PlatformClient user token, and true when another issuer stamps the claim", () => {
+    expect(
+      isFirstPartyHumanOperator(
+        caller({
+          issuer: "stigmer",
+          rawToken: jwtWith({
+            iss: "stigmer",
+            sub: "ida_x",
+            platform_client_id: "pc_1",
+          }),
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isFirstPartyHumanOperator(
+        caller({
+          issuer: "https://issuer.example",
+          rawToken: jwtWith({
+            iss: "https://issuer.example",
+            sub: "ida_x",
+            platform_client_id: "pc_1",
+          }),
+        }),
+      ),
+    ).toBe(true);
   });
 });

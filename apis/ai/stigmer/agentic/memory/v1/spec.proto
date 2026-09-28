@@ -40,8 +40,10 @@ message MemorySpec {
   // @internal
   // Server-derived from the calling credential at create — never
   // client-supplied, so a forged subject is structurally impossible
-  // (DD-005 D2). OSS local mode stores the empty string (the
-  // single-user sentinel, matching the OAuth grant store). Named
+  // (DD-005 D2). The single-operator posture (trusted-local) stores the
+  // empty string (the single-user sentinel, matching the OAuth grant
+  // store); where callers are persons it is always an identity account
+  // id (stigmer#1387). Named
   // "subject" because the memory is ABOUT them — an agent authored it,
   // so creator/owner vocabulary would misname the relationship (DD-004).
   string subject_identity_account_id = 2;

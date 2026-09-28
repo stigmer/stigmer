@@ -35,12 +35,15 @@
  *
  * Authorization posture (OSS): this edition is single-user and local, so
  * handlers perform no authorization — a documented no-op, not a silent
- * divergence. The subject is the empty-string sentinel (the OAuth grant
- * store convention); enablement is the org flag alone (the user scope
- * collapses — DD-002 D1). The cloud edition derives the subject from the
- * calling credential, enforces the strict first-party-human gate, checks
- * both memory_enabled flags, and gates every RPC through FGA (subject-only
- * can_view/can_edit/can_delete).
+ * divergence. The subject and the double opt-in follow the POSTURE, not
+ * the edition (stigmer#1387): where callers are persons (the
+ * require-authentication posture composes `personAccounts` — the hosted
+ * edition, a self-host with sign-in) the subject is the identity account
+ * the memory is about and both memory_enabled flags must be on; under the
+ * single-operator posture (trusted-local) the subject is the empty-string
+ * sentinel (the OAuth grant store convention) and enablement is the org
+ * flag alone (the user scope collapses — DD-002 D1). Every RPC's FGA
+ * question is subject-only (can_view/can_edit/can_delete).
  *
  * Memory is deliberately NOT search-indexed (privacy — subject-only
  * content must not surface in org-visible search): no search-extractor,
@@ -70,6 +73,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
@@ -132,6 +136,14 @@ export interface MemoryControllerDeps {
   /** The composed list read scope — list narrows through it; undefined = the OSS full scan (20260830.01). */
   readonly listReadScope: ListReadScope | undefined;
   /**
+   * The directory of the persons callers stand for (stigmer#1387) — the
+   * composed identity-account port, bound under the require-authentication
+   * posture; undefined = the single-operator posture (trusted-local),
+   * where memory is the organization's switch alone and the subject the
+   * empty-string sentinel.
+   */
+  readonly personAccounts: AccountsByCaller | undefined;
+  /**
    * The composed runner-credential provider — GuardMemoryCapture consults
    * its authorizeMemoryCapture capability for the runner-credential
    * eligibility arm (parity entry 20260830.05). The OSS default defines
@@ -175,10 +187,10 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * Authorization: GuardMemoryCapture decides WHO may capture (the composed
  * RunnerCredentialProvider), AuthorizeResolvedTarget decides WHERE
  * (can_create_session on the organization), and CreateAuthorizationTuples
- * runs against the composed lifecycle. Only the organization's
- * memory_enabled is checked; the person's own flag, the other half of the
- * double opt-in the contract names, is not yet enforced
- * (stigmer/stigmer#1387).
+ * runs against the composed lifecycle. ResolveMemoryDefaults names the
+ * person the memory is about and CheckMemoryEnablement requires both
+ * halves of the double opt-in where callers are persons (both step docs;
+ * stigmer#1387).
  */
 async function createMemory(
   deps: MemoryControllerDeps,
@@ -198,7 +210,7 @@ async function createMemory(
     .addStep(newValidateProtoStep())
     .addStep(newGuardMemoryCaptureStep(deps.runnerCredentialProvider))
     .addStep(newValidateVisibilityStep())
-    .addStep(newResolveMemoryDefaultsStep())
+    .addStep(newResolveMemoryDefaultsStep(deps.personAccounts))
     // Before the enablement and cap checks, so a refused caller learns
     // nothing about the organization's settings (steps.ts,
     // resolveMemoryCreateTargets).
@@ -208,7 +220,7 @@ async function createMemory(
         resolveMemoryCreateTargets,
       ),
     )
-    .addStep(newCheckMemoryEnablementStep(deps.store))
+    .addStep(newCheckMemoryEnablementStep(deps.store, deps.personAccounts))
     .addStep(newCheckMemoryCapStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))

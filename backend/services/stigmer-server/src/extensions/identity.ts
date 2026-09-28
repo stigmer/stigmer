@@ -12,6 +12,11 @@
  * HandlerContext.values (never ambient state — the every-dependency-
  * explicit doctrine).
  */
+import { USER_TOKEN_CLAIMS } from "../domain/platformclient/constants.js";
+import {
+  decodeVerifiedPlatformTokenPayload,
+  stringClaim,
+} from "../platformtoken/envelope.js";
 
 /**
  * The caller-class discriminant. OSS knows user / machine / runner plus
@@ -151,4 +156,46 @@ export function isPlatformPipelineCaller(caller: CallerIdentity): boolean {
  */
 export function isServerComposedRequest(caller: CallerIdentity): boolean {
   return caller.callerClass === "internal" || caller.origin === "in-process";
+}
+
+/**
+ * Whether `caller` is a FIRST-PARTY HUMAN OPERATOR: a person at the
+ * console, the CLI or an SDK, speaking for themselves on the wire — the
+ * TS rendering of the Java RequestCallerIdentity.isFirstPartyHumanOperator
+ * (not machine, not impersonated, no token_type, not a PlatformClient user
+ * token). Stated once for every consumer that must tell the person from a
+ * lane acting near them: memory recall and the person's declared
+ * preferences on execution create (domain/agentexecution/create-steps.ts).
+ *
+ * An ALLOW-list, so a lane this module has never heard of is excluded by
+ * construction: the class must be `user` (every human verifier stamps it —
+ * OIDC, API key, the cloud's direct and federated logins; runners, the
+ * cloud's token lanes and the platform's own pipelines each carry their
+ * own class), the request must come from the wire (the open-source
+ * schedule fire acts as its creator with class `user` but rides the
+ * in-process transport, which is exactly what `isServerComposedRequest`
+ * reads), and the bearer must not be a PlatformClient user token (a
+ * person, but spoken for by a third-party client — DD-002 D4 as amended).
+ */
+export function isFirstPartyHumanOperator(caller: CallerIdentity): boolean {
+  return (
+    caller.callerClass === "user" &&
+    !isServerComposedRequest(caller) &&
+    !carriesPlatformClientClaim(caller.rawToken)
+  );
+}
+
+/**
+ * Whether the bearer is a platform token naming a PlatformClient. Anything
+ * that is not a platform token (no token, an API key, another issuer's
+ * JWT) is not one, whatever claims it carries (stigmer#1312). Read from
+ * the raw token, never from `platformClientId`, which is audit provenance
+ * set by one verifier and not a guard vocabulary (see its field doc).
+ */
+export function carriesPlatformClientClaim(rawToken: string): boolean {
+  const payload = decodeVerifiedPlatformTokenPayload(rawToken);
+  return (
+    payload !== undefined &&
+    stringClaim(payload, USER_TOKEN_CLAIMS.platformClientId) !== undefined
+  );
 }

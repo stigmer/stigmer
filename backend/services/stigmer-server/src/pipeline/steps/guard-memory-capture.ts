@@ -42,14 +42,12 @@
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { USER_TOKEN_CLAIMS } from "../../domain/platformclient/constants.js";
-import { isServerComposedRequest } from "../../extensions/identity.js";
+import {
+  carriesPlatformClientClaim,
+  isServerComposedRequest,
+} from "../../extensions/identity.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import {
-  decodeVerifiedPlatformTokenPayload,
-  stringClaim,
-} from "../../platformtoken/envelope.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { metadataOf } from "./shapes.js";
 
@@ -146,17 +144,4 @@ export function memoryCaptureCredentialOf<Desc extends DescMessage>(
     return payload as MemoryCaptureCredential;
   }
   return undefined;
-}
-
-/**
- * Whether the bearer is a platform token naming a PlatformClient. Anything
- * that is not a platform token (no token, an API key, another issuer's
- * JWT) is not one, whatever claims it carries.
- */
-function carriesPlatformClientClaim(rawToken: string): boolean {
-  const payload = decodeVerifiedPlatformTokenPayload(rawToken);
-  return (
-    payload !== undefined &&
-    stringClaim(payload, USER_TOKEN_CLAIMS.platformClientId) !== undefined
-  );
 }

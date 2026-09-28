@@ -31,6 +31,17 @@ export function memoryDisabledMessage(org: string): string {
 }
 
 /**
+ * Refuses a create while the PERSON the memory would be about has not
+ * enabled memory on their own account — the member half of the double
+ * opt-in (DD-006 D1), and the answer for a caller no account stands for,
+ * since only an unprovisioned person reaches that arm. The Java
+ * MemoryPolicy.MEMORY_ACCOUNT_DISABLED_MESSAGE, byte-pinned: the hosted
+ * edition's clients have rendered it since the Java handler shipped.
+ */
+export const MEMORY_ACCOUNT_DISABLED_MESSAGE =
+  "memory is not enabled for your account — enable it in account preferences";
+
+/**
  * Refuses confirming a rejected memory: the decision is auditable and
  * stands; a fresh proposal is the way back. Go
  * MemoryConfirmRejectedMessage.

@@ -34,6 +34,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -41,6 +42,7 @@ import { clone } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { isFirstPartyHumanOperator } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import {
@@ -53,9 +55,12 @@ import {
 } from "../../pipeline/errors.js";
 import { ConnectError } from "@connectrpc/connect";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
+import { accountForCaller } from "../identityaccount/resolve.js";
 
 import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
 
@@ -416,19 +421,27 @@ export function newCreateSessionIfNeededStep(deps: {
 // ---------------------------------------------------------------------------
 
 /**
- * Snapshots the organization's declared standing context onto the
- * execution spec (DD-002, stigmer/stigmer#293). SERVER-OWNED: stamped
- * unconditionally, overwriting anything the caller supplied. OSS composes
- * org_context only (the local server has no per-request user identity).
- * BEST-EFFORT: an execution must never fail to start because its optional
- * preferences could not load — genuine failures log at ERROR (quiet
- * degradation of a should-work path must stay visible) and degrade to an
- * empty snapshot. Snapshot-at-create is the point: preferences are
+ * Snapshots the declared standing context onto the execution spec
+ * (DD-002, stigmer/stigmer#293). SERVER-OWNED: stamped unconditionally,
+ * overwriting anything the caller supplied. Two independent halves:
+ * org_context, the organization's, for every run; and user_context, the
+ * run's person's own (stigmer#1397) — composed only where callers are
+ * persons (`personAccounts`, the require-authentication posture) and only
+ * for a first-party human operator (runPersonOf), as the Java step did.
+ * The single-operator posture composes org_context alone: its one
+ * operator's context is the organization's. The org half deliberately
+ * keeps running for every lane (schedule and channel runs carry the
+ * organization's instructions today); only the person's half is about a
+ * person. BEST-EFFORT: an execution must never fail to start because its
+ * optional preferences could not load — genuine failures log at ERROR
+ * (quiet degradation of a should-work path must stay visible) and degrade
+ * that half to empty. Snapshot-at-create is the point: preferences are
  * mutable, executions are immutable audit records.
  */
 export function newComposeDeclaredPreferencesStep(
   store: Store,
   logger: Logger,
+  personAccounts?: AccountsByCaller,
 ): PipelineStep<CreateDesc> {
   return {
     name: "ComposeDeclaredPreferences",
@@ -438,48 +451,101 @@ export function newComposeDeclaredPreferencesStep(
       // Claim the server-owned field first, before any load can fail.
       execution.spec.declaredPreferences = create(DeclaredPreferencesSchema);
 
-      let orgId = execution.metadata?.org ?? "";
-      if (orgId === "") {
-        orgId = ctx.input.metadata?.org ?? "";
-      }
-      if (orgId === "") {
-        logger.debug(
-          "No org on execution metadata, composing no declared preferences",
-        );
-        return;
-      }
-
-      let org: Organization;
-      try {
-        org = await store.getResource(
-          ApiResourceKind.organization,
-          orgId,
-          OrganizationSchema,
-        );
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          logger.debug(
-            "Org not found in store, composing no declared preferences",
-            { orgId },
-          );
-          return;
-        }
-        logger.error(
-          "Failed to load org for declared preferences - degrading to none (best-effort contract)",
-          {
-            orgId,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
-        return;
-      }
-
       // Verbatim per DD-002 D2: the server stamps content only;
       // blank-is-absent is the runner's read-side convention.
       execution.spec.declaredPreferences.orgContext =
-        org.spec?.preferences?.standingContext ?? "";
+        await loadOrgStandingContext(store, logger, orgIdOf(ctx));
+
+      if (personAccounts === undefined) {
+        return;
+      }
+      const person = await runPersonOf(
+        personAccounts,
+        ctx.callerIdentity,
+        logger,
+        "Failed to load the run's person for declared preferences - degrading user context to none (best-effort contract)",
+      );
+      execution.spec.declaredPreferences.userContext =
+        person?.spec?.preferences?.standingContext ?? "";
     },
   };
+}
+
+/** The org a create addresses: the execution's metadata, else the input's. */
+function orgIdOf(ctx: RequestContext<CreateDesc>): string {
+  const orgId = ctx.newState.metadata?.org ?? "";
+  return orgId !== "" ? orgId : (ctx.input.metadata?.org ?? "");
+}
+
+/** The organization's standing context, best-effort ("" on every degrade). */
+async function loadOrgStandingContext(
+  store: Store,
+  logger: Logger,
+  orgId: string,
+): Promise<string> {
+  if (orgId === "") {
+    logger.debug(
+      "No org on execution metadata, composing no declared preferences",
+    );
+    return "";
+  }
+
+  let org: Organization;
+  try {
+    org = await store.getResource(
+      ApiResourceKind.organization,
+      orgId,
+      OrganizationSchema,
+    );
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      logger.debug(
+        "Org not found in store, composing no declared preferences",
+        {
+          orgId,
+        },
+      );
+      return "";
+    }
+    logger.error(
+      "Failed to load org for declared preferences - degrading to none (best-effort contract)",
+      {
+        orgId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+    return "";
+  }
+  return org.spec?.preferences?.standingContext ?? "";
+}
+
+/**
+ * The person a run is created by, where callers are persons
+ * (stigmer#1387): the account a first-party human operator stands for
+ * (extensions/identity.ts states who that is, once). `undefined` for every
+ * other lane — runner, schedule, channel, guest, machine, a PlatformClient
+ * token, anything server-composed — for a caller no account stands for,
+ * and, best-effort, on a store fault (logged at ERROR with the caller's
+ * copy: the compose steps degrade, they never fail a create).
+ */
+async function runPersonOf(
+  personAccounts: AccountsByCaller,
+  caller: CallerIdentity,
+  logger: Logger,
+  faultMessage: string,
+): Promise<IdentityAccount | undefined> {
+  if (!isFirstPartyHumanOperator(caller)) {
+    return undefined;
+  }
+  try {
+    return await accountForCaller(personAccounts, caller);
+  } catch (error) {
+    logger.error(faultMessage, {
+      identityId: caller.identityId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -492,18 +558,25 @@ export function newComposeDeclaredPreferencesStep(
  * memory loop, sibling of ComposeDeclaredPreferences in every invariant:
  * server-owned (enabled=false stamped on every ineligible/degraded path),
  * best-effort (degrading to DISABLED, never enabled-with-zero-facts, so a
- * broken recall never falsely offers the remember tool). OSS gates on the
- * org flag alone with the empty-string subject sentinel; confirmed-only
+ * broken recall never falsely offers the remember tool); confirmed-only
  * (the consent gate is meaningless otherwise); no compose-time truncation
  * (the runner's retriever selects at prompt build, recorded on
  * status.recalled_memories_report). Facts order oldest-first on
- * created_at — identical prompt order in both editions. The Organization
- * is loaded independently of the preferences step: step independence over
- * one saved read.
+ * created_at — identical prompt order in every posture.
+ *
+ * WHOSE memories follows the posture (stigmer#1387, the Java step's
+ * gates in its order): where callers are persons (`personAccounts`) the
+ * run must be created by a first-party human operator (runPersonOf), the
+ * organization's memory_enabled must be on, then that person's own — and
+ * the snapshot is that person's confirmed facts in the organization. The
+ * single-operator posture gates on the org flag alone with the
+ * empty-string subject sentinel. The Organization is loaded independently
+ * of the preferences step: step independence over one saved read.
  */
 export function newComposeRecalledMemoriesStep(
   store: Store,
   logger: Logger,
+  personAccounts?: AccountsByCaller,
 ): PipelineStep<CreateDesc> {
   return {
     name: "ComposeRecalledMemories",
@@ -513,14 +586,19 @@ export function newComposeRecalledMemoriesStep(
       // Claim the server-owned field first.
       execution.spec.recalledMemories = create(RecalledMemoriesSchema);
 
-      let orgId = execution.metadata?.org ?? "";
-      if (orgId === "") {
-        orgId = ctx.input.metadata?.org ?? "";
-      }
+      const orgId = orgIdOf(ctx);
       if (orgId === "") {
         logger.debug(
           "No org on execution metadata, composing no recalled memories",
         );
+        return;
+      }
+      // Only a person's own run recalls (the Java gate order: the caller
+      // first, before any read).
+      if (
+        personAccounts !== undefined &&
+        !isFirstPartyHumanOperator(ctx.callerIdentity)
+      ) {
         return;
       }
 
@@ -555,9 +633,27 @@ export function newComposeRecalledMemoriesStep(
         return;
       }
 
+      // The subject whose facts are recalled: the run's person, whose own
+      // switch must be on too, or the single-operator sentinel.
+      let subject = "";
+      if (personAccounts !== undefined) {
+        const person = await runPersonOf(
+          personAccounts,
+          ctx.callerIdentity,
+          logger,
+          "Failed to load the run's person for recalled memories - degrading to disabled (best-effort contract)",
+        );
+        if (person?.spec?.preferences?.memoryEnabled !== true) {
+          // A person who has not opted in is normal operation, not
+          // degradation; no log.
+          return;
+        }
+        subject = person.metadata?.id ?? "";
+      }
+
       let facts;
       try {
-        facts = await loadConfirmedFacts(store, orgId);
+        facts = await loadConfirmedFacts(store, orgId, subject);
       } catch (error) {
         // Enabled stays false: a broken recall must not offer the
         // remember tool (the enabled bit doubles as the tool signal).
@@ -582,13 +678,17 @@ export function newComposeRecalledMemoriesStep(
 }
 
 /**
- * Scans the memory kind for the OSS single-user subject's (the ""
- * sentinel) confirmed records in the org, oldest-first. Facts carry only
- * memory_id + content (the id is the transparency link back to the
- * addressable record). Undecodable rows are skipped — one bad record must
- * not take recall down.
+ * Scans the memory kind for `subject`'s confirmed records in the org,
+ * oldest-first — the run's person's account id, or the single-operator
+ * "" sentinel. Facts carry only memory_id + content (the id is the
+ * transparency link back to the addressable record). Undecodable rows are
+ * skipped — one bad record must not take recall down.
  */
-async function loadConfirmedFacts(store: Store, orgId: string) {
+async function loadConfirmedFacts(
+  store: Store,
+  orgId: string,
+  subject: string,
+) {
   const rows = await store.listResources(ApiResourceKind.memory);
   const memories: Memory[] = [];
   for (const data of rows) {
@@ -601,7 +701,7 @@ async function loadConfirmedFacts(store: Store, orgId: string) {
     if ((memory.metadata?.org ?? "") !== orgId) {
       continue;
     }
-    if ((memory.spec?.subjectIdentityAccountId ?? "") !== "") {
+    if ((memory.spec?.subjectIdentityAccountId ?? "") !== subject) {
       continue;
     }
     if (

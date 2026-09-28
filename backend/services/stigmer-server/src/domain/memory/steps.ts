@@ -17,7 +17,7 @@
  * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/memory.test.ts.
  */
-import { create, equals, fromBinary } from "@bufbuild/protobuf";
+import { create, equals, fromBinary, isMessage } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 import type { ConnectError } from "@connectrpc/connect";
 
@@ -30,6 +30,8 @@ import { MemoryListSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/i
 import { MemoryProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
 import { MemoryStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -52,10 +54,16 @@ import {
 import { memoryCaptureCredentialOf } from "../../pipeline/steps/guard-memory-capture.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
+import {
+  accountForCaller,
+  accountForStamp,
+} from "../identityaccount/resolve.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   MAX_MEMORIES_PER_SUBJECT,
+  MEMORY_ACCOUNT_DISABLED_MESSAGE,
   MEMORY_FULL_MESSAGE,
   MEMORY_PROVENANCE_IMMUTABLE_MESSAGE,
   MEMORY_SUBJECT_IMMUTABLE_MESSAGE,
@@ -77,10 +85,22 @@ export const LIST_RESULT_KEY = "listResult";
  *     memories are id-addressed records (the remember tool sends content
  *     only), and the platform's slug machinery requires a name. A
  *     client-supplied name still wins — the default only fills absence.
- *  3. Overwrites spec.subject_identity_account_id with the empty-string
- *     sentinel — the OSS single-user subject (the OAuth grant store
- *     convention). Server-derived, never client-supplied (DD-005 D2):
- *     the cloud edition writes the caller's identity account here.
+ *  3. Overwrites spec.subject_identity_account_id, server-derived and
+ *     never client-supplied (DD-005 D2), by posture. Under the
+ *     single-operator posture (no `personAccounts` composed) it is the
+ *     empty-string sentinel — the laptop's one subject (the OAuth grant
+ *     store convention). Where callers are persons it is the id of the
+ *     identity account the memory is ABOUT (stigmer#1387, the Java
+ *     MemoryCreateHandler's subject): the admitted capture credential's
+ *     subject (point 5), else the calling person — each resolved through
+ *     the identity-account domain (accountForStamp / accountForCaller),
+ *     so a subject that arrived as a raw issuer subject is filed under
+ *     the account every FGA tuple names. The resolved account rides the
+ *     context under MEMORY_SUBJECT_ACCOUNT_KEY for CheckMemoryEnablement,
+ *     so the subject stamped and the consent checked are one row, read
+ *     once. A caller no account stands for is stamped "" and NOT refused
+ *     here: the refusal belongs behind AuthorizeResolvedTarget, which
+ *     runs between the two steps so a refused caller learns nothing.
  *  4. Stores spec.provenance as supplied (Stage 3 provenance decision,
  *     owner-ratified 2026-08-22): the capture path — the remember tool
  *     via the runner-synthesized attachment — threads the agent/session/
@@ -101,15 +121,15 @@ export const LIST_RESULT_KEY = "listResult";
  *     human ("the sub IS the human subject the session belongs to",
  *     Java MemoryCreateHandler) and provenance.session_id is overridden
  *     with the token's own session claim (server-proved beats
- *     runner-reported). Absent the handoff, the OSS arms above apply
+ *     runner-reported). Absent the handoff, the arms above apply
  *     unchanged.
  */
-export function newResolveMemoryDefaultsStep(): PipelineStep<
-  typeof MemorySchema
-> {
+export function newResolveMemoryDefaultsStep(
+  personAccounts?: AccountsByCaller,
+): PipelineStep<typeof MemorySchema> {
   return {
     name: "ResolveMemoryDefaults",
-    execute(ctx: RequestContext<typeof MemorySchema>): void {
+    async execute(ctx: RequestContext<typeof MemorySchema>): Promise<void> {
       const memory = ctx.newState;
       const metadata = memory.metadata;
 
@@ -138,11 +158,23 @@ export function newResolveMemoryDefaultsStep(): PipelineStep<
         );
       }
 
-      // The subject stays server-owned (DD-005 D2): the OSS sentinel, or
-      // the admitted capture credential's proved human (step doc point 5).
+      // The subject stays server-owned (DD-005 D2), by posture (step doc
+      // points 3 and 5).
       const captureCredential = memoryCaptureCredentialOf(ctx);
-      spec.subjectIdentityAccountId =
-        captureCredential?.subjectIdentityAccountId ?? "";
+      if (personAccounts === undefined) {
+        spec.subjectIdentityAccountId =
+          captureCredential?.subjectIdentityAccountId ?? "";
+      } else {
+        const account = await resolveSubjectAccount(
+          personAccounts,
+          ctx,
+          captureCredential?.subjectIdentityAccountId,
+        );
+        spec.subjectIdentityAccountId = account?.metadata?.id ?? "";
+        if (account !== undefined) {
+          ctx.set(MEMORY_SUBJECT_ACCOUNT_KEY, account);
+        }
+      }
 
       // Provenance is capture-path-supplied (see the step doc, point 4);
       // only tool_call_id is force-cleared — unreachable via MCP in v1, so
@@ -160,6 +192,54 @@ export function newResolveMemoryDefaultsStep(): PipelineStep<
       }
     },
   };
+}
+
+/**
+ * Context key carrying the identity account a memory is about, from
+ * ResolveMemoryDefaults to CheckMemoryEnablement — present exactly when
+ * callers are persons and the subject resolved (step doc point 3).
+ */
+export const MEMORY_SUBJECT_ACCOUNT_KEY = "memorySubjectAccount";
+
+/** The subject's account stashed by ResolveMemoryDefaults, if any. */
+export function memorySubjectAccountOf(
+  ctx: RequestContext<typeof MemorySchema>,
+): IdentityAccount | undefined {
+  const payload = ctx.get(MEMORY_SUBJECT_ACCOUNT_KEY);
+  return isMessage(payload, IdentityAccountSchema) ? payload : undefined;
+}
+
+/**
+ * The account the memory is about: the capture credential's subject read
+ * as a creator-style stamp (an account id, or a raw issuer subject), else
+ * the account the calling person stands for. `undefined` when nobody
+ * resolves. A store fault is an infrastructure fault; an account row with
+ * no id is a loud one, never an empty principal (the resolve.ts rule).
+ */
+async function resolveSubjectAccount(
+  personAccounts: AccountsByCaller,
+  ctx: RequestContext<typeof MemorySchema>,
+  credentialSubject: string | undefined,
+): Promise<IdentityAccount | undefined> {
+  let account: IdentityAccount | undefined;
+  try {
+    account =
+      credentialSubject !== undefined
+        ? await accountForStamp(personAccounts, credentialSubject)
+        : await accountForCaller(personAccounts, ctx.callerIdentity);
+  } catch (error) {
+    throw internalError(
+      error,
+      "failed to resolve the identity account a memory is about",
+    );
+  }
+  if (account !== undefined && (account.metadata?.id ?? "") === "") {
+    throw internalError(
+      new Error("identity account carries no id"),
+      "failed to resolve the identity account a memory is about",
+    );
+  }
+  return account;
 }
 
 /** The deny copy of the create lane's organization bar. */
@@ -212,15 +292,22 @@ export function resolveMemoryCreateTargets(
  * authorization: "the label is not authorization; the server refuses"
  * (the conversation-attachment doctrine, applied verbatim).
  *
- * OSS checks the org flag alone — the user scope collapses in single-user
- * local mode (DD-006 D1). The cloud edition additionally requires the
- * caller's own memory_enabled and the strict first-party-human gate.
+ * The double opt-in (DD-006 D1), in the Java handler's order: the
+ * organization's switch first (the gate an admin controls), then — where
+ * callers are persons (`personAccounts` composed) — the switch of the
+ * person the memory is about, read from the account ResolveMemoryDefaults
+ * resolved and stashed (stigmer#1387). No stashed account under that
+ * posture refuses with the person's copy: nobody the server can name has
+ * consented. The single-operator posture checks the org flag alone — its
+ * one operator is the organization's decider. Who may capture at all is
+ * GuardMemoryCapture's question, not this step's.
  *
  * Reads the Organization row directly from the store, matching Go — no
  * cross-domain client.
  */
 export function newCheckMemoryEnablementStep(
   store: Store,
+  personAccounts?: AccountsByCaller,
 ): PipelineStep<typeof MemorySchema> {
   return {
     name: "CheckMemoryEnablement",
@@ -246,6 +333,14 @@ export function newCheckMemoryEnablementStep(
 
       if (org.spec?.preferences?.memoryEnabled !== true) {
         throw failedPreconditionError(memoryDisabledMessage(orgID));
+      }
+
+      if (personAccounts === undefined) {
+        return;
+      }
+      const subject = memorySubjectAccountOf(ctx);
+      if (subject?.spec?.preferences?.memoryEnabled !== true) {
+        throw failedPreconditionError(MEMORY_ACCOUNT_DISABLED_MESSAGE);
       }
     },
   };

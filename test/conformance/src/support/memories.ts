@@ -15,6 +15,11 @@
 import type { InitShape } from "./init-shape";
 import { clone, create } from "@bufbuild/protobuf";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import {
+  IdentityAccountPreferencesSchema,
+  IdentityAccountSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import {
   OrganizationPreferencesSchema,
   OrganizationSpecSchema,
@@ -42,6 +47,13 @@ export const MEMORY_FULL_MESSAGE =
 export function memoryDisabledMessage(org: string): string {
   return `memory is not enabled for organization ${org} — an organization admin can enable it in organization preferences`;
 }
+
+// The member half of the double opt-in (stigmer#1387): the refusal where
+// callers are persons and the person the memory is about has not turned
+// memory on for their own account (Java
+// MemoryPolicy.MEMORY_ACCOUNT_DISABLED_MESSAGE).
+export const MEMORY_ACCOUNT_DISABLED_MESSAGE =
+  "memory is not enabled for your account — enable it in account preferences";
 
 // Refusing confirm on a rejected memory: the decision stands; a fresh
 // proposal is the way back.
@@ -112,6 +124,30 @@ export async function enableOrganizationMemory(
       id: organization.metadata!.id,
       name: organization.metadata!.name,
     },
+    spec,
+  });
+}
+
+// Turns the memory switch ON for the calling person's own account — the
+// member half of the double opt-in, which the server requires wherever
+// callers are persons (stigmer#1387). The update replaces the spec whole,
+// so the account's spec rides along as it stands plus the switch, and the
+// returned account is the caller's (whoAmI), whose id is the subject every
+// memory they capture is filed under.
+export async function enableMyMemory(
+  clients: ConformanceClients,
+): Promise<IdentityAccount> {
+  const me = await clients.identityAccountQuery.whoAmI({});
+  const spec =
+    me.spec === undefined
+      ? create(IdentityAccountSpecSchema)
+      : clone(IdentityAccountSpecSchema, me.spec);
+  spec.preferences ??= create(IdentityAccountPreferencesSchema);
+  spec.preferences.memoryEnabled = true;
+  return clients.identityAccountCommand.update({
+    apiVersion: me.apiVersion,
+    kind: me.kind,
+    metadata: me.metadata,
     spec,
   });
 }

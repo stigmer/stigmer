@@ -7,8 +7,18 @@
  * direct-step shape as Go). Go's nil-client skip proofs map to throwing
  * providers — reaching the client would fail the test just as a nil
  * dereference would panic Go.
+ *
+ * The two compose steps are also pinned where callers are persons
+ * (stigmer#1387, stigmer#1397): recall is the run's person's own
+ * confirmed facts, behind the first-party gate, the org switch and the
+ * person's own, and user_context is that person's standing context — the
+ * retired Java steps' gates, in their order.
  */
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { CallerIdentity } from "../../../extensions/identity.js";
+import type { AccountsByCaller } from "../../identityaccount/resolve.js";
+import { fakeIdentityAccountStore } from "../../identityaccount/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -94,11 +104,12 @@ function newExecution(sessionId: string, agentId: string): AgentExecution {
 
 function newContext(
   execution: AgentExecution,
+  caller: CallerIdentity = testCallerIdentity(),
 ): RequestContext<typeof AgentExecutionSchema> {
   return new RequestContext(
     AgentExecutionSchema,
     execution,
-    testCallerIdentity(),
+    caller,
     ApiResourceKind.agent_execution,
   );
 }
@@ -476,7 +487,7 @@ describe("newComposeDeclaredPreferencesStep", () => {
         "server-owned field must be stamped on every path",
       ).toBeDefined();
       expect(got?.orgContext).toBe(tt.wantOrgContext);
-      // user_context must stay empty in OSS (no per-request user identity).
+      // user_context stays empty under the single-operator posture.
       expect(got?.userContext).toBe("");
     });
   }
@@ -771,6 +782,223 @@ describe("newComposeRecalledMemoriesStep", () => {
       for (const fact of got?.facts ?? []) {
         expect(fact.content).not.toBe("");
       }
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Where callers are persons (stigmer#1387, stigmer#1397).
+// ---------------------------------------------------------------------------
+
+describe("the compose steps where callers are persons", () => {
+  const CAROL = "ida_carol";
+  const DAVE = "ida_dave";
+
+  /** Carol at the console: a wire user whose identity is her account id. */
+  const carol = testCallerIdentity({ identityId: CAROL });
+
+  function directory(preferences: {
+    memoryEnabled?: boolean;
+    standingContext?: string;
+  }): AccountsByCaller {
+    const accounts = fakeIdentityAccountStore();
+    accounts.rows.set(
+      CAROL,
+      create(IdentityAccountSchema, {
+        metadata: { id: CAROL, name: "Carol" },
+        spec: { idpId: "auth0|carol", preferences },
+      }),
+    );
+    return accounts;
+  }
+
+  const faultingDirectory: AccountsByCaller = {
+    findById: async () => {
+      throw new Error("simulated store fault");
+    },
+    findDirectByIdpId: async () => {
+      throw new Error("simulated store fault");
+    },
+  };
+
+  /** A JWT carrying `payload`, unsigned: the gate reads, never verifies. */
+  function jwtWith(payload: Record<string, unknown>): string {
+    const segment = (value: object) =>
+      Buffer.from(JSON.stringify(value)).toString("base64url");
+    return `${segment({ alg: "RS256", typ: "JWT" })}.${segment(payload)}.signature`;
+  }
+
+  /** Every lane that is not a person speaking for themselves. */
+  const notFirstParty: Array<[string, CallerIdentity]> = [
+    [
+      "a runner acting as Carol",
+      testCallerIdentity({ identityId: CAROL, callerClass: "runner" }),
+    ],
+    [
+      "a machine account",
+      testCallerIdentity({ identityId: CAROL, callerClass: "machine" }),
+    ],
+    [
+      "a cloud channel sender",
+      testCallerIdentity({ identityId: CAROL, callerClass: "channel" }),
+    ],
+    [
+      "the schedule fire acting as Carol (in-process)",
+      testCallerIdentity({ identityId: CAROL, origin: "in-process" }),
+    ],
+    [
+      "Carol through a PlatformClient user token",
+      testCallerIdentity({
+        identityId: CAROL,
+        issuer: "stigmer",
+        rawToken: jwtWith({
+          iss: "stigmer",
+          sub: CAROL,
+          platform_client_id: "pc_1",
+        }),
+      }),
+    ],
+  ];
+
+  async function seedRecallRows(): Promise<void> {
+    await seedMemoryOrg("test-org", true);
+    const confirmed = MemoryLifecycleState.lifecycle_state_confirmed;
+    await seedMemory({
+      id: "mem_carol",
+      orgId: "test-org",
+      subject: CAROL,
+      content: "Carol's",
+      state: confirmed,
+      createdAt: new Date("2026-09-01T00:00:00Z"),
+    });
+    await seedMemory({
+      id: "mem_dave",
+      orgId: "test-org",
+      subject: DAVE,
+      content: "Dave's",
+      state: confirmed,
+      createdAt: new Date("2026-09-02T00:00:00Z"),
+    });
+    await seedMemory({
+      id: "mem_sentinel",
+      orgId: "test-org",
+      subject: "",
+      content: "nobody's",
+      state: confirmed,
+      createdAt: new Date("2026-09-03T00:00:00Z"),
+    });
+    await seedMemory({
+      id: "mem_carol_proposed",
+      orgId: "test-org",
+      subject: CAROL,
+      content: "unconfirmed",
+      state: MemoryLifecycleState.lifecycle_state_proposed,
+      createdAt: new Date("2026-09-04T00:00:00Z"),
+    });
+  }
+
+  async function recall(
+    accounts: AccountsByCaller | undefined,
+    caller: CallerIdentity,
+  ) {
+    const step = newComposeRecalledMemoriesStep(store, silentLogger, accounts);
+    const ctx = newContext(newExecution("ses_1", "agt_1"), caller);
+    await step.execute(ctx);
+    return ctx.newState.spec?.recalledMemories;
+  }
+
+  it("recalls exactly the run's person's confirmed facts", async () => {
+    await seedRecallRows();
+    const got = await recall(directory({ memoryEnabled: true }), carol);
+    expect(got?.enabled).toBe(true);
+    expect(got?.facts.map((f) => f.memoryId)).toEqual(["mem_carol"]);
+  });
+
+  it("recalls nothing and offers no remember tool when the person's own switch is off", async () => {
+    await seedRecallRows();
+    const got = await recall(directory({ memoryEnabled: false }), carol);
+    expect(got?.enabled).toBe(false);
+    expect(got?.facts).toEqual([]);
+  });
+
+  it("recalls nothing when the organization's switch is off, whatever the person's", async () => {
+    await seedMemoryOrg("test-org", false);
+    const got = await recall(directory({ memoryEnabled: true }), carol);
+    expect(got?.enabled).toBe(false);
+  });
+
+  it("recalls nothing for a caller no account stands for", async () => {
+    await seedRecallRows();
+    const got = await recall(
+      directory({ memoryEnabled: true }),
+      testCallerIdentity({ identityId: "auth0|stranger" }),
+    );
+    expect(got?.enabled).toBe(false);
+  });
+
+  it("degrades to disabled on a directory fault (best-effort)", async () => {
+    await seedRecallRows();
+    const got = await recall(faultingDirectory, carol);
+    expect(got?.enabled).toBe(false);
+  });
+
+  for (const [name, caller] of notFirstParty) {
+    it(`recalls nothing for ${name}`, async () => {
+      await seedRecallRows();
+      const got = await recall(directory({ memoryEnabled: true }), caller);
+      expect(got?.enabled).toBe(false);
+      expect(got?.facts).toEqual([]);
+    });
+  }
+
+  async function declared(
+    accounts: AccountsByCaller | undefined,
+    caller: CallerIdentity,
+  ) {
+    await seedOrg("test-org", "We deploy to us-east-1.");
+    const step = newComposeDeclaredPreferencesStep(
+      store,
+      silentLogger,
+      accounts,
+    );
+    const execution = newExecution("ses_1", "agt_1");
+    execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
+      userContext: "injected user context",
+    });
+    const ctx = newContext(execution, caller);
+    await step.execute(ctx);
+    return ctx.newState.spec?.declaredPreferences;
+  }
+
+  it("composes the run's person's standing context beside the organization's", async () => {
+    const got = await declared(
+      directory({ standingContext: "Call me Carol." }),
+      carol,
+    );
+    expect(got?.orgContext).toBe("We deploy to us-east-1.");
+    expect(got?.userContext).toBe("Call me Carol.");
+  });
+
+  it("keeps the organization's context and composes no person's on a directory fault", async () => {
+    const got = await declared(faultingDirectory, carol);
+    expect(got?.orgContext).toBe("We deploy to us-east-1.");
+    expect(got?.userContext).toBe("");
+  });
+
+  it("composes no person's context under the single-operator posture", async () => {
+    const got = await declared(undefined, carol);
+    expect(got?.orgContext).toBe("We deploy to us-east-1.");
+    expect(got?.userContext).toBe("");
+  });
+
+  for (const [name, caller] of notFirstParty) {
+    it(`composes no person's context for ${name}, and keeps the organization's`, async () => {
+      const got = await declared(
+        directory({ standingContext: "Call me Carol." }),
+        caller,
+      );
+      expect(got?.orgContext).toBe("We deploy to us-east-1.");
+      expect(got?.userContext).toBe("");
     });
   }
 });

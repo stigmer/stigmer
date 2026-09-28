@@ -36,6 +36,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
@@ -156,6 +157,14 @@ export interface AgentExecutionControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
   readonly listReadScope: ListReadScope | undefined;
+  /**
+   * The directory of the persons callers stand for (stigmer#1387) — the
+   * composed identity-account port, bound under the require-authentication
+   * posture; undefined = the single-operator posture (trusted-local),
+   * where memory is the organization's switch alone and the subject the
+   * empty-string sentinel.
+   */
+  readonly personAccounts: AccountsByCaller | undefined;
   /**
    * The shared broadcast fabric for subscribe streams. ONE instance spans
    * both routers (serving + in-process) — see stream-broker.ts; the
@@ -365,8 +374,20 @@ async function createExecution(
         sessionCreator: deps.sessionCreator,
       }),
     )
-    .addStep(newComposeDeclaredPreferencesStep(deps.store, deps.logger))
-    .addStep(newComposeRecalledMemoriesStep(deps.store, deps.logger))
+    .addStep(
+      newComposeDeclaredPreferencesStep(
+        deps.store,
+        deps.logger,
+        deps.personAccounts,
+      ),
+    )
+    .addStep(
+      newComposeRecalledMemoriesStep(
+        deps.store,
+        deps.logger,
+        deps.personAccounts,
+      ),
+    )
     .addStep(newSetInitialPhaseStep())
     .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
     .addStep(newProcessAttachmentsStep(deps.logger))

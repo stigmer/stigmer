@@ -17,7 +17,8 @@
 //     so a member who may run an org-visible agent may not schedule, share or
 //     channel-bind it, and an outsider is refused; the admin may;
 //   - Memory.create: an outsider naming an organization is refused; a member
-//     remembers there.
+//     remembers there once both the organization and the member have
+//     turned memory on, the memory filed under the member.
 //
 // Every refusal is asserted by code AND copy, because the copy is the wire
 // contract each lane has carried since the Java edition. Out of scope: the
@@ -37,7 +38,12 @@ import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentInstance } from "../support/agentinstances";
 import { makeAgentShare } from "../support/agentshares";
 import { makeMcpServer } from "../support/mcpservers";
-import { enableOrganizationMemory, makeMemory } from "../support/memories";
+import {
+  enableMyMemory,
+  enableOrganizationMemory,
+  MEMORY_ACCOUNT_DISABLED_MESSAGE,
+  makeMemory,
+} from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
 import { makeWorkflow } from "../support/workflows";
@@ -316,10 +322,22 @@ describe("Memory.create asks can_create_session on the organization", () => {
     // does not depend on it: the authorization question comes BEFORE the
     // enablement check, so an outsider never learns the setting.
     await enableOrganizationMemory(c.owner, c.org);
+    // Memory is the person's as well as the organization's (stigmer#1387):
+    // with only the organization's switch on, the member is refused with
+    // their own account's copy, and captures once they opt in, the memory
+    // filed under them — so only they can clean it up (subject-only).
+    const refused = await expectGrpcCode(
+      () => c.member.memoryCommand.create(makeMemory(c.org)),
+      Code.FailedPrecondition,
+      "a member who has not opted in captures a memory",
+    );
+    expect(refused.rawMessage).toBe(MEMORY_ACCOUNT_DISABLED_MESSAGE);
+    const member = await enableMyMemory(c.member);
     const memory = await c.member.memoryCommand.create(makeMemory(c.org));
     fixtures.defer(() =>
-      c.owner.memoryCommand.delete({ value: memory.metadata!.id }),
+      c.member.memoryCommand.delete({ value: memory.metadata!.id }),
     );
+    expect(memory.spec?.subjectIdentityAccountId).toBe(member.metadata?.id);
     await expectDenied(
       () => c.outsider.memoryCommand.create(makeMemory(c.org)),
       MEMORY_ORG_DENIED,

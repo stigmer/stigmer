@@ -42,7 +42,7 @@ function memoryCtx(spec: {
 }
 
 describe("ResolveMemoryDefaults with an admitted capture credential", () => {
-  it("writes the proved subject and overrides provenance.session_id", () => {
+  it("writes the proved subject and overrides provenance.session_id", async () => {
     const ctx = memoryCtx({
       provenance: {
         sessionId: "ses_runner_reported",
@@ -54,7 +54,7 @@ describe("ResolveMemoryDefaults with an admitted capture credential", () => {
       subjectIdentityAccountId: "ida_human",
       provedSessionId: "ses_proved",
     });
-    newResolveMemoryDefaultsStep().execute(ctx);
+    await newResolveMemoryDefaultsStep().execute(ctx);
     expect(ctx.newState.spec?.subjectIdentityAccountId).toBe("ida_human");
     expect(ctx.newState.spec?.provenance?.sessionId).toBe("ses_proved");
     // The threaded agent id survives; the forged tool_call_id never does.
@@ -62,21 +62,21 @@ describe("ResolveMemoryDefaults with an admitted capture credential", () => {
     expect(ctx.newState.spec?.provenance?.toolCallId).toBe("");
   });
 
-  it("creates provenance when the request supplied none", () => {
+  it("creates provenance when the request supplied none", async () => {
     const ctx = memoryCtx({});
     ctx.set(MEMORY_CAPTURE_CREDENTIAL_KEY, {
       subjectIdentityAccountId: "ida_human",
       provedSessionId: "ses_proved",
     });
-    newResolveMemoryDefaultsStep().execute(ctx);
+    await newResolveMemoryDefaultsStep().execute(ctx);
     expect(ctx.newState.spec?.provenance?.sessionId).toBe("ses_proved");
   });
 
-  it("without the handoff the OSS arms stand", () => {
+  it("without the handoff the OSS arms stand", async () => {
     const ctx = memoryCtx({
       provenance: { sessionId: "ses_supplied", toolCallId: "forged" },
     });
-    newResolveMemoryDefaultsStep().execute(ctx);
+    await newResolveMemoryDefaultsStep().execute(ctx);
     expect(ctx.newState.spec?.subjectIdentityAccountId).toBe("");
     expect(ctx.newState.spec?.provenance?.sessionId).toBe("ses_supplied");
     expect(ctx.newState.spec?.provenance?.toolCallId).toBe("");

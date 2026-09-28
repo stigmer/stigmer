@@ -85,6 +85,7 @@ import {
 import { ensureOperatorAccount } from "../domain/identityaccount/operator.js";
 import { newDirectAccountProvisioner } from "../domain/identityaccount/provisioning.js";
 import { newResourceIdentityAccountStore } from "../domain/identityaccount/resource-store.js";
+import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
 import { asFetch, guardedFetch, nodeLookup } from "@stigmer/outbound/egress";
@@ -575,6 +576,16 @@ export async function composeServer(
           logger,
         })
       : undefined);
+  // The persons callers stand for (stigmer#1387): under the
+  // require-authentication posture every caller is someone the
+  // identity-account domain can name, so memory and the person's declared
+  // preferences are that person's own; trusted-local composes none — the
+  // laptop's one operator, whose memory is the organization's switch alone
+  // (the contract's single-operator arm). The same binding both verifiers
+  // read, so a composed driver is followed here too.
+  const personAccounts: AccountsByCaller | undefined = requireAuthentication
+    ? identityAccounts
+    : undefined;
   logger.info("authorization posture resolved", {
     posture: authorizationPosture,
     authorizer:
@@ -1478,6 +1489,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope,
+      personAccounts,
       runnerCredentialProvider: runnerCredentials,
     });
     registerAgentExecutionServices(router, {
@@ -1486,6 +1498,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope,
+      personAccounts,
       runnerCredentialProvider: runnerCredentials,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
