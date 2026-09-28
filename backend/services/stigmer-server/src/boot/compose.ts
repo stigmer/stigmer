@@ -1629,7 +1629,7 @@ export async function composeServer(
     });
     // Platform registers LAST of all controllers (Go server.go 530–535).
     registerPlatformServices(router, {
-      temporalHostPort: config.temporalHostPort,
+      runnerBootstrapTemporalAddress: config.runnerBootstrapTemporalAddress,
       temporalNamespace: config.temporalNamespace,
       runnerAuthService: runnerCredentials,
       edition: extensions.edition,

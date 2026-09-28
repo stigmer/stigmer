@@ -78,12 +78,14 @@ import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 
 export interface PlatformControllerDeps {
   /**
-   * Temporal coordinates this server runs against, published to embedded
-   * runners. In OSS the server and its runners are co-located, so the
-   * address the server itself dials is the one runners should dial too —
-   * no internal/external split (unlike Stigmer Cloud).
+   * The Temporal coordinates published to embedded runners. The address
+   * is the one a runner should dial, which is not always the one this
+   * server dials: a clustered server reaches Temporal by an internal name
+   * its desktop runners cannot resolve (stigmer#1357). The composition
+   * root passes config.runnerBootstrapTemporalAddress, which defaults to
+   * the server's own address; the namespace is the server's.
    */
-  readonly temporalHostPort: string;
+  readonly runnerBootstrapTemporalAddress: string;
   readonly temporalNamespace: string;
   /**
    * Mints the execution-scoped tokens getRunnerScopedToken hands to
@@ -202,7 +204,9 @@ async function getLicenseStatus(
 
 /**
  * Go GetRunnerBootstrapConfig: the Temporal coordinates an embedded runner
- * should connect to so it can self-bootstrap from a token alone. The
+ * should connect to so it can self-bootstrap from a token alone: the
+ * address deps name for runners, never assumed to be the server's own
+ * (the proto's "the one reachable by the caller"). The
  * RunnerAccessToken / TokenType / RunnerAccessTokenExpiresInSeconds fields
  * are intentionally left empty in OSS: minting an iss=stigmer proxy token
  * is a cloud-only capability (OSS has no Cursor BiDi proxy to authenticate
@@ -221,7 +225,7 @@ async function getRunnerBootstrapConfig(
   ctx: HandlerContext,
 ): Promise<GetRunnerBootstrapConfigOutput> {
   const output = create(GetRunnerBootstrapConfigOutputSchema, {
-    temporalAddress: deps.temporalHostPort,
+    temporalAddress: deps.runnerBootstrapTemporalAddress,
     temporalNamespace: deps.temporalNamespace,
   });
   const bootstrapCredentials =

@@ -94,6 +94,37 @@ describe("loadConfig", () => {
     });
   });
 
+  // stigmer#1357: the address runners are told to dial is its own fact.
+  // Defaulting it to the server's own address keeps every co-located
+  // install byte-identical; a clustered server overrides it for runners
+  // that cannot resolve the cluster-internal name it dials itself.
+  describe("runnerBootstrapTemporalAddress (STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS)", () => {
+    it("defaults to the address the server dials", () => {
+      expect(loadConfig({}).runnerBootstrapTemporalAddress).toBe("localhost:7233");
+      expect(
+        loadConfig({ TEMPORAL_HOST_PORT: "temporal.internal:7233" }).runnerBootstrapTemporalAddress,
+      ).toBe("temporal.internal:7233");
+    });
+
+    it("reads an explicit value, leaving the server's own address alone", () => {
+      const config = loadConfig({
+        TEMPORAL_HOST_PORT: "temporal.internal:7233",
+        STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS: "temporal.example.com:7233",
+      });
+      expect(config.runnerBootstrapTemporalAddress).toBe("temporal.example.com:7233");
+      expect(config.temporalHostPort).toBe("temporal.internal:7233");
+    });
+
+    it("treats an empty string as absent (Go's getEnvString)", () => {
+      expect(
+        loadConfig({
+          TEMPORAL_HOST_PORT: "temporal.internal:7233",
+          STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS: "",
+        }).runnerBootstrapTemporalAddress,
+      ).toBe("temporal.internal:7233");
+    });
+  });
+
   describe("STIGMER_OIDC_CONSOLE_CLIENT_ID (the console's sign-in client)", () => {
     const OIDC = {
       STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main",

@@ -56,13 +56,11 @@ export interface ServerConfig {
   readonly operatorName: string;
   /**
    * Temporal coordinates this server runs against (Go TemporalHostPort/
-   * TemporalNamespace). Published to embedded runners via the platform
-   * domain's getRunnerBootstrapConfig — in OSS the server and its runners
-   * are co-located, so the address the server dials is the one runners
-   * dial too. The Temporal workers (#18) read the same fields; connection
-   * failure is NON-fatal (the server serves with the engine unavailable
-   * and the TemporalManager's health monitor keeps retrying — Go
-   * server.go InitialConnect posture).
+   * TemporalNamespace). The Temporal workers (#18) read the same fields;
+   * connection failure is NON-fatal (the server serves with the engine
+   * unavailable and the TemporalManager's health monitor keeps retrying —
+   * Go server.go InitialConnect posture). The address runners are told to
+   * dial is a separate fact: runnerBootstrapTemporalAddress below.
    */
   readonly temporalHostPort: string;
   readonly temporalNamespace: string;
@@ -75,6 +73,19 @@ export interface ServerConfig {
    * setting fails the boot, like OIDC's half configuration.
    */
   readonly temporalConnection: TemporalConnectionConfig;
+  /**
+   * The Temporal address getRunnerBootstrapConfig publishes to runners
+   * that discover their coordinates from this server instead of being
+   * given them (STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS; stigmer#1357).
+   * Defaults to TEMPORAL_HOST_PORT — right whenever those runners share
+   * this server's network (a laptop, the compose stack, the chart). Set
+   * it when they do not: a server in a cluster that dials Temporal by its
+   * internal service name, and a desktop runner that must dial the
+   * frontend's external ingress. The namespace is not split; one
+   * namespace is served on every ingress. Sandboxes are told their
+   * address by the provisioner (sandboxTemporalAddress), never by this.
+   */
+  readonly runnerBootstrapTemporalAddress: string;
   /**
    * Artifact blob storage (attachments + execution outputs; Go
    * config.ArtifactStorage). "local" is the OSS default; "r2" boot-fails
@@ -315,6 +326,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),
     temporalConnection: loadTemporalConnectionConfig((name) => env[name]),
+    runnerBootstrapTemporalAddress: envString(
+      env,
+      "STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS",
+      envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
+    ),
     artifactStorageType,
     artifactLocalBasePath: envString(
       env,
