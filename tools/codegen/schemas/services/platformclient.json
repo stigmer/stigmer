@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client. The creator is granted\n the owner role automatically.\n\n The slug `system-share-client` is platform-reserved (it identifies the org's\n system-managed share client) and is rejected with INVALID_ARGUMENT — including\n when derived from the resource name."
+          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client, and the organization's\n current admins manage it.\n\n The slug `system-share-client` is platform-reserved (it identifies the org's\n system-managed share client) and is rejected with INVALID_ARGUMENT — including\n when derived from the resource name."
         },
         {
           "name": "Update",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientId",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation. Tokens already minted stay valid until they\n expire; delete the client to revoke them. Rotating does not change\n expires_at: a client whose expiry has passed mints again only once its\n owner sets a later expires_at or never_expires with update. A\n system-managed client's secret cannot be rotated."
+          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation. Tokens already minted stay valid until they\n expire; delete the client to revoke them. Rotating does not change\n expires_at: a client whose expiry has passed mints again only once an\n admin of its organization sets a later expires_at or never_expires with\n update. A system-managed client's secret cannot be rotated."
         }
       ]
     },

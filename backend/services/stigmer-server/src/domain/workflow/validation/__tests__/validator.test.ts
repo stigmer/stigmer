@@ -2,7 +2,8 @@
  * InProcessValidator verdict tests — pin the Go validator.go contract: the
  * FAILED nil-spec arm, the fail-fast unknown-kind arm, the INVALID arm
  * carrying the generated YAML plus errors AND warnings, the VALID arm with
- * warnings, and the "Failed to generate YAML" fold for converter errors.
+ * warnings, the "Failed to generate YAML" fold for converter errors, and
+ * the run_workflow refusal reaching the verdict with its YAML.
  */
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -57,6 +58,24 @@ describe("InProcessValidator", () => {
     expect(verdict.errors).toEqual([
       "task 'z': unknown or unspecified task kind (value=0)",
     ]);
+  });
+
+  it("returns INVALID for a run_workflow task, with the YAML the runner would read", () => {
+    const verdict = validator.validate(
+      spec([
+        {
+          name: "child",
+          kind: WorkflowTaskKind.run_workflow,
+          taskConfig: { workflow: "data-enrichment", input: { user_id: "u1" } },
+        },
+      ]),
+    );
+    expect(verdict.state).toBe(ValidationState.INVALID);
+    expect(verdict.errors).toEqual([
+      "task 'child' (run_workflow): running a child workflow is not supported yet — the child name cannot be resolved to a workflow the platform can run",
+    ]);
+    expect(verdict.yaml).toContain("input:");
+    expect(verdict.yaml).not.toContain("with:");
   });
 
   it("folds converter failures into the INVALID verdict", () => {

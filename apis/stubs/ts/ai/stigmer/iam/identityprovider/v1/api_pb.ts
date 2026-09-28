@@ -36,9 +36,9 @@ export const file_ai_stigmer_iam_identityprovider_v1_api: GenFile = /*@__PURE__*
  *     org: planton
  *   spec:
  *     display_name: "Planton"
- *     jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
- *     allowed_issuers: ["planton"]
- *     expected_audience: "stigmer-api"
+ *     jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+ *     allowed_issuers: ["https://planton-prod.us.auth0.com/"]
+ *     expected_audience: "https://api.planton.ai/"
  *
  * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProvider
  */

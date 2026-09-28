@@ -43,31 +43,36 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/iam/identityprovider/v1/spe" +
       "c.proto\022\"ai.stigmer.iam.identityprovider" +
       ".v1\032\034ai/stigmer/iam/v1/enum.proto\032\033buf/v" +
-      "alidate/validate.proto\"\205\006\n\024IdentityProvi" +
+      "alidate/validate.proto\"\303\007\n\024IdentityProvi" +
       "derSpec\022+\n\014display_name\030\001 \001(\tB\010\272H\005r\003\030\310\001R" +
       "\013displayName\022#\n\010jwks_uri\030\002 \001(\tB\010\272H\005r\003\030\200\020" +
-      "R\007jwksUri\022\'\n\017allowed_issuers\030\003 \003(\tR\016allo" +
-      "wedIssuers\0225\n\021expected_audience\030\004 \001(\tB\010\272" +
-      "H\005r\003\030\310\001R\020expectedAudience\022*\n\021rate_limit_" +
-      "budget\030\005 \001(\005R\017rateLimitBudget\0225\n\021userinf" +
-      "o_endpoint\030\006 \001(\tB\010\272H\005r\003\030\200\020R\020userinfoEndp" +
-      "oint\022&\n\017is_sso_provider\030\007 \001(\010R\risSsoProv" +
-      "ider\022.\n\016oidc_client_id\030\010 \001(\tB\010\272H\005r\003\030\200\002R\014" +
-      "oidcClientId\0226\n\027auto_provision_accounts\030" +
-      "\t \001(\010R\025autoProvisionAccounts\022)\n\021auto_gra" +
-      "nt_on_org\030\n \001(\010R\016autoGrantOnOrg\022B\n\017auto_" +
-      "grant_role\030\013 \001(\0162\032.ai.stigmer.iam.v1.Iam" +
-      "RoleR\rautoGrantRole\0222\n\020tenant_org_claim\030" +
-      "\014 \001(\tB\010\272H\005r\003\030\200\002R\016tenantOrgClaim:\244\001\272H\240\001\032\235" +
-      "\001\n+identity_provider.auto_grant_role_not" +
-      "_owner\022Sauto_grant_role cannot be owner;" +
-      " organization ownership must be assigned" +
-      " explicitly\032\031this.auto_grant_role != 1B\270" +
-      "\001B\tSpecProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.I" +
-      "dentityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Iden" +
-      "tityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identit" +
-      "yprovider\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
-      "Iam::Identityprovider::V1b\006proto3"
+      "R\007jwksUri\022:\n\017allowed_issuers\030\003 \003(\tB\021\272H\016\222" +
+      "\001\013\020\n\"\007r\005\020\001\030\200\020R\016allowedIssuers\0227\n\021expecte" +
+      "d_audience\030\004 \001(\tB\n\272H\007r\005\020\001\030\310\001R\020expectedAu" +
+      "dience\022*\n\021rate_limit_budget\030\005 \001(\005R\017rateL" +
+      "imitBudget\0225\n\021userinfo_endpoint\030\006 \001(\tB\010\272" +
+      "H\005r\003\030\200\020R\020userinfoEndpoint\022&\n\017is_sso_prov" +
+      "ider\030\007 \001(\010R\risSsoProvider\022.\n\016oidc_client" +
+      "_id\030\010 \001(\tB\010\272H\005r\003\030\200\002R\014oidcClientId\0226\n\027aut" +
+      "o_provision_accounts\030\t \001(\010R\025autoProvisio" +
+      "nAccounts\022)\n\021auto_grant_on_org\030\n \001(\010R\016au" +
+      "toGrantOnOrg\022B\n\017auto_grant_role\030\013 \001(\0162\032." +
+      "ai.stigmer.iam.v1.IamRoleR\rautoGrantRole" +
+      "\0222\n\020tenant_org_claim\030\014 \001(\tB\010\272H\005r\003\030\200\002R\016te" +
+      "nantOrgClaim:\315\002\272H\311\002\032\235\001\n+identity_provide" +
+      "r.auto_grant_role_not_owner\022Sauto_grant_" +
+      "role cannot be owner; organization owner" +
+      "ship must be assigned explicitly\032\031this.a" +
+      "uto_grant_role != 1\032\246\001\n0identity_provide" +
+      "r.jwks_uri_required_with_issuers\0229jwks_u" +
+      "ri is required when allowed_issuers name" +
+      "s an issuer\0327this.allowed_issuers.size()" +
+      " == 0 || this.jwks_uri != \'\'B\270\001B\tSpecPro" +
+      "toP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identitypro" +
+      "vider.V1\312\002\"Ai\\Stigmer\\Iam\\Identityprovid" +
+      "er\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovider\\" +
+      "V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::Ident" +
+      "ityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

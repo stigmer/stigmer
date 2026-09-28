@@ -22,9 +22,9 @@
  * loads, then authorizes the loaded app exactly as `get` would
  * (AuthorizeResolvedTarget); listByOrg narrows through the list read
  * scope, so a caller who may not `get` an app does not see it listed
- * either: the model shows an app to its creator and the organization's
- * admins, never to members or viewers (fga/model/iam/oauth_app.fga,
- * stigmer/stigmer#1257). OAuthApp is deliberately not search-indexed (a
+ * either: the model shows an app to the organization's admins, who manage
+ * it whoever created it, and never to members or viewers
+ * (fga/model/iam/oauth_app.fga, stigmer/stigmer#1257, #1329). OAuthApp is deliberately not search-indexed (a
  * configuration resource; `not_search_indexed` in the kind registry).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";

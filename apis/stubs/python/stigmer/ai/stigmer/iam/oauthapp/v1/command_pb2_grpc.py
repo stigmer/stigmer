@@ -55,8 +55,8 @@ class OAuthAppCommandControllerServicer(object):
     def create(self, request, context):
         """Create an OAuth app.
 
-        The creator's organization owns the OAuth app. The creator is granted
-        the owner role automatically.
+        The creator's organization owns the OAuth app, and the organization's
+        current admins manage it.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

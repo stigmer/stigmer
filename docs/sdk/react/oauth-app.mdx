@@ -91,9 +91,10 @@ Data hook that fetches the `OAuthApp` entries of an organization
 that the caller may view.
 
 Returns the organization's OAuthApps that a `get` would return to the
-caller: each app's creator and the organization's admins see it, other
-members and viewers see none. In practice these are the BYOA OAuth apps
-created through the "Bring your own app" flow on MCP server detail pages.
+caller: the organization's admins see every app, anyone granted viewer on
+an app sees that app, and other members and viewers see none. In practice
+these are the BYOA OAuth apps created through the "Bring your own app"
+flow on MCP server detail pages.
 
 Pass `null` for `org` to skip fetching (stable no-op). Useful when
 the active organization has not been resolved yet.
@@ -219,9 +220,9 @@ View and edit panel for an existing OAuth app.
 In **view mode**, displays all OAuth configuration fields in a
 structured label/value layout, with an "Edit" button for a caller who
 may edit the app (`can_edit`) and a "Delete" button for one who may
-delete it (`can_delete`). Both belong to the app's creator alone: the
-organization's admins may view an app they did not create, never change
-it.
+delete it (`can_delete`). Both belong to the organization's admins,
+whoever created the app; someone granted viewer on an app sees it with no
+actions.
 
 In **edit mode**, fields become editable inputs. The client secret
 field shows a placeholder — leave it empty to keep the existing
@@ -273,7 +274,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No OAuth apps configured yet.\" The list holds only the apps the caller may view (each app's creator and the organization's admins), so a host that knows the caller may not manage OAuth apps should say who does instead." },
+    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No OAuth apps configured yet.\" The list holds only the apps the caller may view (the organization's admins, and anyone granted viewer on an app), so a host that knows the caller may not manage OAuth apps should say who does instead." },
     onEdit: { type: "(app: OAuthApp) => void", description: "Fired when the user wants to view/edit an OAuth app. When provided, rows become interactive with a pencil icon button. When absent, rows remain static (backward compatible)." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can trigger a list refresh." },
     org: { type: "string", description: "Organization slug to list OAuth apps for.", required: true },

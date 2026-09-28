@@ -78,7 +78,7 @@ const (
 //	  display_name: "Acme Platform"
 //	  jwks_uri: "https://auth.acme.com/.well-known/jwks.json"
 //	  allowed_issuers: ["https://auth.acme.com/"]
-//	  expected_audience: "stigmer-api"
+//	  expected_audience: "https://api.acme.com/stigmer"
 //	  userinfo_endpoint: "https://auth.acme.com/userinfo"
 //	  auto_provision_accounts: true
 //	  auto_grant_on_org: true
@@ -95,7 +95,7 @@ const (
 //	  display_name: "SaaS Platform"
 //	  jwks_uri: "https://auth.saas.co/.well-known/jwks.json"
 //	  allowed_issuers: ["https://auth.saas.co/"]
-//	  expected_audience: "stigmer-api"
+//	  expected_audience: "https://api.saas.co/stigmer"
 //	  userinfo_endpoint: "https://auth.saas.co/userinfo"
 //	  auto_provision_accounts: true
 //	  auto_grant_on_org: true
@@ -114,7 +114,7 @@ const (
 //	  display_name: "Acme Corp Okta"
 //	  jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
 //	  allowed_issuers: ["https://acme.okta.com/oauth2/default"]
-//	  expected_audience: "stigmer-api"
+//	  expected_audience: "api://acme-stigmer"
 //	  is_sso_provider: true
 //	  oidc_client_id: "0oa1bcdef2ghijk3lmno"
 type IdentityProviderSpec struct {
@@ -129,18 +129,36 @@ type IdentityProviderSpec struct {
 	//
 	// This is the standard "jwks_uri" metadata field defined in
 	// OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+	// It must be the jwks_uri that the discovery document of every allowed
+	// issuer names, so that only an issuer's own keys verify its tokens.
+	// Required when allowed_issuers names an issuer.
 	JwksUri string `protobuf:"bytes,2,opt,name=jwks_uri,json=jwksUri,proto3" json:"jwks_uri,omitempty"`
 	// JWT issuer values that Stigmer will accept from this platform.
 	// Each JWT's `iss` claim must match one of these values.
 	// For Auth0-based integrators, this is the Auth0 tenant URL
 	// (e.g., "https://planton-prod.us.auth0.com/").
 	// Supports multiple values for key rotation or multi-environment scenarios.
+	//
+	// Each issuer must publish an OpenID Connect Discovery document whose
+	// `issuer` equals it. An issuer and expected_audience together identify
+	// this provider: no two identity providers share an issuer and audience
+	// pair, so organizations that federate with the same issuer each register
+	// an audience of their own. The issuer a deployment signs its own users in
+	// with cannot be registered.
 	AllowedIssuers []string `protobuf:"bytes,3,rep,name=allowed_issuers,json=allowedIssuers,proto3" json:"allowed_issuers,omitempty"`
 	// Expected JWT audience value.
 	// Every JWT from this platform must include this as the `aud` claim.
 	// For Auth0-based integrators, this is the API identifier configured in Auth0
 	// (e.g., "https://api.planton.ai/").
 	// Prevents tokens intended for other services from being accepted by Stigmer.
+	//
+	// Required. Register an audience for Stigmer at the issuer that is your
+	// organization's own, such as an API identifier or a client ID: a token is
+	// routed to the identity provider whose issuer and audience it carries, so
+	// an audience another identity provider already registered at the same
+	// issuer is refused. It cannot be a URL the issuer's discovery document
+	// names, such as its userinfo endpoint, which the issuer may add to every
+	// token it mints.
 	ExpectedAudience string `protobuf:"bytes,4,opt,name=expected_audience,json=expectedAudience,proto3" json:"expected_audience,omitempty"`
 	// Shared rate limit budget across all organizations managed via this identity provider.
 	// Expressed as requests per minute. 0 means no limit.
@@ -155,6 +173,9 @@ type IdentityProviderSpec struct {
 	// OpenID Connect Core 1.0 (Section 5.3).
 	//
 	// For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+	//
+	// When set, it must be the userinfo_endpoint that the discovery document of
+	// every allowed issuer names.
 	UserinfoEndpoint string `protobuf:"bytes,6,opt,name=userinfo_endpoint,json=userinfoEndpoint,proto3" json:"userinfo_endpoint,omitempty"`
 	// Whether this identity provider serves as the SSO login provider for its
 	// owning organization.
@@ -394,12 +415,14 @@ var File_ai_stigmer_iam_identityprovider_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x85\x06\n" +
+	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xc3\a\n" +
 	"\x14IdentityProviderSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
-	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12'\n" +
-	"\x0fallowed_issuers\x18\x03 \x03(\tR\x0eallowedIssuers\x125\n" +
-	"\x11expected_audience\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\x10expectedAudience\x12*\n" +
+	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12:\n" +
+	"\x0fallowed_issuers\x18\x03 \x03(\tB\x11\xbaH\x0e\x92\x01\v\x10\n" +
+	"\"\ar\x05\x10\x01\x18\x80\x10R\x0eallowedIssuers\x127\n" +
+	"\x11expected_audience\x18\x04 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\xc8\x01R\x10expectedAudience\x12*\n" +
 	"\x11rate_limit_budget\x18\x05 \x01(\x05R\x0frateLimitBudget\x125\n" +
 	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x12&\n" +
 	"\x0fis_sso_provider\x18\a \x01(\bR\risSsoProvider\x12.\n" +
@@ -408,8 +431,9 @@ const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\x11auto_grant_on_org\x18\n" +
 	" \x01(\bR\x0eautoGrantOnOrg\x12B\n" +
 	"\x0fauto_grant_role\x18\v \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x122\n" +
-	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaim:\xa4\x01\xbaH\xa0\x01\x1a\x9d\x01\n" +
-	"+identity_provider.auto_grant_role_not_owner\x12Sauto_grant_role cannot be owner; organization ownership must be assigned explicitly\x1a\x19this.auto_grant_role != 1B\xc0\x02\n" +
+	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaim:\xcd\x02\xbaH\xc9\x02\x1a\x9d\x01\n" +
+	"+identity_provider.auto_grant_role_not_owner\x12Sauto_grant_role cannot be owner; organization ownership must be assigned explicitly\x1a\x19this.auto_grant_role != 1\x1a\xa6\x01\n" +
+	"0identity_provider.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''B\xc0\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (

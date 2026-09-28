@@ -2,8 +2,10 @@
  * Cross-reference validation tests — pin the Go crossref.go behavior:
  * unknown kinds, duplicate names, flow.then / fallback_task /
  * cases[].then / outcomes[].then resolution with did-you-mean, "end"
- * sentinel handling, cycle detection, and the workspace-entries surface
- * rule. Message strings are the cross-edition contract.
+ * sentinel handling, cycle detection, and the surface rules (the
+ * workspace-entries rule, the run_workflow refusal, and the walk that
+ * carries both into nested control-flow tasks and compensate lists).
+ * Message strings are the cross-edition contract.
  */
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -178,4 +180,124 @@ describe("validateTaskConfigSurfaceRules", () => {
       "task 'call' (agent_call): workspace_entries[1] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires",
     ]);
   });
+
+  it("refuses a run_workflow task, input or not", () => {
+    const errors = validateTaskConfigSurfaceRules(
+      spec([
+        {
+          name: "child",
+          kind: WorkflowTaskKind.run_workflow,
+          taskConfig: { workflow: "data-enrichment", input: { user_id: "u1" } },
+        },
+        {
+          name: "bare",
+          kind: WorkflowTaskKind.run_workflow,
+          taskConfig: { workflow: "stigmer/workflow/execute" },
+        },
+      ]),
+    );
+    expect(errors).toEqual([
+      "task 'child' (run_workflow): running a child workflow is not supported yet — the child name cannot be resolved to a workflow the platform can run",
+      "task 'bare' (run_workflow): running a child workflow is not supported yet — the child name cannot be resolved to a workflow the platform can run",
+    ]);
+  });
+
+  // A rule that only saw top-level tasks could be stepped around by
+  // wrapping the task in a for_each; the walk and its order are the
+  // constraint validator's.
+  it("reaches for_each do blocks, fork branches, try/catch and compensate lists in declaration order", () => {
+    const runChild = (name: string) => ({
+      name,
+      kind: "run_workflow",
+      task_config: { workflow: "child" },
+    });
+    const errors = validateTaskConfigSurfaceRules(
+      create(WorkflowSpecSchema, {
+        document: { dsl: "1.0.0", namespace: "t", name: "t", version: "0.1.0" },
+        tasks: [
+          {
+            name: "loop",
+            kind: WorkflowTaskKind.for_each,
+            taskConfig: {
+              in: "${ .items }",
+              each: "item",
+              do: [
+                runChild("in_loop"),
+                {
+                  name: "local_call",
+                  kind: "agent_call",
+                  task_config: {
+                    agent: "a",
+                    message: "m",
+                    workspace_entries: [
+                      { name: "local", source: { local_path: { path: "/tmp" } } },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            name: "par",
+            kind: WorkflowTaskKind.fork,
+            taskConfig: {
+              branches: [
+                { name: "a", do: [runChild("in_branch")] },
+                { name: "b", do: [SET_JSON("noop")] },
+              ],
+            },
+          },
+          {
+            name: "guard",
+            kind: WorkflowTaskKind.try_catch,
+            taskConfig: {
+              try: [runChild("in_try")],
+              catch: { do: [runChild("in_catch")] },
+            },
+          },
+          {
+            name: "top",
+            kind: WorkflowTaskKind.set_vars,
+            taskConfig: { variables: { k: "v" } },
+            compensate: [
+              {
+                name: "in_compensate",
+                kind: WorkflowTaskKind.run_workflow,
+                taskConfig: { workflow: "child" },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(errors.map((e) => /task '([^']+)'/.exec(e)?.[1])).toEqual([
+      "in_loop",
+      "local_call",
+      "in_branch",
+      "in_try",
+      "in_catch",
+      "in_compensate",
+    ]);
+    expect(errors[1]).toBe(
+      "task 'local_call' (agent_call): workspace_entries[0] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires",
+    );
+  });
+
+  it("skips a control-flow task whose config cannot be unmarshaled (the conversion step reports it)", () => {
+    expect(
+      validateTaskConfigSurfaceRules(
+        spec([
+          {
+            name: "loop",
+            kind: WorkflowTaskKind.for_each,
+            taskConfig: { not_a_field: true },
+          },
+        ]),
+      ),
+    ).toEqual([]);
+  });
 });
+
+function SET_JSON(name: string): JsonObject {
+  return { name, kind: "set_vars", task_config: { variables: { k: "v" } } };
+}

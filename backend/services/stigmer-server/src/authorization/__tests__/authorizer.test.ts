@@ -365,10 +365,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
         });
 
-        it("an OAuth app is read by its creator and the organization's admins, and changed by its creator alone — the one org-scoped kind whose owner has no admin arm", async () => {
-          // No pinned store document covers oauth_app (the security read's
-          // fact 11), so its distinctive line is pinned here: `viewer` has
-          // `admin from organization`, `can_edit` and `can_delete` do not.
+        it("an OAuth app is managed by its organization's current admins alone — a creator stamped on the row, now a plain member, holds nothing", async () => {
+          // The creator stamp derives no owner (kind_meta `owner_type` NONE),
+          // so the row a member created answers them as it answers any
+          // member; `owner` is `admin from organization` and nothing else
+          // (fga/tests/oauth-app-administration.fga.yaml pins the model).
           await seed("oauth_app", "oap_vendor", {
             org: "acme",
             visibility:
@@ -393,28 +394,17 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           const auth = authorizer();
           for (const c of [view, edit, remove]) {
             expect(await auth.authorize(resolved(MEMBER), c)).toEqual({
+              kind: "deny",
+              reason: "",
+            });
+            expect(await auth.authorize(resolved(ADMIN), c)).toEqual({
+              kind: "allow",
+            });
+            // The organization's OWNER is an admin by the ladder.
+            expect(await auth.authorize(resolved(FOUNDER), c)).toEqual({
               kind: "allow",
             });
           }
-          expect(await auth.authorize(resolved(ADMIN), view)).toEqual({
-            kind: "allow",
-          });
-          expect(await auth.authorize(resolved(ADMIN), edit)).toEqual({
-            kind: "deny",
-            reason: "",
-          });
-          expect(await auth.authorize(resolved(ADMIN), remove)).toEqual({
-            kind: "deny",
-            reason: "",
-          });
-          // The organization's OWNER is an admin by the ladder: reads, does not change.
-          expect(await auth.authorize(resolved(FOUNDER), view)).toEqual({
-            kind: "allow",
-          });
-          expect(await auth.authorize(resolved(FOUNDER), edit)).toEqual({
-            kind: "deny",
-            reason: "",
-          });
           expect(await auth.authorize(resolved(OUTSIDER), view)).toEqual({
             kind: "deny",
             reason: "",

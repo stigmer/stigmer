@@ -9,13 +9,16 @@
  * cloud Java validator.
  */
 import { enumToJson } from "@bufbuild/protobuf";
-import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
+import type { JsonObject, JsonValue, Message } from "@bufbuild/protobuf";
 
 import { WorkflowTaskKind, WorkflowTaskKindSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type {
   WorkflowSpec,
   WorkflowTask,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+
+import { unmarshalTaskConfig } from "../converter/unmarshal.js";
+import { nestedTasks } from "./task-config-constraints.js";
 
 /**
  * Checks that every task has a recognized, non-zero WorkflowTaskKind —
@@ -277,6 +280,18 @@ function extractAndValidateRefs(
  *     fires — a workflow-surface restriction, not a schema fact, so it
  *     cannot live on the shared proto. (Source presence and git_repo.url's
  *     HTTPS shape ARE schema facts enforced via the constraints step.)
+ *   - run_workflow is refused: nothing resolves the child name to a
+ *     workflow the platform can run (the runner would start it as a
+ *     Temporal type no worker registers), so a workflow carrying one could
+ *     never succeed (stigmer#1311). Refusing at write tells the author
+ *     when they save; the runner's refusal of platform workflow types
+ *     (workflow-engine/tasks/run.ts) stays as defence in depth.
+ *
+ * Every rule reaches the tasks nested in control-flow configs and
+ * compensate lists, walked in the constraint validator's order (the task
+ * itself, its nested tasks in declaration order, then its compensate list;
+ * the persist gate surfaces errors[0]), so a rule cannot be stepped around
+ * by wrapping the task in a for_each.
  *
  * Keep the strings in lockstep with the cloud Java validator.
  */
@@ -288,27 +303,68 @@ export function validateTaskConfigSurfaceRules(
   }
 
   const errors: string[] = [];
-  for (const task of spec.tasks) {
-    if (task.kind !== WorkflowTaskKind.agent_call || task.taskConfig === undefined) {
-      continue;
+  const visit = (task: WorkflowTask): void => {
+    errors.push(...taskSurfaceViolations(task));
+    if (task.taskConfig !== undefined) {
+      let config: Message | undefined;
+      try {
+        config = unmarshalTaskConfig(task.kind, task.taskConfig);
+      } catch {
+        // An unmarshal failure is a structural defect the conversion step
+        // has already reported as INVALID — never double-report it here.
+        config = undefined;
+      }
+      if (config !== undefined) {
+        for (const nested of nestedTasks(config)) {
+          visit(nested);
+        }
+      }
     }
-    getListField(task.taskConfig, "workspace_entries").forEach((v, i) => {
-      const entry = structValueOf(v);
-      if (entry === undefined) {
-        return;
-      }
-      const source = getStructField(entry, "source");
-      if (source === undefined) {
-        // Absence is the constraints step's required-rule to report.
-        return;
-      }
-      if (getStructField(source, "git_repo") === undefined) {
-        errors.push(
-          `task '${task.name}' (agent_call): workspace_entries[${i}] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires`,
-        );
-      }
-    });
+    for (const compensate of task.compensate) {
+      visit(compensate);
+    }
+  };
+  for (const task of spec.tasks) {
+    visit(task);
   }
+  return errors;
+}
+
+/** The surface-rule violations of one task, its nested tasks excluded. */
+function taskSurfaceViolations(task: WorkflowTask): string[] {
+  switch (task.kind) {
+    case WorkflowTaskKind.agent_call:
+      return agentCallWorkspaceViolations(task);
+    case WorkflowTaskKind.run_workflow:
+      return [
+        `task '${task.name}' (run_workflow): running a child workflow is not supported yet — the child name cannot be resolved to a workflow the platform can run`,
+      ];
+    default:
+      return [];
+  }
+}
+
+function agentCallWorkspaceViolations(task: WorkflowTask): string[] {
+  if (task.taskConfig === undefined) {
+    return [];
+  }
+  const errors: string[] = [];
+  getListField(task.taskConfig, "workspace_entries").forEach((v, i) => {
+    const entry = structValueOf(v);
+    if (entry === undefined) {
+      return;
+    }
+    const source = getStructField(entry, "source");
+    if (source === undefined) {
+      // Absence is the constraints step's required-rule to report.
+      return;
+    }
+    if (getStructField(source, "git_repo") === undefined) {
+      errors.push(
+        `task '${task.name}' (agent_call): workspace_entries[${i}] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires`,
+      );
+    }
+  });
   return errors;
 }
 

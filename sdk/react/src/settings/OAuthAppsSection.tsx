@@ -21,8 +21,8 @@ type FlowState =
  *
  * "New OAuth app" is offered once the server confirms the caller holds
  * `can_create_oauth_app` on the organization. The list shows only the apps
- * the caller may view (each app's creator and the organization's admins),
- * so a caller who may not create OAuth apps is told that the
+ * the caller may view (the organization's admins, and anyone granted viewer
+ * on an app), so a caller who may not create OAuth apps is told that the
  * organization's admins manage them rather than that none is configured.
  */
 export function OAuthAppsSection() {

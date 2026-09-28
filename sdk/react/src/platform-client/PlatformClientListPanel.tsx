@@ -24,9 +24,10 @@ export interface PlatformClientListPanelProps {
   readonly onRefetchRef?: (refetch: () => void) => void;
   /**
    * Shown when the list is empty. Defaults to "No platform clients
-   * configured." The list holds only the clients the caller may view (each
-   * client's creator and the organization's admins), so a host that knows
-   * the caller may not manage platform clients should say who does instead.
+   * configured." The list holds only the clients the caller may view (the
+   * organization's admins, and anyone granted viewer on a client), so a host
+   * that knows the caller may not manage platform clients should say who
+   * does instead.
    */
   readonly emptyState?: ReactNode;
   /** Additional CSS class names for the root container. */

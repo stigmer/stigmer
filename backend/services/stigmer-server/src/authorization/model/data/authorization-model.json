@@ -465,13 +465,7 @@
               }
             ]
           },
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
+          "owner": {},
           "viewer": {
             "directly_related_user_types": [
               {
@@ -514,7 +508,14 @@
           "this": {}
         },
         "owner": {
-          "this": {}
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
         },
         "viewer": {
           "union": {
@@ -525,16 +526,6 @@
               {
                 "computedUserset": {
                   "relation": "owner"
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
                 }
               }
             ]
@@ -559,13 +550,7 @@
               }
             ]
           },
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
+          "owner": {},
           "viewer": {
             "directly_related_user_types": [
               {
@@ -608,7 +593,14 @@
           "this": {}
         },
         "owner": {
-          "this": {}
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
         },
         "viewer": {
           "union": {
@@ -619,16 +611,6 @@
               {
                 "computedUserset": {
                   "relation": "owner"
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
                 }
               }
             ]

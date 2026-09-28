@@ -227,8 +227,8 @@ public final class PlatformClientCommandControllerGrpc {
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * The creator's organization owns the platform client. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the platform client, and the organization's
+     * current admins manage it.
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
@@ -282,9 +282,9 @@ public final class PlatformClientCommandControllerGrpc {
      * unchanged — platform builders do not need to update their client_id
      * configuration after rotation. Tokens already minted stay valid until they
      * expire; delete the client to revoke them. Rotating does not change
-     * expires_at: a client whose expiry has passed mints again only once its
-     * owner sets a later expires_at or never_expires with update. A
-     * system-managed client's secret cannot be rotated.
+     * expires_at: a client whose expiry has passed mints again only once an
+     * admin of its organization sets a later expires_at or never_expires with
+     * update. A system-managed client's secret cannot be rotated.
      * &#64;internal
      * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
@@ -350,8 +350,8 @@ public final class PlatformClientCommandControllerGrpc {
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * The creator's organization owns the platform client. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the platform client, and the organization's
+     * current admins manage it.
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
@@ -408,9 +408,9 @@ public final class PlatformClientCommandControllerGrpc {
      * unchanged — platform builders do not need to update their client_id
      * configuration after rotation. Tokens already minted stay valid until they
      * expire; delete the client to revoke them. Rotating does not change
-     * expires_at: a client whose expiry has passed mints again only once its
-     * owner sets a later expires_at or never_expires with update. A
-     * system-managed client's secret cannot be rotated.
+     * expires_at: a client whose expiry has passed mints again only once an
+     * admin of its organization sets a later expires_at or never_expires with
+     * update. A system-managed client's secret cannot be rotated.
      * &#64;internal
      * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
@@ -455,8 +455,8 @@ public final class PlatformClientCommandControllerGrpc {
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * The creator's organization owns the platform client. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the platform client, and the organization's
+     * current admins manage it.
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
@@ -510,9 +510,9 @@ public final class PlatformClientCommandControllerGrpc {
      * unchanged — platform builders do not need to update their client_id
      * configuration after rotation. Tokens already minted stay valid until they
      * expire; delete the client to revoke them. Rotating does not change
-     * expires_at: a client whose expiry has passed mints again only once its
-     * owner sets a later expires_at or never_expires with update. A
-     * system-managed client's secret cannot be rotated.
+     * expires_at: a client whose expiry has passed mints again only once an
+     * admin of its organization sets a later expires_at or never_expires with
+     * update. A system-managed client's secret cannot be rotated.
      * &#64;internal
      * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
@@ -556,8 +556,8 @@ public final class PlatformClientCommandControllerGrpc {
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * The creator's organization owns the platform client. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the platform client, and the organization's
+     * current admins manage it.
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
@@ -611,9 +611,9 @@ public final class PlatformClientCommandControllerGrpc {
      * unchanged — platform builders do not need to update their client_id
      * configuration after rotation. Tokens already minted stay valid until they
      * expire; delete the client to revoke them. Rotating does not change
-     * expires_at: a client whose expiry has passed mints again only once its
-     * owner sets a later expires_at or never_expires with update. A
-     * system-managed client's secret cannot be rotated.
+     * expires_at: a client whose expiry has passed mints again only once an
+     * admin of its organization sets a later expires_at or never_expires with
+     * update. A system-managed client's secret cannot be rotated.
      * &#64;internal
      * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
@@ -657,8 +657,8 @@ public final class PlatformClientCommandControllerGrpc {
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * The creator's organization owns the platform client. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the platform client, and the organization's
+     * current admins manage it.
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
@@ -715,9 +715,9 @@ public final class PlatformClientCommandControllerGrpc {
      * unchanged — platform builders do not need to update their client_id
      * configuration after rotation. Tokens already minted stay valid until they
      * expire; delete the client to revoke them. Rotating does not change
-     * expires_at: a client whose expiry has passed mints again only once its
-     * owner sets a later expires_at or never_expires with update. A
-     * system-managed client's secret cannot be rotated.
+     * expires_at: a client whose expiry has passed mints again only once an
+     * admin of its organization sets a later expires_at or never_expires with
+     * update. A system-managed client's secret cannot be rotated.
      * &#64;internal
      * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>

@@ -25,13 +25,16 @@ const (
 )
 
 // RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
+//
+// The run_workflow kind is not supported yet: a Workflow that contains one is
+// refused when it is saved, because nothing resolves the child name to a
+// Workflow the platform can run.
 type RunTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Sub-workflow name/identifier to execute.
 	Workflow string `protobuf:"bytes,1,opt,name=workflow,proto3" json:"workflow,omitempty"`
 	// Sub-workflow input (optional).
 	// Can be any JSON structure.
-	// Supports expressions in string values.
 	Input         *structpb.Struct `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

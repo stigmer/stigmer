@@ -56,7 +56,7 @@ This documentation serves two distinct audiences:
 
 **Platform Integrators** — engineers running workflows programmatically:
 - [workflow-resource-guide.md](workflow-resource-guide.md) — status fields and validation lifecycle
-- [examples.md](examples.md) — sub-workflow and agent_call patterns
+- [examples.md](examples.md) — agent_call and integration patterns
 
 ## Documentation Index
 

@@ -36,11 +36,15 @@
 //     organization's blueprints and members and never reads a member's
 //     conversations, keys or environments.
 //   - Administrative rows (an OAuth app, which carries its organization's
-//     vendor credentials): its creator's and the organization's admins' —
-//     an admin who did not create the row reads and lists it through
-//     `admin from organization` — and never a member's or a viewer's, who
-//     are refused on `get` and whose lists omit it (stigmer/stigmer#1257:
-//     the list once showed every member what `get` refused them).
+//     vendor credentials, and a platform client, which mints tokens into
+//     it): the organization's current admins', whoever created the row —
+//     `owner` is `admin from organization` and the kind records none
+//     (stigmer/stigmer#1321, #1329) — so an admin who did not create one
+//     reads, lists, edits and deletes it, and a creator demoted below admin
+//     keeps nothing of it. Never a member's or a viewer's, who are refused
+//     on `get` and on every change and whose lists omit it
+//     (stigmer/stigmer#1257: the list once showed every member what `get`
+//     refused them).
 //   - The organization: `find` is UNIMPLEMENTED on every enforcing lane (the
 //     cloud leaves it unrouted; the built-in directory refuses enumeration);
 //     `findMyOrganizations` is the caller's organizations — a member of one
@@ -69,7 +73,7 @@ import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { expectGrpcCode } from "../contract/errors";
+import { expectGrpcCode, expectGrpcCodeWithin } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import {
@@ -79,7 +83,7 @@ import {
   AGENT_KIND,
 } from "../support/agents";
 import { makeEnvironment } from "../support/environments";
-import { ref } from "../support/iampolicies";
+import { organizationRole, ref } from "../support/iampolicies";
 import {
   makeMcpServer,
   makeMcpServerSpec,
@@ -88,6 +92,7 @@ import {
 } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
+import { createPlatformClient } from "../support/platformclients";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import { makeWorkflow } from "../support/workflows";
@@ -503,14 +508,27 @@ describe("role enforcement — personal rows: a member's own, and nobody else's,
 // One administrative kind as the wire offers it: created by the owner (the
 // create bar is the organization's admins), read, listed for the
 // organization, and deleted by its creator — the only one who may.
+// One administrative kind as the wire offers it. `edit` is the mutation
+// the kind's `can_edit` guards that matters most: an OAuth app's `update`,
+// and a platform client's `rotateSecret`, which hands out a live secret.
+interface AdministrativeRow {
+  readonly id: string;
+  readonly name: string;
+}
+
 interface AdministrativeKind {
   readonly name: string;
-  create(using: ConformanceClients, org: string): Promise<string>;
+  create(using: ConformanceClients, org: string): Promise<AdministrativeRow>;
   get(using: ConformanceClients, id: string): Promise<unknown>;
   listIds(
     using: ConformanceClients,
     org: string,
   ): Promise<ReadonlyArray<string>>;
+  edit(
+    using: ConformanceClients,
+    org: string,
+    row: AdministrativeRow,
+  ): Promise<unknown>;
   delete(using: ConformanceClients, id: string): Promise<unknown>;
 }
 
@@ -518,21 +536,44 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
   {
     name: "oauth_app",
     async create(using, org) {
+      const name = uniqueName("role-oauth-app");
       const created = await using.oauthAppCommand.create(
-        makeOAuthApp(org, uniqueName("role-oauth-app")),
+        makeOAuthApp(org, name),
       );
-      return created.metadata!.id;
+      return { id: created.metadata!.id, name };
     },
     get: (using, id) => using.oauthAppQuery.get({ value: id }),
     listIds: async (using, org) =>
       (await using.oauthAppQuery.listByOrg({ org })).entries.map(
         (a) => a.metadata?.id ?? "",
       ),
+    edit: (using, org, row) =>
+      using.oauthAppCommand.update({
+        ...makeOAuthApp(org, row.name, { clientId: "edited-by-a-role" }),
+        metadata: { id: row.id, name: row.name, org },
+      }),
     delete: (using, id) => using.oauthAppCommand.delete({ resourceId: id }),
+  },
+  {
+    name: "platform_client",
+    async create(using, org) {
+      const name = uniqueName("role-platform-client");
+      const created = await createPlatformClient(using, { org, name });
+      return { id: created.id, name };
+    },
+    get: (using, id) => using.platformClientQuery.get({ value: id }),
+    listIds: async (using, org) =>
+      (await using.platformClientQuery.listByOrg({ org })).entries.map(
+        (c) => c.metadata?.id ?? "",
+      ),
+    edit: (using, _org, row) =>
+      using.platformClientCommand.rotateSecret({ value: row.id }),
+    delete: (using, id) =>
+      using.platformClientCommand.delete({ resourceId: id }),
   },
 ];
 
-describe("role enforcement — administrative rows: their creator's and the organization's admins', never a member's or a viewer's", () => {
+describe("role enforcement — administrative rows: the organization's current admins', never a member's or a viewer's, and nobody's for having created one", () => {
   let cast: Cast | undefined;
 
   beforeAll(async () => {
@@ -549,7 +590,7 @@ describe("role enforcement — administrative rows: their creator's and the orga
   describe.each(ADMINISTRATIVE_KINDS)("$name", (kind) => {
     it("the creator and an admin who did not create the row read and list it; a member and a viewer are refused and do not list it", async (ctx) => {
       const c = castOrSkip(ctx);
-      const id = await kind.create(c.owner, c.org);
+      const { id } = await kind.create(c.owner, c.org);
       fixtures.defer(() => kind.delete(c.owner, id).catch(() => undefined));
 
       await kind.get(c.owner, id);
@@ -583,6 +624,67 @@ describe("role enforcement — administrative rows: their creator's and the orga
         await kind.listIds(c.viewer, c.org),
         `a viewer's ${kind.name} list`,
       ).not.toContain(id);
+    });
+
+    it("an admin who did not create the row edits and deletes it; a member and a viewer are refused both", async (ctx) => {
+      const c = castOrSkip(ctx);
+      const row = await kind.create(c.owner, c.org);
+      fixtures.defer(() => kind.delete(c.owner, row.id).catch(() => undefined));
+
+      for (const [who, clients] of [
+        ["a member", c.member],
+        ["a viewer", c.viewer],
+      ] as const) {
+        await expectGrpcCode(
+          () => kind.edit(clients, c.org, row),
+          Code.PermissionDenied,
+          `${who}'s edit of the organization's ${kind.name}`,
+        );
+        await expectGrpcCode(
+          () => kind.delete(clients, row.id),
+          Code.PermissionDenied,
+          `${who}'s delete of the organization's ${kind.name}`,
+        );
+      }
+
+      await kind.edit(c.admin, c.org, row);
+      await kind.delete(c.admin, row.id);
+    });
+
+    it("a creator demoted below admin keeps nothing of the row they created; the organization's admins still manage it", async (ctx) => {
+      const c = castOrSkip(ctx);
+      const lane = laneOrSkip(ctx);
+      // A person of this cell's own, so the block's cast keeps its roles.
+      const creator = await lane.provisionWithRole(c.tenancy, "admin");
+      const creatorId = await lane.accountIdOf(creator);
+      const row = await kind.create(creator, c.org);
+      fixtures.defer(() => kind.delete(c.owner, row.id).catch(() => undefined));
+
+      // The new role before the old one is revoked, as the console changes
+      // a role, so the creator is never left with none.
+      await c.owner.iamPolicyCommand.create(
+        organizationRole(creatorId, "member", c.org),
+      );
+      await c.owner.iamPolicyCommand.delete(
+        organizationRole(creatorId, "admin", c.org),
+      );
+
+      await expectGrpcCodeWithin(
+        () => kind.edit(creator, c.org, row),
+        Code.PermissionDenied,
+        `the demoted creator's edit of their ${kind.name}`,
+      );
+      await expectGrpcCodeWithin(
+        () => kind.get(creator, row.id),
+        Code.PermissionDenied,
+        `the demoted creator's get of their ${kind.name}`,
+      );
+      expect(
+        await kind.listIds(creator, c.org),
+        `the demoted creator's ${kind.name} list`,
+      ).not.toContain(row.id);
+
+      await kind.edit(c.admin, c.org, row);
     });
   });
 });

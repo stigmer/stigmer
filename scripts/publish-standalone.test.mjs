@@ -16,6 +16,14 @@
 // rerun rather than blaming the libs job. And "served" means what an
 // install sees: the wait reads npm's abbreviated install document, which
 // npm caches apart from the full document `npm view` reads.
+//
+// And "served" means the whole install, not only its resolution
+// (stigmer#1325). On v3.33.0 the install document listed
+// @stigmer/temporal-codecs while its tarball still answered 404, so the
+// wait passed and the consumer smoke behind it failed. So `installGap` is
+// pinned here on a fake fetch: it HEADs the tarball the document names,
+// every way an install can still fall short has its own words, and the
+// wait holds a lib that is listed but not downloadable and says why.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,9 +33,10 @@ import { test } from "node:test";
 
 import {
   INSTALL_METADATA_ACCEPT,
-  installDocumentServes,
+  installGap,
   parseArgs,
   registryLagMessage,
+  REQUEST_TIMEOUT_MS,
   resolveTag,
   stampManifest,
   waitForRegistry,
@@ -161,41 +170,65 @@ test("the two standalone packages stamp cleanly from their committed manifests",
 /**
  * A registry whose libs appear at given times on a fake clock; `sleep`
  * advances the clock, so the wait runs instantly and its schedule is exact.
+ * A lib's time is when it becomes installable, or `{ listedAtMs,
+ * servedAtMs }` when its install document lists it before its tarball
+ * answers, the v3.33.0 shape. A lib with no time never appears.
  */
-function fakeRegistry(appearsAtMs) {
+function fakeRegistry(timelines) {
   let clock = 0;
   const sleeps = [];
   const queries = [];
+  const logs = [];
   return {
     sleeps,
     queries,
+    logs,
     options: {
       now: () => clock,
       sleep: async (ms) => {
         sleeps.push(ms);
         clock += ms;
       },
-      isVisible: (name, version) => {
+      gapOf: (name, version) => {
         queries.push(`${name}@${version}`);
-        return name in appearsAtMs && clock >= appearsAtMs[name];
+        const timeline = timelines[name];
+        if (timeline === undefined) return "not listed in its install document";
+        const { listedAtMs, servedAtMs } =
+          typeof timeline === "number"
+            ? { listedAtMs: timeline, servedAtMs: timeline }
+            : timeline;
+        if (clock < listedAtMs) return "not listed in its install document";
+        if (clock < servedAtMs) return "tarball answers HTTP 404";
+        return null;
       },
-      log: () => {},
+      log: (line) => logs.push(line),
       runId: "36264269415",
     },
   };
 }
 
-test("the wait's budget is almost three times the worst lag measured, polled from 10 s up to a 60 s cap", () => {
+test("the wait's budget is almost three times the worst lag measured, polled from 10 s up to a 60 s cap, each request bounded at 30 s", () => {
   assert.equal(WAIT_BUDGET_MS, 20 * 60_000);
   assert.equal(WAIT_FIRST_INTERVAL_MS, 10_000);
   assert.equal(WAIT_MAX_INTERVAL_MS, 60_000);
+  assert.equal(REQUEST_TIMEOUT_MS, 30_000);
 });
 
-test("waitForRegistry returns without sleeping when every lib is already served", async () => {
-  const registry = fakeRegistry({ "@stigmer/protos": 0, "@stigmer/outbound": 0 });
-  await waitForRegistry(["@stigmer/protos", "@stigmer/outbound"], "3.28.0", registry.options);
+test("waitForRegistry returns without sleeping when every lib is already installable", async () => {
+  const registry = fakeRegistry({
+    "@stigmer/protos": 0,
+    "@stigmer/outbound": 0,
+  });
+  await waitForRegistry(
+    ["@stigmer/protos", "@stigmer/outbound"],
+    "3.28.0",
+    registry.options,
+  );
   assert.deepEqual(registry.sleeps, []);
-  assert.deepEqual(registry.queries, ["@stigmer/protos@3.28.0", "@stigmer/outbound@3.28.0"]);
+  assert.deepEqual(registry.queries, [
+    "@stigmer/protos@3.28.0",
+    "@stigmer/outbound@3.28.0",
+  ]);
 });
 
 test("waitForRegistry outlasts the v3.28.0 lag: a lib served after 7 minutes is found, on a doubling schedule capped at 60 s", async () => {
@@ -208,11 +241,43 @@ test("waitForRegistry outlasts the v3.28.0 lag: a lib served after 7 minutes is 
     "3.28.0",
     registry.options,
   );
-  assert.deepEqual(registry.sleeps.slice(0, 4), [10_000, 20_000, 40_000, 60_000]);
+  assert.deepEqual(
+    registry.sleeps.slice(0, 4),
+    [10_000, 20_000, 40_000, 60_000],
+  );
   assert.ok(registry.sleeps.slice(3).every((ms) => ms === 60_000));
   // A lib found once is never asked about again.
-  const outboundQueries = registry.queries.filter((q) => q === "@stigmer/outbound@3.28.0");
+  const outboundQueries = registry.queries.filter(
+    (q) => q === "@stigmer/outbound@3.28.0",
+  );
   assert.equal(outboundQueries.length, 3);
+});
+
+test("waitForRegistry holds a lib that is listed but not downloadable until its tarball answers, and says so each round (the v3.33.0 lag)", async () => {
+  const registry = fakeRegistry({
+    "@stigmer/temporal-codecs": { listedAtMs: 60_000, servedAtMs: 180_000 },
+  });
+  await waitForRegistry(
+    ["@stigmer/temporal-codecs"],
+    "3.33.0",
+    registry.options,
+  );
+  // Rounds at 0, 10, 30, 70, 130 and 190 s: listed from 70 s, installable only at 190 s.
+  assert.deepEqual(registry.sleeps, [10_000, 20_000, 40_000, 60_000, 60_000]);
+  const gaps = registry.logs
+    .filter((line) => line.startsWith("  not yet installable: "))
+    .map((line) => line.match(/\((.+)\); next check/)[1]);
+  assert.deepEqual(gaps, [
+    "not listed in its install document",
+    "not listed in its install document",
+    "not listed in its install document",
+    "tarball answers HTTP 404",
+    "tarball answers HTTP 404",
+  ]);
+  assert.equal(
+    registry.logs.at(-1),
+    "  installable: @stigmer/temporal-codecs@3.33.0",
+  );
 });
 
 test("waitForRegistry shares one deadline across libs and cuts its last sleep to it", async () => {
@@ -225,94 +290,220 @@ test("waitForRegistry shares one deadline across libs and cuts its last sleep to
   );
   // 10 + 20 + 40 = 70 s, then the last sleep is cut to the 30 s left.
   assert.deepEqual(registry.sleeps, [10_000, 20_000, 40_000, 30_000]);
-  assert.equal(registry.sleeps.reduce((a, b) => a + b, 0), 100_000);
+  assert.equal(
+    registry.sleeps.reduce((a, b) => a + b, 0),
+    100_000,
+  );
 });
 
-test("waitForRegistry's refusal names the lagging libs and the rerun, not a failed libs job", async () => {
-  const registry = fakeRegistry({ "@stigmer/protos": 0 });
+test("waitForRegistry's refusal names each lagging lib with what it lacks, and the rerun, not a failed libs job", async () => {
+  const registry = fakeRegistry({
+    "@stigmer/protos": 0,
+    "@stigmer/temporal-codecs": { listedAtMs: 0, servedAtMs: Infinity },
+  });
   await assert.rejects(
-    waitForRegistry(["@stigmer/protos", "@stigmer/plugin-package"], "3.28.0", {
-      ...registry.options,
-      budgetMs: 120_000,
-    }),
+    waitForRegistry(
+      [
+        "@stigmer/protos",
+        "@stigmer/temporal-codecs",
+        "@stigmer/plugin-package",
+      ],
+      "3.28.0",
+      { ...registry.options, budgetMs: 120_000 },
+    ),
     (error) => {
       assert.equal(
         error.message,
-        "@stigmer/plugin-package@3.28.0 published by the libs job but not served by npm after 2 minutes; " +
-          "the registry is lagging. Rerun the failed job once npm serves it: gh run rerun 36264269415 --failed",
+        "@stigmer/temporal-codecs@3.28.0 (tarball answers HTTP 404), " +
+          "@stigmer/plugin-package@3.28.0 (not listed in its install document) " +
+          "published by the libs job but not installable from npm after 2 minutes; " +
+          "the registry is lagging. Rerun the failed job once npm serves them: gh run rerun 36264269415 --failed",
       );
       return true;
     },
   );
 });
 
-test("registryLagMessage names every lagging lib, and a placeholder when no run id is known", () => {
+test("registryLagMessage names every lagging lib with its gap, and a placeholder when no run id is known", () => {
   assert.equal(
-    registryLagMessage(["@stigmer/a", "@stigmer/b"], "1.0.0", 20 * 60_000, undefined),
-    "@stigmer/a@1.0.0, @stigmer/b@1.0.0 published by the libs job but not served by npm after 20 minutes; " +
-      "the registry is lagging. Rerun the failed job once npm serves them: gh run rerun <run-id> --failed",
+    registryLagMessage(
+      [{ name: "@stigmer/a", gap: "not listed in its install document" }],
+      "1.0.0",
+      20 * 60_000,
+      undefined,
+    ),
+    "@stigmer/a@1.0.0 (not listed in its install document) published by the libs job but not installable " +
+      "from npm after 20 minutes; the registry is lagging. Rerun the failed job once npm serves it: " +
+      "gh run rerun <run-id> --failed",
   );
 });
 
-/** A fetch that answers one document and records what it was asked. */
-function fakeFetch(answer) {
+const TARBALL =
+  "https://registry.npmjs.org/@stigmer/temporal-codecs/-/temporal-codecs-3.33.0.tgz";
+
+/** An install document that lists `version` with the given tarball URL. */
+function listing(version, tarball = TARBALL) {
+  return {
+    status: 200,
+    body: { versions: { [version]: { dist: { tarball } } } },
+  };
+}
+
+/**
+ * A fetch that answers the install document (GET) and the tarball (HEAD)
+ * separately, and records what it was asked. An answer that is an Error
+ * rejects the request; a body that is an Error fails its JSON parse.
+ */
+function fakeFetch({ document, tarball = { status: 200 } }) {
   const asked = [];
   return {
     asked,
     fetchImpl: async (url, init) => {
-      asked.push({ url, accept: init?.headers?.accept });
+      const method = init?.method ?? "GET";
+      asked.push({
+        method,
+        url,
+        accept: init?.headers?.accept,
+        bounded: init?.signal instanceof AbortSignal,
+      });
+      const answer = method === "HEAD" ? tarball : document;
       if (answer instanceof Error) throw answer;
       return {
-        ok: answer.status === 200,
+        ok: answer.status >= 200 && answer.status < 300,
         status: answer.status,
-        json: async () => answer.body,
+        json: async () => {
+          if (answer.body instanceof Error) throw answer.body;
+          return answer.body;
+        },
       };
     },
   };
 }
 
-test("installDocumentServes asks for the install document the way npm's installer does, scoped name encoded", async () => {
-  const registry = fakeFetch({ status: 200, body: { versions: { "3.28.0": {} } } });
+test("installGap asks for the install document the way npm's installer does, then HEADs the tarball it names, each request bounded", async () => {
+  const registry = fakeFetch({ document: listing("3.33.0") });
   assert.equal(
-    await installDocumentServes("@stigmer/plugin-package", "3.28.0", {
+    await installGap("@stigmer/temporal-codecs", "3.33.0", {
       registry: "https://registry.npmjs.org/",
       fetchImpl: registry.fetchImpl,
     }),
-    true,
+    null,
   );
   assert.deepEqual(registry.asked, [
     {
-      url: "https://registry.npmjs.org/@stigmer%2fplugin-package",
+      method: "GET",
+      url: "https://registry.npmjs.org/@stigmer%2ftemporal-codecs",
       accept: INSTALL_METADATA_ACCEPT,
+      bounded: true,
     },
+    { method: "HEAD", url: TARBALL, accept: undefined, bounded: true },
   ]);
-  assert.match(INSTALL_METADATA_ACCEPT, /^application\/vnd\.npm\.install-v1\+json/);
+  assert.match(
+    INSTALL_METADATA_ACCEPT,
+    /^application\/vnd\.npm\.install-v1\+json/,
+  );
 });
 
-test("installDocumentServes adds the separator a registry URL without a trailing slash lacks", async () => {
-  const registry = fakeFetch({ status: 200, body: { versions: {} } });
-  await installDocumentServes("@stigmer/protos", "1.0.0", {
+test("installGap adds the separator a registry URL without a trailing slash lacks, and asks for no tarball it cannot name", async () => {
+  const registry = fakeFetch({
+    document: { status: 200, body: { versions: {} } },
+  });
+  await installGap("@stigmer/protos", "1.0.0", {
     registry: "https://npm.example.test/api",
     fetchImpl: registry.fetchImpl,
   });
-  assert.equal(registry.asked[0].url, "https://npm.example.test/api/@stigmer%2fprotos");
+  assert.equal(
+    registry.asked[0].url,
+    "https://npm.example.test/api/@stigmer%2fprotos",
+  );
+  assert.equal(registry.asked.length, 1);
 });
 
-test("installDocumentServes answers false, so the wait asks again, for an unlisted version, a 404 and a fault", async () => {
-  for (const answer of [
-    { status: 200, body: { versions: { "3.27.2": {} } } },
-    { status: 200, body: {} },
-    { status: 404, body: { error: "Not found" } },
-    { status: 503, body: {} },
-    new Error("getaddrinfo ENOTFOUND registry.npmjs.org"),
-  ]) {
-    const registry = fakeFetch(answer);
+test("installGap names the tarball when the install document lists a version npm does not serve yet (v3.33.0, run 36396282814)", async () => {
+  const registry = fakeFetch({
+    document: listing("3.33.0"),
+    tarball: { status: 404 },
+  });
+  assert.equal(
+    await installGap("@stigmer/temporal-codecs", "3.33.0", {
+      registry: "https://registry.npmjs.org/",
+      fetchImpl: registry.fetchImpl,
+    }),
+    "tarball answers HTTP 404",
+  );
+});
+
+test("installGap names the first thing an install still lacks, so the wait asks again and its refusal says why", async () => {
+  const cases = [
+    [
+      { document: new Error("getaddrinfo ENOTFOUND registry.npmjs.org") },
+      "registry unreachable: getaddrinfo ENOTFOUND registry.npmjs.org",
+    ],
+    [
+      {
+        document: new TypeError("fetch failed", {
+          cause: new Error("read ECONNRESET"),
+        }),
+      },
+      "registry unreachable: fetch failed: read ECONNRESET",
+    ],
+    [
+      { document: { status: 404, body: { error: "Not found" } } },
+      "install document answers HTTP 404",
+    ],
+    [
+      { document: { status: 503, body: {} } },
+      "install document answers HTTP 503",
+    ],
+    [
+      {
+        document: {
+          status: 200,
+          body: new SyntaxError("Unexpected token '<'"),
+        },
+      },
+      "install document unreadable: Unexpected token '<'",
+    ],
+    [
+      { document: { status: 200, body: { versions: { "3.27.2": {} } } } },
+      "not listed in its install document",
+    ],
+    [
+      { document: { status: 200, body: {} } },
+      "not listed in its install document",
+    ],
+    [
+      { document: { status: 200, body: { versions: { "3.28.0": {} } } } },
+      "no tarball in its install document",
+    ],
+    [{ document: listing("3.28.0", "") }, "no tarball in its install document"],
+    [
+      {
+        document: listing("3.28.0"),
+        tarball: new DOMException(
+          "The operation was aborted due to timeout",
+          "TimeoutError",
+        ),
+      },
+      "tarball unreachable: The operation was aborted due to timeout",
+    ],
+    [
+      { document: listing("3.28.0"), tarball: { status: 404 } },
+      "tarball answers HTTP 404",
+    ],
+    [
+      { document: listing("3.28.0"), tarball: { status: 403 } },
+      "tarball answers HTTP 403",
+    ],
+  ];
+  for (const [answers, gap] of cases) {
+    const registry = fakeFetch(answers);
     assert.equal(
-      await installDocumentServes("@stigmer/outbound", "3.28.0", {
+      await installGap("@stigmer/outbound", "3.28.0", {
         registry: "https://registry.npmjs.org/",
         fetchImpl: registry.fetchImpl,
       }),
-      false,
+      gap,
     );
   }
 });

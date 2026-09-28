@@ -305,42 +305,6 @@ export function makeRaiseErrorWorkflow(
   };
 }
 
-export const RUN_WORKFLOW_TASK_NAME = "runChild";
-
-export interface RunWorkflowWorkflowOptions {
-  org: string;
-  name: string;
-  // The child workflow the `run_workflow` task names.
-  childWorkflow: string;
-}
-
-// A valid single-task Workflow whose only task is a `run_workflow` naming
-// `childWorkflow`. The server converts the typed RunTaskConfig ({workflow})
-// to CNCF `run: { workflow: { name } }`, and the runner starts the child on
-// the parent's own task queue. Hermetic: it needs only Temporal and the
-// runner, and a refused name fails before anything is started.
-export function makeRunWorkflowWorkflow(
-  opts: RunWorkflowWorkflowOptions,
-): InitShape<typeof WorkflowSchema> {
-  const { org, name, childWorkflow } = opts;
-  return {
-    apiVersion: WORKFLOW_API_VERSION,
-    kind: WORKFLOW_KIND,
-    metadata: { name, org },
-    spec: {
-      description: "conformance run_workflow fixture",
-      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
-      tasks: [
-        {
-          name: RUN_WORKFLOW_TASK_NAME,
-          kind: WorkflowTaskKind.run_workflow,
-          taskConfig: { workflow: childWorkflow },
-        },
-      ],
-    },
-  };
-}
-
 // The listen task name and its downstream continue-task name, exported so the
 // sendSignal suite refers to the same identifiers the fixture defines (the
 // downstream task completing is how the suite proves the signal unblocked the gate).

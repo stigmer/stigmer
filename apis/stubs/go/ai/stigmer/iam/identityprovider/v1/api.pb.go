@@ -40,9 +40,9 @@ const (
 //	  org: planton
 //	spec:
 //	  display_name: "Planton"
-//	  jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
-//	  allowed_issuers: ["planton"]
-//	  expected_audience: "stigmer-api"
+//	  jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+//	  allowed_issuers: ["https://planton-prod.us.auth0.com/"]
+//	  expected_audience: "https://api.planton.ai/"
 type IdentityProvider struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

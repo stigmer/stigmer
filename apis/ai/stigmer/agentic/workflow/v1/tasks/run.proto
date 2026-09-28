@@ -8,17 +8,16 @@ import "google/protobuf/struct.proto";
 
 // RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
 //
+// The run_workflow kind is not supported yet: a Workflow that contains one is
+// refused when it is saved, because nothing resolves the child name to a
+// Workflow the platform can run.
+//
 // @internal
-// Implemented via Temporal child workflows.
-//
-// YAML Example:
-//   - taskName:
-//       run:
-//         workflow: "sub-workflow-name"
-//         input:
-//           data: ${ .data }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
+// The server's converter emits the child reference as `run.workflow` with
+// `name` and, when set, `input`, the shape the runner's run task reads. The
+// runner would start the name as a Temporal workflow type, and no worker
+// registers user workflows as types, so the write refuses the kind
+// (stigmer/stigmer#1311).
 message RunTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "run_workflow";
 
@@ -30,6 +29,5 @@ message RunTaskConfig {
 
   // Sub-workflow input (optional).
   // Can be any JSON structure.
-  // Supports expressions in string values.
   google.protobuf.Struct input = 2;
 }
