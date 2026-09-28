@@ -83,6 +83,15 @@ snapshot() {
   MUTATED+=("$f")
 }
 
+# publish-standalone.mjs copies the repo-root LICENSE beside a standalone
+# manifest so its tarball carries it, and a real publish leaves the copy
+# (stigmer/stigmer#1393). One that was not there before this run is removed
+# on exit with the other temp files.
+track_license_copy() {
+  local dir="$1"
+  [ -e "$ROOT/$dir/LICENSE" ] || TMP_FILES+=("$ROOT/$dir/LICENSE")
+}
+
 # ─── Planton secret access ────────────────────────────────────────────────
 # Normalizes `planton secret get` output across CLI variants:
 #   - Release CLIs (>= v0.0.25-cli) honor `-o plain` and return the raw value.
@@ -225,6 +234,7 @@ publish_npm() {
 
   local runner_dir="backend/services/runner"
   snapshot "$runner_dir/package.json"
+  track_license_copy "$runner_dir"
   node scripts/publish-standalone.mjs --package "$runner_dir" --version "$NPM_VERSION" --tag dev
 
   # The slim embedding artifact (stigmer/stigmer#170): @stigmer/runner-slim plus
@@ -261,6 +271,7 @@ publish_npm() {
   log "npm: building and publishing @stigmer/server@$NPM_VERSION"
   make build-server
   snapshot "backend/services/stigmer-server/package.json"
+  track_license_copy "backend/services/stigmer-server"
   with_temporal node scripts/publish-standalone.mjs \
     --package backend/services/stigmer-server --version "$NPM_VERSION" --tag dev
 
