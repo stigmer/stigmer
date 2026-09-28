@@ -22,7 +22,7 @@ describe("createPlatformClientAuth", () => {
         clientId: "",
         clientSecret: "stgm_cs_xyz",
       }),
-    ).toThrow("clientId is required");
+    ).toThrow("clientId is required — find it in the Stigmer Console under Settings > Platform Clients");
   });
 
   it("throws when clientSecret is missing", () => {
@@ -32,7 +32,7 @@ describe("createPlatformClientAuth", () => {
         clientId: "stgm_cid_abc",
         clientSecret: "",
       }),
-    ).toThrow("clientSecret is required");
+    ).toThrow(/clientSecret is required.*rotate it in the Stigmer Console \(Settings > Platform Clients\)/);
   });
 
   it("returns a PlatformClientAuth instance with valid config", () => {

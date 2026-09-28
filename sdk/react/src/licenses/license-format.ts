@@ -33,14 +33,23 @@ export type IssuableTerm = LicenseTerm.trial | LicenseTerm.paid;
 export type PlanOnlyFeature = Feature.teams | Feature.managed_organizations;
 
 /**
+ * Features the contract names but nothing gates: every edition serves them
+ * to every tenant, so granting one on a license would sell what the
+ * customer already has. A license issued before the value was ruled
+ * ungated may still carry one; the console shows it nowhere.
+ */
+export type UngatedFeature = Feature.platform_client;
+
+/**
  * A feature an operator can grant on a license: every feature but the
- * unspecified zero value and the plan-only ones. Derived by exclusion, so
- * a feature added to the contract lands here by default and must be given
- * a label below, or be named plan-only above, before the package compiles.
+ * unspecified zero value, the plan-only ones and the ungated ones. Derived
+ * by exclusion, so a feature added to the contract lands here by default
+ * and must be given a label below, or be named above, before the package
+ * compiles.
  */
 export type GrantableFeature = Exclude<
   Feature,
-  Feature.feature_unspecified | PlanOnlyFeature
+  Feature.feature_unspecified | PlanOnlyFeature | UngatedFeature
 >;
 
 /** Display labels for the issuable terms. */
@@ -61,10 +70,6 @@ export const FEATURE_LABELS: Readonly<
     label: "SSO enforcement",
     description: "Require members to sign in through a registered identity provider.",
   },
-  [Feature.platform_client]: {
-    label: "Platform clients",
-    description: "Let the customer's own product mint Stigmer tokens for its users.",
-  },
   [Feature.byo_provider_keys]: {
     label: "Bring your own provider keys",
     description: "Use the customer's own LLM provider keys instead of the metered proxy.",
@@ -83,6 +88,15 @@ export const FEATURE_LABELS: Readonly<
 export const GRANTABLE_FEATURES: readonly GrantableFeature[] = (
   Object.keys(FEATURE_LABELS).map(Number) as GrantableFeature[]
 ).sort((a, b) => a - b);
+
+/**
+ * Whether a stored feature is one the console shows: the one test for
+ * which of a license's features the calendar counts, the names and the
+ * detail list, and a renewal carries forward.
+ */
+export function isGrantableFeature(feature: number): feature is GrantableFeature {
+  return feature in FEATURE_LABELS;
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -145,7 +159,7 @@ export function formatDayFromToday(day: string, now: Date): string {
  */
 export function entitlementParts(entitlements: Entitlements | undefined): readonly string[] {
   const limits = entitlements?.limits;
-  const features = entitlements?.features.length ?? 0;
+  const features = entitlements?.features.filter(isGrantableFeature).length ?? 0;
   return [
     limitPart(limits?.maxUsers, "user"),
     limitPart(limits?.maxOrganizations, "organization"),

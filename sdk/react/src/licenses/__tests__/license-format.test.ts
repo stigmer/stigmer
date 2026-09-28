@@ -1,7 +1,7 @@
 // The licenses surface's display vocabulary: "covered through" steps back
 // from the expiry instant, relative days count UTC days, an absent limit
-// reads as unlimited rather than blank, and the plan-only features are
-// never offered on a license.
+// reads as unlimited rather than blank, the plan-only and ungated features
+// are never offered on a license, and only the offered ones are counted.
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -14,16 +14,16 @@ import {
 } from "../license-format";
 
 describe("GRANTABLE_FEATURES", () => {
-  it("offers every license feature and never a plan-only one", () => {
+  it("offers every license feature and never a plan-only or ungated one", () => {
     expect(GRANTABLE_FEATURES).toEqual([
       Feature.sso_enforcement,
-      Feature.platform_client,
       Feature.byo_provider_keys,
       Feature.channels,
       Feature.sharing,
     ]);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.teams);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.managed_organizations);
+    expect(GRANTABLE_FEATURES).not.toContain(Feature.platform_client);
   });
 });
 
@@ -49,12 +49,18 @@ describe("formatDayFromToday", () => {
 describe("entitlementParts", () => {
   it("names each limit, saying unlimited where the contract reads absence as unlimited", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrganizations: 1 }, features: [2] })),
+      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrganizations: 1 }, features: [Feature.channels] })),
     ).toEqual(["5 users", "1 organization", "1 feature"]);
     expect(entitlementParts(create(EntitlementsSchema, {}))).toEqual([
       "Unlimited users",
       "Unlimited organizations",
       "No features",
     ]);
+  });
+
+  it("counts only the features the console offers, as the names and the detail list them", () => {
+    expect(
+      entitlementParts(create(EntitlementsSchema, { features: [Feature.platform_client, Feature.channels] })),
+    ).toEqual(["Unlimited users", "Unlimited organizations", "1 feature"]);
   });
 });

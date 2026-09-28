@@ -24,7 +24,6 @@ spec:
   entitlements:
     features:
       - sso_enforcement
-      - platform_client
       - channels
   term: paid
   expires_at: "2027-09-01T00:00:00Z"

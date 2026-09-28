@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlatformClientAuthTest {
 
@@ -23,12 +24,13 @@ class PlatformClientAuthTest {
 
     @Test
     void builder_emptyClientId_throws() {
-        assertThrows(IllegalArgumentException.class, () ->
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
                 PlatformClientAuth.builder("localhost:9090")
                         .clientId("")
                         .clientSecret("stgm_cs_xyz")
                         .insecure()
                         .build());
+        assertTrue(ex.getMessage().contains("under Settings > Platform Clients"), ex.getMessage());
     }
 
     @Test
@@ -42,12 +44,15 @@ class PlatformClientAuthTest {
 
     @Test
     void builder_emptyClientSecret_throws() {
-        assertThrows(IllegalArgumentException.class, () ->
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
                 PlatformClientAuth.builder("localhost:9090")
                         .clientId("stgm_cid_abc")
                         .clientSecret("")
                         .insecure()
                         .build());
+        assertTrue(
+                ex.getMessage().contains("rotate it in the Stigmer Console (Settings > Platform Clients)"),
+                ex.getMessage());
     }
 
     @Test

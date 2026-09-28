@@ -119,10 +119,10 @@ func NewPlatformClientAuth(opts ...PlatformClientAuthOption) (*PlatformClientAut
 	}
 
 	if cfg.clientID == "" {
-		return nil, fmt.Errorf("stigmer: clientID is required — find it in the Stigmer Console under IAM > Platform Clients")
+		return nil, fmt.Errorf("stigmer: clientID is required — find it in the Stigmer Console under Settings > Platform Clients")
 	}
 	if cfg.clientSecret == "" {
-		return nil, fmt.Errorf("stigmer: clientSecret is required — the secret is shown once at creation time. If lost, rotate via the Console or CLI")
+		return nil, fmt.Errorf("stigmer: clientSecret is required — the secret is shown once at creation time. If lost, rotate it in the Stigmer Console (Settings > Platform Clients) or with the PlatformClient API's rotateSecret")
 	}
 
 	conn, err := transport.Dial(transport.Config{

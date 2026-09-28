@@ -203,13 +203,13 @@ export function createPlatformClientAuth(
   }
   if (!config.clientId) {
     throw new Error(
-      "createPlatformClientAuth: clientId is required — find it in the Stigmer Console under IAM > Platform Clients",
+      "createPlatformClientAuth: clientId is required — find it in the Stigmer Console under Settings > Platform Clients",
     );
   }
   if (!config.clientSecret) {
     throw new Error(
       "createPlatformClientAuth: clientSecret is required — the secret is shown once at creation time. " +
-        "If lost, rotate the secret via the Console or CLI",
+        "If lost, rotate it in the Stigmer Console (Settings > Platform Clients) or with the PlatformClient API's rotateSecret",
     );
   }
 

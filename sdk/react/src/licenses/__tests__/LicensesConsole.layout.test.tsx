@@ -42,7 +42,6 @@ const entries = [
     maxOrganizations: 12,
     features: [
       Feature.sso_enforcement,
-      Feature.platform_client,
       Feature.byo_provider_keys,
       Feature.channels,
       Feature.sharing,

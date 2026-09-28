@@ -36,8 +36,11 @@ const (
 	// cannot use another login. The identity-provider kind is Enterprise and
 	// Cloud; this feature is what a plan or license turns on for it.
 	Feature_sso_enforcement Feature = 1
-	// Creating PlatformClient credentials so the tenant's own product can
-	// mint Stigmer tokens for its users.
+	// Gates nothing: every edition serves PlatformClient credentials to every
+	// tenant, so a plan or license that lists it grants nothing more.
+	// It is the one value named before its gate was ruled out, and it stays
+	// because licenses already issued carry it and an enum value is a wire
+	// identifier. A new plan or license does not list it.
 	Feature_platform_client Feature = 2
 	// Bringing the tenant's own LLM provider keys instead of the platform's
 	// metered proxy credentials.

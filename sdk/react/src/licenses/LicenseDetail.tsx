@@ -12,9 +12,9 @@ import {
   coveredThroughDay,
   formatDayFromToday,
   formatInstantUtc,
+  isGrantableFeature,
   termLabel,
   toDate,
-  type GrantableFeature,
 } from "./license-format.js";
 import type { LicenseStanding } from "./license-standing.js";
 import { LicenseTicketPanel } from "./LicenseTicketPanel.js";
@@ -60,9 +60,7 @@ export function LicenseDetail({
   const spec = license.spec;
   const customer = spec?.customer;
   const limits = spec?.entitlements?.limits;
-  const features = (spec?.entitlements?.features ?? []).filter(
-    (f): f is GrantableFeature => f in FEATURE_LABELS,
-  );
+  const features = (spec?.entitlements?.features ?? []).filter(isGrantableFeature);
   const expiresAt = toDate(spec?.expiresAt);
   const graceUntil = toDate(spec?.graceUntil);
   const issuedAt = toDate(license.status?.issuedAt);

@@ -16,11 +16,14 @@ class TestPlatformClientAuthFactory:
     """Tests for the platform_client_auth factory function."""
 
     def test_missing_client_id(self) -> None:
-        with pytest.raises(ValueError, match="client_id is required"):
+        with pytest.raises(ValueError, match="client_id is required.*under Settings > Platform Clients"):
             platform_client_auth(client_id="", client_secret="stgm_cs_xyz")
 
     def test_missing_client_secret(self) -> None:
-        with pytest.raises(ValueError, match="client_secret is required"):
+        with pytest.raises(
+            ValueError,
+            match=r"client_secret is required.*rotate it in the Stigmer Console \(Settings > Platform Clients\)",
+        ):
             platform_client_auth(client_id="stgm_cid_abc", client_secret="")
 
     def test_valid_config(self) -> None:

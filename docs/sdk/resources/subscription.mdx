@@ -319,7 +319,7 @@ A capability an entitlement can unlock.
 | Value | Description |
 |-------|-------------|
 | `sso_enforcement` | Enforcing sign-in through a registered identity provider, so members cannot use another login. |
-| `platform_client` | Creating PlatformClient credentials so the tenant's own product can mint Stigmer tokens for its users. |
+| `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every tenant, so a plan or license that lists it grants nothing more. |
 | `byo_provider_keys` | Bringing the tenant's own LLM provider keys instead of the platform's metered proxy credentials. |
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
 | `sharing` | Sharing an agent with individuals and guests through hosted share links. |

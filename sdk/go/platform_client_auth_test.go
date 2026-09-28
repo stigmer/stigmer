@@ -2,6 +2,7 @@ package stigmer
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
@@ -14,6 +15,9 @@ func TestNewPlatformClientAuth_MissingClientID(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when clientID is empty")
 	}
+	if !strings.Contains(err.Error(), "under Settings > Platform Clients") {
+		t.Errorf("error does not name the console page: %v", err)
+	}
 }
 
 func TestNewPlatformClientAuth_MissingClientSecret(t *testing.T) {
@@ -22,6 +26,9 @@ func TestNewPlatformClientAuth_MissingClientSecret(t *testing.T) {
 	)
 	if err == nil {
 		t.Fatal("expected error when clientSecret is empty")
+	}
+	if !strings.Contains(err.Error(), "rotate it in the Stigmer Console (Settings > Platform Clients)") {
+		t.Errorf("error does not name where to rotate: %v", err)
 	}
 }
 

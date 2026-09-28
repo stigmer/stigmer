@@ -154,12 +154,13 @@ public final class PlatformClientAuth implements AutoCloseable {
         public PlatformClientAuth build() {
             if (clientId == null || clientId.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "stigmer: clientId is required — find it in the Stigmer Console under IAM > Platform Clients");
+                        "stigmer: clientId is required — find it in the Stigmer Console under Settings > Platform Clients");
             }
             if (clientSecret == null || clientSecret.isEmpty()) {
                 throw new IllegalArgumentException(
                         "stigmer: clientSecret is required — the secret is shown once at creation time. "
-                                + "If lost, rotate via the Console or CLI");
+                                + "If lost, rotate it in the Stigmer Console (Settings > Platform Clients) "
+                                + "or with the PlatformClient API's rotateSecret");
             }
 
             ManagedChannelBuilder<?> channelBuilder;

@@ -209,12 +209,14 @@ def platform_client_auth(
     if not client_id:
         raise ValueError(
             "platform_client_auth: client_id is required — find it in the "
-            "Stigmer Console under IAM > Platform Clients"
+            "Stigmer Console under Settings > Platform Clients"
         )
     if not client_secret:
         raise ValueError(
             "platform_client_auth: client_secret is required — the secret is "
-            "shown once at creation time. If lost, rotate via the Console or CLI"
+            "shown once at creation time. If lost, rotate it in the Stigmer "
+            "Console (Settings > Platform Clients) or with the PlatformClient "
+            "API's rotateSecret"
         )
 
     return PlatformClientAuth(

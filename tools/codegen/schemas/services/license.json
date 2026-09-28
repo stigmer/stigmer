@@ -142,7 +142,7 @@
         {
           "name": "platform_client",
           "number": 2,
-          "description": "Creating PlatformClient credentials so the tenant's own product can\n mint Stigmer tokens for its users."
+          "description": "Gates nothing: every edition serves PlatformClient credentials to every\n tenant, so a plan or license that lists it grants nothing more.\n It is the one value named before its gate was ruled out, and it stays\n because licenses already issued carry it and an enum value is a wire\n identifier. A new plan or license does not list it."
         },
         {
           "name": "byo_provider_keys",

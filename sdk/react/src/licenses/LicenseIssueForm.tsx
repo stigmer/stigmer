@@ -37,6 +37,7 @@ import {
   GRANTABLE_FEATURES,
   TERM_LABELS,
   featureNames,
+  isGrantableFeature,
   limitPart,
   utcDay,
   type GrantableFeature,
@@ -136,7 +137,7 @@ export function LicenseIssueForm({
     limitText(renewing?.spec?.entitlements?.limits?.maxOrganizations),
   );
   const [features, setFeatures] = useState<readonly GrantableFeature[]>(() =>
-    (renewing?.spec?.entitlements?.features ?? []).filter(isGrantable),
+    (renewing?.spec?.entitlements?.features ?? []).filter(isGrantableFeature),
   );
   const [notes, setNotes] = useState("");
   const [attempted, setAttempted] = useState(false);
@@ -631,10 +632,6 @@ function submitErrorMessage(error: Error): string {
 
 function issuableTerm(term: LicenseTerm | undefined): IssuableTerm | undefined {
   return term === LicenseTerm.trial || term === LicenseTerm.paid ? term : undefined;
-}
-
-function isGrantable(feature: number): feature is GrantableFeature {
-  return feature in FEATURE_LABELS;
 }
 
 function limitText(limit: number | undefined): string {

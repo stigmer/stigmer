@@ -36,8 +36,11 @@ public enum Feature
   sso_enforcement(1),
   /**
    * <pre>
-   * Creating PlatformClient credentials so the tenant's own product can
-   * mint Stigmer tokens for its users.
+   * Gates nothing: every edition serves PlatformClient credentials to every
+   * tenant, so a plan or license that lists it grants nothing more.
+   * It is the one value named before its gate was ruled out, and it stays
+   * because licenses already issued carry it and an enum value is a wire
+   * identifier. A new plan or license does not list it.
    * </pre>
    *
    * <code>platform_client = 2;</code>
@@ -128,8 +131,11 @@ public enum Feature
   public static final int sso_enforcement_VALUE = 1;
   /**
    * <pre>
-   * Creating PlatformClient credentials so the tenant's own product can
-   * mint Stigmer tokens for its users.
+   * Gates nothing: every edition serves PlatformClient credentials to every
+   * tenant, so a plan or license that lists it grants nothing more.
+   * It is the one value named before its gate was ruled out, and it stays
+   * because licenses already issued carry it and an enum value is a wire
+   * identifier. A new plan or license does not list it.
    * </pre>
    *
    * <code>platform_client = 2;</code>

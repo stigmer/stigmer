@@ -159,6 +159,8 @@ describe("LicensesConsole detail", () => {
     expect(screen.getByText("Paid")).toBeTruthy();
     expect(screen.getByText("PO 4411")).toBeTruthy();
     expect(screen.getByText("SSO enforcement")).toBeTruthy();
+    // The license also carries platform_client, which gates nothing: not shown.
+    expect(screen.queryByText("Platform clients")).toBeNull();
     expect(screen.queryByText(/eyJhbGciOiJFZERTQSJ9/)).toBeNull();
 
     const copy = await screen.findByRole("button", { name: /Copy ticket/ });
