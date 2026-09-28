@@ -5,6 +5,10 @@
  * transcript regression guard (shrink + front-truncation-with-append +
  * the terminal exemption), the equal-length approval finalize, and the
  * presence-guarded runner-owned field pattern (recalled_memories_report).
+ * Also pins the platform-row rules (platform-rows.ts, stigmer#980): a
+ * platform marker write is appended to the transcript and never replaces
+ * it, idempotently, and a PAUSED or CANCELLED execution's stop row stays
+ * last across the runner's late writes, whatever order they land in.
  * These exercise applyUpdateStatusMerge directly on a clone — mirroring
  * the freshly-loaded resource the merge mutates in place inside the
  * updateResource write lock.
@@ -31,6 +35,7 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexec
 
 import { createLogger } from "../../../boot/logger.js";
 import { findToolCallInExecution } from "../submit-approval.js";
+import { CANCEL_STOP_ROW, PAUSE_STOP_ROW } from "../platform-rows.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
 
 const silentLogger = createLogger({
@@ -365,5 +370,217 @@ describe("the presence-guarded runner-owned field pattern (recalled_memories_rep
       },
     );
     expect(merged.status?.recalledMemoriesReport).toBeUndefined();
+  });
+});
+
+describe("platform rows (stigmer#980)", () => {
+  // The runner's transcript: AI and tool turns, then (for a failure it
+  // reports itself) its own system rows.
+  function runnerTranscript(...contents: string[]) {
+    return contents.map((content) => ({ type: MessageType.MESSAGE_AI, content }));
+  }
+  function system(...contents: string[]) {
+    return contents.map((content) => ({ type: MessageType.MESSAGE_SYSTEM, content }));
+  }
+  function executionAt(
+    phase: ExecutionPhase,
+    msgs: MessageInitShape<typeof AgentMessageSchema>[],
+  ): AgentExecution {
+    return create(AgentExecutionSchema, {
+      metadata: { id: "exec-rows", name: "exec-rows" },
+      spec: {},
+      status: { phase, messages: msgs },
+    });
+  }
+  function contents(execution: AgentExecution): string[] {
+    return (execution.status?.messages ?? []).map((m) => m.content);
+  }
+
+  describe("a platform marker write is appended, never substituted", () => {
+    it("appends the cancel row to a transcript already persisted CANCELLED", () => {
+      // The Cancel RPC persisted CANCELLED first, then the workflow's
+      // cancellation cleanup lands its row: today it replaced the whole
+      // transcript with that one line.
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_CANCELLED, runnerTranscript("a1", "a2")),
+        { phase: ExecutionPhase.EXECUTION_CANCELLED, messages: system(CANCEL_STOP_ROW) },
+      );
+      expect(contents(merged)).toEqual(["a1", "a2", CANCEL_STOP_ROW]);
+    });
+
+    it("appends the broken-flow failure lines to a FAILED transcript", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_FAILED, runnerTranscript("a1", "a2", "a3")),
+        {
+          phase: ExecutionPhase.EXECUTION_FAILED,
+          error: "boom",
+          messages: system("Internal failure.", "Error details: boom"),
+        },
+      );
+      expect(contents(merged)).toEqual([
+        "a1",
+        "a2",
+        "a3",
+        "Internal failure.",
+        "Error details: boom",
+      ]);
+    });
+
+    it("appends a marker landing before the phase is terminal instead of dropping it to the shrink guard", () => {
+      // The runner died without persisting a terminal: the stored phase is
+      // still IN_PROGRESS, and the failure lines are shorter than the
+      // transcript. Today the shrink guard dropped them.
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_IN_PROGRESS, runnerTranscript("a1", "a2", "a3")),
+        {
+          phase: ExecutionPhase.EXECUTION_FAILED,
+          messages: system("Internal failure.", "Error details: boom"),
+        },
+      );
+      expect(contents(merged)).toEqual([
+        "a1",
+        "a2",
+        "a3",
+        "Internal failure.",
+        "Error details: boom",
+      ]);
+      expect(merged.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    });
+
+    it("is idempotent: an activity retry of the same marker appends nothing", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_FAILED, [
+          ...runnerTranscript("a1"),
+          ...system("Internal failure.", "Error details: boom"),
+        ]),
+        {
+          phase: ExecutionPhase.EXECUTION_FAILED,
+          messages: system("Internal failure.", "Error details: boom"),
+        },
+      );
+      expect(contents(merged)).toEqual(["a1", "Internal failure.", "Error details: boom"]);
+    });
+
+    it("keeps an all-system write that extends the stored transcript a replacement (the runner's own growth)", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_IN_PROGRESS, system("s1")),
+        { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, messages: system("s1", "s2") },
+      );
+      expect(contents(merged)).toEqual(["s1", "s2"]);
+    });
+
+    it("keeps a system write onto an empty transcript a replacement", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_IN_PROGRESS, []),
+        { phase: ExecutionPhase.EXECUTION_FAILED, messages: system("Internal failure.") },
+      );
+      expect(contents(merged)).toEqual(["Internal failure."]);
+    });
+
+    it("keeps the runner's full terminal write a replacement (the terminal exemption is untouched)", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_FAILED, runnerTranscript("a1", "a2")),
+        {
+          phase: ExecutionPhase.EXECUTION_FAILED,
+          messages: [...runnerTranscript("a1-final"), ...system("Execution failed: x")],
+        },
+      );
+      expect(contents(merged)).toEqual(["a1-final", "Execution failed: x"]);
+    });
+  });
+
+  describe("a stop row stays last across the runner's late writes", () => {
+    it("re-appends the cancel row after a late runner write that extends the transcript", () => {
+      // Cancel's three writers race: the RPC's CANCELLED persist and the
+      // workflow's row landed; the runner's settle write (it learns of the
+      // cancel on its next heartbeat) lands last, carrying no row.
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_CANCELLED, [
+          ...runnerTranscript("a1"),
+          ...system(CANCEL_STOP_ROW),
+        ]),
+        { messages: runnerTranscript("a1", "a2") },
+      );
+      expect(contents(merged)).toEqual(["a1", "a2", CANCEL_STOP_ROW]);
+      expect(merged.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
+    });
+
+    it("keeps the pause row last when the runner's settle write lands after it", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_PAUSED, [
+          ...runnerTranscript("a1"),
+          ...system(PAUSE_STOP_ROW),
+        ]),
+        { messages: runnerTranscript("a1") },
+      );
+      expect(
+        contents(merged),
+        "the settle write does not trip the shrink guard on the row, and does not drop it",
+      ).toEqual(["a1", PAUSE_STOP_ROW]);
+    });
+
+    it("merges a longer settle write under the pause row", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_PAUSED, [
+          ...runnerTranscript("a1"),
+          ...system(PAUSE_STOP_ROW),
+        ]),
+        { messages: runnerTranscript("a1", "a2", "a3") },
+      );
+      expect(contents(merged)).toEqual(["a1", "a2", "a3", PAUSE_STOP_ROW]);
+    });
+
+    it("still guards a paused transcript against a real shrink", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_PAUSED, [
+          ...runnerTranscript("a1", "a2"),
+          ...system(PAUSE_STOP_ROW),
+        ]),
+        { messages: runnerTranscript("a1") },
+      );
+      expect(contents(merged)).toEqual(["a1", "a2", PAUSE_STOP_ROW]);
+    });
+
+    it("does not duplicate the row when a retry of the stop marker lands on it", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_CANCELLED, [
+          ...runnerTranscript("a1"),
+          ...system(CANCEL_STOP_ROW),
+        ]),
+        { phase: ExecutionPhase.EXECUTION_CANCELLED, messages: system(CANCEL_STOP_ROW) },
+      );
+      expect(contents(merged)).toEqual(["a1", CANCEL_STOP_ROW]);
+    });
+
+    it("treats the pause row as ordinary history once a resume moved the phase on", () => {
+      // The resumed runner seeds the persisted transcript, row included,
+      // and grows it; nothing is held back or re-appended.
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+          ...runnerTranscript("a1"),
+          ...system(PAUSE_STOP_ROW),
+        ]),
+        {
+          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+          messages: [
+            ...runnerTranscript("a1"),
+            ...system(PAUSE_STOP_ROW),
+            ...runnerTranscript("a2"),
+          ],
+        },
+      );
+      expect(contents(merged)).toEqual(["a1", PAUSE_STOP_ROW, "a2"]);
+    });
+
+    it("never holds a row the phase does not own (a pause row on a CANCELLED execution is history)", () => {
+      const merged = runBuildStep(
+        executionAt(ExecutionPhase.EXECUTION_CANCELLED, [
+          ...runnerTranscript("a1"),
+          ...system(PAUSE_STOP_ROW),
+        ]),
+        { messages: [...runnerTranscript("a1"), ...system(PAUSE_STOP_ROW), ...runnerTranscript("a2")] },
+      );
+      expect(contents(merged)).toEqual(["a1", PAUSE_STOP_ROW, "a2"]);
+    });
   });
 });

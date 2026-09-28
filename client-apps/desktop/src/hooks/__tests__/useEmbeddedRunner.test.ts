@@ -19,6 +19,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { resolveResource } from "@tauri-apps/api/path";
 import { loadTokens } from "../../auth/token-store";
 
+// What the desktop's `bundled_node_path` command answers in these tests: the absolute
+// path of the Node runtime the build carries (src-tauri/src/runner.rs).
+const BUNDLED_NODE = "/abs/resource/resources/runtime/node";
+
 const mockedInvoke = vi.mocked(invoke);
 const mockedResolveResource = vi.mocked(resolveResource);
 const mockedLoadTokens = vi.mocked(loadTokens);
@@ -41,6 +45,9 @@ describe("getRunnerConfig", () => {
     mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
       }
       if (cmd === "start_runner") {
         // Verify the config passed to start_runner contains the real token
@@ -102,6 +109,9 @@ describe("proxyEndpoint derivation", () => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
       }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
+      }
       if (cmd === "start_runner") {
         capturedConfig = args.config;
         return undefined;
@@ -141,6 +151,9 @@ describe("proxyEndpoint derivation", () => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
       }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
+      }
       if (cmd === "start_runner") {
         capturedConfig = args.config;
         return undefined;
@@ -173,6 +186,9 @@ describe("proxyEndpoint derivation", () => {
     mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
       }
       if (cmd === "start_runner") {
         capturedConfig = args.config;
@@ -210,6 +226,9 @@ describe("proxyEndpoint derivation", () => {
     mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
       }
       if (cmd === "start_runner") {
         capturedConfig = args.config;
@@ -253,6 +272,9 @@ describe("temporalAddress + control-plane endpoint", () => {
     mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
       }
       if (cmd === "start_runner") {
         captured = args.config;
@@ -331,6 +353,9 @@ describe("runnerEntry resolution", () => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
       }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
+      }
       if (cmd === "start_runner") {
         capturedConfig = args.config;
         return undefined;
@@ -367,6 +392,9 @@ describe("runnerEntry resolution", () => {
       if (cmd === "runner_status") {
         return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
       }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
+      }
       if (cmd === "start_runner") {
         capturedConfig = args.config;
         return undefined;
@@ -388,6 +416,78 @@ describe("runnerEntry resolution", () => {
     expect(mockedResolveResource).not.toHaveBeenCalled();
     expect(capturedConfig).not.toBeNull();
     expect(capturedConfig!.runnerEntry).toBe("/repo/backend/services/runner/dist/main.js");
+  });
+});
+
+describe("nodeBinary resolution", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.unstubAllEnvs();
+    mockedResolveResource.mockImplementation(async (p: string) => `/abs/resource/${p}`);
+  });
+
+  it("starts the runner with the bundled Node runtime, never a bare `node`", async () => {
+    // Regression guard for stigmer/stigmer#1068: a bare `node` resolves against the GUI
+    // session's PATH, which for an app launched from Finder, the Dock or the Start menu
+    // holds no user-installed Node. The hook must hand start_runner the absolute path of
+    // the engine the build carries, as the desktop's bundled_node_path command reports it.
+    mockedLoadTokens.mockReturnValue(null);
+
+    let capturedConfig: Record<string, unknown> | null = null;
+    mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
+      if (cmd === "runner_status") {
+        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "bundled_node_path") {
+        return BUNDLED_NODE;
+      }
+      if (cmd === "start_runner") {
+        capturedConfig = args.config;
+        return undefined;
+      }
+      if (cmd === "add_session") {
+        return `session:${args.sessionId}`;
+      }
+      throw new Error(`unexpected invoke: ${cmd}`);
+    });
+
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
+
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await result.current.addSession("test-session");
+    });
+
+    expect(mockedInvoke).toHaveBeenCalledWith("bundled_node_path");
+    expect(capturedConfig).not.toBeNull();
+    expect(capturedConfig!.nodeBinary).toBe(BUNDLED_NODE);
+  });
+
+  it("surfaces a build without its runtime as the start error instead of spawning", async () => {
+    mockedLoadTokens.mockReturnValue(null);
+
+    const missing = "This build of Stigmer carries no Node runtime";
+    mockedInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "runner_status") {
+        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "bundled_node_path") {
+        throw missing;
+      }
+      throw new Error(`unexpected invoke: ${cmd}`);
+    });
+
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
+
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await expect(result.current.addSession("test-session")).rejects.toBe(missing);
+    });
+
+    expect(mockedInvoke).not.toHaveBeenCalledWith("start_runner", expect.anything());
+    expect(result.current.error).toBe(missing);
   });
 });
 

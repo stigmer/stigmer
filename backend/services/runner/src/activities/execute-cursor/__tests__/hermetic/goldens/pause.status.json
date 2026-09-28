@@ -4,14 +4,8 @@
       "type": "MESSAGE_AI",
       "content": "Starting on the parser.",
       "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_SYSTEM",
-      "content": "Execution paused by user. Use resume to continue.",
-      "timestamp": "2026-01-01T00:00:03.000Z"
     }
   ],
-  "phase": "EXECUTION_PAUSED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",

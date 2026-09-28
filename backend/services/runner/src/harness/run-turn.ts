@@ -74,7 +74,7 @@ import {
   failedArm,
   fileReviewResolvedArm,
   infrastructureCancelArm,
-  pauseArm,
+  orchestratorStopArm,
   platformStopArm,
   stallArm,
   TERMINAL_COPY,
@@ -463,7 +463,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * The table for an `interrupted` outcome, in the orchestrator's precedence:
    * a stall (FAILED, return) outranks everything; a cost cap (TERMINATED,
    * return); then Temporal's cancellation as the signal's reason reads it —
-   * the runner's drain, the orchestrator's pause, an infrastructure cancel
+   * the runner's drain, the orchestrator's stop, an infrastructure cancel
    * (all thrown); last a platform stop (COMPLETED, return).
    */
   async function settleInterrupted(maxCostUsd: number, accumulator: UsageAccumulator): Promise<Settled> {
@@ -487,9 +487,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       case "worker-shutdown":
         console.log(`${activityName} interrupted (worker shutdown): execution=${executionId}`);
         return settleWith(workerShutdownArm());
-      case "pause":
-        console.log(`${activityName} paused: execution=${executionId}`);
-        return settleWith(pauseArm());
+      case "orchestrator-stop":
+        console.log(`${activityName} stopped by the orchestrator (pause or cancel): execution=${executionId}`);
+        return settleWith(orchestratorStopArm());
       case "infrastructure":
         console.log(`${activityName} interrupted (infrastructure cancel): execution=${executionId}`);
         return settleWith(infrastructureCancelArm());
@@ -659,9 +659,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         case "worker-shutdown":
           console.log(`${activityName} cancelled (worker shutdown) for execution ${executionId}`);
           return workerShutdownArm();
-        case "pause":
-          console.log(`${activityName} cancelled (pause) for execution ${executionId}`);
-          return pauseArm();
+        case "orchestrator-stop":
+          console.log(`${activityName} cancelled (orchestrator stop) for execution ${executionId}`);
+          return orchestratorStopArm();
         case "infrastructure":
           console.log(`${activityName} cancelled (infrastructure) for execution ${executionId}`);
           return infrastructureCancelArm();
@@ -687,11 +687,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     if (arm !== undefined) {
       // A non-cancellation error while cancelled was most likely caused by the
       // cancellation itself (a teardown mid-flight) and must not overwrite the
-      // state the workflow already expects: a pause stays PAUSED; anything
-      // else reads as the interruption it was.
-      if (arm.phase === ExecutionPhase.EXECUTION_PAUSED) {
-        console.log(`${activityName} error during pause (treating as pause): execution=${executionId}, error=${errDetail}`);
-        return settleWith(arm, new CancelledFailure(TERMINAL_COPY.pause.throwMessageAfterError));
+      // state the workflow already expects: an orchestrator stop stays the
+      // workflow's to write; anything else reads as the interruption it was.
+      if (interruption() === "orchestrator-stop") {
+        console.log(`${activityName} error during an orchestrator stop (treating as the stop): execution=${executionId}, error=${errDetail}`);
+        return settleWith(arm, new CancelledFailure(TERMINAL_COPY.orchestratorStop.throwMessageAfterError));
       }
       console.log(`${activityName} error during infrastructure cancel: execution=${executionId}, error=${errDetail}`);
       return settleWith(

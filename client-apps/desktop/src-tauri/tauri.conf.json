@@ -39,7 +39,8 @@
       "icons/icon.png"
     ],
     "resources": [
-      "resources/runner"
+      "resources/runner",
+      "resources/runtime"
     ]
   },
   "plugins": {

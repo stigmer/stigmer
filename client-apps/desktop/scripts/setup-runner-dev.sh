@@ -24,6 +24,12 @@
 #      A previous version of this script symlinked that path, which is unsafe —
 #      tauri-build would copy the 485MB source tree onto itself. We never want a
 #      symlink there; a normal (now unread) copy is fine.
+#   4. Stages the pinned Node runtime (stage-node-runtime.sh) into
+#      src-tauri/resources/runtime, the same engine a packaged build carries, so
+#      dev spawns the runner exactly the way a release does (bundled_node_path in
+#      src-tauri/src/runner.rs). It is one file, cached per version after the
+#      first download, and Tauri's staged copy of a single file has none of the
+#      tree drift that step 2 works around, so it needs no dev override.
 #
 # Usage: ./scripts/setup-runner-dev.sh
 
@@ -92,3 +98,6 @@ for PROFILE in debug release; do
     echo "Removed unsafe staged runner symlink: $STAGED"
   fi
 done
+
+# ── 4. The runner's engine: the pinned Node runtime, as a release ships it ────
+"$SCRIPT_DIR/stage-node-runtime.sh"

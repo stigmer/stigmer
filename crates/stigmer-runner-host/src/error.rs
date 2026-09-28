@@ -27,6 +27,16 @@ pub enum RunnerHostError {
     )]
     ReservedEnvKey { key: String },
 
+    // The engine the host was told to run does not exist. Named apart from `Spawn` because it
+    // is the failure every packaged GUI embedder meets first (stigmer/stigmer#1068), and the
+    // bare "No such file or directory" it replaces says nothing about why.
+    #[error("node binary `{node_binary}` was not found{hint}", hint = node_binary_hint(.searched_path))]
+    NodeBinaryNotFound {
+        node_binary: String,
+        /// The PATH a bare name was looked up on; `None` when `node_binary` is a path.
+        searched_path: Option<String>,
+    },
+
     #[error("failed to spawn runner process: {0}")]
     Spawn(#[source] std::io::Error),
 
@@ -61,6 +71,21 @@ impl RunnerHostError {
             std::io::ErrorKind::BrokenPipe,
             format!("failed to capture runner {which}"),
         ))
+    }
+}
+
+// Says why a node binary was not found and what to pass instead. A bare name is resolved on
+// the host's PATH, which is the shell's only when the host was started from one.
+fn node_binary_hint(searched_path: &Option<String>) -> String {
+    match searched_path {
+        Some(path) => format!(
+            ": a bare name is looked up on this process's PATH (`{path}`), and an app launched \
+             from Finder, the Dock or the Start menu does not inherit the shell's PATH; pass an \
+             absolute path in `node_binary`, ideally to a Node runtime your app ships (see the \
+             runner embedding guide)"
+        ),
+        None => "; no file exists at that path; pass the absolute path of an existing Node binary"
+            .to_string(),
     }
 }
 

@@ -1,23 +1,28 @@
 /**
- * Hermetic goldens: USER PAUSE versus WORKER SHUTDOWN — the two interruptions
- * that THROW, and the byte-pinned copy that tells them apart.
+ * Hermetic goldens: ORCHESTRATOR STOP versus WORKER SHUTDOWN — the two
+ * interruptions that THROW, and what tells them apart.
  *
  * Invariant pinned (the throw-vs-return table the runtime owns,
  * `harness/terminal-table.ts`; parent §5c): both interruptions end the activity with a thrown Temporal
  * `CancelledFailure` (never a return), but they persist DIFFERENT terminal
  * states the control plane keys on:
  *
- *  - a user pause (Temporal delivers cancellation, no shutdown signal) persists
- *    EXECUTION_PAUSED with "Execution paused by user. Use resume to continue."
- *    and throws "Activity paused by orchestrator";
+ *  - an orchestrator stop (Temporal delivers cancellation, no shutdown
+ *    signal: a user's Pause or Cancel, which the turn cannot tell apart)
+ *    settles the transcript in one write with NO phase and NO row, and throws
+ *    "Activity paused by orchestrator" (bytes kept: wire copy). The invoke
+ *    workflow, which knows which stop it runs, writes the phase and the stop
+ *    row, and the server's merge keeps the row last (stigmer#980). Until then
+ *    this arm wrote PAUSED and the pause row, so a cancelled run ended with an
+ *    instruction to resume it;
  *  - a worker shutdown (the runner's per-queue shutdown signal is aborted AND
  *    cancellation is delivered) persists EXECUTION_FAILED with the error copy
  *    "Execution interrupted: runner worker was shut down. Retry or resume." and
  *    throws "Activity cancelled (worker shutdown, not user pause)".
  *
- * The cloud channel decision table matches on that copy, so the goldens
- * (`goldens/pause.status.json`, `goldens/worker-shutdown.status.json`) are the
- * wire contract, character for character. Both interruptions are triggered from
+ * The goldens (`goldens/pause.status.json`, the stop's settle write, and
+ * `goldens/worker-shutdown.status.json`) are the wire contract, character for
+ * character. Both interruptions are triggered from
  * a script `effect` step — never a timer — so the instant is deterministic: the
  * stream loop sees `isCancelled()` on its next iteration and never processes
  * the event that follows.
@@ -31,8 +36,9 @@
  * writer of a terminal arm, so a second row has no code path to come from.
  *
  * Runtime phases exercised: the adapter's stop-signal cancel; the runtime's
- * `classifyTurnInterruption`; the terminal table's pause and worker-shutdown
- * arms through `settleWith`; the `finally` teardown under a thrown exit.
+ * `classifyTurnInterruption`; the terminal table's orchestrator-stop and
+ * worker-shutdown arms through `settleWith`; the `finally` teardown under a
+ * thrown exit.
  *
  * Regeneration history:
  *  - #1070: timestamp-only diff — every terminal stamp
@@ -41,6 +47,8 @@
  *    and the clock ticks on, one more step. Transcript unchanged.
  *  - 2026-09-12 (stigmer#1054, the PR after #1070): one removed system row per
  *    golden, nothing else. The transcript now carries each terminal row once.
+ *  - stigmer#980: `pause.status.json` loses its phase and its pause row (the
+ *    workflow writes both now); the transcript is otherwise unchanged.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -108,7 +116,7 @@ function interruptedTurn(
   });
 }
 
-describe("ExecuteCursor hermetic — user pause vs worker shutdown", () => {
+describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () => {
   let env: HermeticEnvironment;
   let registry: ReturnType<typeof stubRegistryFetch>;
   const clock = new ScriptedClock();
@@ -125,7 +133,7 @@ describe("ExecuteCursor hermetic — user pause vs worker shutdown", () => {
     env.dispose();
   });
 
-  it("a user pause persists PAUSED and throws CancelledFailure", async () => {
+  it("an orchestrator stop settles the transcript with no phase and no row, and throws CancelledFailure", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     clock.reset(); // both goldens read from :00
     let controls: InvocationControls | undefined;
@@ -143,19 +151,18 @@ describe("ExecuteCursor hermetic — user pause vs worker shutdown", () => {
     const invocation = await runCursorTurn(scenario, { onControls: (c) => (controls = c) });
 
     // ── Assert: the throw and the persisted state ────────────────────────────
-    expect(threwCancelledFailure(invocation.outcome), "a pause THROWS CancelledFailure").toBe(true);
+    expect(threwCancelledFailure(invocation.outcome), "an orchestrator stop THROWS CancelledFailure").toBe(true);
     if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
     expect(invocation.outcome.error.message).toBe("Activity paused by orchestrator");
-    expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_PAUSED,
-    ]);
-    const final = record.lastFullStatus!;
-    expect(final.error, "a pause is not an error").toBe("");
-    expect(final.completedAt, "a paused turn is not complete").toBe("");
+    expect(record.persistedPhases, "the stop writes no phase").toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS]);
+    const final = record.persisted.at(-1)!;
+    expect(final.phase, "the settle write carries no phase").toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+    expect(final.error, "a stop is not an error").toBe("");
+    expect(final.completedAt, "a stopped turn is not complete").toBe("");
     expect(
       final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
-    ).toEqual(["Execution paused by user. Use resume to continue."]);
+      "no stop row: the workflow writes it",
+    ).toEqual([]);
     expect(final.messages.some((m) => m.content === NEVER_SEEN), "nothing after the cancel is processed").toBe(false);
 
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";

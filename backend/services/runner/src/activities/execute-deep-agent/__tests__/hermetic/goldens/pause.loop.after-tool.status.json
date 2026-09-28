@@ -19,14 +19,8 @@
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
-    },
-    {
-      "type": "MESSAGE_SYSTEM",
-      "content": "Execution paused by user. Use resume to continue.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
     }
   ],
-  "phase": "EXECUTION_PAUSED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "streamingUsage": {
     "inputTokens": "1200",

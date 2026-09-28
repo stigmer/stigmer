@@ -2,8 +2,8 @@
  * UpdateStatus — ports controller/update_status.go: the runner's
  * progressive status-update RPC and the domain's single merge chokepoint.
  *
- * Chain per Go: ValidateUpdateStatusInput → MergeAndPersistExecution →
- * NotifyStatusObservers → BroadcastToStreams. The merge+persist is ONE
+ * Chain: Authorize → ValidateUpdateStatusInput → MergeAndPersistExecution
+ * → NotifyStatusObservers → BroadcastToStreams. The merge+persist is ONE
  * atomic read-modify-write under the store's per-resource write lock
  * (store.updateResource) — the same discipline SubmitApproval uses,
  * load-bearing now that the append-only approval_event_stream is the
@@ -24,10 +24,14 @@
  * wholesale with the runner's latest complete state, while server-owned
  * fields (approval decisions, the approval_event_stream, the file_review
  * ledger) are preserved/authored here because the runner never sends
- * them.
+ * them. The transcript's platform rows are the same kind of server-owned
+ * state (platform-rows.ts, stigmer#980): a platform marker write is
+ * appended and never replaces the transcript, and a PAUSED or CANCELLED
+ * execution's stop row stays last across the runner's later writes,
+ * because the Pause and Cancel RPCs, the invoke workflow and the runner
+ * all write a stopped execution and nothing orders them.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, PublishToRedis, and
- * Publish steps (broadcast rides in-memory channels per ADR 011).
+ * Broadcast rides in-memory channels (ADR 011).
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -78,6 +82,12 @@ import {
   isTerminalExecutionPhase,
   isTranscriptTerminalPhase,
 } from "./phases.js";
+import {
+  appendPlatformMarker,
+  endsWithRows,
+  heldStopRow,
+  isPlatformMarkerWrite,
+} from "./platform-rows.js";
 import {
   applyResponseDecorators,
   notifyStatusObservers,
@@ -258,6 +268,54 @@ export function nonTerminalTranscriptRegression(
 }
 
 /**
+ * The transcript the merge persists, or undefined to keep the stored one.
+ * The stored phase's stop row, when it closes the transcript, is held
+ * aside so the runner's settle write (which never carries it) is judged
+ * against the transcript beneath it, and re-appended after. A platform
+ * marker write is appended; anything else is the runner's write, replaced
+ * wholesale unless the regression guard rejects it.
+ */
+function mergeTranscript(
+  existingPhase: ExecutionPhase,
+  existing: AgentMessage[],
+  incoming: AgentMessage[],
+  executionId: string,
+  logger: Logger,
+): AgentMessage[] | undefined {
+  const held = heldStopRow(existingPhase, existing);
+  const base = held === undefined ? existing : existing.slice(0, -1);
+
+  let next: AgentMessage[];
+  if (isPlatformMarkerWrite(base, incoming)) {
+    next = appendPlatformMarker(base, incoming);
+  } else {
+    const { reject, reason } = nonTerminalTranscriptRegression(
+      existingPhase,
+      base,
+      incoming,
+    );
+    if (reject) {
+      logger.warn(
+        "Rejected status update that would drop committed transcript history for a non-terminal execution; keeping existing messages",
+        {
+          executionId,
+          existingMessages: existing.length,
+          incomingMessages: incoming.length,
+          reason,
+        },
+      );
+      return undefined;
+    }
+    next = incoming;
+  }
+
+  if (held !== undefined && !endsWithRows(next, [held])) {
+    next = [...next, held];
+  }
+  return next;
+}
+
+/**
  * Merges an incoming status update into the execution in place — the
  * runner-owns-the-transcript merge rules, exactly update_status.go
  * applyUpdateStatusMerge. Runs inside the updateResource closure
@@ -294,7 +352,8 @@ export function applyUpdateStatusMerge(
   // any update that would drop committed transcript history for a
   // non-terminal execution. The runner owns the transcript and only ever
   // GROWS it in flight; two regressions are rejected at this single
-  // persistence chokepoint:
+  // persistence chokepoint (the platform's own rows are handled first,
+  // see mergeTranscript):
   //  1. A strictly SHORTER transcript — the classic partial write.
   //  2. A transcript that DROPS a committed tool-call id while appending
   //     enough later turns to keep the count equal-or-greater
@@ -305,23 +364,15 @@ export function applyUpdateStatusMerge(
   // post-denial narration redaction), so a content check would reject
   // valid writes.
   if (requestStatus.messages.length > 0) {
-    const { reject, reason } = nonTerminalTranscriptRegression(
+    const merged = mergeTranscript(
       existingPhase,
       existingMessages,
       requestStatus.messages,
+      input.executionId,
+      logger,
     );
-    if (reject) {
-      logger.warn(
-        "Rejected status update that would drop committed transcript history for a non-terminal execution; keeping existing messages",
-        {
-          executionId: input.executionId,
-          existingMessages: existingMessages.length,
-          incomingMessages: requestStatus.messages.length,
-          reason,
-        },
-      );
-    } else {
-      status.messages = requestStatus.messages;
+    if (merged !== undefined) {
+      status.messages = merged;
     }
   }
 

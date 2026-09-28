@@ -210,12 +210,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Apple Silicon only. The embedded runner is staged for the build
-          # host (stage-runner-slim.sh), and macos-latest is arm64, so the
-          # former universal target shipped an arm64-only runner inside an
+          # Apple Silicon only. The embedded runner and its Node runtime are
+          # staged for the build host (stage-runner-slim.sh,
+          # stage-node-runtime.sh), and macos-latest is arm64, so the former
+          # universal target shipped an arm64-only runner inside an
           # Intel-capable shell. An Intel leg is a second row here on
-          # macos-15-intel; ci-latest-json.mjs already keys macOS bundles by
-          # target triple. See stigmer-cloud 20260912.01 DD-001.
+          # macos-15-intel plus a darwin-x64 digest in node-runtime.json;
+          # ci-latest-json.mjs already keys macOS bundles by target triple.
           - platform: macos-latest
             rust_target: aarch64-apple-darwin
             tauri_args: '--target aarch64-apple-darwin'
@@ -255,8 +256,8 @@ jobs:
       # keychain search list.
       #
       # An unsigned macOS build is allowed only on a build-only run. On a
-      # release, missing signing fails the leg (stigmer-cloud 20260912.01
-      # DD-002) so a tag can never regress to shipping the scare-screen DMG.
+      # release, missing signing fails the leg, so a tag can never regress to
+      # shipping the scare-screen DMG.
       - name: Detect Apple signing availability
         id: signing
         if: runner.os == 'macOS'
@@ -382,6 +383,11 @@ jobs:
       # On macOS with APPLE_SIGNING_IDENTITY exported above, the stage script
       # also code-signs the runner's native binaries: Tauri never signs
       # Resources/, and the notary rejects a bundle with any unsigned Mach-O.
+      # The same script stages the pinned Node runtime the app starts the
+      # runner with (node-runtime.json, stage-node-runtime.sh; signed with its
+      # JIT entitlement on macOS) and ends by running verify-staged-runtime.mjs
+      # on that engine, so this step failing means the installer's engine
+      # cannot run the installer's runner.
       - name: Stage embedded runner (slim artifact)
         shell: bash
         run: |
@@ -472,6 +478,24 @@ jobs:
         with:
           name: desktop-macos-dmg
           path: ${{ steps.bundles.outputs.dmg }}
+          retention-days: 7
+
+      # The same for the Linux and Windows installers, so a build-only run can
+      # be inspected on every leg before a tag is cut: that each installer
+      # carries resources/runtime (the pinned Node the runner starts from), and
+      # that the Linux engine runs the Linux runner outside the build host.
+      - name: Upload Linux and Windows installers artifact
+        if: runner.os != 'macOS' && needs.determine-version.outputs.should_release != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os == 'Linux' && 'linux' || 'windows' }}-installers
+          path: |
+            client-apps/desktop/src-tauri/target/release/bundle/deb/*.deb
+            client-apps/desktop/src-tauri/target/release/bundle/rpm/*.rpm
+            client-apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            client-apps/desktop/src-tauri/target/release/bundle/msi/*.msi
+            client-apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
           retention-days: 7
 
       - name: Build updater fragment

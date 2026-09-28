@@ -331,8 +331,11 @@ export class ExecutionRecord {
 
   /**
    * Apply one `UpdateStatus` write and answer the control signal the server
-   * would. A setup-progress report never carries a signal (the runner ignores
-   * the response there; the server has nothing to say about a label).
+   * would. A write with no phase never carries a signal (the runner ignores
+   * the response there). It is a setup-progress report, or the transcript an
+   * orchestrator stop settles (the runtime writes no phase for it; the
+   * workflow does, stigmer#980): the server's merge applies the transcript and
+   * leaves the phase to its writers, so the double keeps the held phase.
    */
   applyStatusUpdate(status: AgentExecutionStatus): ExecutionControlSignal {
     const snapshot = clone(AgentExecutionStatusSchema, status);
@@ -340,6 +343,12 @@ export class ExecutionRecord {
     if (snapshot.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) {
       if (snapshot.setupProgress?.currentPhase) {
         this.setupProgress.push(snapshot.setupProgress.currentPhase);
+      }
+      if (snapshot.messages.length > 0) {
+        const heldPhase = this.execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+        this.execution.status = clone(AgentExecutionStatusSchema, snapshot);
+        this.execution.status.phase = heldPhase;
+        for (const listener of [...this.persistListeners]) listener();
       }
       return ExecutionControlSignal.UNSPECIFIED;
     }

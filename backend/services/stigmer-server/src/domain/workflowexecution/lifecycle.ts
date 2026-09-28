@@ -149,8 +149,11 @@ function newLoadExecutionByIdStep<Desc extends DescMessage>(
           executionId,
           WorkflowExecutionSchema,
         );
-      } catch {
-        throw notFoundError("workflow_execution", executionId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("workflow_execution", executionId);
+        }
+        throw internalError(error, "failed to load workflow execution");
       }
       ctx.set(LOADED_EXECUTION_KEY, execution);
     },
