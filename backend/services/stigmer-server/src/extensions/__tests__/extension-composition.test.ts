@@ -8,7 +8,10 @@
  * services), and the registry-declared edition answers on getServerInfo.
  * Later entries add their own composed arms below: caller guards
  * (20260902.02), the require-authentication posture (20260904.02), the
- * O5 drivers, the O4 slots and hooks, the C2 tuple lifecycle.
+ * O5 drivers, the O4 slots and hooks, the C2 tuple lifecycle, and the
+ * organization directory's external-id lookup: scoped to the identity
+ * provider the request names, and answered only to a caller who may view
+ * that provider, with one NotFound for every miss.
  *
  * The empty-set arm — no extensions composed, wire behavior byte-identical
  * to before the parameter existed — is pinned where it belongs: the
@@ -43,6 +46,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import {
   PlatformQueryController,
   ServerEdition,
@@ -62,6 +66,7 @@ import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import { AUTHENTICATION_TOKEN_MISSING_MESSAGE } from "../../pipeline/interceptors/auth.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { AuthzCheck } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { OrganizationDirectory } from "../organization-directory.js";
 import type {
@@ -72,6 +77,16 @@ import type {
 } from "../resource-authorization.js";
 import type { AgentExecutionStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
+
+/** The refusal a call answered; a call that succeeds fails the case. */
+async function refusalOf(work: Promise<unknown>): Promise<ConnectError> {
+  try {
+    await work;
+  } catch (error) {
+    return ConnectError.from(error);
+  }
+  throw new Error("the call was admitted");
+}
 
 const BILLING_PROCEDURE =
   "/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount";
@@ -1019,16 +1034,46 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
   // The directory answers are test-mutable so each case can stage its
   // own world without a second composed server.
   const myOrgIds: string[] = [];
+  // Providers by `org/slug` → id, and mappings by `providerId:externalId`:
+  // the directory scopes every lookup to the provider the request names.
+  const providers = new Map<string, string>([
+    ["c2seededorg/test-idp", "idp_viewable"],
+    ["c2seededorg/other-idp", "idp_other"],
+    ["c2seededorg/hidden-idp", "idp_hidden"],
+  ]);
   const externalOrgMap = new Map<string, string>();
   const fakeDirectory: OrganizationDirectory = {
     refusesEnumeration: true,
     listMyOrganizationIds: async () => [...myOrgIds],
-    getOrganizationIdByExternalOrgId: async (externalOrgId) =>
-      externalOrgMap.get(externalOrgId),
+    lookupExternalOrganization: async (ref, externalOrgId) => {
+      const providerId = providers.get(`${ref.org}/${ref.slug}`);
+      return providerId === undefined
+        ? { kind: "no-identity-provider" }
+        : {
+            kind: "resolved",
+            identityProviderId: providerId,
+            organizationId: externalOrgMap.get(`${providerId}:${externalOrgId}`),
+          };
+    },
   };
+  // Every check is allowed except viewing the providers named here, so the
+  // lookup's own authorization is the one refusal the suite can see.
+  const deniedProviders = new Set<string>(["idp_hidden"]);
+  const lookupChecks: AuthzCheck[] = [];
 
   const iamExtension: ServerExtension = {
     name: "fake-iam",
+    authorizer: {
+      authorize: (_caller, check) => {
+        if (check.resourceKind === ApiResourceKind.identity_provider) {
+          lookupChecks.push(check);
+          if (deniedProviders.has(check.resourceId)) {
+            return Promise.resolve({ kind: "deny", reason: "" });
+          }
+        }
+        return Promise.resolve({ kind: "allow" });
+      },
+    },
     drivers: {
       resourceAuthorizationLifecycle: fakeLifecycle,
       organizationDirectory: fakeDirectory,
@@ -1077,7 +1122,8 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     expect(event.parentLinks).toEqual([]);
     expect(event.caller.identityId).not.toBe("");
     myOrgIds.push(org.metadata?.id ?? "");
-    externalOrgMap.set("ext-org-42", org.metadata?.id ?? "");
+    externalOrgMap.set("idp_viewable:ext-org-42", org.metadata?.id ?? "");
+    externalOrgMap.set("idp_hidden:ext-org-42", org.metadata?.id ?? "");
   });
 
   it("agent create fires creation events for the agent AND its in-process default instance", async () => {
@@ -1236,26 +1282,52 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     expect(mine.entries.map((org) => org.metadata?.id)).toEqual(myOrgIds);
   });
 
-  it("getByExternalOrgId registers with the directory lookup and resolves the mapping", async () => {
+  it("getByExternalOrgId resolves a mapping under the named provider for a caller who may view it", async () => {
     const query = createClient(OrganizationQueryController, portTransport);
-    // identity_provider_ref is proto-required on the lookup message; the
-    // directory's resolution key is the (globally unique) external id.
-    const idpRef = { org: "c2seededorg", slug: "test-idp" };
+    lookupChecks.length = 0;
     const org = await query.getByExternalOrgId({
-      identityProviderRef: idpRef,
+      identityProviderRef: { org: "c2seededorg", slug: "test-idp" },
       externalOrgId: "ext-org-42",
     });
     expect(org.metadata?.id).toBe(myOrgIds[0]);
+    expect(lookupChecks).toEqual([
+      {
+        permission: IamPermission.can_view,
+        resourceKind: ApiResourceKind.identity_provider,
+        resourceId: "idp_viewable",
+      },
+    ]);
+  });
 
-    let missing: ConnectError | undefined;
-    try {
-      await query.getByExternalOrgId({
-        identityProviderRef: idpRef,
-        externalOrgId: "ext-org-unknown",
-      });
-    } catch (error) {
-      missing = ConnectError.from(error);
+  it("getByExternalOrgId refuses a caller who may not view the named provider, before saying whether a mapping exists", async () => {
+    const query = createClient(OrganizationQueryController, portTransport);
+    for (const externalOrgId of ["ext-org-42", "ext-org-unknown"]) {
+      const refused = await refusalOf(
+        query.getByExternalOrgId({
+          identityProviderRef: { org: "c2seededorg", slug: "hidden-idp" },
+          externalOrgId,
+        }),
+      );
+      expect(refused.code).toBe(Code.PermissionDenied);
+      expect(refused.rawMessage).toBe("unauthorized to view identity provider");
     }
-    expect(missing?.code).toBe(Code.NotFound);
+  });
+
+  it("getByExternalOrgId answers one NotFound for an unknown provider, an unmapped id, and another provider's mapping", async () => {
+    const query = createClient(OrganizationQueryController, portTransport);
+    for (const [slug, externalOrgId] of [
+      ["no-such-idp", "ext-org-42"],
+      ["test-idp", "ext-org-unknown"],
+      ["other-idp", "ext-org-42"],
+    ] as const) {
+      const missing = await refusalOf(
+        query.getByExternalOrgId({
+          identityProviderRef: { org: "c2seededorg", slug },
+          externalOrgId,
+        }),
+      );
+      expect(missing.code).toBe(Code.NotFound);
+      expect(missing.rawMessage).toBe(`Organization not found: ${externalOrgId}`);
+    }
   });
 });

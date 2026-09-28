@@ -247,7 +247,8 @@ public final class OrganizationQueryControllerGrpc {
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
      * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider.
+     * Authorization: custom — checks can_view on the referenced IdentityProvider,
+     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     default void getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
@@ -334,7 +335,8 @@ public final class OrganizationQueryControllerGrpc {
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
      * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider.
+     * Authorization: custom — checks can_view on the referenced IdentityProvider,
+     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public void getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
@@ -405,7 +407,8 @@ public final class OrganizationQueryControllerGrpc {
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
      * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider.
+     * Authorization: custom — checks can_view on the referenced IdentityProvider,
+     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) throws io.grpc.StatusException {
@@ -475,7 +478,8 @@ public final class OrganizationQueryControllerGrpc {
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
      * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider.
+     * Authorization: custom — checks can_view on the referenced IdentityProvider,
+     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) {
@@ -548,7 +552,8 @@ public final class OrganizationQueryControllerGrpc {
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
      * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider.
+     * Authorization: custom — checks can_view on the referenced IdentityProvider,
+     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> getByExternalOrgId(

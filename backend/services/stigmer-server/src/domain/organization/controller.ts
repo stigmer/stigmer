@@ -9,7 +9,10 @@
  * __tests__/organization.test.ts.
  *
  * getByExternalOrgId is implemented ONLY when the composed
- * OrganizationDirectory provides the lookup (C2, ruling Q7) — with no
+ * OrganizationDirectory provides the lookup (C2, ruling Q7). It answers
+ * only a caller who may view the identity provider the request names,
+ * and resolves the external id within that provider alone (see the
+ * handler); with no
  * directory the method stays absent from the partial service
  * implementation and ConnectRPC answers Unimplemented (the SDK
  * capability-probes this and must see UNIMPLEMENTED, not NotFound;
@@ -32,6 +35,7 @@ import type { FindApiResourcesRequest } from "@stigmer/protos/ai/stigmer/commons
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import {
   OrganizationListSchema,
@@ -61,7 +65,10 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeResolvedResource,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -129,7 +136,7 @@ export function registerOrganizationServices(
   // partial implementation and ConnectRPC answers Unimplemented (the
   // capability-probed pin; see the module header).
   const externalLookup =
-    deps.organizationDirectory?.getOrganizationIdByExternalOrgId?.bind(
+    deps.organizationDirectory?.lookupExternalOrganization?.bind(
       deps.organizationDirectory,
     );
   router.service(OrganizationQueryController, {
@@ -548,15 +555,22 @@ async function findMyOrganizations(
 
 /**
  * GetByExternalOrgId — registered only with a directory lookup composed
- * (ruling Q7). The chain stays controller-owned: Authorize → validate →
- * directory resolves the external id → LoadTarget-shaped store read.
- * Both miss arms (no mapping, mapped row gone) answer the same NotFound
- * — an external caller cannot distinguish a stale mapping from a
- * missing org.
+ * (ruling Q7). The chain stays controller-owned: Authorize (a no-op for
+ * this skip-annotated method) → validate → the directory resolves the
+ * named identity provider and the external id within it → `can_view` on
+ * that provider → LoadTarget-shaped store read.
+ *
+ * The contract's check is the provider's, so it runs here, on the id the
+ * directory resolved mid-chain (`authorizeResolvedResource`, the pattern
+ * for skip lanes the annotation cannot express), and before the answer
+ * says whether a mapping exists: a caller who may not view the provider
+ * learns nothing about its tenants. Every miss arm (no such provider, no
+ * mapping, mapped row gone) answers the same NotFound, so an external
+ * caller cannot tell a stale mapping from a missing org.
  */
 async function getByExternalOrgId(
   deps: OrganizationControllerDeps,
-  lookup: (externalOrgId: string) => Promise<string | undefined>,
+  lookup: NonNullable<OrganizationDirectory["lookupExternalOrganization"]>,
   input: OrganizationExternalLookup,
   ctx: HandlerContext,
 ): Promise<Organization> {
@@ -582,7 +596,27 @@ async function getByExternalOrgId(
   if (input.externalOrgId === "") {
     throw invalidArgumentError("external_org_id is required");
   }
-  const orgId = await lookup(input.externalOrgId);
+  const found = await lookup(
+    {
+      org: input.identityProviderRef?.org ?? "",
+      slug: input.identityProviderRef?.slug ?? "",
+    },
+    input.externalOrgId,
+  );
+  if (found.kind === "no-identity-provider") {
+    throw notFoundError("Organization", input.externalOrgId);
+  }
+  await authorizeResolvedResource(
+    deps.authorizer,
+    reqCtx.callerIdentity,
+    {
+      permission: IamPermission.can_view,
+      resourceKind: ApiResourceKind.identity_provider,
+      resourceId: found.identityProviderId,
+    },
+    EXTERNAL_LOOKUP_DENIED_MESSAGE,
+  );
+  const orgId = found.organizationId;
   if (orgId === undefined) {
     throw notFoundError("Organization", input.externalOrgId);
   }
@@ -599,3 +633,6 @@ async function getByExternalOrgId(
     throw internalError(error, "failed to load organization");
   }
 }
+
+/** The lookup's deny copy: the provider's own `get` annotation's words. */
+const EXTERNAL_LOOKUP_DENIED_MESSAGE = "unauthorized to view identity provider";

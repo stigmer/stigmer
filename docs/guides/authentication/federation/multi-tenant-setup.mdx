@@ -187,7 +187,9 @@ System.out.println("Created tenant org: " + tenantOrg.getMetadata().getId());
 
 Your platform stores its own tenant identifiers. When you need to find the
 corresponding Stigmer Organization, use `getByExternalOrgId` with your Identity
-Provider reference and the external ID you assigned at creation.
+Provider reference and the external ID you assigned at creation. The caller must
+be able to view that Identity Provider, as your Organization's admins can, and
+the external ID is looked up under that Identity Provider only.
 
 <SDKTabs>
 <Tab value="TypeScript">

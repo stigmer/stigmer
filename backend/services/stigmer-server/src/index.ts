@@ -116,7 +116,11 @@ export type {
   VisibilityTupleShape,
   ResolvedParentLink,
 } from "./extensions/resource-authorization.js";
-export type { OrganizationDirectory } from "./extensions/organization-directory.js";
+export type {
+  ExternalOrganizationLookup,
+  IdentityProviderRef,
+  OrganizationDirectory,
+} from "./extensions/organization-directory.js";
 export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
 // The license-status seam (drivers.licenseStatus): the provider an
 // Enterprise composition registers so getLicenseStatus answers from its

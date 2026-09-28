@@ -45,7 +45,8 @@ service OrganizationQueryController {
   // Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
   //
   // @internal
-  // Authorization: custom — checks can_view on the referenced IdentityProvider.
+  // Authorization: custom — checks can_view on the referenced IdentityProvider,
+  // and resolves the external org ID within that IdentityProvider alone.
   rpc getByExternalOrgId(OrganizationExternalLookup) returns (Organization) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

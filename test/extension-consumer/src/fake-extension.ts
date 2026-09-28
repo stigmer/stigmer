@@ -125,6 +125,7 @@ import type {
   CallerIdentity,
   ChannelRuntime,
   ComposedServer,
+  ExternalOrganizationLookup,
   GateSlotName,
   GuestTokenMinting,
   IamPolicyStore,
@@ -134,6 +135,7 @@ import type {
   IdentityAccountStoreContractCase,
   IdentityAccountStoreContractFixture,
   IdentityFederation,
+  IdentityProviderRef,
   IdentityVerifier,
   ListEntryMeta,
   ListReadScope,
@@ -1213,9 +1215,13 @@ const organizationDirectory: OrganizationDirectory = {
     void caller.identityId;
     return Promise.resolve<ReadonlyArray<string>>([]);
   },
-  getOrganizationIdByExternalOrgId: (externalOrgId: string) => {
+  lookupExternalOrganization: (
+    identityProviderRef: IdentityProviderRef,
+    externalOrgId: string,
+  ) => {
+    void identityProviderRef.slug;
     void externalOrgId;
-    return Promise.resolve<string | undefined>(undefined);
+    return Promise.resolve<ExternalOrganizationLookup>({ kind: "no-identity-provider" });
   },
 };
 
