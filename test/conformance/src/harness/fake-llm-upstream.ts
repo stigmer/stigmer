@@ -22,6 +22,15 @@
 // boots ONCE per run in vitest's global setup while suites run in forked
 // workers, so scripting happens over the control API in cloud-fixtures.ts,
 // and every suite resets in afterEach (the MockLlmProxy rule).
+//
+// Default-reply mode (stigmer/stigmer#1402) is for a local development stack,
+// not the suites: there an agent run makes calls nobody scripted, and an
+// empty queue's 500 would fail every run. With `defaultReply`, an unscripted
+// request gets one canned text turn in its provider's shape, echoing its
+// model, so the run completes offline and free. A scripted entry still wins,
+// `reset()` keeps the mode (it is configuration, not a script), and the
+// capture log keeps only the last DEFAULT_REPLY_CAPTURE_LIMIT requests so a
+// long-lived stack cannot grow it without bound. The suites never set it.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
@@ -29,9 +38,22 @@ import {
   writeAnthropicSseEvents,
   writeJson,
   writeOpenAiSse,
+  anthropicText,
+  openAiText,
   type AnthropicMessageBody,
   type OpenAiChatCompletionBody,
 } from "./llm-wire";
+
+/** The text every default reply carries: plainly not a real model's answer. */
+export const DEFAULT_REPLY_TEXT = "This is the Stigmer fake model's default reply; no real model was called.";
+
+/** How many captured requests default-reply mode keeps (the most recent). */
+export const DEFAULT_REPLY_CAPTURE_LIMIT = 200;
+
+export interface FakeLlmUpstreamOptions {
+  /** Answer an unscripted request with a canned text turn instead of a 500. */
+  readonly defaultReply?: boolean;
+}
 
 // One scripted provider answer. Exactly one shape per entry; the fixture
 // answers whatever provider path the next request arrives on, so a script
@@ -65,6 +87,11 @@ export class FakeLlmUpstream {
   private scripts: UpstreamScript[] = [];
   private captured: CapturedUpstreamRequest[] = [];
   private consumed = 0;
+  private readonly defaultReply: boolean;
+
+  constructor(options: FakeLlmUpstreamOptions = {}) {
+    this.defaultReply = options.defaultReply ?? false;
+  }
 
   async start(): Promise<void> {
     this.server = createServer((req, res) => {
@@ -114,17 +141,21 @@ export class FakeLlmUpstream {
       body: parseJsonOrUndefined(rawBody),
       rawBody,
     });
+    if (this.defaultReply && this.captured.length > DEFAULT_REPLY_CAPTURE_LIMIT) {
+      this.captured.splice(0, this.captured.length - DEFAULT_REPLY_CAPTURE_LIMIT);
+    }
 
     if (provider === "unknown") {
       writeJson(res, 404, { error: `FakeLlmUpstream: unhandled path ${path}` });
       return;
     }
-    const next = this.scripts.shift();
-    if (next === undefined) {
+    const scripted = this.scripts.shift();
+    if (scripted === undefined && !this.defaultReply) {
       writeJson(res, 500, { error: `FakeLlmUpstream: no queued response (consumed ${this.consumed})` });
       return;
     }
-    this.consumed += 1;
+    if (scripted !== undefined) this.consumed += 1;
+    const next = scripted ?? defaultReplyFor(provider, requestModel(rawBody));
 
     const wantsStream = isStreamingRequest(rawBody);
     switch (next.kind) {
@@ -173,6 +204,24 @@ export class FakeLlmUpstream {
       }
     }
   }
+}
+
+// The canned turn default-reply mode answers with, in the provider's shape and
+// carrying the request's model so the caller's own model routing sees itself.
+function defaultReplyFor(provider: "anthropic" | "openai", model: string | undefined): UpstreamScript {
+  if (provider === "anthropic") {
+    const body = anthropicText(DEFAULT_REPLY_TEXT);
+    return { kind: "anthropic", body: model === undefined ? body : { ...body, model } };
+  }
+  const body = openAiText(DEFAULT_REPLY_TEXT);
+  return { kind: "openai", body: model === undefined ? body : { ...body, model } };
+}
+
+function requestModel(rawBody: string): string | undefined {
+  const body = parseJsonOrUndefined(rawBody);
+  if (typeof body !== "object" || body === null) return undefined;
+  const model = (body as { model?: unknown }).model;
+  return typeof model === "string" && model !== "" ? model : undefined;
 }
 
 function isStreamingRequest(rawBody: string): boolean {

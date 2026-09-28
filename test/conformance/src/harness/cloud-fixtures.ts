@@ -40,8 +40,17 @@ export interface CloudFixtures {
   stop(): Promise<void>;
 }
 
-export async function startCloudFixtures(): Promise<CloudFixtures> {
-  const llm = new FakeLlmUpstream();
+export interface CloudFixturesOptions {
+  /**
+   * The fake LLM answers every unscripted request with its default reply
+   * (FakeLlmUpstream's default-reply mode): a local development stack's
+   * agent runs, never the suites.
+   */
+  readonly llmDefaultReply?: boolean;
+}
+
+export async function startCloudFixtures(options: CloudFixturesOptions = {}): Promise<CloudFixtures> {
+  const llm = new FakeLlmUpstream({ defaultReply: options.llmDefaultReply ?? false });
   const stripe = new FakeStripeApi();
   const discord = new FakeDiscordWebhook();
   await Promise.all([llm.start(), stripe.start(), discord.start()]);

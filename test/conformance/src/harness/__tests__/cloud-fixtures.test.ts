@@ -6,6 +6,7 @@ import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startCloudFixtures, type CloudFixtures } from "../cloud-fixtures";
 import { FAKE_CARD, signStripePayload, stripeEvent, STRIPE_JAVA_API_VERSION } from "../fake-stripe";
+import { DEFAULT_REPLY_CAPTURE_LIMIT, DEFAULT_REPLY_TEXT } from "../fake-llm-upstream";
 import { anthropicText, openAiText } from "../llm-wire";
 import { CloudFixturesClient } from "../../support/cloud-fixtures-client";
 
@@ -226,5 +227,86 @@ describe("control API", () => {
     expect(response.status).toBe(500);
     const unknown = await fetch(`${fixtures.addresses.controlUrl}/nope`);
     expect(unknown.status).toBe(404);
+  });
+});
+
+// Default-reply mode (stigmer/stigmer#1402) belongs to a local development
+// stack, so it gets its own fixtures instance: the shared one above stays in
+// the suites' strict mode, where an unscripted call is a 500.
+describe("fake LLM upstream in default-reply mode", () => {
+  let lenient: CloudFixtures;
+  let lenientControl: CloudFixturesClient;
+
+  beforeAll(async () => {
+    lenient = await startCloudFixtures({ llmDefaultReply: true });
+    lenientControl = new CloudFixturesClient(lenient.addresses.controlUrl);
+  });
+
+  afterAll(async () => {
+    await lenient.stop();
+  });
+
+  const post = (path: string, body: unknown): Promise<Response> =>
+    fetch(`${lenient.addresses.llmUpstreamUrl}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  it("answers an unscripted Anthropic call with the canned turn, streamed when asked, echoing the request's model", async () => {
+    const streamed = await post("/v1/messages", { model: "claude-opus-4-1", stream: true, messages: [] });
+    expect(streamed.status).toBe(200);
+    expect(streamed.headers.get("content-type")).toBe("text/event-stream");
+    const frames = await readSse(streamed);
+    expect(frames.join("\n")).toContain(DEFAULT_REPLY_TEXT);
+    expect(frames.join("\n")).toContain('"model":"claude-opus-4-1"');
+    expect(frames.at(-1)).toContain("event: message_stop");
+
+    const plain = await post("/v1/messages", { model: "claude-opus-4-1", messages: [] });
+    expect(plain.status).toBe(200);
+    const body = (await plain.json()) as { model: string; stop_reason: string; content: Array<{ text: string }> };
+    expect(body.model).toBe("claude-opus-4-1");
+    expect(body.stop_reason).toBe("end_turn");
+    expect(body.content[0]?.text).toBe(DEFAULT_REPLY_TEXT);
+    await lenientControl.llm.reset();
+  });
+
+  it("answers an unscripted OpenAI call with the canned completion, streamed when asked", async () => {
+    const streamed = await post("/v1/chat/completions", { model: "gpt-5", stream: true, messages: [] });
+    expect(streamed.status).toBe(200);
+    const frames = await readSse(streamed);
+    expect(frames.join("\n")).toContain(DEFAULT_REPLY_TEXT);
+    expect(frames.at(-1)).toBe("data: [DONE]");
+
+    const plain = await post("/v1/chat/completions", { model: "gpt-5", messages: [] });
+    const body = (await plain.json()) as { model: string; choices: Array<{ message: { content: string } }> };
+    expect(body.model).toBe("gpt-5");
+    expect(body.choices[0]?.message.content).toBe(DEFAULT_REPLY_TEXT);
+    await lenientControl.llm.reset();
+  });
+
+  it("still serves a scripted entry first, and keeps the mode across a reset", async () => {
+    await lenientControl.llm.enqueue({ kind: "anthropic", body: anthropicText("scripted") });
+    const first = (await (await post("/v1/messages", { model: "m", messages: [] })).json()) as { content: Array<{ text: string }> };
+    expect(first.content[0]?.text).toBe("scripted");
+    const second = (await (await post("/v1/messages", { model: "m", messages: [] })).json()) as { content: Array<{ text: string }> };
+    expect(second.content[0]?.text).toBe(DEFAULT_REPLY_TEXT);
+
+    await lenientControl.llm.reset();
+    const afterReset = await post("/v1/messages", { model: "m", messages: [] });
+    expect(afterReset.status).toBe(200);
+    expect(await lenientControl.llm.requests()).toHaveLength(1);
+    await lenientControl.llm.reset();
+  });
+
+  it("keeps only the most recent requests in its capture log", async () => {
+    const total = DEFAULT_REPLY_CAPTURE_LIMIT + 5;
+    for (let i = 0; i < total; i += 1) {
+      await post("/v1/messages", { model: `m-${i}`, messages: [] });
+    }
+    const requests = await lenientControl.llm.requests();
+    expect(requests).toHaveLength(DEFAULT_REPLY_CAPTURE_LIMIT);
+    expect((requests.at(-1)?.body as { model: string }).model).toBe(`m-${total - 1}`);
+    await lenientControl.llm.reset();
   });
 });
