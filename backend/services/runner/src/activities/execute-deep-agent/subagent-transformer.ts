@@ -22,7 +22,7 @@
  * - Empty subagent list returns null (no subagents configured)
  */
 
-import { createDeepAgent, FilesystemBackend, LocalShellBackend, DEFAULT_GENERAL_PURPOSE_DESCRIPTION, DEFAULT_SUBAGENT_PROMPT } from "deepagents";
+import { createDeepAgent, FilesystemBackend, LocalShellBackend, DEFAULT_SUBAGENT_PROMPT } from "deepagents";
 import type { AnyBackendProtocol, CompiledSubAgent, FilesystemPermission } from "deepagents";
 import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -42,6 +42,7 @@ import { SubAgentGate } from "../../shared/subagent-gate.js";
 import { isModelRegistered } from "../../shared/model-registry.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { renderSkillsSection } from "./prompt-builder.js";
+import { ENGINE_TOOL } from "./engine-tools.js";
 
 // =========================================================================
 // Built-in subagent types and prompts
@@ -53,33 +54,44 @@ export const BUILTIN_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
   "general-purpose",
 ]);
 
+// The task arrives as the sub-agent's first message (deepagents' `task`
+// tool), so a prompt carries no slot for it. Tool names come from the one
+// table of bound names (`engine-tools.ts`).
 const EXPLORE_SYSTEM_PROMPT = `\
 You are an exploration specialist. Your ONLY job is to explore codebases \
 and report findings back to the parent agent.
 
 STRICT BOUNDARIES:
-- Use ONLY the read-only tools provided (read_file, list_dir, glob, grep, search)
+- Use ONLY the read-only tools (${ENGINE_TOOL.readFile}, ${ENGINE_TOOL.ls}, ${ENGINE_TOOL.glob}, ${ENGINE_TOOL.grep})
 - Do NOT write files, create files, or modify anything
 - Do NOT execute shell commands
 - Do NOT follow skill activation instructions from any context
 - Do NOT create deliverables, scaffolds, or run initialization scripts
-- Report your findings concisely — the parent agent has direct file access
-
-Your task: {description}`;
+- Report your findings concisely — the parent agent has direct file access`;
 
 const SHELL_SYSTEM_PROMPT = `\
 You are a command execution specialist. Your ONLY job is to run shell \
 commands and report the results back to the parent agent.
 
 STRICT BOUNDARIES:
-- Use ONLY the tools provided (execute, read_file, list_dir)
+- Use ONLY ${ENGINE_TOOL.execute}, ${ENGINE_TOOL.readFile} and ${ENGINE_TOOL.ls}
 - Do NOT write or modify files directly — use shell commands if needed
 - Do NOT search extensively or explore the codebase beyond what is needed
 - Do NOT follow skill activation instructions from any context
 - Do NOT create deliverables, scaffolds, or run initialization scripts
-- Report command output concisely — the parent agent will interpret results
+- Report command output concisely — the parent agent will interpret results`;
 
-Your task: {description}`;
+/**
+ * The general-purpose sub-agent's line in the `task` tool. Stigmer's own
+ * words rather than upstream's `DEFAULT_GENERAL_PURPOSE_DESCRIPTION`, which
+ * invites delegating a search ("use this agent to perform the search for
+ * you") that the parent's working rules tell it to do itself
+ * (`prompt-builder.ts`): each delegation is a sub-agent's own rounds on top
+ * of the parent's.
+ */
+const GENERAL_PURPOSE_DESCRIPTION =
+  "Runs a multi-step task with the same tools as you, in its own context, and returns one report. " +
+  "Use it only for independent work you need as a summary.";
 
 const BUILTIN_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
   ["explore", (
@@ -102,8 +114,8 @@ const RESPONSE_RULES = `\
 
 ## Response rules
 
-- After using the read tool, NEVER reprint, echo, list, or \
-summarize file contents in your response. Tool results are \
+- After reading a file with ${ENGINE_TOOL.readFile}, NEVER reprint, echo, \
+list, or summarize file contents in your response. Tool results are \
 already in your context. Proceed directly to the task.
 - Your response is returned to the parent agent as a task \
 result. Return concise findings and actionable results — not \
@@ -215,8 +227,11 @@ export interface SubagentTransformOptions {
  * general-purpose is the gated replacement for the sub-agent deepagents would
  * otherwise auto-inject WITHOUT our approval gate (suppressed process-wide in
  * deepagents-profiles.ts; supplying our own under the same name is the
- * documented override path). It uses deepagents' own description/prompt so the
- * model's delegation behavior is unchanged, and receives the parent's MCP tools
+ * documented override path). It keeps deepagents' own prompt, but its line in
+ * the `task` tool is Stigmer's ({@link GENERAL_PURPOSE_DESCRIPTION}): it was
+ * upstream's while the goal was parity with the suppressed original, and
+ * upstream's invites the delegation the parent's rules advise against. It
+ * receives the parent's MCP tools
  * for capability parity with the injected original. Conscious simplification:
  * the parent's skills prompt is NOT inherited — a sub-agent needing skills
  * should be declared explicitly in the Agent spec.
@@ -239,7 +254,7 @@ export function createBuiltinSubagents(
     if (subagentType === "general-purpose") {
       result.push({
         name: "general-purpose",
-        description: DEFAULT_GENERAL_PURPOSE_DESCRIPTION,
+        description: GENERAL_PURPOSE_DESCRIPTION,
         systemPrompt: DEFAULT_SUBAGENT_PROMPT + RESPONSE_RULES,
         // Parent-parity tool set: MCP tools plus the native web_fetch the
         // parent always carries. explore/shell stay web-less on purpose —

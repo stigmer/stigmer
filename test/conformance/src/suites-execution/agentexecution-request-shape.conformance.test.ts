@@ -21,10 +21,11 @@
 // What is pinned, and where each fact comes from:
 // - The system prompt as the PROVIDER receives it: an array of text blocks,
 //   not the runner's one string. The deepagents engine wraps the runner's
-//   prompt (execute-deep-agent/prompt-builder.ts) as the first block and
-//   appends its own base prompt and one block per prompt-bearing middleware
-//   (todo list, filesystem with the execute section, sub-agent delegation),
-//   then marks the LAST block with a prompt-cache breakpoint. The runner's
+//   prompt (execute-deep-agent/prompt-builder.ts) as the first block, with
+//   the model profile's suffix joined to it; each prompt-bearing middleware
+//   appends a block of its own (today only the to-do list's line,
+//   execute-deep-agent/todo-list.ts); the LAST block carries the
+//   prompt-cache breakpoint. The runner's
 //   own golden (execute-deep-agent/__tests__/prompt-goldens.test.ts) pins the
 //   first block alone; only the wire shows the rest, so this golden and that
 //   one are two facts, not one fact twice.

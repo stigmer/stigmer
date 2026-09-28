@@ -8,6 +8,13 @@
  *
  * Follows the Anthropic "think tool" pattern:
  * https://www.anthropic.com/engineering/claude-think-tool
+ *
+ * The description says when a call is worth it, because every call is a
+ * model round of its own: the whole prompt re-sent for a thought. The
+ * earlier text suggested one "after reading files or tool output", and the
+ * benchmark's per-call record showed think rounds right after reads and
+ * right before the reply. Whether the tool is bound at all is the thinking
+ * mode's question, not this module's.
  */
 
 import { tool } from "@langchain/core/tools";
@@ -19,17 +26,9 @@ export function createThinkTool() {
     {
       name: "think",
       description:
-        "Use this tool to think through a problem step-by-step. " +
-        "The think tool does not read files, execute commands, or make any changes — " +
-        "it simply records your reasoning. Call it when you need to pause and work " +
-        "something out before acting.\n\n" +
-        "Good times to use think:\n" +
-        "- After reading files or tool output, to analyse what you learned\n" +
-        "- Before a complex or multi-step operation, to plan your approach\n" +
-        "- When you need to choose between several possible strategies\n" +
-        "- When debugging — to reason about what might have gone wrong\n\n" +
-        "You do NOT need to use think for every step — only when genuine " +
-        "reasoning will improve the quality of your next action.",
+        "Record your reasoning when a decision is genuinely hard: choosing between approaches, " +
+        "or working out why something failed. It reads nothing and changes nothing. Do not use it " +
+        "to restate a tool result or to announce your next step; take the step.",
       schema: z.object({
         thought: z.string().describe("Your reasoning, analysis, or plan."),
       }),

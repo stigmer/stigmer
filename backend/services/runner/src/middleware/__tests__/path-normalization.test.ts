@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { ToolMessage } from "@langchain/core/messages";
 import {
   createPathNormalizationMiddleware,
+  normalizeGlobPattern,
   normalizeWorkspacePathArg,
 } from "../path-normalization.js";
 import type { ToolCallRequest } from "../types.js";
@@ -110,6 +111,23 @@ describe("createPathNormalizationMiddleware", () => {
     }
   });
 
+  it("maps a glob pattern that opens with the real root to its virtual form", async () => {
+    const args = await argsSeenByHandler("glob", { pattern: `${ROOT}/duration/*_test.go` });
+    expect(args.pattern).toBe("/duration/*_test.go");
+  });
+
+  it("repairs the glob pattern and the base path of one call together", async () => {
+    const args = await argsSeenByHandler("glob", { path: `${ROOT}/src`, pattern: `${ROOT}/src/**/*.go` });
+    expect(args.path).toBe("/src");
+    expect(args.pattern).toBe("/src/**/*.go");
+  });
+
+  it("rewrites a real-root prefix in glob's pattern only, never in grep's", async () => {
+    // grep's pattern is literal text to find, which may well be a path.
+    const args = await argsSeenByHandler("grep", { pattern: `${ROOT}/config` });
+    expect(args.pattern).toBe(`${ROOT}/config`);
+  });
+
   it("passes canonical virtual paths through byte-untouched", async () => {
     const args = await argsSeenByHandler("read_file", { file_path: "/etc/hosts" });
     expect(args.file_path).toBe("/etc/hosts");
@@ -162,5 +180,19 @@ describe("createPathNormalizationMiddleware", () => {
     expect(seen.runtime).toBe(original.runtime);
     // The original request is never mutated in place.
     expect(original.toolCall.args.file_path).toBe("notes.md");
+  });
+});
+
+describe("normalizeGlobPattern", () => {
+  it("replaces a whole leading root, keeping every wildcard", () => {
+    expect(normalizeGlobPattern(`${ROOT}/**/*.md`, ROOT)).toBe("/**/*.md");
+    expect(normalizeGlobPattern(`${ROOT}/a/*.go`, `${ROOT}/`)).toBe("/a/*.go");
+  });
+
+  it("leaves a pattern that only resembles the root, or is the root itself", () => {
+    expect(normalizeGlobPattern("**/*.go", ROOT)).toBeUndefined();
+    expect(normalizeGlobPattern(`${ROOT}-other/*.go`, ROOT)).toBeUndefined();
+    expect(normalizeGlobPattern(`${ROOT}/`, ROOT)).toBeUndefined();
+    expect(normalizeGlobPattern(`/x${ROOT}/a`, ROOT)).toBeUndefined();
   });
 });

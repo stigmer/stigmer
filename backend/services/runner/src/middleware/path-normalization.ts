@@ -19,7 +19,13 @@
  *    filesystem paths that a model may still echo back;
  *  - interior `..` segments that stay inside the root ("src/../notes.md" →
  *    "/notes.md") — the virtual resolver rejects `..` outright, so a safe
- *    interior collapse is repaired here rather than burning a tool round.
+ *    interior collapse is repaired here rather than burning a tool round;
+ *  - a `glob` PATTERN that opens with the real root ("{root}/src/*.go") to
+ *    its virtual form ("/src/*.go"). deepagents strips a pattern's leading
+ *    "/" and matches the rest under the search path, so a real-root pattern
+ *    silently matches nothing and the model goes looking with `ls`; the
+ *    benchmark's per-call record showed it doing so for three rounds. Only
+ *    that exact prefix is rewritten, never the pattern's wildcards.
  *
  * Nothing becomes newly reachable: escaping relatives ("../x") and
  * `~`-carrying paths are left raw so the upstream refusal keeps speaking,
@@ -38,9 +44,9 @@
  *
  * Tool matching is by bare built-in name, the house doctrine (an MCP server
  * is not expected to shadow a built-in name — see shared/tool-kind.ts); the
- * rewrite touches only the tool's path-bearing argument, never glob/grep
- * patterns. Install FIRST in the stack so every downstream middleware
- * observes canonical paths.
+ * rewrite touches the tool's path-bearing argument and, for `glob`, a
+ * real-root prefix of the pattern; nothing else in a pattern. Install FIRST
+ * in the stack so every downstream middleware observes canonical paths.
  */
 
 import { isAbsolute, relative, posix } from "node:path";
@@ -59,6 +65,10 @@ const PATH_ARG_BY_TOOL: ReadonlyMap<string, string> = new Map([
   ["write_file", "file_path"],
   ["edit_file", "file_path"],
 ]);
+
+/** The one built-in whose pattern can carry a path prefix, and its argument. */
+const GLOB_TOOL = "glob";
+const GLOB_PATTERN_ARG = "pattern";
 
 export interface PathNormalizationConfig {
   /**
@@ -117,6 +127,19 @@ export function normalizeWorkspacePathArg(
 }
 
 /**
+ * Rewrite a `glob` pattern that opens with the real workspace root to its
+ * virtual form, or return undefined to leave it untouched. Only a whole
+ * leading `{root}/` is replaced; a pattern that merely contains the root's
+ * text elsewhere, or is the root itself, is left as the model wrote it.
+ * Exported for direct unit testing.
+ */
+export function normalizeGlobPattern(pattern: string, rootDir: string): string | undefined {
+  const prefix = rootDir.endsWith("/") ? rootDir : `${rootDir}/`;
+  if (!pattern.startsWith(prefix) || pattern.length === prefix.length) return undefined;
+  return `/${pattern.slice(prefix.length)}`;
+}
+
+/**
  * Create the dialect-repair middleware (see module header). Stateless per
  * request; safe on every graph.
  */
@@ -132,18 +155,23 @@ export function createPathNormalizationMiddleware(
       const argKey = PATH_ARG_BY_TOOL.get(request.toolCall.name);
       if (!argKey) return handler(request);
 
-      const raw = request.toolCall.args[argKey];
-      if (typeof raw !== "string") return handler(request);
-
-      const normalized = normalizeWorkspacePathArg(raw, rootDir);
-      if (normalized === undefined) return handler(request);
+      const args = request.toolCall.args;
+      const rewritten: Record<string, string> = {};
+      const raw = args[argKey];
+      if (typeof raw === "string") {
+        const normalized = normalizeWorkspacePathArg(raw, rootDir);
+        if (normalized !== undefined) rewritten[argKey] = normalized;
+      }
+      const pattern = args[GLOB_PATTERN_ARG];
+      if (request.toolCall.name === GLOB_TOOL && typeof pattern === "string") {
+        const normalized = normalizeGlobPattern(pattern, rootDir);
+        if (normalized !== undefined) rewritten[GLOB_PATTERN_ARG] = normalized;
+      }
+      if (Object.keys(rewritten).length === 0) return handler(request);
 
       return handler({
         ...request,
-        toolCall: {
-          ...request.toolCall,
-          args: { ...request.toolCall.args, [argKey]: normalized },
-        },
+        toolCall: { ...request.toolCall, args: { ...args, ...rewritten } },
       });
     },
   };

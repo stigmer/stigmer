@@ -37,10 +37,10 @@ export function enrichErrorMessage(toolName: string, error: string): string {
   }
 
   if (errorLower.includes("text to replace not found")) {
-    hints.push("Re-read the file with the read tool to see its current contents");
-    hints.push("The file content may have changed — use the actual text from read output");
+    hints.push("Re-read the file to see its current contents");
+    hints.push("The file content may have changed — use the actual text from the read output");
     hints.push("Check for whitespace differences (tabs vs spaces, trailing newlines)");
-    hints.push("If the exact text cannot be matched, use write to replace the entire file");
+    hints.push("If the exact text cannot be matched, write the whole file instead");
   }
 
   if (toolLower.includes("edit") || toolLower.includes("write")) {

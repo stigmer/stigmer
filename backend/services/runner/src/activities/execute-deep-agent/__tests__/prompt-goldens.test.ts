@@ -34,6 +34,15 @@
  *
  * A golden moves only under a ruling quoted in this header; never a quiet
  * `-u`. Regenerate with `npx vitest run -u <this file>` once ruled.
+ *
+ * Rulings:
+ * - 2026-09-28 (#1127 and the native prompt's own words, PR #1323): every
+ *   tool name the prompt quotes is the engine's bound name; the sub-agent
+ *   delegation rules become the working rules (the path model, batching,
+ *   one edit per nearby change, checks once) and a short sub-agent block;
+ *   a local-path entry names no host path; the multi-entry path sentence
+ *   names the virtual root; an entry's tree and the Input Files section end
+ *   with one blank line before the next heading.
  */
 
 import { describe, it, expect } from "vitest";

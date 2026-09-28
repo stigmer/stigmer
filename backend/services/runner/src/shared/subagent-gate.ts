@@ -13,7 +13,12 @@
 
 import { RunnableLambda, type RunnableConfig } from "@langchain/core/runnables";
 
-const DEFAULT_MAX_CONCURRENT = 3;
+/**
+ * How many sub-agents run at once by default. The native prompt states this
+ * number to the model (`execute-deep-agent/prompt-builder.ts`), so it has one
+ * home: this constant.
+ */
+export const DEFAULT_MAX_CONCURRENT = 3;
 
 export interface SubAgentGateOptions {
   readonly maxConcurrent?: number;

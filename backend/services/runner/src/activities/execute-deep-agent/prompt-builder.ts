@@ -16,10 +16,11 @@
  *    module; this builder only frames them.
  *  - This harness's: the framing — `## Heading` markdown sections, the house
  *    style for a system prompt — and every text that quotes this engine's
- *    tools: the `## Skills` activation protocol (`read`, `execute(...)`), the
- *    response rules, the sub-agent delegation rules, the plan-mode
- *    read-boundary sentence, and the workspace section (the deepagents
- *    backend's path resolution is this engine's).
+ *    tools: the `## Skills` activation protocol, the response rules, the
+ *    working rules, the plan-mode read-boundary sentence, and the workspace
+ *    section (the deepagents backend's path resolution is this engine's).
+ *    Every tool name those texts quote is interpolated from `engine-tools.ts`,
+ *    the names the engine binds.
  *
  * The rendered bytes are load-bearing for the hermetic tests: `ScriptedModel`
  * tells its scripted roles apart by the system prompt's text, so this
@@ -49,13 +50,15 @@ import {
 import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
+import { DEFAULT_MAX_CONCURRENT } from "../../shared/subagent-gate.js";
+import { ENGINE_TOOL } from "./engine-tools.js";
 
 const RESPONSE_RULES = `
 
 ## Response rules
 
-- After using the read tool, NEVER reprint, echo, list, or summarize \
-file contents in your response. Tool results are already in your \
+- After reading a file with \`${ENGINE_TOOL.readFile}\`, NEVER reprint, echo, \
+list, or summarize file contents in your response. Tool results are already in your \
 context. Proceed directly to analysis or the task.
 - Do not begin responses with phrases like \
 "Below is the complete content", \
@@ -68,53 +71,53 @@ and shell commands (e.g., \`src/main.py\`, \`handleRequest()\`, \
 code blocks that the user can see in tool results.
 - Structure complex answers with headings and bullet points.
 - If you encounter something unexpected that changes the scope, \
-explain the issue and propose options before proceeding.
-`;
+explain the issue and propose options before proceeding.`;
 
-const SUB_AGENT_RULES = `
+// Every section of this prompt opens with its own blank line ("\n\n## ...")
+// and ends on its last line, so sections are one blank line apart (#1127).
 
-## Sub-agent delegation rules
+/**
+ * How to work with the tools, and when to delegate: the rules that decide
+ * how many model calls a turn takes. Each round re-sends the whole prompt,
+ * so a round saved is the turn's largest saving; the benchmark's per-call
+ * record (test/conformance src/benchmark/tool-call-facts.ts) showed where
+ * they went.
+ *
+ * - The path model comes first because the file tools speak the virtual
+ *   root (`/` is the workspace; `middleware/path-normalization.ts`), and a
+ *   model that is told nothing uses whatever path it saw last. `execute`
+ *   runs with the workspace as its working directory (deepagents
+ *   `LocalShellBackend`), so a `cd` into it is a wasted prefix; plan mode
+ *   binds no shell, so its prompt says nothing about commands.
+ * - Edits to different files may go in one response; several edits to ONE
+ *   file are not asked for in one response, because each is a
+ *   read-modify-write of the same bytes. Changes that sit close together go
+ *   in one call instead.
+ * - The sub-agent rules keep the one hard fact the model cannot see, the
+ *   concurrency cap `shared/subagent-gate.ts` enforces by refusal, and leave
+ *   the delegation mechanics to the `task` tool's own description.
+ */
+function workingRules(interactionMode: InteractionMode | undefined): string {
+  const commands =
+    interactionMode === InteractionMode.PLAN
+      ? ""
+      : ` Commands run in the workspace, so \`${ENGINE_TOOL.execute}\` needs no \`cd\`.`;
+  return `
 
-### Concurrency limit
+## Working with tools
 
-Do NOT spawn more than 3 sub-agents concurrently. If you need to \
-explore more than 3 areas, batch them: launch the first 3, wait for \
-results, then launch more if needed. The runtime enforces this limit — \
-excess sub-agents will be rejected.
+- Your file tools see the workspace as \`/\`: a file at its top level is \`/README.md\`.${commands}
+- Make independent tool calls together in one response: read every file you need at once, and edit different files at once. Wait for a result only when the next call depends on it.
+- When one file needs changes that sit close together, make them in one \`${ENGINE_TOOL.editFile}\` call.
+- A file you have read stays in your context. Read it again only if something other than your own edit changed it.
+- After your edits, run the checks once. Run them again only after a fix.
 
-### When NOT to delegate
+## Sub-agents
 
-- **Reading files.** Use the \`read\` tool yourself. You need raw file \
-contents in your own context to reason about them accurately.
-- **Single-step lookups.** Use \`grep\`, \`glob\`, \`search\`, or \`read\` \
-directly for simple searches across 1-2 files. Only delegate when \
-the task requires multi-step exploration.
-- **Data you will process yourself.** If you need the output in your \
-own context (e.g., to answer a question, write code, compare files), \
-do the work directly — do not delegate it.
-- **Small tasks (fewer than 3 steps).** The overhead of spawning a \
-sub-agent outweighs the benefit for trivial operations.
-
-### When TO delegate
-
-- Multi-step, independent tasks that produce a deliverable (analysis, \
-synthesis, generated content) you will incorporate into your response.
-- Parallel exploration of genuinely different areas of a codebase or \
-knowledge base when context isolation helps.
-- Tasks that benefit from a separate context window (e.g., long \
-document summarization that would crowd your own context).
-
-### Delegation best practices
-
-- When delegating, specify the **deliverable** you need — not \
-"read these files and give me the contents."
-- You MUST reference and synthesize sub-agent results in your \
-response. If you spawn a sub-agent, its output must visibly \
-influence your answer.
-- Each sub-agent consumes tokens and time. Prefer doing work \
-directly over delegating. Only delegate when context isolation \
-or parallelism genuinely helps the user.
-`;
+- Do the work yourself unless it is a multi-step, independent task whose result you need only as a summary. Never delegate reading a file you must reason about.
+- At most ${DEFAULT_MAX_CONCURRENT} sub-agents run at once; the runtime rejects more.
+- Tell a sub-agent exactly what to return, and use what it returns.`;
+}
 
 export interface PromptBuilderInput {
   /** The blueprint's instructions, raw; empty reads the built-in assistant's (shared/builtin-assistant-prompt.ts). */
@@ -272,7 +275,7 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   }
 
   prompt += RESPONSE_RULES;
-  prompt += SUB_AGENT_RULES;
+  prompt += workingRules(input.interactionMode);
 
   // Last sections on purpose: these per-execution directives redefine the
   // turn's deliverable, so they must be the freshest instruction the model
@@ -347,7 +350,7 @@ export function renderSkillsSection(skills: readonly SkillMetadata[]): string {
     "knowledge or capabilities.",
     "",
     "**Activation protocol**: To use a skill, read its SKILL.md file " +
-    "using the `read` tool. The SKILL.md contains detailed instructions, " +
+    `with \`${ENGINE_TOOL.readFile}\`. The SKILL.md contains detailed instructions, ` +
     "available tools, and usage examples.",
     "",
     "**Usage pattern**:",
@@ -356,8 +359,8 @@ export function renderSkillsSection(skills: readonly SkillMetadata[]): string {
     "2. Read `{location}/SKILL.md` for full instructions",
     "3. Follow the skill's documented operations:",
     "",
-    "`read {location}/references/schema.md`",
-    '`execute("python3 {location}/scripts/run.py")`',
+    `\`${ENGINE_TOOL.readFile}\` on \`{location}/references/schema.md\``,
+    `\`${ENGINE_TOOL.execute}\` with \`python3 {location}/scripts/run.py\``,
     "",
   ];
 
@@ -366,7 +369,7 @@ export function renderSkillsSection(skills: readonly SkillMetadata[]): string {
     lines.push(`### ${skill.name}`);
     lines.push(`**Description**: ${skill.description || "(no description)"}`);
     lines.push(`**Location**: \`${skillDir}/\``);
-    lines.push(`**Activate**: \`read ${skillDir}/SKILL.md\``);
+    lines.push(`**Activate**: \`${ENGINE_TOOL.readFile}\` on \`${skillDir}/SKILL.md\``);
     lines.push("");
   }
 
@@ -410,16 +413,16 @@ function buildMultiWorkspaceSection(
   let section =
     `\n\n## Workspace\n\n` +
     `This session has ${results.length} workspace entries.\n\n` +
-    `**Path resolution**: All tools resolve paths relative to the ` +
-    `workspace root. Use entry-relative paths ` +
-    `(e.g., \`${firstLabel}/src/main.py\`). ` +
-    `Do not use absolute filesystem paths.\n`;
+    `**Path resolution**: each entry is a directory at the workspace ` +
+    `root; name a file by its entry (e.g., \`/${firstLabel}/src/main.py\`).`;
 
+  // Entries are joined by a blank line, so an entry's file tree never runs
+  // into the next entry's heading (#1127).
   for (let idx = 0; idx < results.length; idx++) {
     const result = results[idx];
     const label = result.entryName || `entry-${idx + 1}`;
     const relPath = workspaceRelativePath(result.rootDir, containerRoot);
-    section += `\n### ${label} (\`${relPath}\`)\n\n`;
+    section += `\n\n### ${label} (\`${relPath}\`)\n\n`;
     section += formatEntryDescription(result);
     if (result.fileTree) {
       section += "\n\n" + result.fileTree;
@@ -445,8 +448,7 @@ function formatEntryDescription(result: ProvisionResult): string {
 
   if (result.sourceType === "local_path") {
     return (
-      `Workspace entry **${name}** is the user's project directory ` +
-      `at \`${result.rootDir}\`.\n` +
+      `Workspace entry **${name}** is the user's project directory.\n` +
       "You are operating directly on the user's files — changes are " +
       "immediate and persistent. Use git to track and verify your changes."
     );
@@ -483,7 +485,7 @@ function buildReferencedFilesSection(
   let section =
     "\n\n## Referenced Files\n\n" +
     "The user has highlighted the following workspace paths for your " +
-    "attention. Use `read` to access file contents.\n\n";
+    `attention. Use \`${ENGINE_TOOL.readFile}\` to access file contents.\n\n`;
 
   for (const refPath of workspaceFileRefs) {
     section += `- \`${refPath}\`\n`;
@@ -494,7 +496,7 @@ function buildReferencedFilesSection(
 
 /**
  * The `## Input Files` section: this harness's intro (it names this engine's
- * `read` tool) around the shared lines (`prompt-sections.ts` `inputFileLines`
+ * file-reading tool) around the shared lines (`prompt-sections.ts` `inputFileLines`
  * says what each bullet and disclosure carries and why). Each disclosure
  * group is set off by a blank line, the markdown idiom.
  */
@@ -508,7 +510,7 @@ function buildInputFilesSection(
     "The following files have been provided as read-only reference " +
     "material for your task. They live under `.stigmer/inputs/` and " +
     "are NOT part of the project source tree.\n\n" +
-    "Read them using the `read` tool when you need their contents. " +
+    `Read them with \`${ENGINE_TOOL.readFile}\` when you need their contents. ` +
     "Do NOT echo, reprint, or summarize file contents in your response " +
     "-- they are reference material, not output. " +
     "Do NOT modify or delete these files.\n\n";
@@ -524,5 +526,7 @@ function buildInputFilesSection(
     section += "\n" + lines.vision.join("\n") + "\n";
   }
 
-  return section;
+  // Every section opens with its own blank line ("\n\n## ..."), so this one
+  // ends on its last line rather than adding a second blank (#1127).
+  return section.replace(/\n+$/, "");
 }

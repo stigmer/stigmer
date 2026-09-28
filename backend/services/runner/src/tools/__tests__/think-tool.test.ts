@@ -7,9 +7,10 @@ describe("createThinkTool", () => {
     expect(thinkTool.name).toBe("think");
   });
 
-  it("has a description explaining its purpose", () => {
+  it("keeps its description short: it rides on every model call, and every use is a round", () => {
     const thinkTool = createThinkTool();
-    expect(thinkTool.description).toContain("think through a problem");
+    expect(thinkTool.description.length).toBeGreaterThan(0);
+    expect(thinkTool.description.length).toBeLessThan(400);
   });
 
   it("returns 'ok' for any thought input", async () => {

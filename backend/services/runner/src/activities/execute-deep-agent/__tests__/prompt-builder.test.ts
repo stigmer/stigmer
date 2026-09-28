@@ -44,7 +44,7 @@ describe("buildEnhancedSystemPrompt", () => {
     expect(prompt).toContain("## Response rules");
   });
 
-  it("includes sub-agent delegation rules", () => {
+  it("includes the working rules and the sub-agent rules", () => {
     const prompt = buildEnhancedSystemPrompt({
       instructions: "Test",
       provisionResults: [],
@@ -55,7 +55,25 @@ describe("buildEnhancedSystemPrompt", () => {
       inputFiles: [],
     });
 
-    expect(prompt).toContain("## Sub-agent delegation rules");
+    expect(prompt).toContain("## Working with tools");
+    expect(prompt).toContain("## Sub-agents");
+    expect(prompt, "a turn with a shell is told where its commands run").toContain("`execute`");
+  });
+
+  it("says nothing about commands in plan mode, which binds no shell", () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "/workspace",
+      inputFiles: [],
+      interactionMode: InteractionMode.PLAN,
+    });
+
+    expect(prompt).toContain("## Working with tools");
+    expect(prompt).not.toContain("`execute`");
   });
 
   it("includes single workspace section", () => {

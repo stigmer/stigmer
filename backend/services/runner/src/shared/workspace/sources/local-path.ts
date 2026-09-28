@@ -63,8 +63,12 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
     rootDir: path,
     sourceType: "local_path",
     consumedKeys: [],
+    // No host path in the model's text: the native file tools see this
+    // directory as `/` and its commands run in it, so the path would only be
+    // echoed back where it cannot resolve (a glob pattern, a mistyped
+    // prefix). The directory is `rootDir`'s to carry.
     workspaceDescription:
-      `Your workspace is the user's project directory: ${path}\n` +
+      "Your workspace is the user's project directory.\n" +
       "IMPORTANT: You are operating directly on the user's files. " +
       "Changes are immediate and persistent.\n" +
       "Use git to track and verify your changes before finalizing.",

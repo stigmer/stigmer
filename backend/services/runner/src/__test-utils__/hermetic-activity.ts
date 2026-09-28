@@ -303,10 +303,12 @@ export class ExecutionRecord {
    * the tool call the runner wrote. The runner owns `status`; the server owns
    * `approval_action` (field ownership, 005 mandate 2) — so this is the ONE
    * place a test writes it, and the status stays WAITING_APPROVAL until the
-   * resumed turn runs the tool, exactly as in production.
+   * resumed turn runs the tool, exactly as in production. `onlyId` decides one
+   * of several calls paused in the same round and leaves the rest waiting, as
+   * a user deciding them one at a time does.
    */
-  decideWaitingToolCalls(action: ApprovalAction, decidedAt: string): number {
-    const waiting = this.waitingToolCalls();
+  decideWaitingToolCalls(action: ApprovalAction, decidedAt: string, onlyId?: string): number {
+    const waiting = this.waitingToolCalls().filter((tc) => onlyId === undefined || tc.id === onlyId);
     for (const tc of waiting) {
       tc.approvalAction = action;
       tc.approvalDecidedAt = decidedAt;

@@ -40,7 +40,6 @@ import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
-import { todoListMiddleware } from "langchain";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import type { Config } from "../../config.js";
@@ -77,6 +76,7 @@ import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv } from "./shell-env.js";
 import { modelHasNativeThinking, transformAndCompileSubagents } from "./subagent-transformer.js";
+import { createTodoListMiddleware } from "./todo-list.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice
@@ -472,13 +472,11 @@ export async function buildEngine(
     systemPrompt,
     tools: graphTools,
     // The to-do list rides ahead of Stigmer's stack: deepagents stopped
-    // installing it by default (1.12), and the product reads it — the parent's
-    // `write_todos` is what `status.todos` projects and what plan mode's
-    // build progress is instructed through (`shared/implement-plan-prompt.ts`).
-    // The framework's own middleware, with its default texts. Parent only: a
-    // sub-agent's list never reaches the execution (`harness/transcript/builder.ts`).
+    // installing it by default (1.12), and the product reads it. The
+    // framework's own middleware with Stigmer's texts; parent only
+    // (`todo-list.ts` says why for both).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    middleware: [todoListMiddleware(), ...middleware] as any,
+    middleware: [createTodoListMiddleware(), ...middleware] as any,
     subagents: compiledSubagents ?? undefined,
     ...(responseFormat ? { responseFormat } : {}),
     ...(planModePermissions ? { permissions: planModePermissions } : {}),
