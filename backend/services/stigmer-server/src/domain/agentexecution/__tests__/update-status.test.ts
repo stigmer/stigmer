@@ -8,7 +8,9 @@
  * Also pins the platform-row rules (platform-rows.ts, stigmer#980): a
  * platform marker write is appended to the transcript and never replaces
  * it, idempotently, and a PAUSED or CANCELLED execution's stop row stays
- * last across the runner's late writes, whatever order they land in.
+ * last across the runner's late writes, whatever order they land in; and a
+ * paused execution's phase moves only on the platform's own write
+ * (stigmer#1370), so the runner's straggler streaming cannot un-pause it.
  * These exercise applyUpdateStatusMerge directly on a clone — mirroring
  * the freshly-loaded resource the merge mutates in place inside the
  * updateResource write lock.
@@ -37,6 +39,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { findToolCallInExecution } from "../submit-approval.js";
 import { CANCEL_STOP_ROW, PAUSE_STOP_ROW } from "../platform-rows.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
+import type { StatusWriter } from "../update-status.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -51,13 +54,14 @@ const silentLogger = createLogger({
 function runBuildStep(
   existing: AgentExecution,
   incoming: MessageInitShape<typeof AgentExecutionStatusSchema>,
+  writer: StatusWriter = "wire",
 ): AgentExecution {
   const input = create(AgentExecutionUpdateStatusInputSchema, {
     executionId: existing.metadata?.id ?? "",
     status: incoming,
   });
   const merged = clone(AgentExecutionSchema, existing);
-  applyUpdateStatusMerge(merged, input, silentLogger);
+  applyUpdateStatusMerge(merged, input, silentLogger, writer);
   return merged;
 }
 
@@ -582,5 +586,57 @@ describe("platform rows (stigmer#980)", () => {
       );
       expect(contents(merged)).toEqual(["a1", PAUSE_STOP_ROW, "a2"]);
     });
+  });
+});
+
+describe("a paused execution stays paused until Resume (stigmer#1370)", () => {
+  function pausedWith(...contents: string[]): AgentExecution {
+    return create(AgentExecutionSchema, {
+      metadata: { id: "exec-paused", name: "exec-paused" },
+      spec: {},
+      status: {
+        phase: ExecutionPhase.EXECUTION_PAUSED,
+        messages: [
+          ...contents.map((content) => ({ type: MessageType.MESSAGE_AI, content })),
+          { type: MessageType.MESSAGE_SYSTEM, content: PAUSE_STOP_ROW },
+        ],
+      },
+    });
+  }
+  const contentsOf = (e: AgentExecution) => (e.status?.messages ?? []).map((m) => m.content);
+
+  it("keeps PAUSED across the runner's straggler streaming write, and merges its text beneath the pause row", () => {
+    // The Pause RPC and the workflow's row landed; the runner learns of the
+    // pause on a later heartbeat and keeps streaming IN_PROGRESS writes that
+    // carry its growing transcript without the row.
+    const merged = runBuildStep(pausedWith("The press, part"), {
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      messages: [{ type: MessageType.MESSAGE_AI, content: "The press, part one and two" }],
+    });
+    expect(merged.status?.phase, "a wire write cannot un-pause").toBe(ExecutionPhase.EXECUTION_PAUSED);
+    expect(contentsOf(merged)).toEqual(["The press, part one and two", PAUSE_STOP_ROW]);
+  });
+
+  it("keeps PAUSED against a wire phase-only IN_PROGRESS write", () => {
+    const merged = runBuildStep(pausedWith("a1"), { phase: ExecutionPhase.EXECUTION_IN_PROGRESS });
+    expect(merged.status?.phase).toBe(ExecutionPhase.EXECUTION_PAUSED);
+  });
+
+  it("lets the platform's own write move a paused execution (the workflow's resume heal)", () => {
+    const merged = runBuildStep(
+      pausedWith("a1"),
+      { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+      "platform",
+    );
+    expect(merged.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    expect(contentsOf(merged)).toEqual(["a1", PAUSE_STOP_ROW]);
+  });
+
+  it("leaves a wire write on a running execution as it was (the latch is PAUSED's alone)", () => {
+    const merged = runBuildStep(existingWith(ExecutionPhase.EXECUTION_IN_PROGRESS, "m1"), {
+      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      messages: [{ content: "m1" }],
+    });
+    expect(merged.status?.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
   });
 });
