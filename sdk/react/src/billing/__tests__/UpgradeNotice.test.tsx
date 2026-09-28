@@ -35,7 +35,12 @@ describe("UpgradeNotice", () => {
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/org/acme/billing");
   });
 
-  it("names the feature ahead of an attempt", () => {
+  it("names the plan that unlocks the feature ahead of an attempt", () => {
+    render(<UpgradeNotice feature={Feature.teams} unlockingPlanName="Team" />);
+    expect(screen.getByText("Teams need the Team plan or above.")).toBeTruthy();
+  });
+
+  it("names the feature ahead of an attempt when no plan is known", () => {
     render(<UpgradeNotice feature={Feature.teams} />);
     expect(screen.getByText("Teams are not included in this organization's plan.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");

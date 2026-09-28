@@ -2,7 +2,8 @@
 // (only what Cloud offers today, Enterprise as "Talk to us"), a viewer's
 // read-only view, the card door (leaving through the host's openUrl with
 // the plan to come back to), a subscribe, an active plan's estimate and
-// its switch and cancel copy, the reopened choice after a card was saved,
+// its switch and cancel copy, the plans cheapest first and what a switch
+// down gives up, the reopened choice after a card was saved,
 // a managed organization, and nothing at all where subscriptions are not
 // served.
 
@@ -124,6 +125,25 @@ describe("PlanSection", () => {
     expect(within(dialog).getByText(/Team stays in force until Feb 28, 2027/)).toBeTruthy();
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel plan" }));
     await waitFor(() => expect(client.subscription.cancel).toHaveBeenCalledTimes(1));
+  });
+
+  it("lists the plans cheapest first, and names what a switch down gives up but not a switch up", async () => {
+    const client = mockClient({ subscribed: subscription(SubscriptionState.active, "pln_business") });
+    renderSection(client);
+    const plans = await screen.findByRole("list", { name: "Plans" });
+    const names = Array.from(plans.children, (item) => item.querySelector("p")?.textContent);
+    expect(names).toEqual(["Free", "Team", "Business", "Enterprise"]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Switch to Team" }));
+    const down = await screen.findByRole("dialog");
+    expect(within(down).getByText(/Team does not include Managed organizations\./)).toBeTruthy();
+    await userEvent.click(within(down).getByRole("button", { name: "Not now" }));
+
+    cleanup();
+    renderSection(mockClient({ subscribed: subscription(SubscriptionState.active) }));
+    await userEvent.click(await screen.findByRole("button", { name: "Switch to Business" }));
+    const up = await screen.findByRole("dialog");
+    expect(within(up).queryByText(/does not include/)).toBeNull();
   });
 
   it("reopens the choice a person left to save a card for, without subscribing on its own", async () => {

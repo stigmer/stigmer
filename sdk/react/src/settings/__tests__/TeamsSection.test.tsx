@@ -8,7 +8,8 @@
  *   - "New team" is offered only to a caller who holds `can_create_team`
  *     on the organization, checked on the organization's id;
  *   - on Cloud, an organization whose plan lacks teams sees the upgrade
- *     notice in place of "New team"; Enterprise never reads a plan.
+ *     notice in place of "New team", naming the cheapest plan that
+ *     includes them; Enterprise never reads a plan or the catalog.
  *
  * The data hooks and the permission gate are stubbed; the panels are real.
  */
@@ -26,6 +27,7 @@ const stubs = vi.hoisted(() => ({
   checked: [] as Array<[string, string, string]>,
   planAllowsTeams: null as boolean | null,
   entitlementsRead: [] as Array<{ orgId: string | null; enabled: boolean | undefined }>,
+  catalogReads: [] as Array<boolean | undefined>,
 }));
 
 vi.mock("../../organization/OrgProvider.js", () => ({
@@ -51,6 +53,16 @@ vi.mock("../../billing/useEntitlements.js", () => ({
     };
   },
 }));
+vi.mock("../../billing/usePlans.js", async () => {
+  const { BUSINESS, TEAM } = await import("../../billing/__tests__/fixtures");
+  return {
+    usePlans: (options?: { enabled?: boolean }) => {
+      stubs.catalogReads.push(options?.enabled);
+      const plans = options?.enabled === false ? null : [BUSINESS, TEAM];
+      return { plans, isLoading: false, isRefetching: false, error: null, refetch: () => {} };
+    },
+  };
+});
 vi.mock("../../iam-policy/PermissionGate.js", () => ({
   PermissionGate: ({
     resource,
@@ -84,6 +96,7 @@ afterEach(() => {
   stubs.checked = [];
   stubs.planAllowsTeams = null;
   stubs.entitlementsRead = [];
+  stubs.catalogReads = [];
 });
 
 describe("TeamsSection", () => {
@@ -122,7 +135,7 @@ describe("TeamsSection", () => {
     stubs.allowed = new Set(["can_create_team"]);
     stubs.planAllowsTeams = false;
     renderSection("cloud");
-    expect(screen.getByText("Teams are not included in this organization's plan.")).toBeTruthy();
+    expect(screen.getByText("Teams need the Team plan or above.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /New team/ })).toBeNull();
     expect(stubs.entitlementsRead).toContainEqual({ orgId: "org_acme", enabled: true });
@@ -134,5 +147,6 @@ describe("TeamsSection", () => {
     renderSection("enterprise");
     expect(screen.getByRole("button", { name: /New team/ })).toBeTruthy();
     expect(stubs.entitlementsRead.every((read) => read.enabled === false)).toBe(true);
+    expect(stubs.catalogReads.every((enabled) => enabled === false)).toBe(true);
   });
 });

@@ -161,8 +161,8 @@ export function AutoRechargeCard({
 
       {!hasPaymentMethod && (
         <p className="stg:mt-3 stg:text-xs stg:text-muted-foreground">
-          A saved payment method is required to enable auto-recharge.
-          Purchase a credit pack first to save a card.
+          A saved payment method is required to enable auto-recharge. Add
+          one under Payment Method.
         </p>
       )}
 

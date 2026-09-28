@@ -4,13 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { ChangePlanDialog } from "./ChangePlanDialog.js";
 import { PlanCard } from "./PlanCard.js";
 import { PlanPicker } from "./PlanPicker.js";
+import { buyablePlans, featuresLost } from "./plan-features.js";
 import { planMove, planStanding, standingPlanId, type PlanMove } from "./plan-state.js";
 import type { BillingRedirect } from "./redirect.js";
 import { useCancelSubscription, useChangePlan } from "./useChangePlan.js";
@@ -93,18 +92,12 @@ export function PlanSection({
   const [move, setMove] = useState<PlanMove | null>(null);
   const [awaitingCard, setAwaitingCard] = useState(false);
 
-  const buyable = useMemo(
-    () =>
-      (catalog.plans ?? []).filter(
-        (plan) =>
-          plan.spec?.instrument === PlanInstrument.subscription && plan.status?.lifecycle === PlanLifecycle.active,
-      ),
+  const buyable = useMemo(() => buyablePlans(catalog.plans ?? []), [catalog.plans]);
+  const planById = useCallback(
+    (planId: string) => catalog.plans?.find((plan) => plan.metadata?.id === planId),
     [catalog.plans],
   );
-  const planName = useCallback(
-    (planId: string) => catalog.plans?.find((plan) => plan.metadata?.id === planId)?.metadata?.name ?? "your plan",
-    [catalog.plans],
-  );
+  const planName = useCallback((planId: string) => planById(planId)?.metadata?.name ?? "your plan", [planById]);
   const periodEndStamp = current.subscription?.status?.currentPeriodEnd;
   const periodEnd = periodEndStamp === undefined ? undefined : timestampDate(periodEndStamp);
 
@@ -197,6 +190,7 @@ export function PlanSection({
 
   const nameInForce = livePlanId === "" ? "Free" : planName(livePlanId);
   const moveError = move?.kind === "cancel" ? canceler.error : (changer.error ?? setup.error);
+  const losing = move?.kind === "switch" ? featuresLost(planById(move.fromPlanId), move.to) : [];
 
   return (
     <section className={cn("stg:space-y-3", className)} aria-label="Plan">
@@ -220,6 +214,7 @@ export function PlanSection({
       <ChangePlanDialog
         move={move}
         planName={planName}
+        losing={losing}
         hasPaymentMethod={hasPaymentMethod}
         awaitingPaymentMethod={awaitingCard}
         isSubmitting={changer.isSubmitting || canceler.isSubmitting || setup.isSubmitting}

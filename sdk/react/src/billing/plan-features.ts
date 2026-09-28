@@ -1,5 +1,6 @@
-// What a plan offers, as the console shows it, and the formatting of its
-// terms and periods.
+// What a plan offers, as the console shows it: which plans are offered and
+// in what order, what each includes, and the formatting of its terms and
+// periods.
 //
 // A plan's features render from its entitlements through the shared
 // vocabulary (../internal/features.ts), never from the plan's stored
@@ -9,7 +10,9 @@
 
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { PlanTerms } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
+import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
+import { PlanInstrument, type PlanTerms } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
+import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
 import { Feature, type Entitlements } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { FEATURE_COPY, isNamedFeature, type NamedFeature } from "../internal/features.js";
 import { formatCreditBalance } from "./format.js";
@@ -40,6 +43,41 @@ export function offeredFeatures(entitlements: Entitlements | undefined): readonl
     .filter((feature): feature is NamedFeature => isNamedFeature(feature) && !NOT_YET_OFFERED.has(feature))
     .sort((a, b) => a - b)
     .map((feature) => ({ feature, ...FEATURE_COPY[feature] }));
+}
+
+/**
+ * The plans an organization can subscribe to, cheapest monthly minimum
+ * first, so a comparison reads upward from Free; equal minimums keep the
+ * catalog's order. Retired rows and prepaid instruments are left out.
+ */
+export function buyablePlans(plans: readonly Plan[]): readonly Plan[] {
+  return plans
+    .filter(
+      (plan) =>
+        plan.spec?.instrument === PlanInstrument.subscription && plan.status?.lifecycle === PlanLifecycle.active,
+    )
+    .map((plan, index) => ({ plan, index }))
+    .sort((a, b) => compareMinimums(a.plan, b.plan) || a.index - b.index)
+    .map(({ plan }) => plan);
+}
+
+/** The cheapest plan that can be bought and includes `feature`, if any. */
+export function lowestPlanWith(plans: readonly Plan[], feature: Feature): Plan | undefined {
+  return buyablePlans(plans).find((plan) =>
+    offeredFeatures(plan.spec?.entitlements).some((offered) => offered.feature === feature),
+  );
+}
+
+/** What `from` offers that `to` does not: what a switch stops the organization creating. */
+export function featuresLost(from: Plan | undefined, to: Plan): readonly OfferedFeature[] {
+  const kept = new Set(offeredFeatures(to.spec?.entitlements).map((offered) => offered.feature));
+  return offeredFeatures(from?.spec?.entitlements).filter((offered) => !kept.has(offered.feature));
+}
+
+function compareMinimums(a: Plan, b: Plan): number {
+  const left = a.spec?.terms?.monthlyMinimumMicros ?? ZERO;
+  const right = b.spec?.terms?.monthlyMinimumMicros ?? ZERO;
+  return left === right ? 0 : left < right ? -1 : 1;
 }
 
 /** A plan's monthly minimum, e.g. "$99.00/month". */

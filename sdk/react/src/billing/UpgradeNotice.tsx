@@ -42,6 +42,12 @@ export interface UpgradeNoticeProps {
    * shown ahead of an attempt.
    */
   readonly error?: Error | null;
+  /**
+   * The plan that unlocks the feature, named ahead of an attempt, e.g. the
+   * cheapest one that includes it (`lowestPlanWith`). With a refusal,
+   * the server's copy names it instead.
+   */
+  readonly unlockingPlanName?: string;
   /** Where the plans are, in the host's routing. Defaults to {@link DEFAULT_BILLING_HREF}. */
   readonly billingHref?: string;
   /** Additional CSS class names. */
@@ -59,9 +65,19 @@ export interface UpgradeNoticeProps {
  * if (feature !== null) return <UpgradeNotice feature={feature} error={error} />;
  * ```
  */
-export function UpgradeNotice({ feature, error, billingHref = DEFAULT_BILLING_HREF, className }: UpgradeNoticeProps) {
+export function UpgradeNotice({
+  feature,
+  error,
+  unlockingPlanName,
+  billingHref = DEFAULT_BILLING_HREF,
+  className,
+}: UpgradeNoticeProps) {
   const label = isNamedFeature(feature) ? FEATURE_COPY[feature].label : "This feature";
-  const message = error ? getUserMessage(error) : `${label} are not included in this organization's plan.`;
+  const ahead =
+    unlockingPlanName === undefined || unlockingPlanName === ""
+      ? `${label} are not included in this organization's plan.`
+      : `${label} need the ${unlockingPlanName} plan or above.`;
+  const message = error ? getUserMessage(error) : ahead;
   return (
     <div
       className={cn(

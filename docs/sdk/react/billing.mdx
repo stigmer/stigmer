@@ -651,6 +651,7 @@ nothing. Without a saved card it offers the card page first.
     error: { type: "Error | null", description: "Why the last attempt failed, or `null`.", required: true },
     hasPaymentMethod: { type: "boolean", description: "Whether the organization has a saved card. Every move but a cancel needs one, because every period is collected from it.", required: true },
     isSubmitting: { type: "boolean", description: "`true` while the move, or the card page, is in flight.", required: true },
+    losing: { type: "readonly OfferedFeature[]", description: "For a switch, what the plan being left offers that the new one does not (`featuresLost`). Empty, as for an upgrade, the dialog says nothing is lost." },
     move: { type: "PlanMove | null", description: "The move to confirm; the dialog is open while it is set.", required: true },
     onAddPaymentMethod: { type: "() => void", description: "Leave to save a card, returning to this choice.", required: true },
     onClose: { type: "() => void", description: "Close without moving.", required: true },
@@ -832,7 +833,7 @@ host to confirm; the plan in force reads "Current plan".
     enterpriseHref: { type: "string", description: "Where \"Talk to us\" for Enterprise links. Defaults to ENTERPRISE_CONTACT_URL." },
     onChoose: { type: "(move: PlanMove) => void", description: "Called with the move a choice makes; the host confirms it.", required: true },
     periodEnd: { type: "Date", description: "The live period's end, which a cancel runs to." },
-    plans: { type: "readonly Plan[]", description: "The plans that can be bought, in catalog order.", required: true },
+    plans: { type: "readonly Plan[]", description: "The plans that can be bought, cheapest first, as `buyablePlans` orders them.", required: true },
     standing: { type: "PlanStanding", description: "Where the organization stands.", required: true, typeDescriptionLink: "#planstanding" },
   }}
 />
@@ -883,6 +884,7 @@ working; only creating more is refused.
     className: { type: "string", description: "Additional CSS class names." },
     error: { type: "Error | null", description: "The refusal, when there was one: its message is the server's own copy, which names the plan that unlocks the act. Absent, the notice is shown ahead of an attempt." },
     feature: { type: "Feature", description: "The feature the organization's plan lacks.", required: true },
+    unlockingPlanName: { type: "string", description: "The plan that unlocks the feature, named ahead of an attempt, e.g. the cheapest one that includes it (`lowestPlanWith`). With a refusal, the server's copy names it instead." },
   }}
 />
 

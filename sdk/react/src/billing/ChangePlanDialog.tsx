@@ -4,7 +4,7 @@ import { useId } from "react";
 import { getErrorReason, getUserMessage } from "@stigmer/sdk";
 import { Button } from "../button/index.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { formatDay, formatMonthlyMinimum, formatUsageShare } from "./plan-features.js";
+import { formatDay, formatMonthlyMinimum, formatUsageShare, type OfferedFeature } from "./plan-features.js";
 import type { PlanMove } from "./plan-state.js";
 
 /** The reason a plan change is refused for want of a saved card (billing/subscription/v1/command.proto). */
@@ -16,6 +16,12 @@ export interface ChangePlanDialogProps {
   readonly move: PlanMove | null;
   /** The display name of a plan by id, for the plan being left. */
   readonly planName: (planId: string) => string;
+  /**
+   * For a switch, what the plan being left offers that the new one does
+   * not (`featuresLost`). Empty, as for an upgrade, the dialog says
+   * nothing is lost.
+   */
+  readonly losing?: readonly OfferedFeature[];
   /**
    * Whether the organization has a saved card. Every move but a cancel
    * needs one, because every period is collected from it.
@@ -48,6 +54,7 @@ export interface ChangePlanDialogProps {
 export function ChangePlanDialog({
   move,
   planName,
+  losing = [],
   hasPaymentMethod,
   awaitingPaymentMethod,
   isSubmitting,
@@ -76,7 +83,7 @@ export function ChangePlanDialog({
           <h2 id={headingId} className="stg:text-sm stg:font-semibold stg:text-foreground">
             {title(move)}
           </h2>
-          <div className="stg:space-y-2 stg:text-xs stg:text-muted-foreground">{body(move, planName)}</div>
+          <div className="stg:space-y-2 stg:text-xs stg:text-muted-foreground">{body(move, planName, losing)}</div>
 
           {needsCard && (
             <p className="stg:rounded-md stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-foreground" role="status">
@@ -133,7 +140,7 @@ function title(move: PlanMove): string {
   }
 }
 
-function body(move: PlanMove, planName: (planId: string) => string) {
+function body(move: PlanMove, planName: (planId: string) => string, losing: readonly OfferedFeature[]) {
   switch (move.kind) {
     case "subscribe":
       return (
@@ -153,7 +160,12 @@ function body(move: PlanMove, planName: (planId: string) => string) {
             {planName(move.fromPlanId)}; a new monthly period opens on {move.to.metadata?.name} at{" "}
             {formatMonthlyMinimum(move.to.spec?.terms)}.
           </p>
-          <p>Everything you built keeps working. What {move.to.metadata?.name} does not include can no longer be created.</p>
+          {losing.length > 0 && (
+            <p>
+              {move.to.metadata?.name} does not include {listFeatures(losing)}. Everything you built keeps working; only
+              creating more is refused.
+            </p>
+          )}
         </>
       );
     case "resume":
@@ -190,4 +202,10 @@ function confirmLabel(move: PlanMove): string {
       return String(exhaustive);
     }
   }
+}
+
+/** "Teams", "Teams and Managed organizations", "A, B and C". */
+function listFeatures(features: readonly OfferedFeature[]): string {
+  const labels = features.map((feature) => feature.label);
+  return labels.length <= 1 ? (labels[0] ?? "") : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }

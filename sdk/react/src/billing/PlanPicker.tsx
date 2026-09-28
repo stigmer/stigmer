@@ -17,7 +17,7 @@ export const ENTERPRISE_CONTACT_URL = "https://stigmer.ai/contact-sales";
 
 /** Props for {@link PlanPicker}. */
 export interface PlanPickerProps {
-  /** The plans that can be bought, in catalog order. */
+  /** The plans that can be bought, cheapest first, as `buyablePlans` orders them. */
   readonly plans: readonly Plan[];
   /** Where the organization stands. */
   readonly standing: PlanStanding;

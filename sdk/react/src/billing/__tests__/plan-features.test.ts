@@ -1,6 +1,7 @@
 // What a plan shows: only the features Cloud offers today, in contract
 // order (a feature listed ahead of its gate is left out), its price and
-// usage share, and its managed organizations; and every period day in UTC.
+// usage share, and its managed organizations; every period day in UTC; and
+// which plans are offered, cheapest first, with what a switch gives up.
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -8,12 +9,16 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { PlanTermsSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import {
+  buyablePlans,
+  featuresLost,
   formatManagedOrganizations,
   formatMonthlyMinimum,
   formatPeriodDay,
   formatUsageShare,
+  lowestPlanWith,
   offeredFeatures,
 } from "../plan-features";
+import { BUSINESS as BUSINESS_PLAN, RETIRED, TEAM } from "./fixtures";
 
 const USD = 1_000_000n;
 const BUSINESS = create(EntitlementsSchema, {
@@ -63,5 +68,22 @@ describe("formatPeriodDay", () => {
   it("shows a period boundary as its UTC calendar day", () => {
     expect(formatPeriodDay(timestampFromDate(new Date("2027-02-28T23:30:00Z")))).toBe("Feb 28, 2027");
     expect(formatPeriodDay(undefined)).toBe("");
+  });
+});
+
+describe("which plans are offered", () => {
+  it("offers the buyable plans cheapest first, whatever the catalog's order, and never a retired one", () => {
+    expect(buyablePlans([BUSINESS_PLAN, RETIRED, TEAM]).map((plan) => plan.metadata?.name)).toEqual(["Team", "Business"]);
+  });
+
+  it("names the cheapest buyable plan that includes a feature", () => {
+    expect(lowestPlanWith([BUSINESS_PLAN, RETIRED, TEAM], Feature.teams)?.metadata?.name).toBe("Team");
+    expect(lowestPlanWith([BUSINESS_PLAN, TEAM], Feature.managed_organizations)?.metadata?.name).toBe("Business");
+    expect(lowestPlanWith([TEAM], Feature.managed_organizations)).toBeUndefined();
+  });
+
+  it("says what a switch stops the organization creating, and nothing for an upgrade", () => {
+    expect(featuresLost(BUSINESS_PLAN, TEAM).map((feature) => feature.label)).toEqual(["Managed organizations"]);
+    expect(featuresLost(TEAM, BUSINESS_PLAN)).toEqual([]);
   });
 });
