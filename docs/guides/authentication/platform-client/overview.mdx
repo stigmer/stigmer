@@ -219,7 +219,33 @@ PlatformClient in your organization resolves to a single Stigmer identity. If
 you have separate PlatformClients for your dashboard, mobile app, and admin
 tool, a user who signs in through any of them shares one identity account and
 one set of permissions. Use a consistent, stable identifier across all your apps
-(for example, your Auth0 `sub`, Clerk user ID, or database primary key).
+(for example, your Auth0 `sub`, Clerk user ID, or database primary key). Stigmer
+still records which PlatformClient each change came through: a resource a user
+creates or updates names the PlatformClient on its audit, beside the shared
+account.
+
+## Give embedded assistants their credentials
+
+An embedded assistant often calls MCP servers that need a credential of your
+own, such as a shared API secret. Put that credential in an Environment and list
+the Environment in the PlatformClient's `environment_refs`. Every Agent
+execution a user signed in through that PlatformClient starts then receives the
+Environment's values, and so does a recovery of that execution. The Agent and
+its Agent Instance stay as they are.
+
+- **Lowest priority.** The Agent Instance's own Environments and the values the
+  request passes at run time win on a conflicting key, so a PlatformClient
+  supplies defaults and never overrides the Agent's configuration.
+- **Same Organization.** The Environments must belong to the PlatformClient's
+  Organization, and they are delivered only to executions in that Organization.
+- **Kept up to date.** Stigmer reads the PlatformClient when each execution
+  starts, so an edit applies to the next execution.
+- **Kept valid.** If a listed Environment is deleted, executions fail to start
+  with `NOT_FOUND` until you remove it from `environment_refs` or create it
+  again.
+
+Executions started by a Schedule or by a Workflow's `agent_call` task receive
+their own Environments, not the PlatformClient's.
 
 ## Error handling
 

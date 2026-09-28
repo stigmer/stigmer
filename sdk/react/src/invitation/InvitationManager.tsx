@@ -18,6 +18,7 @@ import { useRevokeInvitation } from "./useRevokeInvitation.js";
 import { InvitationCreatedAlert } from "./InvitationCreatedAlert.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { RoleSelector } from "../iam-policy/RoleSelector.js";
+import { useOwnerAssignment } from "../iam-policy/useOwnerAssignment.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
@@ -237,6 +238,9 @@ function CreateInvitationForm({
   onCancel: () => void;
 }) {
   const { create, isCreating, error, clearError } = useCreateInvitation();
+  // An invitation grants with its creator's authority: only an owner may
+  // invite an owner, and the server refuses anyone else.
+  const { unassignable } = useOwnerAssignment(org);
   const baseId = useId();
 
   const [label, setLabel] = useState("");
@@ -303,6 +307,7 @@ function CreateInvitationForm({
         kind={ApiResourceKind.organization}
         selected={role}
         onSelect={(r) => setRole(r)}
+        omitRoles={unassignable}
         disabled={isCreating}
       />
 

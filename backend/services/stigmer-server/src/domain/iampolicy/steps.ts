@@ -5,8 +5,9 @@
  * calls the ONE grant and revoke path (grant-path.ts, which owns the
  * cloud#425 orderings, the by-triple read and the wire refusals) and leaves
  * its answer under POLICY_RESULT_KEY for the handler. The chains are
- * deliberately short: `Authorize → ValidateProto → <one of these>`, so the
- * pipeline executor's fault mapping (a step's ConnectError keeps its code;
+ * deliberately short: `Authorize → ValidateProto → <one of these>`, with
+ * only the owner steps (the last section) before the write on the three
+ * caller lanes, so the pipeline executor's fault mapping (a step's ConnectError keeps its code;
  * a raw store fault becomes the sanitized INTERNAL) covers the path's two
  * error shapes with no second idiom in the handlers.
  *
@@ -51,8 +52,34 @@
  * exists and belongs to the resource's organization needs a read, which
  * this synchronous step does not make: that is the
  * `iam-policy-create:pre-side-effect-gate` slot's, spliced after it.
+ *
+ * Owner is assigned by owners. Every caller of the member lanes holds
+ * `can_grant_access` (admin) already, so an admin grants every role up to
+ * admin; a change that touches an organization's `owner` role also needs
+ * `can_assign_roles` there, which only its owners hold. Two steps carry it,
+ * on the caller lanes only (`create`, `delete`, `revokeOrgAccess`; never
+ * the bootstrap twins, whose platform-pipeline callers hold no
+ * organization role):
+ *   - AuthorizeOwnerAssignment asks `can_assign_roles` when the spec grants
+ *     or revokes `owner` on an organization, or when the account
+ *     `revokeOrgAccess` removes holds it. It is Authorize's own evaluation
+ *     (`authorizeResolvedResource`), so the `internal` caller skips it as it
+ *     skips position 1;
+ *   - KeepOneOwner refuses a revoke or a removal that would leave the
+ *     organization with no owner. It is a product rule rather than
+ *     authorization, so it is its own step. It skips `internal` too. The
+ *     port has no transaction, so two owners removing each other at the
+ *     same instant can both pass; each still needed `can_assign_roles`.
+ * Both read the organization's owner rows once per request
+ * (`organizationOwners`). They do not govern the grants that follow
+ * configuration rather than a caller (the organization creator's row, the
+ * membership rules, the trusted-local operator), which call the grant path
+ * directly, nor an edition's in-process doors that grant a role on a
+ * person's behalf (an invitation's redemption, an identity provider's
+ * auto-grant), which run as `internal` and hold the same rule at their own
+ * sites.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, type DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -63,8 +90,9 @@ import type {
   ApiResourceRefSchema,
   IamPolicySpecSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { PolicyGrantScope } from "../../extensions/policy-grant-scope.js";
 import {
   grantableRolesFor,
@@ -73,7 +101,10 @@ import {
 } from "../../pipeline/apiresource-meta.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import {
+  LAST_OWNER_MESSAGE,
+  OWNER_ASSIGNMENT_DENIED_MESSAGE,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   TEAM_MEMBERS_RELATION,
   noGrantableRolesMessage,
@@ -85,6 +116,7 @@ import {
   teamRoleNotGrantableMessage,
 } from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
+import type { IamPolicyStore } from "./store.js";
 import {
   requireKnownPrincipalKind,
   requireKnownResourceKind,
@@ -255,6 +287,134 @@ export function newCleanupResourceStep(
     execute(ctx: RequestContext<typeof ApiResourceRefSchema>): Promise<void> {
       const ref: ApiResourceRef = ctx.input;
       return grantPath.cleanupResource(ref);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Owner is assigned by owners (the module header's last section)
+// ---------------------------------------------------------------------------
+
+/** The wire names the two owner steps compare against. */
+const ORGANIZATION_KIND_NAME = kindEnumName(ApiResourceKind.organization);
+const IDENTITY_ACCOUNT_KIND_NAME = kindEnumName(ApiResourceKind.identity_account);
+const OWNER_RELATION = IamRole[IamRole.owner];
+
+/** The context key the organization's owner rows are kept under for the rest of the request. */
+const ORGANIZATION_OWNERS_KEY = "organizationOwners";
+
+/** An organization owner role a request would grant or remove, and whose it is. */
+export interface OwnerRoleChange {
+  readonly organizationId: string;
+  readonly accountId: string;
+}
+
+/**
+ * The ids of the people holding `owner` on the organization, read once per
+ * request and shared by both owner steps: the organization's `owner` rows
+ * whose principal is a person, the only principal the model admits there.
+ */
+async function organizationOwners<Desc extends DescMessage>(
+  ctx: RequestContext<Desc>,
+  policies: IamPolicyStore,
+  organizationId: string,
+): Promise<ReadonlySet<string>> {
+  const held = ctx.get(ORGANIZATION_OWNERS_KEY);
+  if (held instanceof Set) {
+    return held as ReadonlySet<string>;
+  }
+  const rows = await policies.findByResourceWithRelations(
+    ORGANIZATION_KIND_NAME,
+    organizationId,
+    [OWNER_RELATION],
+  );
+  const owners = new Set(
+    rows
+      .map((row) => row.spec?.principal)
+      .filter((principal) => principal?.kind === IDENTITY_ACCOUNT_KIND_NAME)
+      .map((principal) => principal?.id ?? ""),
+  );
+  ctx.set(ORGANIZATION_OWNERS_KEY, owners);
+  return owners;
+}
+
+/** `create` and `delete`: the spec names the change; nothing is read. */
+export function specOwnerRoleChange(
+  ctx: RequestContext<typeof IamPolicySpecSchema>,
+): Promise<OwnerRoleChange | undefined> {
+  const { resource, principal, relation } = ctx.input;
+  if (resource?.kind !== ORGANIZATION_KIND_NAME || relation !== OWNER_RELATION) {
+    return Promise.resolve(undefined);
+  }
+  return Promise.resolve({
+    organizationId: resource.id,
+    accountId: principal?.id ?? "",
+  });
+}
+
+/** `revokeOrgAccess`: the removal touches owner exactly when the account holds it. */
+export function orgAccessOwnerRoleChange(
+  policies: IamPolicyStore,
+): (
+  ctx: RequestContext<typeof RevokeOrgAccessInputSchema>,
+) => Promise<OwnerRoleChange | undefined> {
+  return async (ctx) => {
+    const { identityAccountId, organizationId } = ctx.input;
+    const owners = await organizationOwners(ctx, policies, organizationId);
+    return owners.has(identityAccountId)
+      ? { organizationId, accountId: identityAccountId }
+      : undefined;
+  };
+}
+
+/** A change touching an organization's owner role needs `can_assign_roles` there; see the module header. */
+export function newAuthorizeOwnerAssignmentStep<Desc extends DescMessage>(
+  authorizer: Authorizer,
+  ownerRoleChange: (ctx: RequestContext<Desc>) => Promise<OwnerRoleChange | undefined>,
+): PipelineStep<Desc> {
+  return {
+    name: "AuthorizeOwnerAssignment",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      if (ctx.callerIdentity.callerClass === "internal") {
+        return;
+      }
+      const change = await ownerRoleChange(ctx);
+      if (change === undefined) {
+        return;
+      }
+      await authorizeResolvedResource(
+        authorizer,
+        ctx.callerIdentity,
+        {
+          permission: IamPermission.can_assign_roles,
+          resourceKind: ApiResourceKind.organization,
+          resourceId: change.organizationId,
+        },
+        OWNER_ASSIGNMENT_DENIED_MESSAGE,
+      );
+    },
+  };
+}
+
+/** A revoke or removal may not leave the organization with no owner; see the module header. */
+export function newKeepOneOwnerStep<Desc extends DescMessage>(
+  policies: IamPolicyStore,
+  ownerRoleChange: (ctx: RequestContext<Desc>) => Promise<OwnerRoleChange | undefined>,
+): PipelineStep<Desc> {
+  return {
+    name: "KeepOneOwner",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      if (ctx.callerIdentity.callerClass === "internal") {
+        return;
+      }
+      const change = await ownerRoleChange(ctx);
+      if (change === undefined) {
+        return;
+      }
+      const owners = await organizationOwners(ctx, policies, change.organizationId);
+      if (owners.has(change.accountId) && owners.size === 1) {
+        throw new ConnectError(LAST_OWNER_MESSAGE, Code.FailedPrecondition);
+      }
     },
   };
 }

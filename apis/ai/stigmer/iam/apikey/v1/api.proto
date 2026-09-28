@@ -38,6 +38,7 @@ message ApiKeyStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.).
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  // Timestamp of the most recent API call made with this key.
+  // Timestamp of the most recent API call made with this key, recorded at most
+  // once a minute. Unset until the key is first used.
   google.protobuf.Timestamp last_used_at = 1;
 }

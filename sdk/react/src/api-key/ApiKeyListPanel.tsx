@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { formatRelativeTime } from "../activity/format-relative-time.js";
+import { LastUsedLabel } from "../internal/LastUsedLabel.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -263,11 +263,7 @@ function ApiKeyRow({
               ? `Expires ${formatShortDate(timestampDate(expiresAt))}`
               : "No expiry"}
         </span>
-        <span>
-          {lastUsedAt
-            ? formatRelativeTime(timestampDate(lastUsedAt), now)
-            : "Never used"}
-        </span>
+        <LastUsedLabel at={lastUsedAt} now={now} />
       </div>
 
       {/* Delete button */}

@@ -25,6 +25,12 @@ export interface RoleSelectorProps {
    * Defaults to a person.
    */
   readonly granteeKind?: GranteeKind;
+  /**
+   * Roles to leave out even though the kind grants them: the ones the
+   * caller may not assign (an organization's `owner`, for anyone who is not
+   * its owner). See {@link useRoleSelector}.
+   */
+  readonly omitRoles?: readonly IamRole[];
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -54,6 +60,7 @@ export function RoleSelector({
   defaultRole,
   disabled = false,
   granteeKind = "identity_account",
+  omitRoles,
   className,
 }: RoleSelectorProps) {
   // Instance-scoped radio-group name (oss#593): a hardcoded name would make
@@ -66,6 +73,7 @@ export function RoleSelector({
     kind,
     defaultRole,
     granteeKind,
+    omitRoles,
   );
 
   const currentSelected = controlledSelected !== undefined

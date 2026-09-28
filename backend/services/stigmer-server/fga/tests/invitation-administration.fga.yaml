@@ -1,6 +1,6 @@
-# An invitation is its organization's administrative resource: its admins
-# view and manage it, its creator manages it, and nobody else in the
-# organization sees it. An invitation carries its token, the credential
+# An invitation is its organization's administrative resource: its current
+# admins view and manage it, and nobody else in the organization sees it,
+# its creator included once they are no longer an admin. An invitation carries its token, the credential
 # that grants the invitation's role, so `can_view` is the question every
 # read of it asks.
 #
@@ -8,12 +8,15 @@
 #   root  - acme owner (an admin through the role hierarchy)
 #   ana   - acme admin; created nothing
 #   carl  - created invitation `link` as an acme admin, since demoted to
-#           member (his direct owner row outlives the role)
+#           member; the kind records no owner, so nothing about the link is
+#           his and his role alone decides
+#   rita  - created invitation `link` too, since removed from acme
 #   dave  - acme member-role member
 #   vera  - acme viewer-role member
 #   zara  - admin of the unrelated organization other
 #
-# Invitation `link` carries both creation tuples. Invitation `relinked`
+# Invitation `link` carries its creation tuple, the organization link.
+# Invitation `relinked`
 # carries only its organization link: every invitation written before its
 # creation event existed, as the boot reconcile repairs it. Invitation
 # `bare` carries no tuple at all, the state before that repair: nobody,
@@ -28,7 +31,6 @@ tuples:
   - {user: identity_account:vera, relation: viewer, object: organization:acme}
   - {user: identity_account:zara, relation: admin, object: organization:other}
   - {user: organization:acme, relation: organization, object: invitation:link}
-  - {user: identity_account:carl, relation: owner, object: invitation:link}
   - {user: organization:acme, relation: organization, object: invitation:relinked}
 tests:
   - name: every admin of the organization views and manages its invitations
@@ -60,11 +62,14 @@ tests:
       - user: identity_account:vera
         object: invitation:link
         assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
-  - name: a creator who is no longer an admin still manages the link and cannot view it
+  - name: a creator who is no longer an admin, or no longer a member, has nothing on the link
     check:
       - user: identity_account:carl
         object: invitation:link
-        assertions: {owner: true, can_edit: true, can_delete: true, viewer: false, can_view: false}
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+      - user: identity_account:rita
+        object: invitation:link
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
   - name: an admin of another organization has nothing
     check:
       - user: identity_account:zara

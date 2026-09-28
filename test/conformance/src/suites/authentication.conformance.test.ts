@@ -23,7 +23,10 @@
 //   - an API-KEY credential (stigmer#984): a server-minted `stk_` key
 //     authenticates AS its owner wherever a posture is on — a write through
 //     it is audited to the owning account; garbage or deleted keys refuse
-//     with the byte-pinned `invalid token` both editions share.
+//     with the byte-pinned `invalid token` both editions share; and a
+//     request through a key records the key's last use on it, readable by
+//     its owner (stigmer/stigmer#1255), proven on the target's enforcing
+//     lane because only a posture composes the key's verifier.
 // Coverage of the absent-token arm was ZERO before this suite: every
 // conformance RPC carried the primary credential, so a composition that
 // admitted anonymous callers as `system` passed five green readouts
@@ -37,6 +40,7 @@
 // credential arms measure Java's real interceptor there — the harness no
 // longer has a "bypassed edge" posture to skip on, by design: a target whose
 // edge admits anonymous callers FAILS these arms, never skips them.
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
 import { HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -44,7 +48,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 // The Java interceptor's refusal copy, byte-pinned on both editions
 // (GrpcSecurityConfigBase.java; the TS chassis's
@@ -247,5 +251,39 @@ describe("authentication posture: a request with an API-key credential", () => {
       error.rawMessage,
       "revocation is deletion, effective on the next request, with the shared copy",
     ).toBe(INVALID_TOKEN_MESSAGE);
+  });
+
+  it("a request through a key records the key's last use, readable by its owner", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) {
+      ctx.skip(enforcing.reason);
+      return;
+    }
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    fixtures.defer(() => lane.cleanupTenancy(tenancy));
+    const created = await lane.clients.apiKeyCommand.create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "ApiKey",
+      metadata: { name: uniqueName("last-use-key"), org: tenancy.org },
+      spec: {},
+    });
+    const id = created.metadata?.id ?? "";
+    fixtures.defer(() => lane.clients.apiKeyCommand.delete({ value: id }));
+    const lastUsed = async () =>
+      (await lane.clients.apiKeyQuery.get({ value: id })).status?.lastUsedAt;
+
+    expect(await lastUsed(), "a new key has never been used").toBeUndefined();
+
+    await lane
+      .clientsPresenting(created.spec?.keyHash ?? "")
+      .organizationQuery.findMyOrganizations({});
+
+    const stamp = await lastUsed();
+    expect(stamp, "a request through the key records its last use").toBeDefined();
+    // Two clocks meet here (this process's and the server's), so the stamp
+    // is held to the day, not to the second.
+    const ageMs = Date.now() - timestampDate(stamp!).getTime();
+    expect(Math.abs(ageMs)).toBeLessThan(86_400_000);
   });
 });

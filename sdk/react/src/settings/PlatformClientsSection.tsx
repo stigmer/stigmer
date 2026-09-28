@@ -7,8 +7,10 @@ import { PlatformClientListPanel } from "../platform-client/PlatformClientListPa
 import { CreatePlatformClientForm } from "../platform-client/CreatePlatformClientForm.js";
 import { PlatformClientDetailPanel } from "../platform-client/PlatformClientDetailPanel.js";
 import { PlatformClientSecretAlert } from "../platform-client/PlatformClientSecretAlert.js";
+import { PLATFORM_CLIENTS_MANAGED_BY_ADMINS } from "../platform-client/copy.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
-import { useActiveOrgSlug } from "../organization/OrgProvider.js";
+import { useActiveOrgId, useActiveOrgSlug } from "../organization/OrgProvider.js";
 import { useServerInfo } from "../server-info.js";
 
 type FlowState =
@@ -32,13 +34,30 @@ type FlowState =
  * A server too old to say either way is offered the button, and its own
  * answer to the create decides: the section never claims a limitation the
  * server did not report. Until the server has answered, it offers neither.
+ *
+ * The button also needs the caller to hold `can_create_platform_client` on
+ * the organization, which the model gives its admins. The list shows only
+ * the clients the caller may view (each client's creator and the
+ * organization's admins), so a caller who may not create them is told that
+ * the organization's admins manage them rather than that none is
+ * configured.
  */
 export function PlatformClientsSection() {
   const headingId = useId();
   const org = useActiveOrgSlug();
+  const orgId = useActiveOrgId();
   const { serverInfo } = useServerInfo();
   const trustsEveryRequest = serverInfo?.authenticationRequired === false;
   const canMint = serverInfo !== null && !trustsEveryRequest;
+  const createCheck = useCheckPermission(
+    orgId ? { kind: "organization", id: orgId } : null,
+    "can_create_platform_client",
+  );
+  const canCreate = !createCheck.isLoading && createCheck.allowed;
+  const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
+  const emptyState = deniedCreate
+    ? PLATFORM_CLIENTS_MANAGED_BY_ADMINS
+    : undefined;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);
@@ -93,7 +112,7 @@ export function PlatformClientsSection() {
           Platform Clients
         </h2>
 
-        {canMint && org && flow.phase === "idle" && (
+        {canMint && canCreate && org && flow.phase === "idle" && (
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
@@ -140,6 +159,7 @@ export function PlatformClientsSection() {
               setFlow({ phase: "editing", platformClient: pc })
             }
             onRefetchRef={handleRefetchRef}
+            emptyState={emptyState}
           />
         </div>
       ) : flow.phase === "editing" ? (
@@ -159,6 +179,7 @@ export function PlatformClientsSection() {
             setFlow({ phase: "editing", platformClient: pc })
           }
           onRefetchRef={handleRefetchRef}
+          emptyState={emptyState}
         />
       )}
     </section>

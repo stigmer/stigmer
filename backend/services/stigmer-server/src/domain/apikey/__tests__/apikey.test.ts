@@ -12,7 +12,9 @@
  *     values; only the expiry fields move;
  *   - getByKeyHash resolves by the stored hash and answers the
  *     byte-pinned "ApiKey not found" for an unknown or deleted hash —
- *     deletion takes effect on the very next lookup (no cache).
+ *     deletion takes effect on the very next lookup (no cache);
+ *   - findAll answers newest first, so a key's last-use stamp rewriting
+ *     its row never reorders the list (stigmer/stigmer#1255).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -21,7 +23,7 @@ import path from "node:path";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
-import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
@@ -249,5 +251,18 @@ describe("apikey domain (composed server)", () => {
     );
     expect(mine).toBeDefined();
     expect(mine?.spec?.keyHash).toBe(hashApiKey(plaintext));
+  });
+
+  it("findAll answers newest first", async () => {
+    for (let i = 0; i < 3; i += 1) {
+      await command.create(keyInput());
+    }
+    const created = (await query.findAll({})).entries.map((entry) => {
+      const at = entry.status?.audit?.specAudit?.createdAt;
+      expect(at, "every stored key carries its creation instant").toBeDefined();
+      return timestampDate(at!).getTime();
+    });
+    expect(created.length).toBeGreaterThanOrEqual(3);
+    expect(created).toEqual([...created].sort((a, b) => b - a));
   });
 });

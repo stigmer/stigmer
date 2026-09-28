@@ -243,6 +243,106 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
     },
   ],
   [
+    "modifyById persists what modify did, answers the persisted row, and the lookups follow it",
+    async ({ store }) => {
+      await store.save(ACME_DASHBOARD);
+      const answered = await store.modifyById(
+        "pcl_contract_acme_dashboard",
+        (client) => {
+          assert.ok(client.spec, "the saved client carries a spec");
+          client.spec.allowedOrigins = ["https://app.acme.example"];
+        },
+      );
+      const expected = platformClient({
+        id: "pcl_contract_acme_dashboard",
+        org: "acme",
+        slug: "dashboard",
+        clientId: "stgm_cid_contract_acme_dashboard",
+        allowedOrigins: ["https://app.acme.example"],
+      });
+      assertSameClient(answered, expected, "modifyById must answer the persisted row");
+      assertSameClient(
+        await store.findById("pcl_contract_acme_dashboard"),
+        expected,
+        "findById must answer the modified row",
+      );
+      assertSameClient(
+        await store.findByClientId("stgm_cid_contract_acme_dashboard"),
+        expected,
+        "findByClientId must answer the modified row",
+      );
+      assertSameClient(
+        await store.findByOrgAndSlug("acme", "dashboard"),
+        expected,
+        "findByOrgAndSlug must answer the modified row",
+      );
+    },
+  ],
+  [
+    "modifyById of an unknown id answers undefined and writes nothing",
+    async ({ store }) => {
+      let called = false;
+      const answered = await store.modifyById(
+        "pcl_contract_acme_dashboard",
+        () => {
+          called = true;
+        },
+      );
+      assert.equal(answered, undefined);
+      assert.equal(called, false, "modify must not run for a row that is not held");
+      assert.equal(
+        await store.findById("pcl_contract_acme_dashboard"),
+        undefined,
+        "modifyById must modify, never create",
+      );
+    },
+  ],
+  [
+    "a modify that throws writes nothing and rejects with its error",
+    async ({ store }) => {
+      await store.save(ACME_DASHBOARD);
+      const refusal = new Error("modify refused");
+      await assert.rejects(
+        store.modifyById("pcl_contract_acme_dashboard", (client) => {
+          assert.ok(client.spec, "the saved client carries a spec");
+          client.spec.allowedOrigins = ["https://half.written.example"];
+          throw refusal;
+        }),
+        (error: unknown) => error === refusal,
+        "the modify's own error must propagate",
+      );
+      assertSameClient(
+        await store.findById("pcl_contract_acme_dashboard"),
+        ACME_DASHBOARD,
+        "nothing a throwing modify did may persist",
+      );
+    },
+  ],
+  [
+    "concurrent modifyById calls on one row lose no write",
+    async ({ store }) => {
+      await store.save(ACME_DASHBOARD);
+      const origins = Array.from(
+        { length: 8 },
+        (_, i) => `https://writer-${i}.acme.example`,
+      );
+      await Promise.all(
+        origins.map((origin) =>
+          store.modifyById("pcl_contract_acme_dashboard", (client) => {
+            assert.ok(client.spec, "the saved client carries a spec");
+            client.spec.allowedOrigins.push(origin);
+          }),
+        ),
+      );
+      const stored = await store.findById("pcl_contract_acme_dashboard");
+      assert.deepEqual(
+        [...(stored?.spec?.allowedOrigins ?? [])].sort(),
+        [...origins].sort(),
+        "every concurrent modify must see the one before it: a read-then-write driver loses edits here",
+      );
+    },
+  ],
+  [
     "deleteById frees the id, the client_id and the slug; deleting an unknown id resolves",
     async ({ store }) => {
       await store.save(ACME_DASHBOARD);

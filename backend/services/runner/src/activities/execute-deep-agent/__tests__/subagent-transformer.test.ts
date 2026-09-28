@@ -518,6 +518,30 @@ describe("transformAndCompileSubagents", () => {
     warnSpy.mockRestore();
   });
 
+  it("a sub-agent name declared twice resolves to the later declaration", async () => {
+    // deepagents refuses duplicate sub-agent names and would fail the turn;
+    // the runner keeps the behaviour agents were written against.
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await transformAndCompileSubagents({
+      ...baseOptions,
+      subAgents: [
+        mockSubAgentProto({ name: "reviewer", description: "The first reviewer." }),
+        mockSubAgentProto({ name: "reviewer", description: "The later reviewer." }),
+      ],
+    } as Parameters<typeof transformAndCompileSubagents>[0]);
+
+    expect(result).not.toBeNull();
+    const reviewers = result!.filter((r) => r.name === "reviewer");
+    expect(reviewers).toHaveLength(1);
+    expect(reviewers[0].description).toBe("The later reviewer.");
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("declared more than once"));
+
+    logSpy.mockRestore();
+    warnSpy.mockRestore();
+  });
+
   it("gracefully handles transform failures for individual subagents", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});

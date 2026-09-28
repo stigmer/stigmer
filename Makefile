@@ -468,7 +468,7 @@ test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local; buil
 test-conformance-execution: build-runner ## Run gRPC conformance execution suite (local-execution; needs the `temporal` and `stigmer` CLIs)
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
-		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		echo "  install: make install-temporal-cli   (writes ~/bin/temporal, the version stigmer up runs)"; \
 		exit 1; \
 	}
 	@command -v stigmer >/dev/null 2>&1 || { \
@@ -493,7 +493,7 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on real providers and write the internal benchmark report (needs the `temporal` and `stigmer` CLIs, ANTHROPIC_API_KEY, CURSOR_API_KEY; spends money)
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the benchmark stack"; \
-		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		echo "  install: make install-temporal-cli   (writes ~/bin/temporal, the version stigmer up runs)"; \
 		exit 1; \
 	}
 	@echo "=== benchmark: native vs cursor on real providers (an experiment, not a test) ==="
@@ -529,7 +529,7 @@ test-conformance-postgres-execution: build-runner ## Run gRPC conformance execut
 	}
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
-		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		echo "  install: make install-temporal-cli   (writes ~/bin/temporal, the version stigmer up runs)"; \
 		exit 1; \
 	}
 	@command -v stigmer >/dev/null 2>&1 || { \
@@ -815,8 +815,14 @@ typecheck-desktop: ## Typecheck desktop app (TypeScript)
 
 # Its own target so the CI lane can run the Rust check alone: lint and
 # typecheck reach it there as turbo tasks over the affected packages.
+# tauri-build refuses a bundle resource path that does not exist, and
+# resources/runner is gitignored (setup-runner-dev.sh links it, the release
+# stages it). A type-check reads none of its contents, so a clean checkout
+# gets an empty directory, which both scripts replace.
 check-desktop-rust: ## Type-check the Tauri shell's Rust crate
-	cd client-apps/desktop/src-tauri && cargo check --quiet
+	cd client-apps/desktop/src-tauri && \
+		{ test -e resources/runner || mkdir -p resources/runner; } && \
+		cargo check --quiet
 
 verify-desktop: lint-desktop typecheck-desktop check-desktop-rust ## Lint + typecheck desktop (TS + Rust)
 
@@ -1150,6 +1156,15 @@ install-cli-shim: node_modules ## Install ~/bin/stigmer — a shim running the @
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "installed: $(HOME)/bin/stigmer  (runs the CLI from source)"
 	@command -v stigmer >/dev/null 2>&1 || echo "note: add $(HOME)/bin to your PATH, then reopen your shell, to use 'stigmer'"
+
+.PHONY: install-temporal-cli
+install-temporal-cli: node_modules ## Install ~/bin/temporal — the pinned, checksum-verified Temporal CLI `stigmer up` runs
+	@mkdir -p $(HOME)/bin
+	@# The product's own downloader (client-apps/cli/src/local/temporal/download.ts), run from
+	@# source: the version pin, the checksums.txt verification and the retry are the ones
+	@# `stigmer up` uses. CI calls this same target, so a laptop and a lane run the same Temporal.
+	@"$(CURDIR)/node_modules/.bin/tsx" "$(CURDIR)/client-apps/cli/scripts/install-temporal-cli.ts" --bin-dir "$(HOME)/bin"
+	@command -v temporal >/dev/null 2>&1 || echo "note: add $(HOME)/bin to your PATH, then reopen your shell, to use 'temporal'"
 
 .PHONY: local
 local: node_modules build-ts-stubs install-cli-shim build-server ## One-shot local setup: JS deps + proto stubs + a built server + a `stigmer` command

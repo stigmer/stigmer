@@ -75,6 +75,20 @@ export interface CallerIdentity {
   readonly email?: string;
   readonly displayName?: string;
   /**
+   * The PlatformClient whose minted user token this caller presented,
+   * carried for the audit-actor seam as `email` and `displayName` are:
+   * the audit actor records it (ApiResourceAuditActor.platform_client_id),
+   * and that server-owned record is what later readers key on, never this
+   * field (stigmer/stigmer#1256). Set ONLY by the PlatformClient
+   * user-token verifier (domain/platformclient/verifier.ts), from the
+   * claim it has just verified and whose client it has just found alive;
+   * absent on every other credential. It is provenance, not authorization
+   * data (the account the token names is still the principal), and not a
+   * guard vocabulary: caller guards decode their own skip logic from
+   * `rawToken` (extensions/caller-guards.ts).
+   */
+  readonly platformClientId?: string;
+  /**
    * The transport the request entered through (C2 Stage 3, ruling R5).
    * Absent = the wire; the in-process interceptor stamps `in-process` on
    * every identity it forwards — minted internal AND propagated caller

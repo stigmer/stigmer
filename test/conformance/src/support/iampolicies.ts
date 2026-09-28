@@ -123,6 +123,15 @@ export const VIEW_PRINCIPAL_ROLES_DENIED_MESSAGE =
 export const VIEW_PRINCIPALS_COUNT_DENIED_MESSAGE =
   "unauthorized to view principals count";
 
+// Owner is assigned by owners (command.proto, create, delete and
+// revokeOrgAccess): an admin who grants, revokes or removes the owner role
+// on an organization hears the first; a revoke or removal of its last owner
+// hears the second, whoever asks.
+export const OWNER_ASSIGNMENT_DENIED_MESSAGE =
+  "only an owner of the organization can grant, revoke or remove the owner role";
+export const LAST_OWNER_MESSAGE =
+  "an organization must keep at least one owner; make another member an owner first";
+
 // The three system RPCs' annotation copy (command.proto error_msg), the
 // sentence a wire user hears in every edition (Q-OR-7).
 export const BOOTSTRAP_POLICY_DENIED_MESSAGE =

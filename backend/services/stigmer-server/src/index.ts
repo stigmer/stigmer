@@ -168,6 +168,11 @@ export type {
   IamPolicyStoreContractFixture,
 } from "./domain/iampolicy/store-contract.js";
 export { iamPolicyStoreContract } from "./domain/iampolicy/store-contract.js";
+// The owner rule's refusal, the one sentence every door that grants the
+// owner role answers when its caller is no owner: the IamPolicy lanes here,
+// and an edition's own lanes that grant a role on a person's behalf (an
+// owner invitation).
+export { OWNER_ASSIGNMENT_DENIED_MESSAGE } from "./domain/iampolicy/constants.js";
 export type { PolicyGrantScope } from "./extensions/policy-grant-scope.js";
 export type { AuthorizationQueryEngine } from "./extensions/authorization-queries.js";
 // How an access list names a grantee that is not a person

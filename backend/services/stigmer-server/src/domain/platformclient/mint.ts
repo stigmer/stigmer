@@ -44,6 +44,14 @@
  *
  * The email and name in the token and on the account are the platform's
  * assertion; nothing on the server derives authority from either.
+ *
+ * A signed token is a successful mint, so the client's use is then
+ * recorded on its status.last_used_at (identity/credential-use.ts): at most
+ * once a resolution, judged from the row authentication already read,
+ * written through the port's atomic `modifyById` — never the whole-row
+ * `update`, which could write back the secret hash a concurrent rotation
+ * just replaced — and best-effort: a failed stamp is logged and the token
+ * is still answered. A refused mint records nothing (stigmer/stigmer#1255).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
@@ -54,6 +62,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { PlatformClientStatusSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type {
   MintUserTokenRequest,
   MintUserTokenResponse,
@@ -63,6 +72,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { recordCredentialUse } from "../../identity/credential-use.js";
 import { internalError } from "../../pipeline/errors.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { validator } from "../../pipeline/steps/validation.js";
@@ -164,6 +174,7 @@ export async function mintUserToken(
     user,
   );
 
+  const now = deps.now();
   const signed = signPlatformToken(
     keys,
     {
@@ -174,8 +185,9 @@ export async function mintUserToken(
       [USER_TOKEN_CLAIMS.org]: owningOrg,
       [USER_TOKEN_CLAIMS.platformClientId]: client.metadata?.id ?? "",
     },
-    { now: deps.now() },
+    { now },
   );
+  await recordClientUse(deps, client, now);
   return create(MintUserTokenResponseSchema, {
     accessToken: signed.token,
     tokenType: BEARER_TOKEN_TYPE,
@@ -221,6 +233,27 @@ async function authenticateClient(
     );
   }
   return client;
+}
+
+/** Stamps the minting client's last use on its own row, through the port's atomic write. */
+function recordClientUse(
+  deps: PlatformClientMintDeps,
+  client: PlatformClient,
+  now: Date,
+): Promise<void> {
+  const id = client.metadata?.id ?? "";
+  return recordCredentialUse({
+    credential: "platform client",
+    id,
+    lastUsedAt: client.status?.lastUsedAt,
+    now,
+    logger: deps.logger,
+    write: (stamp) =>
+      deps.clients.modifyById(id, (live) => {
+        live.status ??= create(PlatformClientStatusSchema);
+        stamp(live.status);
+      }),
+  });
 }
 
 /** The account id for the user: the existing platform-client account, or one provisioned now. */

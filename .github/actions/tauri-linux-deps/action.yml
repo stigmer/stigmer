@@ -1,0 +1,18 @@
+# The one definition of the Linux system packages Tauri compiles against:
+# webkit2gtk and the app-indicator and librsvg libraries the shell links, and
+# patchelf for the Linux bundles. Every job that compiles the Tauri shell, or
+# the runner-host crate's `tauri` feature, on Ubuntu calls this step, so the
+# list lives in one place and a Tauri upgrade that needs another package
+# changes it once (the reason turbo-cache is an action too).
+name: Install Tauri's Linux packages
+description: >-
+  apt-get install the system libraries Tauri 2 compiles and bundles against
+  on an Ubuntu runner.
+runs:
+  using: composite
+  steps:
+    - name: Install Tauri's Linux packages
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf

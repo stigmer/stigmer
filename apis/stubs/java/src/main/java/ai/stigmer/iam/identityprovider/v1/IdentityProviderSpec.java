@@ -638,7 +638,9 @@ private static final long serialVersionUID = 0L;
    * The role to grant when auto_grant_on_org is true.
    *
    * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
+   * is not permitted — organization ownership must be assigned explicitly —
+   * and a provider that asks for it is refused with
+   * `identity_provider.auto_grant_role_not_owner`.
    *
    * This field is only meaningful when auto_grant_on_org is true. When
    * auto_grant_on_org is false, this field is ignored regardless of its value.
@@ -661,7 +663,9 @@ private static final long serialVersionUID = 0L;
    * The role to grant when auto_grant_on_org is true.
    *
    * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-   * is not permitted — organization ownership must be assigned explicitly.
+   * is not permitted — organization ownership must be assigned explicitly —
+   * and a provider that asks for it is refused with
+   * `identity_provider.auto_grant_role_not_owner`.
    *
    * This field is only meaningful when auto_grant_on_org is true. When
    * auto_grant_on_org is false, this field is ignored regardless of its value.
@@ -2584,7 +2588,9 @@ private static final long serialVersionUID = 0L;
      * The role to grant when auto_grant_on_org is true.
      *
      * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
+     * is not permitted — organization ownership must be assigned explicitly —
+     * and a provider that asks for it is refused with
+     * `identity_provider.auto_grant_role_not_owner`.
      *
      * This field is only meaningful when auto_grant_on_org is true. When
      * auto_grant_on_org is false, this field is ignored regardless of its value.
@@ -2607,7 +2613,9 @@ private static final long serialVersionUID = 0L;
      * The role to grant when auto_grant_on_org is true.
      *
      * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
+     * is not permitted — organization ownership must be assigned explicitly —
+     * and a provider that asks for it is refused with
+     * `identity_provider.auto_grant_role_not_owner`.
      *
      * This field is only meaningful when auto_grant_on_org is true. When
      * auto_grant_on_org is false, this field is ignored regardless of its value.
@@ -2635,7 +2643,9 @@ private static final long serialVersionUID = 0L;
      * The role to grant when auto_grant_on_org is true.
      *
      * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
+     * is not permitted — organization ownership must be assigned explicitly —
+     * and a provider that asks for it is refused with
+     * `identity_provider.auto_grant_role_not_owner`.
      *
      * This field is only meaningful when auto_grant_on_org is true. When
      * auto_grant_on_org is false, this field is ignored regardless of its value.
@@ -2660,7 +2670,9 @@ private static final long serialVersionUID = 0L;
      * The role to grant when auto_grant_on_org is true.
      *
      * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
+     * is not permitted — organization ownership must be assigned explicitly —
+     * and a provider that asks for it is refused with
+     * `identity_provider.auto_grant_role_not_owner`.
      *
      * This field is only meaningful when auto_grant_on_org is true. When
      * auto_grant_on_org is false, this field is ignored regardless of its value.
@@ -2688,7 +2700,9 @@ private static final long serialVersionUID = 0L;
      * The role to grant when auto_grant_on_org is true.
      *
      * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
-     * is not permitted — organization ownership must be assigned explicitly.
+     * is not permitted — organization ownership must be assigned explicitly —
+     * and a provider that asks for it is refused with
+     * `identity_provider.auto_grant_role_not_owner`.
      *
      * This field is only meaningful when auto_grant_on_org is true. When
      * auto_grant_on_org is false, this field is ignored regardless of its value.

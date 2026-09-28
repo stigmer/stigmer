@@ -304,8 +304,11 @@ All visual properties flow through `--stgm-*` design tokens.
 View and edit panel for an existing platform client.
 
 In **view mode**, displays all configuration fields in a structured
-label/value layout with "Edit", "Rotate Secret", and "Delete"
-actions.
+label/value layout, with when the client last minted a token, and
+"Edit", "Rotate Secret", and "Delete" actions offered only to a caller
+the server allows: `can_edit` for Edit and Rotate, `can_delete` for
+Delete. The organization's admins may view a client they did not
+create, and see no actions on it.
 
 In **edit mode**, mutable spec fields become editable: JIT
 provisioning toggles, expiry, auto-grant role, and allowed
@@ -323,6 +326,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    now: { type: "Date", description: "Reference instant for the \"last used\" relative stamp. Defaults to the live clock. **Deterministic hosts (documentation embeds, video export) must pass a frozen instant** — otherwise a depicted client's \"2h ago\" drifts with every replay." },
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
     onDeleted: { type: "() => void", description: "Fired after a successful deletion." },
     onSecretRotated: { type: "(response: PlatformClientCreateResponse) => void", description: "Fired after a successful secret rotation with the response containing the one-time new raw secret." },
@@ -348,8 +352,9 @@ Displays a list of `PlatformClient` resources for an
 organization with inline delete confirmation.
 
 Each row shows the client name, `client_id` (monospace), secret
-fingerprint, expiry status, and creation date. A delete button
-triggers an inline confirmation flow.
+fingerprint, expiry status, creation date and when the client last
+minted a token. Edit and delete are offered only to a caller the
+server allows (`can_edit`, `can_delete`); delete confirms inline.
 
 Platform clients are admin-level resources with small cardinality
 (typically 1–5 per org), so the list is rendered without pagination.
@@ -361,6 +366,8 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No platform clients configured.\" The list holds only the clients the caller may view (each client's creator and the organization's admins), so a host that knows the caller may not manage platform clients should say who does instead." },
+    now: { type: "Date", description: "Reference instant for the \"last used\" relative stamp. Defaults to the live clock. **Deterministic hosts (documentation embeds, video export) must pass a frozen instant** — otherwise a depicted client's \"2h ago\" drifts with every replay." },
     onEdit: { type: "(pc: PlatformClient) => void", description: "Fired when the user wants to edit a platform client." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Expose the refetch function so parents can trigger a list refresh." },
     org: { type: "string", description: "Organization slug whose platform clients should be listed.", required: true },

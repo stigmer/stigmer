@@ -12,6 +12,9 @@ import {
   type GranteeKind,
 } from "@stigmer/sdk";
 
+/** The default for `omit`: one shared empty list, so the options never recompute for it. */
+const NOTHING_OMITTED: readonly IamRole[] = [];
+
 /** A single role option with display metadata. */
 export interface RoleOption {
   /** The IamRole enum value. */
@@ -52,6 +55,11 @@ export interface UseRoleSelectorReturn {
  * @param defaultRole - Optional initial selection.
  * @param granteeKind - Who the role is for: a person (the default) may
  *   hold any grantable role, a team only the kind's team roles.
+ * @param omit - Roles to leave out even though the kind grants them: the
+ *   ones the caller may not assign (an organization's `owner`, for anyone
+ *   who is not its owner). The server refuses them anyway; leaving them out
+ *   keeps a choice off the screen that could only fail. Pass a stable list
+ *   (a constant, or a memoized one): the options follow its identity.
  *
  * @example
  * ```tsx
@@ -68,6 +76,7 @@ export function useRoleSelector(
   kind: ApiResourceKind | null,
   defaultRole?: IamRole,
   granteeKind: GranteeKind = "identity_account",
+  omit: readonly IamRole[] = NOTHING_OMITTED,
 ): UseRoleSelectorReturn {
   const [selected, setSelected] = useState<IamRole | null>(
     defaultRole ?? null,
@@ -75,15 +84,17 @@ export function useRoleSelector(
 
   const options = useMemo<readonly RoleOption[]>(() => {
     if (kind === null) return [];
-    const roles =
-      granteeKind === "team" ? getTeamGrantableRoles(kind) : getGrantableRoles(kind);
+    const left = new Set(omit);
+    const roles = (
+      granteeKind === "team" ? getTeamGrantableRoles(kind) : getGrantableRoles(kind)
+    ).filter((role) => !left.has(role));
     return roles.map((role) => ({
       role,
       label: iamRoleDisplayName(role),
       description: iamRoleDescription(role),
       value: iamRoleToString(role),
     }));
-  }, [kind, granteeKind]);
+  }, [kind, granteeKind, omit]);
 
   const selectedValue = useMemo(
     () => (selected !== null ? iamRoleToString(selected) : ""),

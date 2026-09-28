@@ -20,12 +20,17 @@
 // The mint's contract:
 //   - the minted token IS the end user: one account per (organization,
 //     user_id), whichever of the organization's clients minted it;
+//   - so the audit tells the clients apart instead (stigmer/stigmer#1256):
+//     a resource a minted user writes records the minting client on its
+//     created_by actor, beside that one account;
 //   - an auto-provisioned user holds exactly the auto-grant role on the
 //     owning organization and sees that organization alone;
 //   - a wrong secret, an org_id that is not the owning organization, and a
 //     client that does not provision users are refused with the pinned copy;
 //   - rotating the secret stops the old one minting and leaves minted tokens
-//     valid until they expire.
+//     valid until they expire;
+//   - a successful mint records when the client was last used, readable by
+//     its owner; a refused mint records nothing (stigmer/stigmer#1255).
 //
 // Reads of the client itself: an outsider can neither read a client by
 // reference nor list the organization's clients, and a member — who may
@@ -35,6 +40,7 @@
 // Out of scope here: the CRUD contract on the primary
 // (platformclient.conformance.test.ts) and the server that trusts every
 // request, which refuses the mint (same file).
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -42,6 +48,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { expectGrpcCode } from "../contract/errors";
 import { FixtureTracker } from "../harness/fixtures";
+import { makeEnvironment } from "../support/environments";
 import { uniqueName } from "../support/naming";
 import {
   createPlatformClient,
@@ -250,6 +257,44 @@ describe.skipIf(!enforcementServed)(
       ).toBe(first);
     });
 
+    it("a resource a minted user creates records the minting client beside the one account", async () => {
+      const context = await tenancy();
+      const dashboard = await platformClient(context.org, {
+        autoGrantRole: IamRole.member,
+      });
+      const mobile = await platformClient(context.org, {
+        autoGrantRole: IamRole.member,
+      });
+      const userId = uniqueName("enforcement-user");
+
+      // The same end user writes once through each client (a member may
+      // create an Environment), and reads each row back as its creator.
+      const createdThrough = async (client: ProvisionedPlatformClient) => {
+        const asUser = lane.clientsPresenting(
+          await mintUserToken(lane.clients, client.credentials, userId),
+        );
+        const created = await asUser.environmentCommand.create(
+          makeEnvironment({ org: context.org, name: uniqueName("enforcement-env") }),
+        );
+        fixtures.defer(() =>
+          asUser.environmentCommand.delete({ resourceId: created.metadata!.id }),
+        );
+        const read = await asUser.environmentQuery.get({
+          value: created.metadata!.id,
+        });
+        return read.status?.audit?.specAudit?.createdBy;
+      };
+      const viaDashboard = await createdThrough(dashboard);
+      const viaMobile = await createdThrough(mobile);
+
+      expect(
+        viaDashboard?.id,
+        "both writes are the one account the organization's clients share",
+      ).toBe(viaMobile?.id);
+      expect(viaDashboard?.platformClientId).toBe(dashboard.id);
+      expect(viaMobile?.platformClientId).toBe(mobile.id);
+    });
+
     it("an auto-provisioned user holds the auto-grant role on the owning organization and sees it alone", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, {
@@ -376,6 +421,40 @@ describe.skipIf(!enforcementServed)(
       await lane
         .clientsPresenting(token)
         .organizationQuery.findMyOrganizations({});
+    });
+
+    it("a successful mint records the client's last use; a refused mint records nothing", async () => {
+      const context = await tenancy();
+      const client = await platformClient(context.org);
+      const lastUsed = async () =>
+        (await lane.clients.platformClientQuery.get({ value: client.id }))
+          .status?.lastUsedAt;
+
+      expect(await lastUsed(), "a new client has never been used").toBeUndefined();
+
+      await expectGrpcCode(
+        () =>
+          mintUserToken(
+            lane.clients,
+            { ...client.credentials, clientSecret: "stgm_cs_not-the-secret" },
+            uniqueName("enforcement-user"),
+          ),
+        Code.Unauthenticated,
+        "mint with a wrong secret",
+      );
+      expect(await lastUsed(), "a refused mint records nothing").toBeUndefined();
+
+      await mintUserToken(
+        lane.clients,
+        client.credentials,
+        uniqueName("enforcement-user"),
+      );
+      const stamp = await lastUsed();
+      expect(stamp, "a successful mint records the client's last use").toBeDefined();
+      // Two clocks meet here (this process's and the server's), so the
+      // stamp is held to the day, not to the second.
+      const ageMs = Date.now() - timestampDate(stamp!).getTime();
+      expect(Math.abs(ageMs)).toBeLessThan(86_400_000);
     });
   },
 );

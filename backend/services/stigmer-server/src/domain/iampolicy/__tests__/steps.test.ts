@@ -16,6 +16,14 @@
  * Grant and Revoke are proven for the one thing a step adds over the
  * grant path: the result they leave under POLICY_RESULT_KEY (the revoke
  * of an absent triple leaves the default instance, Java's contract).
+ *
+ * The two owner steps: a change that grants, revokes or removes an
+ * organization's owner role asks `can_assign_roles` there and refuses with
+ * the owner copy when it is denied; any other role, any other kind and the
+ * `internal` caller ask nothing; `revokeOrgAccess` asks exactly when the
+ * account holds owner; and the last owner is never revoked or removed,
+ * while one of two may be. Both read the organization's owners once per
+ * request.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
@@ -26,11 +34,20 @@ import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+import { create } from "@bufbuild/protobuf";
+
+import { RevokeOrgAccessInputSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
 import { createLogger } from "../../../boot/logger.js";
+import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { PolicyGrantScope } from "../../../extensions/policy-grant-scope.js";
 import { trustedLocalIdentityFor } from "../../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import {
+  LAST_OWNER_MESSAGE,
+  OWNER_ASSIGNMENT_DENIED_MESSAGE,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   noGrantableRolesMessage,
   personQualifierMessage,
@@ -46,9 +63,13 @@ import { newIamPolicyGrantPath } from "../grant-path.js";
 import { newOrganizationOnlyGrantScope } from "../grant-scope.js";
 import {
   POLICY_RESULT_KEY,
+  newAuthorizeOwnerAssignmentStep,
   newGrantStep,
+  newKeepOneOwnerStep,
   newRevokeStep,
   newValidateGrantableRoleStep,
+  orgAccessOwnerRoleChange,
+  specOwnerRoleChange,
 } from "../steps.js";
 import { fakeIamPolicyStore, orgRole, triple } from "./support.js";
 
@@ -396,5 +417,163 @@ describe("Grant and Revoke leave their result under POLICY_RESULT_KEY", () => {
     expect(
       (absent.get(POLICY_RESULT_KEY) as IamPolicy).metadata?.id ?? "",
     ).toBe("");
+  });
+});
+
+describe("owner is assigned by owners", () => {
+  const admin: CallerIdentity = { ...caller, identityId: "ida_ana", callerClass: "user" };
+  const internal: CallerIdentity = { ...caller, callerClass: "internal" };
+
+  /** An Authorizer that records every question and answers `can_assign_roles` as told. */
+  function authorizer(ownsAcme: boolean): Authorizer & { readonly asked: AuthzCheck[] } {
+    const asked: AuthzCheck[] = [];
+    return {
+      asked,
+      authorize: (_identity, check) => {
+        asked.push(check);
+        return Promise.resolve(
+          ownsAcme ? { kind: "allow" } : { kind: "deny", reason: "" },
+        );
+      },
+    };
+  }
+
+  const ASSIGN_ROLES_ON_ACME: AuthzCheck = {
+    permission: IamPermission.can_assign_roles,
+    resourceKind: ApiResourceKind.organization,
+    resourceId: "acme",
+  };
+
+  function specContext(
+    spec: IamPolicySpec,
+    identity: CallerIdentity = admin,
+  ): RequestContext<typeof IamPolicySpecSchema> {
+    return new RequestContext(IamPolicySpecSchema, spec, identity, ApiResourceKind.iam_policy);
+  }
+
+  function removalContext(
+    accountId: string,
+    identity: CallerIdentity = admin,
+  ): RequestContext<typeof RevokeOrgAccessInputSchema> {
+    return new RequestContext(
+      RevokeOrgAccessInputSchema,
+      create(RevokeOrgAccessInputSchema, { identityAccountId: accountId, organizationId: "acme" }),
+      identity,
+      ApiResourceKind.iam_policy,
+    );
+  }
+
+  /** A store holding acme's roles, the owners' read counted. */
+  async function storeWith(
+    roles: ReadonlyArray<readonly [string, string]>,
+  ): Promise<ReturnType<typeof fakeIamPolicyStore> & { readonly ownerReads: () => number }> {
+    const store = fakeIamPolicyStore();
+    const path = newIamPolicyGrantPath({ policies: store, lifecycle: undefined, logger: silent });
+    for (const [account, role] of roles) {
+      await path.grant(orgRole(account, role, "acme"), caller);
+    }
+    let reads = 0;
+    const read = store.findByResourceWithRelations.bind(store);
+    return Object.assign(store, {
+      findByResourceWithRelations: (...args: Parameters<typeof read>) => {
+        reads += 1;
+        return read(...args);
+      },
+      ownerReads: () => reads,
+    });
+  }
+
+  describe("AuthorizeOwnerAssignment", () => {
+    it("refuses an admin granting or revoking owner on an organization, with the owner copy", async () => {
+      const denied = authorizer(false);
+      const step = newAuthorizeOwnerAssignmentStep(denied, specOwnerRoleChange);
+      const error = await refusal(() => step.execute(specContext(orgRole("ida_bob", "owner", "acme"))));
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+      expect(denied.asked).toEqual([ASSIGN_ROLES_ON_ACME]);
+    });
+
+    it("lets an owner grant owner", async () => {
+      const allowed = authorizer(true);
+      await newAuthorizeOwnerAssignmentStep(allowed, specOwnerRoleChange).execute(
+        specContext(orgRole("ida_bob", "owner", "acme")),
+      );
+      expect(allowed.asked).toEqual([ASSIGN_ROLES_ON_ACME]);
+    });
+
+    it("asks nothing for a role below owner, for owner on another kind, or for the internal caller", async () => {
+      const denied = authorizer(false);
+      const step = newAuthorizeOwnerAssignmentStep(denied, specOwnerRoleChange);
+      await step.execute(specContext(orgRole("ida_bob", "admin", "acme")));
+      await step.execute(
+        specContext(triple({ kind: "identity_account", id: "ida_bob" }, "owner", { kind: "agent", id: "agt_1" })),
+      );
+      await step.execute(specContext(orgRole("ida_bob", "owner", "acme"), internal));
+      expect(denied.asked).toEqual([]);
+    });
+
+    it("asks when revokeOrgAccess removes an owner, and not when it removes anyone else", async () => {
+      const store = await storeWith([["ida_root", "owner"], ["ida_dave", "member"]]);
+      const denied = authorizer(false);
+      const step = newAuthorizeOwnerAssignmentStep(denied, orgAccessOwnerRoleChange(store));
+
+      await step.execute(removalContext("ida_dave"));
+      expect(denied.asked).toEqual([]);
+
+      const error = await refusal(() => step.execute(removalContext("ida_root")));
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
+      expect(denied.asked).toEqual([ASSIGN_ROLES_ON_ACME]);
+    });
+  });
+
+  describe("KeepOneOwner", () => {
+    it("refuses revoking the last owner's role, and lets one of two go", async () => {
+      const sole = await storeWith([["ida_root", "owner"]]);
+      const error = await refusal(() =>
+        newKeepOneOwnerStep(sole, specOwnerRoleChange).execute(
+          specContext(orgRole("ida_root", "owner", "acme")),
+        ),
+      );
+      expect(error.code).toBe(Code.FailedPrecondition);
+      expect(error.rawMessage).toBe(LAST_OWNER_MESSAGE);
+
+      const two = await storeWith([["ida_root", "owner"], ["ida_rhea", "owner"]]);
+      await newKeepOneOwnerStep(two, specOwnerRoleChange).execute(
+        specContext(orgRole("ida_root", "owner", "acme")),
+      );
+    });
+
+    it("lets a revoke through when the account does not hold owner, whoever the last owner is", async () => {
+      const store = await storeWith([["ida_root", "owner"]]);
+      await newKeepOneOwnerStep(store, specOwnerRoleChange).execute(
+        specContext(orgRole("ida_bob", "owner", "acme")),
+      );
+    });
+
+    it("refuses removing the last owner from the organization, and lets any other member go", async () => {
+      const store = await storeWith([["ida_root", "owner"], ["ida_dave", "member"]]);
+      const step = newKeepOneOwnerStep(store, orgAccessOwnerRoleChange(store));
+      await step.execute(removalContext("ida_dave"));
+      const error = await refusal(() => step.execute(removalContext("ida_root")));
+      expect(error.code).toBe(Code.FailedPrecondition);
+      expect(error.rawMessage).toBe(LAST_OWNER_MESSAGE);
+    });
+
+    it("leaves the internal caller alone", async () => {
+      const store = await storeWith([["ida_root", "owner"]]);
+      await newKeepOneOwnerStep(store, orgAccessOwnerRoleChange(store)).execute(
+        removalContext("ida_root", internal),
+      );
+    });
+  });
+
+  it("reads the organization's owners once for both steps of one request", async () => {
+    const store = await storeWith([["ida_root", "owner"], ["ida_rhea", "owner"]]);
+    const change = orgAccessOwnerRoleChange(store);
+    const ctx = removalContext("ida_root");
+    await newAuthorizeOwnerAssignmentStep(authorizer(true), change).execute(ctx);
+    await newKeepOneOwnerStep(store, change).execute(ctx);
+    expect(store.ownerReads()).toBe(1);
   });
 });

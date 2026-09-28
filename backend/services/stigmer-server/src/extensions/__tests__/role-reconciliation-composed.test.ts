@@ -17,10 +17,13 @@
  *      `owner`, the member `member` — each written AS the account it names
  *      (the audit actor), `findMyOrganizations` answers the organization
  *      to both, and the marker is set.
- *   3. The founder revokes everyone, the member first and then themself,
- *      and the directory boots once more: NO row returns. The marker, not
- *      "zero rows", is what makes the reconciliation one-shot — a revoked
- *      founder is not handed the organization back by a reboot.
+ *   3. The founder removes the member, and is refused removing themself
+ *      (an organization keeps its last owner on the member lanes); the
+ *      founder's row then goes from the store, the way boot 2 made its
+ *      shape, and the directory boots once more: NO row returns. The
+ *      marker, not "zero rows", is what makes the reconciliation one-shot
+ *      — a founder whose row is gone is not handed the organization back
+ *      by a reboot.
  *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
  * require-authentication posture with no Authorizer (composed-support.ts;
@@ -35,7 +38,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { fromBinary } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
@@ -184,16 +187,21 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
     ]);
   });
 
-  it("boot 3: every role revoked after the marker stays revoked — a reboot hands nothing back", async () => {
+  it("boot 3: every role removed after the marker stays removed — a reboot hands nothing back", async () => {
     const policies = createClient(IamPolicyCommandController, asFounder());
     await policies.revokeOrgAccess({
       identityAccountId: memberId,
       organizationId: ORG,
     });
-    await policies.revokeOrgAccess({
-      identityAccountId: founderId,
-      organizationId: ORG,
-    });
+    const lastOwner = await policies
+      .revokeOrgAccess({ identityAccountId: founderId, organizationId: ORG })
+      .then(
+        () => undefined,
+        (error: unknown) => ConnectError.from(error),
+      );
+    expect(lastOwner?.code).toBe(Code.FailedPrecondition);
+    // The founder's row, the one left, goes the way boot 2 made its shape.
+    await server.store.deleteResourcesByKind(ApiResourceKind.iam_policy);
     expect(await rolesIn(server.store)).toEqual([]);
     await server.shutdown();
 

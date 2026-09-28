@@ -230,21 +230,26 @@ describe("middleware stack ordering in createDeepAgent", () => {
 
   it("places SummarizationMiddleware before custom middleware", () => {
     /**
-     * Verified by reading createDeepAgent source (index.js lines 8165-8173):
+     * Verified by reading createDeepAgent's source (deepagents 1.14.1,
+     * `src/agent.ts`, the `coreMiddleware` / `tailMiddleware` pair merged by
+     * `mergeMiddlewareStack`):
      *
-     *   const middleware = [
-     *     todoMiddleware,
+     *   [
      *     ...skillsMiddleware,
      *     fsMiddleware,
      *     subagentMiddleware,
-     *     summarizationMiddleware,   // <-- position 4 (0-indexed)
+     *     summarizationMiddleware,
      *     patchToolCallsMiddleware,
      *     ...asyncSubAgents,
      *     ...customMiddleware,       // <-- Stigmer's stack goes here
+     *     ...profile extraMiddleware,
      *     ...cacheMiddleware,
      *     ...memory,
      *     ...interruptOn,
-     *   ];
+     *   ]
+     *
+     * (a custom middleware named like a default replaces it in place; no
+     * Stigmer middleware shares a default's name).
      *
      * This means summarization's wrapModelCall runs before Stigmer's
      * cost-cap wrapModelCall, so:
@@ -279,13 +284,14 @@ describe("middleware stack ordering in createDeepAgent", () => {
 
   it("creates SummarizationMiddleware with the same backend passed to createDeepAgent", () => {
     /**
-     * Verified from source (index.js line 8162):
+     * Verified from source (deepagents 1.14.1 `src/agent.ts`):
      *   createSummarizationMiddleware({ backend })
      *
      * The `backend` variable is the same one received in createDeepAgent params.
      * This means summarization uses the same StateBackend instance, so
      * offloaded conversation history is stored in LangGraph state which
-     * the HttpCheckpointSaver persists to MongoDB via the proxy.
+     * the checkpoint saver persists (in cloud, the HttpCheckpointSaver
+     * through the proxy's checkpoint store).
      */
     const backend = new StateBackend();
 
@@ -300,13 +306,14 @@ describe("middleware stack ordering in createDeepAgent", () => {
 
   it("resolves summarization model from the agent model (no explicit model option)", () => {
     /**
-     * Verified from source (index.js lines 4067, 8114):
+     * Verified from source (deepagents 1.14.1 `src/agent.ts` and
+     * `src/middleware/summarization.ts`):
      *
      *   createSummarizationMiddleware({ backend })
      *   // No `model` option passed
      *
      *   // Inside wrapModelCall:
-     *   const resolvedModel = request.model ?? await getChatModel();
+     *   const resolvedModel = requestModel ?? (await getChatModel());
      *
      * Since no model option is provided, the middleware uses request.model
      * which is the same ChatAnthropic instance from turn-setup.ts with the

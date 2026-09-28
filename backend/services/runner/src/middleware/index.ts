@@ -4,9 +4,9 @@
  * Assembles the ordered middleware array from a MiddlewareStackConfig. The
  * order is load-bearing and reads top to bottom:
  *
- *   0. Path normalization (conditional: only on permission-rule-bearing
- *      graphs — FIRST, so every downstream middleware observes canonical
- *      workspace-absolute paths)
+ *   0. Path normalization (whenever configured, which every graph does
+ *      since issue #754 — FIRST, so every downstream middleware observes
+ *      canonical workspace-absolute paths)
  *   1. Loop detection (always)
  *   2. Execution budget (always — advises at ~80% of the tool-round budget
  *      that LangGraph's `recursionLimit` enforces)
@@ -24,6 +24,10 @@
  * through its abort signal (since #1096; until then a
  * graceful-stop middleware and the cost cap's tool block were second stops
  * inside the graph that the runtime could not see).
+ *
+ * Ahead of this stack the parent graph adds the framework's to-do list
+ * middleware (`execute-deep-agent/turn-setup.ts`): it is langchain's, not
+ * Stigmer's, and only the parent carries it.
  *
  * The sub-agent stack is `execute-deep-agent/subagent-wiring.ts`'s: the same
  * order over the parent's shared instances where one exists (the advisory's

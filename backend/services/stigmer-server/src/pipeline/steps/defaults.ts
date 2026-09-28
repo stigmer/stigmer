@@ -15,6 +15,12 @@
  * SpecAudit for definition changes (search recency, version "pushed at"),
  * StatusAudit for operational changes (Recents, lifecycle metadata).
  *
+ * A write the PLATFORM makes on its own (a schedule's clock, a credential's
+ * last-use stamp) takes the narrower `bumpStatusAudit` instead: status-audit
+ * updated_at + event only, never an actor, because no caller made it (Go's
+ * clock bump, "the same two leaves every cloud runtime patch bumps"). Two
+ * flavors, two writers, both wire-visible — keep them distinct.
+ *
  * This module is also the one home of how an id is SPELLED. `generateId`
  * mints `{prefix}_{ulid}`; `derivedId` is its sibling for the kinds
  * metadata.proto names as deriving their id from a natural key instead
@@ -175,6 +181,27 @@ export function setAuditFieldsForUpdate(
   );
 }
 
+/**
+ * Stamps the status-audit slot for a write the platform makes on its own —
+ * updated_at + event "updated", nothing else (see the module header for why
+ * this is not setAuditFieldsForUpdate). Like that helper it SETS a newly
+ * allocated slot rather than assigning into the existing one (#540); the
+ * slot's created_by/created_at/updated_by carry over unchanged.
+ */
+export function bumpStatusAudit(status: { audit?: ApiResourceAudit }): void {
+  if (status.audit === undefined) {
+    status.audit = create(ApiResourceAuditSchema);
+  }
+  const prior = status.audit.statusAudit;
+  const next =
+    prior === undefined
+      ? create(ApiResourceAuditInfoSchema)
+      : clone(ApiResourceAuditInfoSchema, prior);
+  next.updatedAt = timestampNow();
+  next.event = "updated";
+  status.audit.statusAudit = next;
+}
+
 // Operator identity (stigmer/stigmer#400): installed once at boot — before
 // any request — and read by the identity chassis when it mints the
 // trusted-local CallerIdentity (O2; audit stamping now derives its actor
@@ -237,13 +264,18 @@ export function operatorIdentitySnapshot(): {
  * unconfigured → the "system" placeholder, which the runner deliberately
  * demotes to anonymous (SYSTEM_CREATOR_SENTINEL). Verifier-produced
  * identities (O3's OIDC claims onward) stamp their own email/displayName
- * when present, identityId alone otherwise.
+ * when present, identityId alone otherwise. A PlatformClient-minted
+ * caller also stamps the client it came through (platform_client_id):
+ * the account alone cannot say, and the execution-context builder keys
+ * the PlatformClient environment layer on this record (#1256). Every
+ * other identity stamps it empty, so local-posture bytes are unchanged.
  */
 export function auditActorFor(identity: CallerIdentity): ApiResourceAuditActor {
   return create(ApiResourceAuditActorSchema, {
     id: identity.identityId,
     email: identity.email ?? "",
     displayName: identity.displayName ?? "",
+    platformClientId: identity.platformClientId ?? "",
   });
 }
 

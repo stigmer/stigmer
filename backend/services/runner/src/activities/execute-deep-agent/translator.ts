@@ -39,8 +39,12 @@
  * sub-agent's rows carry none on either harness today (#1133), and one
  * handler set would otherwise stamp them as a side effect.
  *
- * The scope, in LangGraph 1.3.2's grammar (mirrors deepagents'
- * `createSubagentTransformer`): the root's model events arrive under
+ * The scope, in LangGraph's v3 grammar (read at @langchain/langgraph 1.3.2,
+ * and unchanged at 1.4.18 — the delegation, to-do, tool-call, structured-
+ * output and approval-resume streams were recorded on both and compared;
+ * deepagents' own `createSubagentTransformer`, which this once mirrored, left
+ * with deepagents 1.14 and langchain's `createAgent` registers its
+ * successor): the root's model events arrive under
  * `["model_request:<uuid>"]` and its tool events under `["tools:<uuid>"]`
  * (one segment); a `task` tool start at that depth opens a sub-agent, and
  * the segment it arrived under is the prefix every event of that sub-agent's

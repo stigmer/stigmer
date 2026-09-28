@@ -65,7 +65,314 @@ input_schema:
 }
 ```
 
-<<< tool 3 of 11: write_todos >>>
+<<< tool 3 of 11: ls >>>
+
+Lists all files in a directory.
+
+This is useful for exploring the filesystem and finding the right file to read or edit.
+You should almost ALWAYS use this tool before using the read_file or edit_file tools.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "path": {
+      "default": "/",
+      "type": "string"
+    }
+  },
+  "required": [
+    "path"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 4 of 11: read_file >>>
+
+Reads a file from the filesystem. Assume any path the user provides is valid; reading a missing file returns an error.
+
+Usage:
+- By default, it reads up to 100 lines starting from the beginning of the file. Use `offset`/`limit` to page through large files instead of reading them whole.
+- A status header, `@@ field | field | ... @@`, sits above the file content, and every line after it is unmodified file content. When content is truncated, there may be an explanation before the header. Never include the header when editing.
+- Speculatively batch multiple `read_file` calls in one response when several files may be useful.
+- An empty file returns a system-reminder warning in place of contents.
+- Large tool results may be offloaded to a file; the tool message gives the path. Read that path here, paging with `offset`/`limit`.
+- Images (`.png`, `.jpg`, etc.), audio, video, and PDFs return multimodal content blocks (https://docs.langchain.com/javascript/langchain/messages#multimodal).
+- For images and PDFs, pagination via `offset`/`limit` is text-only - supply `file_path` only.
+- Always read a file before editing it.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "file_path": {
+      "type": "string"
+    },
+    "offset": {
+      "default": 0,
+      "type": "number"
+    },
+    "limit": {
+      "default": 100,
+      "type": "number"
+    }
+  },
+  "required": [
+    "file_path",
+    "offset",
+    "limit"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 5 of 11: write_file >>>
+
+Writes content to a file. Creates the file if it does not exist; replaces it entirely if it does.
+
+Usage:
+- Use this tool when you intend to create a new file or replace the whole file. You do not need to read the file first.
+- Prefer to edit existing files (with the edit_file tool) over creating new ones when possible.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "file_path": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "file_path",
+    "content"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 6 of 11: edit_file >>>
+
+Performs exact string replacements in files.
+
+Usage:
+- You must read the file before editing; this tool errors otherwise.
+- Preserve the exact source indentation from the read output, and never include the read status header in old_string or new_string.
+- Prefer editing an existing file over creating a new one.
+- Only use emojis if the user explicitly requests it.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "file_path": {
+      "type": "string"
+    },
+    "old_string": {
+      "type": "string"
+    },
+    "new_string": {
+      "type": "string"
+    },
+    "replace_all": {
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "file_path",
+    "old_string",
+    "new_string",
+    "replace_all"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 7 of 11: glob >>>
+
+Find files matching a glob pattern, returning absolute paths.
+
+Supports `*` (any characters), `**` (any directories), `?` (single character), e.g. `**/*.py`, `*.txt`, `/subdir/**/*.md`.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "pattern": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "pattern"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 8 of 11: grep >>>
+
+Search for a LITERAL text pattern across files (NOT regex).
+
+The pattern is matched verbatim: regex metacharacters are ordinary characters, not operators. To match any of several strings, run a separate grep for each; `grep(pattern="foo|bar")` searches for the literal text "foo|bar", and `.*` or `\\.` match those characters literally.
+- If you genuinely need regex, use the execute tool with `rg '<regex>'` instead.
+
+Returns matching files or content per `output_mode`. Offloaded large tool results live under the artifacts root (`/large_tool_results/` by default); grep that directory to search them when you do not know the exact path.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "pattern": {
+      "type": "string"
+    },
+    "path": {
+      "default": "/",
+      "type": "string"
+    },
+    "glob": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "max_count": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output_mode": {
+      "default": "content",
+      "type": "string",
+      "enum": [
+        "files_with_matches",
+        "content",
+        "count"
+      ]
+    }
+  },
+  "required": [
+    "pattern",
+    "path",
+    "glob",
+    "max_count",
+    "output_mode"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 9 of 11: execute >>>
+
+Executes a shell command in an isolated sandbox and returns combined stdout/stderr with the exit code (truncated if very large).
+
+Usage:
+- Quote paths containing spaces (e.g. cd "/path/with spaces").
+- Chain commands with ';' or '&&' (use '&&' when a command depends on the previous); do not use newlines except inside quoted strings.
+- Use absolute paths and avoid `cd` so the working directory stays stable.
+- You MUST avoid using search commands like find and grep. Instead use the grep, glob tools to search. Use read_file rather than cat/head/tail.
+- execute(command="find . -name '*.py'") # Use glob tool instead
+- execute(command="grep -r 'pattern' .") # Use grep tool instead
+
+Only available on backends implementing SandboxBackendProtocol; otherwise it returns an error.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short present-tense phrase describing what this command does and why, shown to the user as the title of this action (5-10 words, e.g. 'Run unit tests for the parser'). Do not restate the command syntax."
+    }
+  },
+  "required": [
+    "command"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 10 of 11: task >>>
+
+Launch an ephemeral subagent to handle a complex, multi-step task.
+
+Available agent types and the tools they have access to:
+- explore: Read-only codebase exploration specialist. Use for searching, reading files, finding patterns, and understanding code structure. Cannot write files or execute commands.
+- shell: Command execution specialist. Use for running shell commands, build operations, and system tasks. Has minimal file read access.
+- general-purpose: General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. This agent has access to all tools as the main agent.
+
+Specify subagent_type to select the agent. Usage notes:
+- Launch multiple agents concurrently when their tasks are independent, using a single message with multiple tool calls.
+- Each invocation is stateless by default: the agent sees only the prompt you give it and returns a single final report. Put full detail in the prompt and state exactly what it should return — unless an agent type below says it inherits your conversation instead.
+- The agent's report is not shown to the user; relay a summary yourself.
+- Tell the agent whether to create content, analyze, or only research, since it can't necessarily see the user's intent unless it inherits your conversation, as noted per agent type below.
+- If an agent's description says to use it proactively, do so without waiting to be asked.
+- When only general-purpose is available, use it for any complex, context-heavy task; it has the same capabilities as the main agent.
+
+input_schema:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "subagent_type": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "description",
+    "subagent_type"
+  ],
+  "additionalProperties": false
+}
+```
+
+<<< tool 11 of 11: write_todos >>>
 
 Use this tool to create and manage a structured task list for your current work session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.
 It also helps the user understand the progress of the task and overall progress of their requests.
@@ -320,438 +627,5 @@ input_schema:
   ],
   "additionalProperties": false,
   "$schema": "http://json-schema.org/draft-07/schema#"
-}
-```
-
-<<< tool 4 of 11: ls >>>
-
-Lists all files in a directory.
-
-This is useful for exploring the filesystem and finding the right file to read or edit.
-You should almost ALWAYS use this tool before using the read_file or edit_file tools.
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "path": {
-      "default": "/",
-      "type": "string"
-    }
-  },
-  "required": [
-    "path"
-  ],
-  "additionalProperties": false
-}
-```
-
-<<< tool 5 of 11: read_file >>>
-
-Reads a file from the filesystem.
-
-Assume this tool is able to read all files. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
-
-Usage:
-- By default, it reads up to 100 lines starting from the beginning of the file
-- **IMPORTANT for large files and codebase exploration**: Use pagination with offset and limit parameters to avoid context overflow
-  - First scan: read_file(path, limit=100) to see file structure
-  - Read more sections: read_file(path, offset=100, limit=200) for next 200 lines
-  - Only omit limit (read full file) when necessary for editing
-- Specify offset and limit: read_file(path, offset=0, limit=100) reads first 100 lines
-- Results are returned using cat -n format, with line numbers starting at 1
-- Lines longer than 5,000 characters will be split into multiple lines with continuation markers (e.g., 5.1, 5.2, etc.). When you specify a limit, these continuation lines count towards the limit.
-- You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
-- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
-- You should ALWAYS make sure a file has been read before editing it.
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "file_path": {
-      "type": "string"
-    },
-    "offset": {
-      "default": 0,
-      "type": "number"
-    },
-    "limit": {
-      "default": 100,
-      "type": "number"
-    }
-  },
-  "required": [
-    "file_path",
-    "offset",
-    "limit"
-  ],
-  "additionalProperties": false
-}
-```
-
-<<< tool 6 of 11: write_file >>>
-
-Writes to a new file in the filesystem.
-
-Usage:
-- The write_file tool will create a new file.
-- Prefer to edit existing files (with the edit_file tool) over creating new ones when possible.
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "file_path": {
-      "type": "string"
-    },
-    "content": {
-      "default": "",
-      "type": "string"
-    }
-  },
-  "required": [
-    "file_path",
-    "content"
-  ],
-  "additionalProperties": false
-}
-```
-
-<<< tool 7 of 11: edit_file >>>
-
-Performs exact string replacements in files.
-
-Usage:
-- You must read the file before editing. This tool will error if you attempt an edit without reading the file first.
-- When editing, preserve the exact indentation (tabs/spaces) from the read output. Never include line number prefixes in old_string or new_string.
-- ALWAYS prefer editing existing files over creating new ones.
-- Only use emojis if the user explicitly requests it.
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "file_path": {
-      "type": "string"
-    },
-    "old_string": {
-      "type": "string"
-    },
-    "new_string": {
-      "type": "string"
-    },
-    "replace_all": {
-      "default": false,
-      "type": "boolean"
-    }
-  },
-  "required": [
-    "file_path",
-    "old_string",
-    "new_string",
-    "replace_all"
-  ],
-  "additionalProperties": false
-}
-```
-
-<<< tool 8 of 11: glob >>>
-
-Find files matching a glob pattern.
-
-Supports standard glob patterns: `*` (any characters), `**` (any directories), `?` (single character).
-Returns a list of absolute file paths that match the pattern.
-
-Examples:
-- `**/*.py` - Find all Python files
-- `*.txt` - Find all text files in root
-- `/subdir/**/*.md` - Find all markdown files under /subdir
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "pattern": {
-      "type": "string"
-    },
-    "path": {
-      "default": "/",
-      "type": "string"
-    }
-  },
-  "required": [
-    "pattern",
-    "path"
-  ],
-  "additionalProperties": false
-}
-```
-
-<<< tool 9 of 11: grep >>>
-
-Search for a text pattern across files.
-
-Searches for literal text (not regex) and returns matching files or content based on output_mode.
-Special characters like parentheses, brackets, pipes, etc. are treated as literal characters, not regex operators.
-
-Examples:
-- Search all files: `grep(pattern="TODO")`
-- Search Python files only: `grep(pattern="import", glob="*.py")`
-- Show matching lines: `grep(pattern="error", output_mode="content")`
-- Search for code with special chars: `grep(pattern="def __init__(self):")`
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "pattern": {
-      "type": "string"
-    },
-    "path": {
-      "default": "/",
-      "type": "string"
-    },
-    "glob": {
-      "default": null,
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    }
-  },
-  "required": [
-    "pattern",
-    "path",
-    "glob"
-  ],
-  "additionalProperties": false
-}
-```
-
-<<< tool 10 of 11: execute >>>
-
-Executes a shell command in an isolated sandbox environment.
-
-Usage:
-Executes a given command in the sandbox environment with proper handling and security measures.
-Before executing the command, please follow these steps:
-
-1. Directory Verification:
-  - If the command will create new directories or files, first use the ls tool to verify the parent directory exists and is the correct location
-  - For example, before running "mkdir foo/bar", first use ls to check that "foo" exists and is the intended parent directory
-
-2. Command Execution:
-  - Always quote file paths that contain spaces with double quotes (e.g., cd "path with spaces/file.txt")
-  - Examples of proper quoting:
-    - cd "/Users/name/My Documents" (correct)
-    - cd /Users/name/My Documents (incorrect - will fail)
-    - python "/path/with spaces/script.py" (correct)
-    - python /path/with spaces/script.py (incorrect - will fail)
-  - After ensuring proper quoting, execute the command
-  - Capture the output of the command
-
-Usage notes:
-  - Commands run in an isolated sandbox environment
-  - Returns combined stdout/stderr output with exit code
-  - If the output is very large, it may be truncated
-  - VERY IMPORTANT: You MUST avoid using search commands like find and grep. Instead use the grep, glob tools to search. You MUST avoid read tools like cat, head, tail, and use read_file to read files.
-  - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings)
-    - Use '&&' when commands depend on each other (e.g., "mkdir dir && cd dir")
-    - Use ';' only when you need to run commands sequentially but don't care if earlier commands fail
-  - Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of cd
-
-Examples:
-  Good examples:
-    - execute(command="pytest /foo/bar/tests")
-    - execute(command="python /path/to/script.py")
-    - execute(command="npm install && npm test")
-
-  Bad examples (avoid these):
-    - execute(command="cd /foo/bar && pytest tests")  # Use absolute path instead
-    - execute(command="cat file.txt")  # Use read_file tool instead
-    - execute(command="find . -name '*.py'")  # Use glob tool instead
-    - execute(command="grep -r 'pattern' .")  # Use grep tool instead
-
-Note: This tool is only available if the backend supports execution (SandboxBackendProtocol).
-If execution is not supported, the tool will return an error message.
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "command": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string",
-      "description": "A short present-tense phrase describing what this command does and why, shown to the user as the title of this action (5-10 words, e.g. 'Run unit tests for the parser'). Do not restate the command syntax."
-    }
-  },
-  "required": [
-    "command"
-  ],
-  "additionalProperties": false
-}
-```
-
-<<< tool 11 of 11: task >>>
-
-Launch an ephemeral subagent to handle complex, multi-step independent tasks with isolated context windows.
-
-Available agent types and the tools they have access to:
-- explore: Read-only codebase exploration specialist. Use for searching, reading files, finding patterns, and understanding code structure. Cannot write files or execute commands.
-- shell: Command execution specialist. Use for running shell commands, build operations, and system tasks. Has minimal file read access.
-- general-purpose: General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. This agent has access to all tools as the main agent.
-
-When using the Task tool, you must specify a subagent_type parameter to select which agent type to use.
-
-## Usage notes:
-1. Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses
-2. When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.
-3. Each agent invocation is stateless. You will not be able to send additional messages to the agent, nor will the agent be able to communicate with you outside of its final report. Therefore, your prompt should contain a highly detailed task description for the agent to perform autonomously and you should specify exactly what information the agent should return back to you in its final and only message to you.
-4. The agent's outputs should generally be trusted
-5. Clearly tell the agent whether you expect it to create content, perform analysis, or just do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent
-6. If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.
-7. When only the general-purpose agent is provided, you should use it for all tasks. It is great for isolating context and token usage, and completing specific, complex tasks, as it has all the same capabilities as the main agent.
-
-### Example usage of the general-purpose agent:
-
-<example_agent_descriptions>
-"general-purpose": use this agent for general purpose tasks, it has access to all tools as the main agent.
-</example_agent_descriptions>
-
-<example>
-User: "I want to conduct research on the accomplishments of Lebron James, Michael Jordan, and Kobe Bryant, and then compare them."
-Assistant: *Uses the task tool in parallel to conduct isolated research on each of the three players*
-Assistant: *Synthesizes the results of the three isolated research tasks and responds to the User*
-<commentary>
-Research is a complex, multi-step task in it of itself.
-The research of each individual player is not dependent on the research of the other players.
-The assistant uses the task tool to break down the complex objective into three isolated tasks.
-Each research task only needs to worry about context and tokens about one player, then returns synthesized information about each player as the Tool Result.
-This means each research task can dive deep and spend tokens and context deeply researching each player, but the final result is synthesized information, and saves us tokens in the long run when comparing the players to each other.
-</commentary>
-</example>
-
-<example>
-User: "Analyze a single large code repository for security vulnerabilities and generate a report."
-Assistant: *Launches a single `task` subagent for the repository analysis*
-Assistant: *Receives report and integrates results into final summary*
-<commentary>
-Subagent is used to isolate a large, context-heavy task, even though there is only one. This prevents the main thread from being overloaded with details.
-If the user then asks followup questions, we have a concise report to reference instead of the entire history of analysis and tool calls, which is good and saves us time and money.
-</commentary>
-</example>
-
-<example>
-User: "Schedule two meetings for me and prepare agendas for each."
-Assistant: *Calls the task tool in parallel to launch two `task` subagents (one per meeting) to prepare agendas*
-Assistant: *Returns final schedules and agendas*
-<commentary>
-Tasks are simple individually, but subagents help silo agenda preparation.
-Each subagent only needs to worry about the agenda for one meeting.
-</commentary>
-</example>
-
-<example>
-User: "I want to order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway."
-Assistant: *Calls tools directly in parallel to order a pizza from Dominos, a burger from McDonald's, and a salad from Subway*
-<commentary>
-The assistant did not use the task tool because the objective is super simple and clear and only requires a few trivial tool calls.
-It is better to just complete the task directly and NOT use the `task`tool.
-</commentary>
-</example>
-
-### Example usage with custom agents:
-
-<example_agent_descriptions>
-"content-reviewer": use this agent after you are done creating significant content or documents
-"greeting-responder": use this agent when to respond to user greetings with a friendly joke
-"research-analyst": use this agent to conduct thorough research on complex topics
-</example_agent_description>
-
-<example>
-user: "Please write a function that checks if a number is prime"
-assistant: Sure let me write a function that checks if a number is prime
-assistant: First let me use the Write tool to write a function that checks if a number is prime
-assistant: I'm going to use the Write tool to write the following code:
-<code>
-function isPrime(n) {{
-  if (n <= 1) return false
-  for (let i = 2; i * i <= n; i++) {{
-    if (n % i === 0) return false
-  }}
-  return true
-}}
-</code>
-<commentary>
-Since significant content was created and the task was completed, now use the content-reviewer agent to review the work
-</commentary>
-assistant: Now let me use the content-reviewer agent to review the code
-assistant: Uses the Task tool to launch with the content-reviewer agent
-</example>
-
-<example>
-user: "Can you help me research the environmental impact of different renewable energy sources and create a comprehensive report?"
-<commentary>
-This is a complex research task that would benefit from using the research-analyst agent to conduct thorough analysis
-</commentary>
-assistant: I'll help you research the environmental impact of renewable energy sources. Let me use the research-analyst agent to conduct comprehensive research on this topic.
-assistant: Uses the Task tool to launch with the research-analyst agent, providing detailed instructions about what research to conduct and what format the report should take
-</example>
-
-<example>
-user: "Hello"
-<commentary>
-Since the user is greeting, use the greeting-responder agent to respond with a friendly joke
-</commentary>
-assistant: "I'm going to use the Task tool to launch with the greeting-responder agent"
-</example>
-
-input_schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "description": {
-      "type": "string"
-    },
-    "subagent_type": {
-      "type": "string"
-    }
-  },
-  "required": [
-    "description",
-    "subagent_type"
-  ],
-  "additionalProperties": false
 }
 ```

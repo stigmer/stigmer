@@ -30,7 +30,8 @@ export const InvitationCommandController: GenService<{
    * invitation resource including the token. The invite URL is
    * constructed as: https://<host>/invite/<token>
    *
-   * The specified role must be in the organization's grantable_roles.
+   * The specified role must be in the organization's grantable_roles, and
+   * only an owner of the organization may create an invitation for owner.
    * Platform-managed organizations cannot create invitations.
    *
    * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationCommandController.create
@@ -66,6 +67,9 @@ export const InvitationCommandController: GenService<{
    * - Invitation must not be expired
    * - Invitation must not have reached max_redemptions (if > 0)
    * - Redeemer must not already be a member of the organization
+   * - The invitation's creator must still be able to create it: a link
+   *   carries its creator's authority, so it stops redeeming once they no
+   *   longer hold the role it needed (FAILED_PRECONDITION)
    *
    * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationCommandController.redeem
    */

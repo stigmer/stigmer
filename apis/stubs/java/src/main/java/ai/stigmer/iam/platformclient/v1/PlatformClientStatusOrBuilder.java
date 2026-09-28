@@ -40,8 +40,9 @@ public interface PlatformClientStatusOrBuilder extends
   /**
    * <pre>
    * Timestamp of the most recent successful mintUserToken call using this
-   * platform client's credentials. Used for security monitoring — credentials
-   * that have not been used recently may be candidates for rotation or deletion.
+   * platform client's credentials, recorded at most once a minute. Used for
+   * security monitoring — credentials that have not been used recently may be
+   * candidates for rotation or deletion. Unset until the first mint.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -51,8 +52,9 @@ public interface PlatformClientStatusOrBuilder extends
   /**
    * <pre>
    * Timestamp of the most recent successful mintUserToken call using this
-   * platform client's credentials. Used for security monitoring — credentials
-   * that have not been used recently may be candidates for rotation or deletion.
+   * platform client's credentials, recorded at most once a minute. Used for
+   * security monitoring — credentials that have not been used recently may be
+   * candidates for rotation or deletion. Unset until the first mint.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -62,8 +64,9 @@ public interface PlatformClientStatusOrBuilder extends
   /**
    * <pre>
    * Timestamp of the most recent successful mintUserToken call using this
-   * platform client's credentials. Used for security monitoring — credentials
-   * that have not been used recently may be candidates for rotation or deletion.
+   * platform client's credentials, recorded at most once a minute. Used for
+   * security monitoring — credentials that have not been used recently may be
+   * candidates for rotation or deletion. Unset until the first mint.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>

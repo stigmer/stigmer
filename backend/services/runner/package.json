@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/runner",
   "version": "0.0.0-dev",
-  "description": "Embeddable Temporal worker for the Stigmer AI agent platform — handles agent execution, workflow orchestration, and MCP server management",
+  "description": "Embeddable Temporal worker for the Stigmer AI agent platform \u2014 handles agent execution, workflow orchestration, and MCP server management",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
@@ -52,7 +52,9 @@
   "stigmerPublish": {
     "consumerCheck": {
       "singleCopy": [
-        "@temporalio/proto"
+        "@temporalio/proto",
+        "@langchain/core",
+        "langchain"
       ],
       "boot": [
         "scripts/verify-dist-boot.mjs"
@@ -92,8 +94,10 @@
     "@connectrpc/connect-node": "^2.0.0",
     "@cursor/sdk": "1.0.31",
     "@langchain/anthropic": "^1.5.5",
-    "@langchain/core": "^1.2.7",
-    "@langchain/langgraph": "^1.3.0",
+    "@langchain/core": "^1.2.13",
+    "@langchain/langgraph": "1.4.18",
+    "@langchain/langgraph-checkpoint": "^1.1.5",
+    "@langchain/langgraph-sdk": "~1.12.0",
     "@langchain/mcp-adapters": "^1.1.3",
     "@langchain/openai": "^1.4.0",
     "@opentelemetry/api": "^1.9.0",
@@ -114,10 +118,12 @@
     "@temporalio/proto": "1.16.2",
     "@temporalio/worker": "1.16.2",
     "@temporalio/workflow": "1.16.2",
-    "deepagents": "1.10.2",
+    "deepagents": "1.14.1",
     "diff": "^8.0.4",
     "jq-wasm": "^1.1.0-jq-1.8.1",
     "js-yaml": "^4.1.1",
+    "langchain": "^1.5.14",
+    "langsmith": ">=0.7.1 <0.10.0",
     "proper-lockfile": "^4.1.2",
     "semver": "^7.8.0",
     "turndown": "^7.2.4",

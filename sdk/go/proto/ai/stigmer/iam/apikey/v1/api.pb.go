@@ -114,7 +114,8 @@ type ApiKeyStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information (created_at, updated_at, created_by, etc.).
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// Timestamp of the most recent API call made with this key.
+	// Timestamp of the most recent API call made with this key, recorded at most
+	// once a minute. Unset until the key is first used.
 	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

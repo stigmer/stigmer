@@ -38,6 +38,15 @@
       "expected": { "type": "file", "path": "/workspace/main.go" }
     },
     {
+      "name": "native_read_framed",
+      "harness": "native",
+      "toolName": "read_file",
+      "mcpServerSlug": "",
+      "args": { "file_path": "/workspace/main.go" },
+      "result": "@@ lines 1-2 of 2 @@\npackage main\n",
+      "expected": { "type": "file", "path": "/workspace/main.go" }
+    },
+    {
       "name": "native_shell_success",
       "harness": "native",
       "toolName": "execute",

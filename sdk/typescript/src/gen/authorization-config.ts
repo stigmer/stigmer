@@ -14,7 +14,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
  * owner-only, inherited, or no authorization).
  */
 export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> = new Map([
-  [ApiResourceKind.identity_provider, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.identity_provider, [IamRole.viewer]],
   [ApiResourceKind.oauth_app, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.platform_client, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.team, [IamRole.member]],

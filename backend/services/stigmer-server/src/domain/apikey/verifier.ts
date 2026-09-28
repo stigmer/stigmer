@@ -33,14 +33,28 @@
  * identityId changes on a hit: email/displayName stay the stamp's, the
  * actor the key recorded at minting. The credential checks run first, so
  * a revoked or expired key never reaches the account store.
+ *
+ * An accepted key's use is then recorded on its status.last_used_at
+ * (identity/credential-use.ts): at most once a resolution, judged from the
+ * row this read already holds, written atomically through
+ * Store.updateResource so it can never undo a concurrent update of the
+ * key, and best-effort — a failed stamp is logged and the request
+ * proceeds. A refused key records nothing (stigmer/stigmer#1255).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
+import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiKeySchema, ApiKeyStatusSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+
+import type { Logger } from "../../boot/logger.js";
 import type {
   CallerIdentity,
   IdentityVerifier,
 } from "../../extensions/identity.js";
+import { recordCredentialUse } from "../../identity/credential-use.js";
 import type { Store } from "../../store/interface.js";
 import { identityIdForSubject } from "../identityaccount/resolve.js";
 import type { AccountsBySubject } from "../identityaccount/resolve.js";
@@ -58,12 +72,16 @@ export interface ApiKeyVerifierDeps {
   readonly store: Store;
   /** The identity-account domain's subject lookup the creator stamp resolves through (A6). */
   readonly accounts: AccountsBySubject;
+  /** Where a failed last-use stamp is reported. */
+  readonly logger: Logger;
+  /** The clock both the expiry check and the last-use stamp read. */
+  readonly now: () => Date;
 }
 
 export function newApiKeyIdentityVerifier(
   deps: ApiKeyVerifierDeps,
 ): IdentityVerifier {
-  const { store, accounts } = deps;
+  const { store, accounts, logger } = deps;
   return {
     name: "apikey",
     async verify(token: string): Promise<CallerIdentity | null> {
@@ -74,8 +92,9 @@ export function newApiKeyIdentityVerifier(
       if (key === undefined) {
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
+      const now = deps.now();
       const expiresAt = key.spec?.expiresAt;
-      if (expiresAt !== undefined && timestampDate(expiresAt) <= new Date()) {
+      if (expiresAt !== undefined && timestampDate(expiresAt) <= now) {
         throw new ConnectError(TOKEN_EXPIRED_MESSAGE, Code.Unauthenticated);
       }
       const owner = key.status?.audit?.specAudit?.createdBy;
@@ -85,8 +104,10 @@ export function newApiKeyIdentityVerifier(
         // through the pipeline; guards hand-seeded or corrupted rows).
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
+      const identityId = await identityIdForSubject(accounts, owner.id);
+      await recordKeyUse(store, logger, key, now);
       return {
-        identityId: await identityIdForSubject(accounts, owner.id),
+        identityId,
         callerClass: "user",
         issuer: "",
         rawToken: token,
@@ -95,4 +116,26 @@ export function newApiKeyIdentityVerifier(
       };
     },
   };
+}
+
+/** Stamps the accepted key's last use on its own row, atomically. */
+function recordKeyUse(
+  store: Store,
+  logger: Logger,
+  key: ApiKey,
+  now: Date,
+): Promise<void> {
+  const id = key.metadata?.id ?? "";
+  return recordCredentialUse({
+    credential: "api key",
+    id,
+    lastUsedAt: key.status?.lastUsedAt,
+    now,
+    logger,
+    write: (stamp) =>
+      store.updateResource(ApiResourceKind.api_key, id, ApiKeySchema, (live) => {
+        live.status ??= create(ApiKeyStatusSchema);
+        stamp(live.status);
+      }),
+  });
 }

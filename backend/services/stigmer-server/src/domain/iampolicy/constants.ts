@@ -38,7 +38,8 @@
  * unknown permission, the unknown principal kind (the resource sentence's
  * shape), the malformed triple, and the four principal refusals a team
  * grantee brought (a person's qualifier, a team's qualifier, a kind no
- * team may be granted, a role a team may not hold).
+ * team may be granted, a role a team may not hold), and the two owner
+ * refusals (a non-owner touching the owner role, the last owner's removal).
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
@@ -297,3 +298,16 @@ export function teamRoleNotGrantableMessage(
 export function malformedTripleMessage(field: string): string {
   return `policy ${field} must not contain ':', '#' or '@'`;
 }
+
+/**
+ * Granting, revoking or removing the owner role on an organization without
+ * `can_assign_roles` there (PERMISSION_DENIED). An admin grants every role
+ * up to admin; only an owner makes, or unmakes, an owner. An edition that
+ * serves invitations answers the same sentence for an owner invitation.
+ */
+export const OWNER_ASSIGNMENT_DENIED_MESSAGE =
+  "only an owner of the organization can grant, revoke or remove the owner role";
+
+/** Revoking or removing the last owner of an organization (FAILED_PRECONDITION). */
+export const LAST_OWNER_MESSAGE =
+  "an organization must keep at least one owner; make another member an owner first";

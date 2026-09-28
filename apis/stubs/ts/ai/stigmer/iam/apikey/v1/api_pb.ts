@@ -87,7 +87,8 @@ export type ApiKeyStatus = Message<"ai.stigmer.iam.apikey.v1.ApiKeyStatus"> & {
   audit?: ApiResourceAudit;
 
   /**
-   * Timestamp of the most recent API call made with this key.
+   * Timestamp of the most recent API call made with this key, recorded at most
+   * once a minute. Unset until the key is first used.
    *
    * @generated from field: google.protobuf.Timestamp last_used_at = 1;
    */

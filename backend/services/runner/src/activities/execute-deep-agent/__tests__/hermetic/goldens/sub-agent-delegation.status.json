@@ -12,7 +12,7 @@
             "description": "Look up the fixture value.",
             "subagent_type": "helper"
           },
-          "result": "[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}]",
+          "result": "The fixture value is forty-two.",
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
@@ -33,7 +33,7 @@
       "id": "call-hermetic-task-0001",
       "name": "helper",
       "input": "Look up the fixture value.",
-      "output": "[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}]",
+      "output": "The fixture value is forty-two.",
       "status": "SUB_AGENT_COMPLETED",
       "startedAt": "2026-01-01T00:00:01.000Z",
       "completedAt": "2026-01-01T00:00:02.000Z",

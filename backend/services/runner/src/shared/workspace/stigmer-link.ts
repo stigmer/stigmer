@@ -7,10 +7,14 @@
  * physically lives in the platform dir, outside the workspace, so a real repo
  * is never polluted with Stigmer files (issue #173). But the agent reads from
  * the workspace: the Cursor SDK resolves paths against the workspace CWD, and
- * the native (deepagents) harness's file tools resolve against a
- * `FilesystemBackend` rooted at the workspace. The symlink is what makes the
+ * shell commands on both harnesses run there. The symlink is what makes the
  * `.stigmer/…` paths those agents are prompted with (skill locations,
- * `.stigmer/inputs/…` attachments) actually resolve.
+ * `.stigmer/inputs/…` attachments) actually resolve. The native harness's
+ * FILE tools are the exception: their virtual-rooted backend refuses a path
+ * whose real location leaves the workspace, so they read the platform dir
+ * through a read-only `.stigmer/` route instead
+ * (`activities/execute-deep-agent/platform-route.ts`), mounted on exactly
+ * the turns this link exists ({@link stigmerSymlinkPointsAt}).
  *
  * Lifecycle contract (same for both harnesses):
  * - Created per turn, under the workspace turn lock — the link is a
@@ -68,6 +72,21 @@ export async function ensureStigmerSymlink(
   }
 
   await symlink(platformDir, linkPath, "dir");
+}
+
+/**
+ * Whether the workspace's `.stigmer` is, right now, the link
+ * {@link ensureStigmerSymlink} makes to `platformDir`. A turn that mounts no
+ * skill and no attachment creates no link, so this is also "does this turn
+ * expose platform content at all" — the native harness mounts its read-only
+ * `.stigmer/` route on exactly the turns where the link would resolve.
+ */
+export async function stigmerSymlinkPointsAt(workspaceDir: string, platformDir: string): Promise<boolean> {
+  try {
+    return (await readlink(join(workspaceDir, STIGMER_LOCAL_STATE_DIR))) === platformDir;
+  } catch {
+    return false;
+  }
 }
 
 /**

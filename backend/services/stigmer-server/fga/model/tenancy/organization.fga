@@ -52,6 +52,10 @@ type organization
     # MEMBER MANAGEMENT
     # ========================================
     define can_manage_members: admin
+    # Granting, revoking or removing the owner role. The IamPolicy lanes and
+    # the invitation lane ask it whenever a change touches owner, on top of
+    # can_grant_access: an admin grants every role up to admin, and only an
+    # owner makes an owner.
     define can_assign_roles: owner
     
     # ========================================

@@ -58,6 +58,22 @@ public enum IamPermission
   can_view_access(5),
   /**
    * <pre>
+   * Whether the caller may grant, revoke or remove the owner role on an
+   * organization: only its owners hold it.
+   *
+   * &#64;internal
+   * The organization relation `can_assign_roles`. The IamPolicy lanes and
+   * the invitation lane ask it whenever a change touches the owner role, on
+   * top of can_grant_access. Every caller that reaches them already holds
+   * can_grant_access (admin), so this one question is the whole of "no role
+   * above your own".
+   * </pre>
+   *
+   * <code>can_assign_roles = 47;</code>
+   */
+  can_assign_roles(47),
+  /**
+   * <pre>
    * Organization-level create permissions.
    * </pre>
    *
@@ -430,6 +446,22 @@ public enum IamPermission
   public static final int can_view_access_VALUE = 5;
   /**
    * <pre>
+   * Whether the caller may grant, revoke or remove the owner role on an
+   * organization: only its owners hold it.
+   *
+   * &#64;internal
+   * The organization relation `can_assign_roles`. The IamPolicy lanes and
+   * the invitation lane ask it whenever a change touches the owner role, on
+   * top of can_grant_access. Every caller that reaches them already holds
+   * can_grant_access (admin), so this one question is the whole of "no role
+   * above your own".
+   * </pre>
+   *
+   * <code>can_assign_roles = 47;</code>
+   */
+  public static final int can_assign_roles_VALUE = 47;
+  /**
+   * <pre>
    * Organization-level create permissions.
    * </pre>
    *
@@ -787,6 +819,7 @@ public enum IamPermission
       case 3: return can_delete;
       case 4: return can_grant_access;
       case 5: return can_view_access;
+      case 47: return can_assign_roles;
       case 6: return can_create_agent;
       case 7: return can_create_workflow;
       case 8: return can_create_session;

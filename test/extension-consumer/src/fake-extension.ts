@@ -21,7 +21,7 @@
  * server's own extension suite; execution here would need real
  * infrastructure for no additional proof.
  */
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import type { DescMessage, DescMethod } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -49,6 +49,7 @@ import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import type {
   ApiResourceRef,
@@ -293,6 +294,22 @@ const consumerPlatformClientStore: PlatformClientStore = {
       consumerPlatformClients.set(id, client);
     }
     return Promise.resolve();
+  },
+  modifyById: (id, modify) => {
+    const stored = consumerPlatformClients.get(id);
+    if (stored === undefined) {
+      return Promise.resolve(undefined);
+    }
+    // Modify a copy and store it only when modify returns: a modify that
+    // throws leaves the held row as it was.
+    const next = clone(PlatformClientSchema, stored);
+    try {
+      modify(next);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    consumerPlatformClients.set(id, next);
+    return Promise.resolve(next);
   },
   deleteById: (id) => {
     consumerPlatformClients.delete(id);

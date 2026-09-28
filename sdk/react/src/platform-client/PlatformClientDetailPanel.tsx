@@ -11,7 +11,10 @@ import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/ia
 import { useUpdatePlatformClient } from "./useUpdatePlatformClient.js";
 import { useRotatePlatformClientSecret } from "./useRotatePlatformClientSecret.js";
 import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { isPlatformClientExpired } from "./expiry.js";
 
 /** Props for {@link PlatformClientDetailPanel}. */
 export interface PlatformClientDetailPanelProps {
@@ -32,14 +35,24 @@ export interface PlatformClientDetailPanelProps {
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Reference instant for the "last used" relative stamp. Defaults to
+   * the live clock. **Deterministic hosts (documentation embeds, video
+   * export) must pass a frozen instant** — otherwise a depicted client's
+   * "2h ago" drifts with every replay.
+   */
+  readonly now?: Date;
 }
 
 /**
  * View and edit panel for an existing platform client.
  *
  * In **view mode**, displays all configuration fields in a structured
- * label/value layout with "Edit", "Rotate Secret", and "Delete"
- * actions.
+ * label/value layout, with when the client last minted a token, and
+ * "Edit", "Rotate Secret", and "Delete" actions offered only to a caller
+ * the server allows: `can_edit` for Edit and Rotate, `can_delete` for
+ * Delete. The organization's admins may view a client they did not
+ * create, and see no actions on it.
  *
  * In **edit mode**, mutable spec fields become editable: JIT
  * provisioning toggles, expiry, auto-grant role, and allowed
@@ -70,10 +83,17 @@ export function PlatformClientDetailPanel({
   onDeleted,
   onBack,
   className,
+  now,
 }: PlatformClientDetailPanelProps) {
   const baseId = useId();
   const spec = platformClient.spec;
   const meta = platformClient.metadata;
+
+  const resource = meta?.id ? { kind: "platform_client", id: meta.id } : null;
+  const editCheck = useCheckPermission(resource, "can_edit");
+  const deleteCheck = useCheckPermission(resource, "can_delete");
+  const canEdit = !editCheck.isLoading && editCheck.allowed;
+  const canDelete = !deleteCheck.isLoading && deleteCheck.allowed;
 
   const { update, isUpdating, error: updateError, clearError: clearUpdateError } =
     useUpdatePlatformClient();
@@ -87,6 +107,8 @@ export function PlatformClientDetailPanel({
   const [confirmingRotate, setConfirmingRotate] = useState(false);
 
   const isBusy = isUpdating || isRotating || isDeleting;
+  // Rotating never revives an expired client: only a later expiry does.
+  const expired = isPlatformClientExpired(spec);
 
   // Edit form state
   const [neverExpires, setNeverExpires] = useState(
@@ -236,6 +258,7 @@ export function PlatformClientDetailPanel({
 
   const createdAt = platformClient.status?.audit?.specAudit?.createdAt;
   const updatedAt = platformClient.status?.audit?.specAudit?.updatedAt;
+  const lastUsedAt = platformClient.status?.lastUsedAt;
 
   return (
     <div className={cn("stg:space-y-4", className)}>
@@ -269,7 +292,7 @@ export function PlatformClientDetailPanel({
           </div>
         </div>
 
-        {mode === "view" && (
+        {mode === "view" && canEdit && (
           <button
             type="button"
             onClick={enterEdit}
@@ -290,6 +313,8 @@ export function PlatformClientDetailPanel({
           spec={spec}
           createdAt={createdAt}
           updatedAt={updatedAt}
+          lastUsedAt={lastUsedAt}
+          now={now}
         />
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
@@ -496,17 +521,23 @@ export function PlatformClientDetailPanel({
         </form>
       )}
 
-      {/* Actions bar (view mode only) */}
-      {mode === "view" && (
+      {/* Actions bar (view mode only, and only the actions the caller may take) */}
+      {mode === "view" && (canEdit || canDelete) && (
         <div className="stg:space-y-2 stg:pt-2">
           <hr className="stg:border-border-muted" />
 
           {/* Rotate Secret */}
-          {confirmingRotate ? (
+          {!canEdit ? null : confirmingRotate ? (
             <div className="stg:flex stg:items-center stg:justify-between stg:rounded-md stg:border stg:border-warning/30 stg:bg-warning/5 stg:px-3 stg:py-2">
               <p className="stg:text-xs stg:text-foreground">
                 Rotate secret? The current secret will be
                 <span className="stg:font-medium"> permanently invalidated</span>.
+                {expired && (
+                  <span className="stg:mt-1 stg:block stg:text-destructive">
+                    This client has expired. Rotating does not extend it; edit its
+                    expiry instead.
+                  </span>
+                )}
               </p>
               <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
                 <button
@@ -561,7 +592,7 @@ export function PlatformClientDetailPanel({
           )}
 
           {/* Delete */}
-          {confirmingDelete ? (
+          {!canDelete ? null : confirmingDelete ? (
             <div className="stg:flex stg:items-center stg:justify-between stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2">
               <div className="stg:min-w-0 stg:flex-1">
                 <p className="stg:text-xs stg:text-foreground">
@@ -632,10 +663,14 @@ function ViewMode({
   spec,
   createdAt,
   updatedAt,
+  lastUsedAt,
+  now,
 }: {
   spec: PlatformClient["spec"];
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  lastUsedAt?: Timestamp;
+  now?: Date;
 }) {
   return (
     <dl className="stg:space-y-2.5">
@@ -654,10 +689,18 @@ function ViewMode({
       {spec?.neverExpires ? (
         <Field label="Expiry" value="Never expires" />
       ) : spec?.expiresAt ? (
-        <Field
-          label="Expires"
-          value={formatDate(timestampDate(spec.expiresAt))}
-        />
+        isPlatformClientExpired(spec) ? (
+          <Field
+            label="Expired"
+            value={formatDate(timestampDate(spec.expiresAt))}
+            tone="destructive"
+          />
+        ) : (
+          <Field
+            label="Expires"
+            value={formatDate(timestampDate(spec.expiresAt))}
+          />
+        )
       ) : null}
 
       {/* JIT provisioning */}
@@ -713,6 +756,14 @@ function ViewMode({
             value={formatDate(timestampDate(updatedAt))}
           />
         )}
+        <Field
+          label="Last used"
+          value={
+            lastUsedAt
+              ? formatRelativeTime(timestampDate(lastUsedAt), now)
+              : "Never"
+          }
+        />
       </div>
     </dl>
   );
@@ -726,10 +777,13 @@ function Field({
   label,
   value,
   mono,
+  tone,
 }: {
   label: string;
   value?: string;
   mono?: boolean;
+  /** `destructive` for a value that needs action (an expired client). */
+  tone?: "destructive";
 }) {
   if (!value) return null;
   return (
@@ -739,7 +793,10 @@ function Field({
       </dt>
       <dd
         className={cn(
-          "stg:text-foreground stg:mt-0.5 stg:break-all stg:text-xs",
+          "stg:mt-0.5 stg:break-all stg:text-xs",
+          tone === "destructive"
+            ? "stg:text-destructive stg:font-medium"
+            : "stg:text-foreground",
           mono && "stg:font-mono",
         )}
       >

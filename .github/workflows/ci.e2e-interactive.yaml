@@ -43,6 +43,10 @@ on:
       - "client-apps/web/**"
       - "sdk/**"
       - "apis/**"
+      # The Temporal CLI the suites run against: its pin, downloader and installer.
+      - "client-apps/cli/src/local/artifact.ts"
+      - "client-apps/cli/src/local/temporal/download.ts"
+      - "client-apps/cli/scripts/install-temporal-cli.ts"
       - ".nvmrc"
       - ".github/workflows/ci.e2e-interactive.yaml"
   workflow_dispatch:
@@ -103,6 +107,10 @@ jobs:
               - "client-apps/web/**"
               - "sdk/**"
               - "apis/**"
+              # The Temporal CLI the suites run against: its pin, downloader and installer.
+              - "client-apps/cli/src/local/artifact.ts"
+              - "client-apps/cli/src/local/temporal/download.ts"
+              - "client-apps/cli/scripts/install-temporal-cli.ts"
               - ".nvmrc"
               - ".github/workflows/ci.e2e-interactive.yaml"
 
@@ -150,10 +158,14 @@ jobs:
         run: npm run build:libs
 
       # Install the Temporal CLI; global-setup boots its dev server.
+      # `make install-temporal-cli` fetches the version `stigmer up` pins,
+      # verified against the release's checksums.txt and retried on a dropped
+      # connection, so the suites run the Temporal users run.
       - name: Install Temporal CLI
         run: |
-          curl -sSf https://temporal.download/cli.sh | sh
-          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+          make install-temporal-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/temporal" --version
 
       # global-setup expects a prebuilt server dist and runner dist; build
       # them explicitly so a build break is an isolated, legible failure
@@ -233,8 +245,9 @@ jobs:
 
       - name: Install Temporal CLI
         run: |
-          curl -sSf https://temporal.download/cli.sh | sh
-          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+          make install-temporal-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/temporal" --version
 
       - name: Build stigmer-server
         run: make build-server
@@ -307,8 +320,9 @@ jobs:
 
       - name: Install Temporal CLI
         run: |
-          curl -sSf https://temporal.download/cli.sh | sh
-          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+          make install-temporal-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/temporal" --version
 
       - name: Build stigmer-server
         run: make build-server

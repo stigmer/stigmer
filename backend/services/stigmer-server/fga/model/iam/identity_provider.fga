@@ -6,25 +6,25 @@ module iam
 # External platform trust relationships for federated authentication.
 # Scoped to organization - each identity provider is owned by an org.
 #
-# Access model: RESTRICTED, with an operator of last resort
+# Access model: RESTRICTED, managed by the organization's current admins
 # Identity providers are administrative infrastructure, not discoverable
 # content: they carry an organization's trust configuration. Plain members
-# and viewer-role members of the organization see nothing. Org admins
-# compose into `owner` (the invitation and iam_policy line), so every
-# provider stays manageable when its creator leaves or when no creator was
-# ever recorded. Admins already hold `can_create_idp` on the organization,
-# so inheriting management of what they may create is no escalation.
+# and viewer-role members of the organization see nothing. `owner` is
+# computed, never stored: it is the organization's admins, as a team is
+# managed, so a provider stays manageable whoever created it, and a creator
+# who is demoted below admin or removed loses control of it with the role.
+# Editing a provider decides who may sign in to the organization, so that
+# control must end when the role that granted it does. The creator is
+# recorded in the audit trail (kind_meta `owner_type` NONE).
 #
 # Permission pattern:
 # - Org Admin (and org owner, through admin): full management
-# - Creator (Owner): full management
 # - Direct viewer grant: can see the provider and who has access to it
 # - Org Members and Viewers: no access (administrative resource)
 #
-# FGA tuples on creation (the kind's creation event: organization scope,
-# direct owner; private, so no visibility tuple):
+# FGA tuple on creation (the kind's creation event: organization scope, no
+# owner; private, so no visibility tuple):
 # - identity_provider:idp_abc#organization@organization:planton
-# - identity_provider:idp_abc#owner@identity_account:alice
 #
 # Checks the handlers make: `can_create_idp` on the organization to
 # create; `can_view` to get, get by reference, and to keep a row in the
@@ -66,9 +66,8 @@ type identity_provider
     # ========================================
     # OWNERSHIP
     # ========================================
-    # The creator, and every admin of the provider's organization: the
-    # operator of last resort.
-    define owner: [identity_account] or admin from organization
+    # Every current admin of the provider's organization, and nobody else.
+    define owner: admin from organization
     
     # ========================================
     # VIEWER ACCESS

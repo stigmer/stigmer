@@ -434,6 +434,13 @@ function stubBuilderDeps(overrides?: {
       readSecretValue: async () => "",
       updateSecrets: async () => {},
     } as unknown as ManagedEnvironmentService,
+    // No execution here was created by a minted user, so the minting
+    // client's layer answers from the audit without reading a client.
+    platformClients: {
+      findById: async () => {
+        throw new Error("no minting client in this test");
+      },
+    },
   };
 }
 

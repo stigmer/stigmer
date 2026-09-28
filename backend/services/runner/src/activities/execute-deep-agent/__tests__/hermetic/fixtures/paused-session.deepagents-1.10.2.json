@@ -1,0 +1,592 @@
+{
+  "recordedWith": {
+    "deepagents": "1.10.2",
+    "@langchain/langgraph": "1.3.2",
+    "@langchain/langgraph-checkpoint": "1.0.2",
+    "@langchain/core": "1.2.7"
+  },
+  "threadId": "thread-ses_hermetic_0001",
+  "checkpoints": [
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-461dd044988c",
+      "parent_checkpoint_id": null,
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6001-ffff-461dd044988c\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__start__\":{\"messages\":[{\"role\":\"user\",\"content\":\"Plan it, then run the command for me.\"}],\"todos\":[]},\"__pregel_tasks\":[[],[]]},\"channel_versions\":{\"__start__\":1},\"versions_seen\":{\"__input__\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"input\",\"step\":-1,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6002-8000-46169ceeff4a",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-461dd044988c",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6002-8000-46169ceeff4a\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:FilesystemMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":2},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":0,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6003-8001-45509db59c14",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6002-8000-46169ceeff4a",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6003-8001-45509db59c14\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:patchToolCallsMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":3,\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":1,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6004-8002-6da7132bd6d7",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6003-8001-45509db59c14",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6004-8002-6da7132bd6d7\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:LoopDetectionMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":4,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":2,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6005-8003-46d757e1587d",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6004-8002-6da7132bd6d7",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6005-8003-46d757e1587d\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:ExecutionBudgetMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":5,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":3,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6006-8004-5deee7533200",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6005-8003-46d757e1587d",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6006-8004-5deee7533200\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:ToolTruncationMiddleware.before_agent\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":6,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":4,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6007-8005-a950c6c90e66",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6006-8004-5deee7533200",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-0c3c-6007-8005-a950c6c90e66\",\"ts\":\"2026-01-01T00:00:00.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:model_request\":null},\"channel_versions\":{\"__start__\":2,\"messages\":2,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":7,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":7},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":5,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6680-8006-2f9bf8dcf67b",
+      "parent_checkpoint_id": "1f0e6a4d-0c3c-6007-8005-a950c6c90e66",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-15c5-6680-8006-2f9bf8dcf67b\",\"ts\":\"2026-01-01T00:00:01.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:LoopDetectionMiddleware.after_model\":null},\"channel_versions\":{\"__start__\":2,\"messages\":8,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":7,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":8,\"branch:to:LoopDetectionMiddleware.after_model\":8},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":7}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":6,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6681-8007-d9c156ca038f",
+      "parent_checkpoint_id": "1f0e6a4d-15c5-6680-8006-2f9bf8dcf67b",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-15c5-6681-8007-d9c156ca038f\",\"ts\":\"2026-01-01T00:00:01.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:todoListMiddleware.after_model\":null},\"channel_versions\":{\"__start__\":2,\"messages\":8,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":9,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":8,\"branch:to:LoopDetectionMiddleware.after_model\":9,\"branch:to:todoListMiddleware.after_model\":9},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":7},\"LoopDetectionMiddleware.after_model\":{\"branch:to:LoopDetectionMiddleware.after_model\":8}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":7,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6683-8008-afcb41bb8141",
+      "parent_checkpoint_id": "1f0e6a4d-15c5-6681-8007-d9c156ca038f",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-15c5-6683-8008-afcb41bb8141\",\"ts\":\"2026-01-01T00:00:01.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}}}]]},\"channel_versions\":{\"__start__\":2,\"messages\":8,\"todos\":2,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":10,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":8,\"branch:to:LoopDetectionMiddleware.after_model\":9,\"branch:to:todoListMiddleware.after_model\":10,\"__pregel_tasks\":10},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":7},\"LoopDetectionMiddleware.after_model\":{\"branch:to:LoopDetectionMiddleware.after_model\":8},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":9}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":8,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6684-8009-b23d595da2e2",
+      "parent_checkpoint_id": "1f0e6a4d-15c5-6683-8008-afcb41bb8141",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-15c5-6684-8009-b23d595da2e2\",\"ts\":\"2026-01-01T00:00:01.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Run the command\\\",\\\"status\\\":\\\"in_progress\\\"},{\\\"content\\\":\\\"Report the result\\\",\\\"status\\\":\\\"pending\\\"}]\",\"tool_call_id\":\"call-hermetic-todo-0001\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"e51ef45c-4614-430f-b416-1ae078f2b04d\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:model_request\":null},\"channel_versions\":{\"__start__\":2,\"messages\":11,\"todos\":11,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":10,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":11,\"branch:to:LoopDetectionMiddleware.after_model\":9,\"branch:to:todoListMiddleware.after_model\":10,\"__pregel_tasks\":11},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":7},\"LoopDetectionMiddleware.after_model\":{\"branch:to:LoopDetectionMiddleware.after_model\":8},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":9},\"tools\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":9,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d00-800a-374b35f8c7ff",
+      "parent_checkpoint_id": "1f0e6a4d-15c5-6684-8009-b23d595da2e2",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-1f4e-6d00-800a-374b35f8c7ff\",\"ts\":\"2026-01-01T00:00:02.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Run the command\\\",\\\"status\\\":\\\"in_progress\\\"},{\\\"content\\\":\\\"Report the result\\\",\\\"status\\\":\\\"pending\\\"}]\",\"tool_call_id\":\"call-hermetic-todo-0001\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"e51ef45c-4614-430f-b416-1ae078f2b04d\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7623-a7fa-77f78ae85d8b\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:LoopDetectionMiddleware.after_model\":null},\"channel_versions\":{\"__start__\":2,\"messages\":12,\"todos\":11,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":10,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":12,\"branch:to:LoopDetectionMiddleware.after_model\":12,\"branch:to:todoListMiddleware.after_model\":10,\"__pregel_tasks\":11},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":11},\"LoopDetectionMiddleware.after_model\":{\"branch:to:LoopDetectionMiddleware.after_model\":8},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":9},\"tools\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":10,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d01-800b-83c1f40b3daa",
+      "parent_checkpoint_id": "1f0e6a4d-1f4e-6d00-800a-374b35f8c7ff",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-1f4e-6d01-800b-83c1f40b3daa\",\"ts\":\"2026-01-01T00:00:02.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Run the command\\\",\\\"status\\\":\\\"in_progress\\\"},{\\\"content\\\":\\\"Report the result\\\",\\\"status\\\":\\\"pending\\\"}]\",\"tool_call_id\":\"call-hermetic-todo-0001\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"e51ef45c-4614-430f-b416-1ae078f2b04d\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7623-a7fa-77f78ae85d8b\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[]],\"branch:to:todoListMiddleware.after_model\":null},\"channel_versions\":{\"__start__\":2,\"messages\":12,\"todos\":11,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":13,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":12,\"branch:to:LoopDetectionMiddleware.after_model\":13,\"branch:to:todoListMiddleware.after_model\":13,\"__pregel_tasks\":11},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":11},\"LoopDetectionMiddleware.after_model\":{\"branch:to:LoopDetectionMiddleware.after_model\":12},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":9},\"tools\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":11,\"parents\":{}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d03-800c-490f903eaa70",
+      "parent_checkpoint_id": "1f0e6a4d-1f4e-6d01-800b-83c1f40b3daa",
+      "type": "json",
+      "checkpoint": {
+        "encoding": "utf8",
+        "data": "{\"v\":4,\"id\":\"1f0e6a4d-1f4e-6d03-800c-490f903eaa70\",\"ts\":\"2026-01-01T00:00:02.000Z\",\"channel_values\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Run the command\\\",\\\"status\\\":\\\"in_progress\\\"},{\\\"content\\\":\\\"Report the result\\\",\\\"status\\\":\\\"pending\\\"}]\",\"tool_call_id\":\"call-hermetic-todo-0001\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"e51ef45c-4614-430f-b416-1ae078f2b04d\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7623-a7fa-77f78ae85d8b\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"structuredResponse\":{\"lc\":2,\"type\":\"undefined\"},\"__pregel_tasks\":[[],[{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Run the command\\\",\\\"status\\\":\\\"in_progress\\\"},{\\\"content\\\":\\\"Report the result\\\",\\\"status\\\":\\\"pending\\\"}]\",\"tool_call_id\":\"call-hermetic-todo-0001\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"e51ef45c-4614-430f-b416-1ae078f2b04d\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7623-a7fa-77f78ae85d8b\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"jumpTo\":{\"lc\":2,\"type\":\"undefined\"},\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}}}]]},\"channel_versions\":{\"__start__\":2,\"messages\":12,\"todos\":11,\"branch:to:FilesystemMiddleware.before_agent\":3,\"jumpTo\":14,\"branch:to:patchToolCallsMiddleware.before_agent\":4,\"branch:to:LoopDetectionMiddleware.before_agent\":5,\"branch:to:ExecutionBudgetMiddleware.before_agent\":6,\"branch:to:ToolTruncationMiddleware.before_agent\":7,\"branch:to:model_request\":12,\"branch:to:LoopDetectionMiddleware.after_model\":13,\"branch:to:todoListMiddleware.after_model\":14,\"__pregel_tasks\":14},\"versions_seen\":{\"__input__\":{},\"__start__\":{\"__start__\":1},\"FilesystemMiddleware.before_agent\":{\"branch:to:FilesystemMiddleware.before_agent\":2},\"patchToolCallsMiddleware.before_agent\":{\"branch:to:patchToolCallsMiddleware.before_agent\":3},\"LoopDetectionMiddleware.before_agent\":{\"branch:to:LoopDetectionMiddleware.before_agent\":4},\"ExecutionBudgetMiddleware.before_agent\":{\"branch:to:ExecutionBudgetMiddleware.before_agent\":5},\"ToolTruncationMiddleware.before_agent\":{\"branch:to:ToolTruncationMiddleware.before_agent\":6},\"model_request\":{\"branch:to:model_request\":11},\"LoopDetectionMiddleware.after_model\":{\"branch:to:LoopDetectionMiddleware.after_model\":12},\"todoListMiddleware.after_model\":{\"branch:to:todoListMiddleware.after_model\":13},\"tools\":{}}}"
+      },
+      "metadata": {
+        "encoding": "utf8",
+        "data": "{\"source\":\"loop\",\"step\":12,\"parents\":{}}"
+      }
+    }
+  ],
+  "writes": [
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-461dd044988c",
+      "task_id": "0e2d15d9-1ba9-5759-93f7-30d4ec3bd93d",
+      "idx": 0,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"role\":\"user\",\"content\":\"Plan it, then run the command for me.\"}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-461dd044988c",
+      "task_id": "0e2d15d9-1ba9-5759-93f7-30d4ec3bd93d",
+      "idx": 1,
+      "channel": "todos",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6001-ffff-461dd044988c",
+      "task_id": "0e2d15d9-1ba9-5759-93f7-30d4ec3bd93d",
+      "idx": 2,
+      "channel": "branch:to:FilesystemMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6002-8000-46169ceeff4a",
+      "task_id": "29590d8c-d7d9-5f77-80cc-30e90ad3a69f",
+      "idx": 0,
+      "channel": "branch:to:patchToolCallsMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6003-8001-45509db59c14",
+      "task_id": "af70558d-da81-599a-8182-35b329193c8b",
+      "idx": 0,
+      "channel": "branch:to:LoopDetectionMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6004-8002-6da7132bd6d7",
+      "task_id": "8fd6ec0f-2d36-5a44-b060-b1b8ecc7c446",
+      "idx": 0,
+      "channel": "branch:to:ExecutionBudgetMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6005-8003-46d757e1587d",
+      "task_id": "d266335c-e7de-5bdb-9d16-b518cf0b5f97",
+      "idx": 0,
+      "channel": "branch:to:ToolTruncationMiddleware.before_agent",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6006-8004-5deee7533200",
+      "task_id": "3b2789ec-3b1f-52cb-82a1-ea49eed13793",
+      "idx": 0,
+      "channel": "branch:to:model_request",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6007-8005-a950c6c90e66",
+      "task_id": "8cdbde56-9eb0-504a-a4d4-baaef24a69c0",
+      "idx": 0,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-0c3c-6007-8005-a950c6c90e66",
+      "task_id": "8cdbde56-9eb0-504a-a4d4-baaef24a69c0",
+      "idx": 1,
+      "channel": "branch:to:LoopDetectionMiddleware.after_model",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6680-8006-2f9bf8dcf67b",
+      "task_id": "3ca481e1-8cfa-5e15-9f35-048f7d4a6581",
+      "idx": 0,
+      "channel": "branch:to:todoListMiddleware.after_model",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6681-8007-d9c156ca038f",
+      "task_id": "6b63d322-cb0a-57c0-b278-7245340908c5",
+      "idx": 0,
+      "channel": "__pregel_tasks",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"todos\":[],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6683-8008-afcb41bb8141",
+      "task_id": "02bb6f1a-9a6b-517e-bb3d-96d787024590",
+      "idx": 0,
+      "channel": "todos",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6683-8008-afcb41bb8141",
+      "task_id": "02bb6f1a-9a6b-517e-bb3d-96d787024590",
+      "idx": 1,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Run the command\\\",\\\"status\\\":\\\"in_progress\\\"},{\\\"content\\\":\\\"Report the result\\\",\\\"status\\\":\\\"pending\\\"}]\",\"tool_call_id\":\"call-hermetic-todo-0001\",\"additional_kwargs\":{},\"response_metadata\":{}}}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6683-8008-afcb41bb8141",
+      "task_id": "02bb6f1a-9a6b-517e-bb3d-96d787024590",
+      "idx": 2,
+      "channel": "branch:to:model_request",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6684-8009-b23d595da2e2",
+      "task_id": "4212eb01-dcb9-54e7-a6d7-7cdac99450e4",
+      "idx": 0,
+      "channel": "messages",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7623-a7fa-77f78ae85d8b\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}]"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-15c5-6684-8009-b23d595da2e2",
+      "task_id": "4212eb01-dcb9-54e7-a6d7-7cdac99450e4",
+      "idx": 1,
+      "channel": "branch:to:LoopDetectionMiddleware.after_model",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d00-800a-374b35f8c7ff",
+      "task_id": "83af77eb-a262-521c-9684-47cf6b644a69",
+      "idx": 0,
+      "channel": "branch:to:todoListMiddleware.after_model",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "null"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d01-800b-83c1f40b3daa",
+      "task_id": "5f8319a2-3f0d-5c95-9b96-e37b7d464ce3",
+      "idx": 0,
+      "channel": "__pregel_tasks",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "{\"node\":\"tools\",\"args\":{\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"HumanMessage\"],\"kwargs\":{\"content\":\"Plan it, then run the command for me.\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"ef5f39cd-c323-4717-a688-4cb3d36b282a\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-a800-77ac-967a-ed81a978ba04\",\"content\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"usage_metadata\":{\"input_tokens\":1200,\"output_tokens\":40,\"total_tokens\":1240},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"Planning the two steps.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-todo-0001\",\"name\":\"write_todos\",\"args\":{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}}],\"additional_kwargs\":{},\"name\":\"model\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Run the command\\\",\\\"status\\\":\\\"in_progress\\\"},{\\\"content\\\":\\\"Report the result\\\",\\\"status\\\":\\\"pending\\\"}]\",\"tool_call_id\":\"call-hermetic-todo-0001\",\"additional_kwargs\":{},\"response_metadata\":{},\"id\":\"e51ef45c-4614-430f-b416-1ae078f2b04d\"}},{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"AIMessage\"],\"kwargs\":{\"id\":\"run-019b76da-abe8-7623-a7fa-77f78ae85d8b\",\"content\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"usage_metadata\":{\"input_tokens\":1400,\"output_tokens\":50,\"total_tokens\":1450},\"response_metadata\":{\"output_version\":\"v1\",\"finish_reason\":\"stop\"},\"tool_calls\":[{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"invalid_tool_calls\":[],\"content_blocks\":[{\"type\":\"text\",\"text\":\"I will run the command.\"},{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}],\"additional_kwargs\":{},\"name\":\"model\"}}],\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}],\"files\":{},\"_summarizationSessionId\":{\"lc\":2,\"type\":\"undefined\"},\"_summarizationEvent\":{\"lc\":2,\"type\":\"undefined\"},\"lg_tool_call\":{\"type\":\"tool_call\",\"id\":\"call-hermetic-exec-0001\",\"name\":\"execute\",\"args\":{\"command\":\"echo hermetic-a\"}}}}"
+      }
+    },
+    {
+      "thread_id": "thread-ses_hermetic_0001",
+      "checkpoint_ns": "",
+      "checkpoint_id": "1f0e6a4d-1f4e-6d03-800c-490f903eaa70",
+      "task_id": "ce2447a3-2dcf-5f7a-a081-a89e435b4f93",
+      "idx": -3,
+      "channel": "__interrupt__",
+      "type": "json",
+      "value": {
+        "encoding": "utf8",
+        "data": "{\"id\":\"322ec8e9281649b695fad18dab996937\",\"value\":{\"tool_call_id\":\"call-hermetic-exec-0001\",\"tool_name\":\"execute\",\"mcp_server_slug\":\"\",\"message\":\"Run command: echo hermetic-a\",\"policy_source\":\"builtin_category\"}}"
+      }
+    }
+  ],
+  "status": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "content": "Planning the two steps.",
+        "timestamp": "2026-01-01T00:00:01.000Z",
+        "toolCalls": [
+          {
+            "id": "call-hermetic-todo-0001",
+            "name": "write_todos",
+            "args": {
+              "todos": [
+                {
+                  "content": "Run the command",
+                  "status": "in_progress"
+                },
+                {
+                  "content": "Report the result",
+                  "status": "pending"
+                }
+              ]
+            },
+            "result": "Updated todo list to [{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]",
+            "status": "TOOL_CALL_COMPLETED",
+            "startedAt": "2026-01-01T00:00:01.000Z",
+            "completedAt": "2026-01-01T00:00:01.000Z",
+            "argsPreview": "{\"todos\":[{\"content\":\"Run the command\",\"status\":\"in_progress\"},{\"content\":\"Report the result\",\"status\":\"pending\"}]}",
+            "toolKind": "TOOL_KIND_TODO"
+          }
+        ]
+      },
+      {
+        "type": "MESSAGE_AI",
+        "content": "I will run the command.",
+        "timestamp": "2026-01-01T00:00:02.000Z",
+        "toolCalls": [
+          {
+            "id": "call-hermetic-exec-0001",
+            "name": "execute",
+            "args": {
+              "command": "echo hermetic-a"
+            },
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "startedAt": "2026-01-01T00:00:02.000Z",
+            "requiresApproval": true,
+            "approvalMessage": "Run command: echo hermetic-a",
+            "approvalRequestedAt": "2026-01-01T00:00:02.000Z",
+            "argsPreview": "{\"command\":\"echo hermetic-a\"}",
+            "toolKind": "TOOL_KIND_SHELL",
+            "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+            "policyEngineVersion": "phase-7"
+          }
+        ]
+      }
+    ],
+    "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+    "startedAt": "2026-01-01T00:00:00.000Z",
+    "todos": {
+      "todo-0": {
+        "id": "todo-0",
+        "content": "Run the command",
+        "status": "TODO_IN_PROGRESS",
+        "createdAt": "2026-01-01T00:00:01.000Z",
+        "updatedAt": "2026-01-01T00:00:01.000Z"
+      },
+      "todo-1": {
+        "id": "todo-1",
+        "content": "Report the result",
+        "status": "TODO_PENDING",
+        "createdAt": "2026-01-01T00:00:01.000Z",
+        "updatedAt": "2026-01-01T00:00:01.000Z"
+      }
+    },
+    "streamingUsage": {
+      "inputTokens": "2600",
+      "outputTokens": "90",
+      "totalTokens": "2690",
+      "turnCount": 2,
+      "estimatedCostUsd": 0.0030499999999999998,
+      "model": "claude-haiku-4.5",
+      "observedAt": "2026-01-01T00:00:02.000Z",
+      "requestedServiceTier": "SERVICE_TIER_STANDARD",
+      "requestedThinkingMode": "THINKING_MODE_DISABLED"
+    },
+    "fileReviewEventStream": {
+      "executionId": "aex_hermetic_0001",
+      "events": [
+        {
+          "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+          "changeSetId": "aex_hermetic_0001:0",
+          "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+          "timestamp": "2026-01-01T00:00:00.000Z",
+          "actor": "runner",
+          "baselineCaptured": {
+            "changeSetId": "aex_hermetic_0001:0",
+            "turnId": "aex_hermetic_0001:0",
+            "harnessId": "deep-agent",
+            "baselineSnapshot": {
+              "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+            }
+          }
+        }
+      ]
+    },
+    "fileChangeProgress": {
+      "changeSetId": "aex_hermetic_0001:0",
+      "capturedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}

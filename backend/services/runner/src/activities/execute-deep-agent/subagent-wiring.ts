@@ -2,12 +2,10 @@
  * Sub-agent middleware composition for ExecuteDeepAgent.
  *
  * Each sub-agent gets its own middleware stack with:
- * - Path normalization (issue #429), FIRST and only on permission-rule-
- *   bearing graphs (plan mode) — workspace-relative paths are rewritten to
- *   workspace-absolute before deepagents' permission validation refuses
- *   them, exactly as on the parent. `compileSubagents` derives it from the
- *   same `permissions` option it bakes into the graph, keeping the rules
- *   and their normalization shim coupled.
+ * - Path normalization (issue #429), FIRST, on every graph since issue #754
+ *   — workspace-relative paths are rewritten to the virtual root's dialect
+ *   before deepagents' permission validation and the backend see them,
+ *   exactly as on the parent (`compileSubagents` always passes it).
  * - Fresh loop detection (independent cycle tracking)
  * - Tool intent (issue #276) — the shell tool's bind-time schema gains the
  *   optional model-authored `description`, so sub-agent shell rows carry
@@ -94,7 +92,7 @@ export interface SubAgentMiddlewareOptions {
  * workspace-absolute paths (matching the parent). The gate sits before the
  * cost-cap view so an approval pause happens before budget accounting, and
  * error hints come after the gate — both matching the parent order
- * (…→ truncation → graceful-stop → approval gate → cost cap → error hints …),
+ * (…→ truncation → approval gate → cost cap → error hints …),
  * which keeps the gate's HITL interrupt outside the hints' try/catch.
  */
 export function buildSubAgentMiddleware(

@@ -11,6 +11,11 @@
  * sentences open source adds — a server that cannot mint, the guest
  * method's edition refusal, the mismatched-account guard — follow the
  * house style (single-quoted handles).
+ *
+ * One inherited sentence was changed on purpose: the expired-secret
+ * refusal told integrators to rotate, which never helps, because rotating
+ * leaves the expiry as it is (steps.ts, newRotateClientCredentialsStep).
+ * It now names the one fix and who can apply it (stigmer/stigmer#1254).
  */
 
 /** The kind's name as the shared error constructors render it. */
@@ -63,8 +68,13 @@ export function referenceNotFoundMessage(org: string, slug: string): string {
 export const INVALID_CLIENT_CREDENTIALS_MESSAGE =
   "Invalid client_id or client_secret";
 
+/**
+ * The mint's refusal for a client whose expires_at has passed. Rotating
+ * does not extend the expiry, and both update and rotateSecret need the
+ * client's owner (can_edit), so the sentence names the owner's fix.
+ */
 export const EXPIRED_CLIENT_SECRET_MESSAGE =
-  "PlatformClient secret has expired. Use rotateSecret to generate a new one.";
+  "PlatformClient secret has expired. Rotating the secret does not extend it; the client's owner must set a later expires_at or set never_expires.";
 
 export function organizationMismatchMessage(owningOrg: string): string {
   return `org_id must be empty or the PlatformClient's owning organization ('${owningOrg}'); cross-organization minting is not supported`;

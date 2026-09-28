@@ -1,19 +1,23 @@
-# An identity provider is managed by its creator and by every admin of its
-# organization, and is invisible to the organization's other people.
+# An identity provider is managed by its organization's current admins, and
+# is invisible to the organization's other people. Creating one confers
+# nothing that outlives the creator's role: the kind records no owner.
 #
 # Cast (organization acme unless named):
 #   root  - acme owner (an admin through the role hierarchy)
 #   ana   - acme admin; created nothing
 #   carol - acme admin; created provider `sso`
+#   cody  - created provider `sso` too as an acme admin, since demoted to
+#           member
+#   rex   - created provider `sso` too, since removed from acme
 #   dave  - acme member-role member
 #   vera  - acme viewer-role member
 #   vince - acme member with a direct viewer grant on `sso`
 #   zara  - admin of the unrelated organization other
 #   tina  - member of organization tenant, which `sso` operates
 #
-# Provider `sso` carries both creation tuples. Provider `unowned` carries
-# only its organization link: a provider whose creator was never recorded,
-# the state the boot reconcile repairs to. Provider `ghost` carries no
+# Provider `sso` carries its creation tuple, the organization link. Provider
+# `unowned` carries the same single link and never had a creator recorded:
+# the two are managed alike, which is the point. Provider `ghost` carries no
 # tuple at all, the state a provider is left in when its creation event
 # failed: nobody manages it, which is why the reconcile exists.
 name: identity-provider-administration
@@ -22,18 +26,18 @@ tuples:
   - {user: identity_account:root, relation: owner, object: organization:acme}
   - {user: identity_account:ana, relation: admin, object: organization:acme}
   - {user: identity_account:carol, relation: admin, object: organization:acme}
+  - {user: identity_account:cody, relation: member, object: organization:acme}
   - {user: identity_account:dave, relation: member, object: organization:acme}
   - {user: identity_account:vera, relation: viewer, object: organization:acme}
   - {user: identity_account:vince, relation: member, object: organization:acme}
   - {user: identity_account:zara, relation: admin, object: organization:other}
   - {user: identity_account:tina, relation: member, object: organization:tenant}
   - {user: organization:acme, relation: organization, object: identity_provider:sso}
-  - {user: identity_account:carol, relation: owner, object: identity_provider:sso}
   - {user: identity_account:vince, relation: viewer, object: identity_provider:sso}
   - {user: organization:tenant, relation: managed_org, object: identity_provider:sso}
   - {user: organization:acme, relation: organization, object: identity_provider:unowned}
 tests:
-  - name: the creator and every org admin manage the provider
+  - name: every org admin manages the provider, its creator through the same role
     check:
       - user: identity_account:carol
         object: identity_provider:sso
@@ -44,6 +48,14 @@ tests:
       - user: identity_account:root
         object: identity_provider:sso
         assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true}
+  - name: a creator who is no longer an admin, or no longer a member, has nothing on the provider
+    check:
+      - user: identity_account:cody
+        object: identity_provider:sso
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false, can_grant_access: false}
+      - user: identity_account:rex
+        object: identity_provider:sso
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false, can_grant_access: false}
   - name: a provider with no recorded creator is still managed by its organization's admins
     check:
       - user: identity_account:ana

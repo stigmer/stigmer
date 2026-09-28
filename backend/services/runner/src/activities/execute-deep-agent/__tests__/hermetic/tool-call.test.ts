@@ -33,6 +33,12 @@
  * thinking mode (one writer of the summary, the runtime). Nothing
  * else in this golden moved with the flip.
  *
+ * Since deepagents 1.12 (landed with 1.14, 2026-09-28): `read_file`
+ * returns the file's lines unnumbered under a status header,
+ * `@@ lines 1-3 of 3 @@`, where it returned `cat -n` numbered lines. The
+ * row's `result` is that one line of the golden; the clients' read view
+ * drops the header (`sdk/typescript/src/execution/tool-view.ts`).
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */
