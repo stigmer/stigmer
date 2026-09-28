@@ -47,6 +47,12 @@ class SubscriptionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_period_estimate(self, input: io_pb2.GetPeriodEstimateInput) -> io_pb2.PeriodEstimate:
+        try:
+            return self._query.getPeriodEstimate(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class SubscriptionInput:

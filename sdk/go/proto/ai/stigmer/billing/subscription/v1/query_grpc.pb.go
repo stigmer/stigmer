@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SubscriptionQueryController_GetForOrganization_FullMethodName = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrganization"
 	SubscriptionQueryController_GetEntitlements_FullMethodName    = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getEntitlements"
+	SubscriptionQueryController_GetPeriodEstimate_FullMethodName  = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getPeriodEstimate"
 )
 
 // SubscriptionQueryControllerClient is the client API for SubscriptionQueryController service.
@@ -49,6 +50,21 @@ type SubscriptionQueryControllerClient interface {
 	// integrator organization, whose plan counts the managed organization
 	// against the managed organizations it includes.
 	GetEntitlements(ctx context.Context, in *GetEntitlementsInput, opts ...grpc.CallOption) (*GetEntitlementsOutput, error)
+	// Estimate what the organization's current period will be invoiced.
+	//
+	// The estimate is the invoice the period would close with if no further
+	// usage occurred before its end: the plan's cost over the whole period
+	// (its minimum is not prorated to the time elapsed), less the commission
+	// already collected on the period's usage, plus the managed organizations
+	// beyond those the plan includes. It is rated by the same rule the
+	// monthly close invoices by, over the same usage, so an estimate read at
+	// a period's end equals that period's invoice. Every other read derives
+	// it the same way; nothing is stored.
+	//
+	// NOT_FOUND when the organization has no live subscription: it is on
+	// Free, or it is platform-managed and on its integrator's plan, and
+	// neither is invoiced a plan of its own.
+	GetPeriodEstimate(ctx context.Context, in *GetPeriodEstimateInput, opts ...grpc.CallOption) (*PeriodEstimate, error)
 }
 
 type subscriptionQueryControllerClient struct {
@@ -73,6 +89,16 @@ func (c *subscriptionQueryControllerClient) GetEntitlements(ctx context.Context,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetEntitlementsOutput)
 	err := c.cc.Invoke(ctx, SubscriptionQueryController_GetEntitlements_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *subscriptionQueryControllerClient) GetPeriodEstimate(ctx context.Context, in *GetPeriodEstimateInput, opts ...grpc.CallOption) (*PeriodEstimate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PeriodEstimate)
+	err := c.cc.Invoke(ctx, SubscriptionQueryController_GetPeriodEstimate_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +131,21 @@ type SubscriptionQueryControllerServer interface {
 	// integrator organization, whose plan counts the managed organization
 	// against the managed organizations it includes.
 	GetEntitlements(context.Context, *GetEntitlementsInput) (*GetEntitlementsOutput, error)
+	// Estimate what the organization's current period will be invoiced.
+	//
+	// The estimate is the invoice the period would close with if no further
+	// usage occurred before its end: the plan's cost over the whole period
+	// (its minimum is not prorated to the time elapsed), less the commission
+	// already collected on the period's usage, plus the managed organizations
+	// beyond those the plan includes. It is rated by the same rule the
+	// monthly close invoices by, over the same usage, so an estimate read at
+	// a period's end equals that period's invoice. Every other read derives
+	// it the same way; nothing is stored.
+	//
+	// NOT_FOUND when the organization has no live subscription: it is on
+	// Free, or it is platform-managed and on its integrator's plan, and
+	// neither is invoiced a plan of its own.
+	GetPeriodEstimate(context.Context, *GetPeriodEstimateInput) (*PeriodEstimate, error)
 }
 
 // UnimplementedSubscriptionQueryControllerServer should be embedded to have
@@ -119,6 +160,9 @@ func (UnimplementedSubscriptionQueryControllerServer) GetForOrganization(context
 }
 func (UnimplementedSubscriptionQueryControllerServer) GetEntitlements(context.Context, *GetEntitlementsInput) (*GetEntitlementsOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEntitlements not implemented")
+}
+func (UnimplementedSubscriptionQueryControllerServer) GetPeriodEstimate(context.Context, *GetPeriodEstimateInput) (*PeriodEstimate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPeriodEstimate not implemented")
 }
 func (UnimplementedSubscriptionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -176,6 +220,24 @@ func _SubscriptionQueryController_GetEntitlements_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SubscriptionQueryController_GetPeriodEstimate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPeriodEstimateInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionQueryControllerServer).GetPeriodEstimate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SubscriptionQueryController_GetPeriodEstimate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionQueryControllerServer).GetPeriodEstimate(ctx, req.(*GetPeriodEstimateInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SubscriptionQueryController_ServiceDesc is the grpc.ServiceDesc for SubscriptionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +252,10 @@ var SubscriptionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getEntitlements",
 			Handler:    _SubscriptionQueryController_GetEntitlements_Handler,
+		},
+		{
+			MethodName: "getPeriodEstimate",
+			Handler:    _SubscriptionQueryController_GetPeriodEstimate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -35,6 +35,7 @@ status:
 |--------|-------------|
 | [`getEntitlements`](#getentitlements) | Resolve what the organization is permitted right now. |
 | [`getForOrganization`](#getfororganization) | Get the organization's subscription. |
+| [`getPeriodEstimate`](#getperiodestimate) | Estimate what the organization's current period will be invoiced. |
 | [`cancel`](#cancel) | Cancel the organization's subscription. |
 | [`changePlan`](#changeplan) | Move the organization onto a plan. |
 
@@ -120,6 +121,49 @@ Subscription subscription = client.subscriptions().getForOrganization(GetSubscri
 
 **Returns**: [`Subscription`](#subscription)
 
+### getPeriodEstimate
+
+Estimate what the organization's current period will be invoiced.
+
+The estimate is the invoice the period would close with if no further usage occurred before its end: the plan's cost over the whole period (its minimum is not prorated to the time elapsed), less the commission already collected on the period's usage, plus the managed organizations beyond those the plan includes. It is rated by the same rule the monthly close invoices by, over the same usage, so an estimate read at a period's end equals that period's invoice. Every other read derives it the same way; nothing is stored.
+
+NOT_FOUND when the organization has no live subscription: it is on Free, or it is platform-managed and on its integrator's plan, and neither is invoiced a plan of its own.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const periodEstimate = await stigmer.subscription.getPeriodEstimate({
+  orgId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+periodEstimate, err := client.Subscription.GetPeriodEstimate(ctx, &stigmer.GetPeriodEstimateInput{
+  OrgId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+period_estimate = client.subscriptions.get_period_estimate(GetPeriodEstimateInput(
+    org_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PeriodEstimate periodEstimate = client.subscriptions().getPeriodEstimate(GetPeriodEstimateInput.builder()
+    .orgId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetPeriodEstimateInput`](#getperiodestimateinput)
+
+**Returns**: [`PeriodEstimate`](#periodestimate)
+
 ### cancel
 
 Cancel the organization's subscription.
@@ -166,6 +210,10 @@ Subscription subscription = client.subscriptions().cancel(CancelSubscriptionInpu
 Move the organization onto a plan.
 
 Subscribes an organization that has no subscription, or changes the plan of one that does. The plan must be active and bought through a subscription. Returns the subscription as it stands after the change.
+
+Refusals a client should branch on carry a google.rpc.ErrorInfo detail (domain "stigmer.ai") on the standard grpc-status-details-bin trailer, alongside the human-readable FAILED_PRECONDITION message:
+
+- PAYMENT_METHOD_REQUIRED — the organization's billing account holds no saved payment method, which every period is collected from; BillingCommandController.createPaymentMethodSetupSession saves one. Metadata: org_id.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -274,6 +322,33 @@ GetEntitlementsOutput is what an organization is permitted right now and the pla
   }}
 />
 
+### GetPeriodEstimateInput
+
+GetPeriodEstimateInput names the organization whose current period is estimated.
+
+<TypeTable
+  type={{
+    orgId: { type: "string", description: "The organization's id.", required: true },
+  }}
+/>
+
+### PeriodEstimate
+
+PeriodEstimate is what an organization's current subscription period would be invoiced at its end if no further usage occurred.
+
+<TypeTable
+  type={{
+    planId: { type: "string", description: "The id of the Plan the period is on." },
+    periodStart: { type: "string", description: "When the period began." },
+    periodEnd: { type: "string", description: "When the period ends and is invoiced." },
+    providerCostMicros: { type: "number", description: "What the period's usage has cost in provider charges so far, across the organization and the managed organizations it pays for." },
+    commissionCollectedMicros: { type: "number", description: "The commission the wallet has already collected on that usage." },
+    managedOrganizationCount: { type: "number", description: "The managed organizations counted against the plan this period." },
+    lines: { type: "PeriodEstimateLineInput[]", description: "The invoice's lines in the order they print, zero lines omitted." },
+    totalMicros: { type: "number", description: "The estimated invoice total: the sum of the lines." },
+  }}
+/>
+
 ### Subscription
 
 Subscription is an organization's binding to a Plan.
@@ -325,4 +400,14 @@ A capability an entitlement can unlock.
 | `sharing` | Sharing an agent with individuals and guests through hosted share links. |
 | `teams` | Creating teams and adding members to them. |
 | `managed_organizations` | Creating platform-managed organizations under the tenant's identity provider, the organizations an integrator runs for its own customers. |
+
+### PeriodEstimateLineKind
+
+PeriodEstimateLineKind names what an estimated invoice line is for.
+
+| Value | Description |
+|-------|-------------|
+| `plan` | The plan's cost: the greater of its monthly minimum and its usage share of the period's provider cost. |
+| `commission_credit` | The commission already collected on the period's usage, credited against the plan's cost and never more than it. |
+| `managed_organizations` | The managed organizations beyond those the plan includes, at the plan's fee for each. |
 

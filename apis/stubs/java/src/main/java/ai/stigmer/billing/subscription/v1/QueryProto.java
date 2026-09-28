@@ -41,8 +41,8 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "/api.proto\032+ai/stigmer/billing/subscript" +
       "ion/v1/io.proto\0328ai/stigmer/commons/apir" +
       "esource/rpc_service_options.proto\032+ai/st" +
-      "igmer/commons/rpc/method_options.proto2\320" +
-      "\003\n\033SubscriptionQueryController\022\330\001\n\022getFo" +
+      "igmer/commons/rpc/method_options.proto2\242" +
+      "\005\n\033SubscriptionQueryController\022\330\001\n\022getFo" +
       "rOrganization\022G.ai.stigmer.billing.subsc" +
       "ription.v1.GetSubscriptionForOrganizatio" +
       "nInput\0320.ai.stigmer.billing.subscription" +
@@ -53,12 +53,17 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tsInput\0329.ai.stigmer.billing.subscriptio" +
       "n.v1.GetEntitlementsOutput\"G\302\270\030C\010\033\020\036\"\006or" +
       "g_id*5unauthorized to view this organiza" +
-      "tion\'s entitlements\032\004\240\377+GB\271\001B\nQueryProto" +
-      "P\001\242\002\004ASBS\252\002\"Ai.Stigmer.Billing.Subscript" +
-      "ion.V1\312\002\"Ai\\Stigmer\\Billing\\Subscription" +
-      "\\V1\342\002.Ai\\Stigmer\\Billing\\Subscription\\V1" +
-      "\\GPBMetadata\352\002&Ai::Stigmer::Billing::Sub" +
-      "scription::V1b\006proto3"
+      "tion\'s entitlements\022\317\001\n\021getPeriodEstimat" +
+      "e\022:.ai.stigmer.billing.subscription.v1.G" +
+      "etPeriodEstimateInput\0322.ai.stigmer.billi" +
+      "ng.subscription.v1.PeriodEstimate\"J\302\270\030F\010" +
+      "\033\020\036\"\006org_id*8unauthorized to view this o" +
+      "rganization\'s period estimate\032\004\240\377+GB\271\001B\n" +
+      "QueryProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.Billing" +
+      ".Subscription.V1\312\002\"Ai\\Stigmer\\Billing\\Su" +
+      "bscription\\V1\342\002.Ai\\Stigmer\\Billing\\Subsc" +
+      "ription\\V1\\GPBMetadata\352\002&Ai::Stigmer::Bi" +
+      "lling::Subscription::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

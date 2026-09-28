@@ -34,6 +34,15 @@ type OrganizationCommandControllerClient interface {
 	// Create or update an organization.
 	Apply(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Create an organization.
+	//
+	// On Stigmer Cloud, creating a platform-managed organization is a plan
+	// feature of its integrator. An integrator whose plan lacks it is refused
+	// with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"):
+	//
+	//   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+	//     include the feature. Metadata: feature ("managed_organizations"),
+	//     org_id (the integrator organization).
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an existing organization.
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
@@ -98,6 +107,15 @@ type OrganizationCommandControllerServer interface {
 	// Create or update an organization.
 	Apply(context.Context, *Organization) (*Organization, error)
 	// Create an organization.
+	//
+	// On Stigmer Cloud, creating a platform-managed organization is a plan
+	// feature of its integrator. An integrator whose plan lacks it is refused
+	// with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"):
+	//
+	//   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+	//     include the feature. Metadata: feature ("managed_organizations"),
+	//     org_id (the integrator organization).
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an existing organization.
 	Update(context.Context, *Organization) (*Organization, error)

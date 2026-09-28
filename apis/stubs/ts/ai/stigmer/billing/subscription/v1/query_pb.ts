@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SubscriptionSchema } from "./api_pb.js";
 import { file_ai_stigmer_billing_subscription_v1_api } from "./api_pb.js";
-import type { GetEntitlementsInputSchema, GetEntitlementsOutputSchema, GetSubscriptionForOrganizationInputSchema } from "./io_pb.js";
+import type { GetEntitlementsInputSchema, GetEntitlementsOutputSchema, GetPeriodEstimateInputSchema, GetSubscriptionForOrganizationInputSchema, PeriodEstimateSchema } from "./io_pb.js";
 import { file_ai_stigmer_billing_subscription_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/billing/subscription/v1/query.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxMtADChtTdWJzY3JpcHRpb25RdWVyeUNvbnRyb2xsZXIS2AEKEmdldEZvck9yZ2FuaXphdGlvbhJHLmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0U3Vic2NyaXB0aW9uRm9yT3JnYW5pemF0aW9uSW5wdXQaMC5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlN1YnNjcmlwdGlvbiJHwrgYQwgbEB4iBm9yZ19pZCo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBzdWJzY3JpcHRpb24SzwEKD2dldEVudGl0bGVtZW50cxI4LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0RW50aXRsZW1lbnRzSW5wdXQaOS5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLkdldEVudGl0bGVtZW50c091dHB1dCJHwrgYQwgbEB4iBm9yZ19pZCo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBlbnRpdGxlbWVudHMaBKD/K0diBnByb3RvMw", [file_ai_stigmer_billing_subscription_v1_api, file_ai_stigmer_billing_subscription_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci5haS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxMqIFChtTdWJzY3JpcHRpb25RdWVyeUNvbnRyb2xsZXIS2AEKEmdldEZvck9yZ2FuaXphdGlvbhJHLmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0U3Vic2NyaXB0aW9uRm9yT3JnYW5pemF0aW9uSW5wdXQaMC5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlN1YnNjcmlwdGlvbiJHwrgYQwgbEB4iBm9yZ19pZCo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBzdWJzY3JpcHRpb24SzwEKD2dldEVudGl0bGVtZW50cxI4LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0RW50aXRsZW1lbnRzSW5wdXQaOS5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLkdldEVudGl0bGVtZW50c091dHB1dCJHwrgYQwgbEB4iBm9yZ19pZCo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBlbnRpdGxlbWVudHMSzwEKEWdldFBlcmlvZEVzdGltYXRlEjouYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5HZXRQZXJpb2RFc3RpbWF0ZUlucHV0GjIuYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5QZXJpb2RFc3RpbWF0ZSJKwrgYRggbEB4iBm9yZ19pZCo4dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBwZXJpb2QgZXN0aW1hdGUaBKD/K0diBnByb3RvMw", [file_ai_stigmer_billing_subscription_v1_api, file_ai_stigmer_billing_subscription_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SubscriptionQueryController provides the read operations on an
@@ -58,6 +58,29 @@ export const SubscriptionQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetEntitlementsInputSchema;
     output: typeof GetEntitlementsOutputSchema;
+  },
+  /**
+   * Estimate what the organization's current period will be invoiced.
+   *
+   * The estimate is the invoice the period would close with if no further
+   * usage occurred before its end: the plan's cost over the whole period
+   * (its minimum is not prorated to the time elapsed), less the commission
+   * already collected on the period's usage, plus the managed organizations
+   * beyond those the plan includes. It is rated by the same rule the
+   * monthly close invoices by, over the same usage, so an estimate read at
+   * a period's end equals that period's invoice. Every other read derives
+   * it the same way; nothing is stored.
+   *
+   * NOT_FOUND when the organization has no live subscription: it is on
+   * Free, or it is platform-managed and on its integrator's plan, and
+   * neither is invoiced a plan of its own.
+   *
+   * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getPeriodEstimate
+   */
+  getPeriodEstimate: {
+    methodKind: "unary";
+    input: typeof GetPeriodEstimateInputSchema;
+    output: typeof PeriodEstimateSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_billing_subscription_v1_query, 0);

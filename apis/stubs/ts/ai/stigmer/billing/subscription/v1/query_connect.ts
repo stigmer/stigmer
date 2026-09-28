@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetEntitlementsInput, GetEntitlementsOutput, GetSubscriptionForOrganizationInput } from "./io_pbjs";
+import { GetEntitlementsInput, GetEntitlementsOutput, GetPeriodEstimateInput, GetSubscriptionForOrganizationInput, PeriodEstimate } from "./io_pbjs";
 import { Subscription } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -51,6 +51,30 @@ export const SubscriptionQueryController = {
       name: "getEntitlements",
       I: GetEntitlementsInput,
       O: GetEntitlementsOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Estimate what the organization's current period will be invoiced.
+     *
+     * The estimate is the invoice the period would close with if no further
+     * usage occurred before its end: the plan's cost over the whole period
+     * (its minimum is not prorated to the time elapsed), less the commission
+     * already collected on the period's usage, plus the managed organizations
+     * beyond those the plan includes. It is rated by the same rule the
+     * monthly close invoices by, over the same usage, so an estimate read at
+     * a period's end equals that period's invoice. Every other read derives
+     * it the same way; nothing is stored.
+     *
+     * NOT_FOUND when the organization has no live subscription: it is on
+     * Free, or it is platform-managed and on its integrator's plan, and
+     * neither is invoiced a plan of its own.
+     *
+     * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getPeriodEstimate
+     */
+    getPeriodEstimate: {
+      name: "getPeriodEstimate",
+      I: GetPeriodEstimateInput,
+      O: PeriodEstimate,
       kind: MethodKind.Unary,
     },
   }

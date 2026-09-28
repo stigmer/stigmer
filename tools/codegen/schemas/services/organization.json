@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create an organization."
+          "description": "Create an organization.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org_id (the integrator organization)."
         },
         {
           "name": "Update",

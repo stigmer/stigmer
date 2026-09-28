@@ -320,6 +320,12 @@ public final class IamPolicyCommandControllerGrpc {
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
+     * On Stigmer Cloud, adding a member to a team (a `member` grant on a
+     * team) is a plan feature. An organization whose plan lacks teams is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+     *     the feature. Metadata: feature ("teams"), org_id.
      * </pre>
      */
     default void create(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request,
@@ -595,6 +601,12 @@ public final class IamPolicyCommandControllerGrpc {
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
+     * On Stigmer Cloud, adding a member to a team (a `member` grant on a
+     * team) is a plan feature. An organization whose plan lacks teams is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+     *     the feature. Metadata: feature ("teams"), org_id.
      * </pre>
      */
     public void create(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request,
@@ -850,6 +862,12 @@ public final class IamPolicyCommandControllerGrpc {
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
+     * On Stigmer Cloud, adding a member to a team (a `member` grant on a
+     * team) is a plan feature. An organization whose plan lacks teams is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+     *     the feature. Metadata: feature ("teams"), org_id.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy create(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request) throws io.grpc.StatusException {
@@ -1099,6 +1117,12 @@ public final class IamPolicyCommandControllerGrpc {
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
+     * On Stigmer Cloud, adding a member to a team (a `member` grant on a
+     * team) is a plan feature. An organization whose plan lacks teams is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+     *     the feature. Metadata: feature ("teams"), org_id.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy create(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request) {
@@ -1348,6 +1372,12 @@ public final class IamPolicyCommandControllerGrpc {
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
+     * On Stigmer Cloud, adding a member to a team (a `member` grant on a
+     * team) is a plan feature. An organization whose plan lacks teams is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+     *     the feature. Metadata: feature ("teams"), org_id.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.IamPolicy> create(

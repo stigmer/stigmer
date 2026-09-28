@@ -60,6 +60,14 @@ service IamPolicyCommandController {
   //
   // Input: IamPolicySpec containing principal, resource, and relation
   // Output: The created IamPolicy with generated ID and metadata
+  //
+  // On Stigmer Cloud, adding a member to a team (a `member` grant on a
+  // team) is a plan feature. An organization whose plan lacks teams is
+  // refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+  // (domain "stigmer.ai"):
+  //
+  //   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+  //     the feature. Metadata: feature ("teams"), org_id.
   rpc create(IamPolicySpec) returns (IamPolicy) {
     option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
     option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";

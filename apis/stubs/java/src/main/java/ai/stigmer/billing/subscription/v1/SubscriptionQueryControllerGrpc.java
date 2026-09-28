@@ -83,6 +83,37 @@ public final class SubscriptionQueryControllerGrpc {
     return getGetEntitlementsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput,
+      ai.stigmer.billing.subscription.v1.PeriodEstimate> getGetPeriodEstimateMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getPeriodEstimate",
+      requestType = ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput.class,
+      responseType = ai.stigmer.billing.subscription.v1.PeriodEstimate.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput,
+      ai.stigmer.billing.subscription.v1.PeriodEstimate> getGetPeriodEstimateMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput, ai.stigmer.billing.subscription.v1.PeriodEstimate> getGetPeriodEstimateMethod;
+    if ((getGetPeriodEstimateMethod = SubscriptionQueryControllerGrpc.getGetPeriodEstimateMethod) == null) {
+      synchronized (SubscriptionQueryControllerGrpc.class) {
+        if ((getGetPeriodEstimateMethod = SubscriptionQueryControllerGrpc.getGetPeriodEstimateMethod) == null) {
+          SubscriptionQueryControllerGrpc.getGetPeriodEstimateMethod = getGetPeriodEstimateMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput, ai.stigmer.billing.subscription.v1.PeriodEstimate>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getPeriodEstimate"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.subscription.v1.PeriodEstimate.getDefaultInstance()))
+              .setSchemaDescriptor(new SubscriptionQueryControllerMethodDescriptorSupplier("getPeriodEstimate"))
+              .build();
+        }
+      }
+    }
+    return getGetPeriodEstimateMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -183,6 +214,27 @@ public final class SubscriptionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.GetEntitlementsOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetEntitlementsMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Estimate what the organization's current period will be invoiced.
+     * The estimate is the invoice the period would close with if no further
+     * usage occurred before its end: the plan's cost over the whole period
+     * (its minimum is not prorated to the time elapsed), less the commission
+     * already collected on the period's usage, plus the managed organizations
+     * beyond those the plan includes. It is rated by the same rule the
+     * monthly close invoices by, over the same usage, so an estimate read at
+     * a period's end equals that period's invoice. Every other read derives
+     * it the same way; nothing is stored.
+     * NOT_FOUND when the organization has no live subscription: it is on
+     * Free, or it is platform-managed and on its integrator's plan, and
+     * neither is invoiced a plan of its own.
+     * </pre>
+     */
+    default void getPeriodEstimate(ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.PeriodEstimate> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetPeriodEstimateMethod(), responseObserver);
+    }
   }
 
   /**
@@ -260,6 +312,28 @@ public final class SubscriptionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetEntitlementsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Estimate what the organization's current period will be invoiced.
+     * The estimate is the invoice the period would close with if no further
+     * usage occurred before its end: the plan's cost over the whole period
+     * (its minimum is not prorated to the time elapsed), less the commission
+     * already collected on the period's usage, plus the managed organizations
+     * beyond those the plan includes. It is rated by the same rule the
+     * monthly close invoices by, over the same usage, so an estimate read at
+     * a period's end equals that period's invoice. Every other read derives
+     * it the same way; nothing is stored.
+     * NOT_FOUND when the organization has no live subscription: it is on
+     * Free, or it is platform-managed and on its integrator's plan, and
+     * neither is invoiced a plan of its own.
+     * </pre>
+     */
+    public void getPeriodEstimate(ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.PeriodEstimate> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetPeriodEstimateMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -315,6 +389,27 @@ public final class SubscriptionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetEntitlementsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Estimate what the organization's current period will be invoiced.
+     * The estimate is the invoice the period would close with if no further
+     * usage occurred before its end: the plan's cost over the whole period
+     * (its minimum is not prorated to the time elapsed), less the commission
+     * already collected on the period's usage, plus the managed organizations
+     * beyond those the plan includes. It is rated by the same rule the
+     * monthly close invoices by, over the same usage, so an estimate read at
+     * a period's end equals that period's invoice. Every other read derives
+     * it the same way; nothing is stored.
+     * NOT_FOUND when the organization has no live subscription: it is on
+     * Free, or it is platform-managed and on its integrator's plan, and
+     * neither is invoiced a plan of its own.
+     * </pre>
+     */
+    public ai.stigmer.billing.subscription.v1.PeriodEstimate getPeriodEstimate(ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetPeriodEstimateMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -369,6 +464,27 @@ public final class SubscriptionQueryControllerGrpc {
     public ai.stigmer.billing.subscription.v1.GetEntitlementsOutput getEntitlements(ai.stigmer.billing.subscription.v1.GetEntitlementsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetEntitlementsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Estimate what the organization's current period will be invoiced.
+     * The estimate is the invoice the period would close with if no further
+     * usage occurred before its end: the plan's cost over the whole period
+     * (its minimum is not prorated to the time elapsed), less the commission
+     * already collected on the period's usage, plus the managed organizations
+     * beyond those the plan includes. It is rated by the same rule the
+     * monthly close invoices by, over the same usage, so an estimate read at
+     * a period's end equals that period's invoice. Every other read derives
+     * it the same way; nothing is stored.
+     * NOT_FOUND when the organization has no live subscription: it is on
+     * Free, or it is platform-managed and on its integrator's plan, and
+     * neither is invoiced a plan of its own.
+     * </pre>
+     */
+    public ai.stigmer.billing.subscription.v1.PeriodEstimate getPeriodEstimate(ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetPeriodEstimateMethod(), getCallOptions(), request);
     }
   }
 
@@ -427,10 +543,33 @@ public final class SubscriptionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetEntitlementsMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Estimate what the organization's current period will be invoiced.
+     * The estimate is the invoice the period would close with if no further
+     * usage occurred before its end: the plan's cost over the whole period
+     * (its minimum is not prorated to the time elapsed), less the commission
+     * already collected on the period's usage, plus the managed organizations
+     * beyond those the plan includes. It is rated by the same rule the
+     * monthly close invoices by, over the same usage, so an estimate read at
+     * a period's end equals that period's invoice. Every other read derives
+     * it the same way; nothing is stored.
+     * NOT_FOUND when the organization has no live subscription: it is on
+     * Free, or it is platform-managed and on its integrator's plan, and
+     * neither is invoiced a plan of its own.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.subscription.v1.PeriodEstimate> getPeriodEstimate(
+        ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetPeriodEstimateMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_FOR_ORGANIZATION = 0;
   private static final int METHODID_GET_ENTITLEMENTS = 1;
+  private static final int METHODID_GET_PERIOD_ESTIMATE = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -456,6 +595,10 @@ public final class SubscriptionQueryControllerGrpc {
         case METHODID_GET_ENTITLEMENTS:
           serviceImpl.getEntitlements((ai.stigmer.billing.subscription.v1.GetEntitlementsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.GetEntitlementsOutput>) responseObserver);
+          break;
+        case METHODID_GET_PERIOD_ESTIMATE:
+          serviceImpl.getPeriodEstimate((ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.PeriodEstimate>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -489,6 +632,13 @@ public final class SubscriptionQueryControllerGrpc {
               ai.stigmer.billing.subscription.v1.GetEntitlementsInput,
               ai.stigmer.billing.subscription.v1.GetEntitlementsOutput>(
                 service, METHODID_GET_ENTITLEMENTS)))
+        .addMethod(
+          getGetPeriodEstimateMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput,
+              ai.stigmer.billing.subscription.v1.PeriodEstimate>(
+                service, METHODID_GET_PERIOD_ESTIMATE)))
         .build();
   }
 
@@ -539,6 +689,7 @@ public final class SubscriptionQueryControllerGrpc {
               .setSchemaDescriptor(new SubscriptionQueryControllerFileDescriptorSupplier())
               .addMethod(getGetForOrganizationMethod())
               .addMethod(getGetEntitlementsMethod())
+              .addMethod(getGetPeriodEstimateMethod())
               .build();
         }
       }

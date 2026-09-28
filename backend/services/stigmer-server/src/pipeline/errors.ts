@@ -9,8 +9,31 @@
  * text can carry storage-engine detail or filesystem paths, and on an
  * anonymous surface that is information disclosure. The cause rides
  * ConnectError.cause for server-side logs; it never crosses the wire.
+ *
+ * A refusal a client should branch on, rather than parse its copy, also
+ * carries a google.rpc.ErrorInfo detail (domain "stigmer.ai"), the
+ * platform's structured-refusal contract that the SDK's getErrorReason
+ * reads. Its reasons are documented on the refusing RPC's proto comment.
+ * The detail rides beside the message and never changes it, so the copy
+ * stays byte-pinned. A detail survives the pipeline and the transport
+ * boundary; only the visitor sanitizer, which rewrites an anonymous
+ * caller's error, drops it (interceptors/error-boundary.ts).
  */
+import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+
+/** The domain every structured refusal reason is issued under. */
+export const ERROR_REASON_DOMAIN = "stigmer.ai";
+
+/**
+ * A machine-readable refusal reason: an UPPER_SNAKE code and the facts a
+ * client needs to act on it, both documented on the refusing RPC.
+ */
+export interface RefusalReason {
+  readonly reason: string;
+  readonly metadata?: Readonly<Record<string, string>>;
+}
 
 /** Go NotFoundError: "%s not found: %s". */
 export function notFoundError(resource: string, id: string): ConnectError {
@@ -32,10 +55,26 @@ export function alreadyExistsError(resource: string, id: string): ConnectError {
 
 /**
  * Go FailedPreconditionError — the system is not in a state required for
- * the operation (vs AlreadyExists, which tells the caller to stop).
+ * the operation (vs AlreadyExists, which tells the caller to stop). With a
+ * reason, the refusal also carries it as an ErrorInfo detail.
  */
-export function failedPreconditionError(message: string): ConnectError {
-  return new ConnectError(message, Code.FailedPrecondition);
+export function failedPreconditionError(
+  message: string,
+  reason?: RefusalReason,
+): ConnectError {
+  if (reason === undefined) {
+    return new ConnectError(message, Code.FailedPrecondition);
+  }
+  return new ConnectError(message, Code.FailedPrecondition, undefined, [
+    {
+      desc: ErrorInfoSchema,
+      value: create(ErrorInfoSchema, {
+        reason: reason.reason,
+        domain: ERROR_REASON_DOMAIN,
+        metadata: { ...reason.metadata },
+      }),
+    },
+  ]);
 }
 
 /** Go AbortedError — retryable conflict (e.g. an in-flight dedupe claim). */

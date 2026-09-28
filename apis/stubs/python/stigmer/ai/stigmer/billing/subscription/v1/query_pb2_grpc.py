@@ -31,6 +31,11 @@ class SubscriptionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetEntitlementsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetEntitlementsOutput.FromString,
                 _registered_method=True)
+        self.getPeriodEstimate = channel.unary_unary(
+                '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getPeriodEstimate',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetPeriodEstimateInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.PeriodEstimate.FromString,
+                _registered_method=True)
 
 
 class SubscriptionQueryControllerServicer(object):
@@ -67,6 +72,26 @@ class SubscriptionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getPeriodEstimate(self, request, context):
+        """Estimate what the organization's current period will be invoiced.
+
+        The estimate is the invoice the period would close with if no further
+        usage occurred before its end: the plan's cost over the whole period
+        (its minimum is not prorated to the time elapsed), less the commission
+        already collected on the period's usage, plus the managed organizations
+        beyond those the plan includes. It is rated by the same rule the
+        monthly close invoices by, over the same usage, so an estimate read at
+        a period's end equals that period's invoice. Every other read derives
+        it the same way; nothing is stored.
+
+        NOT_FOUND when the organization has no live subscription: it is on
+        Free, or it is platform-managed and on its integrator's plan, and
+        neither is invoiced a plan of its own.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SubscriptionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -79,6 +104,11 @@ def add_SubscriptionQueryControllerServicer_to_server(servicer, server):
                     servicer.getEntitlements,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetEntitlementsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetEntitlementsOutput.SerializeToString,
+            ),
+            'getPeriodEstimate': grpc.unary_unary_rpc_method_handler(
+                    servicer.getPeriodEstimate,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetPeriodEstimateInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.PeriodEstimate.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -141,6 +171,33 @@ class SubscriptionQueryController(object):
             '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getEntitlements',
             ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetEntitlementsInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetEntitlementsOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getPeriodEstimate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getPeriodEstimate',
+            ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetPeriodEstimateInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.PeriodEstimate.FromString,
             options,
             channel_credentials,
             insecure,

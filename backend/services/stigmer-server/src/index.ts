@@ -293,12 +293,14 @@ export { RequestContext } from "./pipeline/request-context.js";
 export {
   abortedError,
   alreadyExistsError,
+  ERROR_REASON_DOMAIN,
   failedPreconditionError,
   internalError,
   invalidArgumentError,
   notFoundError,
   unavailableError,
 } from "./pipeline/errors.js";
+export type { RefusalReason } from "./pipeline/errors.js";
 // The shared slug derivation (C2 Stage 3): extension-registered resource
 // kinds derive slugs with the SAME generator both editions pin
 // (ApiRequestResourceSlugGenerator parity) — the semantics live exactly

@@ -4,6 +4,7 @@ package ai.stigmer.billing.subscription.v1;
 
 import "ai/stigmer/platform/v1/entitlement.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // GetSubscriptionForOrganizationInput names the organization whose
 // subscription is read.
@@ -44,4 +45,72 @@ message ChangePlanInput {
 message CancelSubscriptionInput {
   // The organization's id.
   string org_id = 1 [(buf.validate.field).required = true];
+}
+
+// GetPeriodEstimateInput names the organization whose current period is
+// estimated.
+message GetPeriodEstimateInput {
+  // The organization's id.
+  string org_id = 1 [(buf.validate.field).required = true];
+}
+
+// PeriodEstimate is what an organization's current subscription period
+// would be invoiced at its end if no further usage occurred.
+//
+// Money is in micros (1 USD = 1,000,000). Each line is rounded to whole
+// cents the way the invoice rounds it, and total_micros is the sum of the
+// rounded lines, so the estimate and the invoice agree to the cent.
+message PeriodEstimate {
+  // The id of the Plan the period is on.
+  string plan_id = 1;
+
+  // When the period began.
+  google.protobuf.Timestamp period_start = 2;
+
+  // When the period ends and is invoiced.
+  google.protobuf.Timestamp period_end = 3;
+
+  // What the period's usage has cost in provider charges so far, across
+  // the organization and the managed organizations it pays for.
+  int64 provider_cost_micros = 4;
+
+  // The commission the wallet has already collected on that usage. It
+  // counts toward the plan's cost instead of adding to it.
+  int64 commission_collected_micros = 5;
+
+  // The managed organizations counted against the plan this period.
+  int32 managed_organization_count = 6;
+
+  // The invoice's lines in the order they print, zero lines omitted.
+  repeated PeriodEstimateLine lines = 7;
+
+  // The estimated invoice total: the sum of the lines.
+  int64 total_micros = 8;
+}
+
+// PeriodEstimateLine is one line of an estimated invoice.
+message PeriodEstimateLine {
+  // What the line charges or credits.
+  PeriodEstimateLineKind kind = 1;
+
+  // The line's amount in micros, a whole number of cents. The commission
+  // credit is negative.
+  int64 amount_micros = 2;
+}
+
+// PeriodEstimateLineKind names what an estimated invoice line is for.
+enum PeriodEstimateLineKind {
+  period_estimate_line_kind_unspecified = 0;
+
+  // The plan's cost: the greater of its monthly minimum and its usage
+  // share of the period's provider cost.
+  plan = 1;
+
+  // The commission already collected on the period's usage, credited
+  // against the plan's cost and never more than it.
+  commission_credit = 2;
+
+  // The managed organizations beyond those the plan includes, at the
+  // plan's fee for each.
+  managed_organizations = 3;
 }

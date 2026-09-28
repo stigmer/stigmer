@@ -561,7 +561,7 @@ rows:
     lane: >-
       rpc.Subscription.changePlan
     behavior: >-
-      changePlan to a subscription plan for an organization with no saved payment method answers FAILED_PRECONDITION "A saved payment method is required to subscribe to a plan. Add a payment method first."; afterwards getForOrganization still answers NOT_FOUND, getEntitlements an empty plan_id, and no request reached Stripe.
+      changePlan to a subscription plan for an organization with no saved payment method answers FAILED_PRECONDITION "A saved payment method is required to subscribe to a plan. Add a payment method first." with a google.rpc.ErrorInfo detail (reason PAYMENT_METHOD_REQUIRED, domain stigmer.ai, metadata org_id); afterwards getForOrganization still answers NOT_FOUND, getEntitlements an empty plan_id, and no request reached Stripe.
     java_source: >-
       none (added with apis billing/subscription/v1, served by the Cloud composition)
     java_test: >-
@@ -571,12 +571,27 @@ rows:
     observability: launcher
     caller: primary
     needs: [unfunded-org, fake-stripe]
+  - id: billing.rpc.get-period-estimate.not-found-on-free
+    surface: billing
+    lane: >-
+      rpc.Subscription.getPeriodEstimate
+    behavior: >-
+      For an organization that never subscribed, getPeriodEstimate answers NOT_FOUND: Free is not invoiced a plan, so it has no period to estimate.
+    java_source: >-
+      none (added with apis billing/subscription/v1, served by the Cloud composition)
+    java_test: >-
+      none
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [unfunded-org]
   - id: billing.rpc.subscription.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.Subscription.changePlan
     behavior: >-
-      An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan" and its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements".
+      An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan", its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements", and its getPeriodEstimate PERMISSION_DENIED "unauthorized to view this organization's period estimate".
     java_source: >-
       apis billing/subscription/v1/command.proto, query.proto
     java_test: >-

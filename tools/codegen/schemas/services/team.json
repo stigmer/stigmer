@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.team.v1.Team",
           "outputType": "Team",
           "outputFullType": "ai.stigmer.iam.team.v1.Team",
-          "description": "Create a team in an organization."
+          "description": "Create a team in an organization.\n\n On Stigmer Cloud, teams are a plan feature. An organization whose plan\n lacks them is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include\n     the feature. Metadata: feature (\"teams\"), org_id."
         },
         {
           "name": "Update",

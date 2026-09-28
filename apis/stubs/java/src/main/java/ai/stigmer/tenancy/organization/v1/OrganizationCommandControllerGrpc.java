@@ -221,6 +221,13 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * On Stigmer Cloud, creating a platform-managed organization is a plan
+     * feature of its integrator. An integrator whose plan lacks it is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+     *     include the feature. Metadata: feature ("managed_organizations"),
+     *     org_id (the integrator organization).
      * &#64;internal
      * No authorization required — any authenticated user can create an organization.
      * The creator automatically becomes the owner of the organization.
@@ -311,6 +318,13 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * On Stigmer Cloud, creating a platform-managed organization is a plan
+     * feature of its integrator. An integrator whose plan lacks it is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+     *     include the feature. Metadata: feature ("managed_organizations"),
+     *     org_id (the integrator organization).
      * &#64;internal
      * No authorization required — any authenticated user can create an organization.
      * The creator automatically becomes the owner of the organization.
@@ -389,6 +403,13 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * On Stigmer Cloud, creating a platform-managed organization is a plan
+     * feature of its integrator. An integrator whose plan lacks it is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+     *     include the feature. Metadata: feature ("managed_organizations"),
+     *     org_id (the integrator organization).
      * &#64;internal
      * No authorization required — any authenticated user can create an organization.
      * The creator automatically becomes the owner of the organization.
@@ -464,6 +485,13 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * On Stigmer Cloud, creating a platform-managed organization is a plan
+     * feature of its integrator. An integrator whose plan lacks it is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+     *     include the feature. Metadata: feature ("managed_organizations"),
+     *     org_id (the integrator organization).
      * &#64;internal
      * No authorization required — any authenticated user can create an organization.
      * The creator automatically becomes the owner of the organization.
@@ -540,6 +568,13 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * On Stigmer Cloud, creating a platform-managed organization is a plan
+     * feature of its integrator. An integrator whose plan lacks it is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+     *     include the feature. Metadata: feature ("managed_organizations"),
+     *     org_id (the integrator organization).
      * &#64;internal
      * No authorization required — any authenticated user can create an organization.
      * The creator automatically becomes the owner of the organization.

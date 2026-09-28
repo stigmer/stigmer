@@ -51,6 +51,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_subscription_v1_CancelSubscriptionInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_subscription_v1_GetPeriodEstimateInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_subscription_v1_GetPeriodEstimateInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -63,28 +78,49 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/billing/subscription/v1/io." +
       "proto\022\"ai.stigmer.billing.subscription.v" +
       "1\032(ai/stigmer/platform/v1/entitlement.pr" +
-      "oto\032\033buf/validate/validate.proto\"D\n#GetS" +
-      "ubscriptionForOrganizationInput\022\035\n\006org_i" +
-      "d\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"5\n\024GetEntitlement" +
-      "sInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"z\n" +
-      "\025GetEntitlementsOutput\022H\n\014entitlements\030\001" +
-      " \001(\0132$.ai.stigmer.platform.v1.Entitlemen" +
-      "tsR\014entitlements\022\027\n\007plan_id\030\002 \001(\tR\006planI" +
-      "d\"Q\n\017ChangePlanInput\022\035\n\006org_id\030\001 \001(\tB\006\272H" +
-      "\003\310\001\001R\005orgId\022\037\n\007plan_id\030\002 \001(\tB\006\272H\003\310\001\001R\006pl" +
-      "anId\"8\n\027CancelSubscriptionInput\022\035\n\006org_i" +
-      "d\030\001 \001(\tB\006\272H\003\310\001\001R\005orgIdB\266\001B\007IoProtoP\001\242\002\004A" +
-      "SBS\252\002\"Ai.Stigmer.Billing.Subscription.V1" +
-      "\312\002\"Ai\\Stigmer\\Billing\\Subscription\\V1\342\002." +
-      "Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMe" +
-      "tadata\352\002&Ai::Stigmer::Billing::Subscript" +
-      "ion::V1b\006proto3"
+      "oto\032\033buf/validate/validate.proto\032\037google" +
+      "/protobuf/timestamp.proto\"D\n#GetSubscrip" +
+      "tionForOrganizationInput\022\035\n\006org_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\005orgId\"5\n\024GetEntitlementsInput\022" +
+      "\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"z\n\025GetEnt" +
+      "itlementsOutput\022H\n\014entitlements\030\001 \001(\0132$." +
+      "ai.stigmer.platform.v1.EntitlementsR\014ent" +
+      "itlements\022\027\n\007plan_id\030\002 \001(\tR\006planId\"Q\n\017Ch" +
+      "angePlanInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005o" +
+      "rgId\022\037\n\007plan_id\030\002 \001(\tB\006\272H\003\310\001\001R\006planId\"8\n" +
+      "\027CancelSubscriptionInput\022\035\n\006org_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\005orgId\"7\n\026GetPeriodEstimateInpu" +
+      "t\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"\304\003\n\016Per" +
+      "iodEstimate\022\027\n\007plan_id\030\001 \001(\tR\006planId\022=\n\014" +
+      "period_start\030\002 \001(\0132\032.google.protobuf.Tim" +
+      "estampR\013periodStart\0229\n\nperiod_end\030\003 \001(\0132" +
+      "\032.google.protobuf.TimestampR\tperiodEnd\0220" +
+      "\n\024provider_cost_micros\030\004 \001(\003R\022providerCo" +
+      "stMicros\022>\n\033commission_collected_micros\030" +
+      "\005 \001(\003R\031commissionCollectedMicros\022<\n\032mana" +
+      "ged_organization_count\030\006 \001(\005R\030managedOrg" +
+      "anizationCount\022L\n\005lines\030\007 \003(\01326.ai.stigm" +
+      "er.billing.subscription.v1.PeriodEstimat" +
+      "eLineR\005lines\022!\n\014total_micros\030\010 \001(\003R\013tota" +
+      "lMicros\"\211\001\n\022PeriodEstimateLine\022N\n\004kind\030\001" +
+      " \001(\0162:.ai.stigmer.billing.subscription.v" +
+      "1.PeriodEstimateLineKindR\004kind\022#\n\ramount" +
+      "_micros\030\002 \001(\003R\014amountMicros*\177\n\026PeriodEst" +
+      "imateLineKind\022)\n%period_estimate_line_ki" +
+      "nd_unspecified\020\000\022\010\n\004plan\020\001\022\025\n\021commission" +
+      "_credit\020\002\022\031\n\025managed_organizations\020\003B\266\001B" +
+      "\007IoProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.Billing.S" +
+      "ubscription.V1\312\002\"Ai\\Stigmer\\Billing\\Subs" +
+      "cription\\V1\342\002.Ai\\Stigmer\\Billing\\Subscri" +
+      "ption\\V1\\GPBMetadata\352\002&Ai::Stigmer::Bill" +
+      "ing::Subscription::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.platform.v1.EntitlementProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrganizationInput_descriptor =
       getDescriptor().getMessageType(0);
@@ -116,9 +152,28 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_subscription_v1_CancelSubscriptionInput_descriptor,
         new java.lang.String[] { "OrgId", });
+    internal_static_ai_stigmer_billing_subscription_v1_GetPeriodEstimateInput_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_billing_subscription_v1_GetPeriodEstimateInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_subscription_v1_GetPeriodEstimateInput_descriptor,
+        new java.lang.String[] { "OrgId", });
+    internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_descriptor =
+      getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_descriptor,
+        new java.lang.String[] { "PlanId", "PeriodStart", "PeriodEnd", "ProviderCostMicros", "CommissionCollectedMicros", "ManagedOrganizationCount", "Lines", "TotalMicros", });
+    internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_descriptor =
+      getDescriptor().getMessageType(7);
+    internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_descriptor,
+        new java.lang.String[] { "Kind", "AmountMicros", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.platform.v1.EntitlementProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
