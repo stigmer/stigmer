@@ -12,10 +12,14 @@
  * Proven by workflowexecution.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, Publish,
- * PublishToRedis, and TransformResponse steps (no multi-tenant auth,
- * event publishing, or Redis here — subscribe streams ride in-memory
- * channels per ADR 011).
+ * Every chain opens with Authorize, and create also authorizes its run
+ * target (AuthorizeRunTarget); create and delete run the shared
+ * tuple-lifecycle steps against the composed lifecycle. The streams and
+ * the event log evaluate their annotation through authorizeDirect; the
+ * list, summary and pending-approval reads narrow through the composed
+ * list read scope. Subscribe streams ride the in-memory stream broker
+ * (ADR 011); there is no Redis. Per-RPC posture:
+ * docs/authorization-coverage.md §19.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 

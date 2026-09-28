@@ -25,10 +25,13 @@
  * (the decrypt-lane matrix conformance deliberately never exercises —
  * its harness authenticates as a user).
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,
- * and Publish steps (no multi-tenant auth, IAM/FGA, or event publishing
- * here); the redaction and decrypt-lane contracts run in BOTH editions,
- * keeping the error contract identical.
+ * Every chain opens with Authorize; create asks can_create_execution_in on
+ * the organization (AuthorizeCreate), and create and delete run the shared
+ * tuple-lifecycle steps against the composed lifecycle; getByReference
+ * loads, then authorizes the loaded context exactly as `get` would
+ * (AuthorizeResolvedTarget). The redaction and decrypt-lane contracts are
+ * the same in every edition, keeping the error contract identical. Per-RPC
+ * posture: docs/authorization-coverage.md §5.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 

@@ -2,7 +2,8 @@
  * Ports storage/local_storage_test.go + disposition_test.go case-for-case:
  * the containment guard (every escaping key refused on every operation,
  * contained dot-segment keys allowed), the #285 no-implicit-segment
- * layout contract, the local signed-URL shape, and the
+ * layout contract, the local signed-URL shape (a fixed serve URL, or one
+ * resolved per mint once the file server binds — stigmer#1089), and the
  * Content-Disposition builder. Adds the factory's r2/unknown refusals
  * (Go's are boot asserted; here they're the disclosed deferral), and the
  * O5 widened surface: size, the typed not-found, presigned-PUT over the
@@ -152,6 +153,19 @@ describe("LocalArtifactStorage", () => {
     // URLSearchParams disagrees: '~' stays bare, '*' percent-encodes.
     const exotic = await storage.getSignedUrl(key, 3600_000, "a~b*c.md");
     expect(exotic).toBe(`http://localhost:7235/${key}?download=a~b%2Ac.md`);
+  });
+
+  it("signed URL: a resolved serve URL is read at every mint, not at construction", async () => {
+    let origin = "";
+    const resolved = new LocalArtifactStorage(base, () => origin);
+    const key = "artifacts/aex_1/plan.md";
+    await expect(resolved.getSignedUrl(key, 3600_000, "")).rejects.toThrow(
+      "local serve URL not configured",
+    );
+    origin = "http://localhost:51234";
+    expect(await resolved.getSignedUrl(key, 3600_000, "")).toBe(
+      `http://localhost:51234/${key}`,
+    );
   });
 
   it("delete removes the artifact and prunes empty parents, never the root", async () => {

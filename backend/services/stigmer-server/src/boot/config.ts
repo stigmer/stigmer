@@ -95,16 +95,21 @@ export interface ServerConfig {
   /** The artifact root — shared with the runner's LOCAL_ARTIFACT_PATH (#285). */
   readonly artifactLocalBasePath: string;
   /**
-   * Base URL for local artifact download URLs — the port+1 artifact file
-   * server (#13); no trailing path segment (the storage key carries the
-   * full path).
+   * Base URL for local artifact download URLs (ARTIFACT_LOCAL_SERVE_URL;
+   * #13); no trailing path segment (the storage key carries the full path).
+   * "" = unset: the URL follows the port the artifact file server actually
+   * bound (boot/artifact-lane.ts), so an ephemeral lane mints URLs that
+   * reach it.
    */
   readonly artifactLocalServeUrl: string;
   /**
-   * The artifact file server's own port (ARTIFACT_HTTP_PORT, default
-   * grpcPort+1). Only bound when artifact storage is local.
+   * The artifact file server's own port (ARTIFACT_HTTP_PORT). Undefined =
+   * unset: the lane follows the unified port, +1, or ephemeral when that
+   * port is 0 — the rule lives in boot/artifact-lane.ts, because only the
+   * composition knows the port the unified listener binds. Only bound when
+   * artifact storage is local, and a lane that cannot bind fails the boot.
    */
-  readonly artifactHttpPort: number;
+  readonly artifactHttpPort: number | undefined;
   /**
    * The artifact file server's bind host (ARTIFACT_HTTP_HOST, DD-013;
    * shipped with the Docker image, Phase-2 P4). Defaults to 127.0.0.1 —
@@ -294,8 +299,9 @@ export const DEFAULT_SANDBOX_RUNNER_IMAGE = "ghcr.io/stigmer/runner:latest";
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const { operatorEmail, operatorName } = loadOperatorIdentity(env);
   const grpcPort = envInt(env, "GRPC_PORT", DEFAULT_GRPC_PORT);
-  // Go: ARTIFACT_HTTP_PORT defaults to the gRPC port + 1.
-  const artifactHttpPort = envInt(env, "ARTIFACT_HTTP_PORT", grpcPort + 1);
+  // Unset (or malformed, the loader's leniency) leaves the lane to follow
+  // the unified port; boot/artifact-lane.ts derives it at composition.
+  const artifactHttpPort = envOptionalInt(env, "ARTIFACT_HTTP_PORT");
   const artifactHttpHost = envString(env, "ARTIFACT_HTTP_HOST", "127.0.0.1");
   const artifactStorageType = envString(env, "ARTIFACT_STORAGE_TYPE", "local");
   const r2 = {
@@ -337,11 +343,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "ARTIFACT_LOCAL_BASE_PATH",
       defaultArtifactPath(),
     ),
-    artifactLocalServeUrl: envString(
-      env,
-      "ARTIFACT_LOCAL_SERVE_URL",
-      `http://localhost:${artifactHttpPort}`,
-    ),
+    artifactLocalServeUrl: envString(env, "ARTIFACT_LOCAL_SERVE_URL", ""),
     logLevel: envString(env, "LOG_LEVEL", "info"),
     env: envString(env, "ENV", "local"),
     modelRegistryUpstream: envString(
@@ -531,14 +533,22 @@ function envString(
 }
 
 function envInt(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
+  return envOptionalInt(env, key) ?? fallback;
+}
+
+/** An integer setting, or undefined when it is unset or malformed. */
+function envOptionalInt(
+  env: NodeJS.ProcessEnv,
+  key: string,
+): number | undefined {
   const value = env[key];
   if (value === undefined || value === "") {
-    return fallback;
+    return undefined;
   }
   const parsed = Number.parseInt(value, 10);
   // Go's strconv.Atoi rejects trailing garbage ("7234x"); Number.parseInt
   // would accept it, so the round-trip check keeps the two loaders aligned.
   return Number.isSafeInteger(parsed) && String(parsed) === value.trim()
     ? parsed
-    : fallback;
+    : undefined;
 }

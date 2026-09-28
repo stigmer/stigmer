@@ -8,10 +8,15 @@
  * Proven by agentexecution.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,
- * Publish, PublishToRedis, and TransformResponse steps (no multi-tenant
- * auth, IAM/FGA, event publishing, or Redis here — subscribe streams ride
- * in-memory channels per ADR 011).
+ * Every chain opens with Authorize, and create also authorizes its run
+ * target (AuthorizeRunTarget); create and delete run the shared
+ * tuple-lifecycle steps against the composed lifecycle. The direct
+ * handlers — subscribe and the two artifact reads — evaluate their
+ * annotation through authorizeDirect; uploadAttachment is authorized at
+ * the create its storage key feeds. list, listBySession and
+ * getExecutionSummary narrow through the composed list read scope.
+ * Subscribe streams ride the in-memory stream broker (ADR 011); there is
+ * no Redis. Per-RPC posture: docs/authorization-coverage.md §16.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 

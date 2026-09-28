@@ -13,9 +13,13 @@
  * Proven by session.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/session.test.ts.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and
- * Publish steps (no multi-tenant auth, IAM/FGA, or event publishing here)
- * and the FGA-authorized list filtering.
+ * Every chain opens with Authorize, and create also asks can_execute on
+ * the agent instance it binds to (AuthorizeRunTarget); create and delete
+ * run the shared tuple-lifecycle steps against the composed lifecycle;
+ * updateSubject evaluates its annotation through authorizeDirect after the
+ * load (#224); list, listByAgentInstance and listByChannel narrow through
+ * the composed list read scope. Per-RPC posture:
+ * docs/authorization-coverage.md §8.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 

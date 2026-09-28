@@ -13,8 +13,14 @@
  * optional deps; every absent-surface answer is a deliberate arm, not an
  * accident.
  *
- * Versus Stigmer Cloud, OSS excludes the TransformResponse/SendResponse
- * steps (no response transformation). The transfer lane's capability
+ * Every chain opens with Authorize; push runs the tuple-lifecycle splice
+ * (SkillPushAuthorizationTuples), and updateVisibility and delete the
+ * shared tuple steps; getByReference and listVersions authorize the
+ * resolved skill as `get` would; getArtifact and getArtifactDownloadUrl
+ * skip authorization by design, the content-hash key being the capability
+ * (docs/authorization-coverage.md §21).
+ *
+ * The transfer lane's capability
  * URLs come from the blob driver through the staging port
  * (transfer/staging.ts): the local driver's point at this server's own
  * HTTP lane, a bucket driver's straight at the bucket — same

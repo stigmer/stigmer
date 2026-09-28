@@ -2,7 +2,10 @@
 
 /**
  * Boots a compiled server entry with plain `node` and verifies the full
- * lifecycle: bind → "listening" log → SIGTERM → clean exit 0.
+ * lifecycle: bind → "stigmer-server listening" log → SIGTERM → clean
+ * exit 0. It boots with GRPC_PORT=0, so the artifact file server binds
+ * ephemeral beside it, and a lane that cannot bind fails the boot and this
+ * gate with it.
  *
  * Why this gate exists (the runner's #399 lesson): vitest/tsx module
  * interop tolerates ESM/CJS import shapes that Node's real loader rejects,
@@ -49,6 +52,10 @@ const BOOT_TIMEOUT_MS = requireWorkers ? 60_000 : 15_000;
 // fail the job, not hang it to the CI job timeout.
 const SHUTDOWN_TIMEOUT_MS = 20_000;
 const WORKERS_MARKER = "All Temporal workers started";
+// The unified port's bind line. The artifact file server logs its own
+// "listening" line and binds FIRST (a lane that cannot bind fails the boot,
+// stigmer#1089), so the bare word would read readiness before the port.
+const LISTENING_MARKER = "stigmer-server listening";
 const temporalHostPort = process.env.TEMPORAL_HOST_PORT ?? "127.0.0.1:7233";
 
 // Every filesystem-touching stage gets a throwaway root: the boot check
@@ -98,7 +105,7 @@ child.on("error", (err) => {
 
 child.stderr.on("data", (chunk) => {
   stderr += String(chunk);
-  if (!sawListening && stderr.includes("listening")) sawListening = true;
+  if (!sawListening && stderr.includes(LISTENING_MARKER)) sawListening = true;
   if (!sawWorkers && stderr.includes(WORKERS_MARKER)) sawWorkers = true;
   if (sawListening && sawWorkers && shutdownTimer === null) {
     clearTimeout(timer);

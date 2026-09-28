@@ -19,8 +19,12 @@
  * managed-env wiring is a disclosed, deliberately unpinned composition
  * artifact).
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,
- * and Publish steps (no multi-tenant auth, IAM/FGA, or event publishing).
+ * Every chain opens with Authorize; create, delete and updateVisibility run
+ * the shared tuple-lifecycle steps against the composed lifecycle;
+ * getByReference loads, then authorizes the loaded server exactly as `get`
+ * would (AuthorizeResolvedTarget). The connect/OAuth handlers evaluate
+ * their annotation through authorizeDirect, after the load where they load
+ * (#224). Per-RPC posture: docs/authorization-coverage.md §20.
  *
  * Proven by mcpserver.conformance.test.ts +
  * agent-mcpserver-references.conformance.test.ts +

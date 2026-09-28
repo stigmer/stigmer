@@ -20,10 +20,13 @@
  * carries the other two edition forks: find's enumeration posture and
  * findMyOrganizations' filtering (see organization-directory.ts).
  *
- * Versus Stigmer Cloud's Java service, plain OSS excludes the
- * CreateIamPolicies and Publish steps; with the C2 seam composed, the
- * CreateAuthorizationTuples/CleanupIamPolicies steps deliver the same
- * lifecycle through the resourceAuthorizationLifecycle driver.
+ * Every chain opens with Authorize; create and delete run the shared
+ * tuple-lifecycle steps (CreateAuthorizationTuples, CleanupIamPolicies)
+ * against the lifecycle compose.ts hands it: a composed
+ * resourceAuthorizationLifecycle driver when a unit registers one, else,
+ * under the built-in posture, open source's role lifecycle (the creator's
+ * `owner` row), and under trusted-local none, where the steps no-op.
+ * Per-RPC posture: docs/authorization-coverage.md §2.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { Code, ConnectError } from "@connectrpc/connect";

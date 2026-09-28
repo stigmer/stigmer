@@ -7,7 +7,12 @@
  *   - start() flips SERVING BEFORE the port binds, so the first probe that
  *     reaches the port already sees a serving server;
  *   - shutdown flips NOT_SERVING FIRST, then drains — and the port stops
- *     answering.
+ *     answering;
+ *   - the artifact download lane binds before SERVING, so a lane that
+ *     cannot bind fails start() with the address and the setting named and
+ *     the server never reports itself serving (stigmer#1089), and a server
+ *     on an ephemeral port gets an ephemeral lane whose minted download
+ *     URLs reach it.
  */
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -15,7 +20,13 @@ import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
 } from "@stigmer/protos/grpc/health/v1/health_pb";
-import { connect as netConnect } from "node:net";
+import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
+import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
+import {
+  createServer as netCreateServer,
+  connect as netConnect,
+} from "node:net";
+import type { AddressInfo } from "node:net";
 import { describe, expect, it } from "vitest";
 
 import { mkdtempSync } from "node:fs";
@@ -32,11 +43,12 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-function compose() {
+function compose(env: NodeJS.ProcessEnv = {}) {
   // Each composed server gets a throwaway database — the storage stage
   // opens DB_PATH for real (never the developer's ~/.stigmer).
   const testDir = mkdtempSync(path.join(tmpdir(), "compose-test-"));
   const config = loadConfig({
+    ...env,
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
     // No engine behind composed tests: 127.0.0.1:1 is deterministically
     // closed, so boots fail the non-fatal connect fast and can never touch
@@ -93,5 +105,63 @@ describe("composition-root boot ordering", () => {
       probe.once("error", () => resolve(true));
     });
     expect(refused, "the drained port must refuse new connections").toBe(true);
+  });
+});
+
+describe("the artifact download lane", () => {
+  it("fails start() when the lane cannot bind, naming the address and the setting, and never serves", async () => {
+    const holder = netCreateServer();
+    await new Promise<void>((resolve) =>
+      holder.listen(0, "127.0.0.1", resolve),
+    );
+    const held = (holder.address() as AddressInfo).port;
+    try {
+      const server = await compose({ ARTIFACT_HTTP_PORT: String(held) });
+      try {
+        await expect(server.start()).rejects.toThrow(
+          `the artifact file server could not bind '127.0.0.1:${held}' (EADDRINUSE): ARTIFACT_HTTP_PORT=${held} cannot be bound; set it to a free port`,
+        );
+        // SERVING is set before the unified port binds, so a server that is
+        // still NOT_SERVING never opened it.
+        expect(server.healthState.status("")).toBe(ServingStatus.NOT_SERVING);
+      } finally {
+        await server.shutdown();
+      }
+    } finally {
+      await new Promise<void>((resolve) => holder.close(() => resolve()));
+    }
+  });
+
+  it("binds an ephemeral lane beside an ephemeral unified port, and a minted download URL reaches it", async () => {
+    const server = await compose();
+    const port = await server.start();
+    try {
+      const transport = createGrpcTransport({
+        baseUrl: `http://127.0.0.1:${port}`,
+      });
+      const command = createClient(ArtifactCommandController, transport);
+      const query = createClient(ArtifactQueryController, transport);
+      const content = new TextEncoder().encode("ephemeral lane body\n");
+      const created = await command.create({
+        spec: {
+          displayName: "ephemeral-lane.txt",
+          contentType: "text/plain",
+          source: { agentExecutionId: "aexec_01ephemerallane" },
+        },
+        content,
+      });
+      const download = await query.getDownloadUrl({
+        value: created.metadata!.id,
+      });
+
+      // An OS-assigned port, never the privileged port 1 that +1 derived
+      // from 0; the bytes coming back prove it is THIS server's lane.
+      expect(Number(new URL(download.url).port)).toBeGreaterThan(1024);
+      const served = await fetch(download.url);
+      expect(served.status).toBe(200);
+      expect(new Uint8Array(await served.arrayBuffer())).toEqual(content);
+    } finally {
+      await server.shutdown();
+    }
   });
 });

@@ -22,8 +22,9 @@
  * phase-transition-only statusAudit bump (heartbeats must not perpetually
  * re-sort long-running executions above new ones in the recents sidebar).
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, PublishToRedis, and
- * Publish steps (broadcast rides in-memory channels per ADR 011).
+ * The chain opens with Authorize (can_edit on the execution); the
+ * broadcast rides the in-memory stream broker (ADR 011) — there is no
+ * Redis.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";

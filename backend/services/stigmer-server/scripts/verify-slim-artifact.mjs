@@ -12,7 +12,7 @@
  * an ISOLATED copy (nothing resolves from this checkout's node_modules)
  * against a REAL Temporal dev server and requires, in order:
  *
- *   1. the "listening" transport log,
+ *   1. the "stigmer-server listening" transport log,
  *   2. "All Temporal workers started" — all three workers created from the
  *      pre-built bundles through the native bridge,
  *   3. the console lane answers over live HTTP (DD-012; the #24 lesson —
@@ -22,7 +22,11 @@
  *      and a dynamic deep link serve documents, an unknown URL serves the
  *      export's 404 page WITH a 404 status, and a flight .txt request
  *      serves its placeholder payload,
- *   4. SIGTERM → clean exit 0.
+ *   4. the artifact download lane answers over live HTTP: its ephemeral
+ *      port rides its own "artifact HTTP file server listening" line, and
+ *      an unknown key answers the lane's 404 — the lane is bound, and a
+ *      lane that could not bind would have failed the boot (stigmer#1089),
+ *   5. SIGTERM → clean exit 0.
  *
  * The console assets themselves are asserted present in the isolated copy
  * before boot — a missing console/ is a packaging failure by itself.
@@ -46,6 +50,10 @@ const BOOT_TIMEOUT_MS = 60_000;
 // must fail the job, not hang it to the CI job timeout.
 const SHUTDOWN_TIMEOUT_MS = 20_000;
 const WORKERS_MARKER = "All Temporal workers started";
+// The unified port's bind line. The artifact file server logs its own
+// "listening" line and binds FIRST (a lane that cannot bind fails the boot,
+// stigmer#1089), so the bare word would read readiness before the port.
+const LISTENING_MARKER = "stigmer-server listening";
 
 if (!existsSync(join(slimDir, "main.js"))) {
   console.error(
@@ -164,9 +172,37 @@ async function probeConsole() {
   console.log("verify-slim-artifact: console lane probes passed");
 }
 
+/**
+ * The artifact download lane probe: GRPC_PORT=0 leaves the lane ephemeral
+ * too, so its port rides the lane's own listening line. An unknown key must
+ * answer the lane's own 404 body — any other listener on that port would
+ * not.
+ */
+async function probeArtifactLane() {
+  const portMatch = stderr
+    .split("\n")
+    .find((line) => line.includes("artifact HTTP file server listening"))
+    ?.match(/"port":\s*(\d+)/);
+  if (!portMatch) {
+    throw new Error(
+      `could not parse the artifact lane's bound port from its listening log line`,
+    );
+  }
+  const missing = await fetch(
+    `http://127.0.0.1:${portMatch[1]}/zz-verify-probe/no-such-artifact`,
+  );
+  const body = await missing.text();
+  if (missing.status !== 404 || body !== "404 page not found\n") {
+    throw new Error(
+      `unknown artifact key answered ${missing.status} ${JSON.stringify(body)} — expected the lane's 404`,
+    );
+  }
+  console.log("verify-slim-artifact: artifact lane probe passed");
+}
+
 child.stderr.on("data", (chunk) => {
   stderr += String(chunk);
-  if (!sawListening && stderr.includes("listening")) sawListening = true;
+  if (!sawListening && stderr.includes(LISTENING_MARKER)) sawListening = true;
   if (!sawWorkers && stderr.includes(WORKERS_MARKER)) sawWorkers = true;
   if (sawListening && sawWorkers && shutdownTimer === null) {
     clearTimeout(timer);
@@ -180,12 +216,13 @@ child.stderr.on("data", (chunk) => {
       process.exit(1);
     }, SHUTDOWN_TIMEOUT_MS);
     probeConsole()
+      .then(() => probeArtifactLane())
       .then(() => {
         child.kill("SIGTERM");
       })
       .catch((error) => {
         console.error(
-          `verify-slim-artifact: console probe failed — ${error instanceof Error ? error.message : String(error)}\n${stderr}`,
+          `verify-slim-artifact: live-HTTP probe failed — ${error instanceof Error ? error.message : String(error)}\n${stderr}`,
         );
         child.kill("SIGKILL");
         process.exit(1);

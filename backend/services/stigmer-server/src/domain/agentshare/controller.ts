@@ -13,10 +13,15 @@
  * cascade of same-org shares lives in the AGENT domain (ported with #6);
  * share delete itself cascades nothing.
  *
- * Authorization posture (OSS): single-user and local, so handlers perform
- * no authorization — a documented no-op, not a silent divergence. The
- * cloud edition enforces the same contracts via FGA plus app-level gates
- * for the anonymous resolution paths.
+ * Every chain opens with Authorize. create asks can_edit on the referenced
+ * agent, then can_create_agent_share (AuthorizeResolvedTarget); create and
+ * delete run the shared tuple-lifecycle steps against the composed
+ * lifecycle; getByReference authorizes the loaded share as `get` would;
+ * getByAgent and list narrow through the composed list read scope. The
+ * public share-link read skips the Authorizer through is_public, and the
+ * member read asks can_view on the organization before the share loads
+ * (AuthorizeMemberAudience). Per-RPC posture:
+ * docs/authorization-coverage.md §9.
  *
  * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/agentshare.test.ts and __tests__/store-faults.test.ts.
@@ -657,9 +662,9 @@ function newLoadSharesByAgentStep(
 const LIST_RESULT_KEY = "listResult";
 
 /**
- * List — org + labels filter (AND semantics), newest first. Versus Cloud,
- * OSS excludes authorization filtering AND pagination, exactly as Go's
- * list.go records.
+ * List — org + labels filter (AND semantics), newest first, narrowed to
+ * the caller's authorized rows by the composed list read scope.
+ * Unpaginated, exactly as Go's list.go records.
  */
 async function list(
   deps: AgentShareControllerDeps,

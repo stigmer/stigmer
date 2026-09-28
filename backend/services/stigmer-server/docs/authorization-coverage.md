@@ -524,7 +524,7 @@ Static web-console assets on the unified port, present only when a console expor
 
 ### Artifact HTTP file server (`src/domain/artifact/file-server.ts`)
 
-A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (default grpcPort+1), started only when artifact storage is local. Serves the exact bytes local artifact storage wrote; the loopback bind is the posture (download URLs are minted for the local machine; 0.0.0.0 only inside the official container).
+A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (unset: the unified port + 1, or ephemeral beside an ephemeral unified port; `src/boot/artifact-lane.ts`), started only when artifact storage is local, before the server reports SERVING; a lane that cannot bind fails the boot. Serves the exact bytes local artifact storage wrote; the loopback bind is the posture (download URLs are minted for the local machine; 0.0.0.0 only inside the official container).
 
 ## Notes for C1/C2
 

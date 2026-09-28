@@ -157,7 +157,12 @@ export interface ArtifactStorageConfig {
   /** "local" or "r2" ("" defaults to local — Go NewArtifactStorage). */
   readonly type: string;
   readonly localBasePath: string;
-  readonly localServeUrl: string;
+  /**
+   * The download URL base: a fixed string, or a resolver read per mint when
+   * the base is only known once the artifact file server binds
+   * (boot/artifact-lane.ts). "" = not configured.
+   */
+  readonly localServeUrl: string | (() => string);
   /** Cloudflare R2 (S3-compatible) settings — required when type is "r2". */
   readonly r2Bucket: string;
   readonly r2Endpoint: string;
@@ -214,7 +219,8 @@ export function newArtifactStorage(
 export class LocalArtifactStorage implements ArtifactStorage {
   constructor(
     private readonly basePath: string,
-    private readonly serveUrl: string,
+    /** Fixed, or resolved per mint (ArtifactStorageConfig.localServeUrl). */
+    private readonly serveUrl: string | (() => string),
     /**
      * The staged-upload mechanism backing presignPut — optional because
      * only instances whose root the lane stages into can serve it (the
@@ -287,10 +293,12 @@ export class LocalArtifactStorage implements ArtifactStorage {
     _expiresInMs: number,
     downloadFilename: string,
   ): Promise<string> {
-    if (this.serveUrl === "") {
+    const serveUrl =
+      typeof this.serveUrl === "function" ? this.serveUrl() : this.serveUrl;
+    if (serveUrl === "") {
       throw new Error("local serve URL not configured");
     }
-    let url = `${this.serveUrl}/${key}`;
+    let url = `${serveUrl}/${key}`;
     if (downloadFilename !== "") {
       url += `?${LOCAL_DOWNLOAD_QUERY_PARAM}=${goQueryEscape(downloadFilename)}`;
     }

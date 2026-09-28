@@ -13,8 +13,12 @@
  * Proven by workflow.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and
- * Publish steps (no multi-tenant auth, IAM/FGA, or event publishing here).
+ * Every chain opens with Authorize; create, delete and updateVisibility run
+ * the shared tuple-lifecycle steps against the composed lifecycle;
+ * getByReference and listVersions authorize the resolved workflow as `get`
+ * would. getVersion evaluates its annotation through authorizeDirect;
+ * validateSpec deliberately does not, since it persists nothing. Per-RPC
+ * posture: docs/authorization-coverage.md §17.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, enumToJson, fromBinary } from "@bufbuild/protobuf";

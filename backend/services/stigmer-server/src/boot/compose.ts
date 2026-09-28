@@ -178,6 +178,11 @@ import { PostgresStore } from "../store/postgres/store.js";
 import { SqliteStore } from "../store/sqlite/store.js";
 import type { Store } from "../store/interface.js";
 import { resolveExtensions } from "../extensions/registry.js";
+import {
+  artifactLaneBindError,
+  resolveArtifactLanePort,
+  resolveArtifactServeUrl,
+} from "./artifact-lane.js";
 import { resolveOAuthRedirectUri } from "./oauth-redirect-uri.js";
 import { assessSkillTransferOrigin } from "./skill-transfer-origin.js";
 import type { ServerExtension } from "../extensions/registry.js";
@@ -951,11 +956,24 @@ export async function composeServer(
   // arm landed with #13; the health probe runs in start(), matching Go's
   // boot check. Since O5 the factory consults the composition's registered
   // drivers for non-built-in types (§6b).
+  //
+  // The download lane's placement (boot/artifact-lane.ts): the configured
+  // port, or the port beside the one the unified listener binds, ephemeral
+  // when that one is. Unset, the serve URL reads the port the lane actually
+  // bound in start(), before any request can mint a URL.
+  const artifactLanePort = resolveArtifactLanePort({
+    configured: config.artifactHttpPort,
+    unifiedPort: options.portOverride ?? config.grpcPort,
+  });
+  let artifactLaneBoundPort: number | undefined;
   const artifactStorage = newArtifactStorage(
     {
       type: config.artifactStorageType,
       localBasePath: config.artifactLocalBasePath,
-      localServeUrl: config.artifactLocalServeUrl,
+      localServeUrl: resolveArtifactServeUrl(
+        config.artifactLocalServeUrl,
+        () => artifactLaneBoundPort,
+      ),
       r2Bucket: config.r2Bucket,
       r2Endpoint: config.r2Endpoint,
       r2AccessKeyId: config.r2AccessKeyId,
@@ -964,10 +982,9 @@ export async function composeServer(
     },
     extensions.drivers.artifactStorageDrivers,
   );
-  // The artifact download lane: a SECOND loopback listener on
-  // ARTIFACT_HTTP_PORT, local storage only (Go server.go 849–870) —
-  // deliberately not a unified-port lane. Lifecycle rides start()/
-  // shutdown().
+  // The artifact download lane: a SECOND loopback listener, local storage
+  // only (Go server.go 849–870) — deliberately not a unified-port lane.
+  // Lifecycle rides start()/shutdown().
   const artifactFileServer =
     config.artifactStorageType === "local"
       ? createArtifactFileServer({
@@ -1846,6 +1863,28 @@ export async function composeServer(
       // Artifact storage must be reachable and writable before the server
       // answers (Go server.go boots-fatal on the same probe).
       await artifactStorage.health();
+      // The download lane binds with the store it serves, and on the same
+      // terms: a lane that cannot bind fails the boot, where the retired Go
+      // server logged the failure and served on with every download dead
+      // (stigmer#1089). Binding here, before SERVING and the unified port,
+      // also means the derived serve URL exists before a request can mint
+      // one.
+      if (artifactFileServer !== undefined) {
+        await warnOnLegacyArtifactLayout(config.artifactLocalBasePath, logger);
+        try {
+          artifactLaneBoundPort = await artifactFileServer.listen(
+            artifactLanePort,
+            config.artifactHttpHost,
+          );
+        } catch (error) {
+          throw artifactLaneBindError(
+            error,
+            config.artifactHttpHost,
+            artifactLanePort,
+            config.artifactHttpPort !== undefined,
+          );
+        }
+      }
       // Rebuild the search index before the port binds (Go
       // server.go:617): the index is separate from the resources table,
       // and rebuilding here makes every resource — including rows an
@@ -1884,22 +1923,6 @@ export async function composeServer(
         options.host,
       );
       logger.info("stigmer-server listening", { port });
-      // The artifact file server binds AFTER the main server, exactly Go's
-      // boot order; a bind failure is logged but NOT fatal (Go's
-      // ListenAndServe goroutine logs and dies while the server runs on).
-      if (artifactFileServer !== undefined) {
-        await warnOnLegacyArtifactLayout(config.artifactLocalBasePath, logger);
-        try {
-          await artifactFileServer.listen(
-            config.artifactHttpPort,
-            config.artifactHttpHost,
-          );
-        } catch (error) {
-          logger.error("Artifact HTTP file server failed", {
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
       return port;
     },
 

@@ -11,8 +11,11 @@
  * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/agent.test.ts and __tests__/store-faults.test.ts.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and
- * Publish steps (no multi-tenant auth, IAM/FGA, or event publishing here).
+ * Every chain opens with Authorize; create, delete and updateVisibility run
+ * the shared tuple-lifecycle steps against the composed lifecycle;
+ * getByReference loads, then authorizes the loaded agent exactly as `get`
+ * would (AuthorizeResolvedTarget). The kind has no list RPC. Per-RPC
+ * posture: docs/authorization-coverage.md §6.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 

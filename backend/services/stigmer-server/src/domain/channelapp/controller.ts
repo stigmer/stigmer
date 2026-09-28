@@ -14,9 +14,14 @@
  * not_search_indexed — configuration reached through its parent surface,
  * not a library artifact), so no index steps appear in any chain.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and
- * Publish steps (single-user local posture); validation, secret handling,
- * and the referential delete block are byte-compatible.
+ * Every chain opens with Authorize; create and delete run the shared
+ * tuple-lifecycle steps against the composed lifecycle; getByReference
+ * loads, then authorizes the loaded app exactly as `get` would
+ * (AuthorizeResolvedTarget). listByOrg does not yet narrow through the
+ * list read scope, although the model restricts viewing to owners,
+ * explicit grants and organization admins
+ * (fga/model/agentic/channel_app.fga, stigmer/stigmer#1384). Per-RPC
+ * posture: docs/authorization-coverage.md §13.
  *
  * Proven by channelapp.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/channelapp.test.ts.

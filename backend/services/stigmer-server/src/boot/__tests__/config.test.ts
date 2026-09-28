@@ -71,6 +71,25 @@ describe("loadConfig", () => {
     );
   });
 
+  // stigmer#1089: the artifact lane's port and serve URL follow the unified
+  // port the composition binds (boot/artifact-lane.ts), so the loader keeps
+  // only what the operator set and derives nothing.
+  it("leaves an unset or malformed ARTIFACT_HTTP_PORT unset, for the lane to derive", () => {
+    expect(loadConfig({}).artifactHttpPort).toBeUndefined();
+    expect(loadConfig({ GRPC_PORT: "0" }).artifactHttpPort).toBeUndefined();
+    expect(loadConfig({ ARTIFACT_HTTP_PORT: "7300x" }).artifactHttpPort).toBeUndefined();
+    expect(loadConfig({ ARTIFACT_HTTP_PORT: "7300" }).artifactHttpPort).toBe(7300);
+    expect(loadConfig({ ARTIFACT_HTTP_PORT: "0" }).artifactHttpPort).toBe(0);
+  });
+
+  it("leaves an unset ARTIFACT_LOCAL_SERVE_URL empty, for the bound lane to answer", () => {
+    expect(loadConfig({}).artifactLocalServeUrl).toBe("");
+    expect(
+      loadConfig({ ARTIFACT_LOCAL_SERVE_URL: "https://artifacts.stigmer.test" })
+        .artifactLocalServeUrl,
+    ).toBe("https://artifacts.stigmer.test");
+  });
+
   // 20260913.02 (sp.console-login, Q-CL-1): the console's public PKCE client
   // id is lenient on purpose — a CLI-only self-host that set the issuer
   // before this knob existed must keep booting on upgrade, and the served

@@ -11,11 +11,14 @@
  * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/environment.test.ts and __tests__/store-faults.test.ts.
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,
- * FGA-tuple, and Publish steps (no multi-tenant auth, IAM/FGA, or event
- * publishing here); the visibility ceiling (org — secrets never resolve
- * across the org boundary) and share restrictions run in BOTH editions
- * from the same proto config, keeping the error contract identical.
+ * Every chain opens with Authorize; create, delete and updateVisibility run
+ * the shared tuple-lifecycle steps against the composed lifecycle;
+ * getByReference loads, then authorizes the loaded environment exactly as
+ * `get` would (AuthorizeResolvedTarget); list narrows through the composed
+ * list read scope. The visibility ceiling (org — secrets never resolve
+ * across the org boundary) and share restrictions come from the same proto
+ * config in every edition, keeping the error contract identical. Per-RPC
+ * posture: docs/authorization-coverage.md §3.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
@@ -734,9 +737,9 @@ async function getSecretValue(
 const LIST_RESULT_KEY = "listResult";
 
 /**
- * List — org + labels filter with per-item redaction. Versus Cloud, OSS
- * excludes authorization filtering AND pagination (returns all matches),
- * exactly as Go's list.go records.
+ * List — org + labels filter with per-item redaction, narrowed to the
+ * caller's authorized rows by the composed list read scope. Unpaginated
+ * (returns all matches), exactly as Go's list.go records.
  */
 async function list(
   deps: EnvironmentControllerDeps,

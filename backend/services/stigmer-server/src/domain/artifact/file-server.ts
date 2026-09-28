@@ -1,9 +1,12 @@
 /**
  * The artifact HTTP file server — ports the local-download lane from Go
  * pkg/server/server.go (artifactDownloadHandler + the boot block, lines
- * 849–926): a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (default
- * grpcPort+1), started only when artifact storage is LOCAL, serving
- * GET /<key> as the exact bytes LocalArtifactStorage wrote. The lane
+ * 849–926): a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the
+ * unified port + 1, ephemeral beside an ephemeral unified port — the rule is
+ * boot/artifact-lane.ts), started only when artifact storage is LOCAL,
+ * serving GET /<key> as the exact bytes LocalArtifactStorage wrote. Unlike
+ * Go, a bind failure fails the boot: the composition binds the lane before
+ * SERVING and lets listen()'s rejection stand (stigmer#1089). The lane
  * dissolved into its owning domain per the ratified D4 decision — it is
  * NOT a unified-port lane (Go runs it as a separate listener, and so does
  * this port).
@@ -39,7 +42,8 @@ export interface ArtifactFileServerOptions {
 
 export interface ArtifactFileServer {
   /**
-   * Binds <host>:<port> (an explicit port 0 picks ephemeral for tests).
+   * Binds <host>:<port> (port 0 picks ephemeral) and resolves the port it
+   * bound; a bind failure rejects, and the composition fails the boot on it.
    * The host is the composition root's call: 127.0.0.1 everywhere by
    * default (ARTIFACT_HTTP_HOST, DD-013) — download URLs are minted for
    * the local machine — and 0.0.0.0 only inside the official container

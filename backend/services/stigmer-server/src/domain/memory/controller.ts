@@ -172,10 +172,13 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * No search-index step: memory is not_search_indexed by design (privacy —
  * content is subject-only and must not surface in org-visible search).
  *
- * Note: Unlike Stigmer Cloud, OSS excludes the strict
- * first-party-human-operator gate and the caller's own memory_enabled
- * check (no per-request user identity — the user scope collapses, DD-006
- * D1) and creates no FGA tuples.
+ * Authorization: GuardMemoryCapture decides WHO may capture (the composed
+ * RunnerCredentialProvider), AuthorizeResolvedTarget decides WHERE
+ * (can_create_session on the organization), and CreateAuthorizationTuples
+ * runs against the composed lifecycle. Only the organization's
+ * memory_enabled is checked; the person's own flag, the other half of the
+ * double opt-in the contract names, is not yet enforced
+ * (stigmer/stigmer#1387).
  */
 async function createMemory(
   deps: MemoryControllerDeps,
@@ -236,8 +239,7 @@ async function createMemory(
  * owners (create, confirm, reject) last wrote it, even against a
  * concurrent confirm landing between this pipeline's load and persist.
  *
- * Note: Unlike Stigmer Cloud, OSS excludes the authorization step (cloud
- * requires can_edit on the memory — FGA subject-only).
+ * Authorize evaluates can_edit on the memory (subject-only in the model).
  */
 async function update(
   deps: MemoryControllerDeps,
@@ -332,9 +334,8 @@ async function reject(
  * runTransition: one contract with opposite verdicts (DD-005 D3),
  * answering with the post-image row.
  *
- * Note: Unlike Stigmer Cloud, OSS excludes the authorization step (cloud
- * requires can_edit on the memory — FGA subject-only, loading before
- * authorizing so a missing memory answers NOT_FOUND, #224).
+ * Authorize evaluates can_edit on the memory (subject-only in the model)
+ * against the request's id, before the load.
  */
 async function runTransition(
   deps: MemoryControllerDeps,
@@ -381,8 +382,7 @@ async function runTransition(
  *
  * No search-index cleanup: memory is not_search_indexed.
  *
- * Note: Unlike Stigmer Cloud, OSS excludes the authorization step (cloud
- * requires can_delete on the memory — FGA subject-only).
+ * Authorize evaluates can_delete on the memory (subject-only in the model).
  *
  * The deleted memory is returned for audit trail purposes (gRPC
  * convention).
@@ -425,9 +425,8 @@ async function deleteMemory(
 /**
  * Get — chain per Go buildGetPipeline (ExtractResourceId → LoadTarget).
  *
- * Note: Unlike Stigmer Cloud, OSS excludes the authorization step (cloud
- * requires can_view — FGA subject-only: only the person a memory is about
- * can read it).
+ * Authorize evaluates can_view on the memory: in the model only the person
+ * a memory is about can read it.
  */
 async function get(
   deps: MemoryControllerDeps,
@@ -466,11 +465,9 @@ async function get(
  * console's presentation concern (DD-005 D4), deliberately not an RPC
  * parameter at the kind's dozens-of-records scale.
  *
- * Note: Unlike Stigmer Cloud, OSS excludes:
- *   - Authorization filtering (single user — every record is the
- *     caller's; cloud filters to can_view via FGA, which resolves to the
- *     subject)
- *   - Pagination (returns all matching results)
+ * Narrowed to the caller's authorized rows (can_view, which resolves to
+ * the subject) by the composed list read scope. Unpaginated (returns all
+ * matching results).
  */
 async function list(
   deps: MemoryControllerDeps,

@@ -104,6 +104,10 @@ beforeAll(async () => {
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       GRPC_PORT: String(grpcPort),
+      // The reserved port is the unified one only; its +1 neighbour is not
+      // reserved, and a lane that cannot bind fails the boot (#1089), so
+      // the artifact lane binds ephemeral.
+      ARTIFACT_HTTP_PORT: "0",
       DB_PATH: path.join(dir, "stigmer.db"),
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       STORAGE_PATH: path.join(dir, "storage"),
@@ -801,6 +805,10 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
         TEMPORAL_HOST_PORT: "127.0.0.1:1",
         GRPC_PORT: String(grpcPort),
+        // The reserved port is the unified one only; its +1 neighbour is not
+        // reserved, and a lane that cannot bind fails the boot (#1089), so
+        // the artifact lane binds ephemeral.
+        ARTIFACT_HTTP_PORT: "0",
         DB_PATH: path.join(enforcingDir, "stigmer.db"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(enforcingDir, "artifacts"),
         STORAGE_PATH: path.join(enforcingDir, "storage"),

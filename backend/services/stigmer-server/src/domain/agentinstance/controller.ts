@@ -10,8 +10,14 @@
  * Proven by agentinstance.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/agentinstance.test.ts and __tests__/store-faults.test.ts.
  *
- * Versus Stigmer Cloud, OSS excludes the CreateIamPolicies and Publish
- * steps. Deliberately NO same-org rule on create, unlike WorkflowInstance:
+ * Every chain opens with Authorize, and create asks
+ * can_create_agent_instance on the organization, then can_create_instance
+ * on the parent agent (AuthorizeResolvedTarget); create, delete and
+ * updateVisibility run the shared tuple-lifecycle steps against the
+ * composed lifecycle; getByAgent and list narrow through the composed list
+ * read scope (docs/authorization-coverage.md §7).
+ *
+ * Deliberately NO same-org rule on create, unlike WorkflowInstance:
  * an agent is a shareable blueprint, and one agent legitimately has
  * instances in several orgs (the marketplace case). What governs a
  * cross-org instance in both editions is the create lane's authorization
