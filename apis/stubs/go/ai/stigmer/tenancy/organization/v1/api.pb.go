@@ -27,7 +27,8 @@ const (
 //
 // An Organization's metadata.id equals its metadata.slug: unlike every other
 // resource (which is assigned a generated prefixed id), the tenancy root is
-// addressed by its slug, which is globally unique.
+// addressed by its slug, which is globally unique and never reused, even
+// after the organization is deleted.
 type Organization struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

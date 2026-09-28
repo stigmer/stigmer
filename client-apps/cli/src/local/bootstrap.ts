@@ -13,6 +13,14 @@
 // other refusal propagates with the server's sentence; the caller decides
 // how loud to be.
 //
+// One `already-exists` is not that race. An organization's slug is never
+// reused, so once `stigmer` has been deleted no create can take it again,
+// and the server says so with the ORGANIZATION_SLUG_RESERVED reason. That
+// is `reserved`: the default organization is gone for good, and the person
+// must name another (RESERVED_DEFAULT_ORG_HINTS says how). Reporting it as
+// `present` would leave every command that falls back to `stigmer` failing
+// with no explanation.
+//
 // The create carries no label. Writing a label in the reserved `stigmer.ai/`
 // namespace needs a platform permission that a self-hosted server with
 // authentication on grants to nobody, and nothing reads one on an
@@ -29,14 +37,31 @@
 // auth, the trusted-local identity.
 
 import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
-import { type Stigmer, StigmerError } from "@stigmer/sdk";
+import { getErrorReason, type Stigmer, StigmerError } from "@stigmer/sdk";
 import type { BackendClient } from "../client/index.js";
 import { DEFAULT_LOCAL_ORG } from "../config/resolve.js";
 import { log } from "../logger.js";
 
 export type Say = (line: string) => void;
 
-export type BootstrapOutcome = "present" | "created";
+export type BootstrapOutcome = "present" | "created" | "reserved";
+
+/**
+ * The refusal reason of a create whose slug a deleted organization held
+ * (OrganizationCommandController.create's contract): a slug is never reused.
+ */
+const REASON_ORGANIZATION_SLUG_RESERVED = "ORGANIZATION_SLUG_RESERVED";
+
+/** What the CLI says when the default organization was deleted and its slug is reserved. */
+export const RESERVED_DEFAULT_ORG_MESSAGE = `The '${DEFAULT_LOCAL_ORG}' organization was deleted, and an organization's slug is never reused, so it cannot be created again.`;
+
+/** How to choose another organization, in the order the CLI resolves one (config/resolve.ts). */
+export const RESERVED_DEFAULT_ORG_HINTS: readonly string[] = [
+  "Name the organization to use, in any of these ways:",
+  "  --org <slug> on a command",
+  "  STIGMER_ORG_ID=<slug> in the environment",
+  "  stigmer config context set --org <slug>",
+];
 
 /**
  * Make sure the organization the CLI falls back to exists on the backend
@@ -61,7 +86,9 @@ export async function bootstrapBackend(stigmer: Stigmer): Promise<BootstrapOutco
     return "created";
   } catch (error) {
     if (error instanceof StigmerError && error.code === "already-exists") {
-      return "present";
+      return getErrorReason(error)?.reason === REASON_ORGANIZATION_SLUG_RESERVED
+        ? "reserved"
+        : "present";
     }
     throw error;
   }
@@ -93,6 +120,10 @@ export async function bootstrapLocalBackend(deps: BootstrapDeps = {}): Promise<v
   }
   log.debug("bootstrap complete", { org: outcome });
   if (outcome === "created") say(`Created the '${DEFAULT_LOCAL_ORG}' organization`);
+  if (outcome === "reserved") {
+    say(`Warning: ${RESERVED_DEFAULT_ORG_MESSAGE}`);
+    for (const hint of RESERVED_DEFAULT_ORG_HINTS) say(hint);
+  }
 }
 
 async function freshLocalClient(): Promise<BackendClient> {

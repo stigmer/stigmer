@@ -52,6 +52,9 @@ import type {
   ClaimResult,
   OAuthGrant,
   OAuthGrantStore,
+  OrganizationSlugClaim,
+  OrganizationSlugEntry,
+  OrganizationSlugStore,
   PendingOAuthState,
   PendingOAuthStateStore,
   RawResourceDocument,
@@ -146,6 +149,7 @@ const RECONCILE_BATCH = 500;
 export class PostgresStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly signalDedupe: SignalDedupeStore;
+  readonly organizationSlugs: OrganizationSlugStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
 
@@ -165,6 +169,9 @@ export class PostgresStore implements Store {
     this.signalDedupe = new PostgresSignalDedupeStore(
       () => this.open(),
       logger,
+    );
+    this.organizationSlugs = new PostgresOrganizationSlugStore(() =>
+      this.open(),
     );
     this.oauthGrants = new PostgresOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new PostgresPendingOAuthStateStore(() =>
@@ -1495,6 +1502,83 @@ class PostgresSignalDedupeStore implements SignalDedupeStore {
 /** Composite dedupe key: "{org}:{idempotency_key}" (both drivers). */
 function buildDedupeKey(org: string, idempotencyKey: string): string {
   return `${org}:${idempotencyKey}`;
+}
+
+// =============================================================================
+// Organization slugs
+// =============================================================================
+
+/** A ledger row as the driver reads it (`retired_at` NULL while held). */
+interface OrganizationSlugRow {
+  slug: string;
+  claimed_at: string;
+  retired_at: string | null;
+}
+
+function organizationSlugEntryOf(
+  row: OrganizationSlugRow,
+): OrganizationSlugEntry {
+  return {
+    slug: row.slug,
+    claimedAt: row.claimed_at,
+    retiredAt: row.retired_at ?? "",
+  };
+}
+
+class PostgresOrganizationSlugStore implements OrganizationSlugStore {
+  constructor(private readonly open: () => Pool) {}
+
+  async claim(slug: string): Promise<OrganizationSlugClaim> {
+    const pool = this.open();
+    const claimedAt = new Date().toISOString();
+    // ON CONFLICT DO NOTHING: the primary key picks the one winner of
+    // concurrent claims, with no error-text sniffing.
+    const inserted = await pool.query(
+      `INSERT INTO organization_slugs (slug, claimed_at) VALUES ($1, $2)
+       ON CONFLICT (slug) DO NOTHING`,
+      [slug, claimedAt],
+    );
+    if ((inserted.rowCount ?? 0) === 1) {
+      return { claimed: true, entry: { slug, claimedAt, retiredAt: "" } };
+    }
+    const holder = await this.find(slug);
+    if (holder === undefined) {
+      // A holder only disappears through its own create's release, so a
+      // lost claim with no holder is a claim that raced that release:
+      // surfaced as a fault rather than fabricating an entry.
+      throw new Error(
+        `organization slug '${slug}': its holder disappeared during the claim`,
+      );
+    }
+    return { claimed: false, entry: holder };
+  }
+
+  async retire(slug: string): Promise<void> {
+    const retiredAt = new Date().toISOString();
+    await this.open().query(
+      `INSERT INTO organization_slugs (slug, claimed_at, retired_at) VALUES ($1, $2, $2)
+       ON CONFLICT (slug) DO UPDATE SET retired_at = excluded.retired_at
+       WHERE organization_slugs.retired_at IS NULL`,
+      [slug, retiredAt],
+    );
+  }
+
+  async release(entry: OrganizationSlugEntry): Promise<void> {
+    await this.open().query(
+      `DELETE FROM organization_slugs
+       WHERE slug = $1 AND claimed_at = $2 AND retired_at IS NULL`,
+      [entry.slug, entry.claimedAt],
+    );
+  }
+
+  async find(slug: string): Promise<OrganizationSlugEntry | undefined> {
+    const result = await this.open().query<OrganizationSlugRow>(
+      `SELECT slug, claimed_at, retired_at FROM organization_slugs WHERE slug = $1`,
+      [slug],
+    );
+    const row = result.rows[0];
+    return row === undefined ? undefined : organizationSlugEntryOf(row);
+  }
 }
 
 // =============================================================================

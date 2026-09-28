@@ -47,6 +47,9 @@ import type {
   ClaimResult,
   OAuthGrant,
   OAuthGrantStore,
+  OrganizationSlugClaim,
+  OrganizationSlugEntry,
+  OrganizationSlugStore,
   PendingOAuthState,
   PendingOAuthStateStore,
   RawResourceDocument,
@@ -156,6 +159,7 @@ const RECONCILE_BATCH = 500;
 export class SqliteStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly signalDedupe: SignalDedupeStore;
+  readonly organizationSlugs: OrganizationSlugStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
 
@@ -176,6 +180,7 @@ export class SqliteStore implements Store {
     this.listIndexes = listIndexes;
     this.bootstrapState = new SqliteBootstrapStateStore(() => this.open());
     this.signalDedupe = new SqliteSignalDedupeStore(() => this.open(), logger);
+    this.organizationSlugs = new SqliteOrganizationSlugStore(() => this.open());
     this.oauthGrants = new SqliteOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new SqlitePendingOAuthStateStore(() =>
       this.open(),
@@ -1594,6 +1599,85 @@ function isUniqueConstraintError(error: unknown): boolean {
   return (
     error instanceof Error && error.message.includes("UNIQUE constraint failed")
   );
+}
+
+// =============================================================================
+// Organization slugs
+// =============================================================================
+
+/** A ledger row as the driver reads it (`retired_at` NULL while held). */
+interface OrganizationSlugRow {
+  slug: string;
+  claimed_at: string;
+  retired_at: string | null;
+}
+
+function organizationSlugEntryOf(
+  row: OrganizationSlugRow,
+): OrganizationSlugEntry {
+  return {
+    slug: row.slug,
+    claimedAt: row.claimed_at,
+    retiredAt: row.retired_at ?? "",
+  };
+}
+
+class SqliteOrganizationSlugStore implements OrganizationSlugStore {
+  constructor(private readonly open: () => DatabaseSync) {}
+
+  async claim(slug: string): Promise<OrganizationSlugClaim> {
+    const db = this.open();
+    const claimedAt = new Date().toISOString();
+    // INSERT OR IGNORE on the primary key: the one connection serialises
+    // writers, and `changes` says whether this claim is the one that won.
+    const inserted = db
+      .prepare(
+        `INSERT OR IGNORE INTO organization_slugs (slug, claimed_at) VALUES (?, ?)`,
+      )
+      .run(slug, claimedAt);
+    if (Number(inserted.changes) === 1) {
+      return { claimed: true, entry: { slug, claimedAt, retiredAt: "" } };
+    }
+    const holder = await this.find(slug);
+    if (holder === undefined) {
+      // A holder only disappears through its own create's release, so a
+      // lost claim with no holder is a claim that raced that release:
+      // surfaced as a fault rather than fabricating an entry.
+      throw new Error(
+        `organization slug '${slug}': its holder disappeared during the claim`,
+      );
+    }
+    return { claimed: false, entry: holder };
+  }
+
+  async retire(slug: string): Promise<void> {
+    const retiredAt = new Date().toISOString();
+    this.open()
+      .prepare(
+        `INSERT INTO organization_slugs (slug, claimed_at, retired_at) VALUES (?, ?, ?)
+         ON CONFLICT (slug) DO UPDATE SET retired_at = excluded.retired_at
+         WHERE organization_slugs.retired_at IS NULL`,
+      )
+      .run(slug, retiredAt, retiredAt);
+  }
+
+  async release(entry: OrganizationSlugEntry): Promise<void> {
+    this.open()
+      .prepare(
+        `DELETE FROM organization_slugs
+         WHERE slug = ? AND claimed_at = ? AND retired_at IS NULL`,
+      )
+      .run(entry.slug, entry.claimedAt);
+  }
+
+  async find(slug: string): Promise<OrganizationSlugEntry | undefined> {
+    const row = this.open()
+      .prepare(
+        `SELECT slug, claimed_at, retired_at FROM organization_slugs WHERE slug = ?`,
+      )
+      .get(slug) as OrganizationSlugRow | undefined;
+    return row === undefined ? undefined : organizationSlugEntryOf(row);
+  }
 }
 
 // =============================================================================

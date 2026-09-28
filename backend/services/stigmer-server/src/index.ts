@@ -293,6 +293,7 @@ export { RequestContext } from "./pipeline/request-context.js";
 export {
   abortedError,
   alreadyExistsError,
+  alreadyExistsWithReasonError,
   ERROR_REASON_DOMAIN,
   failedPreconditionError,
   internalError,
@@ -398,6 +399,16 @@ export {
   AuditNotFoundError,
   ResourceNotFoundError,
 } from "./store/interface.js";
+// The organization-slug ledger (`Store.organizationSlugs`): an
+// organization's slug is its for good. A composition that keeps its own
+// rows by organization id retires the slugs its history holds through it,
+// and a create of a retired slug carries the reason below.
+export type {
+  OrganizationSlugClaim,
+  OrganizationSlugEntry,
+  OrganizationSlugStore,
+} from "./store/interface.js";
+export { ORGANIZATION_SLUG_RESERVED } from "./domain/organization/slug-ledger.js";
 // The list index's read shapes, which `Store.queryResources` speaks
 // (store/list-index.ts). Declaring an index stays internal: the list is
 // the composition root's (boot/list-indexes.ts), one per server.

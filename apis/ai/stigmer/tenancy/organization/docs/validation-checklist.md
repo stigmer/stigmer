@@ -19,6 +19,7 @@ Run through this list before applying an Organization YAML with `stigmer org app
 - [ ] `metadata.slug` contains only lowercase letters, numbers, and hyphens
 - [ ] `metadata.slug` starts with a lowercase letter
 - [ ] `metadata.slug` has no underscores or uppercase letters
+- [ ] `metadata.slug` has never belonged to an organization, a deleted one included: a slug is never reused
 
 ### Management Mode
 
@@ -176,9 +177,13 @@ spec:
   external_org_id: "planton-org-7a3f2c91"
 ```
 
-### Deleting an organization without accounting for cascades
+### Deleting an organization without accounting for what it holds
 
-Deleting an organization cascades to **all resources** under it — agents, workflows, MCP servers, skills, sessions, executions, and members. This is irreversible.
+Deleting an organization is irreversible. Its members lose access to
+everything under it: agents, workflows, MCP servers, skills, sessions and
+executions. Its slug is reserved for good, so no organization can be created
+with it again, the same organization included; a create of that slug is
+refused with `ORGANIZATION_SLUG_RESERVED`.
 
 ```bash
 # Verify contents before deleting

@@ -107,6 +107,11 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { organizationSearchExtractor } from "./search-extractor.js";
 import {
+  newClaimOrganizationSlugStep,
+  newRetireOrganizationSlugStep,
+  releaseSlugClaimAfterFailure,
+} from "./slug-ledger.js";
+import {
   newCheckOrgDuplicateStep,
   newCopySlugToIdStep,
   newRevokeOrganizationPoliciesStep,
@@ -175,6 +180,13 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * refusal there leaves no organization behind. It is where a limit on
  * which organizations may exist is enforced.
  *
+ * ClaimOrganizationSlug follows the slot, immediately before Persist: the
+ * slug is claimed in the ledger atomically, so of two concurrent creates of
+ * one slug exactly one proceeds, and a slug any organization ever held is
+ * refused (slug-ledger.ts). When the chain fails after the claim and the
+ * organization was never stored, the claim is released so a retry can take
+ * the slug.
+ *
  * The post-persist gate slot splices after Persist, before IndexSearch —
  * the verified Java OrganizationCreateHandler ordering (FGA tuple
  * seeding, billing account getOrCreate: synchronous, a failure fails the
@@ -218,6 +230,7 @@ async function createOrganization(
     builder.addStep(step);
   }
   builder
+    .addStep(newClaimOrganizationSlugStep(deps.store))
     .addStep(newPersistStep(deps.store))
     // The C2 tuple step runs BEFORE the post-persist slot — the verified
     // Java order (createAuthorizationTuples → linkManagedOrgToIdentityProvider
@@ -236,12 +249,17 @@ async function createOrganization(
   )) {
     builder.addStep(step);
   }
-  await builder
+  const pipeline = builder
     .addStep(
       newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
     )
-    .build()
-    .execute(reqCtx);
+    .build();
+  try {
+    await pipeline.execute(reqCtx);
+  } catch (error) {
+    await releaseSlugClaimAfterFailure(deps.store, deps.logger, reqCtx);
+    throw error;
+  }
   return reqCtx.newState;
 }
 
@@ -329,21 +347,24 @@ async function apply(
 /**
  * Delete — returns the deleted organization (gRPC audit-trail convention).
  *
- * Everything that names the organization goes before its row, and a fault
- * stops the delete with the organization intact: an organization's id is
- * its slug, the delete frees the slug for anyone, and whatever outlived
- * the row would belong to the slug's next holder. So, after the load:
+ * An organization's id is its slug, and a slug is never taken again
+ * (slug-ledger.ts), so whatever outlives the row can never pass to a new
+ * holder of the slug. Everything that grants on the organization still
+ * goes before its row, and a fault stops the delete with the organization
+ * intact, so nothing it granted outlives it. After the load:
  *
- *   1. the `org-delete:pre-delete` slot, where an edition refuses or
+ *   1. RetireOrganizationSlug, the slug marked retired in the ledger, so it
+ *      is retired before the row can go;
+ *   2. the `org-delete:pre-delete` slot, where an edition refuses or
  *      removes the rows it keeps for the organization (empty in OSS);
- *   2. RevokeOrganizationPolicies, every policy row naming the
+ *   3. RevokeOrganizationPolicies, every policy row naming the
  *      organization, through the grant path, never caught;
- *   3. the row;
- *   4. CleanupIamPolicies, the lifecycle's post-delete event: best-effort
+ *   4. the row;
+ *   5. CleanupIamPolicies, the lifecycle's post-delete event: best-effort
  *      like every delete chain's, it revokes whatever a concurrent write
- *      named the organization with after step 2, and runs a composed
+ *      named the organization with after step 3, and runs a composed
  *      driver's post-delete companions;
- *   5. the search entry.
+ *   6. the search entry.
  */
 async function deleteOrganization(
   deps: OrganizationControllerDeps,
@@ -366,7 +387,8 @@ async function deleteOrganization(
     )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
-    .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema));
+    .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema))
+    .addStep(newRetireOrganizationSlugStep<DeleteInput>(deps.store));
   // The pre-delete gate slot (see the doc comment above). Empty in OSS.
   for (const step of stepsForSlot<DeleteInput>(
     deps.gateSteps,

@@ -218,6 +218,14 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * An organization's slug is its id, and it is the organization's for good:
+     * a slug any organization has ever held, one since deleted included, is
+     * never taken again. A create of a held slug is refused with
+     * ALREADY_EXISTS; a create of a slug whose organization was deleted is
+     * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,
+     *     and a slug is never reused. Metadata: slug.
      * On Stigmer Cloud, creating a platform-managed organization is a plan
      * feature of its integrator. An integrator whose plan lacks it is refused
      * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -244,7 +252,8 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization.
+     * Delete an organization. Its slug stays reserved: no organization can be
+     * created with it again.
      * </pre>
      */
     default void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -300,6 +309,14 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * An organization's slug is its id, and it is the organization's for good:
+     * a slug any organization has ever held, one since deleted included, is
+     * never taken again. A create of a held slug is refused with
+     * ALREADY_EXISTS; a create of a slug whose organization was deleted is
+     * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,
+     *     and a slug is never reused. Metadata: slug.
      * On Stigmer Cloud, creating a platform-managed organization is a plan
      * feature of its integrator. An integrator whose plan lacks it is refused
      * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -328,7 +345,8 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization.
+     * Delete an organization. Its slug stays reserved: no organization can be
+     * created with it again.
      * </pre>
      */
     public void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -370,6 +388,14 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * An organization's slug is its id, and it is the organization's for good:
+     * a slug any organization has ever held, one since deleted included, is
+     * never taken again. A create of a held slug is refused with
+     * ALREADY_EXISTS; a create of a slug whose organization was deleted is
+     * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,
+     *     and a slug is never reused. Metadata: slug.
      * On Stigmer Cloud, creating a platform-managed organization is a plan
      * feature of its integrator. An integrator whose plan lacks it is refused
      * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -396,7 +422,8 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization.
+     * Delete an organization. Its slug stays reserved: no organization can be
+     * created with it again.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
@@ -437,6 +464,14 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * An organization's slug is its id, and it is the organization's for good:
+     * a slug any organization has ever held, one since deleted included, is
+     * never taken again. A create of a held slug is refused with
+     * ALREADY_EXISTS; a create of a slug whose organization was deleted is
+     * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,
+     *     and a slug is never reused. Metadata: slug.
      * On Stigmer Cloud, creating a platform-managed organization is a plan
      * feature of its integrator. An integrator whose plan lacks it is refused
      * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -463,7 +498,8 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization.
+     * Delete an organization. Its slug stays reserved: no organization can be
+     * created with it again.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
@@ -505,6 +541,14 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create an organization.
+     * An organization's slug is its id, and it is the organization's for good:
+     * a slug any organization has ever held, one since deleted included, is
+     * never taken again. A create of a held slug is refused with
+     * ALREADY_EXISTS; a create of a slug whose organization was deleted is
+     * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,
+     *     and a slug is never reused. Metadata: slug.
      * On Stigmer Cloud, creating a platform-managed organization is a plan
      * feature of its integrator. An integrator whose plan lacks it is refused
      * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -533,7 +577,8 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization.
+     * Delete an organization. Its slug stays reserved: no organization can be
+     * created with it again.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> delete(

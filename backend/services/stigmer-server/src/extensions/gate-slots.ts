@@ -55,11 +55,13 @@
  *
  * The tenth, `org-delete:pre-delete`: the organization delete chain after
  * LoadExistingForDelete and before any write, so the organization exists
- * and is loaded (EXISTING_RESOURCE_KEY) while its steps run. An
- * organization's id is its slug and its delete frees the slug for anyone,
- * so whatever an edition keeps for the organization must go before the row
- * does, or be refused: a row left behind would belong to whoever creates
- * the slug next. Its steps may refuse (Enterprise refuses while an
+ * and is loaded (EXISTING_RESOURCE_KEY) while its steps run. Whatever an
+ * edition keeps for the organization must go before the row does, or be
+ * refused: a row left behind is trust or state that nobody administers.
+ * (The slug itself is never taken again, domain/organization/slug-ledger.ts,
+ * so nothing left behind can pass to a new holder of the slug; the order
+ * still keeps an edition's rows from outliving their organization.) Its
+ * steps may refuse (Enterprise refuses while an
  * identity provider still signs in platform-managed organizations) or
  * remove the edition's own rows; either way a throw fails the delete with
  * the organization intact, and the retry re-runs every step, so each owns

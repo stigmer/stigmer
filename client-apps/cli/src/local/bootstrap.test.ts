@@ -3,9 +3,12 @@
 // as the Organization as code (slug, name, self-managed) with NO label, since
 // a reserved `stigmer.ai/` label is refused by a self-hosted server with
 // authentication on (stigmer/stigmer#1192); a create that loses the race to
-// another launcher (ALREADY_EXISTS) is `present`, not an error; any other
+// another launcher (ALREADY_EXISTS) is `present`, not an error, unless the
+// refusal carries ORGANIZATION_SLUG_RESERVED, which is `reserved` (the
+// default organization was deleted and its slug is never reused); any other
 // refusal propagates with the server's sentence. And the local shape `up`
-// runs: it announces a created org, stays quiet on a present one, and turns
+// runs: it announces a created org, stays quiet on a present one, warns
+// with the ways to name another organization on a reserved one, and turns
 // any failure into one warning naming the retry, never a throw.
 
 import {
@@ -25,12 +28,18 @@ import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenanc
 import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
 import { OrganizationsSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import type { Stigmer } from "@stigmer/sdk";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BackendClient } from "../client/index.js";
 import { DEFAULT_LOCAL_ORG } from "../config/resolve.js";
-import { bootstrapBackend, bootstrapLocalBackend } from "./bootstrap.js";
+import {
+  bootstrapBackend,
+  bootstrapLocalBackend,
+  RESERVED_DEFAULT_ORG_HINTS,
+  RESERVED_DEFAULT_ORG_MESSAGE,
+} from "./bootstrap.js";
 
 let backend: Http2Server;
 let stigmer: Stigmer;
@@ -114,6 +123,25 @@ describe("bootstrapBackend", () => {
     expect(await bootstrapBackend(stigmer)).toBe("present");
   });
 
+  it("is reserved when the refusal says a deleted organization held the slug", async () => {
+    refuseCreate = new ConnectError(
+      `Organization slug '${DEFAULT_LOCAL_ORG}' belonged to an organization that was deleted, and a slug is never reused`,
+      Code.AlreadyExists,
+      undefined,
+      [
+        {
+          desc: ErrorInfoSchema,
+          value: create(ErrorInfoSchema, {
+            reason: "ORGANIZATION_SLUG_RESERVED",
+            domain: "stigmer.ai",
+            metadata: { slug: DEFAULT_LOCAL_ORG },
+          }),
+        },
+      ],
+    );
+    expect(await bootstrapBackend(stigmer)).toBe("reserved");
+  });
+
   it("propagates any other refusal with the server's sentence", async () => {
     refuseCreate = new ConnectError("organization creation is disabled", Code.PermissionDenied);
     await expect(bootstrapBackend(stigmer)).rejects.toThrow(
@@ -148,6 +176,19 @@ describe("bootstrapLocalBackend", () => {
       bootstrap: async () => "present",
     });
     expect(said).toEqual([]);
+  });
+
+  it("warns that the default organization is gone for good, naming how to choose another", async () => {
+    const said: string[] = [];
+    await bootstrapLocalBackend({
+      client,
+      say: (line) => said.push(line),
+      bootstrap: async () => "reserved",
+    });
+    expect(said).toEqual([
+      `Warning: ${RESERVED_DEFAULT_ORG_MESSAGE}`,
+      ...RESERVED_DEFAULT_ORG_HINTS,
+    ]);
   });
 
   it("contains a failure in one warning naming the retry", async () => {

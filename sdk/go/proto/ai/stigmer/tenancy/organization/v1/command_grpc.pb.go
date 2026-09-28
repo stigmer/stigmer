@@ -35,6 +35,16 @@ type OrganizationCommandControllerClient interface {
 	Apply(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Create an organization.
 	//
+	// An organization's slug is its id, and it is the organization's for good:
+	// a slug any organization has ever held, one since deleted included, is
+	// never taken again. A create of a held slug is refused with
+	// ALREADY_EXISTS; a create of a slug whose organization was deleted is
+	// refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,
+	//     and a slug is never reused. Metadata: slug.
+	//
 	// On Stigmer Cloud, creating a platform-managed organization is a plan
 	// feature of its integrator. An integrator whose plan lacks it is refused
 	// with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -46,7 +56,8 @@ type OrganizationCommandControllerClient interface {
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an existing organization.
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
-	// Delete an organization.
+	// Delete an organization. Its slug stays reserved: no organization can be
+	// created with it again.
 	Delete(ctx context.Context, in *OrganizationId, opts ...grpc.CallOption) (*Organization, error)
 }
 
@@ -108,6 +119,16 @@ type OrganizationCommandControllerServer interface {
 	Apply(context.Context, *Organization) (*Organization, error)
 	// Create an organization.
 	//
+	// An organization's slug is its id, and it is the organization's for good:
+	// a slug any organization has ever held, one since deleted included, is
+	// never taken again. A create of a held slug is refused with
+	// ALREADY_EXISTS; a create of a slug whose organization was deleted is
+	// refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,
+	//     and a slug is never reused. Metadata: slug.
+	//
 	// On Stigmer Cloud, creating a platform-managed organization is a plan
 	// feature of its integrator. An integrator whose plan lacks it is refused
 	// with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -119,7 +140,8 @@ type OrganizationCommandControllerServer interface {
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an existing organization.
 	Update(context.Context, *Organization) (*Organization, error)
-	// Delete an organization.
+	// Delete an organization. Its slug stays reserved: no organization can be
+	// created with it again.
 	Delete(context.Context, *OrganizationId) (*Organization, error)
 }
 

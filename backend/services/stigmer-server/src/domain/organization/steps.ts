@@ -10,9 +10,11 @@
  * uniqueness guarantee, mirroring cloud's OrganizationCreateHandler
  * (CheckDuplicate + CopySlugToId) step-for-step.
  *
- * The same deviation shapes the delete: a freed slug is anyone's to take,
- * so newRevokeOrganizationPoliciesStep revokes the organization's policy
- * rows BEFORE its row is deleted, and fails the delete when it cannot.
+ * The same deviation shapes the delete. A slug is never taken twice
+ * (slug-ledger.ts), and newRevokeOrganizationPoliciesStep still revokes
+ * the organization's policy rows BEFORE its row is deleted, and fails the
+ * delete when it cannot, so nothing that grants on the organization
+ * outlives it.
  *
  * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/organization.test.ts and __tests__/organization-delete.test.ts.
@@ -28,6 +30,7 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
+import { refusalForHeldSlug } from "./slug-ledger.js";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
@@ -47,6 +50,13 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
  * by id with upsert semantics, silently overwrite the existing
  * organization. Checking existence by id (== the resolved slug) closes
  * that hole and mirrors cloud's OrganizationCreateHandler.CheckDuplicate.
+ *
+ * A slug is taken for good (slug-ledger.ts), so the slug ledger is read
+ * first: a retired slug is refused with the reserved reason, a held one
+ * with the duplicate copy. The row is read after it for an organization no
+ * ledger entry records yet, one an older binary created during a rolling
+ * upgrade. This read is the early refusal, before any gate; the atomic
+ * guarantee is ClaimOrganizationSlug's, immediately before Persist.
  *
  * Runs after ResolveSlug (slug is set) and before BuildNewState/
  * CopySlugToId (the id is not yet minted), so it keys on the slug value
@@ -68,6 +78,16 @@ export function newCheckOrgDuplicateStep(
       // server-side pipeline-ordering bug, not bad client input.
       if (metadata.slug === "") {
         throw internalError(new Error("organization slug is empty"), "duplicate check");
+      }
+
+      let entry;
+      try {
+        entry = await store.organizationSlugs.find(metadata.slug);
+      } catch (error) {
+        throw internalError(error, "failed to check for duplicate organization");
+      }
+      if (entry !== undefined) {
+        throw refusalForHeldSlug(entry);
       }
 
       try {
@@ -120,9 +140,11 @@ export function newCopySlugToIdStep(): PipelineStep<typeof OrganizationSchema> {
  *
  * The generic delete chains clean up after the row and log a fault,
  * because a deleted resource's rows grant nothing once it is gone. An
- * organization is the exception: its id is its slug, the delete frees the
- * slug, and a row left behind would grant whoever creates the slug next.
- * So this step does not catch. A fault fails the delete with the
+ * organization is the exception: its rows are the grants on the tenancy
+ * root itself, and the scope link of every resource under it. The slug is
+ * never taken again (slug-ledger.ts), so they cannot pass to a new holder,
+ * but a row left behind would still be a grant nobody administers. So this
+ * step does not catch. A fault fails the delete with the
  * organization in place, and a retry resumes where the revocation stopped
  * (the grant path revokes the organization's owners last, so the owner
  * who retries still can). The grant path fires the composed driver's
