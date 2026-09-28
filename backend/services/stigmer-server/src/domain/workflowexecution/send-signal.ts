@@ -13,7 +13,8 @@
  * Codes (pinned): InvalidArgument (missing fields), NotFound (unknown
  * execution), FailedPrecondition (terminal phase, or no engine),
  * AlreadyExists (DELIVERED duplicate — stop retrying), Aborted (live
- * in-flight claim — retry shortly). Dedupe-store errors degrade to
+ * in-flight claim — retry shortly), Internal (a store fault loading the
+ * execution, never folded into NotFound). Dedupe-store errors degrade to
  * no-dedupe rather than failing the send; a failed send RELEASES the
  * claim (status-guarded) so the retry claims freshly instead of waiting
  * out the in-flight hold.
@@ -41,7 +42,10 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
-import { IN_FLIGHT_CLAIM_TTL_MS } from "../../store/interface.js";
+import {
+  IN_FLIGHT_CLAIM_TTL_MS,
+  ResourceNotFoundError,
+} from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
 import {
@@ -109,8 +113,11 @@ export async function sendSignal(
             ctx.input.executionId,
             WorkflowExecutionSchema,
           );
-        } catch {
-          throw notFoundError("workflow_execution", ctx.input.executionId);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            throw notFoundError("workflow_execution", ctx.input.executionId);
+          }
+          throw internalError(error, "failed to load workflow execution");
         }
         ctx.set(LOADED_EXECUTION_KEY, execution);
       },

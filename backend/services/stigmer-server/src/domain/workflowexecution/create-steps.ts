@@ -35,6 +35,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { fromBinary } from "@bufbuild/protobuf";
 
@@ -127,8 +128,11 @@ export function newCreateDefaultInstanceIfNeededStep(
           workflowId,
           WorkflowSchema,
         );
-      } catch {
-        throw notFoundError("Workflow", workflowId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("Workflow", workflowId);
+        }
+        throw internalError(error, "failed to load workflow");
       }
 
       const defaultInstanceId = workflow.status?.defaultInstanceId ?? "";
