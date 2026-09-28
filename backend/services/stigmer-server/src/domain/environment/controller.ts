@@ -8,8 +8,8 @@
  * design: limited blast radius, per-key audit, the industry "reveal" UX).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local)
- * and __tests__/environment.test.ts.
+ * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local),
+ * __tests__/environment.test.ts and __tests__/store-faults.test.ts.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,
  * FGA-tuple, and Publish steps (no multi-tenant auth, IAM/FGA, or event
@@ -421,7 +421,7 @@ async function updateVisibility(
   return env;
 }
 
-/** Loads the environment by resource_id; ANY load failure → NotFound. */
+/** Loads the environment by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadEnvironmentForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -436,8 +436,11 @@ function newLoadEnvironmentForVisibilityUpdateStep(
           input.resourceId,
           EnvironmentSchema,
         );
-      } catch {
-        throw notFoundError("environment", input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("environment", input.resourceId);
+        }
+        throw internalError(error, "failed to load environment");
       }
       ctx.set(UPDATE_VISIBILITY_ENVIRONMENT_KEY, env);
     },

@@ -15,8 +15,8 @@
  *      by design and must not hit the forgery rejection.
  *   3. Redaction (redact.ts) runs AFTER Persist, outside the pipeline.
  *
- * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local)
- * and __tests__/environment.test.ts.
+ * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local),
+ * __tests__/environment.test.ts and __tests__/store-faults.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -51,6 +51,7 @@ import { findResourceByLabelAndOrg } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { destroySecretBackingState } from "../../pipeline/steps/secret-cleanup.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   PERSONAL_LABEL_KEY,
@@ -273,7 +274,8 @@ export function newEnforcePersonalUniquenessStep(
  * environment_id field (the standard LoadTarget expects a `value` id
  * field, but EnvironmentSecretValueInput / Update-/RemoveEnvironment-
  * VariablesRequest carry `environment_id`). Stores under
- * TARGET_RESOURCE_KEY.
+ * TARGET_RESOURCE_KEY. A missing environment answers NotFound, a store
+ * fault Internal.
  */
 export function newLoadEnvironmentByIdStep<Desc extends DescMessage>(
   store: Store,
@@ -294,10 +296,11 @@ export function newLoadEnvironmentByIdStep<Desc extends DescMessage>(
           environmentId,
           EnvironmentSchema,
         );
-      } catch {
-        // Go maps EVERY load failure to NotFound here (store errors
-        // included) — ported as-is.
-        throw notFoundError("environment", environmentId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("environment", environmentId);
+        }
+        throw internalError(error, "failed to load environment");
       }
 
       ctx.set(TARGET_RESOURCE_KEY, env);

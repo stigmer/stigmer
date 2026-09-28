@@ -9,7 +9,8 @@
  * storage_state transition rather than the hard-delete pipeline; only
  * get/listByExecution ride pipelines. Proven by
  * artifact.conformance.test.ts (CONFORMANCE_TARGET=local, incl. the
- * file-server lane) and __tests__/artifact.test.ts.
+ * file-server lane), __tests__/artifact.test.ts and
+ * __tests__/store-faults.test.ts.
  *
  * Go tolerates a nil ArtifactStorage (two-phase wiring) and answers
  * Internal "artifact storage not configured"; the TS composition root
@@ -79,6 +80,7 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ListIndexRow } from "../../store/list-index.js";
 import { artifactListIndex } from "./list-index.js";
@@ -649,7 +651,7 @@ async function getContent(
   });
 }
 
-/** Load by id with the byte-pinned Go NotFound copy. */
+/** Load by id: a missing artifact answers the byte-pinned Go NotFound copy, a store fault Internal. */
 async function loadArtifactOrNotFound(
   deps: ArtifactControllerDeps,
   artifactId: string,
@@ -660,10 +662,14 @@ async function loadArtifactOrNotFound(
       artifactId,
       ArtifactSchema,
     );
-  } catch {
-    // Go answers NotFound for ANY store failure here (status.Errorf on
-    // err != nil), not only missing rows — mirrored.
-    throw new ConnectError(artifactNotFoundMessage(artifactId), Code.NotFound);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw new ConnectError(
+        artifactNotFoundMessage(artifactId),
+        Code.NotFound,
+      );
+    }
+    throw internalError(error, "failed to load artifact");
   }
 }
 
