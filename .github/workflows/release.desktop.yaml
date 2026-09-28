@@ -480,6 +480,24 @@ jobs:
           path: ${{ steps.bundles.outputs.dmg }}
           retention-days: 7
 
+      # The same for the Linux and Windows installers, so a build-only run can
+      # be inspected on every leg before a tag is cut: that each installer
+      # carries resources/runtime (the pinned Node the runner starts from), and
+      # that the Linux engine runs the Linux runner outside the build host.
+      - name: Upload Linux and Windows installers artifact
+        if: runner.os != 'macOS' && needs.determine-version.outputs.should_release != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os == 'Linux' && 'linux' || 'windows' }}-installers
+          path: |
+            client-apps/desktop/src-tauri/target/release/bundle/deb/*.deb
+            client-apps/desktop/src-tauri/target/release/bundle/rpm/*.rpm
+            client-apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            client-apps/desktop/src-tauri/target/release/bundle/msi/*.msi
+            client-apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Build updater fragment
         if: needs.determine-version.outputs.should_release == 'true'
         env:
