@@ -42,7 +42,11 @@ service OrganizationCommandController {
   //
   // @internal
   // Authorization: Requires can_delete permission on the organization.
-  // This will cascade-delete all resources under the organization.
+  // Before the organization itself, the delete runs each edition's
+  // organization-delete steps, which remove or refuse what the edition
+  // keeps for it, then revokes every authorization row that names it; when
+  // any of these cannot complete, the delete fails with the organization in
+  // place, and a retry resumes it.
   rpc delete(OrganizationId) returns (Organization) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

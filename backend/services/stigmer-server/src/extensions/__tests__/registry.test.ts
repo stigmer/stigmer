@@ -491,6 +491,9 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       // The ninth: the organization create chain before Persist, where a
       // limit on which organizations may exist refuses with nothing written.
       "org-create:pre-side-effect-gate",
+      // The tenth: the organization delete chain before any write, where an
+      // edition removes or refuses what it keeps for the organization.
+      "org-delete:pre-delete",
       "sandbox-acquisition:gate",
       "session-create:pre-side-effect-gate",
     ]);

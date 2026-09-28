@@ -14,8 +14,11 @@
  *     fail-open incident class). The absent arm fires the hook with the
  *     spec and no policy, so a composition can still delete a bare tuple
  *     written before the row mirror existed.
- *   - cleanupResource is bidirectional (as target AND as principal),
- *     deduplicated, revoking each row through the same revoke order.
+ *   - cleanupResource is bidirectional (as principal first, then as
+ *     target with the owner rows last), deduplicated, revoking each row
+ *     through the same revoke order; a fault stops it with the owners
+ *     still holding, since an organization's delete runs it before the
+ *     organization's row goes and its owner is the one who retries.
  *   - revokeOrgAccess revokes the account's direct rows on the
  *     organization; the inert org-column arm the cloud carried is gone
  *     (Q-OR-9).
@@ -378,17 +381,19 @@ describe("revoke: onPolicyRevoked before the row delete", () => {
 });
 
 describe("cleanupResource: bidirectional, deduplicated, each row through the revoke order", () => {
-  it("revokes rows where the ref is the resource AND rows where it is the principal", async () => {
+  it("revokes rows where the ref is the principal, then where it is the resource, owners last", async () => {
     const recorded: RecordedEvent[] = [];
     const { policies, path } = pathOver(recorded, recordingLifecycle(recorded));
-    const asResource = orgRole(ALICE, "owner", "acme");
+    const owner = orgRole(ALICE, "owner", "acme");
+    const member = orgRole(BOB, "member", "acme");
     const asPrincipal = triple(
       { kind: "organization", id: "acme" },
       "organization",
       { kind: "agent", id: AGENT },
     );
     const unrelated = orgRole(ALICE, "member", "globex");
-    for (const spec of [asResource, asPrincipal, unrelated]) {
+    // Granted owner first, so the order below is the cleanup's, not the store's.
+    for (const spec of [owner, member, asPrincipal, unrelated]) {
       await path.grant(spec, alice);
     }
     recorded.length = 0;
@@ -399,15 +404,43 @@ describe("cleanupResource: bidirectional, deduplicated, each row through the rev
 
     expect([...policies.rows.keys()]).toEqual([policyIdFor(unrelated)]);
     expect(recorded).toEqual([
-      { kind: "revoked", id: policyIdFor(asResource), relation: "owner" },
-      { kind: "row-delete", id: policyIdFor(asResource) },
       {
         kind: "revoked",
         id: policyIdFor(asPrincipal),
         relation: "organization",
       },
       { kind: "row-delete", id: policyIdFor(asPrincipal) },
+      { kind: "revoked", id: policyIdFor(member), relation: "member" },
+      { kind: "row-delete", id: policyIdFor(member) },
+      { kind: "revoked", id: policyIdFor(owner), relation: "owner" },
+      { kind: "row-delete", id: policyIdFor(owner) },
     ]);
+  });
+
+  it("stops at the first fault with the owner rows still in place", async () => {
+    const recorded: RecordedEvent[] = [];
+    const lifecycle = recordingLifecycle(recorded);
+    const { policies, path } = pathOver(recorded, {
+      ...lifecycle,
+      onPolicyRevoked: (event) =>
+        event.spec.relation === "member"
+          ? Promise.reject(new Error("tuple delete refused"))
+          : lifecycle.onPolicyRevoked!(event),
+    });
+    const owner = orgRole(ALICE, "owner", "acme");
+    const member = orgRole(BOB, "member", "acme");
+    for (const spec of [owner, member]) {
+      await path.grant(spec, alice);
+    }
+
+    await expect(
+      path.cleanupResource(
+        create(ApiResourceRefSchema, { kind: "organization", id: "acme" }),
+      ),
+    ).rejects.toThrow("tuple delete refused");
+
+    expect(policies.rows.has(policyIdFor(owner))).toBe(true);
+    expect(policies.rows.has(policyIdFor(member))).toBe(true);
   });
 
   it("a ref that is both principal and resource of one row revokes it once", async () => {

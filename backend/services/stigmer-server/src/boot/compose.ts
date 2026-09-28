@@ -1268,6 +1268,9 @@ export async function composeServer(
       logger,
       authorizer,
       gateSteps: extensions.gateSteps,
+      // The delete revokes the organization's rows through the one grant
+      // path, before its row goes (domain/organization/steps.ts).
+      grantPath: iamPolicyGrantPath,
       // The role lifecycle and the directory (the identity stage): the
       // composed drivers, or open source's under the built-in posture.
       authorizationLifecycle: roleLifecycle,

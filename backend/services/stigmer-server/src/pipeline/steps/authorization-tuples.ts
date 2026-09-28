@@ -330,8 +330,12 @@ export function newCreateAuthorizationTuplesStep<Desc extends DescMessage>(
 /**
  * CleanupIamPolicies — after the store delete in every delete chain.
  * Best-effort by contract: a driver failure is logged and the delete
- * succeeds (Java's DeleteOperationCleanupIamPoliciesStep swallows all —
- * the cloud side owns convergence for orphaned grants).
+ * succeeds (Java's DeleteOperationCleanupIamPoliciesStep swallows all),
+ * because a deleted resource's rows grant nothing once it is gone. The
+ * organization is the one kind whose id another caller can take next, so
+ * its chain revokes the organization's rows before the row, failing
+ * closed (RevokeOrganizationPolicies, domain/organization/steps.ts), and
+ * this step is only its backstop there.
  */
 export function newCleanupIamPoliciesStep<Desc extends DescMessage>(
   lifecycle: ResourceAuthorizationLifecycle | undefined,

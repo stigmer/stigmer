@@ -59,6 +59,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   ApiResourceRef,
   IamPolicySpec,
@@ -77,6 +78,9 @@ import {
 import { DuplicatePolicyError } from "./store.js";
 import type { IamPolicyStore } from "./store.js";
 import { refsOf, requireWellFormedTriple } from "./wire-refusals.js";
+
+/** The relation `cleanupResource` revokes last on the ref's own rows. */
+const OWNER_RELATION = IamRole[IamRole.owner];
 
 export interface GrantResult {
   readonly policy: IamPolicy;
@@ -99,9 +103,13 @@ export interface IamPolicyGrantPath {
    */
   revokeBySpec(spec: IamPolicySpec): Promise<IamPolicy | undefined>;
   /**
-   * Revoke every row naming the ref as its resource, then every row naming
-   * it as its principal, each through the revoke order; a row that is both
-   * is revoked once. Nothing to clean is a no-op.
+   * Revoke every row naming the ref as its principal, then every row naming
+   * it as its resource with the `owner` rows last, each through the revoke
+   * order; a row that is both is revoked once. Nothing to clean is a no-op.
+   * The order matters where the ref still exists: an organization's delete
+   * runs this before its row goes and fails on the first fault, so a
+   * cleanup that stops partway has not yet removed the owners who may
+   * retry it.
    */
   cleanupResource(ref: ApiResourceRef): Promise<void>;
   /** Revoke every relation the account holds directly on the organization. */
@@ -209,9 +217,15 @@ export function newIamPolicyGrantPath(
     },
 
     async cleanupResource(ref): Promise<void> {
-      const asResource = await policies.findByResource(ref.kind, ref.id);
       const asPrincipal = await policies.findByPrincipal(ref.kind, ref.id);
-      for (const policy of distinctById([...asResource, ...asPrincipal])) {
+      const asResource = await policies.findByResource(ref.kind, ref.id);
+      const isOwner = (policy: IamPolicy): boolean =>
+        policy.spec?.relation === OWNER_RELATION;
+      for (const policy of distinctById([
+        ...asPrincipal,
+        ...asResource.filter((policy) => !isOwner(policy)),
+        ...asResource.filter(isOwner),
+      ])) {
         await revokeRow(policy);
       }
     },

@@ -54,6 +54,7 @@ import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import { ALL_ORGANIZATIONS } from "../../extensions/organization-directory.js";
 import type { OrganizationDirectory } from "../../extensions/organization-directory.js";
+import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -105,15 +106,21 @@ import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibil
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { organizationSearchExtractor } from "./search-extractor.js";
-import { newCheckOrgDuplicateStep, newCopySlugToIdStep } from "./steps.js";
+import {
+  newCheckOrgDuplicateStep,
+  newCopySlugToIdStep,
+  newRevokeOrganizationPoliciesStep,
+} from "./steps.js";
 
 export interface OrganizationControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
-  /** The composed slot registrations — this domain's post-persist slot (O4). */
+  /** The composed slot registrations — this domain's create and delete slots (O4). */
   readonly gateSteps: ResolvedGateSteps;
+  /** The one grant path: the delete revokes the organization's rows through it before its row goes. */
+  readonly grantPath: IamPolicyGrantPath;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed query directory — undefined = OSS single-tenant behavior (C2). */
@@ -319,22 +326,38 @@ async function apply(
     : update(deps, withResolvedApplyId(OrganizationSchema, org, reqCtx), ctx);
 }
 
-/** Delete — returns the deleted organization (gRPC audit-trail convention). */
+/**
+ * Delete — returns the deleted organization (gRPC audit-trail convention).
+ *
+ * Everything that names the organization goes before its row, and a fault
+ * stops the delete with the organization intact: an organization's id is
+ * its slug, the delete frees the slug for anyone, and whatever outlived
+ * the row would belong to the slug's next holder. So, after the load:
+ *
+ *   1. the `org-delete:pre-delete` slot, where an edition refuses or
+ *      removes the rows it keeps for the organization (empty in OSS);
+ *   2. RevokeOrganizationPolicies, every policy row naming the
+ *      organization, through the grant path, never caught;
+ *   3. the row;
+ *   4. CleanupIamPolicies, the lifecycle's post-delete event: best-effort
+ *      like every delete chain's, it revokes whatever a concurrent write
+ *      named the organization with after step 2, and runs a composed
+ *      driver's post-delete companions;
+ *   5. the search entry.
+ */
 async function deleteOrganization(
   deps: OrganizationControllerDeps,
   orgId: OrganizationId,
   ctx: HandlerContext,
 ): Promise<Organization> {
+  type DeleteInput = typeof OrganizationCommandController.method.delete.input;
   const reqCtx = new RequestContext(
     OrganizationCommandController.method.delete.input,
     orgId,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof OrganizationCommandController.method.delete.input>(
-    "organization-delete",
-    deps.logger,
-  )
+  const builder = newPipeline<DeleteInput>("organization-delete", deps.logger)
     .addStep(
       newAuthorizeStep(
         OrganizationCommandController.method.delete,
@@ -343,7 +366,16 @@ async function deleteOrganization(
     )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
-    .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema))
+    .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema));
+  // The pre-delete gate slot (see the doc comment above). Empty in OSS.
+  for (const step of stepsForSlot<DeleteInput>(
+    deps.gateSteps,
+    "org-delete:pre-delete",
+  )) {
+    builder.addStep(step);
+  }
+  await builder
+    .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

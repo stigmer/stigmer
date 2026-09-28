@@ -248,7 +248,11 @@ public final class OrganizationCommandControllerGrpc {
      * Delete an organization.
      * &#64;internal
      * Authorization: Requires can_delete permission on the organization.
-     * This will cascade-delete all resources under the organization.
+     * Before the organization itself, the delete runs each edition's
+     * organization-delete steps, which remove or refuse what the edition
+     * keeps for it, then revokes every authorization row that names it; when
+     * any of these cannot complete, the delete fails with the organization in
+     * place, and a retry resumes it.
      * </pre>
      */
     default void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -336,7 +340,11 @@ public final class OrganizationCommandControllerGrpc {
      * Delete an organization.
      * &#64;internal
      * Authorization: Requires can_delete permission on the organization.
-     * This will cascade-delete all resources under the organization.
+     * Before the organization itself, the delete runs each edition's
+     * organization-delete steps, which remove or refuse what the edition
+     * keeps for it, then revokes every authorization row that names it; when
+     * any of these cannot complete, the delete fails with the organization in
+     * place, and a retry resumes it.
      * </pre>
      */
     public void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -408,7 +416,11 @@ public final class OrganizationCommandControllerGrpc {
      * Delete an organization.
      * &#64;internal
      * Authorization: Requires can_delete permission on the organization.
-     * This will cascade-delete all resources under the organization.
+     * Before the organization itself, the delete runs each edition's
+     * organization-delete steps, which remove or refuse what the edition
+     * keeps for it, then revokes every authorization row that names it; when
+     * any of these cannot complete, the delete fails with the organization in
+     * place, and a retry resumes it.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
@@ -479,7 +491,11 @@ public final class OrganizationCommandControllerGrpc {
      * Delete an organization.
      * &#64;internal
      * Authorization: Requires can_delete permission on the organization.
-     * This will cascade-delete all resources under the organization.
+     * Before the organization itself, the delete runs each edition's
+     * organization-delete steps, which remove or refuse what the edition
+     * keeps for it, then revokes every authorization row that names it; when
+     * any of these cannot complete, the delete fails with the organization in
+     * place, and a retry resumes it.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
@@ -553,7 +569,11 @@ public final class OrganizationCommandControllerGrpc {
      * Delete an organization.
      * &#64;internal
      * Authorization: Requires can_delete permission on the organization.
-     * This will cascade-delete all resources under the organization.
+     * Before the organization itself, the delete runs each edition's
+     * organization-delete steps, which remove or refuse what the edition
+     * keeps for it, then revokes every authorization row that names it; when
+     * any of these cannot complete, the delete fails with the organization in
+     * place, and a retry resumes it.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> delete(
