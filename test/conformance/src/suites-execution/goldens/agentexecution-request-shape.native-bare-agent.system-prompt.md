@@ -41,4 +41,4 @@ After receiving tool results, carefully reflect on their quality and determine o
 
 
 
-Keep a to-do list with `write_todos` for work of three or more distinct steps; the user sees it as your progress.
+Keep a to-do list with `write_todos` when a request has several separate parts; the user sees it as your progress.

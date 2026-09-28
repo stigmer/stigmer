@@ -15,8 +15,14 @@
  * as you are done with a step. Do not batch", which the benchmark's
  * per-call record showed as one model call per update, five of seventeen on
  * a multi-part task. These texts keep what the product relies on (a list for
- * multi-step work, the three states the card shows, one item in progress)
- * and ask for each update to ride with the next action.
+ * work of several parts, the three states the card shows, one item in
+ * progress) and make each update ride with another tool call.
+ *
+ * The threshold is "several separate parts", not a step count: a first cut
+ * said "three or more distinct steps", and the model then kept a list on a
+ * one-change edit (read, edit, test) with every update in a round of its
+ * own. A soft "update with your next action" was not followed either, so
+ * the rule names the call's company outright.
  *
  * Plan mode's build progress names no tool: its directive says "your to-do
  * list" (`shared/implement-plan-prompt.ts`) and leaves each harness's tool
@@ -31,17 +37,17 @@ import { ENGINE_TOOL } from "./engine-tools.js";
 
 /** The to-do tool's description, as the model reads it. */
 export const TODO_TOOL_DESCRIPTION =
-  "Your to-do list, shown to the user as your progress. Use it for work of three or more distinct steps, " +
-  "or when the user asks for one; skip it for simple or conversational requests.\n" +
+  "Your to-do list, shown to the user as your progress. Use it when a request has several separate parts, " +
+  "or when the user asks for one. Skip it for a single change, however many steps it takes, and for questions.\n" +
   "- Send the whole list each time. Each item is pending, in_progress or completed; keep exactly one " +
   "in_progress while you work.\n" +
-  "- Update the list in the same response as your next action, never in a response of its own. Mark an " +
-  "item completed as soon as it is done.\n" +
+  `- A \`${ENGINE_TOOL.writeTodos}\` call always shares its response with another tool call: update the list ` +
+  "alongside your next action, never in a response of its own, and send the last update with your last tool call.\n" +
   "- Call this tool at most once per response.";
 
 /** The line the middleware adds to the system prompt. */
 export const TODO_SYSTEM_PROMPT =
-  `Keep a to-do list with \`${ENGINE_TOOL.writeTodos}\` for work of three or more distinct steps; ` +
+  `Keep a to-do list with \`${ENGINE_TOOL.writeTodos}\` when a request has several separate parts; ` +
   "the user sees it as your progress.";
 
 /** The parent graph's to-do middleware, with Stigmer's texts. */
