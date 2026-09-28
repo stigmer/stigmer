@@ -7,14 +7,16 @@ import { CONSOLE_URL } from "../../config";
 /**
  * Billing settings. The Tauri webview cannot host Stripe's pages (its
  * origin is not a web address Stripe can return to), so checkout, card
- * setup and the billing portal open in the system browser and return to
- * the web console's billing page; this page's reads refresh when the
- * window regains focus. The query wiring matches the web page's, for when
- * a route lands here with it.
+ * setup and the billing portal open in the system browser. Stripe returns
+ * to the web console's public desktop bridge (`/desktop/billing`), which
+ * needs no web sign-in and reopens the app through
+ * `stigmer://billing/return`; `useDesktopBillingReturn` routes here with
+ * the outcome, so a saved card reopens the plan being chosen. This page's
+ * reads also refresh when the window regains focus.
  */
 const redirect: BillingRedirect = {
   openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
-  returnUrl: `${CONSOLE_URL}/settings/billing`,
+  returnUrl: `${CONSOLE_URL}/desktop/billing`,
 };
 
 export default function BillingPage() {

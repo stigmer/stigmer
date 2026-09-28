@@ -2,9 +2,10 @@
 
 import { useId } from "react";
 import { getErrorReason, getUserMessage } from "@stigmer/sdk";
+import type { PlanTerms } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { Button } from "../button/index.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { formatDay, formatMonthlyMinimum, formatUsageShare, type OfferedFeature } from "./plan-features.js";
+import { formatDay, formatMonthlyMinimum, sharePercent, type OfferedFeature } from "./plan-features.js";
 import type { PlanMove } from "./plan-state.js";
 
 /** The reason a plan change is refused for want of a saved card (billing/subscription/v1/command.proto). */
@@ -146,8 +147,8 @@ function body(move: PlanMove, planName: (planId: string) => string, losing: read
       return (
         <>
           <p>
-            {move.to.metadata?.name} starts now. At the end of each monthly period you are billed{" "}
-            {formatMonthlyMinimum(move.to.spec?.terms)} {formatUsageShare(move.to.spec?.terms)}.
+            {move.to.metadata?.name} starts now. Each monthly period is billed when it ends:{" "}
+            {periodCharge(move.to.spec?.terms)}
           </p>
           <p>Nothing is charged today.</p>
         </>
@@ -208,4 +209,13 @@ function confirmLabel(move: PlanMove): string {
 function listFeatures(features: readonly OfferedFeature[]): string {
   const labels = features.map((feature) => feature.label);
   return labels.length <= 1 ? (labels[0] ?? "") : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
+/** What a period of the plan is billed at its end, in the customer's words. */
+function periodCharge(terms: PlanTerms | undefined): string {
+  const minimum = formatMonthlyMinimum(terms);
+  const percent = sharePercent(terms);
+  return percent === ""
+    ? `${minimum}.`
+    : `${minimum}, less the ${percent} commission already paid on that period's usage. Usage itself stays paid from credits.`;
 }

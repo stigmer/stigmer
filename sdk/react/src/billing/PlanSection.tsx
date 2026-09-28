@@ -102,12 +102,18 @@ export function PlanSection({
   const periodEnd = periodEndStamp === undefined ? undefined : timestampDate(periodEndStamp);
 
   // Back from Stripe's card page: reopen the choice the person was making.
-  const resumed = useRef(false);
+  // Keyed by the plan resumed, and cleared once the host drops the query,
+  // because a desktop host stays mounted across returns and may resume again.
+  const resumedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (resumed.current || resumePlanId === undefined || resumePlanId === "" || catalog.plans === null || current.isLoading) {
+    if (resumePlanId === undefined || resumePlanId === "") {
+      resumedFor.current = null;
       return;
     }
-    resumed.current = true;
+    if (resumedFor.current === resumePlanId || catalog.plans === null || current.isLoading) {
+      return;
+    }
+    resumedFor.current = resumePlanId;
     const target = buyable.find((plan) => plan.metadata?.id === resumePlanId);
     const resumedMove = target === undefined ? null : planMove(standing, target, periodEnd);
     if (resumedMove !== null) {

@@ -24,8 +24,10 @@ import { loadRuntimeConfig } from "@/config/runtime-config";
  *
  * Each public page creates its own StigmerProvider (unauthenticated for
  * the initial load, optionally authenticated after an OIDC return).
+ * `/desktop/` holds the pages that hand a Stigmer Desktop user back to the
+ * app from the system browser, whose web session is not the app's.
  */
-const PUBLIC_ROUTES = ["/login", "/invite/"] as const;
+const PUBLIC_ROUTES = ["/login", "/invite/", "/desktop/"] as const;
 
 /**
  * Routes rendered with AuthProvider but WITHOUT AuthGuard — auth is

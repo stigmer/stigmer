@@ -6,6 +6,7 @@ import { OrgGate } from "../org/OrgGate";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
 import { useAppShortcuts } from "../hooks/useAppShortcuts";
+import { useDesktopBillingReturn } from "../hooks/useDesktopBillingReturn";
 import { useSidebarOpen } from "./use-layout-state";
 
 function isSessionZonePath(p: string): boolean {
@@ -14,6 +15,7 @@ function isSessionZonePath(p: string): boolean {
 
 export function AppShell() {
   useAppShortcuts();
+  useDesktopBillingReturn();
   const sidebar = useSidebarOpen();
   const { pathname } = useLocation();
 

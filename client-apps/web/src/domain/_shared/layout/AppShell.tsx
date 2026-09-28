@@ -27,7 +27,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPublicZone =
     pathname.startsWith("/invite/") ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/chat/");
+    pathname.startsWith("/chat/") ||
+    pathname.startsWith("/desktop/");
 
   // Close the sidebar overlay when the route changes on mobile viewports.
   // Desktop keeps the sidebar open across navigations.

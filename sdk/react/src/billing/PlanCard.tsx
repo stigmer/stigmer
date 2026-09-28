@@ -145,7 +145,8 @@ function EstimateLines({ planName, estimate }: { planName: string; estimate: Per
         </div>
       </dl>
       <p className="stg:mt-2 stg:text-xs stg:text-muted-foreground">
-        From usage so far. The minimum covers the whole period; more usage raises the total only past the minimum.
+        From usage so far. Usage itself is paid from credits; the commission already paid on it counts toward the
+        minimum, which covers the whole period.
       </p>
     </div>
   );

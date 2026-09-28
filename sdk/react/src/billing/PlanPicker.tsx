@@ -7,7 +7,7 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
   formatManagedOrganizations,
   formatMonthlyMinimum,
-  formatUsageShare,
+  explainUsageShare,
   offeredFeatures,
 } from "./plan-features.js";
 import { planMove, type PlanMove, type PlanStanding } from "./plan-state.js";
@@ -75,7 +75,7 @@ export function PlanPicker({
             key={plan.metadata?.id ?? plan.metadata?.slug}
             name={plan.metadata?.name ?? ""}
             price={formatMonthlyMinimum(plan.spec?.terms)}
-            detail={formatUsageShare(plan.spec?.terms)}
+            detail={explainUsageShare(plan.spec?.terms)}
             features={[
               ...offeredFeatures(plan.spec?.entitlements).map((feature) => feature.label),
               ...(managed === "" ? [] : [managed]),

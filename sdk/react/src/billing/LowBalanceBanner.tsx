@@ -58,7 +58,7 @@ export function LowBalanceBanner({
         </p>
         <p className="stg:mt-0.5 stg:opacity-80">
           {isZeroOrNegative
-            ? "Your credit balance is zero. Purchase credits to continue running agent executions."
+            ? "Your credit balance is zero. Credits pay for agent usage on every plan; purchase credits to keep running agent executions."
             : `Your balance (${formatCreditBalance(availableMicros)}) is below the warning threshold. Consider purchasing additional credits.`}
         </p>
       </div>

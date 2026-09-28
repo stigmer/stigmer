@@ -156,6 +156,17 @@ describe("PlanSection", () => {
     expect(client.subscription.changePlan).not.toHaveBeenCalled();
   });
 
+  it("reopens a choice again when a host that stays mounted returns a second time", async () => {
+    const client = mockClient();
+    const view = renderSection(client, { resumePlanId: "pln_business" });
+    const first = await screen.findByRole("dialog");
+    await userEvent.click(within(first).getByRole("button", { name: "Not now" }));
+    view.rerender(<PlanSection orgId="acme" hasPaymentMethod now={NOW} />);
+    view.rerender(<PlanSection orgId="acme" hasPaymentMethod now={NOW} resumePlanId="pln_team" />);
+    const second = await screen.findByRole("dialog");
+    expect(within(second).getByRole("heading", { name: "Subscribe to Team" })).toBeTruthy();
+  });
+
   it("tells a managed organization it is on its integrator's plan, and estimates nothing", async () => {
     const client = mockClient();
     renderSection(client, { managed: true });

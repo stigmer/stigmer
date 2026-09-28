@@ -86,18 +86,47 @@ export function formatMonthlyMinimum(terms: PlanTerms | undefined): string {
 }
 
 /**
- * How a plan's price reads beside its minimum: the usage share and the
- * commission rule, e.g. "or 10% of provider cost, whichever is greater;
- * the commission already paid on tokens counts toward it". Empty when the
- * plan has no usage share.
+ * A plan's usage share as its terms state it, for operators who read terms,
+ * e.g. "or 10% of provider cost, whichever is greater; the commission
+ * already paid on tokens counts toward it". Empty when the plan has no
+ * usage share.
  */
 export function formatUsageShare(terms: PlanTerms | undefined): string {
+  const percent = sharePercent(terms);
+  return percent === ""
+    ? ""
+    : `or ${percent} of provider cost, whichever is greater; the commission already paid on tokens counts toward it`;
+}
+
+/**
+ * The same share as a customer reads it: usage stays paid from credits,
+ * and the commission on it counts toward the minimum up to the spend at
+ * which the plan costs nothing extra, e.g. "Usage is still paid from
+ * credits. The 10% commission on it counts toward the minimum, so from
+ * $990.00 a month in provider costs the plan costs nothing extra." Empty
+ * when the plan has no usage share.
+ */
+export function explainUsageShare(terms: PlanTerms | undefined): string {
+  const percent = sharePercent(terms);
+  if (percent === "") {
+    return "";
+  }
+  const basisPoints = BigInt(terms?.usageShareBasisPoints ?? 0);
+  // The provider cost whose share equals the minimum: past it, the share is the plan's cost and the commission pays it.
+  const breakEven = ((terms?.monthlyMinimumMicros ?? ZERO) * BigInt(10_000)) / basisPoints;
+  return (
+    `Usage is still paid from credits. The ${percent} commission on it counts toward the minimum, ` +
+    `so from ${formatCreditBalance(breakEven)} a month in provider costs the plan costs nothing extra.`
+  );
+}
+
+/** The usage share as a percentage, e.g. "10%" or "12.50%"; empty when there is none. */
+export function sharePercent(terms: PlanTerms | undefined): string {
   const basisPoints = terms?.usageShareBasisPoints ?? 0;
   if (basisPoints === 0) {
     return "";
   }
-  const percent = basisPoints % 100 === 0 ? `${basisPoints / 100}` : (basisPoints / 100).toFixed(2);
-  return `or ${percent}% of provider cost, whichever is greater; the commission already paid on tokens counts toward it`;
+  return `${basisPoints % 100 === 0 ? `${basisPoints / 100}` : (basisPoints / 100).toFixed(2)}%`;
 }
 
 /** The managed organizations a plan includes and what each beyond costs, or empty. */

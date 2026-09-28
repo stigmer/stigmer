@@ -10,6 +10,7 @@ import { PlanTermsSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec
 import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import {
   buyablePlans,
+  explainUsageShare,
   featuresLost,
   formatManagedOrganizations,
   formatMonthlyMinimum,
@@ -53,6 +54,16 @@ describe("plan terms", () => {
     );
     expect(formatUsageShare(create(PlanTermsSchema, { usageShareBasisPoints: 1_250 }))).toMatch(/^or 12\.50%/);
     expect(formatUsageShare(create(PlanTermsSchema))).toBe("");
+  });
+
+  it("explains the share to a customer, with the spend from which the plan costs nothing extra", () => {
+    expect(explainUsageShare(terms)).toBe(
+      "Usage is still paid from credits. The 10% commission on it counts toward the minimum, so from $4990.00 a month in provider costs the plan costs nothing extra.",
+    );
+    expect(explainUsageShare(create(PlanTermsSchema, { monthlyMinimumMicros: 99n * USD, usageShareBasisPoints: 1_000 }))).toMatch(
+      /from \$990\.00 a month/,
+    );
+    expect(explainUsageShare(create(PlanTermsSchema))).toBe("");
   });
 
   it("reads the included managed organizations and the fee beyond, only when the plan admits them", () => {

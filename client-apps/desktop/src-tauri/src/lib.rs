@@ -10,6 +10,17 @@ use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
+/// What `stigmer://billing/return` carries back from Stripe by way of the
+/// web console's desktop bridge (`/desktop/billing`): the outcome only, so
+/// the billing page can reopen the plan a saved card was for. The state
+/// itself is read from the server.
+#[derive(Clone, serde::Serialize)]
+struct BillingReturnPayload {
+    setup: Option<String>,
+    plan: Option<String>,
+    checkout: Option<String>,
+}
+
 pub fn run() {
     let mut builder = tauri::Builder::default();
 
@@ -81,6 +92,24 @@ pub fn run() {
                     let is_github = raw.scheme() == "stigmer"
                         && raw.host_str() == Some("github")
                         && raw.path() == "/callback";
+
+                    let is_billing = raw.scheme() == "stigmer"
+                        && raw.host_str() == Some("billing")
+                        && raw.path() == "/return";
+
+                    if is_billing {
+                        let payload = BillingReturnPayload {
+                            setup: param(&raw, "setup"),
+                            plan: param(&raw, "plan"),
+                            checkout: param(&raw, "checkout"),
+                        };
+                        let _ = handle.emit("billing-return", payload);
+                        if let Some(window) = handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                        continue;
+                    }
 
                     if is_auth || is_github {
                         let payload = AuthCallbackPayload {
