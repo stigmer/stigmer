@@ -14,7 +14,12 @@
  * every Stigmer-minted non-first-party credential carries the
  * `platform_client_id` claim (StigmerJwtIssuer stamps it on user, guest,
  * channel, and schedule tokens alike), so its presence IS the exclusion
- * the Java RequestCallerIdentity.isFirstPartyHumanOperator computes.
+ * the Java RequestCallerIdentity.isFirstPartyHumanOperator computes. The
+ * claim counts only on a platform token (`iss: "stigmer"`, read through
+ * decodeVerifiedPlatformTokenPayload as the PlatformClient origin guard
+ * reads it): a bearer another verifier claimed is some other issuer's,
+ * whatever claims it carries, and is never taken for a Stigmer-minted
+ * one (stigmer#1312).
  *
  * RUNNER credentials carry neither the machine class nor that claim —
  * their eligibility is EDITION POLICY, so the gate consults the composed
@@ -30,16 +35,21 @@
  * this gate's own logic applies). The capability throws its own
  * byte-pinned refusal for the org-mismatch arm. With no capability
  * composed the gate's logic is byte-identical to before the seam: OSS
- * trusted-local callers carry no token and OIDC console logins carry no
- * platform_client_id claim — the step admits both, so the single-user
- * posture is unchanged (proven by the rosters).
+ * trusted-local callers carry no token and OIDC console logins are not
+ * platform tokens — the step admits both, so the single-user posture is
+ * unchanged (proven by the rosters).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { USER_TOKEN_CLAIMS } from "../../domain/platformclient/constants.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
+import {
+  decodeVerifiedPlatformTokenPayload,
+  stringClaim,
+} from "../../platformtoken/envelope.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { metadataOf } from "./shapes.js";
 
@@ -138,20 +148,15 @@ export function memoryCaptureCredentialOf<Desc extends DescMessage>(
   return undefined;
 }
 
+/**
+ * Whether the bearer is a platform token naming a PlatformClient. Anything
+ * that is not a platform token (no token, an API key, another issuer's
+ * JWT) is not one, whatever claims it carries.
+ */
 function carriesPlatformClientClaim(rawToken: string): boolean {
-  const segments = rawToken.split(".");
-  if (segments.length !== 3) {
-    return false; // not a JWT — the trusted-local no-token posture
-  }
-  try {
-    const payload = JSON.parse(
-      Buffer.from(segments[1], "base64url").toString("utf8"),
-    ) as { platform_client_id?: unknown };
-    return (
-      typeof payload.platform_client_id === "string" &&
-      payload.platform_client_id !== ""
-    );
-  } catch {
-    return false;
-  }
+  const payload = decodeVerifiedPlatformTokenPayload(rawToken);
+  return (
+    payload !== undefined &&
+    stringClaim(payload, USER_TOKEN_CLAIMS.platformClientId) !== undefined
+  );
 }

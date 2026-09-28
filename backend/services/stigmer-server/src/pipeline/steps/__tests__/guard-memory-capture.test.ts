@@ -7,8 +7,13 @@
  * the capability, the org-mismatch throw propagating untouched, and the
  * absent-capability posture staying byte-identical to the pre-seam gate
  * (trusted-local and OIDC callers admit; machine and
- * platform_client_id-carrying callers refuse).
+ * platform_client_id-carrying callers refuse). The claim counts only on a
+ * platform token (stigmer#1312): the refusing cases carry tokens signed by
+ * the envelope every Stigmer lane mints through, and another issuer's
+ * token carrying the same claim is admitted.
  */
+import { generateKeyPairSync } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
@@ -17,6 +22,9 @@ import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_p
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import { signPlatformToken } from "../../../platformtoken/envelope.js";
+import { platformTokenKeyRingFromPem } from "../../../platformtoken/key-ring.js";
+import type { SigningPlatformTokenKeyRing } from "../../../platformtoken/key-ring.js";
 import type {
   MemoryCaptureDecision,
   RunnerCredentialProvider,
@@ -77,10 +85,39 @@ function providerWith(
   };
 }
 
-function jwtWith(payload: Record<string, unknown>): string {
-  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  return `header.${body}.signature`;
+const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
+const built = platformTokenKeyRingFromPem({
+  privateKeyPem: privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
+  publicKeyPems: [publicKey.export({ format: "pem", type: "spki" }).toString()],
+});
+if (built.signer === undefined) throw new Error("fixture ring must sign");
+const ring: SigningPlatformTokenKeyRing = { ...built, signer: built.signer };
+
+/** A platform token, signed as every Stigmer-minted lane signs it. */
+function mintedToken(claims: Record<string, string>): string {
+  return signPlatformToken(ring, { sub: "ida_minted", ...claims }).token;
 }
+
+/** Another issuer's JWT: the claims as given, never signed by the ring. */
+function jwtWith(payload: Record<string, unknown>): string {
+  const segment = (value: object) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${segment({ alg: "RS256", typ: "JWT" })}.${segment(payload)}.signature`;
+}
+
+/** An OIDC login whose issuer happens to stamp a platform_client_id claim. */
+const FOREIGN_CLAIM_CALLER: CallerIdentity = {
+  identityId: "ida_oidc",
+  callerClass: "user",
+  issuer: "https://issuer.example",
+  rawToken: jwtWith({
+    iss: "https://issuer.example",
+    sub: "ida_oidc",
+    platform_client_id: "pc_1",
+  }),
+};
 
 async function rejectionOf(run: void | Promise<void>): Promise<unknown> {
   return Promise.resolve(run).then(
@@ -172,11 +209,20 @@ describe("GuardMemoryCapture with the capability composed", () => {
       identityId: "ida_guest",
       callerClass: "guest",
       issuer: "stigmer",
-      rawToken: jwtWith({ platform_client_id: "pc_1" }),
+      rawToken: mintedToken({ platform_client_id: "pc_1" }),
     };
     await expect(step.execute(memoryCtx(minted))).rejects.toThrowError(
       MEMORY_CAPTURE_CALLER_MESSAGE,
     );
+  });
+
+  it("no-opinion falls through: another issuer's platform_client_id claim is admitted", async () => {
+    // Both editions' capabilities answer no-opinion for a person, so this
+    // is the path an OIDC login takes in production.
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
+      providerWith(() => ({ verdict: "no-opinion" })),
+    );
+    await step.execute(memoryCtx(FOREIGN_CLAIM_CALLER));
   });
 
   it("internal and in-process callers never consult the capability", async () => {
@@ -220,10 +266,26 @@ describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => 
       step.execute(
         memoryCtx({
           ...LOCAL_USER,
-          rawToken: jwtWith({ platform_client_id: "pc_1" }),
+          rawToken: mintedToken({ platform_client_id: "pc_1" }),
         }),
       ),
     ).rejects.toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
+  });
+
+  it("admits a platform_client_id claim on a token Stigmer did not issue", async () => {
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
+    await step.execute(memoryCtx(FOREIGN_CLAIM_CALLER));
+  });
+
+  it("admits a platform token whose platform_client_id is empty", async () => {
+    const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
+    await step.execute(
+      memoryCtx({
+        ...LOCAL_USER,
+        issuer: "stigmer",
+        rawToken: mintedToken({ platform_client_id: "" }),
+      }),
+    );
   });
 
   it("admits a runner-shaped caller — the recorded pre-fix posture", async () => {
