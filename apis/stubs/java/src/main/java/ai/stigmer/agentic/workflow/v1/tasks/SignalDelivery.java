@@ -11,16 +11,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * execution as a signal, completing the emit/listen pairing: the target
  * execution receives the envelope on the listen task whose signal id
  * matches signal_name.
- *
- * &#64;internal
- * Delivery is server-mediated via the workflowexecution sendSignal RPC —
- * the only sanctioned path for runner-originated signals (oss#517:
- * authorization boundary, phase gate, execution-id addressing). sendSignal
- * enforces can_edit on the TARGET execution, which resolves to its owner:
- * cross-execution signals therefore work only between executions triggered
- * by the same principal. Deliberate conservative posture, ruled at
- * oss#530; a scoped can_signal relation is the named follow-up if
- * cross-principal pipelines get demand.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery}
@@ -337,16 +327,6 @@ private static final long serialVersionUID = 0L;
    * execution as a signal, completing the emit/listen pairing: the target
    * execution receives the envelope on the listen task whose signal id
    * matches signal_name.
-   *
-   * &#64;internal
-   * Delivery is server-mediated via the workflowexecution sendSignal RPC —
-   * the only sanctioned path for runner-originated signals (oss#517:
-   * authorization boundary, phase gate, execution-id addressing). sendSignal
-   * enforces can_edit on the TARGET execution, which resolves to its owner:
-   * cross-execution signals therefore work only between executions triggered
-   * by the same principal. Deliberate conservative posture, ruled at
-   * oss#530; a scoped can_signal relation is the named follow-up if
-   * cross-principal pipelines get demand.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery}

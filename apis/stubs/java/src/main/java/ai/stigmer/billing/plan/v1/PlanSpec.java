@@ -19,11 +19,6 @@ package ai.stigmer.billing.plan.v1;
  * terms have no meaning on it; a subscription plan bills monthly, so an
  * annual price has none. per_extra_organization_micros is bound to the
  * entitlements' managed organizations, not to the instrument, and stays free.
- *
- * &#64;internal
- * The expressions compare against the enum's numbers (1 subscription, 2
- * license) because CEL sees an enum as its integer; the numbers are wire
- * bytes and never change.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}
@@ -438,11 +433,6 @@ private static final long serialVersionUID = 0L;
    * terms have no meaning on it; a subscription plan bills monthly, so an
    * annual price has none. per_extra_organization_micros is bound to the
    * entitlements' managed organizations, not to the instrument, and stays free.
-   *
-   * &#64;internal
-   * The expressions compare against the enum's numbers (1 subscription, 2
-   * license) because CEL sees an enum as its integer; the numbers are wire
-   * bytes and never change.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}

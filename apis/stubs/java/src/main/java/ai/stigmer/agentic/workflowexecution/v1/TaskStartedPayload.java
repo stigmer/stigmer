@@ -8,11 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for task_started events.
- *
- * &#64;internal
- * Emitted when a task transitions from PENDING to IN_PROGRESS.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload}
@@ -330,11 +325,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for task_started events.
-   *
-   * &#64;internal
-   * Emitted when a task transitions from PENDING to IN_PROGRESS.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload}

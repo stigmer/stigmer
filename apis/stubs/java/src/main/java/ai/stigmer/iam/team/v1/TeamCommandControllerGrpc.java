@@ -7,9 +7,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * TeamCommandController provides write operations for teams.
  * Membership is not written here: a person joins a team when they are granted
  * the member role on it, through the IAM policy service, like any other grant.
- * &#64;internal
- * Served by the Enterprise and Cloud editions; the open-source server
- * registers no Team service.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -177,9 +174,6 @@ public final class TeamCommandControllerGrpc {
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
    * the member role on it, through the IAM policy service, like any other grant.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public interface AsyncService {
@@ -192,8 +186,6 @@ public final class TeamCommandControllerGrpc {
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
      *     the feature. Metadata: feature ("teams"), org_id.
-     * &#64;internal
-     * Authorization: can_create_team on the organization (admin).
      * </pre>
      */
     default void create(ai.stigmer.iam.team.v1.Team request,
@@ -204,8 +196,6 @@ public final class TeamCommandControllerGrpc {
     /**
      * <pre>
      * Update a team's name or description.
-     * &#64;internal
-     * Authorization: can_edit on the team (the organization's admins).
      * </pre>
      */
     default void update(ai.stigmer.iam.team.v1.Team request,
@@ -217,10 +207,6 @@ public final class TeamCommandControllerGrpc {
      * <pre>
      * Delete a team.
      * Deleting a team removes its memberships and every share made with it.
-     * &#64;internal
-     * Authorization: can_delete on the team (the organization's admins). The
-     * team's policies die as target and as principal through the resource
-     * lifecycle's delete cleanup.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -235,9 +221,6 @@ public final class TeamCommandControllerGrpc {
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
    * the member role on it, through the IAM policy service, like any other grant.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static abstract class TeamCommandControllerImplBase
@@ -254,9 +237,6 @@ public final class TeamCommandControllerGrpc {
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
    * the member role on it, through the IAM policy service, like any other grant.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamCommandControllerStub
@@ -280,8 +260,6 @@ public final class TeamCommandControllerGrpc {
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
      *     the feature. Metadata: feature ("teams"), org_id.
-     * &#64;internal
-     * Authorization: can_create_team on the organization (admin).
      * </pre>
      */
     public void create(ai.stigmer.iam.team.v1.Team request,
@@ -293,8 +271,6 @@ public final class TeamCommandControllerGrpc {
     /**
      * <pre>
      * Update a team's name or description.
-     * &#64;internal
-     * Authorization: can_edit on the team (the organization's admins).
      * </pre>
      */
     public void update(ai.stigmer.iam.team.v1.Team request,
@@ -307,10 +283,6 @@ public final class TeamCommandControllerGrpc {
      * <pre>
      * Delete a team.
      * Deleting a team removes its memberships and every share made with it.
-     * &#64;internal
-     * Authorization: can_delete on the team (the organization's admins). The
-     * team's policies die as target and as principal through the resource
-     * lifecycle's delete cleanup.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -326,9 +298,6 @@ public final class TeamCommandControllerGrpc {
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
    * the member role on it, through the IAM policy service, like any other grant.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamCommandControllerBlockingV2Stub
@@ -352,8 +321,6 @@ public final class TeamCommandControllerGrpc {
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
      *     the feature. Metadata: feature ("teams"), org_id.
-     * &#64;internal
-     * Authorization: can_create_team on the organization (admin).
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team create(ai.stigmer.iam.team.v1.Team request) throws io.grpc.StatusException {
@@ -364,8 +331,6 @@ public final class TeamCommandControllerGrpc {
     /**
      * <pre>
      * Update a team's name or description.
-     * &#64;internal
-     * Authorization: can_edit on the team (the organization's admins).
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team update(ai.stigmer.iam.team.v1.Team request) throws io.grpc.StatusException {
@@ -377,10 +342,6 @@ public final class TeamCommandControllerGrpc {
      * <pre>
      * Delete a team.
      * Deleting a team removes its memberships and every share made with it.
-     * &#64;internal
-     * Authorization: can_delete on the team (the organization's admins). The
-     * team's policies die as target and as principal through the resource
-     * lifecycle's delete cleanup.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -395,9 +356,6 @@ public final class TeamCommandControllerGrpc {
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
    * the member role on it, through the IAM policy service, like any other grant.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamCommandControllerBlockingStub
@@ -421,8 +379,6 @@ public final class TeamCommandControllerGrpc {
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
      *     the feature. Metadata: feature ("teams"), org_id.
-     * &#64;internal
-     * Authorization: can_create_team on the organization (admin).
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team create(ai.stigmer.iam.team.v1.Team request) {
@@ -433,8 +389,6 @@ public final class TeamCommandControllerGrpc {
     /**
      * <pre>
      * Update a team's name or description.
-     * &#64;internal
-     * Authorization: can_edit on the team (the organization's admins).
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team update(ai.stigmer.iam.team.v1.Team request) {
@@ -446,10 +400,6 @@ public final class TeamCommandControllerGrpc {
      * <pre>
      * Delete a team.
      * Deleting a team removes its memberships and every share made with it.
-     * &#64;internal
-     * Authorization: can_delete on the team (the organization's admins). The
-     * team's policies die as target and as principal through the resource
-     * lifecycle's delete cleanup.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -464,9 +414,6 @@ public final class TeamCommandControllerGrpc {
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
    * the member role on it, through the IAM policy service, like any other grant.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamCommandControllerFutureStub
@@ -490,8 +437,6 @@ public final class TeamCommandControllerGrpc {
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
      *     the feature. Metadata: feature ("teams"), org_id.
-     * &#64;internal
-     * Authorization: can_create_team on the organization (admin).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Team> create(
@@ -503,8 +448,6 @@ public final class TeamCommandControllerGrpc {
     /**
      * <pre>
      * Update a team's name or description.
-     * &#64;internal
-     * Authorization: can_edit on the team (the organization's admins).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Team> update(
@@ -517,10 +460,6 @@ public final class TeamCommandControllerGrpc {
      * <pre>
      * Delete a team.
      * Deleting a team removes its memberships and every share made with it.
-     * &#64;internal
-     * Authorization: can_delete on the team (the organization's admins). The
-     * team's policies die as target and as principal through the resource
-     * lifecycle's delete cleanup.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Team> delete(

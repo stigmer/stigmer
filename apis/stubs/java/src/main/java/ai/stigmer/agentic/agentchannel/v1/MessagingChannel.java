@@ -9,13 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * MessagingChannel is one agent channel available for business-initiated
  * messaging, as a slim projection.
- *
- * &#64;internal
- * proactive-messaging DD-006 D2: deliberately NOT the AgentChannel
- * resource — provider_config and status carry install facts and
- * credential references that must never reach a sandbox-token surface.
- * The runner needs exactly enough to name the channel in a send and
- * label the prompt section.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.MessagingChannel}
@@ -330,13 +323,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * MessagingChannel is one agent channel available for business-initiated
    * messaging, as a slim projection.
-   *
-   * &#64;internal
-   * proactive-messaging DD-006 D2: deliberately NOT the AgentChannel
-   * resource — provider_config and status carry install facts and
-   * credential references that must never reach a sandbox-token surface.
-   * The runner needs exactly enough to name the channel in a send and
-   * label the prompt section.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.MessagingChannel}

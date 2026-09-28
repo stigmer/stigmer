@@ -8,27 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * TryTaskConfig defines the configuration for try_catch tasks that handle errors.
- *
- * &#64;internal
- * YAML Example:
- * - taskName:
- * try:
- * - attemptTask:
- * call: http
- * with:
- * method: POST
- * endpoint:
- * uri: https://api.example.com/flaky
- * catch:
- * as: error
- * do:
- * - errorHandler:
- * call: http
- * with:
- * body:
- * error: ${ .error }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig}
@@ -365,27 +344,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * TryTaskConfig defines the configuration for try_catch tasks that handle errors.
-   *
-   * &#64;internal
-   * YAML Example:
-   * - taskName:
-   * try:
-   * - attemptTask:
-   * call: http
-   * with:
-   * method: POST
-   * endpoint:
-   * uri: https://api.example.com/flaky
-   * catch:
-   * as: error
-   * do:
-   * - errorHandler:
-   * call: http
-   * with:
-   * body:
-   * error: ${ .error }
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig}

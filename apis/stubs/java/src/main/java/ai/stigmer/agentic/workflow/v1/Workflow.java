@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
- *
- * &#64;internal
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.Workflow}
@@ -482,8 +480,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
-   *
-   * &#64;internal
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.Workflow}

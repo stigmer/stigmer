@@ -95,10 +95,11 @@ fi
 # Scrub @internal comment sections before the swap, so the scrub inherits the
 # non-destructive guarantee: protoc copies proto leading comments into stubs
 # verbatim, the one generated surface the proto2schema strip cannot reach
-# (oss#497). Java is a structural no-op (protoc-java emits no doc comments
-# from proto sources) — the tool only touches .go/.ts/.py files. stubscrub
-# runs from TypeScript source via the repo-pinned tsx (never bare npx —
-# oss#531): fail loudly if the root npm install is missing.
+# (oss#497). Every language is scrubbed, Java included: protoc-java copies
+# proto comments into javadoc with the marker escaped as "&#64;internal",
+# which the tool's Java scrubber recognises. stubscrub runs from TypeScript
+# source via the repo-pinned tsx (never bare npx — oss#531): fail loudly if
+# the root npm install is missing.
 test -x ../node_modules/.bin/tsx || { echo "gen-stubs: ../node_modules/.bin/tsx not found — run 'npm install' at the repo root (stubscrub runs via the pinned tsx)" >&2; exit 1; }
 (cd .. && node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts "$tmp/$outroot")
 

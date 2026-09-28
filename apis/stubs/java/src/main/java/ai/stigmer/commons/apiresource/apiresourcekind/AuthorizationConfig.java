@@ -488,11 +488,6 @@ private static final long serialVersionUID = 0L;
    * Empty means a team cannot be granted access to the kind. Teams are an
    * Enterprise and Cloud feature; the open-source server grants no role to a
    * team.
-   *
-   * &#64;internal
-   * Each value is a relation whose type restriction in the FGA model lists
-   * `team#member` beside `identity_account`; the server's model transcripts
-   * are held equal to this list by a test.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -513,11 +508,6 @@ private static final long serialVersionUID = 0L;
    * Empty means a team cannot be granted access to the kind. Teams are an
    * Enterprise and Cloud feature; the open-source server grants no role to a
    * team.
-   *
-   * &#64;internal
-   * Each value is a relation whose type restriction in the FGA model lists
-   * `team#member` beside `identity_account`; the server's model transcripts
-   * are held equal to this list by a test.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -537,11 +527,6 @@ private static final long serialVersionUID = 0L;
    * Empty means a team cannot be granted access to the kind. Teams are an
    * Enterprise and Cloud feature; the open-source server grants no role to a
    * team.
-   *
-   * &#64;internal
-   * Each value is a relation whose type restriction in the FGA model lists
-   * `team#member` beside `identity_account`; the server's model transcripts
-   * are held equal to this list by a test.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -562,11 +547,6 @@ private static final long serialVersionUID = 0L;
    * Empty means a team cannot be granted access to the kind. Teams are an
    * Enterprise and Cloud feature; the open-source server grants no role to a
    * team.
-   *
-   * &#64;internal
-   * Each value is a relation whose type restriction in the FGA model lists
-   * `team#member` beside `identity_account`; the server's model transcripts
-   * are held equal to this list by a test.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -587,11 +567,6 @@ private static final long serialVersionUID = 0L;
    * Empty means a team cannot be granted access to the kind. Teams are an
    * Enterprise and Cloud feature; the open-source server grants no role to a
    * team.
-   *
-   * &#64;internal
-   * Each value is a relation whose type restriction in the FGA model lists
-   * `team#member` beside `identity_account`; the server's model transcripts
-   * are held equal to this list by a test.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2487,11 +2462,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2511,11 +2481,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2534,11 +2499,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2558,11 +2518,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2588,11 +2543,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2616,11 +2566,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2646,11 +2591,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2672,11 +2612,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2697,11 +2632,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2721,11 +2651,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2750,11 +2675,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>
@@ -2778,11 +2698,6 @@ private static final long serialVersionUID = 0L;
      * Empty means a team cannot be granted access to the kind. Teams are an
      * Enterprise and Cloud feature; the open-source server grants no role to a
      * team.
-     *
-     * &#64;internal
-     * Each value is a relation whose type restriction in the FGA model lists
-     * `team#member` beside `identity_account`; the server's model transcripts
-     * are held equal to this list by a test.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.v1.IamRole team_grantable_roles = 8 [json_name = "teamGrantableRoles"];</code>

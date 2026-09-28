@@ -187,9 +187,6 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * Get an API key by its hashed key value.
-     * &#64;internal
-     * Authorization is handled in the handler after loading the resource
-     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     default void getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request,
@@ -201,8 +198,6 @@ public final class ApiKeyQueryControllerGrpc {
      * <pre>
      * List all API keys belonging to the authenticated user.
      * Returns only the keys owned by the identity account in the auth header.
-     * &#64;internal
-     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     default void findAll(com.google.protobuf.Empty request,
@@ -258,9 +253,6 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * Get an API key by its hashed key value.
-     * &#64;internal
-     * Authorization is handled in the handler after loading the resource
-     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public void getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request,
@@ -273,8 +265,6 @@ public final class ApiKeyQueryControllerGrpc {
      * <pre>
      * List all API keys belonging to the authenticated user.
      * Returns only the keys owned by the identity account in the auth header.
-     * &#64;internal
-     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public void findAll(com.google.protobuf.Empty request,
@@ -316,9 +306,6 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * Get an API key by its hashed key value.
-     * &#64;internal
-     * Authorization is handled in the handler after loading the resource
-     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request) throws io.grpc.StatusException {
@@ -330,8 +317,6 @@ public final class ApiKeyQueryControllerGrpc {
      * <pre>
      * List all API keys belonging to the authenticated user.
      * Returns only the keys owned by the identity account in the auth header.
-     * &#64;internal
-     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -372,9 +357,6 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * Get an API key by its hashed key value.
-     * &#64;internal
-     * Authorization is handled in the handler after loading the resource
-     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request) {
@@ -386,8 +368,6 @@ public final class ApiKeyQueryControllerGrpc {
      * <pre>
      * List all API keys belonging to the authenticated user.
      * Returns only the keys owned by the identity account in the auth header.
-     * &#64;internal
-     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) {
@@ -429,9 +409,6 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * Get an API key by its hashed key value.
-     * &#64;internal
-     * Authorization is handled in the handler after loading the resource
-     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> getByKeyHash(
@@ -444,8 +421,6 @@ public final class ApiKeyQueryControllerGrpc {
      * <pre>
      * List all API keys belonging to the authenticated user.
      * Returns only the keys owned by the identity account in the auth header.
-     * &#64;internal
-     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKeys> findAll(

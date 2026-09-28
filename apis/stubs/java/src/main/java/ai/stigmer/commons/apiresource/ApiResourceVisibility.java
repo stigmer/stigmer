@@ -57,11 +57,6 @@ public enum ApiResourceVisibility
    * skill, workflow, mcp_server), so a private blueprint stays
    * manageable — and visible — to its org's admins. Personal kinds
    * (instances, environments, sessions) stay creator-only.
-   *
-   * &#64;internal
-   * Named visibility_private to avoid Java reserved keyword conflict.
-   * Admin inheritance is the FGA-model composition
-   * `owner: [identity_account] or admin from organization` (T08).
    * </pre>
    *
    * <code>visibility_private = 1;</code>
@@ -75,12 +70,6 @@ public enum ApiResourceVisibility
    * Sharing across organizations happens through plugins (a copy is
    * installed and owned) or, between organizations linked by one identity
    * provider, through visibility_platform.
-   *
-   * &#64;internal
-   * The value is kept, never renumbered: audit snapshots written before the
-   * level was retired carry it, and a reader that meets the number must
-   * still name it. Named visibility_public to avoid Java reserved keyword
-   * conflict.
    * </pre>
    *
    * <code>visibility_public = 2;</code>
@@ -170,11 +159,6 @@ public enum ApiResourceVisibility
    * skill, workflow, mcp_server), so a private blueprint stays
    * manageable — and visible — to its org's admins. Personal kinds
    * (instances, environments, sessions) stay creator-only.
-   *
-   * &#64;internal
-   * Named visibility_private to avoid Java reserved keyword conflict.
-   * Admin inheritance is the FGA-model composition
-   * `owner: [identity_account] or admin from organization` (T08).
    * </pre>
    *
    * <code>visibility_private = 1;</code>
@@ -188,12 +172,6 @@ public enum ApiResourceVisibility
    * Sharing across organizations happens through plugins (a copy is
    * installed and owned) or, between organizations linked by one identity
    * provider, through visibility_platform.
-   *
-   * &#64;internal
-   * The value is kept, never renumbered: audit snapshots written before the
-   * level was retired carry it, and a reader that meets the number must
-   * still name it. Named visibility_public to avoid Java reserved keyword
-   * conflict.
    * </pre>
    *
    * <code>visibility_public = 2;</code>

@@ -66,11 +66,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Stigmer-signed token scoped to the requested work. The runner presents it
    * for ExecutionContext reads in place of its unscoped bootstrap token.
-   *
-   * &#64;internal
-   * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-   * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-   * minted by the same SandboxTokenService that provisions cloud sandboxes.
    * </pre>
    *
    * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>
@@ -93,11 +88,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Stigmer-signed token scoped to the requested work. The runner presents it
    * for ExecutionContext reads in place of its unscoped bootstrap token.
-   *
-   * &#64;internal
-   * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-   * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-   * minted by the same SandboxTokenService that provisions cloud sandboxes.
    * </pre>
    *
    * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>
@@ -538,11 +528,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Stigmer-signed token scoped to the requested work. The runner presents it
      * for ExecutionContext reads in place of its unscoped bootstrap token.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-     * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-     * minted by the same SandboxTokenService that provisions cloud sandboxes.
      * </pre>
      *
      * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>
@@ -564,11 +549,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Stigmer-signed token scoped to the requested work. The runner presents it
      * for ExecutionContext reads in place of its unscoped bootstrap token.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-     * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-     * minted by the same SandboxTokenService that provisions cloud sandboxes.
      * </pre>
      *
      * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>
@@ -591,11 +571,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Stigmer-signed token scoped to the requested work. The runner presents it
      * for ExecutionContext reads in place of its unscoped bootstrap token.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-     * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-     * minted by the same SandboxTokenService that provisions cloud sandboxes.
      * </pre>
      *
      * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>
@@ -614,11 +589,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Stigmer-signed token scoped to the requested work. The runner presents it
      * for ExecutionContext reads in place of its unscoped bootstrap token.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-     * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-     * minted by the same SandboxTokenService that provisions cloud sandboxes.
      * </pre>
      *
      * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>
@@ -634,11 +604,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Stigmer-signed token scoped to the requested work. The runner presents it
      * for ExecutionContext reads in place of its unscoped bootstrap token.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-     * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-     * minted by the same SandboxTokenService that provisions cloud sandboxes.
      * </pre>
      *
      * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>

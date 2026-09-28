@@ -9,15 +9,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * <pre>
  * ValidationFailPolicy defines what happens when a validate task's
  * validation fails (schema mismatch or business rule violation).
- *
- * &#64;internal
- * The policy determines whether validation failure is a hard stop,
- * a branch point, or an advisory warning. This is distinct from
- * OnInvalidOutputPolicy (which handles LLM/agent output schema failures
- * with retry semantics) — validate tasks check data correctness, not
- * LLM output quality, so retry (re-prompting) is not applicable.
- *
- * &#64;since T03 (P0 New Task Types)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.tasks.ValidationFailPolicy}

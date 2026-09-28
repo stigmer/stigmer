@@ -8,26 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * GetEventLogRequest fetches the paginated event log for a workflow execution.
- *
- * &#64;internal
- * Returns events ordered by sequence_number ascending. Supports cursor-based
- * pagination via after_sequence and optional filtering by event type or task.
- *
- * Use Cases:
- *
- * 1. Execution Viewer Timeline (T09):
- * - UI loads execution state via get(), then fetches event log for timeline
- * - Initial load: after_sequence = 0, page_size = 100
- * - Subsequent pages: after_sequence = latest_sequence from previous response
- *
- * 2. Task Drill-Down:
- * - User clicks a task in the viewer to see its full history
- * - Filter by task_name to get only events for that task
- *
- * 3. Cost Analysis:
- * - Filter by budget_checkpoint events to chart cost over time
- *
- * &#64;since T06 (Execution Event Stream Model)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest}
@@ -81,9 +61,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Execution ID to fetch events for.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -105,9 +82,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Execution ID to fetch events for.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -133,11 +107,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Return events with sequence_number strictly greater than this value.
-   *
-   * &#64;internal
-   * Cursor-based pagination: set to 0 for the first page, then to
-   * latest_sequence from the previous response for subsequent pages.
-   * Also used by subscribeEvents for replay + live tail positioning.
    * </pre>
    *
    * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -164,11 +133,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -182,11 +146,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -199,11 +158,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -217,11 +171,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -235,11 +184,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -258,11 +202,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: return only events for this task.
-   *
-   * &#64;internal
-   * When empty, events for all tasks (and execution-level events) are returned.
-   * When populated, only events where task_name matches are included.
-   * Execution-level events (empty task_name) are excluded when this filter is set.
    * </pre>
    *
    * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -284,11 +223,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: return only events for this task.
-   *
-   * &#64;internal
-   * When empty, events for all tasks (and execution-level events) are returned.
-   * When populated, only events where task_name matches are included.
-   * Execution-level events (empty task_name) are excluded when this filter is set.
    * </pre>
    *
    * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -314,10 +248,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Maximum number of events to return per page.
-   *
-   * &#64;internal
-   * Default: 100. Maximum: 500 (backend enforces this limit).
-   * Events are always returned in sequence_number ascending order.
    * </pre>
    *
    * <code>int32 page_size = 5 [json_name = "pageSize"];</code>
@@ -545,26 +475,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetEventLogRequest fetches the paginated event log for a workflow execution.
-   *
-   * &#64;internal
-   * Returns events ordered by sequence_number ascending. Supports cursor-based
-   * pagination via after_sequence and optional filtering by event type or task.
-   *
-   * Use Cases:
-   *
-   * 1. Execution Viewer Timeline (T09):
-   * - UI loads execution state via get(), then fetches event log for timeline
-   * - Initial load: after_sequence = 0, page_size = 100
-   * - Subsequent pages: after_sequence = latest_sequence from previous response
-   *
-   * 2. Task Drill-Down:
-   * - User clicks a task in the viewer to see its full history
-   * - Filter by task_name to get only events for that task
-   *
-   * 3. Cost Analysis:
-   * - Filter by budget_checkpoint events to chart cost over time
-   *
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest}
@@ -778,9 +688,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to fetch events for.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -801,9 +708,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to fetch events for.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -825,9 +729,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to fetch events for.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -845,9 +746,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to fetch events for.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -862,9 +760,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to fetch events for.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -885,11 +780,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Return events with sequence_number strictly greater than this value.
-     *
-     * &#64;internal
-     * Cursor-based pagination: set to 0 for the first page, then to
-     * latest_sequence from the previous response for subsequent pages.
-     * Also used by subscribeEvents for replay + live tail positioning.
      * </pre>
      *
      * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -902,11 +792,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Return events with sequence_number strictly greater than this value.
-     *
-     * &#64;internal
-     * Cursor-based pagination: set to 0 for the first page, then to
-     * latest_sequence from the previous response for subsequent pages.
-     * Also used by subscribeEvents for replay + live tail positioning.
      * </pre>
      *
      * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -923,11 +808,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Return events with sequence_number strictly greater than this value.
-     *
-     * &#64;internal
-     * Cursor-based pagination: set to 0 for the first page, then to
-     * latest_sequence from the previous response for subsequent pages.
-     * Also used by subscribeEvents for replay + live tail positioning.
      * </pre>
      *
      * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -950,11 +830,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -967,11 +842,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -983,11 +853,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1000,11 +865,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1023,11 +883,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1044,11 +899,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1067,11 +917,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1086,11 +931,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1104,11 +944,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1121,11 +956,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1143,11 +973,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1164,11 +989,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are returned. When populated, only events
-     * whose event_type matches one of the specified values are included.
-     * Useful for filtering to only task lifecycle events, or only budget events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1190,11 +1010,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events for this task.
-     *
-     * &#64;internal
-     * When empty, events for all tasks (and execution-level events) are returned.
-     * When populated, only events where task_name matches are included.
-     * Execution-level events (empty task_name) are excluded when this filter is set.
      * </pre>
      *
      * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -1215,11 +1030,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events for this task.
-     *
-     * &#64;internal
-     * When empty, events for all tasks (and execution-level events) are returned.
-     * When populated, only events where task_name matches are included.
-     * Execution-level events (empty task_name) are excluded when this filter is set.
      * </pre>
      *
      * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -1241,11 +1051,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events for this task.
-     *
-     * &#64;internal
-     * When empty, events for all tasks (and execution-level events) are returned.
-     * When populated, only events where task_name matches are included.
-     * Execution-level events (empty task_name) are excluded when this filter is set.
      * </pre>
      *
      * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -1263,11 +1068,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events for this task.
-     *
-     * &#64;internal
-     * When empty, events for all tasks (and execution-level events) are returned.
-     * When populated, only events where task_name matches are included.
-     * Execution-level events (empty task_name) are excluded when this filter is set.
      * </pre>
      *
      * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -1282,11 +1082,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: return only events for this task.
-     *
-     * &#64;internal
-     * When empty, events for all tasks (and execution-level events) are returned.
-     * When populated, only events where task_name matches are included.
-     * Execution-level events (empty task_name) are excluded when this filter is set.
      * </pre>
      *
      * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -1307,10 +1102,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Maximum number of events to return per page.
-     *
-     * &#64;internal
-     * Default: 100. Maximum: 500 (backend enforces this limit).
-     * Events are always returned in sequence_number ascending order.
      * </pre>
      *
      * <code>int32 page_size = 5 [json_name = "pageSize"];</code>
@@ -1323,10 +1114,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Maximum number of events to return per page.
-     *
-     * &#64;internal
-     * Default: 100. Maximum: 500 (backend enforces this limit).
-     * Events are always returned in sequence_number ascending order.
      * </pre>
      *
      * <code>int32 page_size = 5 [json_name = "pageSize"];</code>
@@ -1343,10 +1130,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Maximum number of events to return per page.
-     *
-     * &#64;internal
-     * Default: 100. Maximum: 500 (backend enforces this limit).
-     * Events are always returned in sequence_number ascending order.
      * </pre>
      *
      * <code>int32 page_size = 5 [json_name = "pageSize"];</code>

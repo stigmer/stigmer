@@ -19,24 +19,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * correspondence) because its task config is a kind+Struct authoring
  * DSL whose field names are the YAML keys — see
  * workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
- *
- * &#64;internal
- * Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by
- * construction: platform-owned execution fields (approval_mode,
- * execution_target, callback_token, harness_state_id,
- * activity_task_queue, auto_approve_all, org/labels/subject) cannot
- * appear here, so embedding surfaces never need a blocklist validator
- * — the rejected alternative was embedding AgentExecutionSpec /
- * SessionSpec and validating the illegal fields away. Exclusions,
- * each with its reason (DD-018 D-1): runtime_env (plaintext secrets
- * in manifests leak; environments are the vehicle), attachments
- * (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
- * agent blueprint owns its tool set), interaction_mode (Plan mode's
- * deliverable is a plan for a human who isn't there), cursor_mode
- * (runner-owned constant). Surface-specific constraints live in the
- * embedding surface's handlers, never here — e.g. schedules reject
- * local_path workspace sources and enforce agent_ref.org ==
- * metadata.org.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.AgentInvocation}
@@ -91,14 +73,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the agent to run.
-   *
-   * &#64;internal
-   * Embedding surfaces own the referential invariants: the schedule
-   * requires agent_ref.org == metadata.org (the owning org is the
-   * billing org for every run) and can_edit on this agent at create
-   * (DD-009 C-6). Deletion of the agent does not cascade (house
-   * convention): a dangling reference surfaces at run time as a
-   * failed start, never as a silent stall.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -111,14 +85,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the agent to run.
-   *
-   * &#64;internal
-   * Embedding surfaces own the referential invariants: the schedule
-   * requires agent_ref.org == metadata.org (the owning org is the
-   * billing org for every run) and can_edit on this agent at create
-   * (DD-009 C-6). Deletion of the agent does not cascade (house
-   * convention): a dangling reference surfaces at run time as a
-   * failed start, never as a silent stall.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -131,14 +97,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the agent to run.
-   *
-   * &#64;internal
-   * Embedding surfaces own the referential invariants: the schedule
-   * requires agent_ref.org == metadata.org (the owning org is the
-   * billing org for every run) and can_edit on this agent at create
-   * (DD-009 C-6). Deletion of the agent does not cascade (house
-   * convention): a dangling reference surfaces at run time as a
-   * failed start, never as a silent stall.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -154,11 +112,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Prompt the run starts from.
-   *
-   * &#64;internal
-   * DD-008 D5: the runner injects no current date into any prompt, so
-   * unattended surfaces compose this message plus a fire-context line.
-   * The bound applies to the stored prompt, not the composed message.
    * </pre>
    *
    * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -180,11 +133,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Prompt the run starts from.
-   *
-   * &#64;internal
-   * DD-008 D5: the runner injects no current date into any prompt, so
-   * unattended surfaces compose this message plus a fire-context line.
-   * The bound applies to the stored prompt, not the composed message.
    * </pre>
    *
    * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -211,16 +159,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Execution engine for the run's session. Unspecified inherits the
    * embedding surface's platform default.
-   *
-   * &#64;internal
-   * DD-018 D-1: graduates from surface platform config (e.g.
-   * stigmer.schedules.session-defaults.harness) to the invocation —
-   * the config demotes from "the only source" to "the default".
-   * Verified before deciding: unattended approval semantics are one
-   * shared contract across both harnesses (approval-policy.ts), so
-   * owner harness choice changes the engine, never the safety
-   * posture. cursor_mode stays runner-owned and is deliberately
-   * absent.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
@@ -233,16 +171,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Execution engine for the run's session. Unspecified inherits the
    * embedding surface's platform default.
-   *
-   * &#64;internal
-   * DD-018 D-1: graduates from surface platform config (e.g.
-   * stigmer.schedules.session-defaults.harness) to the invocation —
-   * the config demotes from "the only source" to "the default".
-   * Verified before deciding: unattended approval semantics are one
-   * shared contract across both harnesses (approval-policy.ts), so
-   * owner harness choice changes the engine, never the safety
-   * posture. cursor_mode stays runner-owned and is deliberately
-   * absent.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
@@ -259,18 +187,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workspace the run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * Maps onto SessionSpec.workspace_entries of the session each run
-   * creates. Unattended surfaces constrain sources in their handlers:
-   * schedules accept git_repo only (no client is connected at fire
-   * time to serve a local_path). Credentials (DD-018 D-4): the
-   * provisioner resolves GITHUB_TOKEN from the merged environment;
-   * for surfaces with no interactive caller the one supported
-   * contract is an org-visibility Environment holding GITHUB_TOKEN
-   * bound via environment_refs — the personal-environment fallback
-   * resolves as-caller and is structurally closed to synthetic
-   * accounts. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -282,18 +198,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workspace the run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * Maps onto SessionSpec.workspace_entries of the session each run
-   * creates. Unattended surfaces constrain sources in their handlers:
-   * schedules accept git_repo only (no client is connected at fire
-   * time to serve a local_path). Credentials (DD-018 D-4): the
-   * provisioner resolves GITHUB_TOKEN from the merged environment;
-   * for surfaces with no interactive caller the one supported
-   * contract is an org-visibility Environment holding GITHUB_TOKEN
-   * bound via environment_refs — the personal-environment fallback
-   * resolves as-caller and is structurally closed to synthetic
-   * accounts. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -306,18 +210,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workspace the run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * Maps onto SessionSpec.workspace_entries of the session each run
-   * creates. Unattended surfaces constrain sources in their handlers:
-   * schedules accept git_repo only (no client is connected at fire
-   * time to serve a local_path). Credentials (DD-018 D-4): the
-   * provisioner resolves GITHUB_TOKEN from the merged environment;
-   * for surfaces with no interactive caller the one supported
-   * contract is an org-visibility Environment holding GITHUB_TOKEN
-   * bound via environment_refs — the personal-environment fallback
-   * resolves as-caller and is structurally closed to synthetic
-   * accounts. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -329,18 +221,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workspace the run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * Maps onto SessionSpec.workspace_entries of the session each run
-   * creates. Unattended surfaces constrain sources in their handlers:
-   * schedules accept git_repo only (no client is connected at fire
-   * time to serve a local_path). Credentials (DD-018 D-4): the
-   * provisioner resolves GITHUB_TOKEN from the merged environment;
-   * for surfaces with no interactive caller the one supported
-   * contract is an org-visibility Environment holding GITHUB_TOKEN
-   * bound via environment_refs — the personal-environment fallback
-   * resolves as-caller and is structurally closed to synthetic
-   * accounts. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -352,18 +232,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workspace the run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * Maps onto SessionSpec.workspace_entries of the session each run
-   * creates. Unattended surfaces constrain sources in their handlers:
-   * schedules accept git_repo only (no client is connected at fire
-   * time to serve a local_path). Credentials (DD-018 D-4): the
-   * provisioner resolves GITHUB_TOKEN from the merged environment;
-   * for surfaces with no interactive caller the one supported
-   * contract is an org-visibility Environment holding GITHUB_TOKEN
-   * bound via environment_refs — the personal-environment fallback
-   * resolves as-caller and is structurally closed to synthetic
-   * accounts. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -387,15 +255,6 @@ private static final long serialVersionUID = 0L;
    * example an MCP server's shared secret), and the runs receive its
    * values at runtime. The agent and its default instance stay
    * untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage
-   * (project DD-017 D-2). Resolution stays with the embedding
-   * surface's pipeline (CreateExecutionContextStep branch, claim-
-   * driven, LOWEST merge priority — instance refs and runtime_env
-   * override on key conflicts). No write-time existence or visibility
-   * check: enforcement lives solely at runtime resolution, which
-   * fails closed.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -414,15 +273,6 @@ private static final long serialVersionUID = 0L;
    * example an MCP server's shared secret), and the runs receive its
    * values at runtime. The agent and its default instance stay
    * untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage
-   * (project DD-017 D-2). Resolution stays with the embedding
-   * surface's pipeline (CreateExecutionContextStep branch, claim-
-   * driven, LOWEST merge priority — instance refs and runtime_env
-   * override on key conflicts). No write-time existence or visibility
-   * check: enforcement lives solely at runtime resolution, which
-   * fails closed.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -442,15 +292,6 @@ private static final long serialVersionUID = 0L;
    * example an MCP server's shared secret), and the runs receive its
    * values at runtime. The agent and its default instance stay
    * untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage
-   * (project DD-017 D-2). Resolution stays with the embedding
-   * surface's pipeline (CreateExecutionContextStep branch, claim-
-   * driven, LOWEST merge priority — instance refs and runtime_env
-   * override on key conflicts). No write-time existence or visibility
-   * check: enforcement lives solely at runtime resolution, which
-   * fails closed.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -469,15 +310,6 @@ private static final long serialVersionUID = 0L;
    * example an MCP server's shared secret), and the runs receive its
    * values at runtime. The agent and its default instance stay
    * untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage
-   * (project DD-017 D-2). Resolution stays with the embedding
-   * surface's pipeline (CreateExecutionContextStep branch, claim-
-   * driven, LOWEST merge priority — instance refs and runtime_env
-   * override on key conflicts). No write-time existence or visibility
-   * check: enforcement lives solely at runtime resolution, which
-   * fails closed.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -496,15 +328,6 @@ private static final long serialVersionUID = 0L;
    * example an MCP server's shared secret), and the runs receive its
    * values at runtime. The agent and its default instance stay
    * untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage
-   * (project DD-017 D-2). Resolution stays with the embedding
-   * surface's pipeline (CreateExecutionContextStep branch, claim-
-   * driven, LOWEST merge priority — instance refs and runtime_env
-   * override on key conflicts). No write-time existence or visibility
-   * check: enforcement lives solely at runtime resolution, which
-   * fails closed.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -804,24 +627,6 @@ private static final long serialVersionUID = 0L;
    * correspondence) because its task config is a kind+Struct authoring
    * DSL whose field names are the YAML keys — see
    * workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
-   *
-   * &#64;internal
-   * Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by
-   * construction: platform-owned execution fields (approval_mode,
-   * execution_target, callback_token, harness_state_id,
-   * activity_task_queue, auto_approve_all, org/labels/subject) cannot
-   * appear here, so embedding surfaces never need a blocklist validator
-   * — the rejected alternative was embedding AgentExecutionSpec /
-   * SessionSpec and validating the illegal fields away. Exclusions,
-   * each with its reason (DD-018 D-1): runtime_env (plaintext secrets
-   * in manifests leak; environments are the vehicle), attachments
-   * (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
-   * agent blueprint owns its tool set), interaction_mode (Plan mode's
-   * deliverable is a plan for a human who isn't there), cursor_mode
-   * (runner-owned constant). Surface-specific constraints live in the
-   * embedding surface's handlers, never here — e.g. schedules reject
-   * local_path workspace sources and enforce agent_ref.org ==
-   * metadata.org.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.AgentInvocation}
@@ -1146,14 +951,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1165,14 +962,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1188,14 +977,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1216,14 +997,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1242,14 +1015,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1275,14 +1040,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1300,14 +1057,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1320,14 +1069,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1343,14 +1084,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent to run.
-     *
-     * &#64;internal
-     * Embedding surfaces own the referential invariants: the schedule
-     * requires agent_ref.org == metadata.org (the owning org is the
-     * billing org for every run) and can_edit on this agent at create
-     * (DD-009 C-6). Deletion of the agent does not cascade (house
-     * convention): a dangling reference surfaces at run time as a
-     * failed start, never as a silent stall.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1373,11 +1106,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Prompt the run starts from.
-     *
-     * &#64;internal
-     * DD-008 D5: the runner injects no current date into any prompt, so
-     * unattended surfaces compose this message plus a fire-context line.
-     * The bound applies to the stored prompt, not the composed message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -1398,11 +1126,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Prompt the run starts from.
-     *
-     * &#64;internal
-     * DD-008 D5: the runner injects no current date into any prompt, so
-     * unattended surfaces compose this message plus a fire-context line.
-     * The bound applies to the stored prompt, not the composed message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -1424,11 +1147,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Prompt the run starts from.
-     *
-     * &#64;internal
-     * DD-008 D5: the runner injects no current date into any prompt, so
-     * unattended surfaces compose this message plus a fire-context line.
-     * The bound applies to the stored prompt, not the composed message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -1446,11 +1164,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Prompt the run starts from.
-     *
-     * &#64;internal
-     * DD-008 D5: the runner injects no current date into any prompt, so
-     * unattended surfaces compose this message plus a fire-context line.
-     * The bound applies to the stored prompt, not the composed message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -1465,11 +1178,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Prompt the run starts from.
-     *
-     * &#64;internal
-     * DD-008 D5: the runner injects no current date into any prompt, so
-     * unattended surfaces compose this message plus a fire-context line.
-     * The bound applies to the stored prompt, not the composed message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -1491,16 +1199,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution engine for the run's session. Unspecified inherits the
      * embedding surface's platform default.
-     *
-     * &#64;internal
-     * DD-018 D-1: graduates from surface platform config (e.g.
-     * stigmer.schedules.session-defaults.harness) to the invocation —
-     * the config demotes from "the only source" to "the default".
-     * Verified before deciding: unattended approval semantics are one
-     * shared contract across both harnesses (approval-policy.ts), so
-     * owner harness choice changes the engine, never the safety
-     * posture. cursor_mode stays runner-owned and is deliberately
-     * absent.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
@@ -1513,16 +1211,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution engine for the run's session. Unspecified inherits the
      * embedding surface's platform default.
-     *
-     * &#64;internal
-     * DD-018 D-1: graduates from surface platform config (e.g.
-     * stigmer.schedules.session-defaults.harness) to the invocation —
-     * the config demotes from "the only source" to "the default".
-     * Verified before deciding: unattended approval semantics are one
-     * shared contract across both harnesses (approval-policy.ts), so
-     * owner harness choice changes the engine, never the safety
-     * posture. cursor_mode stays runner-owned and is deliberately
-     * absent.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
@@ -1540,16 +1228,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution engine for the run's session. Unspecified inherits the
      * embedding surface's platform default.
-     *
-     * &#64;internal
-     * DD-018 D-1: graduates from surface platform config (e.g.
-     * stigmer.schedules.session-defaults.harness) to the invocation —
-     * the config demotes from "the only source" to "the default".
-     * Verified before deciding: unattended approval semantics are one
-     * shared contract across both harnesses (approval-policy.ts), so
-     * owner harness choice changes the engine, never the safety
-     * posture. cursor_mode stays runner-owned and is deliberately
-     * absent.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
@@ -1564,16 +1242,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution engine for the run's session. Unspecified inherits the
      * embedding surface's platform default.
-     *
-     * &#64;internal
-     * DD-018 D-1: graduates from surface platform config (e.g.
-     * stigmer.schedules.session-defaults.harness) to the invocation —
-     * the config demotes from "the only source" to "the default".
-     * Verified before deciding: unattended approval semantics are one
-     * shared contract across both harnesses (approval-policy.ts), so
-     * owner harness choice changes the engine, never the safety
-     * posture. cursor_mode stays runner-owned and is deliberately
-     * absent.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
@@ -1591,16 +1259,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution engine for the run's session. Unspecified inherits the
      * embedding surface's platform default.
-     *
-     * &#64;internal
-     * DD-018 D-1: graduates from surface platform config (e.g.
-     * stigmer.schedules.session-defaults.harness) to the invocation —
-     * the config demotes from "the only source" to "the default".
-     * Verified before deciding: unattended approval semantics are one
-     * shared contract across both harnesses (approval-policy.ts), so
-     * owner harness choice changes the engine, never the safety
-     * posture. cursor_mode stays runner-owned and is deliberately
-     * absent.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
@@ -1628,18 +1286,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1654,18 +1300,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1680,18 +1314,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1706,18 +1328,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1739,18 +1349,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1769,18 +1367,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1801,18 +1387,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1834,18 +1408,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1864,18 +1426,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1894,18 +1444,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1925,18 +1463,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1954,18 +1480,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -1983,18 +1497,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -2006,18 +1508,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -2032,18 +1522,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -2059,18 +1537,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -2082,18 +1548,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -2106,18 +1560,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workspace the run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * Maps onto SessionSpec.workspace_entries of the session each run
-     * creates. Unattended surfaces constrain sources in their handlers:
-     * schedules accept git_repo only (no client is connected at fire
-     * time to serve a local_path). Credentials (DD-018 D-4): the
-     * provisioner resolves GITHUB_TOKEN from the merged environment;
-     * for surfaces with no interactive caller the one supported
-     * contract is an org-visibility Environment holding GITHUB_TOKEN
-     * bound via environment_refs — the personal-environment fallback
-     * resolves as-caller and is structurally closed to synthetic
-     * accounts. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
@@ -2163,15 +1605,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2193,15 +1626,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2223,15 +1647,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2253,15 +1668,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2290,15 +1696,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2324,15 +1721,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2360,15 +1748,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2397,15 +1776,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2431,15 +1801,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2465,15 +1826,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2500,15 +1852,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2533,15 +1876,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2566,15 +1900,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2593,15 +1918,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2623,15 +1939,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2654,15 +1961,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2681,15 +1979,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2709,15 +1998,6 @@ private static final long serialVersionUID = 0L;
      * example an MCP server's shared secret), and the runs receive its
      * values at runtime. The agent and its default instance stay
      * untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage
-     * (project DD-017 D-2). Resolution stays with the embedding
-     * surface's pipeline (CreateExecutionContextStep branch, claim-
-     * driven, LOWEST merge priority — instance refs and runtime_env
-     * override on key conflicts). No write-time existence or visibility
-     * check: enforcement lives solely at runtime resolution, which
-     * fails closed.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

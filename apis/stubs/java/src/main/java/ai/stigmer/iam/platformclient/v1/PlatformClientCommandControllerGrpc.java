@@ -9,10 +9,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * platform builders embedding Stigmer into their products. The client_secret
  * is generated server-side and returned only once in the create and
  * rotateSecret responses.
- * &#64;internal
- * PlatformClients hold credential material (client_secret_hash) and are always
- * org-private. There is no updateVisibility RPC — public visibility is
- * intentionally unsupported to prevent credential leakage.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -213,10 +209,6 @@ public final class PlatformClientCommandControllerGrpc {
    * platform builders embedding Stigmer into their products. The client_secret
    * is generated server-side and returned only once in the create and
    * rotateSecret responses.
-   * &#64;internal
-   * PlatformClients hold credential material (client_secret_hash) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public interface AsyncService {
@@ -232,8 +224,6 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
-     * &#64;internal
-     * Authorization: Requires can_create_platform_client permission in the organization.
      * </pre>
      */
     default void create(ai.stigmer.iam.platformclient.v1.PlatformClient request,
@@ -248,8 +238,6 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     default void update(ai.stigmer.iam.platformclient.v1.PlatformClient request,
@@ -265,8 +253,6 @@ public final class PlatformClientCommandControllerGrpc {
      * minting client on every user-token request, and a client that no
      * longer exists is refused UNAUTHENTICATED (fail closed) — so deletion
      * takes effect on the very next request, not at token expiry.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the platform client resource.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -285,8 +271,6 @@ public final class PlatformClientCommandControllerGrpc {
      * expires_at: a client whose expiry has passed mints again only once an
      * admin of its organization sets a later expires_at or never_expires with
      * update. A system-managed client's secret cannot be rotated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     default void rotateSecret(ai.stigmer.iam.platformclient.v1.PlatformClientId request,
@@ -303,10 +287,6 @@ public final class PlatformClientCommandControllerGrpc {
    * platform builders embedding Stigmer into their products. The client_secret
    * is generated server-side and returned only once in the create and
    * rotateSecret responses.
-   * &#64;internal
-   * PlatformClients hold credential material (client_secret_hash) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static abstract class PlatformClientCommandControllerImplBase
@@ -325,10 +305,6 @@ public final class PlatformClientCommandControllerGrpc {
    * platform builders embedding Stigmer into their products. The client_secret
    * is generated server-side and returned only once in the create and
    * rotateSecret responses.
-   * &#64;internal
-   * PlatformClients hold credential material (client_secret_hash) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class PlatformClientCommandControllerStub
@@ -355,8 +331,6 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
-     * &#64;internal
-     * Authorization: Requires can_create_platform_client permission in the organization.
      * </pre>
      */
     public void create(ai.stigmer.iam.platformclient.v1.PlatformClient request,
@@ -372,8 +346,6 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public void update(ai.stigmer.iam.platformclient.v1.PlatformClient request,
@@ -390,8 +362,6 @@ public final class PlatformClientCommandControllerGrpc {
      * minting client on every user-token request, and a client that no
      * longer exists is refused UNAUTHENTICATED (fail closed) — so deletion
      * takes effect on the very next request, not at token expiry.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the platform client resource.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -411,8 +381,6 @@ public final class PlatformClientCommandControllerGrpc {
      * expires_at: a client whose expiry has passed mints again only once an
      * admin of its organization sets a later expires_at or never_expires with
      * update. A system-managed client's secret cannot be rotated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public void rotateSecret(ai.stigmer.iam.platformclient.v1.PlatformClientId request,
@@ -430,10 +398,6 @@ public final class PlatformClientCommandControllerGrpc {
    * platform builders embedding Stigmer into their products. The client_secret
    * is generated server-side and returned only once in the create and
    * rotateSecret responses.
-   * &#64;internal
-   * PlatformClients hold credential material (client_secret_hash) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class PlatformClientCommandControllerBlockingV2Stub
@@ -460,8 +424,6 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
-     * &#64;internal
-     * Authorization: Requires can_create_platform_client permission in the organization.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse create(ai.stigmer.iam.platformclient.v1.PlatformClient request) throws io.grpc.StatusException {
@@ -476,8 +438,6 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.PlatformClient request) throws io.grpc.StatusException {
@@ -493,8 +453,6 @@ public final class PlatformClientCommandControllerGrpc {
      * minting client on every user-token request, and a client that no
      * longer exists is refused UNAUTHENTICATED (fail closed) — so deletion
      * takes effect on the very next request, not at token expiry.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the platform client resource.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -513,8 +471,6 @@ public final class PlatformClientCommandControllerGrpc {
      * expires_at: a client whose expiry has passed mints again only once an
      * admin of its organization sets a later expires_at or never_expires with
      * update. A system-managed client's secret cannot be rotated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse rotateSecret(ai.stigmer.iam.platformclient.v1.PlatformClientId request) throws io.grpc.StatusException {
@@ -531,10 +487,6 @@ public final class PlatformClientCommandControllerGrpc {
    * platform builders embedding Stigmer into their products. The client_secret
    * is generated server-side and returned only once in the create and
    * rotateSecret responses.
-   * &#64;internal
-   * PlatformClients hold credential material (client_secret_hash) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class PlatformClientCommandControllerBlockingStub
@@ -561,8 +513,6 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
-     * &#64;internal
-     * Authorization: Requires can_create_platform_client permission in the organization.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse create(ai.stigmer.iam.platformclient.v1.PlatformClient request) {
@@ -577,8 +527,6 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.PlatformClient request) {
@@ -594,8 +542,6 @@ public final class PlatformClientCommandControllerGrpc {
      * minting client on every user-token request, and a client that no
      * longer exists is refused UNAUTHENTICATED (fail closed) — so deletion
      * takes effect on the very next request, not at token expiry.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the platform client resource.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -614,8 +560,6 @@ public final class PlatformClientCommandControllerGrpc {
      * expires_at: a client whose expiry has passed mints again only once an
      * admin of its organization sets a later expires_at or never_expires with
      * update. A system-managed client's secret cannot be rotated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse rotateSecret(ai.stigmer.iam.platformclient.v1.PlatformClientId request) {
@@ -632,10 +576,6 @@ public final class PlatformClientCommandControllerGrpc {
    * platform builders embedding Stigmer into their products. The client_secret
    * is generated server-side and returned only once in the create and
    * rotateSecret responses.
-   * &#64;internal
-   * PlatformClients hold credential material (client_secret_hash) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class PlatformClientCommandControllerFutureStub
@@ -662,8 +602,6 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
-     * &#64;internal
-     * Authorization: Requires can_create_platform_client permission in the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse> create(
@@ -679,8 +617,6 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClient> update(
@@ -697,8 +633,6 @@ public final class PlatformClientCommandControllerGrpc {
      * minting client on every user-token request, and a client that no
      * longer exists is refused UNAUTHENTICATED (fail closed) — so deletion
      * takes effect on the very next request, not at token expiry.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the platform client resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClient> delete(
@@ -718,8 +652,6 @@ public final class PlatformClientCommandControllerGrpc {
      * expires_at: a client whose expiry has passed mints again only once an
      * admin of its organization sets a later expires_at or never_expires with
      * update. A system-managed client's secret cannot be rotated.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse> rotateSecret(

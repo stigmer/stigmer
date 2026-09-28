@@ -64,10 +64,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether the resolved value should be treated as a secret.
-   *
-   * &#64;internal
-   * When true: encrypted at rest, redacted in logs and Temporal history.
-   * When false: stored as plaintext, visible in audit logs.
    * </pre>
    *
    * <code>bool is_secret = 1 [json_name = "isSecret"];</code>
@@ -132,12 +128,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this variable is optional.
-   *
-   * &#64;internal
-   * When false (default): the execution pipeline rejects a run if this
-   * variable is missing from the user's environment.
-   * When true: a missing value is acceptable (the MCP server or agent
-   * degrades gracefully without it).
    * </pre>
    *
    * <code>bool optional = 3 [json_name = "optional"];</code>
@@ -504,10 +494,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the resolved value should be treated as a secret.
-     *
-     * &#64;internal
-     * When true: encrypted at rest, redacted in logs and Temporal history.
-     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 1 [json_name = "isSecret"];</code>
@@ -520,10 +506,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the resolved value should be treated as a secret.
-     *
-     * &#64;internal
-     * When true: encrypted at rest, redacted in logs and Temporal history.
-     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 1 [json_name = "isSecret"];</code>
@@ -540,10 +522,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the resolved value should be treated as a secret.
-     *
-     * &#64;internal
-     * When true: encrypted at rest, redacted in logs and Temporal history.
-     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 1 [json_name = "isSecret"];</code>
@@ -657,12 +635,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this variable is optional.
-     *
-     * &#64;internal
-     * When false (default): the execution pipeline rejects a run if this
-     * variable is missing from the user's environment.
-     * When true: a missing value is acceptable (the MCP server or agent
-     * degrades gracefully without it).
      * </pre>
      *
      * <code>bool optional = 3 [json_name = "optional"];</code>
@@ -675,12 +647,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this variable is optional.
-     *
-     * &#64;internal
-     * When false (default): the execution pipeline rejects a run if this
-     * variable is missing from the user's environment.
-     * When true: a missing value is acceptable (the MCP server or agent
-     * degrades gracefully without it).
      * </pre>
      *
      * <code>bool optional = 3 [json_name = "optional"];</code>
@@ -697,12 +663,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this variable is optional.
-     *
-     * &#64;internal
-     * When false (default): the execution pipeline rejects a run if this
-     * variable is missing from the user's environment.
-     * When true: a missing value is acceptable (the MCP server or agent
-     * degrades gracefully without it).
      * </pre>
      *
      * <code>bool optional = 3 [json_name = "optional"];</code>

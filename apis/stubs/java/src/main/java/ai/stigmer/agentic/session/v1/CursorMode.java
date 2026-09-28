@@ -16,18 +16,6 @@ package ai.stigmer.agentic.session.v1;
  * separate, incompatible conversation stores.
  *
  * Ignored when harness is not HARNESS_CURSOR.
- *
- * &#64;internal
- * Runner-owned, never user-set: determineCursorMode() in the cursor
- * runner always returns LOCAL while cloud mode is disabled platform-wide
- * (Cursor cloud agents clone via Cursor's own GitHub App and accept no
- * per-request git credential, so Stigmer provisions the workspace itself
- * and runs a local Cursor agent against it). The former workspace-based
- * selection logic was removed 2026-06-03; STIGMER_CURSOR_CLOUD_MODE_ENABLED
- * still parses into runner config but no longer drives mode selection.
- *
- * When UNSPECIFIED on an existing session, the runner treats it as LOCAL
- * for backward compatibility with sessions created before this field existed.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.session.v1.CursorMode}

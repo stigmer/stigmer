@@ -8,13 +8,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * The result of reconciling approved decisions into the workspace.
- *
- * &#64;internal
- * Authored by the runner's reconcile activity after decisions land. Idempotent:
- * it reconciles to an exact approved snapshot and verifies hashes, so re-running
- * converges.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled}
@@ -321,13 +314,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The result of reconciling approved decisions into the workspace.
-   *
-   * &#64;internal
-   * Authored by the runner's reconcile activity after decisions land. Idempotent:
-   * it reconciles to an exact approved snapshot and verifies hashes, so re-running
-   * converges.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled}

@@ -8,17 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Input for the WorkflowExecution.submitFileDecision RPC.
- *
- * &#64;internal
- * Forwards a file-review keep/discard decision to a child AgentExecution whose
- * file-review gate is surfaced on the parent via status.pending_file_reviews.
- * Mirrors agentexecution.SubmitFileDecisionInput plus explicit routing: the UI
- * holds child_agent_execution_id from the surfaced reference, so routing is
- * explicit and does not depend on change_set_id being globally unique. The
- * handler validates the (child_agent_execution_id, change_set_id) pair is present
- * in status.pending_file_reviews before forwarding, then invokes
- * AgentExecution.submitFileDecision on the same thread so the caller identity
- * (reviewer_id) propagates.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput}
@@ -77,9 +66,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -101,9 +87,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -130,10 +113,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child agent execution holding the file-review gate.
-   *
-   * &#64;internal
-   * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-   * status.pending_file_reviews. Format: AgentExecution.metadata.id.
    * </pre>
    *
    * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -155,10 +134,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child agent execution holding the file-review gate.
-   *
-   * &#64;internal
-   * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-   * status.pending_file_reviews. Format: AgentExecution.metadata.id.
    * </pre>
    *
    * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -185,10 +160,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the change set this decision targets.
-   *
-   * &#64;internal
-   * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-   * and match a FileChangeSet.id on the child's status.file_change_sets.
    * </pre>
    *
    * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>
@@ -210,10 +181,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the change set this decision targets.
-   *
-   * &#64;internal
-   * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-   * and match a FileChangeSet.id on the child's status.file_change_sets.
    * </pre>
    *
    * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>
@@ -696,17 +663,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input for the WorkflowExecution.submitFileDecision RPC.
-   *
-   * &#64;internal
-   * Forwards a file-review keep/discard decision to a child AgentExecution whose
-   * file-review gate is surfaced on the parent via status.pending_file_reviews.
-   * Mirrors agentexecution.SubmitFileDecisionInput plus explicit routing: the UI
-   * holds child_agent_execution_id from the surfaced reference, so routing is
-   * explicit and does not depend on change_set_id being globally unique. The
-   * handler validates the (child_agent_execution_id, change_set_id) pair is present
-   * in status.pending_file_reviews before forwarding, then invokes
-   * AgentExecution.submitFileDecision on the same thread so the caller identity
-   * (reviewer_id) propagates.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput}
@@ -956,9 +912,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -979,9 +932,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -1003,9 +953,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -1023,9 +970,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -1040,9 +984,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -1063,10 +1004,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution holding the file-review gate.
-     *
-     * &#64;internal
-     * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-     * status.pending_file_reviews. Format: AgentExecution.metadata.id.
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -1087,10 +1024,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution holding the file-review gate.
-     *
-     * &#64;internal
-     * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-     * status.pending_file_reviews. Format: AgentExecution.metadata.id.
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -1112,10 +1045,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution holding the file-review gate.
-     *
-     * &#64;internal
-     * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-     * status.pending_file_reviews. Format: AgentExecution.metadata.id.
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -1133,10 +1062,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution holding the file-review gate.
-     *
-     * &#64;internal
-     * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-     * status.pending_file_reviews. Format: AgentExecution.metadata.id.
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -1151,10 +1076,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution holding the file-review gate.
-     *
-     * &#64;internal
-     * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-     * status.pending_file_reviews. Format: AgentExecution.metadata.id.
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -1175,10 +1096,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the change set this decision targets.
-     *
-     * &#64;internal
-     * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-     * and match a FileChangeSet.id on the child's status.file_change_sets.
      * </pre>
      *
      * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>
@@ -1199,10 +1116,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the change set this decision targets.
-     *
-     * &#64;internal
-     * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-     * and match a FileChangeSet.id on the child's status.file_change_sets.
      * </pre>
      *
      * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>
@@ -1224,10 +1137,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the change set this decision targets.
-     *
-     * &#64;internal
-     * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-     * and match a FileChangeSet.id on the child's status.file_change_sets.
      * </pre>
      *
      * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>
@@ -1245,10 +1154,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the change set this decision targets.
-     *
-     * &#64;internal
-     * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-     * and match a FileChangeSet.id on the child's status.file_change_sets.
      * </pre>
      *
      * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>
@@ -1263,10 +1168,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the change set this decision targets.
-     *
-     * &#64;internal
-     * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-     * and match a FileChangeSet.id on the child's status.file_change_sets.
      * </pre>
      *
      * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>

@@ -53,9 +53,6 @@ public interface AgentInstanceOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, scope, and labels.
-   *
-   * &#64;internal
-   * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -65,9 +62,6 @@ public interface AgentInstanceOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, scope, and labels.
-   *
-   * &#64;internal
-   * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -77,9 +71,6 @@ public interface AgentInstanceOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, scope, and labels.
-   *
-   * &#64;internal
-   * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

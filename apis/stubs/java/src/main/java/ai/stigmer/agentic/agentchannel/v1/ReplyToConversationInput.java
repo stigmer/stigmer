@@ -8,14 +8,6 @@ package ai.stigmer.agentic.agentchannel.v1;
 /**
  * <pre>
  * Input for replying to a conversation as the business.
- *
- * &#64;internal
- * channel-conversations DD-009 D-a: conversation-scoped by design — the
- * operator addresses a conversation they are looking at, never types a
- * recipient, and the handler derives the recipient from the conversation
- * key. This seam (not the cold-send lane) is where staff-reply semantics
- * live: implicit takeover orders the control flip before-or-with the send
- * (T03), and staff replies are exempt from the proactive caps (DD-009 D-c).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput}
@@ -383,14 +375,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input for replying to a conversation as the business.
-   *
-   * &#64;internal
-   * channel-conversations DD-009 D-a: conversation-scoped by design — the
-   * operator addresses a conversation they are looking at, never types a
-   * recipient, and the handler derives the recipient from the conversation
-   * key. This seam (not the cold-send lane) is where staff-reply semantics
-   * live: implicit takeover orders the control flip before-or-with the send
-   * (T03), and staff replies are exempt from the proactive caps (DD-009 D-c).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput}

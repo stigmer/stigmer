@@ -151,11 +151,6 @@ private static final long serialVersionUID = 0L;
    * the org-context view a console tab needs. When empty, results are
    * bounded only by the caller's view permissions, which for a member of
    * several organizations spans all of them.
-   *
-   * &#64;internal
-   * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-   * requests (agent channels, agent shares, agent instances). Handlers
-   * implementing this RPC must apply the filter in their query/list step.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -182,11 +177,6 @@ private static final long serialVersionUID = 0L;
    * the org-context view a console tab needs. When empty, results are
    * bounded only by the caller's view permissions, which for a member of
    * several organizations spans all of them.
-   *
-   * &#64;internal
-   * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-   * requests (agent channels, agent shares, agent instances). Handlers
-   * implementing this RPC must apply the filter in their query/list step.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -832,11 +822,6 @@ private static final long serialVersionUID = 0L;
      * the org-context view a console tab needs. When empty, results are
      * bounded only by the caller's view permissions, which for a member of
      * several organizations spans all of them.
-     *
-     * &#64;internal
-     * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-     * requests (agent channels, agent shares, agent instances). Handlers
-     * implementing this RPC must apply the filter in their query/list step.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -862,11 +847,6 @@ private static final long serialVersionUID = 0L;
      * the org-context view a console tab needs. When empty, results are
      * bounded only by the caller's view permissions, which for a member of
      * several organizations spans all of them.
-     *
-     * &#64;internal
-     * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-     * requests (agent channels, agent shares, agent instances). Handlers
-     * implementing this RPC must apply the filter in their query/list step.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -893,11 +873,6 @@ private static final long serialVersionUID = 0L;
      * the org-context view a console tab needs. When empty, results are
      * bounded only by the caller's view permissions, which for a member of
      * several organizations spans all of them.
-     *
-     * &#64;internal
-     * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-     * requests (agent channels, agent shares, agent instances). Handlers
-     * implementing this RPC must apply the filter in their query/list step.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -920,11 +895,6 @@ private static final long serialVersionUID = 0L;
      * the org-context view a console tab needs. When empty, results are
      * bounded only by the caller's view permissions, which for a member of
      * several organizations spans all of them.
-     *
-     * &#64;internal
-     * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-     * requests (agent channels, agent shares, agent instances). Handlers
-     * implementing this RPC must apply the filter in their query/list step.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -944,11 +914,6 @@ private static final long serialVersionUID = 0L;
      * the org-context view a console tab needs. When empty, results are
      * bounded only by the caller's view permissions, which for a member of
      * several organizations spans all of them.
-     *
-     * &#64;internal
-     * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-     * requests (agent channels, agent shares, agent instances). Handlers
-     * implementing this RPC must apply the filter in their query/list step.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>

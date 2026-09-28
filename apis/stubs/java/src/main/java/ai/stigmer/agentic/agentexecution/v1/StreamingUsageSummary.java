@@ -172,13 +172,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Model identifier the runner requested for this execution's turns.
-   *
-   * &#64;internal
-   * This is the validated REQUESTED model (UsageAccumulator constructor
-   * argument), not a provider-reported resolved id — the Cursor SDK echoes
-   * the requested selection and never reports the served variant, so the
-   * authoritative resolved model lives on billing's LlmCallUsageRecord
-   * (requested_model / resolved_model / service_tier), not here.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -200,13 +193,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Model identifier the runner requested for this execution's turns.
-   *
-   * &#64;internal
-   * This is the validated REQUESTED model (UsageAccumulator constructor
-   * argument), not a provider-reported resolved id — the Cursor SDK echoes
-   * the requested selection and never reports the served variant, so the
-   * authoritative resolved model lives on billing's LlmCallUsageRecord
-   * (requested_model / resolved_model / service_tier), not here.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -316,12 +302,6 @@ private static final long serialVersionUID = 0L;
    * JSON-encoded provider variant parameters the runner sent with the model
    * selection (Cursor ModelSelection.params, e.g.
    * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-   *
-   * &#64;internal
-   * Recorded verbatim for audit: tier→params translation depends on the
-   * provider catalog at send time, so the derivation is not reproducible
-   * later from the tier alone. Mirrors the Cursor SDK's own analytics
-   * convention (SdkRunCreatedProps.model_params).
    * </pre>
    *
    * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
@@ -345,12 +325,6 @@ private static final long serialVersionUID = 0L;
    * JSON-encoded provider variant parameters the runner sent with the model
    * selection (Cursor ModelSelection.params, e.g.
    * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-   *
-   * &#64;internal
-   * Recorded verbatim for audit: tier→params translation depends on the
-   * provider catalog at send time, so the derivation is not reproducible
-   * later from the tier alone. Mirrors the Cursor SDK's own analytics
-   * convention (SdkRunCreatedProps.model_params).
    * </pre>
    *
    * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
@@ -1287,13 +1261,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model identifier the runner requested for this execution's turns.
-     *
-     * &#64;internal
-     * This is the validated REQUESTED model (UsageAccumulator constructor
-     * argument), not a provider-reported resolved id — the Cursor SDK echoes
-     * the requested selection and never reports the served variant, so the
-     * authoritative resolved model lives on billing's LlmCallUsageRecord
-     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1314,13 +1281,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model identifier the runner requested for this execution's turns.
-     *
-     * &#64;internal
-     * This is the validated REQUESTED model (UsageAccumulator constructor
-     * argument), not a provider-reported resolved id — the Cursor SDK echoes
-     * the requested selection and never reports the served variant, so the
-     * authoritative resolved model lives on billing's LlmCallUsageRecord
-     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1342,13 +1302,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model identifier the runner requested for this execution's turns.
-     *
-     * &#64;internal
-     * This is the validated REQUESTED model (UsageAccumulator constructor
-     * argument), not a provider-reported resolved id — the Cursor SDK echoes
-     * the requested selection and never reports the served variant, so the
-     * authoritative resolved model lives on billing's LlmCallUsageRecord
-     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1366,13 +1319,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model identifier the runner requested for this execution's turns.
-     *
-     * &#64;internal
-     * This is the validated REQUESTED model (UsageAccumulator constructor
-     * argument), not a provider-reported resolved id — the Cursor SDK echoes
-     * the requested selection and never reports the served variant, so the
-     * authoritative resolved model lives on billing's LlmCallUsageRecord
-     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1387,13 +1333,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model identifier the runner requested for this execution's turns.
-     *
-     * &#64;internal
-     * This is the validated REQUESTED model (UsageAccumulator constructor
-     * argument), not a provider-reported resolved id — the Cursor SDK echoes
-     * the requested selection and never reports the served variant, so the
-     * authoritative resolved model lives on billing's LlmCallUsageRecord
-     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1600,12 +1539,6 @@ private static final long serialVersionUID = 0L;
      * JSON-encoded provider variant parameters the runner sent with the model
      * selection (Cursor ModelSelection.params, e.g.
      * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-     *
-     * &#64;internal
-     * Recorded verbatim for audit: tier→params translation depends on the
-     * provider catalog at send time, so the derivation is not reproducible
-     * later from the tier alone. Mirrors the Cursor SDK's own analytics
-     * convention (SdkRunCreatedProps.model_params).
      * </pre>
      *
      * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
@@ -1628,12 +1561,6 @@ private static final long serialVersionUID = 0L;
      * JSON-encoded provider variant parameters the runner sent with the model
      * selection (Cursor ModelSelection.params, e.g.
      * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-     *
-     * &#64;internal
-     * Recorded verbatim for audit: tier→params translation depends on the
-     * provider catalog at send time, so the derivation is not reproducible
-     * later from the tier alone. Mirrors the Cursor SDK's own analytics
-     * convention (SdkRunCreatedProps.model_params).
      * </pre>
      *
      * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
@@ -1657,12 +1584,6 @@ private static final long serialVersionUID = 0L;
      * JSON-encoded provider variant parameters the runner sent with the model
      * selection (Cursor ModelSelection.params, e.g.
      * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-     *
-     * &#64;internal
-     * Recorded verbatim for audit: tier→params translation depends on the
-     * provider catalog at send time, so the derivation is not reproducible
-     * later from the tier alone. Mirrors the Cursor SDK's own analytics
-     * convention (SdkRunCreatedProps.model_params).
      * </pre>
      *
      * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
@@ -1682,12 +1603,6 @@ private static final long serialVersionUID = 0L;
      * JSON-encoded provider variant parameters the runner sent with the model
      * selection (Cursor ModelSelection.params, e.g.
      * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-     *
-     * &#64;internal
-     * Recorded verbatim for audit: tier→params translation depends on the
-     * provider catalog at send time, so the derivation is not reproducible
-     * later from the tier alone. Mirrors the Cursor SDK's own analytics
-     * convention (SdkRunCreatedProps.model_params).
      * </pre>
      *
      * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
@@ -1704,12 +1619,6 @@ private static final long serialVersionUID = 0L;
      * JSON-encoded provider variant parameters the runner sent with the model
      * selection (Cursor ModelSelection.params, e.g.
      * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-     *
-     * &#64;internal
-     * Recorded verbatim for audit: tier→params translation depends on the
-     * provider catalog at send time, so the derivation is not reproducible
-     * later from the tier alone. Mirrors the Cursor SDK's own analytics
-     * convention (SdkRunCreatedProps.model_params).
      * </pre>
      *
      * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>

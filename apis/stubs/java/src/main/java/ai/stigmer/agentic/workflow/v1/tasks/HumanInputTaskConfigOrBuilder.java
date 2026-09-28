@@ -409,18 +409,6 @@ public interface HumanInputTaskConfigOrBuilder extends
    * Distinct from prompt (the instruction to the reviewer) and form_schema
    * (the shape of the reviewer's response): payload is the thing under
    * review — an article diff, a proposed record set, a generated plan.
-   *
-   * &#64;internal
-   * Resolved payloads at or above the artifact promotion threshold (256KB)
-   * are stored in the artifact store; the approval_requested event then
-   * carries payload_artifact_id instead of the inline value. See
-   * ApprovalRequestedPayload in workflowexecution/v1/event.proto.
-   *
-   * Expression support is documented here rather than via the
-   * is_expression option, which annotates string fields only — matching
-   * how other Struct/Value-typed expression-bearing configs are handled.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
@@ -441,18 +429,6 @@ public interface HumanInputTaskConfigOrBuilder extends
    * Distinct from prompt (the instruction to the reviewer) and form_schema
    * (the shape of the reviewer's response): payload is the thing under
    * review — an article diff, a proposed record set, a generated plan.
-   *
-   * &#64;internal
-   * Resolved payloads at or above the artifact promotion threshold (256KB)
-   * are stored in the artifact store; the approval_requested event then
-   * carries payload_artifact_id instead of the inline value. See
-   * ApprovalRequestedPayload in workflowexecution/v1/event.proto.
-   *
-   * Expression support is documented here rather than via the
-   * is_expression option, which annotates string fields only — matching
-   * how other Struct/Value-typed expression-bearing configs are handled.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
@@ -473,18 +449,6 @@ public interface HumanInputTaskConfigOrBuilder extends
    * Distinct from prompt (the instruction to the reviewer) and form_schema
    * (the shape of the reviewer's response): payload is the thing under
    * review — an article diff, a proposed record set, a generated plan.
-   *
-   * &#64;internal
-   * Resolved payloads at or above the artifact promotion threshold (256KB)
-   * are stored in the artifact store; the approval_requested event then
-   * carries payload_artifact_id instead of the inline value. See
-   * ApprovalRequestedPayload in workflowexecution/v1/event.proto.
-   *
-   * Expression support is documented here rather than via the
-   * is_expression option, which annotates string fields only — matching
-   * how other Struct/Value-typed expression-bearing configs are handled.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
@@ -501,13 +465,6 @@ public interface HumanInputTaskConfigOrBuilder extends
    * is viewed from a surface without custom renderers (CLI, plain
    * console) — the payload is shown as structured data by the built-in
    * approval card, so workflows stay portable across surfaces.
-   *
-   * &#64;internal
-   * Deliberately a hint, not a contract: an unrecognized value must never
-   * block the gate. Not expression-valued — the hint is workflow design,
-   * not runtime data.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 9 [json_name = "uiHint", (.buf.validate.field) = { ... }</code>
@@ -524,13 +481,6 @@ public interface HumanInputTaskConfigOrBuilder extends
    * is viewed from a surface without custom renderers (CLI, plain
    * console) — the payload is shown as structured data by the built-in
    * approval card, so workflows stay portable across surfaces.
-   *
-   * &#64;internal
-   * Deliberately a hint, not a contract: an unrecognized value must never
-   * block the gate. Not expression-valued — the hint is workflow design,
-   * not runtime data.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 9 [json_name = "uiHint", (.buf.validate.field) = { ... }</code>

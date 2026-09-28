@@ -40,11 +40,6 @@ public interface CreateArtifactInputOrBuilder extends
   /**
    * <pre>
    * Raw artifact content bytes.
-   *
-   * &#64;internal
-   * Maximum size: 50MB (52,428,800 bytes).
-   * The backend computes the SHA-256 hash of this content for
-   * content-addressable storage and deduplication.
    * </pre>
    *
    * <code>bytes content = 2 [json_name = "content", (.buf.validate.field) = { ... }</code>

@@ -52,13 +52,6 @@ public interface RpcAuthorizationConfigOrBuilder extends
    * <pre>
    * Dot-path to the field in the request that contains the resource kind value.
    * Used when resource_kind varies per request rather than being statically configured.
-   *
-   * &#64;internal
-   * The field may be an ApiResourceKind, or a string carrying a kind's enum
-   * member name — an `ApiResourceRef.kind` such as "organization" (the
-   * IamPolicy RPCs, whose target is the spec's `resource`). A string that is
-   * not exactly a member name resolves to the unknown kind; resolution never
-   * fails the request, and an enforcing authorizer denies the unknown kind.
    * </pre>
    *
    * <code>string resource_kind_path = 3 [json_name = "resourceKindPath"];</code>
@@ -69,13 +62,6 @@ public interface RpcAuthorizationConfigOrBuilder extends
    * <pre>
    * Dot-path to the field in the request that contains the resource kind value.
    * Used when resource_kind varies per request rather than being statically configured.
-   *
-   * &#64;internal
-   * The field may be an ApiResourceKind, or a string carrying a kind's enum
-   * member name — an `ApiResourceRef.kind` such as "organization" (the
-   * IamPolicy RPCs, whose target is the spec's `resource`). A string that is
-   * not exactly a member name resolves to the unknown kind; resolution never
-   * fails the request, and an enforcing authorizer denies the unknown kind.
    * </pre>
    *
    * <code>string resource_kind_path = 3 [json_name = "resourceKindPath"];</code>
@@ -127,9 +113,6 @@ public interface RpcAuthorizationConfigOrBuilder extends
   /**
    * <pre>
    * Static resource identifier used when the ID is not part of the request.
-   *
-   * &#64;internal
-   * Used for platform-level RPCs where the resource is always "stigmer".
    * </pre>
    *
    * <code>string resource_id = 6 [json_name = "resourceId"];</code>
@@ -139,9 +122,6 @@ public interface RpcAuthorizationConfigOrBuilder extends
   /**
    * <pre>
    * Static resource identifier used when the ID is not part of the request.
-   *
-   * &#64;internal
-   * Used for platform-level RPCs where the resource is always "stigmer".
    * </pre>
    *
    * <code>string resource_id = 6 [json_name = "resourceId"];</code>

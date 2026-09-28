@@ -87,13 +87,6 @@ public interface AgentChannelStatusOrBuilder extends
    * <pre>
    * ID of the system-managed Environment holding this connection's
    * provider credentials (e.g. the Slack bot token).
-   *
-   * &#64;internal
-   * Decision 004: created via ManagedEnvironmentService in the
-   * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-   * in the resource-agnostic OAuthGrant document. The webhook receiver and
-   * delivery worker resolve the token through this reference — never from
-   * the channel resource itself.
    * </pre>
    *
    * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
@@ -104,13 +97,6 @@ public interface AgentChannelStatusOrBuilder extends
    * <pre>
    * ID of the system-managed Environment holding this connection's
    * provider credentials (e.g. the Slack bot token).
-   *
-   * &#64;internal
-   * Decision 004: created via ManagedEnvironmentService in the
-   * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-   * in the resource-agnostic OAuthGrant document. The webhook receiver and
-   * delivery worker resolve the token through this reference — never from
-   * the channel resource itself.
    * </pre>
    *
    * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>

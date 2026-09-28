@@ -8,16 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
- *
- * &#64;internal
- * Force-kills the workflow without allowing cleanup. Unlike cancellation,
- * the workflow code cannot respond to termination.
- *
- * Preconditions:
- * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
- * - User must have can_edit permission
- *
- * Idempotent: if already terminated, returns current state as a no-op.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput}
@@ -70,9 +60,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow execution ID to terminate.
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -94,9 +81,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow execution ID to terminate.
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -333,16 +317,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
-   *
-   * &#64;internal
-   * Force-kills the workflow without allowing cleanup. Unlike cancellation,
-   * the workflow code cannot respond to termination.
-   *
-   * Preconditions:
-   * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
-   * - User must have can_edit permission
-   *
-   * Idempotent: if already terminated, returns current state as a no-op.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput}
@@ -500,9 +474,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to terminate.
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -523,9 +494,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to terminate.
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -547,9 +515,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to terminate.
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -567,9 +532,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to terminate.
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -584,9 +546,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to terminate.
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>

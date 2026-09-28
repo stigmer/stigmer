@@ -222,9 +222,6 @@ public final class PluginQueryControllerGrpc {
      * - Empty/"latest" → Returns the installed version
      * - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
      * - SHA-256 digest (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to
-     * a plugin ID (the input carries org and slug, not an id).
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -237,8 +234,6 @@ public final class PluginQueryControllerGrpc {
      * List the resources an installed plugin materialised.
      * Returns every skill, MCP server, agent and workflow the plugin owns, in
      * materialisation order.
-     * &#64;internal
-     * Derived on read from the stigmer.ai/plugin label on the four child kinds.
      * </pre>
      */
     default void listMembers(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -251,9 +246,6 @@ public final class PluginQueryControllerGrpc {
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the plugin (the
-     * input carries org and slug, not an id).
      * </pre>
      */
     default void listVersions(ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput request,
@@ -313,9 +305,6 @@ public final class PluginQueryControllerGrpc {
      * - Empty/"latest" → Returns the installed version
      * - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
      * - SHA-256 digest (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to
-     * a plugin ID (the input carries org and slug, not an id).
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -329,8 +318,6 @@ public final class PluginQueryControllerGrpc {
      * List the resources an installed plugin materialised.
      * Returns every skill, MCP server, agent and workflow the plugin owns, in
      * materialisation order.
-     * &#64;internal
-     * Derived on read from the stigmer.ai/plugin label on the four child kinds.
      * </pre>
      */
     public void listMembers(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -344,9 +331,6 @@ public final class PluginQueryControllerGrpc {
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the plugin (the
-     * input carries org and slug, not an id).
      * </pre>
      */
     public void listVersions(ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput request,
@@ -392,9 +376,6 @@ public final class PluginQueryControllerGrpc {
      * - Empty/"latest" → Returns the installed version
      * - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
      * - SHA-256 digest (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to
-     * a plugin ID (the input carries org and slug, not an id).
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -407,8 +388,6 @@ public final class PluginQueryControllerGrpc {
      * List the resources an installed plugin materialised.
      * Returns every skill, MCP server, agent and workflow the plugin owns, in
      * materialisation order.
-     * &#64;internal
-     * Derived on read from the stigmer.ai/plugin label on the four child kinds.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse listMembers(ai.stigmer.agentic.plugin.v1.PluginId request) throws io.grpc.StatusException {
@@ -421,9 +400,6 @@ public final class PluginQueryControllerGrpc {
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the plugin (the
-     * input carries org and slug, not an id).
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse listVersions(ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput request) throws io.grpc.StatusException {
@@ -468,9 +444,6 @@ public final class PluginQueryControllerGrpc {
      * - Empty/"latest" → Returns the installed version
      * - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
      * - SHA-256 digest (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to
-     * a plugin ID (the input carries org and slug, not an id).
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -483,8 +456,6 @@ public final class PluginQueryControllerGrpc {
      * List the resources an installed plugin materialised.
      * Returns every skill, MCP server, agent and workflow the plugin owns, in
      * materialisation order.
-     * &#64;internal
-     * Derived on read from the stigmer.ai/plugin label on the four child kinds.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse listMembers(ai.stigmer.agentic.plugin.v1.PluginId request) {
@@ -497,9 +468,6 @@ public final class PluginQueryControllerGrpc {
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the plugin (the
-     * input carries org and slug, not an id).
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse listVersions(ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput request) {
@@ -545,9 +513,6 @@ public final class PluginQueryControllerGrpc {
      * - Empty/"latest" → Returns the installed version
      * - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
      * - SHA-256 digest (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to
-     * a plugin ID (the input carries org and slug, not an id).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> getByReference(
@@ -561,8 +526,6 @@ public final class PluginQueryControllerGrpc {
      * List the resources an installed plugin materialised.
      * Returns every skill, MCP server, agent and workflow the plugin owns, in
      * materialisation order.
-     * &#64;internal
-     * Derived on read from the stigmer.ai/plugin label on the four child kinds.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse> listMembers(
@@ -576,9 +539,6 @@ public final class PluginQueryControllerGrpc {
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the plugin (the
-     * input carries org and slug, not an id).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse> listVersions(

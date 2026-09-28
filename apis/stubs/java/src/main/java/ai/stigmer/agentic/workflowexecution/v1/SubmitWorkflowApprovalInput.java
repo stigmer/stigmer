@@ -8,17 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Input for the submitApproval RPC.
- *
- * &#64;internal
- * Forwards an approval decision to a child AgentExecution that is waiting for
- * approval. The child execution ID is resolved from
- * status.pending_approval.child_agent_execution_id.
- *
- * Validation:
- * - execution_id: Required, must reference an existing WorkflowExecution
- * - tool_call_id: Required, must match status.pending_approval.tool_call_id
- * - action: Required, must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)
- * - comment: Optional, stored in audit trail
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput}
@@ -73,9 +62,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -97,9 +83,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -126,9 +109,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the tool call to approve, skip, or reject.
-   *
-   * &#64;internal
-   * Must match status.pending_approval.tool_call_id exactly.
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -150,9 +130,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the tool call to approve, skip, or reject.
-   *
-   * &#64;internal
-   * Must match status.pending_approval.tool_call_id exactly.
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -178,13 +155,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-   *
-   * &#64;internal
-   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-   * whose run-lifetime lease is applied by the child and therefore scoped to
-   * that child agent execution (a parallel sibling's gates keep prompting).
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -196,13 +166,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-   *
-   * &#64;internal
-   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-   * whose run-lifetime lease is applied by the child and therefore scoped to
-   * that child agent execution (a parallel sibling's gates keep prompting).
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -449,17 +412,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input for the submitApproval RPC.
-   *
-   * &#64;internal
-   * Forwards an approval decision to a child AgentExecution that is waiting for
-   * approval. The child execution ID is resolved from
-   * status.pending_approval.child_agent_execution_id.
-   *
-   * Validation:
-   * - execution_id: Required, must reference an existing WorkflowExecution
-   * - tool_call_id: Required, must match status.pending_approval.tool_call_id
-   * - action: Required, must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)
-   * - comment: Optional, stored in audit trail
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput}
@@ -643,9 +595,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -666,9 +615,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -690,9 +636,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -710,9 +653,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -727,9 +667,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
-     *
-     * &#64;internal
-     * Format: "wfx_abc123xyz456"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -750,9 +687,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the tool call to approve, skip, or reject.
-     *
-     * &#64;internal
-     * Must match status.pending_approval.tool_call_id exactly.
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -773,9 +707,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the tool call to approve, skip, or reject.
-     *
-     * &#64;internal
-     * Must match status.pending_approval.tool_call_id exactly.
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -797,9 +728,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the tool call to approve, skip, or reject.
-     *
-     * &#64;internal
-     * Must match status.pending_approval.tool_call_id exactly.
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -817,9 +745,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the tool call to approve, skip, or reject.
-     *
-     * &#64;internal
-     * Must match status.pending_approval.tool_call_id exactly.
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -834,9 +759,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the tool call to approve, skip, or reject.
-     *
-     * &#64;internal
-     * Must match status.pending_approval.tool_call_id exactly.
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -857,13 +779,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-     *
-     * &#64;internal
-     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-     * whose run-lifetime lease is applied by the child and therefore scoped to
-     * that child agent execution (a parallel sibling's gates keep prompting).
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -875,13 +790,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-     *
-     * &#64;internal
-     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-     * whose run-lifetime lease is applied by the child and therefore scoped to
-     * that child agent execution (a parallel sibling's gates keep prompting).
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -898,13 +806,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-     *
-     * &#64;internal
-     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-     * whose run-lifetime lease is applied by the child and therefore scoped to
-     * that child agent execution (a parallel sibling's gates keep prompting).
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -918,13 +819,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-     *
-     * &#64;internal
-     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-     * whose run-lifetime lease is applied by the child and therefore scoped to
-     * that child agent execution (a parallel sibling's gates keep prompting).
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -941,13 +835,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-     *
-     * &#64;internal
-     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-     * whose run-lifetime lease is applied by the child and therefore scoped to
-     * that child agent execution (a parallel sibling's gates keep prompting).
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>

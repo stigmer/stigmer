@@ -8,16 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for artifact_created events.
- *
- * &#64;internal
- * Emitted when a task output is persisted as an artifact, either because
- * it exceeded the auto-promotion size threshold (256KB) or because the
- * workflow author explicitly declared artifact persistence (Phase 1).
- *
- * The artifact_id can be used with the Artifact.get() and
- * Artifact.getDownloadUrl() RPCs to retrieve or download the content.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload}
@@ -416,16 +406,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for artifact_created events.
-   *
-   * &#64;internal
-   * Emitted when a task output is persisted as an artifact, either because
-   * it exceeded the auto-promotion size threshold (256KB) or because the
-   * workflow author explicitly declared artifact persistence (Phase 1).
-   *
-   * The artifact_id can be used with the Artifact.get() and
-   * Artifact.getDownloadUrl() RPCs to retrieve or download the content.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload}

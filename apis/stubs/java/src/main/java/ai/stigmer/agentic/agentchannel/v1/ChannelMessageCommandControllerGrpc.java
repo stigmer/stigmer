@@ -6,13 +6,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * ChannelMessageCommandController handles business-initiated outbound
  * messages on agent channels.
- * &#64;internal
- * proactive-messaging DD-002 D2: the runtime messaging surface beside
- * the AgentChannel resource controllers — a dedicated runtime service
- * next to the resource CRUD service, so resource CRUD and runtime
- * traffic never mix. Dual-audience by token-class dispatch: the agent's
- * send_channel_message tool calls with a session-scoped sandbox token;
- * direct principals (console, CLI, SDK) call with their own identity.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -117,13 +110,6 @@ public final class ChannelMessageCommandControllerGrpc {
    * <pre>
    * ChannelMessageCommandController handles business-initiated outbound
    * messages on agent channels.
-   * &#64;internal
-   * proactive-messaging DD-002 D2: the runtime messaging surface beside
-   * the AgentChannel resource controllers — a dedicated runtime service
-   * next to the resource CRUD service, so resource CRUD and runtime
-   * traffic never mix. Dual-audience by token-class dispatch: the agent's
-   * send_channel_message tool calls with a session-scoped sandbox token;
-   * direct principals (console, CLI, SDK) call with their own identity.
    * </pre>
    */
   public interface AsyncService {
@@ -134,19 +120,6 @@ public final class ChannelMessageCommandControllerGrpc {
      * The message is durably recorded and attempted once inline; transient
      * failures are retried in the background. The outcome reports the
      * truth of the inline attempt.
-     * &#64;internal
-     * Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-     * fail closed; agent-anchored chain (never session-sender-anchored —
-     * the recipient is an argument). Error contract (DD-002 D4): unknown
-     * or foreign token class, no serving channel, proactive messaging not
-     * enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-     * detail leaked; malformed input or ambiguous channel/language →
-     * INVALID_ARGUMENT with the candidates listed; channel not installed →
-     * FAILED_PRECONDITION; rate caps, recipient policy, and provider
-     * refusals → outcome=refused; transient provider failures →
-     * outcome=queued. Cloud-first runtime: the OSS edition returns
-     * FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-     * precedent).
      * </pre>
      */
     default void sendMessage(ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput request,
@@ -160,13 +133,6 @@ public final class ChannelMessageCommandControllerGrpc {
    * <pre>
    * ChannelMessageCommandController handles business-initiated outbound
    * messages on agent channels.
-   * &#64;internal
-   * proactive-messaging DD-002 D2: the runtime messaging surface beside
-   * the AgentChannel resource controllers — a dedicated runtime service
-   * next to the resource CRUD service, so resource CRUD and runtime
-   * traffic never mix. Dual-audience by token-class dispatch: the agent's
-   * send_channel_message tool calls with a session-scoped sandbox token;
-   * direct principals (console, CLI, SDK) call with their own identity.
    * </pre>
    */
   public static abstract class ChannelMessageCommandControllerImplBase
@@ -182,13 +148,6 @@ public final class ChannelMessageCommandControllerGrpc {
    * <pre>
    * ChannelMessageCommandController handles business-initiated outbound
    * messages on agent channels.
-   * &#64;internal
-   * proactive-messaging DD-002 D2: the runtime messaging surface beside
-   * the AgentChannel resource controllers — a dedicated runtime service
-   * next to the resource CRUD service, so resource CRUD and runtime
-   * traffic never mix. Dual-audience by token-class dispatch: the agent's
-   * send_channel_message tool calls with a session-scoped sandbox token;
-   * direct principals (console, CLI, SDK) call with their own identity.
    * </pre>
    */
   public static final class ChannelMessageCommandControllerStub
@@ -210,19 +169,6 @@ public final class ChannelMessageCommandControllerGrpc {
      * The message is durably recorded and attempted once inline; transient
      * failures are retried in the background. The outcome reports the
      * truth of the inline attempt.
-     * &#64;internal
-     * Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-     * fail closed; agent-anchored chain (never session-sender-anchored —
-     * the recipient is an argument). Error contract (DD-002 D4): unknown
-     * or foreign token class, no serving channel, proactive messaging not
-     * enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-     * detail leaked; malformed input or ambiguous channel/language →
-     * INVALID_ARGUMENT with the candidates listed; channel not installed →
-     * FAILED_PRECONDITION; rate caps, recipient policy, and provider
-     * refusals → outcome=refused; transient provider failures →
-     * outcome=queued. Cloud-first runtime: the OSS edition returns
-     * FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-     * precedent).
      * </pre>
      */
     public void sendMessage(ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput request,
@@ -237,13 +183,6 @@ public final class ChannelMessageCommandControllerGrpc {
    * <pre>
    * ChannelMessageCommandController handles business-initiated outbound
    * messages on agent channels.
-   * &#64;internal
-   * proactive-messaging DD-002 D2: the runtime messaging surface beside
-   * the AgentChannel resource controllers — a dedicated runtime service
-   * next to the resource CRUD service, so resource CRUD and runtime
-   * traffic never mix. Dual-audience by token-class dispatch: the agent's
-   * send_channel_message tool calls with a session-scoped sandbox token;
-   * direct principals (console, CLI, SDK) call with their own identity.
    * </pre>
    */
   public static final class ChannelMessageCommandControllerBlockingV2Stub
@@ -265,19 +204,6 @@ public final class ChannelMessageCommandControllerGrpc {
      * The message is durably recorded and attempted once inline; transient
      * failures are retried in the background. The outcome reports the
      * truth of the inline attempt.
-     * &#64;internal
-     * Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-     * fail closed; agent-anchored chain (never session-sender-anchored —
-     * the recipient is an argument). Error contract (DD-002 D4): unknown
-     * or foreign token class, no serving channel, proactive messaging not
-     * enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-     * detail leaked; malformed input or ambiguous channel/language →
-     * INVALID_ARGUMENT with the candidates listed; channel not installed →
-     * FAILED_PRECONDITION; rate caps, recipient policy, and provider
-     * refusals → outcome=refused; transient provider failures →
-     * outcome=queued. Cloud-first runtime: the OSS edition returns
-     * FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-     * precedent).
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput sendMessage(ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput request) throws io.grpc.StatusException {
@@ -291,13 +217,6 @@ public final class ChannelMessageCommandControllerGrpc {
    * <pre>
    * ChannelMessageCommandController handles business-initiated outbound
    * messages on agent channels.
-   * &#64;internal
-   * proactive-messaging DD-002 D2: the runtime messaging surface beside
-   * the AgentChannel resource controllers — a dedicated runtime service
-   * next to the resource CRUD service, so resource CRUD and runtime
-   * traffic never mix. Dual-audience by token-class dispatch: the agent's
-   * send_channel_message tool calls with a session-scoped sandbox token;
-   * direct principals (console, CLI, SDK) call with their own identity.
    * </pre>
    */
   public static final class ChannelMessageCommandControllerBlockingStub
@@ -319,19 +238,6 @@ public final class ChannelMessageCommandControllerGrpc {
      * The message is durably recorded and attempted once inline; transient
      * failures are retried in the background. The outcome reports the
      * truth of the inline attempt.
-     * &#64;internal
-     * Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-     * fail closed; agent-anchored chain (never session-sender-anchored —
-     * the recipient is an argument). Error contract (DD-002 D4): unknown
-     * or foreign token class, no serving channel, proactive messaging not
-     * enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-     * detail leaked; malformed input or ambiguous channel/language →
-     * INVALID_ARGUMENT with the candidates listed; channel not installed →
-     * FAILED_PRECONDITION; rate caps, recipient policy, and provider
-     * refusals → outcome=refused; transient provider failures →
-     * outcome=queued. Cloud-first runtime: the OSS edition returns
-     * FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-     * precedent).
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput sendMessage(ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput request) {
@@ -345,13 +251,6 @@ public final class ChannelMessageCommandControllerGrpc {
    * <pre>
    * ChannelMessageCommandController handles business-initiated outbound
    * messages on agent channels.
-   * &#64;internal
-   * proactive-messaging DD-002 D2: the runtime messaging surface beside
-   * the AgentChannel resource controllers — a dedicated runtime service
-   * next to the resource CRUD service, so resource CRUD and runtime
-   * traffic never mix. Dual-audience by token-class dispatch: the agent's
-   * send_channel_message tool calls with a session-scoped sandbox token;
-   * direct principals (console, CLI, SDK) call with their own identity.
    * </pre>
    */
   public static final class ChannelMessageCommandControllerFutureStub
@@ -373,19 +272,6 @@ public final class ChannelMessageCommandControllerGrpc {
      * The message is durably recorded and attempted once inline; transient
      * failures are retried in the background. The outcome reports the
      * truth of the inline attempt.
-     * &#64;internal
-     * Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-     * fail closed; agent-anchored chain (never session-sender-anchored —
-     * the recipient is an argument). Error contract (DD-002 D4): unknown
-     * or foreign token class, no serving channel, proactive messaging not
-     * enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-     * detail leaked; malformed input or ambiguous channel/language →
-     * INVALID_ARGUMENT with the candidates listed; channel not installed →
-     * FAILED_PRECONDITION; rate caps, recipient policy, and provider
-     * refusals → outcome=refused; transient provider failures →
-     * outcome=queued. Cloud-first runtime: the OSS edition returns
-     * FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-     * precedent).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput> sendMessage(

@@ -9,17 +9,6 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * InitiateOAuthConnectInput starts the OAuth authorization flow for an
  * MCP server that has an auth block in its spec.
- *
- * &#64;internal
- * Returns an authorization URL that the frontend redirects the user to.
- * The backend performs all setup (DCR registration for MCP OAuth servers,
- * OAuthApp credential lookup for vendor OAuth servers, PKCE pair generation)
- * and stores the pending state for the subsequent completeOAuthConnect call.
- *
- * Prerequisites:
- * - The MCP server must exist and have spec.auth configured
- * - For DCR: the server must use HTTP transport (discovery requires a URL)
- * - For vendor OAuth: the referenced OAuthApp must exist and be accessible
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput}
@@ -334,17 +323,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * InitiateOAuthConnectInput starts the OAuth authorization flow for an
    * MCP server that has an auth block in its spec.
-   *
-   * &#64;internal
-   * Returns an authorization URL that the frontend redirects the user to.
-   * The backend performs all setup (DCR registration for MCP OAuth servers,
-   * OAuthApp credential lookup for vendor OAuth servers, PKCE pair generation)
-   * and stores the pending state for the subsequent completeOAuthConnect call.
-   *
-   * Prerequisites:
-   * - The MCP server must exist and have spec.auth configured
-   * - For DCR: the server must use HTTP transport (discovery requires a URL)
-   * - For vendor OAuth: the referenced OAuthApp must exist and be accessible
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput}

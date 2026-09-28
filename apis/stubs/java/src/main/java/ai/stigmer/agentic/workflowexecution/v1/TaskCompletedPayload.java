@@ -8,11 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for task_completed events.
- *
- * &#64;internal
- * Emitted when a task transitions to WORKFLOW_TASK_COMPLETED.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload}
@@ -382,11 +377,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for task_completed events.
-   *
-   * &#64;internal
-   * Emitted when a task transitions to WORKFLOW_TASK_COMPLETED.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload}

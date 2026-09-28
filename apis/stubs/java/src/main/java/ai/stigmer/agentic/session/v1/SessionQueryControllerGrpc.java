@@ -218,8 +218,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     default void list(ai.stigmer.agentic.session.v1.ListSessionsRequest request,
@@ -230,9 +228,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent instance.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized
-     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
     default void listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request,
@@ -247,11 +242,6 @@ public final class SessionQueryControllerGrpc {
      * the given agent channel, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
-     * &#64;internal
-     * Authorization is two-stage in the handler: an explicit can_view check on
-     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-     * then an FGA query for authorized session_ids intersected with the
-     * stigmer.ai/channel-id label filter.
      * </pre>
      */
     default void listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request,
@@ -307,8 +297,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public void list(ai.stigmer.agentic.session.v1.ListSessionsRequest request,
@@ -320,9 +308,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent instance.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized
-     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
     public void listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request,
@@ -338,11 +323,6 @@ public final class SessionQueryControllerGrpc {
      * the given agent channel, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
-     * &#64;internal
-     * Authorization is two-stage in the handler: an explicit can_view check on
-     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-     * then an FGA query for authorized session_ids intersected with the
-     * stigmer.ai/channel-id label filter.
      * </pre>
      */
     public void listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request,
@@ -384,8 +364,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList list(ai.stigmer.agentic.session.v1.ListSessionsRequest request) throws io.grpc.StatusException {
@@ -396,9 +374,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent instance.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized
-     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) throws io.grpc.StatusException {
@@ -413,11 +388,6 @@ public final class SessionQueryControllerGrpc {
      * the given agent channel, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
-     * &#64;internal
-     * Authorization is two-stage in the handler: an explicit can_view check on
-     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-     * then an FGA query for authorized session_ids intersected with the
-     * stigmer.ai/channel-id label filter.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request) throws io.grpc.StatusException {
@@ -458,8 +428,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList list(ai.stigmer.agentic.session.v1.ListSessionsRequest request) {
@@ -470,9 +438,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent instance.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized
-     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) {
@@ -487,11 +452,6 @@ public final class SessionQueryControllerGrpc {
      * the given agent channel, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
-     * &#64;internal
-     * Authorization is two-stage in the handler: an explicit can_view check on
-     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-     * then an FGA query for authorized session_ids intersected with the
-     * stigmer.ai/channel-id label filter.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request) {
@@ -533,8 +493,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> list(
@@ -546,9 +504,6 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent instance.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized
-     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByAgentInstance(
@@ -564,11 +519,6 @@ public final class SessionQueryControllerGrpc {
      * the given agent channel, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
-     * &#64;internal
-     * Authorization is two-stage in the handler: an explicit can_view check on
-     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-     * then an FGA query for authorized session_ids intersected with the
-     * stigmer.ai/channel-id label filter.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByChannel(

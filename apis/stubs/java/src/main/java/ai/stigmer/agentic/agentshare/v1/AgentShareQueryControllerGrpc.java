@@ -280,9 +280,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent share by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -297,9 +294,6 @@ public final class AgentShareQueryControllerGrpc {
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
-     * &#64;internal
-     * Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
-     * in OSS (single-user edition).
      * </pre>
      */
     default void getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request,
@@ -310,9 +304,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * List agent shares with optional label filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     default void list(ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest request,
@@ -336,10 +327,6 @@ public final class AgentShareQueryControllerGrpc {
      * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
      * empty: org+slug is the shared URL's identity, and cross-org slug
      * matching on a public endpoint would enable enumeration.
-     * &#64;internal
-     * Public by design (no authentication): enforcement is the app-level
-     * sharing gate in the handler, not FGA — see AgentShareSpec for why a
-     * share writes no visibility tuples.
      * </pre>
      */
     default void getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request,
@@ -362,12 +349,6 @@ public final class AgentShareQueryControllerGrpc {
      * must not reveal a killed link's profile) — the cases are deliberately
      * indistinguishable so a share URL leaks nothing to non-members.
      * Returns INVALID_ARGUMENT when org is empty.
-     * &#64;internal
-     * Custom authorization in handler — requires authentication (not
-     * is_public), then an app-level organization#member FGA check for org
-     * shares. No standard resource_kind/permission config: the sharing gate
-     * is app-level by design (see AgentShareSpec), and membership is checked
-     * live on every call so revoked members lose access immediately.
      * </pre>
      */
     default void getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -423,9 +404,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent share by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -441,9 +419,6 @@ public final class AgentShareQueryControllerGrpc {
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
-     * &#64;internal
-     * Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
-     * in OSS (single-user edition).
      * </pre>
      */
     public void getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request,
@@ -455,9 +430,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * List agent shares with optional label filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public void list(ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest request,
@@ -482,10 +454,6 @@ public final class AgentShareQueryControllerGrpc {
      * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
      * empty: org+slug is the shared URL's identity, and cross-org slug
      * matching on a public endpoint would enable enumeration.
-     * &#64;internal
-     * Public by design (no authentication): enforcement is the app-level
-     * sharing gate in the handler, not FGA — see AgentShareSpec for why a
-     * share writes no visibility tuples.
      * </pre>
      */
     public void getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request,
@@ -509,12 +477,6 @@ public final class AgentShareQueryControllerGrpc {
      * must not reveal a killed link's profile) — the cases are deliberately
      * indistinguishable so a share URL leaks nothing to non-members.
      * Returns INVALID_ARGUMENT when org is empty.
-     * &#64;internal
-     * Custom authorization in handler — requires authentication (not
-     * is_public), then an app-level organization#member FGA check for org
-     * shares. No standard resource_kind/permission config: the sharing gate
-     * is app-level by design (see AgentShareSpec), and membership is checked
-     * live on every call so revoked members lose access immediately.
      * </pre>
      */
     public void getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -556,9 +518,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent share by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -573,9 +532,6 @@ public final class AgentShareQueryControllerGrpc {
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
-     * &#64;internal
-     * Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
-     * in OSS (single-user edition).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShareList getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request) throws io.grpc.StatusException {
@@ -586,9 +542,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * List agent shares with optional label filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShareList list(ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest request) throws io.grpc.StatusException {
@@ -612,10 +565,6 @@ public final class AgentShareQueryControllerGrpc {
      * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
      * empty: org+slug is the shared URL's identity, and cross-org slug
      * matching on a public endpoint would enable enumeration.
-     * &#64;internal
-     * Public by design (no authentication): enforcement is the app-level
-     * sharing gate in the handler, not FGA — see AgentShareSpec for why a
-     * share writes no visibility tuples.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request) throws io.grpc.StatusException {
@@ -638,12 +587,6 @@ public final class AgentShareQueryControllerGrpc {
      * must not reveal a killed link's profile) — the cases are deliberately
      * indistinguishable so a share URL leaks nothing to non-members.
      * Returns INVALID_ARGUMENT when org is empty.
-     * &#64;internal
-     * Custom authorization in handler — requires authentication (not
-     * is_public), then an app-level organization#member FGA check for org
-     * shares. No standard resource_kind/permission config: the sharing gate
-     * is app-level by design (see AgentShareSpec), and membership is checked
-     * live on every call so revoked members lose access immediately.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -684,9 +627,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent share by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -701,9 +641,6 @@ public final class AgentShareQueryControllerGrpc {
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
-     * &#64;internal
-     * Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
-     * in OSS (single-user edition).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShareList getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request) {
@@ -714,9 +651,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * List agent shares with optional label filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShareList list(ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest request) {
@@ -740,10 +674,6 @@ public final class AgentShareQueryControllerGrpc {
      * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
      * empty: org+slug is the shared URL's identity, and cross-org slug
      * matching on a public endpoint would enable enumeration.
-     * &#64;internal
-     * Public by design (no authentication): enforcement is the app-level
-     * sharing gate in the handler, not FGA — see AgentShareSpec for why a
-     * share writes no visibility tuples.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request) {
@@ -766,12 +696,6 @@ public final class AgentShareQueryControllerGrpc {
      * must not reveal a killed link's profile) — the cases are deliberately
      * indistinguishable so a share URL leaks nothing to non-members.
      * Returns INVALID_ARGUMENT when org is empty.
-     * &#64;internal
-     * Custom authorization in handler — requires authentication (not
-     * is_public), then an app-level organization#member FGA check for org
-     * shares. No standard resource_kind/permission config: the sharing gate
-     * is app-level by design (see AgentShareSpec), and membership is checked
-     * live on every call so revoked members lose access immediately.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -813,9 +737,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent share by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> getByReference(
@@ -831,9 +752,6 @@ public final class AgentShareQueryControllerGrpc {
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
-     * &#64;internal
-     * Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
-     * in OSS (single-user edition).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShareList> getByAgent(
@@ -845,9 +763,6 @@ public final class AgentShareQueryControllerGrpc {
     /**
      * <pre>
      * List agent shares with optional label filtering.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShareList> list(
@@ -872,10 +787,6 @@ public final class AgentShareQueryControllerGrpc {
      * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
      * empty: org+slug is the shared URL's identity, and cross-org slug
      * matching on a public endpoint would enable enumeration.
-     * &#64;internal
-     * Public by design (no authentication): enforcement is the app-level
-     * sharing gate in the handler, not FGA — see AgentShareSpec for why a
-     * share writes no visibility tuples.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getSharedProfile(
@@ -899,12 +810,6 @@ public final class AgentShareQueryControllerGrpc {
      * must not reveal a killed link's profile) — the cases are deliberately
      * indistinguishable so a share URL leaks nothing to non-members.
      * Returns INVALID_ARGUMENT when org is empty.
-     * &#64;internal
-     * Custom authorization in handler — requires authentication (not
-     * is_public), then an app-level organization#member FGA check for org
-     * shares. No standard resource_kind/permission config: the sharing gate
-     * is app-level by design (see AgentShareSpec), and membership is checked
-     * live on every call so revoked members lose access immediately.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getSharedProfileForMember(

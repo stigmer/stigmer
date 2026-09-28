@@ -13,9 +13,6 @@ public interface ExecutionContextExecutionIdInputOrBuilder extends
   /**
    * <pre>
    * AgentExecution or WorkflowExecution ID to look up.
-   *
-   * &#64;internal
-   * Must match the execution_id field in ExecutionContextSpec.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface ExecutionContextExecutionIdInputOrBuilder extends
   /**
    * <pre>
    * AgentExecution or WorkflowExecution ID to look up.
-   *
-   * &#64;internal
-   * Must match the execution_id field in ExecutionContextSpec.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

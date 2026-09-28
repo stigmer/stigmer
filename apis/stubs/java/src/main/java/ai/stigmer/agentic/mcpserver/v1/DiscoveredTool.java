@@ -8,9 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * DiscoveredTool describes a single tool reported by an MCP server.
- *
- * &#64;internal
- * Maps directly to the MCP protocol's Tool type from tools/list.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredTool}
@@ -377,9 +374,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * DiscoveredTool describes a single tool reported by an MCP server.
-   *
-   * &#64;internal
-   * Maps directly to the MCP protocol's Tool type from tools/list.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredTool}

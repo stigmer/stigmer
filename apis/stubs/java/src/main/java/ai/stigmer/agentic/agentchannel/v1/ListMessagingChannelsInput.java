@@ -9,14 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * Input for listing the agent channels the caller can send
  * business-initiated messages on.
- *
- * &#64;internal
- * proactive-messaging DD-006 D2. Deliberately empty (the
- * GetServerInfoInput house style): org, agent, and session all derive
- * from the caller's token (DD-013 — never from arguments). Session-bound
- * callers only in this slice; a direct principal is told to use the
- * channel resource surface instead. Room is reserved for a
- * direct-caller `org` arm if one is ever justified.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput}
@@ -211,14 +203,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Input for listing the agent channels the caller can send
    * business-initiated messages on.
-   *
-   * &#64;internal
-   * proactive-messaging DD-006 D2. Deliberately empty (the
-   * GetServerInfoInput house style): org, agent, and session all derive
-   * from the caller's token (DD-013 — never from arguments). Session-bound
-   * callers only in this slice; a direct principal is told to use the
-   * channel resource surface instead. Room is reserved for a
-   * direct-caller `org` arm if one is ever justified.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput}

@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for execution_started events.
- *
- * &#64;internal
- * Emitted once per execution when the runner picks up the workflow and
- * transitions phase from PENDING to IN_PROGRESS.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionStartedPayload}
@@ -350,12 +344,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for execution_started events.
-   *
-   * &#64;internal
-   * Emitted once per execution when the runner picks up the workflow and
-   * transitions phase from PENDING to IN_PROGRESS.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionStartedPayload}

@@ -8,13 +8,6 @@ package ai.stigmer.agentic.plugin.v1;
 /**
  * <pre>
  * PluginSpec is the manifest metadata of an installed plugin.
- *
- * &#64;internal
- * Every field is extracted by the backend from the package manifest
- * (plugin.json in any dialect) at push time and is never written by a
- * client; the shape follows SkillSpec.skill_md. Field names mirror the
- * &#64;stigmer/plugin-package PluginPackage type one to one, so the mapping is
- * one function and a rename on either side is a visible edit.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.PluginSpec}
@@ -122,10 +115,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Version string as written in the manifest, typically Semantic Versioning.
-   *
-   * &#64;internal
-   * Also the plugin's single-holder audit tag when it matches the tag
-   * pattern; the archive digest, not this string, is the version identity.
    * </pre>
    *
    * <code>string version = 2 [json_name = "version"];</code>
@@ -147,10 +136,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Version string as written in the manifest, typically Semantic Versioning.
-   *
-   * &#64;internal
-   * Also the plugin's single-holder audit tag when it matches the tag
-   * pattern; the archive digest, not this string, is the version identity.
    * </pre>
    *
    * <code>string version = 2 [json_name = "version"];</code>
@@ -728,13 +713,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PluginSpec is the manifest metadata of an installed plugin.
-   *
-   * &#64;internal
-   * Every field is extracted by the backend from the package manifest
-   * (plugin.json in any dialect) at push time and is never written by a
-   * client; the shape follows SkillSpec.skill_md. Field names mirror the
-   * &#64;stigmer/plugin-package PluginPackage type one to one, so the mapping is
-   * one function and a rename on either side is a visible edit.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.PluginSpec}
@@ -1102,10 +1080,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Version string as written in the manifest, typically Semantic Versioning.
-     *
-     * &#64;internal
-     * Also the plugin's single-holder audit tag when it matches the tag
-     * pattern; the archive digest, not this string, is the version identity.
      * </pre>
      *
      * <code>string version = 2 [json_name = "version"];</code>
@@ -1126,10 +1100,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Version string as written in the manifest, typically Semantic Versioning.
-     *
-     * &#64;internal
-     * Also the plugin's single-holder audit tag when it matches the tag
-     * pattern; the archive digest, not this string, is the version identity.
      * </pre>
      *
      * <code>string version = 2 [json_name = "version"];</code>
@@ -1151,10 +1121,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Version string as written in the manifest, typically Semantic Versioning.
-     *
-     * &#64;internal
-     * Also the plugin's single-holder audit tag when it matches the tag
-     * pattern; the archive digest, not this string, is the version identity.
      * </pre>
      *
      * <code>string version = 2 [json_name = "version"];</code>
@@ -1172,10 +1138,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Version string as written in the manifest, typically Semantic Versioning.
-     *
-     * &#64;internal
-     * Also the plugin's single-holder audit tag when it matches the tag
-     * pattern; the archive digest, not this string, is the version identity.
      * </pre>
      *
      * <code>string version = 2 [json_name = "version"];</code>
@@ -1190,10 +1152,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Version string as written in the manifest, typically Semantic Versioning.
-     *
-     * &#64;internal
-     * Also the plugin's single-holder audit tag when it matches the tag
-     * pattern; the archive digest, not this string, is the version identity.
      * </pre>
      *
      * <code>string version = 2 [json_name = "version"];</code>

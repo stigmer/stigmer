@@ -8,10 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
- *
- * &#64;internal
- * Opens a server-side streaming RPC that pushes WorkflowExecution updates
- * as the execution progresses. Stream closes when execution reaches a terminal state.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest}
@@ -63,9 +59,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -87,9 +80,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -269,10 +259,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
-   *
-   * &#64;internal
-   * Opens a server-side streaming RPC that pushes WorkflowExecution updates
-   * as the execution progresses. Stream closes when execution reaches a terminal state.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest}
@@ -416,9 +402,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -439,9 +422,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -463,9 +443,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -483,9 +460,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -500,9 +474,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

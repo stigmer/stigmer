@@ -5,10 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * AgentChannelQueryController handles read operations for agent channels.
- * &#64;internal
- * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
- * no analog here): the channel's public surface is the provider webhook,
- * which authenticates by signature — never a query endpoint.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -205,10 +201,6 @@ public final class AgentChannelQueryControllerGrpc {
   /**
    * <pre>
    * AgentChannelQueryController handles read operations for agent channels.
-   * &#64;internal
-   * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-   * no analog here): the channel's public surface is the provider webhook,
-   * which authenticates by signature — never a query endpoint.
    * </pre>
    */
   public interface AsyncService {
@@ -226,9 +218,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent channel by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (AgentShare pattern).
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -242,8 +231,6 @@ public final class AgentChannelQueryControllerGrpc {
      * Returns only channels the caller has access to.
      * This is how the agent's integrations surface and CLI resolve an
      * agent's existing channels regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
      * </pre>
      */
     default void getByAgent(ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest request,
@@ -254,9 +241,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * List agent channels with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     default void list(ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest request,
@@ -269,10 +253,6 @@ public final class AgentChannelQueryControllerGrpc {
    * Base class for the server implementation of the service AgentChannelQueryController.
    * <pre>
    * AgentChannelQueryController handles read operations for agent channels.
-   * &#64;internal
-   * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-   * no analog here): the channel's public surface is the provider webhook,
-   * which authenticates by signature — never a query endpoint.
    * </pre>
    */
   public static abstract class AgentChannelQueryControllerImplBase
@@ -287,10 +267,6 @@ public final class AgentChannelQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service AgentChannelQueryController.
    * <pre>
    * AgentChannelQueryController handles read operations for agent channels.
-   * &#64;internal
-   * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-   * no analog here): the channel's public surface is the provider webhook,
-   * which authenticates by signature — never a query endpoint.
    * </pre>
    */
   public static final class AgentChannelQueryControllerStub
@@ -320,9 +296,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent channel by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (AgentShare pattern).
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -337,8 +310,6 @@ public final class AgentChannelQueryControllerGrpc {
      * Returns only channels the caller has access to.
      * This is how the agent's integrations surface and CLI resolve an
      * agent's existing channels regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
      * </pre>
      */
     public void getByAgent(ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest request,
@@ -350,9 +321,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * List agent channels with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public void list(ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest request,
@@ -366,10 +334,6 @@ public final class AgentChannelQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service AgentChannelQueryController.
    * <pre>
    * AgentChannelQueryController handles read operations for agent channels.
-   * &#64;internal
-   * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-   * no analog here): the channel's public surface is the provider webhook,
-   * which authenticates by signature — never a query endpoint.
    * </pre>
    */
   public static final class AgentChannelQueryControllerBlockingV2Stub
@@ -398,9 +362,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent channel by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (AgentShare pattern).
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannel getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -414,8 +375,6 @@ public final class AgentChannelQueryControllerGrpc {
      * Returns only channels the caller has access to.
      * This is how the agent's integrations surface and CLI resolve an
      * agent's existing channels regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannelList getByAgent(ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest request) throws io.grpc.StatusException {
@@ -426,9 +385,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * List agent channels with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannelList list(ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest request) throws io.grpc.StatusException {
@@ -441,10 +397,6 @@ public final class AgentChannelQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service AgentChannelQueryController.
    * <pre>
    * AgentChannelQueryController handles read operations for agent channels.
-   * &#64;internal
-   * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-   * no analog here): the channel's public surface is the provider webhook,
-   * which authenticates by signature — never a query endpoint.
    * </pre>
    */
   public static final class AgentChannelQueryControllerBlockingStub
@@ -473,9 +425,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent channel by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (AgentShare pattern).
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannel getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -489,8 +438,6 @@ public final class AgentChannelQueryControllerGrpc {
      * Returns only channels the caller has access to.
      * This is how the agent's integrations surface and CLI resolve an
      * agent's existing channels regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannelList getByAgent(ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest request) {
@@ -501,9 +448,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * List agent channels with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannelList list(ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest request) {
@@ -516,10 +460,6 @@ public final class AgentChannelQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service AgentChannelQueryController.
    * <pre>
    * AgentChannelQueryController handles read operations for agent channels.
-   * &#64;internal
-   * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-   * no analog here): the channel's public surface is the provider webhook,
-   * which authenticates by signature — never a query endpoint.
    * </pre>
    */
   public static final class AgentChannelQueryControllerFutureStub
@@ -549,9 +489,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * Get an agent channel by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (AgentShare pattern).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.AgentChannel> getByReference(
@@ -566,8 +503,6 @@ public final class AgentChannelQueryControllerGrpc {
      * Returns only channels the caller has access to.
      * This is how the agent's integrations surface and CLI resolve an
      * agent's existing channels regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.AgentChannelList> getByAgent(
@@ -579,9 +514,6 @@ public final class AgentChannelQueryControllerGrpc {
     /**
      * <pre>
      * List agent channels with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.AgentChannelList> list(

@@ -9,15 +9,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowPendingFileReview references a child agent execution's file-review
  * gate for workflow-level surfacing. Reference-only — never a copy of the diff.
- *
- * &#64;internal
- * FileChangeSet is an agentexecution domain concept owned by the child
- * AgentExecution. WorkflowPendingFileReview adds only the workflow-level
- * concern: which child holds a file-review gate, and which of its change sets
- * are awaiting a decision. The UI reads the child's file_change_sets to render
- * the diff; WorkflowExecution.submitFileDecision forwards the verdict to the
- * child. This mirrors how WorkflowPendingApproval references a child's tool
- * approval without embedding the tool call.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview}
@@ -71,11 +62,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child agent execution that holds the file-review gate.
-   *
-   * &#64;internal
-   * WorkflowExecution.submitFileDecision uses this to route the decision to the
-   * correct AgentExecution.submitFileDecision RPC.
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
    * </pre>
    *
    * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -97,11 +83,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child agent execution that holds the file-review gate.
-   *
-   * &#64;internal
-   * WorkflowExecution.submitFileDecision uses this to route the decision to the
-   * correct AgentExecution.submitFileDecision RPC.
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
    * </pre>
    *
    * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -129,12 +110,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -147,12 +122,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -164,12 +133,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -182,12 +145,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -376,15 +333,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WorkflowPendingFileReview references a child agent execution's file-review
    * gate for workflow-level surfacing. Reference-only — never a copy of the diff.
-   *
-   * &#64;internal
-   * FileChangeSet is an agentexecution domain concept owned by the child
-   * AgentExecution. WorkflowPendingFileReview adds only the workflow-level
-   * concern: which child holds a file-review gate, and which of its change sets
-   * are awaiting a decision. The UI reads the child's file_change_sets to render
-   * the diff; WorkflowExecution.submitFileDecision forwards the verdict to the
-   * child. This mirrors how WorkflowPendingApproval references a child's tool
-   * approval without embedding the tool call.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview}
@@ -549,11 +497,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution that holds the file-review gate.
-     *
-     * &#64;internal
-     * WorkflowExecution.submitFileDecision uses this to route the decision to the
-     * correct AgentExecution.submitFileDecision RPC.
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -574,11 +517,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution that holds the file-review gate.
-     *
-     * &#64;internal
-     * WorkflowExecution.submitFileDecision uses this to route the decision to the
-     * correct AgentExecution.submitFileDecision RPC.
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -600,11 +538,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution that holds the file-review gate.
-     *
-     * &#64;internal
-     * WorkflowExecution.submitFileDecision uses this to route the decision to the
-     * correct AgentExecution.submitFileDecision RPC.
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -622,11 +555,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution that holds the file-review gate.
-     *
-     * &#64;internal
-     * WorkflowExecution.submitFileDecision uses this to route the decision to the
-     * correct AgentExecution.submitFileDecision RPC.
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -641,11 +569,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution that holds the file-review gate.
-     *
-     * &#64;internal
-     * WorkflowExecution.submitFileDecision uses this to route the decision to the
-     * correct AgentExecution.submitFileDecision RPC.
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -673,12 +596,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -692,12 +609,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -709,12 +620,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -727,12 +632,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -746,12 +645,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -771,12 +664,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -795,12 +682,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -819,12 +700,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -840,12 +715,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the child's change sets currently AWAITING_REVIEW.
-     *
-     * &#64;internal
-     * Each matches a FileChangeSet.id on the child's
-     * AgentExecution.status.file_change_sets. Empty means the child has no
-     * outstanding review (used transiently to clear this child's entry under the
-     * per-child merge protocol).
      * </pre>
      *
      * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>

@@ -9,10 +9,6 @@ package ai.stigmer.agentic.environment.v1;
  * <pre>
  * Request to add or update specific variables in an environment.
  * Existing variables not included in this request are preserved.
- *
- * &#64;internal
- * Server-side merge. For secret variables the new value replaces the old
- * one and is re-encrypted server-side.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest}
@@ -394,10 +390,6 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
    * <pre>
    * Request to add or update specific variables in an environment.
    * Existing variables not included in this request are preserved.
-   *
-   * &#64;internal
-   * Server-side merge. For secret variables the new value replaces the old
-   * one and is re-encrypted server-side.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest}

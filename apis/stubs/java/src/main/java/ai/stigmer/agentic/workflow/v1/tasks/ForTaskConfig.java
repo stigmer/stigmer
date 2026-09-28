@@ -8,49 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
- *
- * &#64;internal
- * Supports both sequential (default) and parallel execution modes. When
- * max_parallelism is set, iterations run concurrently using Temporal
- * workflow goroutines with bounded concurrency.
- *
- * Backward compatibility: all new fields default to values that preserve
- * the pre-T17 sequential behavior. Existing workflows require no changes.
- *
- * YAML Example (sequential, unchanged from pre-T17):
- * - taskName:
- * for:
- * each: item
- * in: ${ $data.items }
- * do:
- * - processItem:
- * call: http
- * with:
- * method: POST
- * body:
- * item: ${ $data.item }
- * index: ${ $data.index }
- *
- * YAML Example (parallel with bounded concurrency):
- * - batchProcess:
- * for:
- * each: item
- * in: ${ $data.items }
- * max_parallelism: 5
- * on_error: FOR_EACH_CONTINUE
- * do:
- * - callApi:
- * call: http
- * with:
- * method: POST
- * endpoint:
- * uri: "https://api.example.com/process"
- * body:
- * item: ${ $data.item }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
- *
- * &#64;since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig}
@@ -574,49 +531,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
-   *
-   * &#64;internal
-   * Supports both sequential (default) and parallel execution modes. When
-   * max_parallelism is set, iterations run concurrently using Temporal
-   * workflow goroutines with bounded concurrency.
-   *
-   * Backward compatibility: all new fields default to values that preserve
-   * the pre-T17 sequential behavior. Existing workflows require no changes.
-   *
-   * YAML Example (sequential, unchanged from pre-T17):
-   * - taskName:
-   * for:
-   * each: item
-   * in: ${ $data.items }
-   * do:
-   * - processItem:
-   * call: http
-   * with:
-   * method: POST
-   * body:
-   * item: ${ $data.item }
-   * index: ${ $data.index }
-   *
-   * YAML Example (parallel with bounded concurrency):
-   * - batchProcess:
-   * for:
-   * each: item
-   * in: ${ $data.items }
-   * max_parallelism: 5
-   * on_error: FOR_EACH_CONTINUE
-   * do:
-   * - callApi:
-   * call: http
-   * with:
-   * method: POST
-   * endpoint:
-   * uri: "https://api.example.com/process"
-   * body:
-   * item: ${ $data.item }
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
-   *
-   * &#64;since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig}

@@ -12,11 +12,6 @@ package ai.stigmer.agentic.agent.v1;
  * Each apply/update that changes the agent spec creates a new immutable
  * version entry. The version is identified by its content hash (SHA-256 of
  * the canonical protojson representation of AgentSpec).
- *
- * &#64;internal
- * NOT YET IMPLEMENTED — design placeholder for the agent versioning phase.
- *
- * &#64;since Agent Versioning (future)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentVersionEntry}
@@ -638,11 +633,6 @@ private static final long serialVersionUID = 0L;
    * Each apply/update that changes the agent spec creates a new immutable
    * version entry. The version is identified by its content hash (SHA-256 of
    * the canonical protojson representation of AgentSpec).
-   *
-   * &#64;internal
-   * NOT YET IMPLEMENTED — design placeholder for the agent versioning phase.
-   *
-   * &#64;since Agent Versioning (future)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentVersionEntry}

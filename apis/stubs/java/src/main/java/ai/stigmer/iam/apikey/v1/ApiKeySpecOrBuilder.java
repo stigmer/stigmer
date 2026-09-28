@@ -14,10 +14,6 @@ public interface ApiKeySpecOrBuilder extends
    * <pre>
    * Hash of the raw API key.
    * The actual key is returned only in the create response and never persisted.
-   *
-   * &#64;internal
-   * SHA-256/Bcrypt hash of the raw key generated during creation.
-   * Only the last 6 chars are persisted in the fingerprint field for UI display.
    * </pre>
    *
    * <code>string key_hash = 1 [json_name = "keyHash", (.ai.stigmer.commons.apiresource.computed) = true];</code>
@@ -28,10 +24,6 @@ public interface ApiKeySpecOrBuilder extends
    * <pre>
    * Hash of the raw API key.
    * The actual key is returned only in the create response and never persisted.
-   *
-   * &#64;internal
-   * SHA-256/Bcrypt hash of the raw key generated during creation.
-   * Only the last 6 chars are persisted in the fingerprint field for UI display.
    * </pre>
    *
    * <code>string key_hash = 1 [json_name = "keyHash", (.ai.stigmer.commons.apiresource.computed) = true];</code>

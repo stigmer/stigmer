@@ -53,9 +53,6 @@ public interface EnvironmentOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -65,9 +62,6 @@ public interface EnvironmentOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -77,9 +71,6 @@ public interface EnvironmentOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

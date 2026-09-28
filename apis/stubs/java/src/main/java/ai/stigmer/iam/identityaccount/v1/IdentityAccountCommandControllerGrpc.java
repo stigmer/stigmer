@@ -301,15 +301,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Create a new identity account.
-     * &#64;internal
-     * System-level RPC. The handler admits machine, internal and in-process
-     * callers — the federation lanes, the provisioner behind provisionMyAccount,
-     * the trusted-local operator ensure at boot — and refuses a wire caller of
-     * the user class with PERMISSION_DENIED before the chain runs
-     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
-     * metadata.id is replaced by the id derived from spec.idp_id. The
-     * self-owner grant is the standard CreateAuthorizationTuples step's work
-     * after Persist.
      * </pre>
      */
     default void create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -320,8 +311,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     default void update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -332,8 +321,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     default void delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -403,11 +390,6 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry.
-     * &#64;internal
-     * The core creates the account and nothing else. Edition steps ride the
-     * `identity-account-provision:post-persist` gate slot, after the account
-     * persists and before the reply; Stigmer Cloud's personal organization is
-     * one such step, not this RPC's contract.
      * </pre>
      */
     default void provisionMyAccount(com.google.protobuf.Empty request,
@@ -452,15 +434,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Create a new identity account.
-     * &#64;internal
-     * System-level RPC. The handler admits machine, internal and in-process
-     * callers — the federation lanes, the provisioner behind provisionMyAccount,
-     * the trusted-local operator ensure at boot — and refuses a wire caller of
-     * the user class with PERMISSION_DENIED before the chain runs
-     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
-     * metadata.id is replaced by the id derived from spec.idp_id. The
-     * self-owner grant is the standard CreateAuthorizationTuples step's work
-     * after Persist.
      * </pre>
      */
     public void create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -472,8 +445,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public void update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -485,8 +456,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public void delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -560,11 +529,6 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry.
-     * &#64;internal
-     * The core creates the account and nothing else. Edition steps ride the
-     * `identity-account-provision:post-persist` gate slot, after the account
-     * persists and before the reply; Stigmer Cloud's personal organization is
-     * one such step, not this RPC's contract.
      * </pre>
      */
     public void provisionMyAccount(com.google.protobuf.Empty request,
@@ -596,15 +560,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Create a new identity account.
-     * &#64;internal
-     * System-level RPC. The handler admits machine, internal and in-process
-     * callers — the federation lanes, the provisioner behind provisionMyAccount,
-     * the trusted-local operator ensure at boot — and refuses a wire caller of
-     * the user class with PERMISSION_DENIED before the chain runs
-     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
-     * metadata.id is replaced by the id derived from spec.idp_id. The
-     * self-owner grant is the standard CreateAuthorizationTuples step's work
-     * after Persist.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) throws io.grpc.StatusException {
@@ -615,8 +570,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) throws io.grpc.StatusException {
@@ -627,8 +580,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) throws io.grpc.StatusException {
@@ -698,11 +649,6 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry.
-     * &#64;internal
-     * The core creates the account and nothing else. Edition steps ride the
-     * `identity-account-provision:post-persist` gate slot, after the account
-     * persists and before the reply; Stigmer Cloud's personal organization is
-     * one such step, not this RPC's contract.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -733,15 +679,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Create a new identity account.
-     * &#64;internal
-     * System-level RPC. The handler admits machine, internal and in-process
-     * callers — the federation lanes, the provisioner behind provisionMyAccount,
-     * the trusted-local operator ensure at boot — and refuses a wire caller of
-     * the user class with PERMISSION_DENIED before the chain runs
-     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
-     * metadata.id is replaced by the id derived from spec.idp_id. The
-     * self-owner grant is the standard CreateAuthorizationTuples step's work
-     * after Persist.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) {
@@ -752,8 +689,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) {
@@ -764,8 +699,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) {
@@ -835,11 +768,6 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry.
-     * &#64;internal
-     * The core creates the account and nothing else. Edition steps ride the
-     * `identity-account-provision:post-persist` gate slot, after the account
-     * persists and before the reply; Stigmer Cloud's personal organization is
-     * one such step, not this RPC's contract.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) {
@@ -870,15 +798,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Create a new identity account.
-     * &#64;internal
-     * System-level RPC. The handler admits machine, internal and in-process
-     * callers — the federation lanes, the provisioner behind provisionMyAccount,
-     * the trusted-local operator ensure at boot — and refuses a wire caller of
-     * the user class with PERMISSION_DENIED before the chain runs
-     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
-     * metadata.id is replaced by the id derived from spec.idp_id. The
-     * self-owner grant is the standard CreateAuthorizationTuples step's work
-     * after Persist.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> create(
@@ -890,8 +809,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> update(
@@ -903,8 +820,6 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> delete(
@@ -978,11 +893,6 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry.
-     * &#64;internal
-     * The core creates the account and nothing else. Edition steps ride the
-     * `identity-account-provision:post-persist` gate slot, after the account
-     * persists and before the reply; Stigmer Cloud's personal organization is
-     * one such step, not this RPC's contract.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> provisionMyAccount(

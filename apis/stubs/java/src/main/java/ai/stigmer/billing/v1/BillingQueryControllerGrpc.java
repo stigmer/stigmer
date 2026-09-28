@@ -448,9 +448,6 @@ public final class BillingQueryControllerGrpc {
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
-     * &#64;internal
-     * Called by serving-side visitor billing preflights (guest and channel
-     * lanes) before accepting work the organization cannot fund.
      * </pre>
      */
     default void previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request,
@@ -463,10 +460,6 @@ public final class BillingQueryControllerGrpc {
      * Retrieve the current billing control signal for a running execution
      * (continue / low-balance warning / stop), derived from the execution's
      * reservation headroom and the billing account's status.
-     * &#64;internal
-     * Called by serving-side status and approval lanes to piggyback
-     * STOP/WARNING onto runner-facing responses and to refuse continuing
-     * work once the balance is exhausted.
      * </pre>
      */
     default void getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request,
@@ -603,9 +596,6 @@ public final class BillingQueryControllerGrpc {
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
-     * &#64;internal
-     * Called by serving-side visitor billing preflights (guest and channel
-     * lanes) before accepting work the organization cannot fund.
      * </pre>
      */
     public void previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request,
@@ -619,10 +609,6 @@ public final class BillingQueryControllerGrpc {
      * Retrieve the current billing control signal for a running execution
      * (continue / low-balance warning / stop), derived from the execution's
      * reservation headroom and the billing account's status.
-     * &#64;internal
-     * Called by serving-side status and approval lanes to piggyback
-     * STOP/WARNING onto runner-facing responses and to refuse continuing
-     * work once the balance is exhausted.
      * </pre>
      */
     public void getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request,
@@ -738,9 +724,6 @@ public final class BillingQueryControllerGrpc {
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
-     * &#64;internal
-     * Called by serving-side visitor billing preflights (guest and channel
-     * lanes) before accepting work the organization cannot fund.
      * </pre>
      */
     public ai.stigmer.billing.v1.PreviewAuthorizationResponse previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request) throws io.grpc.StatusException {
@@ -753,10 +736,6 @@ public final class BillingQueryControllerGrpc {
      * Retrieve the current billing control signal for a running execution
      * (continue / low-balance warning / stop), derived from the execution's
      * reservation headroom and the billing account's status.
-     * &#64;internal
-     * Called by serving-side status and approval lanes to piggyback
-     * STOP/WARNING onto runner-facing responses and to refuse continuing
-     * work once the balance is exhausted.
      * </pre>
      */
     public ai.stigmer.billing.v1.GetExecutionBillingSignalResponse getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request) throws io.grpc.StatusException {
@@ -871,9 +850,6 @@ public final class BillingQueryControllerGrpc {
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
-     * &#64;internal
-     * Called by serving-side visitor billing preflights (guest and channel
-     * lanes) before accepting work the organization cannot fund.
      * </pre>
      */
     public ai.stigmer.billing.v1.PreviewAuthorizationResponse previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request) {
@@ -886,10 +862,6 @@ public final class BillingQueryControllerGrpc {
      * Retrieve the current billing control signal for a running execution
      * (continue / low-balance warning / stop), derived from the execution's
      * reservation headroom and the billing account's status.
-     * &#64;internal
-     * Called by serving-side status and approval lanes to piggyback
-     * STOP/WARNING onto runner-facing responses and to refuse continuing
-     * work once the balance is exhausted.
      * </pre>
      */
     public ai.stigmer.billing.v1.GetExecutionBillingSignalResponse getExecutionBillingSignal(ai.stigmer.billing.v1.GetExecutionBillingSignalInput request) {
@@ -1011,9 +983,6 @@ public final class BillingQueryControllerGrpc {
      * predicate (start threshold, negative allowance, default cap), so a
      * synchronous preflight refusal and the authoritative reservation can
      * never drift.
-     * &#64;internal
-     * Called by serving-side visitor billing preflights (guest and channel
-     * lanes) before accepting work the organization cannot fund.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.PreviewAuthorizationResponse> previewAuthorization(
@@ -1027,10 +996,6 @@ public final class BillingQueryControllerGrpc {
      * Retrieve the current billing control signal for a running execution
      * (continue / low-balance warning / stop), derived from the execution's
      * reservation headroom and the billing account's status.
-     * &#64;internal
-     * Called by serving-side status and approval lanes to piggyback
-     * STOP/WARNING onto runner-facing responses and to refuse continuing
-     * work once the balance is exhausted.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.GetExecutionBillingSignalResponse> getExecutionBillingSignal(

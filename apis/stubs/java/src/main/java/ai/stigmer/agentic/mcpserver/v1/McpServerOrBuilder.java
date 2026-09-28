@@ -57,15 +57,6 @@ public interface McpServerOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Key fields:
-   * - name: Human-readable name (e.g., "GitHub MCP Server")
-   * - slug: URL-friendly identifier (e.g., "github")
-   * - org: Organization that owns this MCP server (required)
-   * - visibility: who can read the server (private, org or platform)
-   *
-   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -75,15 +66,6 @@ public interface McpServerOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Key fields:
-   * - name: Human-readable name (e.g., "GitHub MCP Server")
-   * - slug: URL-friendly identifier (e.g., "github")
-   * - org: Organization that owns this MCP server (required)
-   * - visibility: who can read the server (private, org or platform)
-   *
-   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -93,15 +75,6 @@ public interface McpServerOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Key fields:
-   * - name: Human-readable name (e.g., "GitHub MCP Server")
-   * - slug: URL-friendly identifier (e.g., "github")
-   * - org: Organization that owns this MCP server (required)
-   * - visibility: who can read the server (private, org or platform)
-   *
-   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

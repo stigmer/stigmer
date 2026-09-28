@@ -8,10 +8,6 @@ package ai.stigmer.agentic.plugin.v1;
 /**
  * <pre>
  * ListPluginMembersResponse lists the resources an installed plugin owns.
- *
- * &#64;internal
- * Derived on read from the stigmer.ai/plugin label on the four child kinds;
- * nothing is stored on the plugin, so nothing can drift.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse}
@@ -285,10 +281,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ListPluginMembersResponse lists the resources an installed plugin owns.
-   *
-   * &#64;internal
-   * Derived on read from the stigmer.ai/plugin label on the four child kinds;
-   * nothing is stored on the plugin, so nothing can drift.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse}

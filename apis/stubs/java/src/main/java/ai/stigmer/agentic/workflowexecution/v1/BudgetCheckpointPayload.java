@@ -8,20 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for budget_checkpoint events.
- *
- * &#64;internal
- * Periodic snapshot of budget consumption emitted at task boundaries
- * (after each cost-incurring task completes). Enables the execution viewer
- * to render a cost timeline and budget utilization gauge.
- *
- * Emission frequency is a runtime decision (T13). Typical triggers:
- * - After every agent_call or llm_call task completes
- * - When a budget threshold is breached (e.g., 50%, 80%, 100%)
- *
- * All cost values are in micro-USD (1 USD = 1,000,000 micros), consistent
- * with the WorkflowBudget.max_cost_micros field (T05).
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload}
@@ -391,20 +377,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for budget_checkpoint events.
-   *
-   * &#64;internal
-   * Periodic snapshot of budget consumption emitted at task boundaries
-   * (after each cost-incurring task completes). Enables the execution viewer
-   * to render a cost timeline and budget utilization gauge.
-   *
-   * Emission frequency is a runtime decision (T13). Typical triggers:
-   * - After every agent_call or llm_call task completes
-   * - When a budget threshold is breached (e.g., 50%, 80%, 100%)
-   *
-   * All cost values are in micro-USD (1 USD = 1,000,000 micros), consistent
-   * with the WorkflowBudget.max_cost_micros field (T05).
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload}

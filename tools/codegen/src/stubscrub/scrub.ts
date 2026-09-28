@@ -9,14 +9,20 @@
 // dropped, except @generated machine trailers, which generators place at
 // the end of doc blocks and tooling greps for.
 //
-// Byte-parity port of tools/codegen/stubscrub (Go). Each scrubber handles
-// one comment syntax; kept lines are re-emitted with the block's own
-// decoration so untouched bytes stay untouched.
+// Each scrubber handles one comment syntax; kept lines are re-emitted with
+// the block's own decoration so untouched bytes stay untouched. The Go, TS
+// and Python scrubbers are a byte-parity port of the retired Go tool.
 //
-// Java stubs are not processed: protoc-java does not copy leading comments
-// into javadoc, so they are clean by construction (verified at oss#497).
+// Java needs its own handling: protoc-java and grpc-java copy the proto
+// comment into javadoc inside a <pre> span and HTML-escape "@" as "&#64;",
+// so the marker arrives as "&#64;internal". The escape is javadoc syntax,
+// not part of the convention, so it is recognised here and the marker
+// semantics stay with src/internalcomment.
 
-import { goTrimSpace, stripLines } from "../internalcomment/internalcomment.js";
+import { goTrimSpace, MARKER, stripLines } from "../internalcomment/internalcomment.js";
+
+/** The marker as protoc-java writes it into javadoc ("@" escaped). */
+export const JAVA_ESCAPED_MARKER = "&#64;internal";
 
 export type Scrubber = (data: string) => [out: string, changed: boolean];
 
@@ -25,6 +31,7 @@ export function scrubberFor(path: string): Scrubber | null {
   if (path.endsWith(".go")) return scrubGo;
   if (path.endsWith(".ts")) return scrubTs;
   if (path.endsWith(".py")) return scrubPy;
+  if (path.endsWith(".java")) return scrubJava;
   return null;
 }
 
@@ -126,10 +133,85 @@ export function scrubTs(data: string): [string, boolean] {
   return [out.join("\n"), true];
 }
 
+// Strips javadoc-style "*" decoration; scrubJava shares it.
 function tsCommentText(line: string): string {
   let trimmed = goTrimSpace(line);
   if (trimmed.startsWith("*")) trimmed = trimmed.slice(1);
   return trimOneLeadingSpace(trimmed);
+}
+
+// scrubJava handles protoc-java and grpc-java output: "/** ... */" javadoc
+// blocks whose proto comment sits in one " * <pre>" ... " * </pre>" span.
+// grpc-java may put its own prose before the span, and the span is followed
+// by generator trailers ("Protobuf type", "<code>", "@return") or by the
+// block's close. Only the span's lines are rewritten, as scrubTs rewrites a
+// JSDoc body; everything outside it is emitted untouched. A span reduced to
+// nothing is dropped with the " *" separator after it, which leaves the
+// shape protoc-java emits for an uncommented element, and a block left
+// empty is dropped entirely. Blocks without a terminated span are not
+// protoc output and are left alone.
+export function scrubJava(data: string): [string, boolean] {
+  const lines = data.split("\n");
+  const out: string[] = [];
+  let changed = false;
+
+  for (let i = 0; i < lines.length; ) {
+    if (goTrimSpace(lines[i]) !== "/**") {
+      out.push(lines[i]);
+      i++;
+      continue;
+    }
+    const start = i;
+    i++;
+    while (i < lines.length && goTrimSpace(lines[i]) !== "*/") i++;
+    if (i === lines.length) {
+      // Unterminated block: leave untouched.
+      out.push(...lines.slice(start));
+      break;
+    }
+    i++;
+    const block = lines.slice(start, i);
+
+    const scrubbed = scrubJavadocBlock(block);
+    if (scrubbed === null) {
+      out.push(...block);
+      continue;
+    }
+    changed = true;
+    out.push(...scrubbed);
+  }
+
+  if (!changed) return [data, false];
+  return [out.join("\n"), true];
+}
+
+// scrubJavadocBlock returns the block without its internal section, or null
+// when the block has no terminated <pre> span carrying a marker. The block
+// runs from its "/**" line to its "*/" line inclusive.
+function scrubJavadocBlock(block: string[]): string[] | null {
+  const open = block.findIndex((line) => goTrimSpace(line) === "* <pre>");
+  if (open === -1) return null;
+  let close = open + 1;
+  while (close < block.length - 1 && goTrimSpace(block[close]) !== "* </pre>") close++;
+  if (close === block.length - 1) return null;
+
+  const texts = block.slice(open + 1, close).map((line) => {
+    const text = tsCommentText(line);
+    return goTrimSpace(text) === JAVA_ESCAPED_MARKER ? MARKER : text;
+  });
+  const [kept, stripped] = stripLines(texts);
+  if (!stripped) return null;
+
+  const indent = block[0].slice(0, block[0].indexOf("/**"));
+  const head = block.slice(0, open);
+  let tail = block.slice(close + 1);
+  if (kept.length > 0) {
+    const body = kept.map((text) => (text === "" ? indent + " *" : indent + " * " + text));
+    return [...head, block[open], ...body, block[close], ...tail];
+  }
+  if (tail.length > 1 && goTrimSpace(tail[0]) === "*") tail = tail.slice(1);
+  if (head.length === 1 && tail.length === 1) return [];
+  return [...head, ...tail];
 }
 
 // scrubPy handles grpc-python output: method docstrings in *_pb2_grpc.py.

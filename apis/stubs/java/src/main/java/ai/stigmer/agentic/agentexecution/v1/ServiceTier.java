@@ -21,16 +21,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * the provider account default. The runner always sends the provider an
  * explicit variant selection, so an out-of-band account setting can never
  * silently change what an execution pays (stigmer/stigmer#357).
- *
- * &#64;internal
- * Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's
- * translation layer; every upstream layer preserves the caller's raw value so
- * "user explicitly chose standard" stays distinguishable from "platform
- * default". v1 supports the Cursor harness only: FAST on a model without a
- * registry fast variant is refused at create time (INVALID_ARGUMENT), which
- * also covers native-harness models since only cursor-harness registry entries
- * carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is
- * a tracked follow-up.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.ServiceTier}
@@ -51,15 +41,6 @@ public enum ServiceTier
    * <pre>
    * Standard tier: the model's base-priced configuration, requested
    * explicitly.
-   *
-   * &#64;internal
-   * For the Cursor harness the runner pins the speed parameter to its base
-   * value (fast=false); the thinking parameter is pinned by the separate
-   * ThinkingMode attribute (stigmer/stigmer#772), and price-neutral
-   * parameters (e.g. effort) follow the catalog default variant. Confirmed
-   * against the billing ledger 2026-08-06: explicit base params bill base
-   * wire ids on create AND resume (see stigmer-cloud
-   * _projects/2026-08/20260806.04.model-service-tier).
    * </pre>
    *
    * <code>SERVICE_TIER_STANDARD = 1;</code>
@@ -102,15 +83,6 @@ public enum ServiceTier
    * <pre>
    * Standard tier: the model's base-priced configuration, requested
    * explicitly.
-   *
-   * &#64;internal
-   * For the Cursor harness the runner pins the speed parameter to its base
-   * value (fast=false); the thinking parameter is pinned by the separate
-   * ThinkingMode attribute (stigmer/stigmer#772), and price-neutral
-   * parameters (e.g. effort) follow the catalog default variant. Confirmed
-   * against the billing ledger 2026-08-06: explicit base params bill base
-   * wire ids on create AND resume (see stigmer-cloud
-   * _projects/2026-08/20260806.04.model-service-tier).
    * </pre>
    *
    * <code>SERVICE_TIER_STANDARD = 1;</code>

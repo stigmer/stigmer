@@ -96,17 +96,6 @@ public interface McpServerStatusOrBuilder extends
   /**
    * <pre>
    * System-generated tool approval policies.
-   *
-   * &#64;internal
-   * Produced by a lightweight LLM classifier during the connect flow.
-   * Overwritten on each reconnect. Never manually edited — use
-   * McpServerSpec.pinned_tool_approvals for manual overrides.
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals (this field) - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
@@ -116,17 +105,6 @@ public interface McpServerStatusOrBuilder extends
   /**
    * <pre>
    * System-generated tool approval policies.
-   *
-   * &#64;internal
-   * Produced by a lightweight LLM classifier during the connect flow.
-   * Overwritten on each reconnect. Never manually edited — use
-   * McpServerSpec.pinned_tool_approvals for manual overrides.
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals (this field) - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
@@ -135,17 +113,6 @@ public interface McpServerStatusOrBuilder extends
   /**
    * <pre>
    * System-generated tool approval policies.
-   *
-   * &#64;internal
-   * Produced by a lightweight LLM classifier during the connect flow.
-   * Overwritten on each reconnect. Never manually edited — use
-   * McpServerSpec.pinned_tool_approvals for manual overrides.
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals (this field) - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
@@ -154,17 +121,6 @@ public interface McpServerStatusOrBuilder extends
   /**
    * <pre>
    * System-generated tool approval policies.
-   *
-   * &#64;internal
-   * Produced by a lightweight LLM classifier during the connect flow.
-   * Overwritten on each reconnect. Never manually edited — use
-   * McpServerSpec.pinned_tool_approvals for manual overrides.
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals (this field) - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
@@ -174,17 +130,6 @@ public interface McpServerStatusOrBuilder extends
   /**
    * <pre>
    * System-generated tool approval policies.
-   *
-   * &#64;internal
-   * Produced by a lightweight LLM classifier during the connect flow.
-   * Overwritten on each reconnect. Never manually edited — use
-   * McpServerSpec.pinned_tool_approvals for manual overrides.
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals (this field) - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>

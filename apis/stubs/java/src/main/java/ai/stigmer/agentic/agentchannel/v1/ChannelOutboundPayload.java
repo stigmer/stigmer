@@ -9,14 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ChannelOutboundPayload is the typed content of a business-initiated
  * message. Exactly one kind must be set.
- *
- * &#64;internal
- * The payments seam (proactive-messaging DD-001 D4 / DD-002 D3): the
- * payments follow-up adds `OrderDetailsPayload order_details = 3` —
- * the provider_config / delivery_context oneof-extension pattern
- * ("extends this oneof; touches zero kinds"). Deliverers dispatch on
- * the arm and refuse unknown arms cleanly (INVALID_ARGUMENT, never
- * silent text coercion).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload}
@@ -384,14 +376,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ChannelOutboundPayload is the typed content of a business-initiated
    * message. Exactly one kind must be set.
-   *
-   * &#64;internal
-   * The payments seam (proactive-messaging DD-001 D4 / DD-002 D3): the
-   * payments follow-up adds `OrderDetailsPayload order_details = 3` —
-   * the provider_config / delivery_context oneof-extension pattern
-   * ("extends this oneof; touches zero kinds"). Deliverers dispatch on
-   * the arm and refuse unknown arms cleanly (INVALID_ARGUMENT, never
-   * silent text coercion).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload}

@@ -363,16 +363,6 @@ public interface ChannelDeliveryOrBuilder extends
    * The reply text as rendered for the external user, recorded when the
    * delivery reached a terminal status. Empty while pending/delivering, and
    * on rows terminal before this field existed.
-   *
-   * &#64;internal
-   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
-   * the conversation timeline renders agent replies from THIS field, never
-   * by re-running ChannelReplyExtractor at read time — the extractor's
-   * error/cancelled/limit copy constants change over releases, and a
-   * re-derivation would attribute today's words to yesterday's send.
-   * Written by the processor on markDelivered AND markFailed (a
-   * dead-lettered reply's text is what a human taking over needs to see);
-   * deliberately not on markRetry, which is non-terminal and re-extracts.
    * </pre>
    *
    * <code>string reply_text = 17 [json_name = "replyText"];</code>
@@ -384,16 +374,6 @@ public interface ChannelDeliveryOrBuilder extends
    * The reply text as rendered for the external user, recorded when the
    * delivery reached a terminal status. Empty while pending/delivering, and
    * on rows terminal before this field existed.
-   *
-   * &#64;internal
-   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
-   * the conversation timeline renders agent replies from THIS field, never
-   * by re-running ChannelReplyExtractor at read time — the extractor's
-   * error/cancelled/limit copy constants change over releases, and a
-   * re-derivation would attribute today's words to yesterday's send.
-   * Written by the processor on markDelivered AND markFailed (a
-   * dead-lettered reply's text is what a human taking over needs to see);
-   * deliberately not on markRetry, which is non-terminal and re-extracts.
    * </pre>
    *
    * <code>string reply_text = 17 [json_name = "replyText"];</code>
@@ -407,12 +387,6 @@ public interface ChannelDeliveryOrBuilder extends
    * Why the delivery FAILED, in the platform's classification. Unspecified
    * unless status is failed (and on rows terminal before this field
    * existed).
-   *
-   * &#64;internal
-   * cloud#262 (channel-conversations F-25): the classification that
-   * decides whether the failure's explanation may reach the conversation
-   * timeline. Written only by markFailed and the delete cascade, never by
-   * markRetry — a scheduled retry is not a verdict.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 18 [json_name = "failureKind"];</code>
@@ -424,12 +398,6 @@ public interface ChannelDeliveryOrBuilder extends
    * Why the delivery FAILED, in the platform's classification. Unspecified
    * unless status is failed (and on rows terminal before this field
    * existed).
-   *
-   * &#64;internal
-   * cloud#262 (channel-conversations F-25): the classification that
-   * decides whether the failure's explanation may reach the conversation
-   * timeline. Written only by markFailed and the delete cascade, never by
-   * markRetry — a scheduled retry is not a verdict.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 18 [json_name = "failureKind"];</code>
@@ -442,13 +410,6 @@ public interface ChannelDeliveryOrBuilder extends
    * The thread-safe explanation of a FAILED delivery, when one was
    * authored for the conversation surface. Empty unless failure_kind is
    * attempt_refused or attempt_withdrawn.
-   *
-   * &#64;internal
-   * cloud#262: PLATFORM-authored copy, unlike the outbound ledger's
-   * provider-owned receipt_detail. The write side is the guarantee: only
-   * the refusal and withdrawal arms carry copy here, so raw exception
-   * text (which stays in last_error, an operator-only fact) can
-   * structurally never reach the timeline relay.
    * </pre>
    *
    * <code>string attempt_detail = 19 [json_name = "attemptDetail"];</code>
@@ -460,13 +421,6 @@ public interface ChannelDeliveryOrBuilder extends
    * The thread-safe explanation of a FAILED delivery, when one was
    * authored for the conversation surface. Empty unless failure_kind is
    * attempt_refused or attempt_withdrawn.
-   *
-   * &#64;internal
-   * cloud#262: PLATFORM-authored copy, unlike the outbound ledger's
-   * provider-owned receipt_detail. The write side is the guarantee: only
-   * the refusal and withdrawal arms carry copy here, so raw exception
-   * text (which stays in last_error, an operator-only fact) can
-   * structurally never reach the timeline relay.
    * </pre>
    *
    * <code>string attempt_detail = 19 [json_name = "attemptDetail"];</code>

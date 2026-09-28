@@ -239,9 +239,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.agent.v1.Agent request,
@@ -252,10 +249,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-     * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     default void create(ai.stigmer.agentic.agent.v1.Agent request,
@@ -283,11 +276,6 @@ public final class AgentCommandControllerGrpc {
      * Raising the level is refused while a skill, MCP server or agent the
      * agent references is less visible than the requested level: what a
      * person can run they must also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the agent for every transition. The level
-     * itself is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind); the reference floor is a pipeline step on
-     * this chain, not an annotation.
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -304,17 +292,6 @@ public final class AgentCommandControllerGrpc {
      * instances and sessions are not deleted, nor is a share written in
      * another organization before sharing across organizations was retired;
      * such a share stops resolving instead.
-     * &#64;internal
-     * Cascade order is children-before-parent so a mid-failure retry
-     * converges. Shares are matched by spec.agent_ref (org + agent slug) and
-     * scoped to the agent's own org — leaving same-org shares behind would
-     * silently rebind a stale share (audience, link token, bound
-     * credentials) to whatever agent is later created at that slug, while
-     * cascading ANOTHER org's share would make delete a cross-principal
-     * destructive action (decision 013). Cross-org shares instead fail
-     * closed via the dangling-ref check and the status.agent_id pin; their
-     * owning orgs clean up their own rows. Cloud additionally cleans each
-     * cascaded child's FGA tuples.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.agent.v1.AgentId request,
@@ -359,9 +336,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.agent.v1.Agent request,
@@ -373,10 +347,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-     * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public void create(ai.stigmer.agentic.agent.v1.Agent request,
@@ -406,11 +376,6 @@ public final class AgentCommandControllerGrpc {
      * Raising the level is refused while a skill, MCP server or agent the
      * agent references is less visible than the requested level: what a
      * person can run they must also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the agent for every transition. The level
-     * itself is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind); the reference floor is a pipeline step on
-     * this chain, not an annotation.
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -428,17 +393,6 @@ public final class AgentCommandControllerGrpc {
      * instances and sessions are not deleted, nor is a share written in
      * another organization before sharing across organizations was retired;
      * such a share stops resolving instead.
-     * &#64;internal
-     * Cascade order is children-before-parent so a mid-failure retry
-     * converges. Shares are matched by spec.agent_ref (org + agent slug) and
-     * scoped to the agent's own org — leaving same-org shares behind would
-     * silently rebind a stale share (audience, link token, bound
-     * credentials) to whatever agent is later created at that slug, while
-     * cascading ANOTHER org's share would make delete a cross-principal
-     * destructive action (decision 013). Cross-org shares instead fail
-     * closed via the dangling-ref check and the status.agent_id pin; their
-     * owning orgs clean up their own rows. Cloud additionally cleans each
-     * cascaded child's FGA tuples.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.agent.v1.AgentId request,
@@ -470,9 +424,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent apply(ai.stigmer.agentic.agent.v1.Agent request) throws io.grpc.StatusException {
@@ -483,10 +434,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-     * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent create(ai.stigmer.agentic.agent.v1.Agent request) throws io.grpc.StatusException {
@@ -514,11 +461,6 @@ public final class AgentCommandControllerGrpc {
      * Raising the level is refused while a skill, MCP server or agent the
      * agent references is less visible than the requested level: what a
      * person can run they must also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the agent for every transition. The level
-     * itself is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind); the reference floor is a pipeline step on
-     * this chain, not an annotation.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -535,17 +477,6 @@ public final class AgentCommandControllerGrpc {
      * instances and sessions are not deleted, nor is a share written in
      * another organization before sharing across organizations was retired;
      * such a share stops resolving instead.
-     * &#64;internal
-     * Cascade order is children-before-parent so a mid-failure retry
-     * converges. Shares are matched by spec.agent_ref (org + agent slug) and
-     * scoped to the agent's own org — leaving same-org shares behind would
-     * silently rebind a stale share (audience, link token, bound
-     * credentials) to whatever agent is later created at that slug, while
-     * cascading ANOTHER org's share would make delete a cross-principal
-     * destructive action (decision 013). Cross-org shares instead fail
-     * closed via the dangling-ref check and the status.agent_id pin; their
-     * owning orgs clean up their own rows. Cloud additionally cleans each
-     * cascaded child's FGA tuples.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent delete(ai.stigmer.agentic.agent.v1.AgentId request) throws io.grpc.StatusException {
@@ -576,9 +507,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent apply(ai.stigmer.agentic.agent.v1.Agent request) {
@@ -589,10 +517,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-     * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent create(ai.stigmer.agentic.agent.v1.Agent request) {
@@ -620,11 +544,6 @@ public final class AgentCommandControllerGrpc {
      * Raising the level is refused while a skill, MCP server or agent the
      * agent references is less visible than the requested level: what a
      * person can run they must also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the agent for every transition. The level
-     * itself is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind); the reference floor is a pipeline step on
-     * this chain, not an annotation.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -641,17 +560,6 @@ public final class AgentCommandControllerGrpc {
      * instances and sessions are not deleted, nor is a share written in
      * another organization before sharing across organizations was retired;
      * such a share stops resolving instead.
-     * &#64;internal
-     * Cascade order is children-before-parent so a mid-failure retry
-     * converges. Shares are matched by spec.agent_ref (org + agent slug) and
-     * scoped to the agent's own org — leaving same-org shares behind would
-     * silently rebind a stale share (audience, link token, bound
-     * credentials) to whatever agent is later created at that slug, while
-     * cascading ANOTHER org's share would make delete a cross-principal
-     * destructive action (decision 013). Cross-org shares instead fail
-     * closed via the dangling-ref check and the status.agent_id pin; their
-     * owning orgs clean up their own rows. Cloud additionally cleans each
-     * cascaded child's FGA tuples.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent delete(ai.stigmer.agentic.agent.v1.AgentId request) {
@@ -682,9 +590,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> apply(
@@ -696,10 +601,6 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-     * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> create(
@@ -729,11 +630,6 @@ public final class AgentCommandControllerGrpc {
      * Raising the level is refused while a skill, MCP server or agent the
      * agent references is less visible than the requested level: what a
      * person can run they must also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the agent for every transition. The level
-     * itself is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind); the reference floor is a pipeline step on
-     * this chain, not an annotation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> updateVisibility(
@@ -751,17 +647,6 @@ public final class AgentCommandControllerGrpc {
      * instances and sessions are not deleted, nor is a share written in
      * another organization before sharing across organizations was retired;
      * such a share stops resolving instead.
-     * &#64;internal
-     * Cascade order is children-before-parent so a mid-failure retry
-     * converges. Shares are matched by spec.agent_ref (org + agent slug) and
-     * scoped to the agent's own org — leaving same-org shares behind would
-     * silently rebind a stale share (audience, link token, bound
-     * credentials) to whatever agent is later created at that slug, while
-     * cascading ANOTHER org's share would make delete a cross-principal
-     * destructive action (decision 013). Cross-org shares instead fail
-     * closed via the dangling-ref check and the status.agent_id pin; their
-     * owning orgs clean up their own rows. Cloud additionally cleans each
-     * cascaded child's FGA tuples.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> delete(

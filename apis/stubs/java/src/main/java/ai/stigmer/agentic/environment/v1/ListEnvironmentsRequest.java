@@ -142,9 +142,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-   *
-   * &#64;internal
-   * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -166,9 +163,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-   *
-   * &#64;internal
-   * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -180,9 +174,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-   *
-   * &#64;internal
-   * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -201,9 +192,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-   *
-   * &#64;internal
-   * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -783,9 +771,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-     *
-     * &#64;internal
-     * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
      * </pre>
      *
      * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -807,9 +792,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-     *
-     * &#64;internal
-     * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
      * </pre>
      *
      * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -821,9 +803,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-     *
-     * &#64;internal
-     * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
      * </pre>
      *
      * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -842,9 +821,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-     *
-     * &#64;internal
-     * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
      * </pre>
      *
      * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -869,9 +845,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-     *
-     * &#64;internal
-     * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
      * </pre>
      *
      * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -895,9 +868,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-     *
-     * &#64;internal
-     * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
      * </pre>
      *
      * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -915,9 +885,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-     *
-     * &#64;internal
-     * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
      * </pre>
      *
      * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>

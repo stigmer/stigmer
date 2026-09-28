@@ -53,11 +53,6 @@ public interface AgentInstanceSpecOrBuilder extends
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -67,11 +62,6 @@ public interface AgentInstanceSpecOrBuilder extends
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -80,11 +70,6 @@ public interface AgentInstanceSpecOrBuilder extends
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -93,11 +78,6 @@ public interface AgentInstanceSpecOrBuilder extends
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -107,11 +87,6 @@ public interface AgentInstanceSpecOrBuilder extends
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

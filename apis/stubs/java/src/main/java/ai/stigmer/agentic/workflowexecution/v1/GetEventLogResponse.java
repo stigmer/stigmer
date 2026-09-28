@@ -8,9 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * GetEventLogResponse contains a page of execution events.
- *
- * &#64;internal
- * &#64;since T06 (Execution Event Stream Model)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse}
@@ -342,9 +339,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetEventLogResponse contains a page of execution events.
-   *
-   * &#64;internal
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse}

@@ -8,16 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
- *
- * &#64;internal
- * YAML Example:
- * - taskName:
- * set:
- * variable1: value
- * variable2: ${ expression }
- * computed: ${ .a + .b }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig}
@@ -348,16 +338,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
-   *
-   * &#64;internal
-   * YAML Example:
-   * - taskName:
-   * set:
-   * variable1: value
-   * variable2: ${ expression }
-   * computed: ${ .a + .b }
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig}

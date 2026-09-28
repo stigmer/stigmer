@@ -8,13 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for signal_received events.
- *
- * &#64;internal
- * Emitted when a listen task receives an external signal (via the sendSignal
- * RPC or from another workflow's emit_event). Documents the signal arrival
- * in the execution timeline.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload}
@@ -321,13 +314,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for signal_received events.
-   *
-   * &#64;internal
-   * Emitted when a listen task receives an external signal (via the sendSignal
-   * RPC or from another workflow's emit_event). Documents the signal arrival
-   * in the execution timeline.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload}

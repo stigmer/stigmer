@@ -13,10 +13,6 @@ public interface GitProvenanceOrBuilder extends
   /**
    * <pre>
    * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
-   *
-   * &#64;internal
-   * For local push: detected "origin" remote URL.
-   * For git push: the user-provided repository URL.
    * </pre>
    *
    * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -26,10 +22,6 @@ public interface GitProvenanceOrBuilder extends
   /**
    * <pre>
    * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
-   *
-   * &#64;internal
-   * For local push: detected "origin" remote URL.
-   * For git push: the user-provided repository URL.
    * </pre>
    *
    * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -41,11 +33,6 @@ public interface GitProvenanceOrBuilder extends
   /**
    * <pre>
    * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
-   *
-   * &#64;internal
-   * For local push: detected branch name or empty if detached HEAD.
-   * For git push: the user-provided ref.
-   * Preserves user intent for display while commit provides immutability.
    * </pre>
    *
    * <code>string ref = 2 [json_name = "ref"];</code>
@@ -55,11 +42,6 @@ public interface GitProvenanceOrBuilder extends
   /**
    * <pre>
    * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
-   *
-   * &#64;internal
-   * For local push: detected branch name or empty if detached HEAD.
-   * For git push: the user-provided ref.
-   * Preserves user intent for display while commit provides immutability.
    * </pre>
    *
    * <code>string ref = 2 [json_name = "ref"];</code>
@@ -71,9 +53,6 @@ public interface GitProvenanceOrBuilder extends
   /**
    * <pre>
    * Resolved commit SHA for exact reproducibility.
-   *
-   * &#64;internal
-   * Always populated. Full 40-character SHA.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>
@@ -83,9 +62,6 @@ public interface GitProvenanceOrBuilder extends
   /**
    * <pre>
    * Resolved commit SHA for exact reproducibility.
-   *
-   * &#64;internal
-   * Always populated. Full 40-character SHA.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>

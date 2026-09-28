@@ -9,15 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * DeclaredPreferences carries the standing preference texts injected into
  * this execution's prompt, one field per declaring scope.
- *
- * &#64;internal
- * Verbatim copies of Organization.spec.preferences.standing_context and the
- * caller IdentityAccount.spec.preferences.standing_context at create time.
- * The server stamps content only; the runner owns all presentation —
- * preamble, per-scope attribution, ordering — via its
- * shared/declared-preferences.ts channel module (the established
- * content/presentation split). Blank means "inject nothing" per scope
- * (the shared-module blank-is-absent convention).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences}
@@ -117,10 +108,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The calling user's standing context, verbatim.
-   *
-   * &#64;internal
-   * Cloud-only: the OSS server never sets it — OSS has no per-request user
-   * identity, so the user scope collapses into the org scope (DD-002 D1).
    * </pre>
    *
    * <code>string user_context = 2 [json_name = "userContext"];</code>
@@ -142,10 +129,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The calling user's standing context, verbatim.
-   *
-   * &#64;internal
-   * Cloud-only: the OSS server never sets it — OSS has no per-request user
-   * identity, so the user scope collapses into the org scope (DD-002 D1).
    * </pre>
    *
    * <code>string user_context = 2 [json_name = "userContext"];</code>
@@ -336,15 +319,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * DeclaredPreferences carries the standing preference texts injected into
    * this execution's prompt, one field per declaring scope.
-   *
-   * &#64;internal
-   * Verbatim copies of Organization.spec.preferences.standing_context and the
-   * caller IdentityAccount.spec.preferences.standing_context at create time.
-   * The server stamps content only; the runner owns all presentation —
-   * preamble, per-scope attribution, ordering — via its
-   * shared/declared-preferences.ts channel module (the established
-   * content/presentation split). Blank means "inject nothing" per scope
-   * (the shared-module blank-is-absent convention).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences}
@@ -594,10 +568,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The calling user's standing context, verbatim.
-     *
-     * &#64;internal
-     * Cloud-only: the OSS server never sets it — OSS has no per-request user
-     * identity, so the user scope collapses into the org scope (DD-002 D1).
      * </pre>
      *
      * <code>string user_context = 2 [json_name = "userContext"];</code>
@@ -618,10 +588,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The calling user's standing context, verbatim.
-     *
-     * &#64;internal
-     * Cloud-only: the OSS server never sets it — OSS has no per-request user
-     * identity, so the user scope collapses into the org scope (DD-002 D1).
      * </pre>
      *
      * <code>string user_context = 2 [json_name = "userContext"];</code>
@@ -643,10 +609,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The calling user's standing context, verbatim.
-     *
-     * &#64;internal
-     * Cloud-only: the OSS server never sets it — OSS has no per-request user
-     * identity, so the user scope collapses into the org scope (DD-002 D1).
      * </pre>
      *
      * <code>string user_context = 2 [json_name = "userContext"];</code>
@@ -664,10 +626,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The calling user's standing context, verbatim.
-     *
-     * &#64;internal
-     * Cloud-only: the OSS server never sets it — OSS has no per-request user
-     * identity, so the user scope collapses into the org scope (DD-002 D1).
      * </pre>
      *
      * <code>string user_context = 2 [json_name = "userContext"];</code>
@@ -682,10 +640,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The calling user's standing context, verbatim.
-     *
-     * &#64;internal
-     * Cloud-only: the OSS server never sets it — OSS has no per-request user
-     * identity, so the user scope collapses into the org scope (DD-002 D1).
      * </pre>
      *
      * <code>string user_context = 2 [json_name = "userContext"];</code>

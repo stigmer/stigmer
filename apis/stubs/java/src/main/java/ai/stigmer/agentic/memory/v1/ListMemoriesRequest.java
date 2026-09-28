@@ -8,13 +8,6 @@ package ai.stigmer.agentic.memory.v1;
 /**
  * <pre>
  * Input for listing memories within an organization.
- *
- * &#64;internal
- * No subject filter by design: the cloud edition's list is FGA-filtered
- * to records the caller can view (can_view: subject), so every caller
- * already sees exactly their own memories; the OSS edition is
- * single-user. A subject parameter would be either redundant or an
- * information-disclosure bug.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.memory.v1.ListMemoriesRequest}
@@ -321,13 +314,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input for listing memories within an organization.
-   *
-   * &#64;internal
-   * No subject filter by design: the cloud edition's list is FGA-filtered
-   * to records the caller can view (can_view: subject), so every caller
-   * already sees exactly their own memories; the OSS edition is
-   * single-user. A subject parameter would be either redundant or an
-   * information-disclosure bug.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.memory.v1.ListMemoriesRequest}

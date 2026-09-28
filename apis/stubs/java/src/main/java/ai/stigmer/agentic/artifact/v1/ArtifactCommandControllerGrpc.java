@@ -5,18 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ArtifactCommandController handles write operations for Artifact resources.
- * &#64;internal
- * Follows the Command-Query Separation (CQS) pattern.
- * These RPCs are system-level — used by the runner (stigmer-runner)
- * to persist task outputs. They are NOT exposed to end users or the SDK.
- * Artifact creation flow:
- * 1. Runner detects output exceeding auto-promotion threshold (256KB)
- * 2. Runner calls create() with spec (metadata) + content (bytes)
- * 3. Backend hashes content, deduplicates, stores blob, creates record
- * 4. Runner receives Artifact with ID and status
- * 5. Runner replaces inline task output with artifact reference
- * 6. Runner includes artifact_created event in next updateStatus call
- * &#64;since T07 (Artifact Store)
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -151,18 +139,6 @@ public final class ArtifactCommandControllerGrpc {
   /**
    * <pre>
    * ArtifactCommandController handles write operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the runner (stigmer-runner)
-   * to persist task outputs. They are NOT exposed to end users or the SDK.
-   * Artifact creation flow:
-   * 1. Runner detects output exceeding auto-promotion threshold (256KB)
-   * 2. Runner calls create() with spec (metadata) + content (bytes)
-   * 3. Backend hashes content, deduplicates, stores blob, creates record
-   * 4. Runner receives Artifact with ID and status
-   * 5. Runner replaces inline task output with artifact reference
-   * 6. Runner includes artifact_created event in next updateStatus call
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public interface AsyncService {
@@ -176,17 +152,6 @@ public final class ArtifactCommandControllerGrpc {
      * 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)
      * 4. Creates Artifact metadata record with status populated
      * 5. Returns the created Artifact
-     * &#64;internal
-     * Authorization: skip_authorization (system-level RPC, called by runners)
-     * The runner authenticates via service identity, not user credentials.
-     * Idempotent by content hash: creating the same content twice returns
-     * two distinct Artifact metadata records pointing to the same blob.
-     * This is intentional — different tasks may independently produce the
-     * same content, and each needs its own provenance trail.
-     * Error Cases:
-     * - INVALID_ARGUMENT: spec or content is missing/invalid
-     * - RESOURCE_EXHAUSTED: content exceeds 50MB limit
-     * - INTERNAL: blob storage write failure
      * </pre>
      */
     default void create(ai.stigmer.agentic.artifact.v1.CreateArtifactInput request,
@@ -201,11 +166,6 @@ public final class ArtifactCommandControllerGrpc {
      * state to deleted and schedules the blob for garbage collection.
      * If other artifacts reference the same content hash, the blob is
      * retained until all references are deleted.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the artifact.
-     * Error Cases:
-     * - NOT_FOUND: Artifact with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -218,18 +178,6 @@ public final class ArtifactCommandControllerGrpc {
    * Base class for the server implementation of the service ArtifactCommandController.
    * <pre>
    * ArtifactCommandController handles write operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the runner (stigmer-runner)
-   * to persist task outputs. They are NOT exposed to end users or the SDK.
-   * Artifact creation flow:
-   * 1. Runner detects output exceeding auto-promotion threshold (256KB)
-   * 2. Runner calls create() with spec (metadata) + content (bytes)
-   * 3. Backend hashes content, deduplicates, stores blob, creates record
-   * 4. Runner receives Artifact with ID and status
-   * 5. Runner replaces inline task output with artifact reference
-   * 6. Runner includes artifact_created event in next updateStatus call
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static abstract class ArtifactCommandControllerImplBase
@@ -244,18 +192,6 @@ public final class ArtifactCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ArtifactCommandController.
    * <pre>
    * ArtifactCommandController handles write operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the runner (stigmer-runner)
-   * to persist task outputs. They are NOT exposed to end users or the SDK.
-   * Artifact creation flow:
-   * 1. Runner detects output exceeding auto-promotion threshold (256KB)
-   * 2. Runner calls create() with spec (metadata) + content (bytes)
-   * 3. Backend hashes content, deduplicates, stores blob, creates record
-   * 4. Runner receives Artifact with ID and status
-   * 5. Runner replaces inline task output with artifact reference
-   * 6. Runner includes artifact_created event in next updateStatus call
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactCommandControllerStub
@@ -280,17 +216,6 @@ public final class ArtifactCommandControllerGrpc {
      * 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)
      * 4. Creates Artifact metadata record with status populated
      * 5. Returns the created Artifact
-     * &#64;internal
-     * Authorization: skip_authorization (system-level RPC, called by runners)
-     * The runner authenticates via service identity, not user credentials.
-     * Idempotent by content hash: creating the same content twice returns
-     * two distinct Artifact metadata records pointing to the same blob.
-     * This is intentional — different tasks may independently produce the
-     * same content, and each needs its own provenance trail.
-     * Error Cases:
-     * - INVALID_ARGUMENT: spec or content is missing/invalid
-     * - RESOURCE_EXHAUSTED: content exceeds 50MB limit
-     * - INTERNAL: blob storage write failure
      * </pre>
      */
     public void create(ai.stigmer.agentic.artifact.v1.CreateArtifactInput request,
@@ -306,11 +231,6 @@ public final class ArtifactCommandControllerGrpc {
      * state to deleted and schedules the blob for garbage collection.
      * If other artifacts reference the same content hash, the blob is
      * retained until all references are deleted.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the artifact.
-     * Error Cases:
-     * - NOT_FOUND: Artifact with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -324,18 +244,6 @@ public final class ArtifactCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ArtifactCommandController.
    * <pre>
    * ArtifactCommandController handles write operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the runner (stigmer-runner)
-   * to persist task outputs. They are NOT exposed to end users or the SDK.
-   * Artifact creation flow:
-   * 1. Runner detects output exceeding auto-promotion threshold (256KB)
-   * 2. Runner calls create() with spec (metadata) + content (bytes)
-   * 3. Backend hashes content, deduplicates, stores blob, creates record
-   * 4. Runner receives Artifact with ID and status
-   * 5. Runner replaces inline task output with artifact reference
-   * 6. Runner includes artifact_created event in next updateStatus call
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactCommandControllerBlockingV2Stub
@@ -360,17 +268,6 @@ public final class ArtifactCommandControllerGrpc {
      * 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)
      * 4. Creates Artifact metadata record with status populated
      * 5. Returns the created Artifact
-     * &#64;internal
-     * Authorization: skip_authorization (system-level RPC, called by runners)
-     * The runner authenticates via service identity, not user credentials.
-     * Idempotent by content hash: creating the same content twice returns
-     * two distinct Artifact metadata records pointing to the same blob.
-     * This is intentional — different tasks may independently produce the
-     * same content, and each needs its own provenance trail.
-     * Error Cases:
-     * - INVALID_ARGUMENT: spec or content is missing/invalid
-     * - RESOURCE_EXHAUSTED: content exceeds 50MB limit
-     * - INTERNAL: blob storage write failure
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.Artifact create(ai.stigmer.agentic.artifact.v1.CreateArtifactInput request) throws io.grpc.StatusException {
@@ -385,11 +282,6 @@ public final class ArtifactCommandControllerGrpc {
      * state to deleted and schedules the blob for garbage collection.
      * If other artifacts reference the same content hash, the blob is
      * retained until all references are deleted.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the artifact.
-     * Error Cases:
-     * - NOT_FOUND: Artifact with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.Artifact delete(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -402,18 +294,6 @@ public final class ArtifactCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ArtifactCommandController.
    * <pre>
    * ArtifactCommandController handles write operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the runner (stigmer-runner)
-   * to persist task outputs. They are NOT exposed to end users or the SDK.
-   * Artifact creation flow:
-   * 1. Runner detects output exceeding auto-promotion threshold (256KB)
-   * 2. Runner calls create() with spec (metadata) + content (bytes)
-   * 3. Backend hashes content, deduplicates, stores blob, creates record
-   * 4. Runner receives Artifact with ID and status
-   * 5. Runner replaces inline task output with artifact reference
-   * 6. Runner includes artifact_created event in next updateStatus call
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactCommandControllerBlockingStub
@@ -438,17 +318,6 @@ public final class ArtifactCommandControllerGrpc {
      * 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)
      * 4. Creates Artifact metadata record with status populated
      * 5. Returns the created Artifact
-     * &#64;internal
-     * Authorization: skip_authorization (system-level RPC, called by runners)
-     * The runner authenticates via service identity, not user credentials.
-     * Idempotent by content hash: creating the same content twice returns
-     * two distinct Artifact metadata records pointing to the same blob.
-     * This is intentional — different tasks may independently produce the
-     * same content, and each needs its own provenance trail.
-     * Error Cases:
-     * - INVALID_ARGUMENT: spec or content is missing/invalid
-     * - RESOURCE_EXHAUSTED: content exceeds 50MB limit
-     * - INTERNAL: blob storage write failure
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.Artifact create(ai.stigmer.agentic.artifact.v1.CreateArtifactInput request) {
@@ -463,11 +332,6 @@ public final class ArtifactCommandControllerGrpc {
      * state to deleted and schedules the blob for garbage collection.
      * If other artifacts reference the same content hash, the blob is
      * retained until all references are deleted.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the artifact.
-     * Error Cases:
-     * - NOT_FOUND: Artifact with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.Artifact delete(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -480,18 +344,6 @@ public final class ArtifactCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ArtifactCommandController.
    * <pre>
    * ArtifactCommandController handles write operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the runner (stigmer-runner)
-   * to persist task outputs. They are NOT exposed to end users or the SDK.
-   * Artifact creation flow:
-   * 1. Runner detects output exceeding auto-promotion threshold (256KB)
-   * 2. Runner calls create() with spec (metadata) + content (bytes)
-   * 3. Backend hashes content, deduplicates, stores blob, creates record
-   * 4. Runner receives Artifact with ID and status
-   * 5. Runner replaces inline task output with artifact reference
-   * 6. Runner includes artifact_created event in next updateStatus call
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactCommandControllerFutureStub
@@ -516,17 +368,6 @@ public final class ArtifactCommandControllerGrpc {
      * 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)
      * 4. Creates Artifact metadata record with status populated
      * 5. Returns the created Artifact
-     * &#64;internal
-     * Authorization: skip_authorization (system-level RPC, called by runners)
-     * The runner authenticates via service identity, not user credentials.
-     * Idempotent by content hash: creating the same content twice returns
-     * two distinct Artifact metadata records pointing to the same blob.
-     * This is intentional — different tasks may independently produce the
-     * same content, and each needs its own provenance trail.
-     * Error Cases:
-     * - INVALID_ARGUMENT: spec or content is missing/invalid
-     * - RESOURCE_EXHAUSTED: content exceeds 50MB limit
-     * - INTERNAL: blob storage write failure
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.Artifact> create(
@@ -542,11 +383,6 @@ public final class ArtifactCommandControllerGrpc {
      * state to deleted and schedules the blob for garbage collection.
      * If other artifacts reference the same content hash, the blob is
      * retained until all references are deleted.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the artifact.
-     * Error Cases:
-     * - NOT_FOUND: Artifact with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.Artifact> delete(

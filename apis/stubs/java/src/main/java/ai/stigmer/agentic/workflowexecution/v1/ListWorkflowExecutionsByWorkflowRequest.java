@@ -8,10 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow.
- *
- * &#64;internal
- * Filters executions by Workflow or WorkflowInstance ID.
- * Unlike ListWorkflowExecutionsRequest (cross-workflow), this scopes to one workflow.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest}
@@ -66,9 +62,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -90,9 +83,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -491,10 +481,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow.
-   *
-   * &#64;internal
-   * Filters executions by Workflow or WorkflowInstance ID.
-   * Unlike ListWorkflowExecutionsRequest (cross-workflow), this scopes to one workflow.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest}
@@ -717,9 +703,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -740,9 +723,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -764,9 +744,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -784,9 +761,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -801,9 +775,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>

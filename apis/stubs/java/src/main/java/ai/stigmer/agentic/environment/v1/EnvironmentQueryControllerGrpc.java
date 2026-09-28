@@ -208,8 +208,6 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get an environment by ID.
-     * &#64;internal
-     * Authorization: requires can_view permission on the environment resource.
      * </pre>
      */
     default void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -221,9 +219,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get an environment by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -235,8 +230,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
      * Returns the EnvironmentValue with the decrypted value for exactly one key.
-     * &#64;internal
-     * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
      * </pre>
      */
     default void getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request,
@@ -248,9 +241,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * List environments with optional label filtering.
      * Secret values are redacted in the response.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     default void list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request,
@@ -295,8 +285,6 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get an environment by ID.
-     * &#64;internal
-     * Authorization: requires can_view permission on the environment resource.
      * </pre>
      */
     public void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -309,9 +297,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get an environment by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -324,8 +309,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
      * Returns the EnvironmentValue with the decrypted value for exactly one key.
-     * &#64;internal
-     * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
      * </pre>
      */
     public void getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request,
@@ -338,9 +321,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * List environments with optional label filtering.
      * Secret values are redacted in the response.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public void list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request,
@@ -372,8 +352,6 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get an environment by ID.
-     * &#64;internal
-     * Authorization: requires can_view permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment get(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -385,9 +363,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get an environment by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -399,8 +374,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
      * Returns the EnvironmentValue with the decrypted value for exactly one key.
-     * &#64;internal
-     * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentValue getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request) throws io.grpc.StatusException {
@@ -412,9 +385,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * List environments with optional label filtering.
      * Secret values are redacted in the response.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentList list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request) throws io.grpc.StatusException {
@@ -445,8 +415,6 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get an environment by ID.
-     * &#64;internal
-     * Authorization: requires can_view permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment get(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -458,9 +426,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get an environment by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -472,8 +437,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
      * Returns the EnvironmentValue with the decrypted value for exactly one key.
-     * &#64;internal
-     * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentValue getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request) {
@@ -485,9 +448,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * List environments with optional label filtering.
      * Secret values are redacted in the response.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentList list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request) {
@@ -518,8 +478,6 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get an environment by ID.
-     * &#64;internal
-     * Authorization: requires can_view permission on the environment resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> get(
@@ -532,9 +490,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get an environment by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> getByReference(
@@ -547,8 +502,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
      * Returns the EnvironmentValue with the decrypted value for exactly one key.
-     * &#64;internal
-     * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.EnvironmentValue> getSecretValue(
@@ -561,9 +514,6 @@ public final class EnvironmentQueryControllerGrpc {
      * <pre>
      * List environments with optional label filtering.
      * Secret values are redacted in the response.
-     * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.EnvironmentList> list(

@@ -2,9 +2,11 @@
 // from real generated stubs (apis/stubs/go, apis/stubs/ts,
 // apis/stubs/python) — carried verbatim from the Go tool's tests — so these
 // pin the exact shapes protoc-gen-go, protoc-gen-es, and grpc-python emit.
+// The Java samples come from apis/stubs/java and pin the javadoc shapes
+// protoc-java and grpc-java emit, including their &#64; escape of the marker.
 import { describe, expect, it } from "vitest";
 
-import { scrubGo, scrubPy, scrubTs, type Scrubber } from "./scrub.js";
+import { scrubberFor, scrubGo, scrubJava, scrubPy, scrubTs, type Scrubber } from "./scrub.js";
 
 interface ScrubCase {
   name: string;
@@ -165,4 +167,200 @@ describe("scrubPy", () => {
       changed: false,
     },
   ]);
+});
+
+describe("scrubJava", () => {
+  runScrubTests(scrubJava, [
+    {
+      name: "message javadoc cuts the escaped internal section and keeps the Protobuf type trailer",
+      input:
+        "/**\n" +
+        " * <pre>\n" +
+        " * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.\n" +
+        " *\n" +
+        " * The run_workflow kind is not supported yet: a Workflow that contains one is\n" +
+        " * refused when it is saved, because nothing resolves the child name to a\n" +
+        " * Workflow the platform can run.\n" +
+        " *\n" +
+        " * &#64;internal\n" +
+        " * The server's converter emits the child reference as `run.workflow` with\n" +
+        " * `name` and, when set, `input`, the shape the runner's run task reads. The\n" +
+        " * runner would start the name as a Temporal workflow type, and no worker\n" +
+        " * registers user workflows as types, so the write refuses the kind\n" +
+        " * (stigmer/stigmer#1311).\n" +
+        " * </pre>\n" +
+        " *\n" +
+        " * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig}\n" +
+        " */\n" +
+        "@com.google.protobuf.Generated\n",
+      want:
+        "/**\n" +
+        " * <pre>\n" +
+        " * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.\n" +
+        " *\n" +
+        " * The run_workflow kind is not supported yet: a Workflow that contains one is\n" +
+        " * refused when it is saved, because nothing resolves the child name to a\n" +
+        " * Workflow the platform can run.\n" +
+        " * </pre>\n" +
+        " *\n" +
+        " * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig}\n" +
+        " */\n" +
+        "@com.google.protobuf.Generated\n",
+      changed: true,
+    },
+    {
+      name: "field getter javadoc keeps the <code> and @return trailers",
+      input:
+        "  /**\n" +
+        "   * <pre>\n" +
+        "   * Resource metadata including name, organization, scope, and labels.\n" +
+        "   *\n" +
+        "   * &#64;internal\n" +
+        "   * AgentInstances can have platform, organization, or identity_account scope.\n" +
+        "   * </pre>\n" +
+        "   *\n" +
+        '   * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>\n' +
+        "   * @return Whether the metadata field is set.\n" +
+        "   */\n" +
+        "  boolean hasMetadata();\n",
+      want:
+        "  /**\n" +
+        "   * <pre>\n" +
+        "   * Resource metadata including name, organization, scope, and labels.\n" +
+        "   * </pre>\n" +
+        "   *\n" +
+        '   * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>\n' +
+        "   * @return Whether the metadata field is set.\n" +
+        "   */\n" +
+        "  boolean hasMetadata();\n",
+      changed: true,
+    },
+    {
+      name: "grpc-java javadoc keeps the prose before <pre> and closes right after </pre>",
+      input:
+        "  /**\n" +
+        "   * Base class for the server implementation of the service ActivityQueryController.\n" +
+        "   * <pre>\n" +
+        "   * ActivityQueryController provides cross-resource read queries for the\n" +
+        '   * activity feed — the unified "recents" sidebar that merges sessions and\n' +
+        "   * workflow executions into a single time-ordered list.\n" +
+        "   * This service exists because the recents list spans two bounded contexts\n" +
+        "   * (session and workflow_execution). A cross-cutting query service avoids\n" +
+        "   * forcing the client to make two parallel calls and merge client-side.\n" +
+        "   * &#64;internal\n" +
+        "   * Authorization is handled in-handler: the implementation queries FGA for\n" +
+        "   * authorized session and workflow_execution IDs, then runs a single merged\n" +
+        "   * MongoDB query.\n" +
+        "   * </pre>\n" +
+        "   */\n" +
+        "  public static abstract class ActivityQueryControllerImplBase\n",
+      want:
+        "  /**\n" +
+        "   * Base class for the server implementation of the service ActivityQueryController.\n" +
+        "   * <pre>\n" +
+        "   * ActivityQueryController provides cross-resource read queries for the\n" +
+        '   * activity feed — the unified "recents" sidebar that merges sessions and\n' +
+        "   * workflow executions into a single time-ordered list.\n" +
+        "   * This service exists because the recents list spans two bounded contexts\n" +
+        "   * (session and workflow_execution). A cross-cutting query service avoids\n" +
+        "   * forcing the client to make two parallel calls and merge client-side.\n" +
+        "   * </pre>\n" +
+        "   */\n" +
+        "  public static abstract class ActivityQueryControllerImplBase\n",
+      changed: true,
+    },
+    {
+      name: "the literal marker form is cut as well",
+      input:
+        "  /**\n" +
+        "   * <pre>\n" +
+        "   * Public text.\n" +
+        "   * @internal\n" +
+        "   * Private text.\n" +
+        "   * </pre>\n" +
+        "   *\n" +
+        "   * <code>string x = 1;</code>\n" +
+        "   */\n",
+      want:
+        "  /**\n" +
+        "   * <pre>\n" +
+        "   * Public text.\n" +
+        "   * </pre>\n" +
+        "   *\n" +
+        "   * <code>string x = 1;</code>\n" +
+        "   */\n",
+      changed: true,
+    },
+    {
+      name: "a fully internal <pre> is dropped with its separator, leaving the uncommented shape",
+      input:
+        "  /**\n" +
+        "   * <pre>\n" +
+        "   * &#64;internal\n" +
+        "   * Storage strategy notes.\n" +
+        "   * </pre>\n" +
+        "   *\n" +
+        "   * <code>string x = 1;</code>\n" +
+        "   * @return The x.\n" +
+        "   */\n" +
+        "  java.lang.String getX();\n",
+      want:
+        "  /**\n" +
+        "   * <code>string x = 1;</code>\n" +
+        "   * @return The x.\n" +
+        "   */\n" +
+        "  java.lang.String getX();\n",
+      changed: true,
+    },
+    {
+      name: "a fully internal block with nothing else to say is dropped",
+      input:
+        "    /**\n" +
+        "     * <pre>\n" +
+        "     * &#64;internal\n" +
+        "     * Authorization notes.\n" +
+        "     * </pre>\n" +
+        "     */\n" +
+        "    default void list() {\n",
+      want: "    default void list() {\n",
+      changed: true,
+    },
+    {
+      name: "marker-free javadoc is untouched",
+      input:
+        "  /**\n" +
+        "   * <pre>\n" +
+        "   * Plain doc that mentions &#64;internal inline only.\n" +
+        "   * </pre>\n" +
+        "   *\n" +
+        "   * <code>string x = 1;</code>\n" +
+        "   */\n",
+      changed: false,
+    },
+    {
+      name: "a marker outside a <pre> span is not javadoc protoc emits and is untouched",
+      input: "  /**\n   * &#64;internal\n   * Text.\n   */\n",
+      changed: false,
+    },
+    {
+      name: "an unterminated <pre> span is untouched",
+      input: "  /**\n   * <pre>\n   * Doc.\n   * &#64;internal\n   * Notes.\n   */\n",
+      changed: false,
+    },
+    {
+      name: "an unterminated block is untouched",
+      input: "  /**\n   * <pre>\n   * Doc.\n   * &#64;internal\n   * Notes.\n   * </pre>\n",
+      changed: false,
+    },
+  ]);
+});
+
+describe("scrubberFor", () => {
+  it("selects each scrubber by extension and skips everything else", () => {
+    expect(scrubberFor("a/b.go")).toBe(scrubGo);
+    expect(scrubberFor("a/b.ts")).toBe(scrubTs);
+    expect(scrubberFor("a/b_pb2_grpc.py")).toBe(scrubPy);
+    expect(scrubberFor("a/B.java")).toBe(scrubJava);
+    expect(scrubberFor("a/pom.xml")).toBeNull();
+  });
 });

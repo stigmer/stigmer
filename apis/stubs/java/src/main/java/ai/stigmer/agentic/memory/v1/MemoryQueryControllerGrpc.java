@@ -5,14 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * MemoryQueryController handles read operations for memories.
- * &#64;internal
- * Content visibility is subject-only (DD-004 as ratified): org admins
- * govern the memory_enabled switch but never read members' memories.
- * The one deliberate exception is the recalled_memories snapshot on an
- * execution spec, readable by anyone who can read that execution
- * (DD-006 D6 — snapshot transparency); these RPCs are not that
- * exception. Not search-indexed: memory content stays out of the
- * global search index by design.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -147,14 +139,6 @@ public final class MemoryQueryControllerGrpc {
   /**
    * <pre>
    * MemoryQueryController handles read operations for memories.
-   * &#64;internal
-   * Content visibility is subject-only (DD-004 as ratified): org admins
-   * govern the memory_enabled switch but never read members' memories.
-   * The one deliberate exception is the recalled_memories snapshot on an
-   * execution spec, readable by anyone who can read that execution
-   * (DD-006 D6 — snapshot transparency); these RPCs are not that
-   * exception. Not search-indexed: memory content stays out of the
-   * global search index by design.
    * </pre>
    */
   public interface AsyncService {
@@ -174,13 +158,6 @@ public final class MemoryQueryControllerGrpc {
      * List the caller's memories in an organization.
      * Returns only memories the caller can view — for memories that is
      * always exactly the ones about the caller.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud: ListObjects
-     * over can_view, which resolves to the subject relation) or
-     * unrestricted store queries (OSS single-user). The console memory
-     * page lists through this RPC and groups pending proposals first
-     * (DD-005 D4) — ordering is a presentation concern, deliberately not
-     * an RPC parameter at dozens-of-records scale.
      * </pre>
      */
     default void list(ai.stigmer.agentic.memory.v1.ListMemoriesRequest request,
@@ -193,14 +170,6 @@ public final class MemoryQueryControllerGrpc {
    * Base class for the server implementation of the service MemoryQueryController.
    * <pre>
    * MemoryQueryController handles read operations for memories.
-   * &#64;internal
-   * Content visibility is subject-only (DD-004 as ratified): org admins
-   * govern the memory_enabled switch but never read members' memories.
-   * The one deliberate exception is the recalled_memories snapshot on an
-   * execution spec, readable by anyone who can read that execution
-   * (DD-006 D6 — snapshot transparency); these RPCs are not that
-   * exception. Not search-indexed: memory content stays out of the
-   * global search index by design.
    * </pre>
    */
   public static abstract class MemoryQueryControllerImplBase
@@ -215,14 +184,6 @@ public final class MemoryQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service MemoryQueryController.
    * <pre>
    * MemoryQueryController handles read operations for memories.
-   * &#64;internal
-   * Content visibility is subject-only (DD-004 as ratified): org admins
-   * govern the memory_enabled switch but never read members' memories.
-   * The one deliberate exception is the recalled_memories snapshot on an
-   * execution spec, readable by anyone who can read that execution
-   * (DD-006 D6 — snapshot transparency); these RPCs are not that
-   * exception. Not search-indexed: memory content stays out of the
-   * global search index by design.
    * </pre>
    */
   public static final class MemoryQueryControllerStub
@@ -254,13 +215,6 @@ public final class MemoryQueryControllerGrpc {
      * List the caller's memories in an organization.
      * Returns only memories the caller can view — for memories that is
      * always exactly the ones about the caller.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud: ListObjects
-     * over can_view, which resolves to the subject relation) or
-     * unrestricted store queries (OSS single-user). The console memory
-     * page lists through this RPC and groups pending proposals first
-     * (DD-005 D4) — ordering is a presentation concern, deliberately not
-     * an RPC parameter at dozens-of-records scale.
      * </pre>
      */
     public void list(ai.stigmer.agentic.memory.v1.ListMemoriesRequest request,
@@ -274,14 +228,6 @@ public final class MemoryQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service MemoryQueryController.
    * <pre>
    * MemoryQueryController handles read operations for memories.
-   * &#64;internal
-   * Content visibility is subject-only (DD-004 as ratified): org admins
-   * govern the memory_enabled switch but never read members' memories.
-   * The one deliberate exception is the recalled_memories snapshot on an
-   * execution spec, readable by anyone who can read that execution
-   * (DD-006 D6 — snapshot transparency); these RPCs are not that
-   * exception. Not search-indexed: memory content stays out of the
-   * global search index by design.
    * </pre>
    */
   public static final class MemoryQueryControllerBlockingV2Stub
@@ -312,13 +258,6 @@ public final class MemoryQueryControllerGrpc {
      * List the caller's memories in an organization.
      * Returns only memories the caller can view — for memories that is
      * always exactly the ones about the caller.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud: ListObjects
-     * over can_view, which resolves to the subject relation) or
-     * unrestricted store queries (OSS single-user). The console memory
-     * page lists through this RPC and groups pending proposals first
-     * (DD-005 D4) — ordering is a presentation concern, deliberately not
-     * an RPC parameter at dozens-of-records scale.
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.MemoryList list(ai.stigmer.agentic.memory.v1.ListMemoriesRequest request) throws io.grpc.StatusException {
@@ -331,14 +270,6 @@ public final class MemoryQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service MemoryQueryController.
    * <pre>
    * MemoryQueryController handles read operations for memories.
-   * &#64;internal
-   * Content visibility is subject-only (DD-004 as ratified): org admins
-   * govern the memory_enabled switch but never read members' memories.
-   * The one deliberate exception is the recalled_memories snapshot on an
-   * execution spec, readable by anyone who can read that execution
-   * (DD-006 D6 — snapshot transparency); these RPCs are not that
-   * exception. Not search-indexed: memory content stays out of the
-   * global search index by design.
    * </pre>
    */
   public static final class MemoryQueryControllerBlockingStub
@@ -369,13 +300,6 @@ public final class MemoryQueryControllerGrpc {
      * List the caller's memories in an organization.
      * Returns only memories the caller can view — for memories that is
      * always exactly the ones about the caller.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud: ListObjects
-     * over can_view, which resolves to the subject relation) or
-     * unrestricted store queries (OSS single-user). The console memory
-     * page lists through this RPC and groups pending proposals first
-     * (DD-005 D4) — ordering is a presentation concern, deliberately not
-     * an RPC parameter at dozens-of-records scale.
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.MemoryList list(ai.stigmer.agentic.memory.v1.ListMemoriesRequest request) {
@@ -388,14 +312,6 @@ public final class MemoryQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service MemoryQueryController.
    * <pre>
    * MemoryQueryController handles read operations for memories.
-   * &#64;internal
-   * Content visibility is subject-only (DD-004 as ratified): org admins
-   * govern the memory_enabled switch but never read members' memories.
-   * The one deliberate exception is the recalled_memories snapshot on an
-   * execution spec, readable by anyone who can read that execution
-   * (DD-006 D6 — snapshot transparency); these RPCs are not that
-   * exception. Not search-indexed: memory content stays out of the
-   * global search index by design.
    * </pre>
    */
   public static final class MemoryQueryControllerFutureStub
@@ -427,13 +343,6 @@ public final class MemoryQueryControllerGrpc {
      * List the caller's memories in an organization.
      * Returns only memories the caller can view — for memories that is
      * always exactly the ones about the caller.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud: ListObjects
-     * over can_view, which resolves to the subject relation) or
-     * unrestricted store queries (OSS single-user). The console memory
-     * page lists through this RPC and groups pending proposals first
-     * (DD-005 D4) — ordering is a presentation concern, deliberately not
-     * an RPC parameter at dozens-of-records scale.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.memory.v1.MemoryList> list(

@@ -8,10 +8,6 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * AgentSpec defines the configurable properties of an agent.
- *
- * &#64;internal
- * This is the "Template" layer — declares capabilities and requirements.
- * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentSpec}
@@ -764,10 +760,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * AgentSpec defines the configurable properties of an agent.
-   *
-   * &#64;internal
-   * This is the "Template" layer — declares capabilities and requirements.
-   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentSpec}

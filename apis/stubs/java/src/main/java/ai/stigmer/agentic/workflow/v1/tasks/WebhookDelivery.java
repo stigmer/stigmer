@@ -9,13 +9,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * <pre>
  * WebhookDelivery posts the CloudEvents envelope to an external HTTP
  * endpoint with Content-Type: application/cloudevents+json.
- *
- * &#64;internal
- * Executed by the runner's emit-event activity (deliverWebhook): plain
- * fetch, 30s timeout, response body never read into the envelope. Egress
- * posture matches the http_call task — both let workflow authors reach
- * arbitrary URLs from the runner, so any future egress policy must govern
- * the two surfaces together (ruled at oss#530).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery}
@@ -415,13 +408,6 @@ java.lang.String defaultValue) {
    * <pre>
    * WebhookDelivery posts the CloudEvents envelope to an external HTTP
    * endpoint with Content-Type: application/cloudevents+json.
-   *
-   * &#64;internal
-   * Executed by the runner's emit-event activity (deliverWebhook): plain
-   * fetch, 30s timeout, response body never read into the envelope. Egress
-   * posture matches the http_call task — both let workflow authors reach
-   * arbitrary URLs from the runner, so any future egress policy must govern
-   * the two surfaces together (ruled at oss#530).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery}

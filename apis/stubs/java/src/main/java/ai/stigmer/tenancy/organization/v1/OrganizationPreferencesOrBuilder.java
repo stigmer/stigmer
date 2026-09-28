@@ -14,12 +14,6 @@ public interface OrganizationPreferencesOrBuilder extends
    * <pre>
    * Free-text standing context injected into eligible agent executions in
    * this organization. Example: "We deploy to us-east-1."
-   *
-   * &#64;internal
-   * Snapshotted verbatim into
-   * AgentExecutionSpec.declared_preferences.org_context at execution create
-   * (first-party human operators only, DD-002 D4 as amended). The runner
-   * frames it as context, not instructions that override the task.
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -30,12 +24,6 @@ public interface OrganizationPreferencesOrBuilder extends
    * <pre>
    * Free-text standing context injected into eligible agent executions in
    * this organization. Example: "We deploy to us-east-1."
-   *
-   * &#64;internal
-   * Snapshotted verbatim into
-   * AgentExecutionSpec.declared_preferences.org_context at execution create
-   * (first-party human operators only, DD-002 D4 as amended). The runner
-   * frames it as context, not instructions that override the task.
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -49,19 +37,6 @@ public interface OrganizationPreferencesOrBuilder extends
    * Whether agents may retain learned facts about members of this
    * organization. Off by default: when off, the remember tool is never
    * offered and nothing is recalled, regardless of member opt-in.
-   *
-   * &#64;internal
-   * The org half of memory's double opt-in (DD-006 D1): effective
-   * enablement = org memory_enabled AND the member's own memory_enabled
-   * AND first-party human operator. An enablement gate, not a bound —
-   * it does not parameterize member behavior, so it lives in
-   * preferences legitimately (DD-003 refinement 2); real bounds
-   * (retention ceilings) would go to a sibling policies message.
-   * Deliberately a bool, not an enum: a genuine on/off switch — finer
-   * policy becomes new fields when evidence demands them. Enforced
-   * fail-closed at memory create (DD-005 D2) and read at recall compose
-   * (DD-006 D3). OSS local mode: this flag alone governs (single user,
-   * no account scope).
    * </pre>
    *
    * <code>bool memory_enabled = 2 [json_name = "memoryEnabled"];</code>

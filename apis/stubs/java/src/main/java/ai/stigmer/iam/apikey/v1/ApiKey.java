@@ -11,10 +11,6 @@ package ai.stigmer.iam.apikey.v1;
  *
  * Each API key is scoped to a single identity account (user or machine) and
  * can optionally be configured to expire.
- *
- * &#64;internal
- * The raw key value is returned only once in the create response. Only the
- * hash and fingerprint are persisted.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKey}
@@ -490,10 +486,6 @@ private static final long serialVersionUID = 0L;
    *
    * Each API key is scoped to a single identity account (user or machine) and
    * can optionally be configured to expire.
-   *
-   * &#64;internal
-   * The raw key value is returned only once in the create response. Only the
-   * hash and fingerprint are persisted.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKey}

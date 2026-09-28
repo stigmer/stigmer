@@ -33,10 +33,6 @@ public interface ExecutionContextSpecOrBuilder extends
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -45,10 +41,6 @@ public interface ExecutionContextSpecOrBuilder extends
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -64,10 +56,6 @@ public interface ExecutionContextSpecOrBuilder extends
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -77,10 +65,6 @@ public interface ExecutionContextSpecOrBuilder extends
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -93,10 +77,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>

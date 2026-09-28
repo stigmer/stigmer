@@ -15,12 +15,6 @@ package ai.stigmer.iam.team.v1;
  * someone who leaves the team, or leaves the organization, loses it at once.
  * A team belongs to its organization: only the organization's members can be
  * in it, and its administrators manage it.
- *
- * &#64;internal
- * Served by the Enterprise and Cloud editions (tier enterprise). Membership
- * is bounded by organization membership inside the authorization model
- * (`define member: [identity_account] and viewer from organization`), so no
- * cleanup is needed when a person leaves the organization.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.team.v1.Team}
@@ -503,12 +497,6 @@ private static final long serialVersionUID = 0L;
    * someone who leaves the team, or leaves the organization, loses it at once.
    * A team belongs to its organization: only the organization's members can be
    * in it, and its administrators manage it.
-   *
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions (tier enterprise). Membership
-   * is bounded by organization membership inside the authorization model
-   * (`define member: [identity_account] and viewer from organization`), so no
-   * cleanup is needed when a person leaves the organization.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.team.v1.Team}

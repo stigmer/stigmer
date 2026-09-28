@@ -9,15 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ChannelConversationListFilter names the server-evaluated predicates the
  * conversation list can be narrowed to.
- *
- * &#64;internal
- * channel-conversations DD-011 D-f/D-g: filter_wants_human expresses
- * EXACTLY the nav badge's union, and the badge count is the filtered
- * list's total_count — one predicate in one handler, so the count and the
- * list it opens can never disagree. Server-side deliberately (T04 D1's
- * standing objection): a client-side tab over one fetched page would
- * silently lie across pages. Values carry the filter_ prefix — proto3
- * enum values are package-scoped (the control_ precedent).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter}

@@ -8,14 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * FlowControl defines which task executes next after the current task completes.
- *
- * &#64;internal
- * Maps to the `then:` directive in Zigflow DSL.
- *
- * Examples:
- * - {"then": "nextTaskName"} - Jump to specific task
- * - {"then": "end"} - Terminate workflow
- * - Not set - Continue to next task in sequence (default)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.FlowControl}
@@ -267,14 +259,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * FlowControl defines which task executes next after the current task completes.
-   *
-   * &#64;internal
-   * Maps to the `then:` directive in Zigflow DSL.
-   *
-   * Examples:
-   * - {"then": "nextTaskName"} - Jump to specific task
-   * - {"then": "end"} - Terminate workflow
-   * - Not set - Continue to next task in sequence (default)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.FlowControl}

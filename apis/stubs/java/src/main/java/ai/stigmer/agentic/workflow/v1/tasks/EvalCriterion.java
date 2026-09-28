@@ -8,13 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * EvalCriterion defines a single evaluation dimension for multi-criteria mode.
- *
- * &#64;internal
- * When scoring_mode is EVAL_MULTI_CRITERIA, these criteria are included
- * in the judge prompt as distinct evaluation axes. Each criterion gets
- * its own score and reasoning in the output.
- *
- * &#64;since T17 (Advanced Agentic Orchestration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EvalCriterion}
@@ -362,13 +355,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * EvalCriterion defines a single evaluation dimension for multi-criteria mode.
-   *
-   * &#64;internal
-   * When scoring_mode is EVAL_MULTI_CRITERIA, these criteria are included
-   * in the judge prompt as distinct evaluation axes. Each criterion gets
-   * its own score and reasoning in the output.
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EvalCriterion}

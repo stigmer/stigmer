@@ -10,7 +10,7 @@
 //
 // Usage:
 //
-//	stubscrub DIR...          scrub .go/.ts/.py files under each DIR in place
+//	stubscrub DIR...          scrub .go/.ts/.py/.java files under each DIR in place
 //	stubscrub -check DIR...   exit 1 listing files that still carry markers
 //
 // Exit codes and message shapes match the retired Go implementation so
@@ -21,7 +21,7 @@ import * as path from "node:path";
 import * as process from "node:process";
 
 import { MARKER } from "../internalcomment/internalcomment.js";
-import { scrubberFor } from "./scrub.js";
+import { JAVA_ESCAPED_MARKER, scrubberFor } from "./scrub.js";
 
 function usage(): never {
   process.stderr.write("usage: stubscrub [-check] DIR...\n");
@@ -49,7 +49,7 @@ function main(argv: string[]): void {
         const scrub = scrubberFor(filePath);
         if (scrub === null) continue;
         const data = fs.readFileSync(filePath, "utf8");
-        if (!data.includes(MARKER)) continue;
+        if (!data.includes(MARKER) && !data.includes(JAVA_ESCAPED_MARKER)) continue;
         const [out, changed] = scrub(data);
         if (!changed) continue;
         if (check) {

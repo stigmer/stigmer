@@ -8,32 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * ConnectInput is the request for the connect RPC.
- *
- * &#64;internal
- * Triggers server-side MCP discovery and tool approval classification:
- * the backend creates an ephemeral ExecutionContext with the resolved
- * environment variables, starts a Temporal workflow that connects to the
- * MCP server (via the runner), enumerates tools and resource
- * templates, classifies tool approval policies, and stores the results
- * in status.discovered_capabilities and status.tool_approvals.
- *
- * Environment variable resolution:
- * - When runtime_env is provided, the backend creates an ExecutionContext directly
- * from these values (one-time use, values are not persisted to any environment).
- * - When runtime_env is empty, the backend resolves values from the authenticated
- * user's personal environment.
- *
- * Callers:
- * - Web console: calls connect after saving credentials to personal environment.
- * - CLI: calls connect with runtime_env populated from local env vars.
- * - Runner backfill: calls connect with runtime_env from execution context
- * when status.discovered_capabilities is empty on first agent execution.
- *
- * Prerequisites:
- * - The MCP server must exist and have a valid server_type (stdio or http)
- * - org must be provided (the caller's active organization)
- * - Either runtime_env must contain all required keys, or the keys must be
- * present in the user's personal environment / managed OAuth environment
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}
@@ -490,32 +464,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * ConnectInput is the request for the connect RPC.
-   *
-   * &#64;internal
-   * Triggers server-side MCP discovery and tool approval classification:
-   * the backend creates an ephemeral ExecutionContext with the resolved
-   * environment variables, starts a Temporal workflow that connects to the
-   * MCP server (via the runner), enumerates tools and resource
-   * templates, classifies tool approval policies, and stores the results
-   * in status.discovered_capabilities and status.tool_approvals.
-   *
-   * Environment variable resolution:
-   * - When runtime_env is provided, the backend creates an ExecutionContext directly
-   * from these values (one-time use, values are not persisted to any environment).
-   * - When runtime_env is empty, the backend resolves values from the authenticated
-   * user's personal environment.
-   *
-   * Callers:
-   * - Web console: calls connect after saving credentials to personal environment.
-   * - CLI: calls connect with runtime_env populated from local env vars.
-   * - Runner backfill: calls connect with runtime_env from execution context
-   * when status.discovered_capabilities is empty on first agent execution.
-   *
-   * Prerequisites:
-   * - The MCP server must exist and have a valid server_type (stdio or http)
-   * - org must be provided (the caller's active organization)
-   * - Either runtime_env must contain all required keys, or the keys must be
-   * present in the user's personal environment / managed OAuth environment
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}

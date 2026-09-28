@@ -11,10 +11,6 @@ package ai.stigmer.agentic.agent.v1;
  *
  * The slug from mcp_server_ref identifies this server for SubAgent access
  * grants via McpAccess.
- *
- * &#64;internal
- * Design principle: Users already named their McpServer with a slug.
- * We use that slug as the identifier — no extra naming required.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpServerUsage}
@@ -110,30 +106,6 @@ private static final long serialVersionUID = 0L;
    * Tools to enable from this MCP server for this agent.
    * Empty list uses the McpServer's default_enabled_tools.
    * Sub-agents can only restrict this set further, not expand it.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-   * name the referenced server's discovered_capabilities.tools does not
-   * contain, with the valid names in the error. The check is skipped when
-   * the server has no discovered capabilities yet (never connected) —
-   * there is nothing authoritative to validate against in that window.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name (possible when the manifest
-   * was applied before the server's first connect, or when the toolset
-   * changed since) is warned in the runner log and ignored, so a stale
-   * entry narrows the toolset but never widens it or fails the run.
-   *
-   * Per-harness runtime enforcement: the native (deep-agent) harness filters
-   * the discovered toolset before it reaches the model; the Cursor harness
-   * cannot hide a server's tools (its SDK config has no allow-list field),
-   * so its HITL hook permanently denies calls to non-enabled tools instead —
-   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -148,30 +120,6 @@ private static final long serialVersionUID = 0L;
    * Tools to enable from this MCP server for this agent.
    * Empty list uses the McpServer's default_enabled_tools.
    * Sub-agents can only restrict this set further, not expand it.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-   * name the referenced server's discovered_capabilities.tools does not
-   * contain, with the valid names in the error. The check is skipped when
-   * the server has no discovered capabilities yet (never connected) —
-   * there is nothing authoritative to validate against in that window.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name (possible when the manifest
-   * was applied before the server's first connect, or when the toolset
-   * changed since) is warned in the runner log and ignored, so a stale
-   * entry narrows the toolset but never widens it or fails the run.
-   *
-   * Per-harness runtime enforcement: the native (deep-agent) harness filters
-   * the discovered toolset before it reaches the model; the Cursor harness
-   * cannot hide a server's tools (its SDK config has no allow-list field),
-   * so its HITL hook permanently denies calls to non-enabled tools instead —
-   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -185,30 +133,6 @@ private static final long serialVersionUID = 0L;
    * Tools to enable from this MCP server for this agent.
    * Empty list uses the McpServer's default_enabled_tools.
    * Sub-agents can only restrict this set further, not expand it.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-   * name the referenced server's discovered_capabilities.tools does not
-   * contain, with the valid names in the error. The check is skipped when
-   * the server has no discovered capabilities yet (never connected) —
-   * there is nothing authoritative to validate against in that window.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name (possible when the manifest
-   * was applied before the server's first connect, or when the toolset
-   * changed since) is warned in the runner log and ignored, so a stale
-   * entry narrows the toolset but never widens it or fails the run.
-   *
-   * Per-harness runtime enforcement: the native (deep-agent) harness filters
-   * the discovered toolset before it reaches the model; the Cursor harness
-   * cannot hide a server's tools (its SDK config has no allow-list field),
-   * so its HITL hook permanently denies calls to non-enabled tools instead —
-   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -223,30 +147,6 @@ private static final long serialVersionUID = 0L;
    * Tools to enable from this MCP server for this agent.
    * Empty list uses the McpServer's default_enabled_tools.
    * Sub-agents can only restrict this set further, not expand it.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-   * name the referenced server's discovered_capabilities.tools does not
-   * contain, with the valid names in the error. The check is skipped when
-   * the server has no discovered capabilities yet (never connected) —
-   * there is nothing authoritative to validate against in that window.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name (possible when the manifest
-   * was applied before the server's first connect, or when the toolset
-   * changed since) is warned in the runner log and ignored, so a stale
-   * entry narrows the toolset but never widens it or fails the run.
-   *
-   * Per-harness runtime enforcement: the native (deep-agent) harness filters
-   * the discovered toolset before it reaches the model; the Cursor harness
-   * cannot hide a server's tools (its SDK config has no allow-list field),
-   * so its HITL hook permanently denies calls to non-enabled tools instead —
-   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -547,10 +447,6 @@ private static final long serialVersionUID = 0L;
    *
    * The slug from mcp_server_ref identifies this server for SubAgent access
    * grants via McpAccess.
-   *
-   * &#64;internal
-   * Design principle: Users already named their McpServer with a slug.
-   * We use that slug as the identifier — no extra naming required.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpServerUsage}
@@ -956,30 +852,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -995,30 +867,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1032,30 +880,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1070,30 +894,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1109,30 +909,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1154,30 +930,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1198,30 +950,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1242,30 +970,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1283,30 +987,6 @@ private static final long serialVersionUID = 0L;
      * Tools to enable from this MCP server for this agent.
      * Empty list uses the McpServer's default_enabled_tools.
      * Sub-agents can only restrict this set further, not expand it.
-     *
-     * &#64;internal
-     * Tool names must match exactly what the MCP server reports via tools/list.
-     * Only names from discovered_capabilities.tools are valid here.
-     * Do NOT include names from discovered_capabilities.resource_templates —
-     * resource templates are read-only data endpoints, not callable tools.
-     *
-     * Enforcement is two-layered:
-     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-     * name the referenced server's discovered_capabilities.tools does not
-     * contain, with the valid names in the error. The check is skipped when
-     * the server has no discovered capabilities yet (never connected) —
-     * there is nothing authoritative to validate against in that window.
-     * - Execution time: the runner enforces the INTERSECTION with the
-     * server's live toolset — an unknown name (possible when the manifest
-     * was applied before the server's first connect, or when the toolset
-     * changed since) is warned in the runner log and ignored, so a stale
-     * entry narrows the toolset but never widens it or fails the run.
-     *
-     * Per-harness runtime enforcement: the native (deep-agent) harness filters
-     * the discovered toolset before it reaches the model; the Cursor harness
-     * cannot hide a server's tools (its SDK config has no allow-list field),
-     * so its HITL hook permanently denies calls to non-enabled tools instead —
-     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>

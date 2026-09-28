@@ -8,10 +8,6 @@ package ai.stigmer.agentic.session.v1;
 /**
  * <pre>
  * SessionSpec defines the configurable properties of a session.
- *
- * &#64;internal
- * This is the "Execution" layer — ephemeral runtime against an AgentInstance.
- * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.SessionSpec}
@@ -91,13 +87,6 @@ private static final long serialVersionUID = 0L;
    * A session may gain an agent or drop back to the built-in assistant on
    * update; the harness and execution target are the immutable fields, not
    * this one.
-   *
-   * &#64;internal
-   * Nothing resolves an empty value into an instance: the run gate makes no
-   * target check (the organization's can_create_session admitted the
-   * conversation and the session's can_create_execution_in admits each
-   * turn), and the runner resolves an agent-less blueprint whose instructions
-   * are the one built-in prompt.
    * </pre>
    *
    * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -125,13 +114,6 @@ private static final long serialVersionUID = 0L;
    * A session may gain an agent or drop back to the built-in assistant on
    * update; the harness and execution target are the immutable fields, not
    * this one.
-   *
-   * &#64;internal
-   * Nothing resolves an empty value into an instance: the run gate makes no
-   * target check (the organization's can_create_session admitted the
-   * conversation and the session's can_create_execution_in admits each
-   * turn), and the runner resolves an agent-less blueprint whose instructions
-   * are the one built-in prompt.
    * </pre>
    *
    * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -216,11 +198,6 @@ private static final long serialVersionUID = 0L;
    * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
    * returned by Agent.create(). Used for Agent.resume() on
    * subsequent executions.
-   *
-   * &#64;internal
-   * Also serves as the immutability sentinel: when non-empty, the
-   * session's harness and cursor_mode cannot be changed — each harness
-   * owns its conversation state independently.
    * </pre>
    *
    * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -253,11 +230,6 @@ private static final long serialVersionUID = 0L;
    * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
    * returned by Agent.create(). Used for Agent.resume() on
    * subsequent executions.
-   *
-   * &#64;internal
-   * Also serves as the immutability sentinel: when non-empty, the
-   * session's harness and cursor_mode cannot be changed — each harness
-   * owns its conversation state independently.
    * </pre>
    *
    * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -289,14 +261,6 @@ private static final long serialVersionUID = 0L;
    * A session can span multiple harness-side conversations: when the
    * cursor-runner's resume fails, it creates a fresh Cursor agent and
    * replaces harness_state_id, and the replaced id lands here.
-   *
-   * &#64;internal
-   * Server-owned, append-only. The update handler computes the append from
-   * the observed harness_state_id transition — client-supplied values for
-   * this field are discarded, so a stale client resending an old spec can
-   * never clobber the history. Billing reconciliation joins Cursor ledger
-   * events on the union of current + prior ids; dropping a replaced id
-   * would orphan the ledger events of every turn that ran under it.
    * </pre>
    *
    * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -313,14 +277,6 @@ private static final long serialVersionUID = 0L;
    * A session can span multiple harness-side conversations: when the
    * cursor-runner's resume fails, it creates a fresh Cursor agent and
    * replaces harness_state_id, and the replaced id lands here.
-   *
-   * &#64;internal
-   * Server-owned, append-only. The update handler computes the append from
-   * the observed harness_state_id transition — client-supplied values for
-   * this field are discarded, so a stale client resending an old spec can
-   * never clobber the history. Billing reconciliation joins Cursor ledger
-   * events on the union of current + prior ids; dropping a replaced id
-   * would orphan the ledger events of every turn that ran under it.
    * </pre>
    *
    * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -336,14 +292,6 @@ private static final long serialVersionUID = 0L;
    * A session can span multiple harness-side conversations: when the
    * cursor-runner's resume fails, it creates a fresh Cursor agent and
    * replaces harness_state_id, and the replaced id lands here.
-   *
-   * &#64;internal
-   * Server-owned, append-only. The update handler computes the append from
-   * the observed harness_state_id transition — client-supplied values for
-   * this field are discarded, so a stale client resending an old spec can
-   * never clobber the history. Billing reconciliation joins Cursor ledger
-   * events on the union of current + prior ids; dropping a replaced id
-   * would orphan the ledger events of every turn that ran under it.
    * </pre>
    *
    * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -360,14 +308,6 @@ private static final long serialVersionUID = 0L;
    * A session can span multiple harness-side conversations: when the
    * cursor-runner's resume fails, it creates a fresh Cursor agent and
    * replaces harness_state_id, and the replaced id lands here.
-   *
-   * &#64;internal
-   * Server-owned, append-only. The update handler computes the append from
-   * the observed harness_state_id transition — client-supplied values for
-   * this field are discarded, so a stale client resending an old spec can
-   * never clobber the history. Billing reconciliation joins Cursor ledger
-   * events on the union of current + prior ids; dropping a replaced id
-   * would orphan the ledger events of every turn that ran under it.
    * </pre>
    *
    * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -575,13 +515,6 @@ java.lang.String defaultValue) {
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
    * resource.
-   *
-   * &#64;internal
-   * Merge semantics: session-level usages are union'd with agent-level usages.
-   * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion). The agent
-   * runner merges these with the agent's mcp_server_usages when constructing
-   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -597,13 +530,6 @@ java.lang.String defaultValue) {
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
    * resource.
-   *
-   * &#64;internal
-   * Merge semantics: session-level usages are union'd with agent-level usages.
-   * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion). The agent
-   * runner merges these with the agent's mcp_server_usages when constructing
-   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -620,13 +546,6 @@ java.lang.String defaultValue) {
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
    * resource.
-   *
-   * &#64;internal
-   * Merge semantics: session-level usages are union'd with agent-level usages.
-   * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion). The agent
-   * runner merges these with the agent's mcp_server_usages when constructing
-   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -642,13 +561,6 @@ java.lang.String defaultValue) {
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
    * resource.
-   *
-   * &#64;internal
-   * Merge semantics: session-level usages are union'd with agent-level usages.
-   * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion). The agent
-   * runner merges these with the agent's mcp_server_usages when constructing
-   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -664,13 +576,6 @@ java.lang.String defaultValue) {
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
    * resource.
-   *
-   * &#64;internal
-   * Merge semantics: session-level usages are union'd with agent-level usages.
-   * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion). The agent
-   * runner merges these with the agent's mcp_server_usages when constructing
-   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -691,9 +596,6 @@ java.lang.String defaultValue) {
    * Provides domain-specific knowledge for this specific conversation without
    * modifying the agent blueprint. Each reference points to a Skill resource
    * whose content is added to the agent's context alongside agent-level skills.
-   *
-   * &#64;internal
-   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -709,9 +611,6 @@ java.lang.String defaultValue) {
    * Provides domain-specific knowledge for this specific conversation without
    * modifying the agent blueprint. Each reference points to a Skill resource
    * whose content is added to the agent's context alongside agent-level skills.
-   *
-   * &#64;internal
-   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -728,9 +627,6 @@ java.lang.String defaultValue) {
    * Provides domain-specific knowledge for this specific conversation without
    * modifying the agent blueprint. Each reference points to a Skill resource
    * whose content is added to the agent's context alongside agent-level skills.
-   *
-   * &#64;internal
-   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -746,9 +642,6 @@ java.lang.String defaultValue) {
    * Provides domain-specific knowledge for this specific conversation without
    * modifying the agent blueprint. Each reference points to a Skill resource
    * whose content is added to the agent's context alongside agent-level skills.
-   *
-   * &#64;internal
-   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -764,9 +657,6 @@ java.lang.String defaultValue) {
    * Provides domain-specific knowledge for this specific conversation without
    * modifying the agent blueprint. Each reference points to a Skill resource
    * whose content is added to the agent's context alongside agent-level skills.
-   *
-   * &#64;internal
-   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -840,16 +730,6 @@ java.lang.String defaultValue) {
    *
    * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
    * harness types.
-   *
-   * &#64;internal
-   * Runner-owned, never user-set (see the CursorMode enum docs): the
-   * cursor-runner stamps it on the first execution when UNSPECIFIED —
-   * always LOCAL while cloud mode is disabled platform-wide. The
-   * workflow reads it back on subsequent executions to route to the
-   * correct Agent.create / Agent.resume path.
-   *
-   * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-   * to LOCAL for backward compatibility.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
@@ -869,16 +749,6 @@ java.lang.String defaultValue) {
    *
    * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
    * harness types.
-   *
-   * &#64;internal
-   * Runner-owned, never user-set (see the CursorMode enum docs): the
-   * cursor-runner stamps it on the first execution when UNSPECIFIED —
-   * always LOCAL while cloud mode is disabled platform-wide. The
-   * workflow reads it back on subsequent executions to route to the
-   * correct Agent.create / Agent.resume path.
-   *
-   * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-   * to LOCAL for backward compatibility.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
@@ -1241,10 +1111,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * SessionSpec defines the configurable properties of a session.
-   *
-   * &#64;internal
-   * This is the "Execution" layer — ephemeral runtime against an AgentInstance.
-   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.SessionSpec}
@@ -1687,13 +1553,6 @@ java.lang.String defaultValue) {
      * A session may gain an agent or drop back to the built-in assistant on
      * update; the harness and execution target are the immutable fields, not
      * this one.
-     *
-     * &#64;internal
-     * Nothing resolves an empty value into an instance: the run gate makes no
-     * target check (the organization's can_create_session admitted the
-     * conversation and the session's can_create_execution_in admits each
-     * turn), and the runner resolves an agent-less blueprint whose instructions
-     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1720,13 +1579,6 @@ java.lang.String defaultValue) {
      * A session may gain an agent or drop back to the built-in assistant on
      * update; the harness and execution target are the immutable fields, not
      * this one.
-     *
-     * &#64;internal
-     * Nothing resolves an empty value into an instance: the run gate makes no
-     * target check (the organization's can_create_session admitted the
-     * conversation and the session's can_create_execution_in admits each
-     * turn), and the runner resolves an agent-less blueprint whose instructions
-     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1754,13 +1606,6 @@ java.lang.String defaultValue) {
      * A session may gain an agent or drop back to the built-in assistant on
      * update; the harness and execution target are the immutable fields, not
      * this one.
-     *
-     * &#64;internal
-     * Nothing resolves an empty value into an instance: the run gate makes no
-     * target check (the organization's can_create_session admitted the
-     * conversation and the session's can_create_execution_in admits each
-     * turn), and the runner resolves an agent-less blueprint whose instructions
-     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1784,13 +1629,6 @@ java.lang.String defaultValue) {
      * A session may gain an agent or drop back to the built-in assistant on
      * update; the harness and execution target are the immutable fields, not
      * this one.
-     *
-     * &#64;internal
-     * Nothing resolves an empty value into an instance: the run gate makes no
-     * target check (the organization's can_create_session admitted the
-     * conversation and the session's can_create_execution_in admits each
-     * turn), and the runner resolves an agent-less blueprint whose instructions
-     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1811,13 +1649,6 @@ java.lang.String defaultValue) {
      * A session may gain an agent or drop back to the built-in assistant on
      * update; the harness and execution target are the immutable fields, not
      * this one.
-     *
-     * &#64;internal
-     * Nothing resolves an empty value into an instance: the run gate makes no
-     * target check (the organization's can_create_session admitted the
-     * conversation and the session's can_create_execution_in admits each
-     * turn), and the runner resolves an agent-less blueprint whose instructions
-     * are the one built-in prompt.
      * </pre>
      *
      * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
@@ -1941,11 +1772,6 @@ java.lang.String defaultValue) {
      * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
      * returned by Agent.create(). Used for Agent.resume() on
      * subsequent executions.
-     *
-     * &#64;internal
-     * Also serves as the immutability sentinel: when non-empty, the
-     * session's harness and cursor_mode cannot be changed — each harness
-     * owns its conversation state independently.
      * </pre>
      *
      * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -1977,11 +1803,6 @@ java.lang.String defaultValue) {
      * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
      * returned by Agent.create(). Used for Agent.resume() on
      * subsequent executions.
-     *
-     * &#64;internal
-     * Also serves as the immutability sentinel: when non-empty, the
-     * session's harness and cursor_mode cannot be changed — each harness
-     * owns its conversation state independently.
      * </pre>
      *
      * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -2014,11 +1835,6 @@ java.lang.String defaultValue) {
      * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
      * returned by Agent.create(). Used for Agent.resume() on
      * subsequent executions.
-     *
-     * &#64;internal
-     * Also serves as the immutability sentinel: when non-empty, the
-     * session's harness and cursor_mode cannot be changed — each harness
-     * owns its conversation state independently.
      * </pre>
      *
      * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -2047,11 +1863,6 @@ java.lang.String defaultValue) {
      * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
      * returned by Agent.create(). Used for Agent.resume() on
      * subsequent executions.
-     *
-     * &#64;internal
-     * Also serves as the immutability sentinel: when non-empty, the
-     * session's harness and cursor_mode cannot be changed — each harness
-     * owns its conversation state independently.
      * </pre>
      *
      * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -2077,11 +1888,6 @@ java.lang.String defaultValue) {
      * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
      * returned by Agent.create(). Used for Agent.resume() on
      * subsequent executions.
-     *
-     * &#64;internal
-     * Also serves as the immutability sentinel: when non-empty, the
-     * session's harness and cursor_mode cannot be changed — each harness
-     * owns its conversation state independently.
      * </pre>
      *
      * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
@@ -2113,14 +1919,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2138,14 +1936,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2161,14 +1951,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2185,14 +1967,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2210,14 +1984,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2241,14 +2007,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2271,14 +2029,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2301,14 +2051,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2328,14 +2070,6 @@ java.lang.String defaultValue) {
      * A session can span multiple harness-side conversations: when the
      * cursor-runner's resume fails, it creates a fresh Cursor agent and
      * replaces harness_state_id, and the replaced id lands here.
-     *
-     * &#64;internal
-     * Server-owned, append-only. The update handler computes the append from
-     * the observed harness_state_id transition — client-supplied values for
-     * this field are discarded, so a stale client resending an old spec can
-     * never clobber the history. Billing reconciliation joins Cursor ledger
-     * events on the union of current + prior ids; dropping a replaced id
-     * would orphan the ledger events of every turn that ran under it.
      * </pre>
      *
      * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
@@ -2947,13 +2681,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -2972,13 +2699,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -2997,13 +2717,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3022,13 +2735,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3054,13 +2760,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3083,13 +2782,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3114,13 +2806,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3146,13 +2831,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3175,13 +2853,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3204,13 +2875,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3234,13 +2898,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3262,13 +2919,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3290,13 +2940,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3312,13 +2955,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3337,13 +2973,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3363,13 +2992,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3385,13 +3007,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3408,13 +3023,6 @@ java.lang.String defaultValue) {
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
      * resource.
-     *
-     * &#64;internal
-     * Merge semantics: session-level usages are union'd with agent-level usages.
-     * If both reference the same MCP server slug, the session-level entry takes
-     * precedence (enables per-session tool restriction or expansion). The agent
-     * runner merges these with the agent's mcp_server_usages when constructing
-     * the execution graph.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3457,9 +3065,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3478,9 +3083,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3499,9 +3101,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3520,9 +3119,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3548,9 +3144,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3573,9 +3166,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3600,9 +3190,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3628,9 +3215,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3653,9 +3237,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3678,9 +3259,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3704,9 +3282,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3728,9 +3303,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3752,9 +3324,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3770,9 +3339,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3791,9 +3357,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3813,9 +3376,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3831,9 +3391,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -3850,9 +3407,6 @@ java.lang.String defaultValue) {
      * Provides domain-specific knowledge for this specific conversation without
      * modifying the agent blueprint. Each reference points to a Skill resource
      * whose content is added to the agent's context alongside agent-level skills.
-     *
-     * &#64;internal
-     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -4020,16 +3574,6 @@ java.lang.String defaultValue) {
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
-     *
-     * &#64;internal
-     * Runner-owned, never user-set (see the CursorMode enum docs): the
-     * cursor-runner stamps it on the first execution when UNSPECIFIED —
-     * always LOCAL while cloud mode is disabled platform-wide. The
-     * workflow reads it back on subsequent executions to route to the
-     * correct Agent.create / Agent.resume path.
-     *
-     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-     * to LOCAL for backward compatibility.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
@@ -4049,16 +3593,6 @@ java.lang.String defaultValue) {
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
-     *
-     * &#64;internal
-     * Runner-owned, never user-set (see the CursorMode enum docs): the
-     * cursor-runner stamps it on the first execution when UNSPECIFIED —
-     * always LOCAL while cloud mode is disabled platform-wide. The
-     * workflow reads it back on subsequent executions to route to the
-     * correct Agent.create / Agent.resume path.
-     *
-     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-     * to LOCAL for backward compatibility.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
@@ -4083,16 +3617,6 @@ java.lang.String defaultValue) {
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
-     *
-     * &#64;internal
-     * Runner-owned, never user-set (see the CursorMode enum docs): the
-     * cursor-runner stamps it on the first execution when UNSPECIFIED —
-     * always LOCAL while cloud mode is disabled platform-wide. The
-     * workflow reads it back on subsequent executions to route to the
-     * correct Agent.create / Agent.resume path.
-     *
-     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-     * to LOCAL for backward compatibility.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
@@ -4114,16 +3638,6 @@ java.lang.String defaultValue) {
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
-     *
-     * &#64;internal
-     * Runner-owned, never user-set (see the CursorMode enum docs): the
-     * cursor-runner stamps it on the first execution when UNSPECIFIED —
-     * always LOCAL while cloud mode is disabled platform-wide. The
-     * workflow reads it back on subsequent executions to route to the
-     * correct Agent.create / Agent.resume path.
-     *
-     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-     * to LOCAL for backward compatibility.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
@@ -4148,16 +3662,6 @@ java.lang.String defaultValue) {
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
-     *
-     * &#64;internal
-     * Runner-owned, never user-set (see the CursorMode enum docs): the
-     * cursor-runner stamps it on the first execution when UNSPECIFIED —
-     * always LOCAL while cloud mode is disabled platform-wide. The
-     * workflow reads it back on subsequent executions to route to the
-     * correct Agent.create / Agent.resume path.
-     *
-     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-     * to LOCAL for backward compatibility.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>

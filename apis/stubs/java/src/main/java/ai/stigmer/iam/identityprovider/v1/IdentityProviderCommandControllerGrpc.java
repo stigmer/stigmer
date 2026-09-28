@@ -210,10 +210,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * identity provider is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -225,8 +221,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
-     * &#64;internal
-     * Authorization: Requires can_create_idp permission in the organization.
      * </pre>
      */
     default void create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -237,8 +231,6 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity provider resource.
      * </pre>
      */
     default void update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -251,8 +243,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
      * identity provider.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity provider resource.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -299,10 +289,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * identity provider is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -315,8 +301,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
-     * &#64;internal
-     * Authorization: Requires can_create_idp permission in the organization.
      * </pre>
      */
     public void create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -328,8 +312,6 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity provider resource.
      * </pre>
      */
     public void update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -343,8 +325,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
      * identity provider.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity provider resource.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -378,10 +358,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * identity provider is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) throws io.grpc.StatusException {
@@ -393,8 +369,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
-     * &#64;internal
-     * Authorization: Requires can_create_idp permission in the organization.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) throws io.grpc.StatusException {
@@ -405,8 +379,6 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity provider resource.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) throws io.grpc.StatusException {
@@ -419,8 +391,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
      * identity provider.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity provider resource.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -453,10 +423,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * identity provider is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) {
@@ -468,8 +434,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
-     * &#64;internal
-     * Authorization: Requires can_create_idp permission in the organization.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) {
@@ -480,8 +444,6 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity provider resource.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) {
@@ -494,8 +456,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
      * identity provider.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity provider resource.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -528,10 +488,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * identity provider is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> apply(
@@ -544,8 +500,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
-     * &#64;internal
-     * Authorization: Requires can_create_idp permission in the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> create(
@@ -557,8 +511,6 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the identity provider resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> update(
@@ -572,8 +524,6 @@ public final class IdentityProviderCommandControllerGrpc {
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
      * identity provider.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the identity provider resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> delete(

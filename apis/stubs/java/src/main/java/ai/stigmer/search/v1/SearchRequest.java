@@ -13,13 +13,6 @@ package ai.stigmer.search.v1;
  * - List: Return all accessible resources of specified kind(s)
  * - Search: Find resources matching a text query
  * - Discover: Search across all resource kinds
- *
- * &#64;internal
- * Examples:
- * List agents in org:         {kinds: [agent], org: "acme", query: ""}
- * Search agents by text:      {kinds: [agent], query: "code review"}
- * Discover all:               {kinds: [], query: "kubernetes"}
- * Search multiple kinds:      {kinds: [agent, skill], query: "security", org: "acme"}
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.search.v1.SearchRequest}
@@ -283,9 +276,6 @@ private static final long serialVersionUID = 0L;
    * Behavior:
    * - Empty: Search all organizations the caller has access to
    * - Non-empty: Search only within the specified organization
-   *
-   * &#64;internal
-   * Caller must have access to at least one resource in the org.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -313,9 +303,6 @@ private static final long serialVersionUID = 0L;
    * Behavior:
    * - Empty: Search all organizations the caller has access to
    * - Non-empty: Search only within the specified organization
-   *
-   * &#64;internal
-   * Caller must have access to at least one resource in the org.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -604,13 +591,6 @@ private static final long serialVersionUID = 0L;
    * - List: Return all accessible resources of specified kind(s)
    * - Search: Find resources matching a text query
    * - Discover: Search across all resource kinds
-   *
-   * &#64;internal
-   * Examples:
-   * List agents in org:         {kinds: [agent], org: "acme", query: ""}
-   * Search agents by text:      {kinds: [agent], query: "code review"}
-   * Discover all:               {kinds: [], query: "kubernetes"}
-   * Search multiple kinds:      {kinds: [agent, skill], query: "security", org: "acme"}
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.search.v1.SearchRequest}
@@ -1300,9 +1280,6 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     *
-     * &#64;internal
-     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1329,9 +1306,6 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     *
-     * &#64;internal
-     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1359,9 +1333,6 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     *
-     * &#64;internal
-     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1385,9 +1356,6 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     *
-     * &#64;internal
-     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1408,9 +1376,6 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     *
-     * &#64;internal
-     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>

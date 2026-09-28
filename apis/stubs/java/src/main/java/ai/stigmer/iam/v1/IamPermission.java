@@ -60,13 +60,6 @@ public enum IamPermission
    * <pre>
    * Whether the caller may grant, revoke or remove the owner role on an
    * organization: only its owners hold it.
-   *
-   * &#64;internal
-   * The organization relation `can_assign_roles`. The IamPolicy lanes and
-   * the invitation lane ask it whenever a change touches the owner role, on
-   * top of can_grant_access. Every caller that reaches them already holds
-   * can_grant_access (admin), so this one question is the whole of "no role
-   * above your own".
    * </pre>
    *
    * <code>can_assign_roles = 47;</code>
@@ -213,13 +206,6 @@ public enum IamPermission
    * <pre>
    * Organization-level permission to create agent shares billed to the
    * organization.
-   *
-   * &#64;internal
-   * Asked on every share create beside can_edit on the shared agent: a
-   * share spends the organization's credits on the open internet, an
-   * admin-level act, whichever agent it offers. A share's agent lives in
-   * the share's own organization (the AgentShare spec), so the two
-   * questions are always one organization's.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>
@@ -263,12 +249,6 @@ public enum IamPermission
    * Resource-level permission to participate in an agent channel's
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
-   *
-   * &#64;internal
-   * channel-conversations DD-010: computed from the participant role on
-   * agent_channel. Deliberately distinct from can_edit — "may talk to
-   * this channel's customers" and "may configure this channel" are
-   * different powers, and the ISC pilot's trainers hold only the first.
    * </pre>
    *
    * <code>can_participate = 36;</code>
@@ -342,12 +322,6 @@ public enum IamPermission
    * <pre>
    * Organization-level permission to create an MCP server in the
    * organization.
-   *
-   * &#64;internal
-   * An MCP server is a blueprint kind like an agent or a skill, and takes
-   * the same bar (admin). Before this relation existed, McpServer.create
-   * was is_skip_authorization in both editions and any member could author
-   * one; the annotation now names this relation on metadata.org.
    * </pre>
    *
    * <code>can_create_mcp_server = 43;</code>
@@ -357,13 +331,6 @@ public enum IamPermission
    * <pre>
    * Organization-level permission to create an agent instance in the
    * organization.
-   *
-   * &#64;internal
-   * Asked beside can_create_instance on the parent agent: a personal
-   * instance's organization is the caller's, not the agent's (the
-   * marketplace case keeps cross-org instances), so the parent's permission
-   * alone would leave any metadata.org open. Member-level, the bar of
-   * can_create_session, since an instance exists to be conversed with.
    * </pre>
    *
    * <code>can_create_agent_instance = 44;</code>
@@ -372,11 +339,6 @@ public enum IamPermission
   /**
    * <pre>
    * Organization-level permission to create a team in the organization.
-   *
-   * &#64;internal
-   * Admin-level: a team is a group access is shared with, and who may define
-   * one is the organization's administrators' decision, like who may grant
-   * access. The Team kind is served by the Enterprise and Cloud editions.
    * </pre>
    *
    * <code>can_create_team = 45;</code>
@@ -387,14 +349,6 @@ public enum IamPermission
    * Platform-level permission to add or remove an organization's credits
    * without a purchase: BillingCommandController.adjustCredits and
    * grantCredits, checked on the static platform target.
-   *
-   * &#64;internal
-   * Held by an operator (support, comps, corrections) and by a credit
-   * issuer: a funding identity the platform trusts by name, such as an
-   * integrator's wallet bridge, which holds this and nothing else on the
-   * platform. Owning an organization never confers it: credit made without
-   * money reaching the platform is the platform's decision, and every
-   * person owns an organization.
    * </pre>
    *
    * <code>can_manage_credits = 46;</code>
@@ -448,13 +402,6 @@ public enum IamPermission
    * <pre>
    * Whether the caller may grant, revoke or remove the owner role on an
    * organization: only its owners hold it.
-   *
-   * &#64;internal
-   * The organization relation `can_assign_roles`. The IamPolicy lanes and
-   * the invitation lane ask it whenever a change touches the owner role, on
-   * top of can_grant_access. Every caller that reaches them already holds
-   * can_grant_access (admin), so this one question is the whole of "no role
-   * above your own".
    * </pre>
    *
    * <code>can_assign_roles = 47;</code>
@@ -600,13 +547,6 @@ public enum IamPermission
    * <pre>
    * Organization-level permission to create agent shares billed to the
    * organization.
-   *
-   * &#64;internal
-   * Asked on every share create beside can_edit on the shared agent: a
-   * share spends the organization's credits on the open internet, an
-   * admin-level act, whichever agent it offers. A share's agent lives in
-   * the share's own organization (the AgentShare spec), so the two
-   * questions are always one organization's.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>
@@ -650,12 +590,6 @@ public enum IamPermission
    * Resource-level permission to participate in an agent channel's
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
-   *
-   * &#64;internal
-   * channel-conversations DD-010: computed from the participant role on
-   * agent_channel. Deliberately distinct from can_edit — "may talk to
-   * this channel's customers" and "may configure this channel" are
-   * different powers, and the ISC pilot's trainers hold only the first.
    * </pre>
    *
    * <code>can_participate = 36;</code>
@@ -729,12 +663,6 @@ public enum IamPermission
    * <pre>
    * Organization-level permission to create an MCP server in the
    * organization.
-   *
-   * &#64;internal
-   * An MCP server is a blueprint kind like an agent or a skill, and takes
-   * the same bar (admin). Before this relation existed, McpServer.create
-   * was is_skip_authorization in both editions and any member could author
-   * one; the annotation now names this relation on metadata.org.
    * </pre>
    *
    * <code>can_create_mcp_server = 43;</code>
@@ -744,13 +672,6 @@ public enum IamPermission
    * <pre>
    * Organization-level permission to create an agent instance in the
    * organization.
-   *
-   * &#64;internal
-   * Asked beside can_create_instance on the parent agent: a personal
-   * instance's organization is the caller's, not the agent's (the
-   * marketplace case keeps cross-org instances), so the parent's permission
-   * alone would leave any metadata.org open. Member-level, the bar of
-   * can_create_session, since an instance exists to be conversed with.
    * </pre>
    *
    * <code>can_create_agent_instance = 44;</code>
@@ -759,11 +680,6 @@ public enum IamPermission
   /**
    * <pre>
    * Organization-level permission to create a team in the organization.
-   *
-   * &#64;internal
-   * Admin-level: a team is a group access is shared with, and who may define
-   * one is the organization's administrators' decision, like who may grant
-   * access. The Team kind is served by the Enterprise and Cloud editions.
    * </pre>
    *
    * <code>can_create_team = 45;</code>
@@ -774,14 +690,6 @@ public enum IamPermission
    * Platform-level permission to add or remove an organization's credits
    * without a purchase: BillingCommandController.adjustCredits and
    * grantCredits, checked on the static platform target.
-   *
-   * &#64;internal
-   * Held by an operator (support, comps, corrections) and by a credit
-   * issuer: a funding identity the platform trusts by name, such as an
-   * integrator's wallet bridge, which holds this and nothing else on the
-   * platform. Owning an organization never confers it: credit made without
-   * money reaching the platform is the platform's decision, and every
-   * person owns an organization.
    * </pre>
    *
    * <code>can_manage_credits = 46;</code>

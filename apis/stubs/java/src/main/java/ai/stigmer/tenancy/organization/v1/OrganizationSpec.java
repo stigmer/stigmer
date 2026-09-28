@@ -8,11 +8,6 @@ package ai.stigmer.tenancy.organization.v1;
 /**
  * <pre>
  * OrganizationSpec defines the configurable properties of an organization.
- *
- * &#64;internal
- * Organizations are the top-level container for all Stigmer resources.
- * Similar to GitHub organizations, all agents, workflows, and other resources
- * are scoped under an organization.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationSpec}
@@ -161,11 +156,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * How this organization is operated.
-   *
-   * &#64;internal
-   * Immutable after creation.
-   * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-   * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
    * </pre>
    *
    * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
@@ -177,11 +167,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * How this organization is operated.
-   *
-   * &#64;internal
-   * Immutable after creation.
-   * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-   * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
    * </pre>
    *
    * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
@@ -197,11 +182,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the IdentityProvider that authenticates requests for this organization.
-   *
-   * &#64;internal
-   * Required when management_mode is platform_managed; must be empty for self_managed.
-   * The referenced IdentityProvider must exist and be active at creation time.
-   * Immutable after creation.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -214,11 +194,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the IdentityProvider that authenticates requests for this organization.
-   *
-   * &#64;internal
-   * Required when management_mode is platform_managed; must be empty for self_managed.
-   * The referenced IdentityProvider must exist and be active at creation time.
-   * Immutable after creation.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -231,11 +206,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the IdentityProvider that authenticates requests for this organization.
-   *
-   * &#64;internal
-   * Required when management_mode is platform_managed; must be empty for self_managed.
-   * The referenced IdentityProvider must exist and be active at creation time.
-   * Immutable after creation.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -251,11 +221,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * External platform's organization identifier for reverse mapping.
-   *
-   * &#64;internal
-   * Set only for platform_managed organizations. Stores the integrating platform's
-   * own org ID so the platform can look up the corresponding Stigmer org even if
-   * the Stigmer slug differs from the platform's original slug due to availability.
    * </pre>
    *
    * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
@@ -277,11 +242,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * External platform's organization identifier for reverse mapping.
-   *
-   * &#64;internal
-   * Set only for platform_managed organizations. Stores the integrating platform's
-   * own org ID so the platform can look up the corresponding Stigmer org even if
-   * the Stigmer slug differs from the platform's original slug due to availability.
    * </pre>
    *
    * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
@@ -307,10 +267,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this is a personal organization, auto-created during identity provisioning.
-   *
-   * &#64;internal
-   * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
-   * Immutable after creation. Set by the server — clients cannot set this to true.
    * </pre>
    *
    * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
@@ -592,11 +548,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * OrganizationSpec defines the configurable properties of an organization.
-   *
-   * &#64;internal
-   * Organizations are the top-level container for all Stigmer resources.
-   * Similar to GitHub organizations, all agents, workflows, and other resources
-   * are scoped under an organization.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationSpec}
@@ -1027,11 +978,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this organization is operated.
-     *
-     * &#64;internal
-     * Immutable after creation.
-     * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-     * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
@@ -1043,11 +989,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this organization is operated.
-     *
-     * &#64;internal
-     * Immutable after creation.
-     * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-     * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
@@ -1064,11 +1005,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this organization is operated.
-     *
-     * &#64;internal
-     * Immutable after creation.
-     * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-     * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
@@ -1082,11 +1018,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this organization is operated.
-     *
-     * &#64;internal
-     * Immutable after creation.
-     * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-     * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
@@ -1103,11 +1034,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this organization is operated.
-     *
-     * &#64;internal
-     * Immutable after creation.
-     * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-     * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.ManagementMode management_mode = 3 [json_name = "managementMode"];</code>
@@ -1126,11 +1052,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1142,11 +1063,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1162,11 +1078,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1187,11 +1098,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1210,11 +1116,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1240,11 +1141,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1262,11 +1158,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1279,11 +1170,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1299,11 +1185,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
-     *
-     * &#64;internal
-     * Required when management_mode is platform_managed; must be empty for self_managed.
-     * The referenced IdentityProvider must exist and be active at creation time.
-     * Immutable after creation.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4 [json_name = "identityProviderRef"];</code>
@@ -1326,11 +1207,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
-     *
-     * &#64;internal
-     * Set only for platform_managed organizations. Stores the integrating platform's
-     * own org ID so the platform can look up the corresponding Stigmer org even if
-     * the Stigmer slug differs from the platform's original slug due to availability.
      * </pre>
      *
      * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
@@ -1351,11 +1227,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
-     *
-     * &#64;internal
-     * Set only for platform_managed organizations. Stores the integrating platform's
-     * own org ID so the platform can look up the corresponding Stigmer org even if
-     * the Stigmer slug differs from the platform's original slug due to availability.
      * </pre>
      *
      * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
@@ -1377,11 +1248,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
-     *
-     * &#64;internal
-     * Set only for platform_managed organizations. Stores the integrating platform's
-     * own org ID so the platform can look up the corresponding Stigmer org even if
-     * the Stigmer slug differs from the platform's original slug due to availability.
      * </pre>
      *
      * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
@@ -1399,11 +1265,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
-     *
-     * &#64;internal
-     * Set only for platform_managed organizations. Stores the integrating platform's
-     * own org ID so the platform can look up the corresponding Stigmer org even if
-     * the Stigmer slug differs from the platform's original slug due to availability.
      * </pre>
      *
      * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
@@ -1418,11 +1279,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
-     *
-     * &#64;internal
-     * Set only for platform_managed organizations. Stores the integrating platform's
-     * own org ID so the platform can look up the corresponding Stigmer org even if
-     * the Stigmer slug differs from the platform's original slug due to availability.
      * </pre>
      *
      * <code>string external_org_id = 5 [json_name = "externalOrgId"];</code>
@@ -1443,10 +1299,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this is a personal organization, auto-created during identity provisioning.
-     *
-     * &#64;internal
-     * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
-     * Immutable after creation. Set by the server — clients cannot set this to true.
      * </pre>
      *
      * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
@@ -1459,10 +1311,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this is a personal organization, auto-created during identity provisioning.
-     *
-     * &#64;internal
-     * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
-     * Immutable after creation. Set by the server — clients cannot set this to true.
      * </pre>
      *
      * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
@@ -1479,10 +1327,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this is a personal organization, auto-created during identity provisioning.
-     *
-     * &#64;internal
-     * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
-     * Immutable after creation. Set by the server — clients cannot set this to true.
      * </pre>
      *
      * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>

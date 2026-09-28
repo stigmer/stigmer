@@ -9,17 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ChannelReceiptState is the provider-reported delivery progress of an
  * accepted outbound message, as learned from delivery receipts.
- *
- * &#64;internal
- * DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth
- * value `played` (voice playback) maps to receipt_read (DD-016 D8), and
- * the raw webhook payload retains the verbatim value. Values carry the
- * receipt_ prefix because proto3 enum values are package-scoped —
- * `delivered` and `failed` are taken by ChannelDeliveryStatus — which is
- * also a feature: the send-attempt axis and the receipt axis can never
- * be confused on the wire. Enum numbers are IDENTITY only; the stamp's
- * monotonic ordering lives in an explicit rank map in the handler, so a
- * future value cannot silently mis-rank.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState}

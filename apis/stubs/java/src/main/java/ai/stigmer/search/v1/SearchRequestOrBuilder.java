@@ -165,9 +165,6 @@ public interface SearchRequestOrBuilder extends
    * Behavior:
    * - Empty: Search all organizations the caller has access to
    * - Non-empty: Search only within the specified organization
-   *
-   * &#64;internal
-   * Caller must have access to at least one resource in the org.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -183,9 +180,6 @@ public interface SearchRequestOrBuilder extends
    * Behavior:
    * - Empty: Search all organizations the caller has access to
    * - Non-empty: Search only within the specified organization
-   *
-   * &#64;internal
-   * Caller must have access to at least one resource in the org.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>

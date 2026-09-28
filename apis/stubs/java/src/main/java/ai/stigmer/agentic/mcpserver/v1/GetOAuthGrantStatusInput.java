@@ -8,11 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
- *
- * &#64;internal
- * Returns whether the authenticated user has an active OAuth grant for the
- * specified resource in the given org. Used by the frontend to determine
- * whether to show "Connected" vs. "Connect with OAuth" UI states.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput}
@@ -324,11 +319,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
-   *
-   * &#64;internal
-   * Returns whether the authenticated user has an active OAuth grant for the
-   * specified resource in the given org. Used by the frontend to determine
-   * whether to show "Connected" vs. "Connect with OAuth" UI states.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput}

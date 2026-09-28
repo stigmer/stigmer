@@ -8,17 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowEventType categorizes execution events for filtering and dispatch.
- *
- * &#64;internal
- * Values are grouped by concern with numeric gaps for future additions:
- * - 1–9: Execution lifecycle
- * - 11–19: Task lifecycle
- * - 21–29: Agent call
- * - 31–39: Human input / approval
- * - 41–49: Budget
- * - 51–59: Signals and emitted events
- *
- * &#64;since T06 (Execution Event Stream Model)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType}

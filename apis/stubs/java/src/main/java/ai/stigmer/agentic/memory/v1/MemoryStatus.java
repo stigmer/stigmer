@@ -8,13 +8,6 @@ package ai.stigmer.agentic.memory.v1;
 /**
  * <pre>
  * MemoryStatus contains system-managed state for a memory.
- *
- * &#64;internal
- * Server-owned; written only by the create pipeline (initial proposed
- * state) and the confirm/reject command RPCs — the sole lifecycle
- * writers (DD-005 D3). The update RPC never touches status: consent
- * must not be rewritable through a spec edit. Both editions preserve
- * status verbatim across updates (the Schedule/AgentChannel posture).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.memory.v1.MemoryStatus}
@@ -92,11 +85,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * When the lifecycle state last changed.
-   *
-   * &#64;internal
-   * Stamped by create (proposal time) and by confirm/reject (decision
-   * time). Surfaces "decided when" beside "decided what" without a
-   * parallel event log at dozens-of-records scale.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -109,11 +97,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * When the lifecycle state last changed.
-   *
-   * &#64;internal
-   * Stamped by create (proposal time) and by confirm/reject (decision
-   * time). Surfaces "decided when" beside "decided what" without a
-   * parallel event log at dozens-of-records scale.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -126,11 +109,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * When the lifecycle state last changed.
-   *
-   * &#64;internal
-   * Stamped by create (proposal time) and by confirm/reject (decision
-   * time). Surfaces "decided when" beside "decided what" without a
-   * parallel event log at dozens-of-records scale.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -369,13 +347,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MemoryStatus contains system-managed state for a memory.
-   *
-   * &#64;internal
-   * Server-owned; written only by the create pipeline (initial proposed
-   * state) and the confirm/reject command RPCs — the sole lifecycle
-   * writers (DD-005 D3). The update RPC never touches status: consent
-   * must not be rewritable through a spec edit. Both editions preserve
-   * status verbatim across updates (the Schedule/AgentChannel posture).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.memory.v1.MemoryStatus}
@@ -642,11 +613,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -658,11 +624,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -678,11 +639,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -703,11 +659,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -726,11 +677,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -756,11 +702,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -778,11 +719,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -795,11 +731,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -815,11 +746,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the lifecycle state last changed.
-     *
-     * &#64;internal
-     * Stamped by create (proposal time) and by confirm/reject (decision
-     * time). Surfaces "decided when" beside "decided what" without a
-     * parallel event log at dozens-of-records scale.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>

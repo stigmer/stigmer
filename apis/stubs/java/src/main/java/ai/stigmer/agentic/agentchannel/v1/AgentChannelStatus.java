@@ -8,14 +8,6 @@ package ai.stigmer.agentic.agentchannel.v1;
 /**
  * <pre>
  * AgentChannelStatus contains system-managed state for an agent channel.
- *
- * &#64;internal
- * Server-owned per decision 001 D-e / decision 004: install facts and the
- * credentials reference survive every apply/update verbatim (the
- * share_link_token precedent), so a routine manifest apply can never
- * clobber an install or leak a secret. Secrets themselves NEVER appear
- * here — the bot token lives encrypted in the referenced managed
- * Environment; status is readable by anyone with can_view.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus}
@@ -224,13 +216,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ID of the system-managed Environment holding this connection's
    * provider credentials (e.g. the Slack bot token).
-   *
-   * &#64;internal
-   * Decision 004: created via ManagedEnvironmentService in the
-   * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-   * in the resource-agnostic OAuthGrant document. The webhook receiver and
-   * delivery worker resolve the token through this reference — never from
-   * the channel resource itself.
    * </pre>
    *
    * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
@@ -253,13 +238,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ID of the system-managed Environment holding this connection's
    * provider credentials (e.g. the Slack bot token).
-   *
-   * &#64;internal
-   * Decision 004: created via ManagedEnvironmentService in the
-   * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-   * in the resource-agnostic OAuthGrant document. The webhook receiver and
-   * delivery worker resolve the token through this reference — never from
-   * the channel resource itself.
    * </pre>
    *
    * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
@@ -542,14 +520,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * AgentChannelStatus contains system-managed state for an agent channel.
-   *
-   * &#64;internal
-   * Server-owned per decision 001 D-e / decision 004: install facts and the
-   * credentials reference survive every apply/update verbatim (the
-   * share_link_token precedent), so a routine manifest apply can never
-   * clobber an install or leak a secret. Secrets themselves NEVER appear
-   * here — the bot token lives encrypted in the referenced managed
-   * Environment; status is readable by anyone with can_view.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus}
@@ -1227,13 +1197,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the system-managed Environment holding this connection's
      * provider credentials (e.g. the Slack bot token).
-     *
-     * &#64;internal
-     * Decision 004: created via ManagedEnvironmentService in the
-     * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-     * in the resource-agnostic OAuthGrant document. The webhook receiver and
-     * delivery worker resolve the token through this reference — never from
-     * the channel resource itself.
      * </pre>
      *
      * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
@@ -1255,13 +1218,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the system-managed Environment holding this connection's
      * provider credentials (e.g. the Slack bot token).
-     *
-     * &#64;internal
-     * Decision 004: created via ManagedEnvironmentService in the
-     * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-     * in the resource-agnostic OAuthGrant document. The webhook receiver and
-     * delivery worker resolve the token through this reference — never from
-     * the channel resource itself.
      * </pre>
      *
      * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
@@ -1284,13 +1240,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the system-managed Environment holding this connection's
      * provider credentials (e.g. the Slack bot token).
-     *
-     * &#64;internal
-     * Decision 004: created via ManagedEnvironmentService in the
-     * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-     * in the resource-agnostic OAuthGrant document. The webhook receiver and
-     * delivery worker resolve the token through this reference — never from
-     * the channel resource itself.
      * </pre>
      *
      * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
@@ -1309,13 +1258,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the system-managed Environment holding this connection's
      * provider credentials (e.g. the Slack bot token).
-     *
-     * &#64;internal
-     * Decision 004: created via ManagedEnvironmentService in the
-     * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-     * in the resource-agnostic OAuthGrant document. The webhook receiver and
-     * delivery worker resolve the token through this reference — never from
-     * the channel resource itself.
      * </pre>
      *
      * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
@@ -1331,13 +1273,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the system-managed Environment holding this connection's
      * provider credentials (e.g. the Slack bot token).
-     *
-     * &#64;internal
-     * Decision 004: created via ManagedEnvironmentService in the
-     * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-     * in the resource-agnostic OAuthGrant document. The webhook receiver and
-     * delivery worker resolve the token through this reference — never from
-     * the channel resource itself.
      * </pre>
      *
      * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>

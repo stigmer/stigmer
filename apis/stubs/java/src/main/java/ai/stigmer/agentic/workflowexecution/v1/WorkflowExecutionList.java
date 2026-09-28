@@ -8,10 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowExecutionList contains a paginated list of workflow executions.
- *
- * &#64;internal
- * Returned by list operations (list, list_by_workflow).
- * Includes pagination metadata and the execution entries for the current page.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList}
@@ -381,10 +377,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowExecutionList contains a paginated list of workflow executions.
-   *
-   * &#64;internal
-   * Returned by list operations (list, list_by_workflow).
-   * Includes pagination metadata and the execution entries for the current page.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList}

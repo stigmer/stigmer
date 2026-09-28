@@ -13,20 +13,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * "inherit the surface's platform default". Embeddable on its own:
  * surfaces that derive agent and message elsewhere (a channel's
  * conversations, for example) carry just this message.
- *
- * &#64;internal
- * Project DD-018 D-2, factored from schedule DD-017 D-3's
- * ScheduleRunConfig so no surface mints another copy (chat-surface
- * DD-001 embeds this instead of a ChannelRunConfig mirror). A
- * deliberate SUBSET of ExecutionConfig: the full message carries
- * interactive-surface concepts (interaction_mode, build_from_plan,
- * structured_output_schema) and the platform-owned approval_mode —
- * none of which a caller-facing override may set. Clamp semantics
- * live in each surface's run starter, per field: model_name replaces
- * the platform value outright (the owner's spend, cheaper OR
- * pricier); the bounds clamp min(owner, platform) when the platform
- * cap is set, owner value stands when it is unset. The owner can
- * lower spend, never raise it past the platform profile.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RunConfig}
@@ -143,10 +129,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Maximum model-to-tools reasoning cycles per run. The surface's
    * platform execution profile caps this value; the lower bound wins.
-   *
-   * &#64;internal
-   * An implementation knob, not a user concept: API-reachable for
-   * operators, deliberately absent from creation forms (DD-018 D-5).
    * </pre>
    *
    * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -459,20 +441,6 @@ private static final long serialVersionUID = 0L;
    * "inherit the surface's platform default". Embeddable on its own:
    * surfaces that derive agent and message elsewhere (a channel's
    * conversations, for example) carry just this message.
-   *
-   * &#64;internal
-   * Project DD-018 D-2, factored from schedule DD-017 D-3's
-   * ScheduleRunConfig so no surface mints another copy (chat-surface
-   * DD-001 embeds this instead of a ChannelRunConfig mirror). A
-   * deliberate SUBSET of ExecutionConfig: the full message carries
-   * interactive-surface concepts (interaction_mode, build_from_plan,
-   * structured_output_schema) and the platform-owned approval_mode —
-   * none of which a caller-facing override may set. Clamp semantics
-   * live in each surface's run starter, per field: model_name replaces
-   * the platform value outright (the owner's spend, cheaper OR
-   * pricier); the bounds clamp min(owner, platform) when the platform
-   * cap is set, owner value stands when it is unset. The owner can
-   * lower spend, never raise it past the platform profile.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RunConfig}
@@ -804,10 +772,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum model-to-tools reasoning cycles per run. The surface's
      * platform execution profile caps this value; the lower bound wins.
-     *
-     * &#64;internal
-     * An implementation knob, not a user concept: API-reachable for
-     * operators, deliberately absent from creation forms (DD-018 D-5).
      * </pre>
      *
      * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -821,10 +785,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum model-to-tools reasoning cycles per run. The surface's
      * platform execution profile caps this value; the lower bound wins.
-     *
-     * &#64;internal
-     * An implementation knob, not a user concept: API-reachable for
-     * operators, deliberately absent from creation forms (DD-018 D-5).
      * </pre>
      *
      * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -842,10 +802,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum model-to-tools reasoning cycles per run. The surface's
      * platform execution profile caps this value; the lower bound wins.
-     *
-     * &#64;internal
-     * An implementation knob, not a user concept: API-reachable for
-     * operators, deliberately absent from creation forms (DD-018 D-5).
      * </pre>
      *
      * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>

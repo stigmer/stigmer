@@ -9,12 +9,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * an access token for GitHub API calls. The service manages the
  * authorize URL construction and the authorization-code-for-token
  * exchange so callers do not handle OAuth details directly.
- * &#64;internal
- * This is a platform utility service — not a domain resource.
- * The backend protects the client_secret during the token exchange
- * and constructs the authorize URL with the registered client_id and
- * redirect_uri so the frontend never needs those values.
- * Tokens are ephemeral — returned to the caller and never persisted.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -153,12 +147,6 @@ public final class GitHubServiceGrpc {
    * an access token for GitHub API calls. The service manages the
    * authorize URL construction and the authorization-code-for-token
    * exchange so callers do not handle OAuth details directly.
-   * &#64;internal
-   * This is a platform utility service — not a domain resource.
-   * The backend protects the client_secret during the token exchange
-   * and constructs the authorize URL with the registered client_id and
-   * redirect_uri so the frontend never needs those values.
-   * Tokens are ephemeral — returned to the caller and never persisted.
    * </pre>
    */
   public interface AsyncService {
@@ -169,10 +157,6 @@ public final class GitHubServiceGrpc {
      * Returns a URL to redirect the user to and a random state value for
      * CSRF protection. After the user authorizes, GitHub redirects back
      * to your redirect_uri with an authorization code.
-     * &#64;internal
-     * The backend constructs the URL with the registered client_id, requested
-     * scopes, and the state parameter. Authorization is skipped because this
-     * is a pre-authentication step.
      * </pre>
      */
     default void getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request,
@@ -186,11 +170,6 @@ public final class GitHubServiceGrpc {
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
      * and the same redirect_uri. Returns an access token for GitHub API calls.
-     * &#64;internal
-     * The backend performs the token exchange using the client_secret, which
-     * must never be exposed to the frontend. The returned access_token is NOT
-     * stored by the backend — the caller is responsible for persisting it and
-     * including it in subsequent requests that need GitHub access.
      * </pre>
      */
     default void exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request,
@@ -207,12 +186,6 @@ public final class GitHubServiceGrpc {
    * an access token for GitHub API calls. The service manages the
    * authorize URL construction and the authorization-code-for-token
    * exchange so callers do not handle OAuth details directly.
-   * &#64;internal
-   * This is a platform utility service — not a domain resource.
-   * The backend protects the client_secret during the token exchange
-   * and constructs the authorize URL with the registered client_id and
-   * redirect_uri so the frontend never needs those values.
-   * Tokens are ephemeral — returned to the caller and never persisted.
    * </pre>
    */
   public static abstract class GitHubServiceImplBase
@@ -231,12 +204,6 @@ public final class GitHubServiceGrpc {
    * an access token for GitHub API calls. The service manages the
    * authorize URL construction and the authorization-code-for-token
    * exchange so callers do not handle OAuth details directly.
-   * &#64;internal
-   * This is a platform utility service — not a domain resource.
-   * The backend protects the client_secret during the token exchange
-   * and constructs the authorize URL with the registered client_id and
-   * redirect_uri so the frontend never needs those values.
-   * Tokens are ephemeral — returned to the caller and never persisted.
    * </pre>
    */
   public static final class GitHubServiceStub
@@ -258,10 +225,6 @@ public final class GitHubServiceGrpc {
      * Returns a URL to redirect the user to and a random state value for
      * CSRF protection. After the user authorizes, GitHub redirects back
      * to your redirect_uri with an authorization code.
-     * &#64;internal
-     * The backend constructs the URL with the registered client_id, requested
-     * scopes, and the state parameter. Authorization is skipped because this
-     * is a pre-authentication step.
      * </pre>
      */
     public void getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request,
@@ -276,11 +239,6 @@ public final class GitHubServiceGrpc {
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
      * and the same redirect_uri. Returns an access token for GitHub API calls.
-     * &#64;internal
-     * The backend performs the token exchange using the client_secret, which
-     * must never be exposed to the frontend. The returned access_token is NOT
-     * stored by the backend — the caller is responsible for persisting it and
-     * including it in subsequent requests that need GitHub access.
      * </pre>
      */
     public void exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request,
@@ -298,12 +256,6 @@ public final class GitHubServiceGrpc {
    * an access token for GitHub API calls. The service manages the
    * authorize URL construction and the authorization-code-for-token
    * exchange so callers do not handle OAuth details directly.
-   * &#64;internal
-   * This is a platform utility service — not a domain resource.
-   * The backend protects the client_secret during the token exchange
-   * and constructs the authorize URL with the registered client_id and
-   * redirect_uri so the frontend never needs those values.
-   * Tokens are ephemeral — returned to the caller and never persisted.
    * </pre>
    */
   public static final class GitHubServiceBlockingV2Stub
@@ -325,10 +277,6 @@ public final class GitHubServiceGrpc {
      * Returns a URL to redirect the user to and a random state value for
      * CSRF protection. After the user authorizes, GitHub redirects back
      * to your redirect_uri with an authorization code.
-     * &#64;internal
-     * The backend constructs the URL with the registered client_id, requested
-     * scopes, and the state parameter. Authorization is skipped because this
-     * is a pre-authentication step.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request) throws io.grpc.StatusException {
@@ -342,11 +290,6 @@ public final class GitHubServiceGrpc {
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
      * and the same redirect_uri. Returns an access token for GitHub API calls.
-     * &#64;internal
-     * The backend performs the token exchange using the client_secret, which
-     * must never be exposed to the frontend. The returned access_token is NOT
-     * stored by the backend — the caller is responsible for persisting it and
-     * including it in subsequent requests that need GitHub access.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request) throws io.grpc.StatusException {
@@ -363,12 +306,6 @@ public final class GitHubServiceGrpc {
    * an access token for GitHub API calls. The service manages the
    * authorize URL construction and the authorization-code-for-token
    * exchange so callers do not handle OAuth details directly.
-   * &#64;internal
-   * This is a platform utility service — not a domain resource.
-   * The backend protects the client_secret during the token exchange
-   * and constructs the authorize URL with the registered client_id and
-   * redirect_uri so the frontend never needs those values.
-   * Tokens are ephemeral — returned to the caller and never persisted.
    * </pre>
    */
   public static final class GitHubServiceBlockingStub
@@ -390,10 +327,6 @@ public final class GitHubServiceGrpc {
      * Returns a URL to redirect the user to and a random state value for
      * CSRF protection. After the user authorizes, GitHub redirects back
      * to your redirect_uri with an authorization code.
-     * &#64;internal
-     * The backend constructs the URL with the registered client_id, requested
-     * scopes, and the state parameter. Authorization is skipped because this
-     * is a pre-authentication step.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request) {
@@ -407,11 +340,6 @@ public final class GitHubServiceGrpc {
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
      * and the same redirect_uri. Returns an access token for GitHub API calls.
-     * &#64;internal
-     * The backend performs the token exchange using the client_secret, which
-     * must never be exposed to the frontend. The returned access_token is NOT
-     * stored by the backend — the caller is responsible for persisting it and
-     * including it in subsequent requests that need GitHub access.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request) {
@@ -428,12 +356,6 @@ public final class GitHubServiceGrpc {
    * an access token for GitHub API calls. The service manages the
    * authorize URL construction and the authorization-code-for-token
    * exchange so callers do not handle OAuth details directly.
-   * &#64;internal
-   * This is a platform utility service — not a domain resource.
-   * The backend protects the client_secret during the token exchange
-   * and constructs the authorize URL with the registered client_id and
-   * redirect_uri so the frontend never needs those values.
-   * Tokens are ephemeral — returned to the caller and never persisted.
    * </pre>
    */
   public static final class GitHubServiceFutureStub
@@ -455,10 +377,6 @@ public final class GitHubServiceGrpc {
      * Returns a URL to redirect the user to and a random state value for
      * CSRF protection. After the user authorizes, GitHub redirects back
      * to your redirect_uri with an authorization code.
-     * &#64;internal
-     * The backend constructs the URL with the registered client_id, requested
-     * scopes, and the state parameter. Authorization is skipped because this
-     * is a pre-authentication step.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse> getOAuthAuthorizeUrl(
@@ -473,11 +391,6 @@ public final class GitHubServiceGrpc {
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
      * and the same redirect_uri. Returns an access token for GitHub API calls.
-     * &#64;internal
-     * The backend performs the token exchange using the client_secret, which
-     * must never be exposed to the frontend. The returned access_token is NOT
-     * stored by the backend — the caller is responsible for persisting it and
-     * including it in subsequent requests that need GitHub access.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse> exchangeOAuthCode(

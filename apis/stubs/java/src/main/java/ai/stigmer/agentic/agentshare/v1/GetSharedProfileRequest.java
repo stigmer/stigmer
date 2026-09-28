@@ -11,12 +11,6 @@ package ai.stigmer.agentic.agentshare.v1;
  *
  * Identifies the share by the org and slug from the hosted chat URL, plus
  * the link token when the share URL carries one.
- *
- * &#64;internal
- * org emptiness is validated in the handler (INVALID_ARGUMENT) rather than
- * the proto to keep the anonymous path's existing error contract: org+slug
- * is the shared URL's identity, and cross-org slug matching on a public
- * endpoint would enable enumeration.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest}
@@ -393,12 +387,6 @@ private static final long serialVersionUID = 0L;
    *
    * Identifies the share by the org and slug from the hosted chat URL, plus
    * the link token when the share URL carries one.
-   *
-   * &#64;internal
-   * org emptiness is validated in the handler (INVALID_ARGUMENT) rather than
-   * the proto to keep the anonymous path's existing error contract: org+slug
-   * is the shared URL's identity, and cross-org slug matching on a public
-   * endpoint would enable enumeration.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest}

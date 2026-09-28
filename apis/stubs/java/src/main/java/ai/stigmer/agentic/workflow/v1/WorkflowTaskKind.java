@@ -8,39 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * WorkflowTaskKind defines the supported task types in a workflow.
- *
- * &#64;internal
- * These map directly to Zigflow DSL task types.
- *
- * Naming conventions:
- * - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)
- * - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)
- * - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)
- * - Self-descriptive verbs: No suffix needed (fork, listen, wait)
- * - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)
- *
- * Task config schemas (for each kind):
- *
- * set_vars: {"variables": {"key": "value", ...}}
- * http_call: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
- * grpc_call: {"service": "...", "method": "...", "request": {...}}
- * activity_call: {"activity": "ActivityName", "input": {...}}
- * switch_case: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
- * for_each: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
- * fork: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
- * try_catch: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
- * listen: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
- * wait: {"seconds": 5}
- * raise_error: {"error": "ErrorType", "message": "${...}"}
- * run_workflow: {"workflow": "workflow-name", "input": {...}}
- * agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
- * llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
- * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
- * human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
- * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
- * emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
- * notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
- * eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.WorkflowTaskKind}
@@ -59,9 +26,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Set variables in workflow state.
-   *
-   * &#64;internal
-   * Config: {"variables": {"key": "value", ...}}
    * </pre>
    *
    * <code>set_vars = 1;</code>
@@ -70,9 +34,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Make an HTTP request (GET, POST, PUT, DELETE, PATCH).
-   *
-   * &#64;internal
-   * Config: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
    * </pre>
    *
    * <code>http_call = 2;</code>
@@ -81,9 +42,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Make a gRPC request to an external service.
-   *
-   * &#64;internal
-   * Config: {"service": "...", "method": "...", "request": {...}}
    * </pre>
    *
    * <code>grpc_call = 3;</code>
@@ -92,10 +50,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Execute an activity.
-   *
-   * &#64;internal
-   * Config: {"activity": "ActivityName", "input": {...}}
-   * Executes a Temporal activity.
    * </pre>
    *
    * <code>activity_call = 4;</code>
@@ -104,9 +58,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Branch conditionally based on expressions.
-   *
-   * &#64;internal
-   * Config: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
    * </pre>
    *
    * <code>switch_case = 5;</code>
@@ -115,9 +66,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Iterate over a collection, executing tasks for each item.
-   *
-   * &#64;internal
-   * Config: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
    * </pre>
    *
    * <code>for_each = 6;</code>
@@ -126,9 +74,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Execute multiple branches in parallel.
-   *
-   * &#64;internal
-   * Config: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
    * </pre>
    *
    * <code>fork = 7;</code>
@@ -137,9 +82,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Handle errors with try/catch logic.
-   *
-   * &#64;internal
-   * Config: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
    * </pre>
    *
    * <code>try_catch = 8;</code>
@@ -148,10 +90,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Wait for external signals or events.
-   *
-   * &#64;internal
-   * Config: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
-   * Implemented via Temporal signals.
    * </pre>
    *
    * <code>listen = 9;</code>
@@ -160,10 +98,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Pause execution for a duration or until a timestamp.
-   *
-   * &#64;internal
-   * Config: {"seconds": 5}
-   * Implemented via Temporal timers.
    * </pre>
    *
    * <code>wait = 10;</code>
@@ -172,9 +106,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Raise an error to terminate or trigger error handling.
-   *
-   * &#64;internal
-   * Config: {"error": "ErrorType", "message": "${...}"}
    * </pre>
    *
    * <code>raise_error = 11;</code>
@@ -183,10 +114,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Execute a sub-workflow.
-   *
-   * &#64;internal
-   * Config: {"workflow": "workflow-name", "input": {...}}
-   * Implemented via Temporal child workflows.
    * </pre>
    *
    * <code>run_workflow = 12;</code>
@@ -195,10 +122,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Invoke an AI agent as a workflow task.
-   *
-   * &#64;internal
-   * Allows workflows to delegate complex operations to specialized agents.
-   * Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
    * </pre>
    *
    * <code>agent_call = 13;</code>
@@ -207,11 +130,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Direct LLM call for classification, extraction, scoring, or routing.
-   *
-   * &#64;internal
-   * Lightweight alternative to agent_call for focused LLM tasks without
-   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
-   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
    * </pre>
    *
    * <code>llm_call = 14;</code>
@@ -220,11 +138,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Deterministic data transformation using JQ, JSONata, or template engines.
-   *
-   * &#64;internal
-   * Reshapes data between tasks without LLM calls. Produces explicit output
-   * via export, unlike set_vars which mutates workflow state as a side effect.
-   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
    * </pre>
    *
    * <code>transform = 15;</code>
@@ -233,12 +146,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Workflow-level approval gate for human input, review, or sign-off.
-   *
-   * &#64;internal
-   * Pauses workflow execution to collect typed input or approval from a
-   * human reviewer. Supports custom outcomes, form schemas, approver
-   * lists, timeouts, and notification channels.
-   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
    * </pre>
    *
    * <code>human_input = 16;</code>
@@ -247,12 +154,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Schema and business-rule validation checkpoint.
-   *
-   * &#64;internal
-   * Validates workflow data against JSON Schema and/or business rules
-   * before downstream tasks consume it. Supports fail, branch, and warn
-   * policies for flexible error handling.
-   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
    * </pre>
    *
    * <code>validate = 17;</code>
@@ -261,12 +162,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Emit a CloudEvents-formatted event for external consumers or other workflows.
-   *
-   * &#64;internal
-   * Completes the listen/emit duality: listen waits for Temporal signals,
-   * emit_event publishes business events using the CloudEvents envelope.
-   * The runtime bridges the two when events target other workflows.
-   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
    * </pre>
    *
    * <code>emit_event = 18;</code>
@@ -275,11 +170,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Send a notification to humans through a channel (Slack, email, Discord, etc.).
-   *
-   * &#64;internal
-   * Fire-and-forget convenience abstraction for operational notifications.
-   * For notifications requiring acknowledgment, use human_input instead.
-   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
    * </pre>
    *
    * <code>notification = 19;</code>
@@ -288,15 +178,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * LLM-as-a-judge evaluation for semantic quality assessment.
-   *
-   * &#64;internal
-   * Assesses quality, correctness, safety, or completeness of LLM-generated
-   * or agent-produced content using an LLM judge. Fills the gap between
-   * structural validation (validate task) and human review (human_input).
-   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
-   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
    * </pre>
    *
    * <code>eval = 20;</code>
@@ -325,9 +206,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Set variables in workflow state.
-   *
-   * &#64;internal
-   * Config: {"variables": {"key": "value", ...}}
    * </pre>
    *
    * <code>set_vars = 1;</code>
@@ -336,9 +214,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Make an HTTP request (GET, POST, PUT, DELETE, PATCH).
-   *
-   * &#64;internal
-   * Config: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
    * </pre>
    *
    * <code>http_call = 2;</code>
@@ -347,9 +222,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Make a gRPC request to an external service.
-   *
-   * &#64;internal
-   * Config: {"service": "...", "method": "...", "request": {...}}
    * </pre>
    *
    * <code>grpc_call = 3;</code>
@@ -358,10 +230,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Execute an activity.
-   *
-   * &#64;internal
-   * Config: {"activity": "ActivityName", "input": {...}}
-   * Executes a Temporal activity.
    * </pre>
    *
    * <code>activity_call = 4;</code>
@@ -370,9 +238,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Branch conditionally based on expressions.
-   *
-   * &#64;internal
-   * Config: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
    * </pre>
    *
    * <code>switch_case = 5;</code>
@@ -381,9 +246,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Iterate over a collection, executing tasks for each item.
-   *
-   * &#64;internal
-   * Config: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
    * </pre>
    *
    * <code>for_each = 6;</code>
@@ -392,9 +254,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Execute multiple branches in parallel.
-   *
-   * &#64;internal
-   * Config: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
    * </pre>
    *
    * <code>fork = 7;</code>
@@ -403,9 +262,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Handle errors with try/catch logic.
-   *
-   * &#64;internal
-   * Config: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
    * </pre>
    *
    * <code>try_catch = 8;</code>
@@ -414,10 +270,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Wait for external signals or events.
-   *
-   * &#64;internal
-   * Config: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
-   * Implemented via Temporal signals.
    * </pre>
    *
    * <code>listen = 9;</code>
@@ -426,10 +278,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Pause execution for a duration or until a timestamp.
-   *
-   * &#64;internal
-   * Config: {"seconds": 5}
-   * Implemented via Temporal timers.
    * </pre>
    *
    * <code>wait = 10;</code>
@@ -438,9 +286,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Raise an error to terminate or trigger error handling.
-   *
-   * &#64;internal
-   * Config: {"error": "ErrorType", "message": "${...}"}
    * </pre>
    *
    * <code>raise_error = 11;</code>
@@ -449,10 +294,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Execute a sub-workflow.
-   *
-   * &#64;internal
-   * Config: {"workflow": "workflow-name", "input": {...}}
-   * Implemented via Temporal child workflows.
    * </pre>
    *
    * <code>run_workflow = 12;</code>
@@ -461,10 +302,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Invoke an AI agent as a workflow task.
-   *
-   * &#64;internal
-   * Allows workflows to delegate complex operations to specialized agents.
-   * Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
    * </pre>
    *
    * <code>agent_call = 13;</code>
@@ -473,11 +310,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Direct LLM call for classification, extraction, scoring, or routing.
-   *
-   * &#64;internal
-   * Lightweight alternative to agent_call for focused LLM tasks without
-   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
-   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
    * </pre>
    *
    * <code>llm_call = 14;</code>
@@ -486,11 +318,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Deterministic data transformation using JQ, JSONata, or template engines.
-   *
-   * &#64;internal
-   * Reshapes data between tasks without LLM calls. Produces explicit output
-   * via export, unlike set_vars which mutates workflow state as a side effect.
-   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
    * </pre>
    *
    * <code>transform = 15;</code>
@@ -499,12 +326,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Workflow-level approval gate for human input, review, or sign-off.
-   *
-   * &#64;internal
-   * Pauses workflow execution to collect typed input or approval from a
-   * human reviewer. Supports custom outcomes, form schemas, approver
-   * lists, timeouts, and notification channels.
-   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
    * </pre>
    *
    * <code>human_input = 16;</code>
@@ -513,12 +334,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Schema and business-rule validation checkpoint.
-   *
-   * &#64;internal
-   * Validates workflow data against JSON Schema and/or business rules
-   * before downstream tasks consume it. Supports fail, branch, and warn
-   * policies for flexible error handling.
-   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
    * </pre>
    *
    * <code>validate = 17;</code>
@@ -527,12 +342,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Emit a CloudEvents-formatted event for external consumers or other workflows.
-   *
-   * &#64;internal
-   * Completes the listen/emit duality: listen waits for Temporal signals,
-   * emit_event publishes business events using the CloudEvents envelope.
-   * The runtime bridges the two when events target other workflows.
-   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
    * </pre>
    *
    * <code>emit_event = 18;</code>
@@ -541,11 +350,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * Send a notification to humans through a channel (Slack, email, Discord, etc.).
-   *
-   * &#64;internal
-   * Fire-and-forget convenience abstraction for operational notifications.
-   * For notifications requiring acknowledgment, use human_input instead.
-   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
    * </pre>
    *
    * <code>notification = 19;</code>
@@ -554,15 +358,6 @@ public enum WorkflowTaskKind
   /**
    * <pre>
    * LLM-as-a-judge evaluation for semantic quality assessment.
-   *
-   * &#64;internal
-   * Assesses quality, correctness, safety, or completeness of LLM-generated
-   * or agent-produced content using an LLM judge. Fills the gap between
-   * structural validation (validate task) and human review (human_input).
-   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
-   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
    * </pre>
    *
    * <code>eval = 20;</code>

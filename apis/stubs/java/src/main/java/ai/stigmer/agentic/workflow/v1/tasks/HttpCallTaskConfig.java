@@ -8,21 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
- *
- * &#64;internal
- * YAML Example:
- * - taskName:
- * call: http
- * with:
- * method: POST
- * endpoint:
- * uri: https://api.example.com/data
- * headers:
- * Authorization: "Bearer ${TOKEN}"
- * body:
- * field1: value
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig}
@@ -552,21 +537,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
-   *
-   * &#64;internal
-   * YAML Example:
-   * - taskName:
-   * call: http
-   * with:
-   * method: POST
-   * endpoint:
-   * uri: https://api.example.com/data
-   * headers:
-   * Authorization: "Bearer ${TOKEN}"
-   * body:
-   * field1: value
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig}

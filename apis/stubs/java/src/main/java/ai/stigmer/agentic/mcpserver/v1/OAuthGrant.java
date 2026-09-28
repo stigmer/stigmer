@@ -9,28 +9,6 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
  * API resource.
- *
- * &#64;internal
- * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
- * no CRUD RPCs. Stored in the backend's database, keyed by the composite
- * of (identity_account_id, resource_id, org_id).
- *
- * The grant is resource-agnostic: currently used for MCP servers, but the
- * data model supports any API resource kind that needs OAuth credentials
- * (e.g., workflows in the future).
- *
- * Actual tokens (access + refresh) live in a managed environment
- * (stigmer.ai/managed=true label) as encrypted secret env vars.
- * OAuthGrant only holds non-secret metadata needed by the refresh
- * mechanism and pre-flight expiry checks.
- *
- * Storage split rationale:
- * - Managed environment: access token (target_env_var), refresh token
- * ({target_env_var}_REFRESH_TOKEN). These are secrets, encrypted at rest,
- * subject to Environment access control.
- * - OAuthGrant: expiry timestamp, client_id, token_endpoint, env var names.
- * These are non-secret metadata that the backend reads during pre-flight
- * checks without needing secret-read permissions on the Environment.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthGrant}
@@ -864,28 +842,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
    * API resource.
-   *
-   * &#64;internal
-   * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
-   * no CRUD RPCs. Stored in the backend's database, keyed by the composite
-   * of (identity_account_id, resource_id, org_id).
-   *
-   * The grant is resource-agnostic: currently used for MCP servers, but the
-   * data model supports any API resource kind that needs OAuth credentials
-   * (e.g., workflows in the future).
-   *
-   * Actual tokens (access + refresh) live in a managed environment
-   * (stigmer.ai/managed=true label) as encrypted secret env vars.
-   * OAuthGrant only holds non-secret metadata needed by the refresh
-   * mechanism and pre-flight expiry checks.
-   *
-   * Storage split rationale:
-   * - Managed environment: access token (target_env_var), refresh token
-   * ({target_env_var}_REFRESH_TOKEN). These are secrets, encrypted at rest,
-   * subject to Environment access control.
-   * - OAuthGrant: expiry timestamp, client_id, token_endpoint, env var names.
-   * These are non-secret metadata that the backend reads during pre-flight
-   * checks without needing secret-read permissions on the Environment.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthGrant}

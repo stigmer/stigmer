@@ -12,17 +12,6 @@ package ai.stigmer.agentic.channelapp.v1;
  * Exactly one provider configuration must be set; the provider of a
  * ChannelApp always matches the provider of the channels that reference
  * it.
- *
- * &#64;internal
- * Provider variance is config-shaped, not lifecycle-shaped — one kind,
- * a validated oneof (the AgentChannelSpec.provider_config precedent).
- * Secrets are inline spec fields encrypted at rest and redacted in every
- * response (the OAuthAppSpec.client_secret pipeline, both editions) —
- * NOT managed-environment refs: app credentials are user-authored
- * configuration entered in one motion with the resource, unlike
- * install-produced tokens (decision 004's split, amended for BYO).
- * The resource is always visibility_private; there is no updateVisibility
- * RPC.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.ChannelAppSpec}
@@ -387,17 +376,6 @@ private static final long serialVersionUID = 0L;
    * Exactly one provider configuration must be set; the provider of a
    * ChannelApp always matches the provider of the channels that reference
    * it.
-   *
-   * &#64;internal
-   * Provider variance is config-shaped, not lifecycle-shaped — one kind,
-   * a validated oneof (the AgentChannelSpec.provider_config precedent).
-   * Secrets are inline spec fields encrypted at rest and redacted in every
-   * response (the OAuthAppSpec.client_secret pipeline, both editions) —
-   * NOT managed-environment refs: app credentials are user-authored
-   * configuration entered in one motion with the resource, unlike
-   * install-produced tokens (decision 004's split, amended for BYO).
-   * The resource is always visibility_private; there is no updateVisibility
-   * RPC.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.ChannelAppSpec}

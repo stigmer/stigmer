@@ -239,9 +239,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -256,11 +253,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * can_create_agent_instance in the instance's own organization; a
      * platform-visible agent may be instantiated from any organization its
      * identity provider links.
-     * &#64;internal
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level).
-     * FGA is the single source of truth — no hardcoded org-matching rules.
-     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     default void create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -271,15 +263,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent instance.
-     * &#64;internal
-     * Replaces the entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates — always provide complete state.
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.name, metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.agent_id, metadata.id, metadata.org
-     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     default void update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -296,13 +279,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * &#64;internal
-     * Authorization: can_edit on the agent instance for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind). Visibility transitions trigger FGA tuple
-     * management in Cloud mode:
-     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -313,8 +289,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * &#64;internal
-     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     default void delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request,
@@ -359,9 +333,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -377,11 +348,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * can_create_agent_instance in the instance's own organization; a
      * platform-visible agent may be instantiated from any organization its
      * identity provider links.
-     * &#64;internal
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level).
-     * FGA is the single source of truth — no hardcoded org-matching rules.
-     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public void create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -393,15 +359,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent instance.
-     * &#64;internal
-     * Replaces the entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates — always provide complete state.
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.name, metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.agent_id, metadata.id, metadata.org
-     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public void update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -419,13 +376,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * &#64;internal
-     * Authorization: can_edit on the agent instance for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind). Visibility transitions trigger FGA tuple
-     * management in Cloud mode:
-     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -437,8 +387,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * &#64;internal
-     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public void delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request,
@@ -470,9 +418,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance apply(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) throws io.grpc.StatusException {
@@ -487,11 +432,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * can_create_agent_instance in the instance's own organization; a
      * platform-visible agent may be instantiated from any organization its
      * identity provider links.
-     * &#64;internal
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level).
-     * FGA is the single source of truth — no hardcoded org-matching rules.
-     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) throws io.grpc.StatusException {
@@ -502,15 +442,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent instance.
-     * &#64;internal
-     * Replaces the entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates — always provide complete state.
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.name, metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.agent_id, metadata.id, metadata.org
-     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) throws io.grpc.StatusException {
@@ -527,13 +458,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * &#64;internal
-     * Authorization: can_edit on the agent instance for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind). Visibility transitions trigger FGA tuple
-     * management in Cloud mode:
-     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -544,8 +468,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * &#64;internal
-     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request) throws io.grpc.StatusException {
@@ -576,9 +498,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance apply(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) {
@@ -593,11 +512,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * can_create_agent_instance in the instance's own organization; a
      * platform-visible agent may be instantiated from any organization its
      * identity provider links.
-     * &#64;internal
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level).
-     * FGA is the single source of truth — no hardcoded org-matching rules.
-     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) {
@@ -608,15 +522,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent instance.
-     * &#64;internal
-     * Replaces the entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates — always provide complete state.
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.name, metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.agent_id, metadata.id, metadata.org
-     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) {
@@ -633,13 +538,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * &#64;internal
-     * Authorization: can_edit on the agent instance for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind). Visibility transitions trigger FGA tuple
-     * management in Cloud mode:
-     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -650,8 +548,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * &#64;internal
-     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request) {
@@ -682,9 +578,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the agent instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> apply(
@@ -700,11 +593,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * can_create_agent_instance in the instance's own organization; a
      * platform-visible agent may be instantiated from any organization its
      * identity provider links.
-     * &#64;internal
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level).
-     * FGA is the single source of truth — no hardcoded org-matching rules.
-     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> create(
@@ -716,15 +604,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent instance.
-     * &#64;internal
-     * Replaces the entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates — always provide complete state.
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.name, metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.agent_id, metadata.id, metadata.org
-     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> update(
@@ -742,13 +621,6 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
-     * &#64;internal
-     * Authorization: can_edit on the agent instance for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind). Visibility transitions trigger FGA tuple
-     * management in Cloud mode:
-     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> updateVisibility(
@@ -760,8 +632,6 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * &#64;internal
-     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> delete(

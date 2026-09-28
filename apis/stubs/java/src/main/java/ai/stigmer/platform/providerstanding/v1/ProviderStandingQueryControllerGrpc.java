@@ -12,8 +12,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * platform-internal, never org-visible, and this surface only observes —
  * there is nothing to CRUD (the standing model is deliberately a
  * lightweight status, not an API resource).
- * &#64;internal
- * Cloud-only; not implemented by the OSS Go server.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -124,8 +122,6 @@ public final class ProviderStandingQueryControllerGrpc {
    * platform-internal, never org-visible, and this surface only observes —
    * there is nothing to CRUD (the standing model is deliberately a
    * lightweight status, not an API resource).
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public interface AsyncService {
@@ -152,8 +148,6 @@ public final class ProviderStandingQueryControllerGrpc {
    * platform-internal, never org-visible, and this surface only observes —
    * there is nothing to CRUD (the standing model is deliberately a
    * lightweight status, not an API resource).
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static abstract class ProviderStandingQueryControllerImplBase
@@ -175,8 +169,6 @@ public final class ProviderStandingQueryControllerGrpc {
    * platform-internal, never org-visible, and this surface only observes —
    * there is nothing to CRUD (the standing model is deliberately a
    * lightweight status, not an API resource).
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class ProviderStandingQueryControllerStub
@@ -215,8 +207,6 @@ public final class ProviderStandingQueryControllerGrpc {
    * platform-internal, never org-visible, and this surface only observes —
    * there is nothing to CRUD (the standing model is deliberately a
    * lightweight status, not an API resource).
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class ProviderStandingQueryControllerBlockingV2Stub
@@ -254,8 +244,6 @@ public final class ProviderStandingQueryControllerGrpc {
    * platform-internal, never org-visible, and this surface only observes —
    * there is nothing to CRUD (the standing model is deliberately a
    * lightweight status, not an API resource).
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class ProviderStandingQueryControllerBlockingStub
@@ -293,8 +281,6 @@ public final class ProviderStandingQueryControllerGrpc {
    * platform-internal, never org-visible, and this surface only observes —
    * there is nothing to CRUD (the standing model is deliberately a
    * lightweight status, not an API resource).
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class ProviderStandingQueryControllerFutureStub

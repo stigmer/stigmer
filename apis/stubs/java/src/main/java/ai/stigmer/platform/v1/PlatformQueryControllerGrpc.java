@@ -250,12 +250,6 @@ public final class PlatformQueryControllerGrpc {
      * Authenticated, no permission: the answer is for every signed-in person
      * (the console banner), and unlike getServerInfo it is not public because
      * a license names its customer. The handler performs no further check.
-     * &#64;internal
-     * Served by the OSS platform controller over the licenseStatus driver
-     * point: composed provider when an Enterprise unit registers one, the
-     * built-in `absent` provider otherwise. The controller stamps checked_at
-     * from the same instant it hands the provider. The console gates its
-     * license banner on edition == enterprise, never on this state alone.
      * </pre>
      */
     default void getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request,
@@ -280,12 +274,6 @@ public final class PlatformQueryControllerGrpc {
      * required, but no specific FGA permission is — every authenticated caller in
      * an environment shares one Temporal cluster, and task queues are
      * per-session/execution and gated separately by control-plane session access.
-     * &#64;internal
-     * The minted runner access token (iss=stigmer, sub=caller identity account)
-     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-     * fields empty. The handler degrades gracefully: if minting is unavailable
-     * (signing key unconfigured, or no caller identity), it returns the Temporal
-     * coordinates with an empty token rather than failing the runner's boot.
      * </pre>
      */
     default void getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request,
@@ -308,25 +296,6 @@ public final class PlatformQueryControllerGrpc {
      * server-provisioned sandbox runner.
      * The token fields are empty when the server cannot mint (OSS, or no signing
      * key configured) — the runner falls back to its existing credential.
-     * &#64;internal
-     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
-     * token_type=sandbox token carrying the execution's parent session_id (one
-     * session sandbox serves multi-turn executions); a workflow_execution_id
-     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
-     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-     * is_skip_authorization because the FGA target is derived from the input
-     * oneof, which the declarative interceptor cannot express — the handler
-     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-     * the caller must present a runner-class token_type=embedded_runner
-     * credential AND pass the same can_view check getByExecutionId performs on
-     * the named execution.
-     * Two arms are exceptions to the embedded_runner rule, each gated on its
-     * own credential class and authorized against a control-plane record
-     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-     * against the pool claim record) and renewal (token_type=sandbox /
-     * workflow_sandbox, authorized against the live sandbox record). See each
-     * arm's own doc.
      * </pre>
      */
     default void getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request,
@@ -414,12 +383,6 @@ public final class PlatformQueryControllerGrpc {
      * Authenticated, no permission: the answer is for every signed-in person
      * (the console banner), and unlike getServerInfo it is not public because
      * a license names its customer. The handler performs no further check.
-     * &#64;internal
-     * Served by the OSS platform controller over the licenseStatus driver
-     * point: composed provider when an Enterprise unit registers one, the
-     * built-in `absent` provider otherwise. The controller stamps checked_at
-     * from the same instant it hands the provider. The console gates its
-     * license banner on edition == enterprise, never on this state alone.
      * </pre>
      */
     public void getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request,
@@ -445,12 +408,6 @@ public final class PlatformQueryControllerGrpc {
      * required, but no specific FGA permission is — every authenticated caller in
      * an environment shares one Temporal cluster, and task queues are
      * per-session/execution and gated separately by control-plane session access.
-     * &#64;internal
-     * The minted runner access token (iss=stigmer, sub=caller identity account)
-     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-     * fields empty. The handler degrades gracefully: if minting is unavailable
-     * (signing key unconfigured, or no caller identity), it returns the Temporal
-     * coordinates with an empty token rather than failing the runner's boot.
      * </pre>
      */
     public void getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request,
@@ -474,25 +431,6 @@ public final class PlatformQueryControllerGrpc {
      * server-provisioned sandbox runner.
      * The token fields are empty when the server cannot mint (OSS, or no signing
      * key configured) — the runner falls back to its existing credential.
-     * &#64;internal
-     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
-     * token_type=sandbox token carrying the execution's parent session_id (one
-     * session sandbox serves multi-turn executions); a workflow_execution_id
-     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
-     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-     * is_skip_authorization because the FGA target is derived from the input
-     * oneof, which the declarative interceptor cannot express — the handler
-     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-     * the caller must present a runner-class token_type=embedded_runner
-     * credential AND pass the same can_view check getByExecutionId performs on
-     * the named execution.
-     * Two arms are exceptions to the embedded_runner rule, each gated on its
-     * own credential class and authorized against a control-plane record
-     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-     * against the pool claim record) and renewal (token_type=sandbox /
-     * workflow_sandbox, authorized against the live sandbox record). See each
-     * arm's own doc.
      * </pre>
      */
     public void getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request,
@@ -557,12 +495,6 @@ public final class PlatformQueryControllerGrpc {
      * Authenticated, no permission: the answer is for every signed-in person
      * (the console banner), and unlike getServerInfo it is not public because
      * a license names its customer. The handler performs no further check.
-     * &#64;internal
-     * Served by the OSS platform controller over the licenseStatus driver
-     * point: composed provider when an Enterprise unit registers one, the
-     * built-in `absent` provider otherwise. The controller stamps checked_at
-     * from the same instant it hands the provider. The console gates its
-     * license banner on edition == enterprise, never on this state alone.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetLicenseStatusOutput getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request) throws io.grpc.StatusException {
@@ -587,12 +519,6 @@ public final class PlatformQueryControllerGrpc {
      * required, but no specific FGA permission is — every authenticated caller in
      * an environment shares one Temporal cluster, and task queues are
      * per-session/execution and gated separately by control-plane session access.
-     * &#64;internal
-     * The minted runner access token (iss=stigmer, sub=caller identity account)
-     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-     * fields empty. The handler degrades gracefully: if minting is unavailable
-     * (signing key unconfigured, or no caller identity), it returns the Temporal
-     * coordinates with an empty token rather than failing the runner's boot.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request) throws io.grpc.StatusException {
@@ -615,25 +541,6 @@ public final class PlatformQueryControllerGrpc {
      * server-provisioned sandbox runner.
      * The token fields are empty when the server cannot mint (OSS, or no signing
      * key configured) — the runner falls back to its existing credential.
-     * &#64;internal
-     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
-     * token_type=sandbox token carrying the execution's parent session_id (one
-     * session sandbox serves multi-turn executions); a workflow_execution_id
-     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
-     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-     * is_skip_authorization because the FGA target is derived from the input
-     * oneof, which the declarative interceptor cannot express — the handler
-     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-     * the caller must present a runner-class token_type=embedded_runner
-     * credential AND pass the same can_view check getByExecutionId performs on
-     * the named execution.
-     * Two arms are exceptions to the embedded_runner rule, each gated on its
-     * own credential class and authorized against a control-plane record
-     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-     * against the pool claim record) and renewal (token_type=sandbox /
-     * workflow_sandbox, authorized against the live sandbox record). See each
-     * arm's own doc.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetRunnerScopedTokenOutput getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request) throws io.grpc.StatusException {
@@ -697,12 +604,6 @@ public final class PlatformQueryControllerGrpc {
      * Authenticated, no permission: the answer is for every signed-in person
      * (the console banner), and unlike getServerInfo it is not public because
      * a license names its customer. The handler performs no further check.
-     * &#64;internal
-     * Served by the OSS platform controller over the licenseStatus driver
-     * point: composed provider when an Enterprise unit registers one, the
-     * built-in `absent` provider otherwise. The controller stamps checked_at
-     * from the same instant it hands the provider. The console gates its
-     * license banner on edition == enterprise, never on this state alone.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetLicenseStatusOutput getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request) {
@@ -727,12 +628,6 @@ public final class PlatformQueryControllerGrpc {
      * required, but no specific FGA permission is — every authenticated caller in
      * an environment shares one Temporal cluster, and task queues are
      * per-session/execution and gated separately by control-plane session access.
-     * &#64;internal
-     * The minted runner access token (iss=stigmer, sub=caller identity account)
-     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-     * fields empty. The handler degrades gracefully: if minting is unavailable
-     * (signing key unconfigured, or no caller identity), it returns the Temporal
-     * coordinates with an empty token rather than failing the runner's boot.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request) {
@@ -755,25 +650,6 @@ public final class PlatformQueryControllerGrpc {
      * server-provisioned sandbox runner.
      * The token fields are empty when the server cannot mint (OSS, or no signing
      * key configured) — the runner falls back to its existing credential.
-     * &#64;internal
-     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
-     * token_type=sandbox token carrying the execution's parent session_id (one
-     * session sandbox serves multi-turn executions); a workflow_execution_id
-     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
-     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-     * is_skip_authorization because the FGA target is derived from the input
-     * oneof, which the declarative interceptor cannot express — the handler
-     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-     * the caller must present a runner-class token_type=embedded_runner
-     * credential AND pass the same can_view check getByExecutionId performs on
-     * the named execution.
-     * Two arms are exceptions to the embedded_runner rule, each gated on its
-     * own credential class and authorized against a control-plane record
-     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-     * against the pool claim record) and renewal (token_type=sandbox /
-     * workflow_sandbox, authorized against the live sandbox record). See each
-     * arm's own doc.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetRunnerScopedTokenOutput getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request) {
@@ -838,12 +714,6 @@ public final class PlatformQueryControllerGrpc {
      * Authenticated, no permission: the answer is for every signed-in person
      * (the console banner), and unlike getServerInfo it is not public because
      * a license names its customer. The handler performs no further check.
-     * &#64;internal
-     * Served by the OSS platform controller over the licenseStatus driver
-     * point: composed provider when an Enterprise unit registers one, the
-     * built-in `absent` provider otherwise. The controller stamps checked_at
-     * from the same instant it hands the provider. The console gates its
-     * license banner on edition == enterprise, never on this state alone.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetLicenseStatusOutput> getLicenseStatus(
@@ -869,12 +739,6 @@ public final class PlatformQueryControllerGrpc {
      * required, but no specific FGA permission is — every authenticated caller in
      * an environment shares one Temporal cluster, and task queues are
      * per-session/execution and gated separately by control-plane session access.
-     * &#64;internal
-     * The minted runner access token (iss=stigmer, sub=caller identity account)
-     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-     * fields empty. The handler degrades gracefully: if minting is unavailable
-     * (signing key unconfigured, or no caller identity), it returns the Temporal
-     * coordinates with an empty token rather than failing the runner's boot.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> getRunnerBootstrapConfig(
@@ -898,25 +762,6 @@ public final class PlatformQueryControllerGrpc {
      * server-provisioned sandbox runner.
      * The token fields are empty when the server cannot mint (OSS, or no signing
      * key configured) — the runner falls back to its existing credential.
-     * &#64;internal
-     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
-     * token_type=sandbox token carrying the execution's parent session_id (one
-     * session sandbox serves multi-turn executions); a workflow_execution_id
-     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
-     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-     * is_skip_authorization because the FGA target is derived from the input
-     * oneof, which the declarative interceptor cannot express — the handler
-     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-     * the caller must present a runner-class token_type=embedded_runner
-     * credential AND pass the same can_view check getByExecutionId performs on
-     * the named execution.
-     * Two arms are exceptions to the embedded_runner rule, each gated on its
-     * own credential class and authorized against a control-plane record
-     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-     * against the pool claim record) and renewal (token_type=sandbox /
-     * workflow_sandbox, authorized against the live sandbox record). See each
-     * arm's own doc.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> getRunnerScopedToken(

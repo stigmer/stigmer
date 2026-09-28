@@ -8,9 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowId wraps a workflow or workflow instance identifier for filtering.
- *
- * &#64;internal
- * Accepts either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowId}
@@ -62,9 +59,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow or WorkflowInstance identifier.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -86,9 +80,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow or WorkflowInstance identifier.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -268,9 +259,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowId wraps a workflow or workflow instance identifier for filtering.
-   *
-   * &#64;internal
-   * Accepts either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowId}
@@ -414,9 +402,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance identifier.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -437,9 +422,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance identifier.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -461,9 +443,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance identifier.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -481,9 +460,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance identifier.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -498,9 +474,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow or WorkflowInstance identifier.
-     *
-     * &#64;internal
-     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

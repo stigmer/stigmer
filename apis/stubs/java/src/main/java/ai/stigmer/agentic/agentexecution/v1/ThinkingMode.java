@@ -32,16 +32,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * the parameter. The one exception is a model whose entry declares
  * capabilities.thinking_required: it always thinks, so an explicit DISABLED
  * is refused at create and UNSPECIFIED runs with thinking on.
- *
- * &#64;internal
- * Resolution of UNSPECIFIED → DISABLED happens exactly once, in the
- * runner's translation layer; every upstream layer preserves the caller's
- * raw value so "user explicitly chose disabled" stays distinguishable from
- * "platform default". The Cursor harness maps the mode to its thinking
- * variant; the native harness maps it to Anthropic's `thinking` parameter
- * in the form the model's native registry entry declares.
- * Thinking combines freely with ServiceTier: the combined variant bills at
- * the fast rate (the only price-bearing dimension), ledger-verified.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.ThinkingMode}

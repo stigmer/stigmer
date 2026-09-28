@@ -11,15 +11,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * status failed — and with it, whether the failure's stored explanation
  * was authored for the conversation surface (attempt_detail) or is an
  * operator-only diagnostic (last_error).
- *
- * &#64;internal
- * cloud#262 (channel-conversations F-25, the DD-014 D-d deferred copy
- * ruling). Values carry the attempt_ prefix because proto3 enum values
- * are package-scoped — and, as with ChannelReceiptState's receipt_
- * prefix, that is also a feature: the attempt axis and the receipt axis
- * can never be confused on the wire. Shared by ChannelDelivery and
- * ChannelOutboundMessage exactly like ChannelDeliveryStatus (a twin
- * enum would not compile).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind}

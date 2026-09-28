@@ -8,13 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * RetentionPolicy controls how long an artifact's blob is retained in storage.
- *
- * &#64;internal
- * The backend computes an absolute expires_at timestamp from this policy
- * at artifact creation time. A background garbage collection job
- * periodically scans for expired artifacts and deletes their blobs.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.RetentionPolicy}
@@ -241,13 +234,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RetentionPolicy controls how long an artifact's blob is retained in storage.
-   *
-   * &#64;internal
-   * The backend computes an absolute expires_at timestamp from this policy
-   * at artifact creation time. A background garbage collection job
-   * periodically scans for expired artifacts and deletes their blobs.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.RetentionPolicy}

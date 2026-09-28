@@ -12,13 +12,6 @@ package ai.stigmer.agentic.workflow.v1;
  * Each apply/update that changes the generated CNCF YAML (and passes validation)
  * creates a new immutable version entry. The version is identified by its content
  * hash (SHA-256 of the validated YAML).
- *
- * &#64;internal
- * Stored in the resource_audit table (OSS SQLite) or workflow_audit collection
- * (Cloud MongoDB). Entries are immutable after creation — a version's content
- * never changes, only its tag can be reassigned via tagVersion.
- *
- * &#64;since Workflow Versioning
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry}
@@ -199,11 +192,6 @@ private static final long serialVersionUID = 0L;
    * Tag assigned to this version at apply time or via tagVersion.
    * May be empty if the version was applied without a tag.
    * Examples: "stable", "v1.0", "production"
-   *
-   * &#64;internal
-   * Tags are mutable pointers — calling tagVersion moves a tag to a different
-   * version. When resolving by tag, the system returns the most recent audit
-   * entry with that tag (ordered by applied_at DESC).
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>
@@ -227,11 +215,6 @@ private static final long serialVersionUID = 0L;
    * Tag assigned to this version at apply time or via tagVersion.
    * May be empty if the version was applied without a tag.
    * Examples: "stable", "v1.0", "production"
-   *
-   * &#64;internal
-   * Tags are mutable pointers — calling tagVersion moves a tag to a different
-   * version. When resolving by tag, the system returns the most recent audit
-   * entry with that tag (ordered by applied_at DESC).
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>
@@ -322,11 +305,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-   *
-   * &#64;internal
-   * Used by the runner (to execute the workflow) and the execution viewer
-   * (to render the graph for historical executions). This is the exact YAML
-   * that was validated at the time this version was created.
    * </pre>
    *
    * <code>string validated_yaml = 7 [json_name = "validatedYaml"];</code>
@@ -348,11 +326,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-   *
-   * &#64;internal
-   * Used by the runner (to execute the workflow) and the execution viewer
-   * (to render the graph for historical executions). This is the exact YAML
-   * that was validated at the time this version was created.
    * </pre>
    *
    * <code>string validated_yaml = 7 [json_name = "validatedYaml"];</code>
@@ -379,10 +352,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git provenance tracking where this version's definition originated.
    * Absent when applied from a non-git directory or via the web editor.
-   *
-   * &#64;internal
-   * Populated by CLI during apply when the working directory is within a
-   * git repository. Provides traceability and enables "view on GitHub" links.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -396,10 +365,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git provenance tracking where this version's definition originated.
    * Absent when applied from a non-git directory or via the web editor.
-   *
-   * &#64;internal
-   * Populated by CLI during apply when the working directory is within a
-   * git repository. Provides traceability and enables "view on GitHub" links.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -413,10 +378,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git provenance tracking where this version's definition originated.
    * Absent when applied from a non-git directory or via the web editor.
-   *
-   * &#64;internal
-   * Populated by CLI during apply when the working directory is within a
-   * git repository. Provides traceability and enables "view on GitHub" links.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -679,13 +640,6 @@ private static final long serialVersionUID = 0L;
    * Each apply/update that changes the generated CNCF YAML (and passes validation)
    * creates a new immutable version entry. The version is identified by its content
    * hash (SHA-256 of the validated YAML).
-   *
-   * &#64;internal
-   * Stored in the resource_audit table (OSS SQLite) or workflow_audit collection
-   * (Cloud MongoDB). Entries are immutable after creation — a version's content
-   * never changes, only its tag can be reassigned via tagVersion.
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry}
@@ -1364,11 +1318,6 @@ private static final long serialVersionUID = 0L;
      * Tag assigned to this version at apply time or via tagVersion.
      * May be empty if the version was applied without a tag.
      * Examples: "stable", "v1.0", "production"
-     *
-     * &#64;internal
-     * Tags are mutable pointers — calling tagVersion moves a tag to a different
-     * version. When resolving by tag, the system returns the most recent audit
-     * entry with that tag (ordered by applied_at DESC).
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1391,11 +1340,6 @@ private static final long serialVersionUID = 0L;
      * Tag assigned to this version at apply time or via tagVersion.
      * May be empty if the version was applied without a tag.
      * Examples: "stable", "v1.0", "production"
-     *
-     * &#64;internal
-     * Tags are mutable pointers — calling tagVersion moves a tag to a different
-     * version. When resolving by tag, the system returns the most recent audit
-     * entry with that tag (ordered by applied_at DESC).
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1419,11 +1363,6 @@ private static final long serialVersionUID = 0L;
      * Tag assigned to this version at apply time or via tagVersion.
      * May be empty if the version was applied without a tag.
      * Examples: "stable", "v1.0", "production"
-     *
-     * &#64;internal
-     * Tags are mutable pointers — calling tagVersion moves a tag to a different
-     * version. When resolving by tag, the system returns the most recent audit
-     * entry with that tag (ordered by applied_at DESC).
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1443,11 +1382,6 @@ private static final long serialVersionUID = 0L;
      * Tag assigned to this version at apply time or via tagVersion.
      * May be empty if the version was applied without a tag.
      * Examples: "stable", "v1.0", "production"
-     *
-     * &#64;internal
-     * Tags are mutable pointers — calling tagVersion moves a tag to a different
-     * version. When resolving by tag, the system returns the most recent audit
-     * entry with that tag (ordered by applied_at DESC).
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1464,11 +1398,6 @@ private static final long serialVersionUID = 0L;
      * Tag assigned to this version at apply time or via tagVersion.
      * May be empty if the version was applied without a tag.
      * Examples: "stable", "v1.0", "production"
-     *
-     * &#64;internal
-     * Tags are mutable pointers — calling tagVersion moves a tag to a different
-     * version. When resolving by tag, the system returns the most recent audit
-     * entry with that tag (ordered by applied_at DESC).
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1630,11 +1559,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-     *
-     * &#64;internal
-     * Used by the runner (to execute the workflow) and the execution viewer
-     * (to render the graph for historical executions). This is the exact YAML
-     * that was validated at the time this version was created.
      * </pre>
      *
      * <code>string validated_yaml = 7 [json_name = "validatedYaml"];</code>
@@ -1655,11 +1579,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-     *
-     * &#64;internal
-     * Used by the runner (to execute the workflow) and the execution viewer
-     * (to render the graph for historical executions). This is the exact YAML
-     * that was validated at the time this version was created.
      * </pre>
      *
      * <code>string validated_yaml = 7 [json_name = "validatedYaml"];</code>
@@ -1681,11 +1600,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-     *
-     * &#64;internal
-     * Used by the runner (to execute the workflow) and the execution viewer
-     * (to render the graph for historical executions). This is the exact YAML
-     * that was validated at the time this version was created.
      * </pre>
      *
      * <code>string validated_yaml = 7 [json_name = "validatedYaml"];</code>
@@ -1703,11 +1617,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-     *
-     * &#64;internal
-     * Used by the runner (to execute the workflow) and the execution viewer
-     * (to render the graph for historical executions). This is the exact YAML
-     * that was validated at the time this version was created.
      * </pre>
      *
      * <code>string validated_yaml = 7 [json_name = "validatedYaml"];</code>
@@ -1722,11 +1631,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-     *
-     * &#64;internal
-     * Used by the runner (to execute the workflow) and the execution viewer
-     * (to render the graph for historical executions). This is the exact YAML
-     * that was validated at the time this version was created.
      * </pre>
      *
      * <code>string validated_yaml = 7 [json_name = "validatedYaml"];</code>
@@ -1750,10 +1654,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1766,10 +1666,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1786,10 +1682,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1811,10 +1703,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1834,10 +1722,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1864,10 +1748,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1886,10 +1766,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1903,10 +1779,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
@@ -1923,10 +1795,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git provenance tracking where this version's definition originated.
      * Absent when applied from a non-git directory or via the web editor.
-     *
-     * &#64;internal
-     * Populated by CLI during apply when the working directory is within a
-     * git repository. Provides traceability and enables "view on GitHub" links.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>

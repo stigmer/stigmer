@@ -13,9 +13,6 @@ public interface GetArtifactRequestOrBuilder extends
   /**
    * <pre>
    * The artifact storage key from skill.status.artifact_storage_key.
-   *
-   * &#64;internal
-   * Identifies the location of the ZIP file in storage (R2/S3).
    * </pre>
    *
    * <code>string artifact_storage_key = 1 [json_name = "artifactStorageKey", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface GetArtifactRequestOrBuilder extends
   /**
    * <pre>
    * The artifact storage key from skill.status.artifact_storage_key.
-   *
-   * &#64;internal
-   * Identifies the location of the ZIP file in storage (R2/S3).
    * </pre>
    *
    * <code>string artifact_storage_key = 1 [json_name = "artifactStorageKey", (.buf.validate.field) = { ... }</code>

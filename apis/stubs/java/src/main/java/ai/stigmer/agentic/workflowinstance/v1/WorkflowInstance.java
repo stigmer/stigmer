@@ -8,26 +8,6 @@ package ai.stigmer.agentic.workflowinstance.v1;
 /**
  * <pre>
  * WorkflowInstance represents a configured deployment of a Workflow template.
- *
- * &#64;internal
- * This is the "Instance" layer in the Template→Instance→Execution pattern.
- * It binds a reusable Workflow template to specific environments containing credentials,
- * configuration, and secrets needed for execution.
- *
- * A WorkflowInstance:
- * - References a Workflow template (the orchestration blueprint)
- * - Binds one or more Environment resources (configuration + secrets)
- * - Can be executed multiple times via WorkflowExecution resources
- * - Can be platform-scoped (global defaults), org-scoped (team instances), or user-scoped (personal)
- *
- * Example use case:
- * Workflow "deploy-to-cloud" (template) → WorkflowInstance "prod-deploy" (with aws-prod-env)
- * → WorkflowExecution "prod-deploy-20250111-001" (specific run)
- *
- * This separation allows:
- * - Workflow templates to be reusable across teams/environments
- * - Instances to maintain stateful configuration with secrets
- * - Executions to track individual runs with results
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance}
@@ -250,10 +230,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed audit information.
-   *
-   * &#64;internal
-   * This is a simple status (no custom execution state) since WorkflowInstance
-   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -266,10 +242,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed audit information.
-   *
-   * &#64;internal
-   * This is a simple status (no custom execution state) since WorkflowInstance
-   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -282,10 +254,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed audit information.
-   *
-   * &#64;internal
-   * This is a simple status (no custom execution state) since WorkflowInstance
-   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -512,26 +480,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowInstance represents a configured deployment of a Workflow template.
-   *
-   * &#64;internal
-   * This is the "Instance" layer in the Template→Instance→Execution pattern.
-   * It binds a reusable Workflow template to specific environments containing credentials,
-   * configuration, and secrets needed for execution.
-   *
-   * A WorkflowInstance:
-   * - References a Workflow template (the orchestration blueprint)
-   * - Binds one or more Environment resources (configuration + secrets)
-   * - Can be executed multiple times via WorkflowExecution resources
-   * - Can be platform-scoped (global defaults), org-scoped (team instances), or user-scoped (personal)
-   *
-   * Example use case:
-   * Workflow "deploy-to-cloud" (template) → WorkflowInstance "prod-deploy" (with aws-prod-env)
-   * → WorkflowExecution "prod-deploy-20250111-001" (specific run)
-   *
-   * This separation allows:
-   * - Workflow templates to be reusable across teams/environments
-   * - Instances to maintain stateful configuration with secrets
-   * - Executions to track individual runs with results
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance}
@@ -1262,10 +1210,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1277,10 +1221,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1296,10 +1236,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1320,10 +1256,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1342,10 +1274,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1371,10 +1299,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1392,10 +1316,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1408,10 +1328,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1427,10 +1343,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed audit information.
-     *
-     * &#64;internal
-     * This is a simple status (no custom execution state) since WorkflowInstance
-     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

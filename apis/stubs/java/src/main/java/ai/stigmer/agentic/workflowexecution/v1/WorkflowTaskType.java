@@ -8,10 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowTaskType defines the type of workflow task.
- *
- * &#64;internal
- * Each task type has specific input/output schema expectations,
- * execution behavior, and error handling/retry policies.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType}
@@ -22,9 +18,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Unspecified task type (invalid).
-   *
-   * &#64;internal
-   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>WORKFLOW_TASK_TYPE_UNSPECIFIED = 0;</code>
@@ -33,9 +26,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Invoke an AI agent with a prompt.
-   *
-   * &#64;internal
-   * Calls an AgentInstance and waits for the agent execution to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_AGENT_INVOCATION = 1;</code>
@@ -44,9 +34,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Wait for human approval before proceeding.
-   *
-   * &#64;internal
-   * Pauses the workflow and waits for one or more users to approve or reject.
    * </pre>
    *
    * <code>WORKFLOW_TASK_APPROVAL = 2;</code>
@@ -55,9 +42,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Call an external HTTP or gRPC API.
-   *
-   * &#64;internal
-   * Sends a request to an external API and captures the response.
    * </pre>
    *
    * <code>WORKFLOW_TASK_API_CALL = 3;</code>
@@ -66,9 +50,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Evaluate a condition and branch to different paths.
-   *
-   * &#64;internal
-   * Evaluates a boolean expression and determines which tasks to execute next.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CONDITIONAL = 4;</code>
@@ -77,9 +58,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Execute multiple sub-tasks concurrently.
-   *
-   * &#64;internal
-   * Spawns multiple tasks that run in parallel and waits for all to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_PARALLEL = 5;</code>
@@ -88,9 +66,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Transform data between tasks.
-   *
-   * &#64;internal
-   * Applies transformations to data (map, filter, aggregate, format).
    * </pre>
    *
    * <code>WORKFLOW_TASK_TRANSFORM = 6;</code>
@@ -99,9 +74,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Execute custom task logic defined by plugins.
-   *
-   * &#64;internal
-   * Input/output schemas are plugin-specific.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CUSTOM = 7;</code>
@@ -122,9 +94,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Unspecified task type (invalid).
-   *
-   * &#64;internal
-   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>WORKFLOW_TASK_TYPE_UNSPECIFIED = 0;</code>
@@ -133,9 +102,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Invoke an AI agent with a prompt.
-   *
-   * &#64;internal
-   * Calls an AgentInstance and waits for the agent execution to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_AGENT_INVOCATION = 1;</code>
@@ -144,9 +110,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Wait for human approval before proceeding.
-   *
-   * &#64;internal
-   * Pauses the workflow and waits for one or more users to approve or reject.
    * </pre>
    *
    * <code>WORKFLOW_TASK_APPROVAL = 2;</code>
@@ -155,9 +118,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Call an external HTTP or gRPC API.
-   *
-   * &#64;internal
-   * Sends a request to an external API and captures the response.
    * </pre>
    *
    * <code>WORKFLOW_TASK_API_CALL = 3;</code>
@@ -166,9 +126,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Evaluate a condition and branch to different paths.
-   *
-   * &#64;internal
-   * Evaluates a boolean expression and determines which tasks to execute next.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CONDITIONAL = 4;</code>
@@ -177,9 +134,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Execute multiple sub-tasks concurrently.
-   *
-   * &#64;internal
-   * Spawns multiple tasks that run in parallel and waits for all to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_PARALLEL = 5;</code>
@@ -188,9 +142,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Transform data between tasks.
-   *
-   * &#64;internal
-   * Applies transformations to data (map, filter, aggregate, format).
    * </pre>
    *
    * <code>WORKFLOW_TASK_TRANSFORM = 6;</code>
@@ -199,9 +150,6 @@ public enum WorkflowTaskType
   /**
    * <pre>
    * Execute custom task logic defined by plugins.
-   *
-   * &#64;internal
-   * Input/output schemas are plugin-specific.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CUSTOM = 7;</code>

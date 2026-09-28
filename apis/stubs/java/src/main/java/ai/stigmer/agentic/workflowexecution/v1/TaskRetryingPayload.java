@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for task_retrying events.
- *
- * &#64;internal
- * Emitted between a task_failed and the next task_started for the same task.
- * Indicates the runner is scheduling a retry with optional backoff.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskRetryingPayload}
@@ -287,12 +281,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for task_retrying events.
-   *
-   * &#64;internal
-   * Emitted between a task_failed and the next task_started for the same task.
-   * Indicates the runner is scheduling a retry with optional backoff.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskRetryingPayload}

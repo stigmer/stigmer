@@ -8,23 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
- *
- * &#64;internal
- * The handler:
- * 1. Finds the OAuthAppOverride for (resource_id, resource_kind, org)
- * 2. Deletes the OAuthApp resource created for this override
- * 3. Deletes the OAuthAppOverride binding
- *
- * After this, the resolution chain falls back to the platform default.
- * Existing user OAuthGrants that were issued using the org's OAuthApp
- * will fail on next refresh — those users will need to re-authenticate
- * using the platform default (or a new org override).
- *
- * Prerequisites:
- * - An override must exist for this resource + org
- *
- * Errors:
- * - NOT_FOUND: No override exists for this resource + org
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput}
@@ -334,23 +317,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
-   *
-   * &#64;internal
-   * The handler:
-   * 1. Finds the OAuthAppOverride for (resource_id, resource_kind, org)
-   * 2. Deletes the OAuthApp resource created for this override
-   * 3. Deletes the OAuthAppOverride binding
-   *
-   * After this, the resolution chain falls back to the platform default.
-   * Existing user OAuthGrants that were issued using the org's OAuthApp
-   * will fail on next refresh — those users will need to re-authenticate
-   * using the platform default (or a new org override).
-   *
-   * Prerequisites:
-   * - An override must exist for this resource + org
-   *
-   * Errors:
-   * - NOT_FOUND: No override exists for this resource + org
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput}

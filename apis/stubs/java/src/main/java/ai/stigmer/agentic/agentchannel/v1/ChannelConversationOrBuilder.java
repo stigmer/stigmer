@@ -53,10 +53,6 @@ public interface ChannelConversationOrBuilder extends
   /**
    * <pre>
    * Organization that owns the channel.
-   *
-   * &#64;internal
-   * Denormalized from the channel (its metadata.org) so the org-wide
-   * list never joins — the schedule_fire.org precedent.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -66,10 +62,6 @@ public interface ChannelConversationOrBuilder extends
   /**
    * <pre>
    * Organization that owns the channel.
-   *
-   * &#64;internal
-   * Denormalized from the channel (its metadata.org) so the org-wide
-   * list never joins — the schedule_fire.org precedent.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -147,12 +139,6 @@ public interface ChannelConversationOrBuilder extends
   /**
    * <pre>
    * True when the conversation is flagged for human attention.
-   *
-   * &#64;internal
-   * DD-008 D-e: a projection of the latest escalation event, updated by
-   * the participation writer in the same motion that appends the event.
-   * Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
-   * never touches it.
    * </pre>
    *
    * <code>bool needs_attention = 7 [json_name = "needsAttention"];</code>
@@ -287,20 +273,6 @@ public interface ChannelConversationOrBuilder extends
    * <pre>
    * True when the customer's last message has not yet received a real
    * answer — from the agent or from a teammate.
-   *
-   * &#64;internal
-   * channel-conversations DD-011 D-b/D-c: derived on read from
-   * last_customer_message_at vs the server-side last_answered_at fact
-   * column — never stored, so no boolean exists to drift. Only real
-   * answers stamp the fact (an agent turn delivered with Outcome.OK; a
-   * participant-origin staff reply at its Delivered settle); apology,
-   * cancellation, and limit copy, the platform acknowledgment, operator
-   * sends, and escalations never count. Ties go to answered. The raw
-   * instant stays server-side deliberately: carrying the derived boolean
-   * keeps the NULL-and-compare rule in one place instead of re-implemented
-   * per client, and "waiting since" already rides field 11. proto3
-   * default (false) degrades to the pre-T05 surface in both skew
-   * directions.
    * </pre>
    *
    * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>

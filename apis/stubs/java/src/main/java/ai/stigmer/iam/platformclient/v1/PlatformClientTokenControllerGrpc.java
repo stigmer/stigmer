@@ -203,10 +203,6 @@ public final class PlatformClientTokenControllerGrpc {
      * the PlatformClient lists allowed_origins, requests whose Origin header
      * is not on the list are refused PERMISSION_DENIED (see the
      * allowed_origins field docs in spec.proto for the exact semantics).
-     * &#64;internal
-     * This RPC is public — no Bearer token is required. The caller authenticates
-     * by providing client_id + client_secret in the request body. The handler
-     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     default void mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request,
@@ -220,12 +216,6 @@ public final class PlatformClientTokenControllerGrpc {
      * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
-     * &#64;internal
-     * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
-     * and stamps the resolved share's id into the guest JWT as the share_id
-     * claim — the create-time gate re-reads the live share by that id on every
-     * session/execution create (decision 011 D6).
      * </pre>
      */
     default void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
@@ -327,10 +317,6 @@ public final class PlatformClientTokenControllerGrpc {
      * the PlatformClient lists allowed_origins, requests whose Origin header
      * is not on the list are refused PERMISSION_DENIED (see the
      * allowed_origins field docs in spec.proto for the exact semantics).
-     * &#64;internal
-     * This RPC is public — no Bearer token is required. The caller authenticates
-     * by providing client_id + client_secret in the request body. The handler
-     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public void mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request,
@@ -345,12 +331,6 @@ public final class PlatformClientTokenControllerGrpc {
      * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
-     * &#64;internal
-     * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
-     * and stamps the resolved share's id into the guest JWT as the share_id
-     * claim — the create-time gate re-reads the live share by that id on every
-     * session/execution create (decision 011 D6).
      * </pre>
      */
     public void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
@@ -423,10 +403,6 @@ public final class PlatformClientTokenControllerGrpc {
      * the PlatformClient lists allowed_origins, requests whose Origin header
      * is not on the list are refused PERMISSION_DENIED (see the
      * allowed_origins field docs in spec.proto for the exact semantics).
-     * &#64;internal
-     * This RPC is public — no Bearer token is required. The caller authenticates
-     * by providing client_id + client_secret in the request body. The handler
-     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintUserTokenResponse mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request) throws io.grpc.StatusException {
@@ -440,12 +416,6 @@ public final class PlatformClientTokenControllerGrpc {
      * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
-     * &#64;internal
-     * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
-     * and stamps the resolved share's id into the guest JWT as the share_id
-     * claim — the create-time gate re-reads the live share by that id on every
-     * session/execution create (decision 011 D6).
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) throws io.grpc.StatusException {
@@ -517,10 +487,6 @@ public final class PlatformClientTokenControllerGrpc {
      * the PlatformClient lists allowed_origins, requests whose Origin header
      * is not on the list are refused PERMISSION_DENIED (see the
      * allowed_origins field docs in spec.proto for the exact semantics).
-     * &#64;internal
-     * This RPC is public — no Bearer token is required. The caller authenticates
-     * by providing client_id + client_secret in the request body. The handler
-     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintUserTokenResponse mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request) {
@@ -534,12 +500,6 @@ public final class PlatformClientTokenControllerGrpc {
      * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
-     * &#64;internal
-     * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
-     * and stamps the resolved share's id into the guest JWT as the share_id
-     * claim — the create-time gate re-reads the live share by that id on every
-     * session/execution create (decision 011 D6).
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) {
@@ -611,10 +571,6 @@ public final class PlatformClientTokenControllerGrpc {
      * the PlatformClient lists allowed_origins, requests whose Origin header
      * is not on the list are refused PERMISSION_DENIED (see the
      * allowed_origins field docs in spec.proto for the exact semantics).
-     * &#64;internal
-     * This RPC is public — no Bearer token is required. The caller authenticates
-     * by providing client_id + client_secret in the request body. The handler
-     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.MintUserTokenResponse> mintUserToken(
@@ -629,12 +585,6 @@ public final class PlatformClientTokenControllerGrpc {
      * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
-     * &#64;internal
-     * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
-     * and stamps the resolved share's id into the guest JWT as the share_id
-     * claim — the create-time gate re-reads the live share by that id on every
-     * session/execution create (decision 011 D6).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> mintGuestToken(

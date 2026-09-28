@@ -239,9 +239,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the session
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.session.v1.Session request,
@@ -252,8 +249,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create a session.
-     * &#64;internal
-     * Requires can_create_session permission in the organization.
      * </pre>
      */
     default void create(ai.stigmer.agentic.session.v1.Session request,
@@ -277,9 +272,6 @@ public final class SessionCommandControllerGrpc {
      * This is a targeted update that modifies only the subject field,
      * leaving other session fields untouched. Use this instead of the full
      * update RPC when you only need to change the session subject.
-     * &#64;internal
-     * Server-side field-level update, race-safe. Atomically modifies only
-     * spec.subject without touching other fields.
      * </pre>
      */
     default void updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request,
@@ -296,9 +288,6 @@ public final class SessionCommandControllerGrpc {
      * Fails with FAILED_PRECONDITION while any agent execution in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
-     * &#64;internal
-     * Requires can_delete on the session (owner-only — sessions are personal
-     * resources, so org admins have no implicit delete access).
      * </pre>
      */
     default void delete(ai.stigmer.agentic.session.v1.SessionId request,
@@ -343,9 +332,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the session
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.session.v1.Session request,
@@ -357,8 +343,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create a session.
-     * &#64;internal
-     * Requires can_create_session permission in the organization.
      * </pre>
      */
     public void create(ai.stigmer.agentic.session.v1.Session request,
@@ -384,9 +368,6 @@ public final class SessionCommandControllerGrpc {
      * This is a targeted update that modifies only the subject field,
      * leaving other session fields untouched. Use this instead of the full
      * update RPC when you only need to change the session subject.
-     * &#64;internal
-     * Server-side field-level update, race-safe. Atomically modifies only
-     * spec.subject without touching other fields.
      * </pre>
      */
     public void updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request,
@@ -404,9 +385,6 @@ public final class SessionCommandControllerGrpc {
      * Fails with FAILED_PRECONDITION while any agent execution in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
-     * &#64;internal
-     * Requires can_delete on the session (owner-only — sessions are personal
-     * resources, so org admins have no implicit delete access).
      * </pre>
      */
     public void delete(ai.stigmer.agentic.session.v1.SessionId request,
@@ -438,9 +416,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the session
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session apply(ai.stigmer.agentic.session.v1.Session request) throws io.grpc.StatusException {
@@ -451,8 +426,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create a session.
-     * &#64;internal
-     * Requires can_create_session permission in the organization.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session create(ai.stigmer.agentic.session.v1.Session request) throws io.grpc.StatusException {
@@ -476,9 +449,6 @@ public final class SessionCommandControllerGrpc {
      * This is a targeted update that modifies only the subject field,
      * leaving other session fields untouched. Use this instead of the full
      * update RPC when you only need to change the session subject.
-     * &#64;internal
-     * Server-side field-level update, race-safe. Atomically modifies only
-     * spec.subject without touching other fields.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) throws io.grpc.StatusException {
@@ -495,9 +465,6 @@ public final class SessionCommandControllerGrpc {
      * Fails with FAILED_PRECONDITION while any agent execution in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
-     * &#64;internal
-     * Requires can_delete on the session (owner-only — sessions are personal
-     * resources, so org admins have no implicit delete access).
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session delete(ai.stigmer.agentic.session.v1.SessionId request) throws io.grpc.StatusException {
@@ -528,9 +495,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the session
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session apply(ai.stigmer.agentic.session.v1.Session request) {
@@ -541,8 +505,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create a session.
-     * &#64;internal
-     * Requires can_create_session permission in the organization.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session create(ai.stigmer.agentic.session.v1.Session request) {
@@ -566,9 +528,6 @@ public final class SessionCommandControllerGrpc {
      * This is a targeted update that modifies only the subject field,
      * leaving other session fields untouched. Use this instead of the full
      * update RPC when you only need to change the session subject.
-     * &#64;internal
-     * Server-side field-level update, race-safe. Atomically modifies only
-     * spec.subject without touching other fields.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) {
@@ -585,9 +544,6 @@ public final class SessionCommandControllerGrpc {
      * Fails with FAILED_PRECONDITION while any agent execution in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
-     * &#64;internal
-     * Requires can_delete on the session (owner-only — sessions are personal
-     * resources, so org admins have no implicit delete access).
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session delete(ai.stigmer.agentic.session.v1.SessionId request) {
@@ -618,9 +574,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the session
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> apply(
@@ -632,8 +585,6 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create a session.
-     * &#64;internal
-     * Requires can_create_session permission in the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> create(
@@ -659,9 +610,6 @@ public final class SessionCommandControllerGrpc {
      * This is a targeted update that modifies only the subject field,
      * leaving other session fields untouched. Use this instead of the full
      * update RPC when you only need to change the session subject.
-     * &#64;internal
-     * Server-side field-level update, race-safe. Atomically modifies only
-     * spec.subject without touching other fields.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> updateSubject(
@@ -679,9 +627,6 @@ public final class SessionCommandControllerGrpc {
      * Fails with FAILED_PRECONDITION while any agent execution in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
-     * &#64;internal
-     * Requires can_delete on the session (owner-only — sessions are personal
-     * resources, so org admins have no implicit delete access).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> delete(

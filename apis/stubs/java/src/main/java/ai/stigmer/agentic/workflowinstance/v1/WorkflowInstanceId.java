@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflowinstance.v1;
 /**
  * <pre>
  * WorkflowInstanceId wraps a workflow instance identifier.
- *
- * &#64;internal
- * Used as input to RPCs that operate on a single instance:
- * - get: Retrieve a specific instance by ID
- * - delete: Remove a specific instance by ID
- * Format: Resource ID string (e.g., "wfi_abc123")
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId}
@@ -265,12 +259,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowInstanceId wraps a workflow instance identifier.
-   *
-   * &#64;internal
-   * Used as input to RPCs that operate on a single instance:
-   * - get: Retrieve a specific instance by ID
-   * - delete: Remove a specific instance by ID
-   * Format: Resource ID string (e.g., "wfi_abc123")
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId}

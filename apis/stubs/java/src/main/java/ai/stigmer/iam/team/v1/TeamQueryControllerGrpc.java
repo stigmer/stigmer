@@ -8,9 +8,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Every member of an organization can see its teams, so anyone who can share
  * a resource can pick a team to share it with. Who is in a team is read
  * through the IAM policy service's access list on the team.
- * &#64;internal
- * Served by the Enterprise and Cloud editions; the open-source server
- * registers no Team service.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -179,9 +176,6 @@ public final class TeamQueryControllerGrpc {
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
    * through the IAM policy service's access list on the team.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public interface AsyncService {
@@ -189,8 +183,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its unique identifier.
-     * &#64;internal
-     * Authorization: can_view on the team (every organization viewer).
      * </pre>
      */
     default void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -201,10 +193,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * The request carries a slug, not an id, so the handler resolves the
-     * reference first and then authorizes can_view on the resolved team, the
-     * check get makes.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -215,9 +203,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * List the teams of an organization.
-     * &#64;internal
-     * Authorization: can_view on the organization. Every organization viewer
-     * sees every team, so the list needs no per-row scope.
      * </pre>
      */
     default void listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request,
@@ -233,9 +218,6 @@ public final class TeamQueryControllerGrpc {
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
    * through the IAM policy service's access list on the team.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static abstract class TeamQueryControllerImplBase
@@ -253,9 +235,6 @@ public final class TeamQueryControllerGrpc {
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
    * through the IAM policy service's access list on the team.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamQueryControllerStub
@@ -274,8 +253,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its unique identifier.
-     * &#64;internal
-     * Authorization: can_view on the team (every organization viewer).
      * </pre>
      */
     public void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -287,10 +264,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * The request carries a slug, not an id, so the handler resolves the
-     * reference first and then authorizes can_view on the resolved team, the
-     * check get makes.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -302,9 +275,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * List the teams of an organization.
-     * &#64;internal
-     * Authorization: can_view on the organization. Every organization viewer
-     * sees every team, so the list needs no per-row scope.
      * </pre>
      */
     public void listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request,
@@ -321,9 +291,6 @@ public final class TeamQueryControllerGrpc {
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
    * through the IAM policy service's access list on the team.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamQueryControllerBlockingV2Stub
@@ -342,8 +309,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its unique identifier.
-     * &#64;internal
-     * Authorization: can_view on the team (every organization viewer).
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team get(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -354,10 +319,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * The request carries a slug, not an id, so the handler resolves the
-     * reference first and then authorizes can_view on the resolved team, the
-     * check get makes.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -368,9 +329,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * List the teams of an organization.
-     * &#64;internal
-     * Authorization: can_view on the organization. Every organization viewer
-     * sees every team, so the list needs no per-row scope.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Teams listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request) throws io.grpc.StatusException {
@@ -386,9 +344,6 @@ public final class TeamQueryControllerGrpc {
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
    * through the IAM policy service's access list on the team.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamQueryControllerBlockingStub
@@ -407,8 +362,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its unique identifier.
-     * &#64;internal
-     * Authorization: can_view on the team (every organization viewer).
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team get(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -419,10 +372,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * The request carries a slug, not an id, so the handler resolves the
-     * reference first and then authorizes can_view on the resolved team, the
-     * check get makes.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -433,9 +382,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * List the teams of an organization.
-     * &#64;internal
-     * Authorization: can_view on the organization. Every organization viewer
-     * sees every team, so the list needs no per-row scope.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Teams listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request) {
@@ -451,9 +397,6 @@ public final class TeamQueryControllerGrpc {
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
    * through the IAM policy service's access list on the team.
-   * &#64;internal
-   * Served by the Enterprise and Cloud editions; the open-source server
-   * registers no Team service.
    * </pre>
    */
   public static final class TeamQueryControllerFutureStub
@@ -472,8 +415,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its unique identifier.
-     * &#64;internal
-     * Authorization: can_view on the team (every organization viewer).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Team> get(
@@ -485,10 +426,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * Get a team by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * The request carries a slug, not an id, so the handler resolves the
-     * reference first and then authorizes can_view on the resolved team, the
-     * check get makes.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Team> getByReference(
@@ -500,9 +437,6 @@ public final class TeamQueryControllerGrpc {
     /**
      * <pre>
      * List the teams of an organization.
-     * &#64;internal
-     * Authorization: can_view on the organization. Every organization viewer
-     * sees every team, so the list needs no per-row scope.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Teams> listByOrg(

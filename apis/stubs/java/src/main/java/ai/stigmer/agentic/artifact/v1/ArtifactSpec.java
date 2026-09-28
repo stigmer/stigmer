@@ -8,17 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ArtifactSpec defines the properties of an artifact provided at creation time.
- *
- * &#64;internal
- * Artifacts are created by the runner when a task
- * produces output that should be persisted outside the execution status
- * snapshot (either because it exceeds the size threshold or because the
- * workflow author explicitly requested artifact persistence).
- *
- * The spec is immutable after creation — artifacts are append-only.
- * To update an artifact's content, create a new artifact.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSpec}
@@ -72,18 +61,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MIME content type of the artifact payload.
-   *
-   * &#64;internal
-   * Used by the UI to determine rendering strategy (JSON viewer, text,
-   * image preview, download link) and by the download endpoint for
-   * Content-Type headers.
-   *
-   * Common values:
-   * - "application/json" — structured task output, agent response
-   * - "text/plain" — log output, agent final text
-   * - "text/html" — generated reports
-   * - "application/pdf" — rendered documents
-   * - "application/octet-stream" — opaque binary (fallback)
    * </pre>
    *
    * <code>string content_type = 1 [json_name = "contentType", (.buf.validate.field) = { ... }</code>
@@ -105,18 +82,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MIME content type of the artifact payload.
-   *
-   * &#64;internal
-   * Used by the UI to determine rendering strategy (JSON viewer, text,
-   * image preview, download link) and by the download endpoint for
-   * Content-Type headers.
-   *
-   * Common values:
-   * - "application/json" — structured task output, agent response
-   * - "text/plain" — log output, agent final text
-   * - "text/html" — generated reports
-   * - "application/pdf" — rendered documents
-   * - "application/octet-stream" — opaque binary (fallback)
    * </pre>
    *
    * <code>string content_type = 1 [json_name = "contentType", (.buf.validate.field) = { ... }</code>
@@ -143,15 +108,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable display name for the artifact.
-   *
-   * &#64;internal
-   * Shown in the execution viewer's artifact list and download dialogs.
-   * When auto-promoted, this is derived from the task name and output field
-   * (e.g., "analyze_code — output.json"). When explicitly created by a
-   * workflow author (Phase 1), this is user-provided.
-   *
-   * Does not need to be unique — multiple tasks can produce artifacts
-   * with the same display name across different executions.
    * </pre>
    *
    * <code>string display_name = 2 [json_name = "displayName", (.buf.validate.field) = { ... }</code>
@@ -173,15 +129,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable display name for the artifact.
-   *
-   * &#64;internal
-   * Shown in the execution viewer's artifact list and download dialogs.
-   * When auto-promoted, this is derived from the task name and output field
-   * (e.g., "analyze_code — output.json"). When explicitly created by a
-   * workflow author (Phase 1), this is user-provided.
-   *
-   * Does not need to be unique — multiple tasks can produce artifacts
-   * with the same display name across different executions.
    * </pre>
    *
    * <code>string display_name = 2 [json_name = "displayName", (.buf.validate.field) = { ... }</code>
@@ -207,12 +154,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Provenance: which execution and task produced this artifact.
-   *
-   * &#64;internal
-   * Used for:
-   * - Listing artifacts by execution (listByExecution RPC)
-   * - Linking artifacts back to their source in the execution viewer
-   * - Access control inheritance (artifact access follows execution access)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -225,12 +166,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Provenance: which execution and task produced this artifact.
-   *
-   * &#64;internal
-   * Used for:
-   * - Listing artifacts by execution (listByExecution RPC)
-   * - Linking artifacts back to their source in the execution viewer
-   * - Access control inheritance (artifact access follows execution access)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -243,12 +178,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Provenance: which execution and task produced this artifact.
-   *
-   * &#64;internal
-   * Used for:
-   * - Listing artifacts by execution (listByExecution RPC)
-   * - Linking artifacts back to their source in the execution viewer
-   * - Access control inheritance (artifact access follows execution access)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -263,11 +192,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Retention policy for this artifact.
-   *
-   * &#64;internal
-   * When not set, the organization's default retention policy applies.
-   * The backend computes ArtifactStatus.expires_at from this policy
-   * at creation time.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -280,11 +204,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Retention policy for this artifact.
-   *
-   * &#64;internal
-   * When not set, the organization's default retention policy applies.
-   * The backend computes ArtifactStatus.expires_at from this policy
-   * at creation time.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -297,11 +216,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Retention policy for this artifact.
-   *
-   * &#64;internal
-   * When not set, the organization's default retention policy applies.
-   * The backend computes ArtifactStatus.expires_at from this policy
-   * at creation time.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -512,17 +426,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ArtifactSpec defines the properties of an artifact provided at creation time.
-   *
-   * &#64;internal
-   * Artifacts are created by the runner when a task
-   * produces output that should be persisted outside the execution status
-   * snapshot (either because it exceeds the size threshold or because the
-   * workflow author explicitly requested artifact persistence).
-   *
-   * The spec is immutable after creation — artifacts are append-only.
-   * To update an artifact's content, create a new artifact.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSpec}
@@ -731,18 +634,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MIME content type of the artifact payload.
-     *
-     * &#64;internal
-     * Used by the UI to determine rendering strategy (JSON viewer, text,
-     * image preview, download link) and by the download endpoint for
-     * Content-Type headers.
-     *
-     * Common values:
-     * - "application/json" — structured task output, agent response
-     * - "text/plain" — log output, agent final text
-     * - "text/html" — generated reports
-     * - "application/pdf" — rendered documents
-     * - "application/octet-stream" — opaque binary (fallback)
      * </pre>
      *
      * <code>string content_type = 1 [json_name = "contentType", (.buf.validate.field) = { ... }</code>
@@ -763,18 +654,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MIME content type of the artifact payload.
-     *
-     * &#64;internal
-     * Used by the UI to determine rendering strategy (JSON viewer, text,
-     * image preview, download link) and by the download endpoint for
-     * Content-Type headers.
-     *
-     * Common values:
-     * - "application/json" — structured task output, agent response
-     * - "text/plain" — log output, agent final text
-     * - "text/html" — generated reports
-     * - "application/pdf" — rendered documents
-     * - "application/octet-stream" — opaque binary (fallback)
      * </pre>
      *
      * <code>string content_type = 1 [json_name = "contentType", (.buf.validate.field) = { ... }</code>
@@ -796,18 +675,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MIME content type of the artifact payload.
-     *
-     * &#64;internal
-     * Used by the UI to determine rendering strategy (JSON viewer, text,
-     * image preview, download link) and by the download endpoint for
-     * Content-Type headers.
-     *
-     * Common values:
-     * - "application/json" — structured task output, agent response
-     * - "text/plain" — log output, agent final text
-     * - "text/html" — generated reports
-     * - "application/pdf" — rendered documents
-     * - "application/octet-stream" — opaque binary (fallback)
      * </pre>
      *
      * <code>string content_type = 1 [json_name = "contentType", (.buf.validate.field) = { ... }</code>
@@ -825,18 +692,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MIME content type of the artifact payload.
-     *
-     * &#64;internal
-     * Used by the UI to determine rendering strategy (JSON viewer, text,
-     * image preview, download link) and by the download endpoint for
-     * Content-Type headers.
-     *
-     * Common values:
-     * - "application/json" — structured task output, agent response
-     * - "text/plain" — log output, agent final text
-     * - "text/html" — generated reports
-     * - "application/pdf" — rendered documents
-     * - "application/octet-stream" — opaque binary (fallback)
      * </pre>
      *
      * <code>string content_type = 1 [json_name = "contentType", (.buf.validate.field) = { ... }</code>
@@ -851,18 +706,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MIME content type of the artifact payload.
-     *
-     * &#64;internal
-     * Used by the UI to determine rendering strategy (JSON viewer, text,
-     * image preview, download link) and by the download endpoint for
-     * Content-Type headers.
-     *
-     * Common values:
-     * - "application/json" — structured task output, agent response
-     * - "text/plain" — log output, agent final text
-     * - "text/html" — generated reports
-     * - "application/pdf" — rendered documents
-     * - "application/octet-stream" — opaque binary (fallback)
      * </pre>
      *
      * <code>string content_type = 1 [json_name = "contentType", (.buf.validate.field) = { ... }</code>
@@ -883,15 +726,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name for the artifact.
-     *
-     * &#64;internal
-     * Shown in the execution viewer's artifact list and download dialogs.
-     * When auto-promoted, this is derived from the task name and output field
-     * (e.g., "analyze_code — output.json"). When explicitly created by a
-     * workflow author (Phase 1), this is user-provided.
-     *
-     * Does not need to be unique — multiple tasks can produce artifacts
-     * with the same display name across different executions.
      * </pre>
      *
      * <code>string display_name = 2 [json_name = "displayName", (.buf.validate.field) = { ... }</code>
@@ -912,15 +746,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name for the artifact.
-     *
-     * &#64;internal
-     * Shown in the execution viewer's artifact list and download dialogs.
-     * When auto-promoted, this is derived from the task name and output field
-     * (e.g., "analyze_code — output.json"). When explicitly created by a
-     * workflow author (Phase 1), this is user-provided.
-     *
-     * Does not need to be unique — multiple tasks can produce artifacts
-     * with the same display name across different executions.
      * </pre>
      *
      * <code>string display_name = 2 [json_name = "displayName", (.buf.validate.field) = { ... }</code>
@@ -942,15 +767,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name for the artifact.
-     *
-     * &#64;internal
-     * Shown in the execution viewer's artifact list and download dialogs.
-     * When auto-promoted, this is derived from the task name and output field
-     * (e.g., "analyze_code — output.json"). When explicitly created by a
-     * workflow author (Phase 1), this is user-provided.
-     *
-     * Does not need to be unique — multiple tasks can produce artifacts
-     * with the same display name across different executions.
      * </pre>
      *
      * <code>string display_name = 2 [json_name = "displayName", (.buf.validate.field) = { ... }</code>
@@ -968,15 +784,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name for the artifact.
-     *
-     * &#64;internal
-     * Shown in the execution viewer's artifact list and download dialogs.
-     * When auto-promoted, this is derived from the task name and output field
-     * (e.g., "analyze_code — output.json"). When explicitly created by a
-     * workflow author (Phase 1), this is user-provided.
-     *
-     * Does not need to be unique — multiple tasks can produce artifacts
-     * with the same display name across different executions.
      * </pre>
      *
      * <code>string display_name = 2 [json_name = "displayName", (.buf.validate.field) = { ... }</code>
@@ -991,15 +798,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name for the artifact.
-     *
-     * &#64;internal
-     * Shown in the execution viewer's artifact list and download dialogs.
-     * When auto-promoted, this is derived from the task name and output field
-     * (e.g., "analyze_code — output.json"). When explicitly created by a
-     * workflow author (Phase 1), this is user-provided.
-     *
-     * Does not need to be unique — multiple tasks can produce artifacts
-     * with the same display name across different executions.
      * </pre>
      *
      * <code>string display_name = 2 [json_name = "displayName", (.buf.validate.field) = { ... }</code>
@@ -1022,12 +820,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1039,12 +831,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1060,12 +846,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1086,12 +866,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1110,12 +884,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1141,12 +909,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1164,12 +926,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1182,12 +938,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1203,12 +953,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provenance: which execution and task produced this artifact.
-     *
-     * &#64;internal
-     * Used for:
-     * - Listing artifacts by execution (listByExecution RPC)
-     * - Linking artifacts back to their source in the execution viewer
-     * - Access control inheritance (artifact access follows execution access)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -1233,11 +977,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1249,11 +988,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1269,11 +1003,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1294,11 +1023,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1317,11 +1041,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1347,11 +1066,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1369,11 +1083,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1386,11 +1095,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>
@@ -1406,11 +1110,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Retention policy for this artifact.
-     *
-     * &#64;internal
-     * When not set, the organization's default retention policy applies.
-     * The backend computes ArtifactStatus.expires_at from this policy
-     * at creation time.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4 [json_name = "retention"];</code>

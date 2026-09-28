@@ -239,11 +239,6 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent share.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the share is going to be created or updated, which is resolved
-     * as part of the request execution. The share slug defaults to the
-     * referenced agent's slug when omitted.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -256,15 +251,6 @@ public final class AgentShareCommandControllerGrpc {
      * Create an agent share.
      * Enabling a share is a billing-affecting decision: conversations over
      * the hosted link consume the sharing organization's credits.
-     * &#64;internal
-     * Authorization: requires can_edit on the REFERENCED AGENT
-     * (spec.agent_ref), checked in-handler — the same bar as the former
-     * updateSharing RPC, since creating a channel broadens who can chat with
-     * the agent runtime. The standard org-scoped create tuples (owner =
-     * creator) are written for the share itself; no visibility tuples are
-     * written for visitors (guest admission is app-level by design — see
-     * AgentShareSpec). Phase A invariant enforced here: metadata.org must
-     * equal spec.agent_ref.org.
      * </pre>
      */
     default void create(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -278,10 +264,6 @@ public final class AgentShareCommandControllerGrpc {
      * Replaces the spec wholesale: a manifest that omits audience resets the
      * share to public, and one that omits environment_refs unbinds them
      * (fails closed). The slug and referenced agent are immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the agent share.
-     * status.share_link_token is preserved verbatim (rotateShareLink is its
-     * sole writer).
      * </pre>
      */
     default void update(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -300,11 +282,6 @@ public final class AgentShareCommandControllerGrpc {
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
-     * &#64;internal
-     * Authorization: requires can_edit on the agent share — the same bar as
-     * update, since both control shared-link access. The handler is the sole
-     * writer of status.share_link_token (server-generated entropy; clients
-     * never supply the token).
      * </pre>
      */
     default void rotateShareLink(ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput request,
@@ -320,9 +297,6 @@ public final class AgentShareCommandControllerGrpc {
      * (origins, messages, credentials, link token) is gone. To pause serving
      * while keeping configuration, update the share with enabled=false
      * instead.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the agent share. The
-     * referenced agent is untouched.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.agentshare.v1.AgentShareId request,
@@ -367,11 +341,6 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent share.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the share is going to be created or updated, which is resolved
-     * as part of the request execution. The share slug defaults to the
-     * referenced agent's slug when omitted.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -385,15 +354,6 @@ public final class AgentShareCommandControllerGrpc {
      * Create an agent share.
      * Enabling a share is a billing-affecting decision: conversations over
      * the hosted link consume the sharing organization's credits.
-     * &#64;internal
-     * Authorization: requires can_edit on the REFERENCED AGENT
-     * (spec.agent_ref), checked in-handler — the same bar as the former
-     * updateSharing RPC, since creating a channel broadens who can chat with
-     * the agent runtime. The standard org-scoped create tuples (owner =
-     * creator) are written for the share itself; no visibility tuples are
-     * written for visitors (guest admission is app-level by design — see
-     * AgentShareSpec). Phase A invariant enforced here: metadata.org must
-     * equal spec.agent_ref.org.
      * </pre>
      */
     public void create(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -408,10 +368,6 @@ public final class AgentShareCommandControllerGrpc {
      * Replaces the spec wholesale: a manifest that omits audience resets the
      * share to public, and one that omits environment_refs unbinds them
      * (fails closed). The slug and referenced agent are immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the agent share.
-     * status.share_link_token is preserved verbatim (rotateShareLink is its
-     * sole writer).
      * </pre>
      */
     public void update(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -431,11 +387,6 @@ public final class AgentShareCommandControllerGrpc {
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
-     * &#64;internal
-     * Authorization: requires can_edit on the agent share — the same bar as
-     * update, since both control shared-link access. The handler is the sole
-     * writer of status.share_link_token (server-generated entropy; clients
-     * never supply the token).
      * </pre>
      */
     public void rotateShareLink(ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput request,
@@ -452,9 +403,6 @@ public final class AgentShareCommandControllerGrpc {
      * (origins, messages, credentials, link token) is gone. To pause serving
      * while keeping configuration, update the share with enabled=false
      * instead.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the agent share. The
-     * referenced agent is untouched.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.agentshare.v1.AgentShareId request,
@@ -486,11 +434,6 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent share.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the share is going to be created or updated, which is resolved
-     * as part of the request execution. The share slug defaults to the
-     * referenced agent's slug when omitted.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare apply(ai.stigmer.agentic.agentshare.v1.AgentShare request) throws io.grpc.StatusException {
@@ -503,15 +446,6 @@ public final class AgentShareCommandControllerGrpc {
      * Create an agent share.
      * Enabling a share is a billing-affecting decision: conversations over
      * the hosted link consume the sharing organization's credits.
-     * &#64;internal
-     * Authorization: requires can_edit on the REFERENCED AGENT
-     * (spec.agent_ref), checked in-handler — the same bar as the former
-     * updateSharing RPC, since creating a channel broadens who can chat with
-     * the agent runtime. The standard org-scoped create tuples (owner =
-     * creator) are written for the share itself; no visibility tuples are
-     * written for visitors (guest admission is app-level by design — see
-     * AgentShareSpec). Phase A invariant enforced here: metadata.org must
-     * equal spec.agent_ref.org.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare create(ai.stigmer.agentic.agentshare.v1.AgentShare request) throws io.grpc.StatusException {
@@ -525,10 +459,6 @@ public final class AgentShareCommandControllerGrpc {
      * Replaces the spec wholesale: a manifest that omits audience resets the
      * share to public, and one that omits environment_refs unbinds them
      * (fails closed). The slug and referenced agent are immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the agent share.
-     * status.share_link_token is preserved verbatim (rotateShareLink is its
-     * sole writer).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.AgentShare request) throws io.grpc.StatusException {
@@ -547,11 +477,6 @@ public final class AgentShareCommandControllerGrpc {
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
-     * &#64;internal
-     * Authorization: requires can_edit on the agent share — the same bar as
-     * update, since both control shared-link access. The handler is the sole
-     * writer of status.share_link_token (server-generated entropy; clients
-     * never supply the token).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare rotateShareLink(ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput request) throws io.grpc.StatusException {
@@ -567,9 +492,6 @@ public final class AgentShareCommandControllerGrpc {
      * (origins, messages, credentials, link token) is gone. To pause serving
      * while keeping configuration, update the share with enabled=false
      * instead.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the agent share. The
-     * referenced agent is untouched.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare delete(ai.stigmer.agentic.agentshare.v1.AgentShareId request) throws io.grpc.StatusException {
@@ -600,11 +522,6 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent share.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the share is going to be created or updated, which is resolved
-     * as part of the request execution. The share slug defaults to the
-     * referenced agent's slug when omitted.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare apply(ai.stigmer.agentic.agentshare.v1.AgentShare request) {
@@ -617,15 +534,6 @@ public final class AgentShareCommandControllerGrpc {
      * Create an agent share.
      * Enabling a share is a billing-affecting decision: conversations over
      * the hosted link consume the sharing organization's credits.
-     * &#64;internal
-     * Authorization: requires can_edit on the REFERENCED AGENT
-     * (spec.agent_ref), checked in-handler — the same bar as the former
-     * updateSharing RPC, since creating a channel broadens who can chat with
-     * the agent runtime. The standard org-scoped create tuples (owner =
-     * creator) are written for the share itself; no visibility tuples are
-     * written for visitors (guest admission is app-level by design — see
-     * AgentShareSpec). Phase A invariant enforced here: metadata.org must
-     * equal spec.agent_ref.org.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare create(ai.stigmer.agentic.agentshare.v1.AgentShare request) {
@@ -639,10 +547,6 @@ public final class AgentShareCommandControllerGrpc {
      * Replaces the spec wholesale: a manifest that omits audience resets the
      * share to public, and one that omits environment_refs unbinds them
      * (fails closed). The slug and referenced agent are immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the agent share.
-     * status.share_link_token is preserved verbatim (rotateShareLink is its
-     * sole writer).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.AgentShare request) {
@@ -661,11 +565,6 @@ public final class AgentShareCommandControllerGrpc {
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
-     * &#64;internal
-     * Authorization: requires can_edit on the agent share — the same bar as
-     * update, since both control shared-link access. The handler is the sole
-     * writer of status.share_link_token (server-generated entropy; clients
-     * never supply the token).
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare rotateShareLink(ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput request) {
@@ -681,9 +580,6 @@ public final class AgentShareCommandControllerGrpc {
      * (origins, messages, credentials, link token) is gone. To pause serving
      * while keeping configuration, update the share with enabled=false
      * instead.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the agent share. The
-     * referenced agent is untouched.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare delete(ai.stigmer.agentic.agentshare.v1.AgentShareId request) {
@@ -714,11 +610,6 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent share.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the share is going to be created or updated, which is resolved
-     * as part of the request execution. The share slug defaults to the
-     * referenced agent's slug when omitted.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> apply(
@@ -732,15 +623,6 @@ public final class AgentShareCommandControllerGrpc {
      * Create an agent share.
      * Enabling a share is a billing-affecting decision: conversations over
      * the hosted link consume the sharing organization's credits.
-     * &#64;internal
-     * Authorization: requires can_edit on the REFERENCED AGENT
-     * (spec.agent_ref), checked in-handler — the same bar as the former
-     * updateSharing RPC, since creating a channel broadens who can chat with
-     * the agent runtime. The standard org-scoped create tuples (owner =
-     * creator) are written for the share itself; no visibility tuples are
-     * written for visitors (guest admission is app-level by design — see
-     * AgentShareSpec). Phase A invariant enforced here: metadata.org must
-     * equal spec.agent_ref.org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> create(
@@ -755,10 +637,6 @@ public final class AgentShareCommandControllerGrpc {
      * Replaces the spec wholesale: a manifest that omits audience resets the
      * share to public, and one that omits environment_refs unbinds them
      * (fails closed). The slug and referenced agent are immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the agent share.
-     * status.share_link_token is preserved verbatim (rotateShareLink is its
-     * sole writer).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> update(
@@ -778,11 +656,6 @@ public final class AgentShareCommandControllerGrpc {
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
-     * &#64;internal
-     * Authorization: requires can_edit on the agent share — the same bar as
-     * update, since both control shared-link access. The handler is the sole
-     * writer of status.share_link_token (server-generated entropy; clients
-     * never supply the token).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> rotateShareLink(
@@ -799,9 +672,6 @@ public final class AgentShareCommandControllerGrpc {
      * (origins, messages, credentials, link token) is gone. To pause serving
      * while keeping configuration, update the share with enabled=false
      * instead.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the agent share. The
-     * referenced agent is untouched.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> delete(

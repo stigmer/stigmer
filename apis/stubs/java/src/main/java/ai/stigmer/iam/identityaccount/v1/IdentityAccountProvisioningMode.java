@@ -8,9 +8,6 @@ package ai.stigmer.iam.identityaccount.v1;
 /**
  * <pre>
  * IdentityAccountProvisioningMode defines how an identity account was created.
- *
- * &#64;internal
- * Unspecified is the default for legacy accounts created before this enum was introduced.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode}

@@ -45,9 +45,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
   /**
    * <pre>
    * Filter by execution phase.
-   *
-   * &#64;internal
-   * If not specified (or EXECUTION_PHASE_UNSPECIFIED), all phases are included.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 3 [json_name = "phase"];</code>
@@ -57,9 +54,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
   /**
    * <pre>
    * Filter by execution phase.
-   *
-   * &#64;internal
-   * If not specified (or EXECUTION_PHASE_UNSPECIFIED), all phases are included.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 3 [json_name = "phase"];</code>
@@ -70,10 +64,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
   /**
    * <pre>
    * Filter by resource tags (AND logic).
-   *
-   * &#64;internal
-   * Limits results to executions that have ALL specified tags.
-   * Tag format: "key:value" or "key" (for boolean tags).
    * </pre>
    *
    * <code>repeated string tags = 4 [json_name = "tags"];</code>
@@ -84,10 +74,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
   /**
    * <pre>
    * Filter by resource tags (AND logic).
-   *
-   * &#64;internal
-   * Limits results to executions that have ALL specified tags.
-   * Tag format: "key:value" or "key" (for boolean tags).
    * </pre>
    *
    * <code>repeated string tags = 4 [json_name = "tags"];</code>
@@ -97,10 +83,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
   /**
    * <pre>
    * Filter by resource tags (AND logic).
-   *
-   * &#64;internal
-   * Limits results to executions that have ALL specified tags.
-   * Tag format: "key:value" or "key" (for boolean tags).
    * </pre>
    *
    * <code>repeated string tags = 4 [json_name = "tags"];</code>
@@ -111,10 +93,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
   /**
    * <pre>
    * Filter by resource tags (AND logic).
-   *
-   * &#64;internal
-   * Limits results to executions that have ALL specified tags.
-   * Tag format: "key:value" or "key" (for boolean tags).
    * </pre>
    *
    * <code>repeated string tags = 4 [json_name = "tags"];</code>
@@ -214,11 +192,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Every edition honours it in the store's indexed read, never
-   * client-side.
    * </pre>
    *
    * <code>string org = 8 [json_name = "org"];</code>
@@ -233,11 +206,6 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Every edition honours it in the store's indexed read, never
-   * client-side.
    * </pre>
    *
    * <code>string org = 8 [json_name = "org"];</code>

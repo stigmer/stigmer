@@ -8,11 +8,6 @@ package ai.stigmer.agentic.session.v1;
 /**
  * <pre>
  * UpdateSessionSubjectRequest sets the conversation title for a session.
- *
- * &#64;internal
- * Field-level update that atomically modifies only the subject field,
- * avoiding the lost-update race condition that occurs when multiple
- * activities concurrently perform full-resource updates on the same session.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest}
@@ -322,11 +317,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * UpdateSessionSubjectRequest sets the conversation title for a session.
-   *
-   * &#64;internal
-   * Field-level update that atomically modifies only the subject field,
-   * avoiding the lost-update race condition that occurs when multiple
-   * activities concurrently perform full-resource updates on the same session.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest}

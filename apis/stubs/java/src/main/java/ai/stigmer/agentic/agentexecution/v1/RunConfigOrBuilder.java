@@ -45,10 +45,6 @@ public interface RunConfigOrBuilder extends
    * <pre>
    * Maximum model-to-tools reasoning cycles per run. The surface's
    * platform execution profile caps this value; the lower bound wins.
-   *
-   * &#64;internal
-   * An implementation knob, not a user concept: API-reachable for
-   * operators, deliberately absent from creation forms (DD-018 D-5).
    * </pre>
    *
    * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>

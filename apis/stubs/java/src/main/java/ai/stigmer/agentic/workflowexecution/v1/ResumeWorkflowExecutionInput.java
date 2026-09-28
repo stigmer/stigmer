@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
- *
- * &#64;internal
- * Continues execution from the checkpoint where it was paused.
- * Execution must be in EXECUTION_PAUSED phase.
- *
- * &#64;since Gap A3 (Pause/Resume Propagation)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput}
@@ -65,9 +59,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow execution ID to resume (must be in PAUSED phase).
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -89,9 +80,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow execution ID to resume (must be in PAUSED phase).
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -271,12 +259,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
-   *
-   * &#64;internal
-   * Continues execution from the checkpoint where it was paused.
-   * Execution must be in EXECUTION_PAUSED phase.
-   *
-   * &#64;since Gap A3 (Pause/Resume Propagation)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput}
@@ -420,9 +402,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to resume (must be in PAUSED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -443,9 +422,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to resume (must be in PAUSED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -467,9 +443,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to resume (must be in PAUSED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -487,9 +460,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to resume (must be in PAUSED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -504,9 +474,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to resume (must be in PAUSED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>

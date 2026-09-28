@@ -8,14 +8,6 @@ package ai.stigmer.agentic.schedule.v1;
 /**
  * <pre>
  * One recorded schedule fire — a run-history row.
- *
- * &#64;internal
- * Backed by the fire ledger (project DD-017 D-7): every fire leaves a
- * row, INCLUDING fires that created no execution — the ledger is the
- * one place a refused fire's reason survives below the pause threshold.
- * Rows carrying an execution id but no terminal outcome are enriched
- * with the execution's live phase at read time, so outcome never lies
- * while a run is in flight.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleRun}
@@ -688,14 +680,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * One recorded schedule fire — a run-history row.
-   *
-   * &#64;internal
-   * Backed by the fire ledger (project DD-017 D-7): every fire leaves a
-   * row, INCLUDING fires that created no execution — the ledger is the
-   * one place a refused fire's reason survives below the pause threshold.
-   * Rows carrying an execution id but no terminal outcome are enriched
-   * with the execution's live phase at read time, so outcome never lies
-   * while a run is in flight.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleRun}

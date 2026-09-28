@@ -13,10 +13,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * API version for this resource type.
-   *
-   * &#64;internal
-   * Format: 'agentic.stigmer.ai/v1'
-   * Validated as const to ensure version consistency across all workflow execution resources.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -26,10 +22,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * API version for this resource type.
-   *
-   * &#64;internal
-   * Format: 'agentic.stigmer.ai/v1'
-   * Validated as const to ensure version consistency across all workflow execution resources.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -41,10 +33,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * Resource kind identifier.
-   *
-   * &#64;internal
-   * Must be exactly 'WorkflowExecution' to match the message name.
-   * Validated as const for type safety and resource identification.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -54,10 +42,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * Resource kind identifier.
-   *
-   * &#64;internal
-   * Must be exactly 'WorkflowExecution' to match the message name.
-   * Validated as const for type safety and resource identification.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -69,19 +53,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * All workflow executions belong to an organization. Visibility (public/private)
-   * is typically PRIVATE for executions since they contain runtime data.
-   *
-   * Naming Pattern:
-   * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
-   * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
-   * - Slug Format: Same as name, URL-safe
-   *
-   * Labels and Tags:
-   * - Labels: workflow_instance_id, workflow_id, trigger_source
-   * - Tags: environment names, team names, execution metadata
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -91,19 +62,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * All workflow executions belong to an organization. Visibility (public/private)
-   * is typically PRIVATE for executions since they contain runtime data.
-   *
-   * Naming Pattern:
-   * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
-   * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
-   * - Slug Format: Same as name, URL-safe
-   *
-   * Labels and Tags:
-   * - Labels: workflow_instance_id, workflow_id, trigger_source
-   * - Tags: environment names, team names, execution metadata
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -113,19 +71,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * All workflow executions belong to an organization. Visibility (public/private)
-   * is typically PRIVATE for executions since they contain runtime data.
-   *
-   * Naming Pattern:
-   * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
-   * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
-   * - Slug Format: Same as name, URL-safe
-   *
-   * Labels and Tags:
-   * - Labels: workflow_instance_id, workflow_id, trigger_source
-   * - Tags: environment names, team names, execution metadata
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -135,31 +80,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
-   *
-   * &#64;internal
-   * Contains:
-   * - workflow_instance_id: Which WorkflowInstance to execute (required)
-   * - trigger_message: Input message or payload for the workflow (optional)
-   * - trigger_metadata: Metadata about who/what triggered the execution (optional)
-   * - runtime_env: Execution-specific environment variables and secrets (optional)
-   *
-   * The spec is immutable after creation - it represents the "inputs" for this execution.
-   * To retry with different inputs, create a new WorkflowExecution with updated spec.
-   *
-   * Example:
-   * spec {
-   * workflow_instance_id: "wfi_customer-onboarding-prod"
-   * trigger_message: "New customer: customer-email&#64;example.com"
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": { value: "customer-email&#64;example.com" }
-   * "WEBHOOK_URL": { secret_ref: "sec-webhook-callback" }
-   * }
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -169,31 +89,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
-   *
-   * &#64;internal
-   * Contains:
-   * - workflow_instance_id: Which WorkflowInstance to execute (required)
-   * - trigger_message: Input message or payload for the workflow (optional)
-   * - trigger_metadata: Metadata about who/what triggered the execution (optional)
-   * - runtime_env: Execution-specific environment variables and secrets (optional)
-   *
-   * The spec is immutable after creation - it represents the "inputs" for this execution.
-   * To retry with different inputs, create a new WorkflowExecution with updated spec.
-   *
-   * Example:
-   * spec {
-   * workflow_instance_id: "wfi_customer-onboarding-prod"
-   * trigger_message: "New customer: customer-email&#64;example.com"
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": { value: "customer-email&#64;example.com" }
-   * "WEBHOOK_URL": { secret_ref: "sec-webhook-callback" }
-   * }
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -203,31 +98,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
-   *
-   * &#64;internal
-   * Contains:
-   * - workflow_instance_id: Which WorkflowInstance to execute (required)
-   * - trigger_message: Input message or payload for the workflow (optional)
-   * - trigger_metadata: Metadata about who/what triggered the execution (optional)
-   * - runtime_env: Execution-specific environment variables and secrets (optional)
-   *
-   * The spec is immutable after creation - it represents the "inputs" for this execution.
-   * To retry with different inputs, create a new WorkflowExecution with updated spec.
-   *
-   * Example:
-   * spec {
-   * workflow_instance_id: "wfi_customer-onboarding-prod"
-   * trigger_message: "New customer: customer-email&#64;example.com"
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": { value: "customer-email&#64;example.com" }
-   * "WEBHOOK_URL": { secret_ref: "sec-webhook-callback" }
-   * }
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -237,35 +107,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * System-managed execution state and results.
-   *
-   * &#64;internal
-   * Contains:
-   * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
-   * - tasks: List of workflow tasks with their execution state (source of truth for progress)
-   * - output: Final workflow output (JSON structure, only for COMPLETED executions)
-   * - error: Error message (only for FAILED executions)
-   * - started_at: Timestamp when execution started
-   * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for workflow engine
-   *
-   * The status is continuously updated by the workflow execution engine as the workflow progresses.
-   * Users can read status but cannot modify it - it reflects the actual execution state.
-   *
-   * Progress Tracking:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   *
-   * Example (in-progress execution):
-   * status {
-   * phase: EXECUTION_IN_PROGRESS
-   * tasks: [
-   * { task_id: "task-1", task_name: "validate_email", status: WORKFLOW_TASK_COMPLETED }
-   * { task_id: "task-2", task_name: "create_account", status: WORKFLOW_TASK_IN_PROGRESS }
-   * { task_id: "task-3", task_name: "send_welcome", status: WORKFLOW_TASK_PENDING }
-   * ]
-   * started_at: "2025-01-11T14:30:22Z"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status = 5 [json_name = "status"];</code>
@@ -275,35 +116,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * System-managed execution state and results.
-   *
-   * &#64;internal
-   * Contains:
-   * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
-   * - tasks: List of workflow tasks with their execution state (source of truth for progress)
-   * - output: Final workflow output (JSON structure, only for COMPLETED executions)
-   * - error: Error message (only for FAILED executions)
-   * - started_at: Timestamp when execution started
-   * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for workflow engine
-   *
-   * The status is continuously updated by the workflow execution engine as the workflow progresses.
-   * Users can read status but cannot modify it - it reflects the actual execution state.
-   *
-   * Progress Tracking:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   *
-   * Example (in-progress execution):
-   * status {
-   * phase: EXECUTION_IN_PROGRESS
-   * tasks: [
-   * { task_id: "task-1", task_name: "validate_email", status: WORKFLOW_TASK_COMPLETED }
-   * { task_id: "task-2", task_name: "create_account", status: WORKFLOW_TASK_IN_PROGRESS }
-   * { task_id: "task-3", task_name: "send_welcome", status: WORKFLOW_TASK_PENDING }
-   * ]
-   * started_at: "2025-01-11T14:30:22Z"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status = 5 [json_name = "status"];</code>
@@ -313,35 +125,6 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * System-managed execution state and results.
-   *
-   * &#64;internal
-   * Contains:
-   * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
-   * - tasks: List of workflow tasks with their execution state (source of truth for progress)
-   * - output: Final workflow output (JSON structure, only for COMPLETED executions)
-   * - error: Error message (only for FAILED executions)
-   * - started_at: Timestamp when execution started
-   * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for workflow engine
-   *
-   * The status is continuously updated by the workflow execution engine as the workflow progresses.
-   * Users can read status but cannot modify it - it reflects the actual execution state.
-   *
-   * Progress Tracking:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   *
-   * Example (in-progress execution):
-   * status {
-   * phase: EXECUTION_IN_PROGRESS
-   * tasks: [
-   * { task_id: "task-1", task_name: "validate_email", status: WORKFLOW_TASK_COMPLETED }
-   * { task_id: "task-2", task_name: "create_account", status: WORKFLOW_TASK_IN_PROGRESS }
-   * { task_id: "task-3", task_name: "send_welcome", status: WORKFLOW_TASK_PENDING }
-   * ]
-   * started_at: "2025-01-11T14:30:22Z"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status = 5 [json_name = "status"];</code>

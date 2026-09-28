@@ -8,9 +8,6 @@ package ai.stigmer.agentic.executioncontext.v1;
 /**
  * <pre>
  * Runtime configuration and secrets for a single execution.
- *
- * &#64;internal
- * Created by the execution engine, deleted when execution completes.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec}
@@ -144,10 +141,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -169,10 +162,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -184,10 +173,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -206,10 +191,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * &#64;internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -407,9 +388,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Runtime configuration and secrets for a single execution.
-   *
-   * &#64;internal
-   * Created by the execution engine, deleted when execution completes.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec}
@@ -717,10 +695,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -742,10 +716,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -757,10 +727,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -778,10 +744,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -804,10 +766,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -831,10 +789,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -852,10 +806,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>
@@ -875,10 +825,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime key-value pairs, each marked as secret or plaintext.
-     *
-     * &#64;internal
-     * Provided at runtime and only exist for the duration of the execution.
-     * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; data = 2 [json_name = "data"];</code>

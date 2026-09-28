@@ -8,34 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * ExecutionPhase defines the lifecycle phase of a workflow execution.
- *
- * &#64;internal
- * Phase Transitions:
- *
- * Normal flow:
- * EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED
- *
- * Failure flow:
- * EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED
- *
- * Cancellation flow:
- * EXECUTION_PENDING → EXECUTION_CANCELLED
- * EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED
- * EXECUTION_PAUSED → EXECUTION_CANCELLED
- *
- * Termination flow (force stop):
- * EXECUTION_PENDING → EXECUTION_TERMINATED
- * EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
- * EXECUTION_PAUSED → EXECUTION_TERMINATED
- *
- * Pause/Resume flow:
- * EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
- * EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
- *
- * Terminal States: COMPLETED, FAILED, CANCELLED, TERMINATED
- * Non-Terminal States: PAUSED (can be resumed)
- *
- * Once a workflow reaches a terminal state, it cannot transition to another phase.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase}
@@ -46,9 +18,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Unspecified phase (invalid).
-   *
-   * &#64;internal
-   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>EXECUTION_PHASE_UNSPECIFIED = 0;</code>
@@ -57,13 +26,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution created, waiting to start.
-   *
-   * &#64;internal
-   * The WorkflowExecution resource has been created but the workflow runner
-   * has not yet picked it up for execution.
-   *
-   * Typical duration: &lt; 1 second (unless workflow runner is overloaded)
-   * Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED
    * </pre>
    *
    * <code>EXECUTION_PENDING = 1;</code>
@@ -72,13 +34,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution is actively running tasks.
-   *
-   * &#64;internal
-   * The workflow runner is processing tasks in the workflow definition.
-   * Tasks may be executing sequentially, in parallel, or conditionally.
-   *
-   * Typical duration: Seconds to hours (depends on workflow complexity)
-   * Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED
    * </pre>
    *
    * <code>EXECUTION_IN_PROGRESS = 2;</code>
@@ -87,14 +42,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution completed successfully.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - output field is populated (if workflow produces output)
-   * - All tasks have status WORKFLOW_TASK_COMPLETED or WORKFLOW_TASK_SKIPPED
    * </pre>
    *
    * <code>EXECUTION_COMPLETED = 3;</code>
@@ -103,14 +50,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution failed with an error.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - error field is populated with failure description
-   * - At least one task has status WORKFLOW_TASK_FAILED
    * </pre>
    *
    * <code>EXECUTION_FAILED = 4;</code>
@@ -119,14 +58,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution was cancelled by user or system.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - In-progress tasks are stopped
-   * - Pending tasks remain in WORKFLOW_TASK_PENDING state
    * </pre>
    *
    * <code>EXECUTION_CANCELLED = 5;</code>
@@ -135,18 +66,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution was force-stopped immediately without cleanup.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   * Unlike CANCELLED, the workflow code cannot clean up.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - error field may contain termination reason
-   * - In-progress tasks are stopped abruptly
-   * - No cleanup callbacks are executed
-   *
-   * Terminated executions CANNOT be recovered (unlike FAILED).
    * </pre>
    *
    * <code>EXECUTION_TERMINATED = 6;</code>
@@ -155,19 +74,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution was paused by user and can be resumed.
-   *
-   * &#64;internal
-   * NOT a terminal state - execution can be resumed via the resume RPC.
-   *
-   * When this phase is reached:
-   * - Running activities are gracefully cancelled
-   * - Checkpoints are saved (LangGraph thread_id preserved)
-   * - No completed_at timestamp (execution is not finished)
-   *
-   * Resume behavior:
-   * - Workflow re-invokes activity with same thread_id
-   * - Activity loads from LangGraph checkpoint
-   * - Execution continues from where it was paused
    * </pre>
    *
    * <code>EXECUTION_PAUSED = 7;</code>
@@ -188,9 +94,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Unspecified phase (invalid).
-   *
-   * &#64;internal
-   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>EXECUTION_PHASE_UNSPECIFIED = 0;</code>
@@ -199,13 +102,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution created, waiting to start.
-   *
-   * &#64;internal
-   * The WorkflowExecution resource has been created but the workflow runner
-   * has not yet picked it up for execution.
-   *
-   * Typical duration: &lt; 1 second (unless workflow runner is overloaded)
-   * Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED
    * </pre>
    *
    * <code>EXECUTION_PENDING = 1;</code>
@@ -214,13 +110,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution is actively running tasks.
-   *
-   * &#64;internal
-   * The workflow runner is processing tasks in the workflow definition.
-   * Tasks may be executing sequentially, in parallel, or conditionally.
-   *
-   * Typical duration: Seconds to hours (depends on workflow complexity)
-   * Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED
    * </pre>
    *
    * <code>EXECUTION_IN_PROGRESS = 2;</code>
@@ -229,14 +118,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution completed successfully.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - output field is populated (if workflow produces output)
-   * - All tasks have status WORKFLOW_TASK_COMPLETED or WORKFLOW_TASK_SKIPPED
    * </pre>
    *
    * <code>EXECUTION_COMPLETED = 3;</code>
@@ -245,14 +126,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution failed with an error.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - error field is populated with failure description
-   * - At least one task has status WORKFLOW_TASK_FAILED
    * </pre>
    *
    * <code>EXECUTION_FAILED = 4;</code>
@@ -261,14 +134,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution was cancelled by user or system.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - In-progress tasks are stopped
-   * - Pending tasks remain in WORKFLOW_TASK_PENDING state
    * </pre>
    *
    * <code>EXECUTION_CANCELLED = 5;</code>
@@ -277,18 +142,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution was force-stopped immediately without cleanup.
-   *
-   * &#64;internal
-   * Terminal state - execution will not change phases again.
-   * Unlike CANCELLED, the workflow code cannot clean up.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - error field may contain termination reason
-   * - In-progress tasks are stopped abruptly
-   * - No cleanup callbacks are executed
-   *
-   * Terminated executions CANNOT be recovered (unlike FAILED).
    * </pre>
    *
    * <code>EXECUTION_TERMINATED = 6;</code>
@@ -297,19 +150,6 @@ public enum ExecutionPhase
   /**
    * <pre>
    * Execution was paused by user and can be resumed.
-   *
-   * &#64;internal
-   * NOT a terminal state - execution can be resumed via the resume RPC.
-   *
-   * When this phase is reached:
-   * - Running activities are gracefully cancelled
-   * - Checkpoints are saved (LangGraph thread_id preserved)
-   * - No completed_at timestamp (execution is not finished)
-   *
-   * Resume behavior:
-   * - Workflow re-invokes activity with same thread_id
-   * - Activity loads from LangGraph checkpoint
-   * - Execution continues from where it was paused
    * </pre>
    *
    * <code>EXECUTION_PAUSED = 7;</code>

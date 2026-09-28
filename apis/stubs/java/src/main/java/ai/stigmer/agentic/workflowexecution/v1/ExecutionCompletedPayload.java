@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for execution_completed events.
- *
- * &#64;internal
- * Emitted when all tasks have reached terminal states and the workflow
- * produces its final output. This is the last event for a successful execution.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionCompletedPayload}
@@ -346,12 +340,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for execution_completed events.
-   *
-   * &#64;internal
-   * Emitted when all tasks have reached terminal states and the workflow
-   * produces its final output. This is the last event for a successful execution.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionCompletedPayload}

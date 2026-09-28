@@ -9,12 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ChannelSendOutcome reports what happened to a business-initiated
  * message on the inline delivery attempt.
- *
- * &#64;internal
- * proactive-messaging DD-002 D1/D4: policy refusals the agent adapts to
- * are typed outcomes; contract violations and authority failures are
- * gRPC errors. Provider verdicts map into the same vocabulary (DD-003
- * D7).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome}

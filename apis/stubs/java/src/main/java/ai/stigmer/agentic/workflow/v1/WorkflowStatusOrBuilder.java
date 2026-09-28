@@ -68,11 +68,6 @@ public interface WorkflowStatusOrBuilder extends
    * Serverless Workflow YAML generation and validation state.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
    * Check this field to determine whether a workflow is valid before executing it.
-   *
-   * &#64;internal
-   * Populated asynchronously after workflow creation via a Temporal workflow.
-   * Workflow creation does NOT block on validation — the workflow is created immediately
-   * with status.state = PENDING, then validation runs in the background.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
@@ -84,11 +79,6 @@ public interface WorkflowStatusOrBuilder extends
    * Serverless Workflow YAML generation and validation state.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
    * Check this field to determine whether a workflow is valid before executing it.
-   *
-   * &#64;internal
-   * Populated asynchronously after workflow creation via a Temporal workflow.
-   * Workflow creation does NOT block on validation — the workflow is created immediately
-   * with status.state = PENDING, then validation runs in the background.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
@@ -100,11 +90,6 @@ public interface WorkflowStatusOrBuilder extends
    * Serverless Workflow YAML generation and validation state.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
    * Check this field to determine whether a workflow is valid before executing it.
-   *
-   * &#64;internal
-   * Populated asynchronously after workflow creation via a Temporal workflow.
-   * Workflow creation does NOT block on validation — the workflow is created immediately
-   * with status.state = PENDING, then validation runs in the background.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
@@ -114,22 +99,6 @@ public interface WorkflowStatusOrBuilder extends
   /**
    * <pre>
    * SHA-256 hash of the generated CNCF YAML for the current valid version.
-   *
-   * &#64;internal
-   * Updated only when validation produces state=VALID and the generated YAML
-   * differs from the previous version's hash. Empty for workflows that have
-   * never passed validation.
-   *
-   * This is the content-addressed version identifier for the workflow definition.
-   * The hash is computed from the `serverless_workflow_validation.yaml` string,
-   * ensuring that "same YAML = same hash = same execution behavior."
-   *
-   * Consumers:
-   * - Execution create pipeline reads this to pin executions to a specific version
-   * - getByReference resolves ApiResourceReference.version against this and audit entries
-   * - UI displays this as the current version identifier
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -139,22 +108,6 @@ public interface WorkflowStatusOrBuilder extends
   /**
    * <pre>
    * SHA-256 hash of the generated CNCF YAML for the current valid version.
-   *
-   * &#64;internal
-   * Updated only when validation produces state=VALID and the generated YAML
-   * differs from the previous version's hash. Empty for workflows that have
-   * never passed validation.
-   *
-   * This is the content-addressed version identifier for the workflow definition.
-   * The hash is computed from the `serverless_workflow_validation.yaml` string,
-   * ensuring that "same YAML = same hash = same execution behavior."
-   *
-   * Consumers:
-   * - Execution create pipeline reads this to pin executions to a specific version
-   * - getByReference resolves ApiResourceReference.version against this and audit entries
-   * - UI displays this as the current version identifier
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>

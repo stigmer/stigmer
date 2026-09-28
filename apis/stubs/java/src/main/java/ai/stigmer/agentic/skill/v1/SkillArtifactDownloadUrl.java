@@ -9,16 +9,6 @@ package ai.stigmer.agentic.skill.v1;
  * <pre>
  * SkillArtifactDownloadUrl provides a URL for downloading a skill
  * artifact over HTTP.
- *
- * &#64;internal
- * The download strategy differs by edition (mirrors ArtifactDownloadUrl):
- * - Cloud: pre-signed R2/S3 URL with short TTL (e.g., 15 minutes)
- * - OSS: capability URL on the server's own HTTP lane; the content-hash
- * storage key in the path is the capability (the same trust model as
- * getArtifact, which deliberately skips authorization)
- *
- * This pattern avoids streaming large blobs through the gRPC control
- * plane — the transport cap stays at 10MB while skills may be 100MB.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl}
@@ -326,16 +316,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * SkillArtifactDownloadUrl provides a URL for downloading a skill
    * artifact over HTTP.
-   *
-   * &#64;internal
-   * The download strategy differs by edition (mirrors ArtifactDownloadUrl):
-   * - Cloud: pre-signed R2/S3 URL with short TTL (e.g., 15 minutes)
-   * - OSS: capability URL on the server's own HTTP lane; the content-hash
-   * storage key in the path is the capability (the same trust model as
-   * getArtifact, which deliberately skips authorization)
-   *
-   * This pattern avoids streaming large blobs through the gRPC control
-   * plane — the transport cap stays at 10MB while skills may be 100MB.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl}

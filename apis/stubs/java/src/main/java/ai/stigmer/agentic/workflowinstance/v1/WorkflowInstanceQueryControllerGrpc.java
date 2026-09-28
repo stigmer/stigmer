@@ -5,14 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * WorkflowInstanceQueryController handles read operations for workflow instances.
- * &#64;internal
- * This service provides all query operations following the Command-Query Separation pattern.
- * All RPCs that read state without modifying it go through this controller.
- * Authorization:
- * - get: Requires get permission on the specific instance
- * - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
- * - getByReference: Custom authorization (supports flexible reference lookup)
- * All operations respect owner scope visibility rules (users see only their org/identity resources).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -178,14 +170,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
   /**
    * <pre>
    * WorkflowInstanceQueryController handles read operations for workflow instances.
-   * &#64;internal
-   * This service provides all query operations following the Command-Query Separation pattern.
-   * All RPCs that read state without modifying it go through this controller.
-   * Authorization:
-   * - get: Requires get permission on the specific instance
-   * - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-   * - getByReference: Custom authorization (supports flexible reference lookup)
-   * All operations respect owner scope visibility rules (users see only their org/identity resources).
    * </pre>
    */
   public interface AsyncService {
@@ -193,16 +177,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
-     * &#64;internal
-     * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Authorization:
-     * Requires "get" permission on the specific WorkflowInstance.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Verifies user has access based on:
-     * - Instance owner scope (organization or identity_account)
-     * - User's IAM policies
-     * Error: PERMISSION_DENIED if user lacks get permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     default void get(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request,
@@ -214,17 +188,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
      * <pre>
      * Get all workflow instances that use a specific workflow template.
      * Returns a paginated list of instances that reference the given workflow ID.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
-     * then filtered by workflow_id. This ensures users only see instances they have access to,
-     * even if the parent workflow is shared across organizations.
-     * Filtering:
-     * Results are filtered by:
-     * - User's organization/identity visibility
-     * - IAM policies
-     * - Owner scope rules
-     * Error: PERMISSION_DENIED if user lacks access to the workflow
-     * Error: NOT_FOUND if workflow_id doesn't exist
      * </pre>
      */
     default void getByWorkflow(ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest request,
@@ -235,15 +198,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a workflow instance by reference (ID or slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     * Supports lookup by:
-     * - ID: {id: "wfi_abc123"}
-     * - Slug: {slug: "prod-deploy"}
-     * - Name: {name: "Production Deploy"}
-     * Error: PERMISSION_DENIED if user lacks access
-     * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -256,14 +210,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
    * Base class for the server implementation of the service WorkflowInstanceQueryController.
    * <pre>
    * WorkflowInstanceQueryController handles read operations for workflow instances.
-   * &#64;internal
-   * This service provides all query operations following the Command-Query Separation pattern.
-   * All RPCs that read state without modifying it go through this controller.
-   * Authorization:
-   * - get: Requires get permission on the specific instance
-   * - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-   * - getByReference: Custom authorization (supports flexible reference lookup)
-   * All operations respect owner scope visibility rules (users see only their org/identity resources).
    * </pre>
    */
   public static abstract class WorkflowInstanceQueryControllerImplBase
@@ -278,14 +224,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service WorkflowInstanceQueryController.
    * <pre>
    * WorkflowInstanceQueryController handles read operations for workflow instances.
-   * &#64;internal
-   * This service provides all query operations following the Command-Query Separation pattern.
-   * All RPCs that read state without modifying it go through this controller.
-   * Authorization:
-   * - get: Requires get permission on the specific instance
-   * - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-   * - getByReference: Custom authorization (supports flexible reference lookup)
-   * All operations respect owner scope visibility rules (users see only their org/identity resources).
    * </pre>
    */
   public static final class WorkflowInstanceQueryControllerStub
@@ -304,16 +242,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
-     * &#64;internal
-     * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Authorization:
-     * Requires "get" permission on the specific WorkflowInstance.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Verifies user has access based on:
-     * - Instance owner scope (organization or identity_account)
-     * - User's IAM policies
-     * Error: PERMISSION_DENIED if user lacks get permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public void get(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request,
@@ -326,17 +254,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
      * <pre>
      * Get all workflow instances that use a specific workflow template.
      * Returns a paginated list of instances that reference the given workflow ID.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
-     * then filtered by workflow_id. This ensures users only see instances they have access to,
-     * even if the parent workflow is shared across organizations.
-     * Filtering:
-     * Results are filtered by:
-     * - User's organization/identity visibility
-     * - IAM policies
-     * - Owner scope rules
-     * Error: PERMISSION_DENIED if user lacks access to the workflow
-     * Error: NOT_FOUND if workflow_id doesn't exist
      * </pre>
      */
     public void getByWorkflow(ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest request,
@@ -348,15 +265,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a workflow instance by reference (ID or slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     * Supports lookup by:
-     * - ID: {id: "wfi_abc123"}
-     * - Slug: {slug: "prod-deploy"}
-     * - Name: {name: "Production Deploy"}
-     * Error: PERMISSION_DENIED if user lacks access
-     * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -370,14 +278,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service WorkflowInstanceQueryController.
    * <pre>
    * WorkflowInstanceQueryController handles read operations for workflow instances.
-   * &#64;internal
-   * This service provides all query operations following the Command-Query Separation pattern.
-   * All RPCs that read state without modifying it go through this controller.
-   * Authorization:
-   * - get: Requires get permission on the specific instance
-   * - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-   * - getByReference: Custom authorization (supports flexible reference lookup)
-   * All operations respect owner scope visibility rules (users see only their org/identity resources).
    * </pre>
    */
   public static final class WorkflowInstanceQueryControllerBlockingV2Stub
@@ -396,16 +296,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
-     * &#64;internal
-     * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Authorization:
-     * Requires "get" permission on the specific WorkflowInstance.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Verifies user has access based on:
-     * - Instance owner scope (organization or identity_account)
-     * - User's IAM policies
-     * Error: PERMISSION_DENIED if user lacks get permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance get(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request) throws io.grpc.StatusException {
@@ -417,17 +307,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
      * <pre>
      * Get all workflow instances that use a specific workflow template.
      * Returns a paginated list of instances that reference the given workflow ID.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
-     * then filtered by workflow_id. This ensures users only see instances they have access to,
-     * even if the parent workflow is shared across organizations.
-     * Filtering:
-     * Results are filtered by:
-     * - User's organization/identity visibility
-     * - IAM policies
-     * - Owner scope rules
-     * Error: PERMISSION_DENIED if user lacks access to the workflow
-     * Error: NOT_FOUND if workflow_id doesn't exist
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList getByWorkflow(ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest request) throws io.grpc.StatusException {
@@ -438,15 +317,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a workflow instance by reference (ID or slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     * Supports lookup by:
-     * - ID: {id: "wfi_abc123"}
-     * - Slug: {slug: "prod-deploy"}
-     * - Name: {name: "Production Deploy"}
-     * Error: PERMISSION_DENIED if user lacks access
-     * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -459,14 +329,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service WorkflowInstanceQueryController.
    * <pre>
    * WorkflowInstanceQueryController handles read operations for workflow instances.
-   * &#64;internal
-   * This service provides all query operations following the Command-Query Separation pattern.
-   * All RPCs that read state without modifying it go through this controller.
-   * Authorization:
-   * - get: Requires get permission on the specific instance
-   * - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-   * - getByReference: Custom authorization (supports flexible reference lookup)
-   * All operations respect owner scope visibility rules (users see only their org/identity resources).
    * </pre>
    */
   public static final class WorkflowInstanceQueryControllerBlockingStub
@@ -485,16 +347,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
-     * &#64;internal
-     * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Authorization:
-     * Requires "get" permission on the specific WorkflowInstance.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Verifies user has access based on:
-     * - Instance owner scope (organization or identity_account)
-     * - User's IAM policies
-     * Error: PERMISSION_DENIED if user lacks get permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance get(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request) {
@@ -506,17 +358,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
      * <pre>
      * Get all workflow instances that use a specific workflow template.
      * Returns a paginated list of instances that reference the given workflow ID.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
-     * then filtered by workflow_id. This ensures users only see instances they have access to,
-     * even if the parent workflow is shared across organizations.
-     * Filtering:
-     * Results are filtered by:
-     * - User's organization/identity visibility
-     * - IAM policies
-     * - Owner scope rules
-     * Error: PERMISSION_DENIED if user lacks access to the workflow
-     * Error: NOT_FOUND if workflow_id doesn't exist
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList getByWorkflow(ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest request) {
@@ -527,15 +368,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a workflow instance by reference (ID or slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     * Supports lookup by:
-     * - ID: {id: "wfi_abc123"}
-     * - Slug: {slug: "prod-deploy"}
-     * - Name: {name: "Production Deploy"}
-     * Error: PERMISSION_DENIED if user lacks access
-     * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -548,14 +380,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service WorkflowInstanceQueryController.
    * <pre>
    * WorkflowInstanceQueryController handles read operations for workflow instances.
-   * &#64;internal
-   * This service provides all query operations following the Command-Query Separation pattern.
-   * All RPCs that read state without modifying it go through this controller.
-   * Authorization:
-   * - get: Requires get permission on the specific instance
-   * - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-   * - getByReference: Custom authorization (supports flexible reference lookup)
-   * All operations respect owner scope visibility rules (users see only their org/identity resources).
    * </pre>
    */
   public static final class WorkflowInstanceQueryControllerFutureStub
@@ -574,16 +398,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
-     * &#64;internal
-     * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Authorization:
-     * Requires "get" permission on the specific WorkflowInstance.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Verifies user has access based on:
-     * - Instance owner scope (organization or identity_account)
-     * - User's IAM policies
-     * Error: PERMISSION_DENIED if user lacks get permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> get(
@@ -596,17 +410,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
      * <pre>
      * Get all workflow instances that use a specific workflow template.
      * Returns a paginated list of instances that reference the given workflow ID.
-     * &#64;internal
-     * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
-     * then filtered by workflow_id. This ensures users only see instances they have access to,
-     * even if the parent workflow is shared across organizations.
-     * Filtering:
-     * Results are filtered by:
-     * - User's organization/identity visibility
-     * - IAM policies
-     * - Owner scope rules
-     * Error: PERMISSION_DENIED if user lacks access to the workflow
-     * Error: NOT_FOUND if workflow_id doesn't exist
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList> getByWorkflow(
@@ -618,15 +421,6 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a workflow instance by reference (ID or slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     * Supports lookup by:
-     * - ID: {id: "wfi_abc123"}
-     * - Slug: {slug: "prod-deploy"}
-     * - Name: {name: "Production Deploy"}
-     * Error: PERMISSION_DENIED if user lacks access
-     * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getByReference(

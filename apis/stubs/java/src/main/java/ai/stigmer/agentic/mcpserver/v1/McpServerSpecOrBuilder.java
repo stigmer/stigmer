@@ -172,25 +172,6 @@ public interface McpServerSpecOrBuilder extends
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
    * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: mcpserver update/apply rejects (INVALID_ARGUMENT) any
-   * name this server's own discovered_capabilities.tools does not
-   * contain, with the valid names in the error. Skipped when the server
-   * has never been connected (no capabilities yet) — which is always the
-   * case on create, so the check only bites from the first re-apply
-   * after discovery.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name is warned in the runner log
-   * and ignored, so a stale entry narrows the toolset but never widens
-   * it or fails the run. Enforcement is per harness — see
-   * McpServerUsage.enabled_tools in agent/v1/spec.proto.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -203,25 +184,6 @@ public interface McpServerSpecOrBuilder extends
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
    * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: mcpserver update/apply rejects (INVALID_ARGUMENT) any
-   * name this server's own discovered_capabilities.tools does not
-   * contain, with the valid names in the error. Skipped when the server
-   * has never been connected (no capabilities yet) — which is always the
-   * case on create, so the check only bites from the first re-apply
-   * after discovery.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name is warned in the runner log
-   * and ignored, so a stale entry narrows the toolset but never widens
-   * it or fails the run. Enforcement is per harness — see
-   * McpServerUsage.enabled_tools in agent/v1/spec.proto.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -233,25 +195,6 @@ public interface McpServerSpecOrBuilder extends
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
    * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: mcpserver update/apply rejects (INVALID_ARGUMENT) any
-   * name this server's own discovered_capabilities.tools does not
-   * contain, with the valid names in the error. Skipped when the server
-   * has never been connected (no capabilities yet) — which is always the
-   * case on create, so the check only bites from the first re-apply
-   * after discovery.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name is warned in the runner log
-   * and ignored, so a stale entry narrows the toolset but never widens
-   * it or fails the run. Enforcement is per harness — see
-   * McpServerUsage.enabled_tools in agent/v1/spec.proto.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -264,25 +207,6 @@ public interface McpServerSpecOrBuilder extends
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
    * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   *
-   * &#64;internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   * - Apply time: mcpserver update/apply rejects (INVALID_ARGUMENT) any
-   * name this server's own discovered_capabilities.tools does not
-   * contain, with the valid names in the error. Skipped when the server
-   * has never been connected (no capabilities yet) — which is always the
-   * case on create, so the check only bites from the first re-apply
-   * after discovery.
-   * - Execution time: the runner enforces the INTERSECTION with the
-   * server's live toolset — an unknown name is warned in the runner log
-   * and ignored, so a stale entry narrows the toolset but never widens
-   * it or fails the run. Enforcement is per harness — see
-   * McpServerUsage.enabled_tools in agent/v1/spec.proto.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -296,25 +220,6 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   *
-   * &#64;internal
-   * Reserved platform keys — declared here like any other variable, but
-   * their values are injected by the runner per resolution context and are
-   * authoritative over same-named user env entries:
-   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
-   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
-   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
-   * email); empty for anonymous
-   * STIGMER_SESSION_ID            — the session the identity was
-   * resolved for; empty outside a session
-   * Reserved keys MUST be declared `optional: true`: they have no value at
-   * execution-create time, and a required declaration fails the pipeline's
-   * env-completeness validation before the runner ever injects them.
-   * Discovery (the connect workflow) runs with no session and injects the
-   * anonymous sentinel — a server consuming these keys must answer
-   * tools/list for anonymous callers and gate tool CALLS instead. The
-   * injected header is runner-asserted, not signed: pair it with a shared
-   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -324,25 +229,6 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   *
-   * &#64;internal
-   * Reserved platform keys — declared here like any other variable, but
-   * their values are injected by the runner per resolution context and are
-   * authoritative over same-named user env entries:
-   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
-   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
-   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
-   * email); empty for anonymous
-   * STIGMER_SESSION_ID            — the session the identity was
-   * resolved for; empty outside a session
-   * Reserved keys MUST be declared `optional: true`: they have no value at
-   * execution-create time, and a required declaration fails the pipeline's
-   * env-completeness validation before the runner ever injects them.
-   * Discovery (the connect workflow) runs with no session and injects the
-   * anonymous sentinel — a server consuming these keys must answer
-   * tools/list for anonymous callers and gate tool CALLS instead. The
-   * injected header is runner-asserted, not signed: pair it with a shared
-   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -359,25 +245,6 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   *
-   * &#64;internal
-   * Reserved platform keys — declared here like any other variable, but
-   * their values are injected by the runner per resolution context and are
-   * authoritative over same-named user env entries:
-   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
-   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
-   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
-   * email); empty for anonymous
-   * STIGMER_SESSION_ID            — the session the identity was
-   * resolved for; empty outside a session
-   * Reserved keys MUST be declared `optional: true`: they have no value at
-   * execution-create time, and a required declaration fails the pipeline's
-   * env-completeness validation before the runner ever injects them.
-   * Discovery (the connect workflow) runs with no session and injects the
-   * anonymous sentinel — a server consuming these keys must answer
-   * tools/list for anonymous callers and gate tool CALLS instead. The
-   * injected header is runner-asserted, not signed: pair it with a shared
-   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -388,25 +255,6 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   *
-   * &#64;internal
-   * Reserved platform keys — declared here like any other variable, but
-   * their values are injected by the runner per resolution context and are
-   * authoritative over same-named user env entries:
-   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
-   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
-   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
-   * email); empty for anonymous
-   * STIGMER_SESSION_ID            — the session the identity was
-   * resolved for; empty outside a session
-   * Reserved keys MUST be declared `optional: true`: they have no value at
-   * execution-create time, and a required declaration fails the pipeline's
-   * env-completeness validation before the runner ever injects them.
-   * Discovery (the connect workflow) runs with no session and injects the
-   * anonymous sentinel — a server consuming these keys must answer
-   * tools/list for anonymous callers and gate tool CALLS instead. The
-   * injected header is runner-asserted, not signed: pair it with a shared
-   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -420,25 +268,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   *
-   * &#64;internal
-   * Reserved platform keys — declared here like any other variable, but
-   * their values are injected by the runner per resolution context and are
-   * authoritative over same-named user env entries:
-   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
-   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
-   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
-   * email); empty for anonymous
-   * STIGMER_SESSION_ID            — the session the identity was
-   * resolved for; empty outside a session
-   * Reserved keys MUST be declared `optional: true`: they have no value at
-   * execution-create time, and a required declaration fails the pipeline's
-   * env-completeness validation before the runner ever injects them.
-   * Discovery (the connect workflow) runs with no session and injects the
-   * anonymous sentinel — a server consuming these keys must answer
-   * tools/list for anonymous callers and gate tool CALLS instead. The
-   * injected header is runner-asserted, not signed: pair it with a shared
-   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -449,26 +278,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Tools pinned by the MCP server owner to always require approval.
-   *
-   * &#64;internal
-   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
-   * Never auto-modified — only changed by explicit user action (apply/update).
-   *
-   * Presence in this list IS the gate: every entry force-requires approval
-   * for its tool, overriding the classifier. The field cannot express the
-   * opposite direction — a pin can never exempt a tool. To un-gate a tool
-   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
-   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
-   *
-   * Use cases:
-   * - Force approval for a tool the classifier marked as auto-approve
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
@@ -478,26 +287,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Tools pinned by the MCP server owner to always require approval.
-   *
-   * &#64;internal
-   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
-   * Never auto-modified — only changed by explicit user action (apply/update).
-   *
-   * Presence in this list IS the gate: every entry force-requires approval
-   * for its tool, overriding the classifier. The field cannot express the
-   * opposite direction — a pin can never exempt a tool. To un-gate a tool
-   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
-   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
-   *
-   * Use cases:
-   * - Force approval for a tool the classifier marked as auto-approve
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
@@ -506,26 +295,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Tools pinned by the MCP server owner to always require approval.
-   *
-   * &#64;internal
-   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
-   * Never auto-modified — only changed by explicit user action (apply/update).
-   *
-   * Presence in this list IS the gate: every entry force-requires approval
-   * for its tool, overriding the classifier. The field cannot express the
-   * opposite direction — a pin can never exempt a tool. To un-gate a tool
-   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
-   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
-   *
-   * Use cases:
-   * - Force approval for a tool the classifier marked as auto-approve
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
@@ -534,26 +303,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Tools pinned by the MCP server owner to always require approval.
-   *
-   * &#64;internal
-   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
-   * Never auto-modified — only changed by explicit user action (apply/update).
-   *
-   * Presence in this list IS the gate: every entry force-requires approval
-   * for its tool, overriding the classifier. The field cannot express the
-   * opposite direction — a pin can never exempt a tool. To un-gate a tool
-   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
-   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
-   *
-   * Use cases:
-   * - Force approval for a tool the classifier marked as auto-approve
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
@@ -563,26 +312,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Tools pinned by the MCP server owner to always require approval.
-   *
-   * &#64;internal
-   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
-   * Never auto-modified — only changed by explicit user action (apply/update).
-   *
-   * Presence in this list IS the gate: every entry force-requires approval
-   * for its tool, overriding the classifier. The field cannot express the
-   * opposite direction — a pin can never exempt a tool. To un-gate a tool
-   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
-   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
-   *
-   * Use cases:
-   * - Force approval for a tool the classifier marked as auto-approve
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>

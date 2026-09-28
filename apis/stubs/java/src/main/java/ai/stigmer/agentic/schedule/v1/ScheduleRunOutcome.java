@@ -8,14 +8,6 @@ package ai.stigmer.agentic.schedule.v1;
 /**
  * <pre>
  * What one schedule fire produced.
- *
- * &#64;internal
- * One vocabulary for two surfaces (project DD-017 D-6/D-7): the trigger
- * result reports the START outcomes (STARTED / REFUSED /
- * TARGET_MISSING), and the run-history rows additionally reach the
- * terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron
- * tick's tracking. SKIPPED records a cron fire that revalidated against
- * a row deleted/disabled/paused between recording and starting.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome}

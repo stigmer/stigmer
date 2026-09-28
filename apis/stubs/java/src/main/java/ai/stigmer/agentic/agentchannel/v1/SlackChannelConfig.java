@@ -13,11 +13,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * nothing for the user to declare before installing — workspace identity,
  * bot user, and granted scopes are observed during the OAuth install and
  * recorded in status. Future user-tunable Slack behavior lands here.
- *
- * &#64;internal
- * P1. An empty message is set explicitly in manifests (`slack: {}`),
- * satisfying the required oneof. Do not add OAuth-observed facts here —
- * that is the spec-clobbering bug class decision 004 rejected.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig}
@@ -216,11 +211,6 @@ private static final long serialVersionUID = 0L;
    * nothing for the user to declare before installing — workspace identity,
    * bot user, and granted scopes are observed during the OAuth install and
    * recorded in status. Future user-tunable Slack behavior lands here.
-   *
-   * &#64;internal
-   * P1. An empty message is set explicitly in manifests (`slack: {}`),
-   * satisfying the required oneof. Do not add OAuth-observed facts here —
-   * that is the spec-clobbering bug class decision 004 rejected.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig}

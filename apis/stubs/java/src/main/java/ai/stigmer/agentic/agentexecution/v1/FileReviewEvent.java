@@ -12,10 +12,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * The payload is a closed oneof so each event type is type-safe and
  * self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;
  * the payload carries fidelity.
- *
- * &#64;internal
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewEvent}
@@ -837,10 +833,6 @@ private static final long serialVersionUID = 0L;
    * The payload is a closed oneof so each event type is type-safe and
    * self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;
    * the payload carries fidelity.
-   *
-   * &#64;internal
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewEvent}

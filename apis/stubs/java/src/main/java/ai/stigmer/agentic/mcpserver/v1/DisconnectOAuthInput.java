@@ -8,21 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * DisconnectOAuthInput tears down a user's OAuth connection for a resource.
- *
- * &#64;internal
- * The handler:
- * 1. Finds the OAuthGrant for (caller, resource_id, org)
- * 2. Deletes the managed Environment that holds the tokens
- * 3. Deletes the OAuthGrant record
- *
- * After this, the user's access token and refresh token are gone. The
- * MCP server remains configured — only the user's personal OAuth connection
- * is removed. Other users' connections to the same resource are unaffected.
- *
- * Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
- * tuple, the handler returns disconnected=false without error. This
- * supports race conditions (concurrent disconnect calls), retries after
- * partial failures, and desired-state semantics ("ensure no connection").
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput}
@@ -334,21 +319,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * DisconnectOAuthInput tears down a user's OAuth connection for a resource.
-   *
-   * &#64;internal
-   * The handler:
-   * 1. Finds the OAuthGrant for (caller, resource_id, org)
-   * 2. Deletes the managed Environment that holds the tokens
-   * 3. Deletes the OAuthGrant record
-   *
-   * After this, the user's access token and refresh token are gone. The
-   * MCP server remains configured — only the user's personal OAuth connection
-   * is removed. Other users' connections to the same resource are unaffected.
-   *
-   * Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
-   * tuple, the handler returns disconnected=false without error. This
-   * supports race conditions (concurrent disconnect calls), retries after
-   * partial failures, and desired-state semantics ("ensure no connection").
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput}

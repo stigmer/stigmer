@@ -71,10 +71,6 @@ public interface PushPluginRequestOrBuilder extends
    * <pre>
    * Visibility for the plugin and every resource it materialises.
    * Unspecified means the kind's default (organization).
-   *
-   * &#64;internal
-   * PUBLIC is operator-gated exactly as on every other kind; the same gates
-   * run on the head and, in-process, on each child.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -85,10 +81,6 @@ public interface PushPluginRequestOrBuilder extends
    * <pre>
    * Visibility for the plugin and every resource it materialises.
    * Unspecified means the kind's default (organization).
-   *
-   * &#64;internal
-   * PUBLIC is operator-gated exactly as on every other kind; the same gates
-   * run on the head and, in-process, on each child.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

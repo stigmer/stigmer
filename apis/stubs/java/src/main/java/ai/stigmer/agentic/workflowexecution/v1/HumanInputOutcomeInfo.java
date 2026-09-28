@@ -8,14 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Lightweight outcome descriptor for UI rendering in approval cards.
- *
- * &#64;internal
- * A subset of HumanInputOutcome (from workflow/v1/tasks/human_input.proto)
- * that carries only what the approval UI needs: the identifier to submit
- * and the label to display. The `then` routing field is deliberately
- * excluded — routing is a runner concern, not a UI concern.
- *
- * &#64;since T13c (Workflow HITL Approval UI)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo}
@@ -331,14 +323,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Lightweight outcome descriptor for UI rendering in approval cards.
-   *
-   * &#64;internal
-   * A subset of HumanInputOutcome (from workflow/v1/tasks/human_input.proto)
-   * that carries only what the approval UI needs: the identifier to submit
-   * and the label to display. The `then` routing field is deliberately
-   * excluded — routing is a runner concern, not a UI concern.
-   *
-   * &#64;since T13c (Workflow HITL Approval UI)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo}

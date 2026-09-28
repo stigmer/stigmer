@@ -10,13 +10,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * ConversationMediaRef describes a media file attached to an inbound
  * timeline item — enough for a client to render a chip (name, kind,
  * size) and decide whether to fetch the bytes.
- *
- * &#64;internal
- * whatsapp-media DD-001 D4. Deliberately NOT the agentexecution
- * Attachment shape: that message carries transport facts (storage_key,
- * mount_path) for the sandbox, while this one is a display reference —
- * sharing a message would couple the console's read surface to the
- * runner's transport contract.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef}
@@ -357,13 +350,6 @@ private static final long serialVersionUID = 0L;
    * ConversationMediaRef describes a media file attached to an inbound
    * timeline item — enough for a client to render a chip (name, kind,
    * size) and decide whether to fetch the bytes.
-   *
-   * &#64;internal
-   * whatsapp-media DD-001 D4. Deliberately NOT the agentexecution
-   * Attachment shape: that message carries transport facts (storage_key,
-   * mount_path) for the sandbox, while this one is a display reference —
-   * sharing a message would couple the console's read surface to the
-   * runner's transport contract.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef}

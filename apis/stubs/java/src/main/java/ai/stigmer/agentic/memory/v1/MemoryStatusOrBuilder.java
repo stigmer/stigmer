@@ -32,11 +32,6 @@ public interface MemoryStatusOrBuilder extends
   /**
    * <pre>
    * When the lifecycle state last changed.
-   *
-   * &#64;internal
-   * Stamped by create (proposal time) and by confirm/reject (decision
-   * time). Surfaces "decided when" beside "decided what" without a
-   * parallel event log at dozens-of-records scale.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -46,11 +41,6 @@ public interface MemoryStatusOrBuilder extends
   /**
    * <pre>
    * When the lifecycle state last changed.
-   *
-   * &#64;internal
-   * Stamped by create (proposal time) and by confirm/reject (decision
-   * time). Surfaces "decided when" beside "decided what" without a
-   * parallel event log at dozens-of-records scale.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>
@@ -60,11 +50,6 @@ public interface MemoryStatusOrBuilder extends
   /**
    * <pre>
    * When the lifecycle state last changed.
-   *
-   * &#64;internal
-   * Stamped by create (proposal time) and by confirm/reject (decision
-   * time). Surfaces "decided when" beside "decided what" without a
-   * parallel event log at dozens-of-records scale.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp state_changed_at = 2 [json_name = "stateChangedAt"];</code>

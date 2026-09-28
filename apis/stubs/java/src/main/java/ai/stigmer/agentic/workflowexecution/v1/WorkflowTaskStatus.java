@@ -8,22 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowTaskStatus defines the execution status of a workflow task.
- *
- * &#64;internal
- * Status Transitions:
- *
- * Normal flow:
- * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_COMPLETED
- *
- * Failure flow:
- * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_FAILED
- *
- * Skip flow (conditional):
- * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_SKIPPED
- *
- * Approval flow (for agent invocation tasks):
- * WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_IN_PROGRESS
- * ↘ WORKFLOW_TASK_FAILED (on reject)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus}
@@ -34,9 +18,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Unspecified status (invalid).
-   *
-   * &#64;internal
-   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>WORKFLOW_TASK_STATUS_UNSPECIFIED = 0;</code>
@@ -45,10 +26,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task is waiting to execute.
-   *
-   * &#64;internal
-   * The task has been created but has not started executing yet.
-   * Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED
    * </pre>
    *
    * <code>WORKFLOW_TASK_PENDING = 1;</code>
@@ -57,10 +34,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task is currently executing.
-   *
-   * &#64;internal
-   * The workflow runner is actively processing this task.
-   * Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED
    * </pre>
    *
    * <code>WORKFLOW_TASK_IN_PROGRESS = 2;</code>
@@ -69,9 +42,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task finished successfully.
-   *
-   * &#64;internal
-   * Terminal state for this task. Output is populated with results.
    * </pre>
    *
    * <code>WORKFLOW_TASK_COMPLETED = 3;</code>
@@ -80,10 +50,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task failed during execution.
-   *
-   * &#64;internal
-   * Terminal state for this task. The error field is populated with failure description.
-   * If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured).
    * </pre>
    *
    * <code>WORKFLOW_TASK_FAILED = 4;</code>
@@ -92,11 +58,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task was skipped due to conditional logic.
-   *
-   * &#64;internal
-   * Terminal state for this task. The task was not executed because
-   * a conditional task determined it should be skipped.
-   * Skipped tasks don't cause workflow failure.
    * </pre>
    *
    * <code>WORKFLOW_TASK_SKIPPED = 5;</code>
@@ -105,13 +66,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task is waiting for human approval from a child agent execution.
-   *
-   * &#64;internal
-   * Set when task_type == WORKFLOW_TASK_AGENT_INVOCATION and the invoked
-   * AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL.
-   *
-   * NOT a terminal state - workflow resumes after approval decision.
-   * Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
    * </pre>
    *
    * <code>WORKFLOW_TASK_WAITING_APPROVAL = 6;</code>
@@ -132,9 +86,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Unspecified status (invalid).
-   *
-   * &#64;internal
-   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>WORKFLOW_TASK_STATUS_UNSPECIFIED = 0;</code>
@@ -143,10 +94,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task is waiting to execute.
-   *
-   * &#64;internal
-   * The task has been created but has not started executing yet.
-   * Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED
    * </pre>
    *
    * <code>WORKFLOW_TASK_PENDING = 1;</code>
@@ -155,10 +102,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task is currently executing.
-   *
-   * &#64;internal
-   * The workflow runner is actively processing this task.
-   * Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED
    * </pre>
    *
    * <code>WORKFLOW_TASK_IN_PROGRESS = 2;</code>
@@ -167,9 +110,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task finished successfully.
-   *
-   * &#64;internal
-   * Terminal state for this task. Output is populated with results.
    * </pre>
    *
    * <code>WORKFLOW_TASK_COMPLETED = 3;</code>
@@ -178,10 +118,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task failed during execution.
-   *
-   * &#64;internal
-   * Terminal state for this task. The error field is populated with failure description.
-   * If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured).
    * </pre>
    *
    * <code>WORKFLOW_TASK_FAILED = 4;</code>
@@ -190,11 +126,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task was skipped due to conditional logic.
-   *
-   * &#64;internal
-   * Terminal state for this task. The task was not executed because
-   * a conditional task determined it should be skipped.
-   * Skipped tasks don't cause workflow failure.
    * </pre>
    *
    * <code>WORKFLOW_TASK_SKIPPED = 5;</code>
@@ -203,13 +134,6 @@ public enum WorkflowTaskStatus
   /**
    * <pre>
    * Task is waiting for human approval from a child agent execution.
-   *
-   * &#64;internal
-   * Set when task_type == WORKFLOW_TASK_AGENT_INVOCATION and the invoked
-   * AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL.
-   *
-   * NOT a terminal state - workflow resumes after approval decision.
-   * Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
    * </pre>
    *
    * <code>WORKFLOW_TASK_WAITING_APPROVAL = 6;</code>

@@ -14,12 +14,6 @@ package ai.stigmer.iam.team.v1;
  * the team is not part of the spec: membership is granted and revoked as
  * access, one person at a time, so it is visible and audited the way every
  * other grant is.
- *
- * &#64;internal
- * Membership rows are IamPolicy grants of the `member` role on the team
- * (`identity_account:&lt;id&gt; member team:&lt;id&gt;`), written through the one grant
- * path. Keeping them out of the spec leaves one writer of authorization
- * facts.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.team.v1.TeamSpec}
@@ -277,12 +271,6 @@ private static final long serialVersionUID = 0L;
    * the team is not part of the spec: membership is granted and revoked as
    * access, one person at a time, so it is visible and audited the way every
    * other grant is.
-   *
-   * &#64;internal
-   * Membership rows are IamPolicy grants of the `member` role on the team
-   * (`identity_account:&lt;id&gt; member team:&lt;id&gt;`), written through the one grant
-   * path. Keeping them out of the spec leaves one writer of authorization
-   * facts.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.team.v1.TeamSpec}

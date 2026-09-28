@@ -8,11 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
- *
- * &#64;internal
- * PendingApproval is an agentexecution domain type — it describes what tool
- * needs approval. WorkflowPendingApproval adds the workflow-level concern:
- * which child agent execution the approval should be forwarded to.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval}
@@ -103,13 +98,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child agent execution to forward the approval decision to.
-   *
-   * &#64;internal
-   * Set by the runner when surfacing child agent approvals
-   * at the workflow level. WorkflowExecution.SubmitApproval uses this
-   * to route the decision to the correct AgentExecution.SubmitApproval RPC.
-   *
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
    * </pre>
    *
    * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId"];</code>
@@ -131,13 +119,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child agent execution to forward the approval decision to.
-   *
-   * &#64;internal
-   * Set by the runner when surfacing child agent approvals
-   * at the workflow level. WorkflowExecution.SubmitApproval uses this
-   * to route the decision to the correct AgentExecution.SubmitApproval RPC.
-   *
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
    * </pre>
    *
    * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId"];</code>
@@ -333,11 +314,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
-   *
-   * &#64;internal
-   * PendingApproval is an agentexecution domain type — it describes what tool
-   * needs approval. WorkflowPendingApproval adds the workflow-level concern:
-   * which child agent execution the approval should be forwarded to.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval}
@@ -667,13 +643,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution to forward the approval decision to.
-     *
-     * &#64;internal
-     * Set by the runner when surfacing child agent approvals
-     * at the workflow level. WorkflowExecution.SubmitApproval uses this
-     * to route the decision to the correct AgentExecution.SubmitApproval RPC.
-     *
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId"];</code>
@@ -694,13 +663,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution to forward the approval decision to.
-     *
-     * &#64;internal
-     * Set by the runner when surfacing child agent approvals
-     * at the workflow level. WorkflowExecution.SubmitApproval uses this
-     * to route the decision to the correct AgentExecution.SubmitApproval RPC.
-     *
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId"];</code>
@@ -722,13 +684,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution to forward the approval decision to.
-     *
-     * &#64;internal
-     * Set by the runner when surfacing child agent approvals
-     * at the workflow level. WorkflowExecution.SubmitApproval uses this
-     * to route the decision to the correct AgentExecution.SubmitApproval RPC.
-     *
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId"];</code>
@@ -746,13 +701,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution to forward the approval decision to.
-     *
-     * &#64;internal
-     * Set by the runner when surfacing child agent approvals
-     * at the workflow level. WorkflowExecution.SubmitApproval uses this
-     * to route the decision to the correct AgentExecution.SubmitApproval RPC.
-     *
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId"];</code>
@@ -767,13 +715,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child agent execution to forward the approval decision to.
-     *
-     * &#64;internal
-     * Set by the runner when surfacing child agent approvals
-     * at the workflow level. WorkflowExecution.SubmitApproval uses this
-     * to route the decision to the correct AgentExecution.SubmitApproval RPC.
-     *
-     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
      * </pre>
      *
      * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId"];</code>

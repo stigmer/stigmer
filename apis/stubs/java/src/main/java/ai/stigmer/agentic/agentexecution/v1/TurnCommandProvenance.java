@@ -11,21 +11,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * (DD-28): its assertion that EVERY mutation in the candidate was produced by
  * executed shell commands the human had already authorized, with the consent
  * evidence the backend can verify.
- *
- * &#64;internal
- *
- * Presence of this message on a candidate asserts the runner-owned turn facts
- * the server cannot derive (tool calls carry no turn marker): the turn executed
- * zero file-tool (write/delete) calls, zero MCP tools, and delegated zero
- * sub-agents — its only mutation source was consented commands. These facts
- * carry the SAME trust level as the captured bytes themselves. What the runner
- * can NEVER assert is the consent: the backend verifies every claimed row below
- * against the server-authored approval record before authoring the policy
- * decision, so a runner cannot mint authorization it was never given. Absent
- * on any turn that does not qualify — the set then reviews manually, exactly
- * as before this field existed (fail-closed).
- *
- * &#64;since File-Change HITL Redesign (DD-28 approved-command auto-keep)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance}
@@ -343,21 +328,6 @@ private static final long serialVersionUID = 0L;
    * (DD-28): its assertion that EVERY mutation in the candidate was produced by
    * executed shell commands the human had already authorized, with the consent
    * evidence the backend can verify.
-   *
-   * &#64;internal
-   *
-   * Presence of this message on a candidate asserts the runner-owned turn facts
-   * the server cannot derive (tool calls carry no turn marker): the turn executed
-   * zero file-tool (write/delete) calls, zero MCP tools, and delegated zero
-   * sub-agents — its only mutation source was consented commands. These facts
-   * carry the SAME trust level as the captured bytes themselves. What the runner
-   * can NEVER assert is the consent: the backend verifies every claimed row below
-   * against the server-authored approval record before authoring the policy
-   * decision, so a runner cannot mint authorization it was never given. Absent
-   * on any turn that does not qualify — the set then reviews manually, exactly
-   * as before this field existed (fail-closed).
-   *
-   * &#64;since File-Change HITL Redesign (DD-28 approved-command auto-keep)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance}

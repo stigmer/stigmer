@@ -8,11 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ArtifactList contains a paginated list of artifacts.
- *
- * &#64;internal
- * Returned by list operations (listByExecution).
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactList}
@@ -312,11 +307,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ArtifactList contains a paginated list of artifacts.
-   *
-   * &#64;internal
-   * Returned by list operations (listByExecution).
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactList}

@@ -10,10 +10,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * This service exists because the recents list spans two bounded contexts
  * (session and workflow_execution). A cross-cutting query service avoids
  * forcing the client to make two parallel calls and merge client-side.
- * &#64;internal
- * Authorization is handled in-handler: the implementation queries FGA for
- * authorized session and workflow_execution IDs, then runs a single merged
- * MongoDB query.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -122,10 +118,6 @@ public final class ActivityQueryControllerGrpc {
    * This service exists because the recents list spans two bounded contexts
    * (session and workflow_execution). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
-   * &#64;internal
-   * Authorization is handled in-handler: the implementation queries FGA for
-   * authorized session and workflow_execution IDs, then runs a single merged
-   * MongoDB query.
    * </pre>
    */
   public interface AsyncService {
@@ -141,10 +133,6 @@ public final class ActivityQueryControllerGrpc {
      * the OSS edition the server is single-tenant: the caller owns every
      * stored resource, so there is no authorization set to enumerate and the
      * request's org is a no-op (stigmer#461).
-     * &#64;internal
-     * Authorization is handled in-handler: the FGA id enumeration is the only
-     * gate (hence is_skip_authorization); the request's org merely narrows
-     * the authorized set.
      * </pre>
      */
     default void listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request,
@@ -162,10 +150,6 @@ public final class ActivityQueryControllerGrpc {
    * This service exists because the recents list spans two bounded contexts
    * (session and workflow_execution). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
-   * &#64;internal
-   * Authorization is handled in-handler: the implementation queries FGA for
-   * authorized session and workflow_execution IDs, then runs a single merged
-   * MongoDB query.
    * </pre>
    */
   public static abstract class ActivityQueryControllerImplBase
@@ -185,10 +169,6 @@ public final class ActivityQueryControllerGrpc {
    * This service exists because the recents list spans two bounded contexts
    * (session and workflow_execution). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
-   * &#64;internal
-   * Authorization is handled in-handler: the implementation queries FGA for
-   * authorized session and workflow_execution IDs, then runs a single merged
-   * MongoDB query.
    * </pre>
    */
   public static final class ActivityQueryControllerStub
@@ -215,10 +195,6 @@ public final class ActivityQueryControllerGrpc {
      * the OSS edition the server is single-tenant: the caller owns every
      * stored resource, so there is no authorization set to enumerate and the
      * request's org is a no-op (stigmer#461).
-     * &#64;internal
-     * Authorization is handled in-handler: the FGA id enumeration is the only
-     * gate (hence is_skip_authorization); the request's org merely narrows
-     * the authorized set.
      * </pre>
      */
     public void listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request,
@@ -237,10 +213,6 @@ public final class ActivityQueryControllerGrpc {
    * This service exists because the recents list spans two bounded contexts
    * (session and workflow_execution). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
-   * &#64;internal
-   * Authorization is handled in-handler: the implementation queries FGA for
-   * authorized session and workflow_execution IDs, then runs a single merged
-   * MongoDB query.
    * </pre>
    */
   public static final class ActivityQueryControllerBlockingV2Stub
@@ -267,10 +239,6 @@ public final class ActivityQueryControllerGrpc {
      * the OSS edition the server is single-tenant: the caller owns every
      * stored resource, so there is no authorization set to enumerate and the
      * request's org is a no-op (stigmer#461).
-     * &#64;internal
-     * Authorization is handled in-handler: the FGA id enumeration is the only
-     * gate (hence is_skip_authorization); the request's org merely narrows
-     * the authorized set.
      * </pre>
      */
     public ai.stigmer.activity.v1.ListRecentActivityResponse listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request) throws io.grpc.StatusException {
@@ -288,10 +256,6 @@ public final class ActivityQueryControllerGrpc {
    * This service exists because the recents list spans two bounded contexts
    * (session and workflow_execution). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
-   * &#64;internal
-   * Authorization is handled in-handler: the implementation queries FGA for
-   * authorized session and workflow_execution IDs, then runs a single merged
-   * MongoDB query.
    * </pre>
    */
   public static final class ActivityQueryControllerBlockingStub
@@ -318,10 +282,6 @@ public final class ActivityQueryControllerGrpc {
      * the OSS edition the server is single-tenant: the caller owns every
      * stored resource, so there is no authorization set to enumerate and the
      * request's org is a no-op (stigmer#461).
-     * &#64;internal
-     * Authorization is handled in-handler: the FGA id enumeration is the only
-     * gate (hence is_skip_authorization); the request's org merely narrows
-     * the authorized set.
      * </pre>
      */
     public ai.stigmer.activity.v1.ListRecentActivityResponse listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request) {
@@ -339,10 +299,6 @@ public final class ActivityQueryControllerGrpc {
    * This service exists because the recents list spans two bounded contexts
    * (session and workflow_execution). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
-   * &#64;internal
-   * Authorization is handled in-handler: the implementation queries FGA for
-   * authorized session and workflow_execution IDs, then runs a single merged
-   * MongoDB query.
    * </pre>
    */
   public static final class ActivityQueryControllerFutureStub
@@ -369,10 +325,6 @@ public final class ActivityQueryControllerGrpc {
      * the OSS edition the server is single-tenant: the caller owns every
      * stored resource, so there is no authorization set to enumerate and the
      * request's org is a no-op (stigmer#461).
-     * &#64;internal
-     * Authorization is handled in-handler: the FGA id enumeration is the only
-     * gate (hence is_skip_authorization); the request's org merely narrows
-     * the authorized set.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.activity.v1.ListRecentActivityResponse> listRecentActivity(

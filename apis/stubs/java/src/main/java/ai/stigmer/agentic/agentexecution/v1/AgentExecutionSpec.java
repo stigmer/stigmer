@@ -240,14 +240,6 @@ private static final long serialVersionUID = 0L;
    * Mutually exclusive with session_id. session_spec.harness_state_id must be
    * empty — it is server-owned harness continuity state, created by the runner
    * after the first execution.
-   *
-   * &#64;internal
-   * The Session resource created from this spec is the single source of truth
-   * for session configuration. The handler clears this field after the session
-   * is created (before persist), so the execution record never carries a
-   * second copy of session config that could drift as the session evolves.
-   * Extends the existing auto-create path in createSessionIfNeededStep rather
-   * than adding a parallel one (stigmer/stigmer#249).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -279,14 +271,6 @@ private static final long serialVersionUID = 0L;
    * Mutually exclusive with session_id. session_spec.harness_state_id must be
    * empty — it is server-owned harness continuity state, created by the runner
    * after the first execution.
-   *
-   * &#64;internal
-   * The Session resource created from this spec is the single source of truth
-   * for session configuration. The handler clears this field after the session
-   * is created (before persist), so the execution record never carries a
-   * second copy of session config that could drift as the session evolves.
-   * Extends the existing auto-create path in createSessionIfNeededStep rather
-   * than adding a parallel one (stigmer/stigmer#249).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -318,14 +302,6 @@ private static final long serialVersionUID = 0L;
    * Mutually exclusive with session_id. session_spec.harness_state_id must be
    * empty — it is server-owned harness continuity state, created by the runner
    * after the first execution.
-   *
-   * &#64;internal
-   * The Session resource created from this spec is the single source of truth
-   * for session configuration. The handler clears this field after the session
-   * is created (before persist), so the execution record never carries a
-   * second copy of session config that could drift as the session evolves.
-   * Extends the existing auto-create path in createSessionIfNeededStep rather
-   * than adding a parallel one (stigmer/stigmer#249).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -462,17 +438,6 @@ private static final long serialVersionUID = 0L;
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
    * execution completes) and cleared from the persisted execution.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest): resolved Environment values — from the
-   * creating schedule's or agent_call task's environment_refs (when present),
-   * then the instance's environment_refs; a later ref wins — then runtime_env
-   * (this field). The merged map is filtered to the keys declared in
-   * Agent.spec.env (no filtering when the agent declares none); a missing
-   * required key only logs a warning — the run is not failed. The merge is
-   * owned by backend/libs/go/envmerge and the agentexecution controller's
-   * executionContextBuilder, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -502,17 +467,6 @@ private static final long serialVersionUID = 0L;
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
    * execution completes) and cleared from the persisted execution.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest): resolved Environment values — from the
-   * creating schedule's or agent_call task's environment_refs (when present),
-   * then the instance's environment_refs; a later ref wins — then runtime_env
-   * (this field). The merged map is filtered to the keys declared in
-   * Agent.spec.env (no filtering when the agent declares none); a missing
-   * required key only logs a warning — the run is not failed. The merge is
-   * owned by backend/libs/go/envmerge and the agentexecution controller's
-   * executionContextBuilder, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -532,17 +486,6 @@ private static final long serialVersionUID = 0L;
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
    * execution completes) and cleared from the persisted execution.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest): resolved Environment values — from the
-   * creating schedule's or agent_call task's environment_refs (when present),
-   * then the instance's environment_refs; a later ref wins — then runtime_env
-   * (this field). The merged map is filtered to the keys declared in
-   * Agent.spec.env (no filtering when the agent declares none); a missing
-   * required key only logs a warning — the run is not failed. The merge is
-   * owned by backend/libs/go/envmerge and the agentexecution controller's
-   * executionContextBuilder, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -569,17 +512,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
    * execution completes) and cleared from the persisted execution.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest): resolved Environment values — from the
-   * creating schedule's or agent_call task's environment_refs (when present),
-   * then the instance's environment_refs; a later ref wins — then runtime_env
-   * (this field). The merged map is filtered to the keys declared in
-   * Agent.spec.env (no filtering when the agent declares none); a missing
-   * required key only logs a warning — the run is not failed. The merge is
-   * owned by backend/libs/go/envmerge and the agentexecution controller's
-   * executionContextBuilder, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -605,56 +537,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * When a workflow invokes an agent, this token enables the workflow to
    * wait for the agent to finish without blocking. When empty, the
    * execution runs independently (CLI, API calls, non-workflow triggers).
-   *
-   * &#64;internal
-   *
-   * Enables async completion pattern where the caller (typically a
-   * workflow activity) waits for actual agent completion without blocking
-   * worker threads.
-   *
-   * Flow:
-   * 1. Caller (Go Temporal activity) extracts its task token
-   * 2. Passes token in this field when creating AgentExecution
-   * 3. Returns activity.ErrResultPending (activity paused, thread released)
-   * 4. Agent workflow completes (minutes/hours later)
-   * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
-   * 6. Temporal resumes the paused activity with the result
-   *
-   * Token Format:
-   * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
-   * - Contains: namespace, workflow ID, run ID, activity ID, attempt
-   * - DO NOT parse or modify - treat as opaque handle
-   *
-   * Security:
-   * - Token grants ability to complete the activity (bearer token)
-   * - Should only be passed through trusted internal services
-   * - Logged as Base64-encoded string (truncated for security)
-   *
-   * Timeout:
-   * - Caller should set StartToCloseTimeout (e.g., 24 hours)
-   * - If token callback never arrives, activity times out
-   *
-   * Example Usage (Go):
-   * ```go
-   * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-   * taskToken := activity.GetInfo(ctx).TaskToken
-   * execution := &amp;AgentExecution{
-   * Spec: &amp;AgentExecutionSpec{
-   * AgentId: config.Agent,
-   * Message: config.Message,
-   * CallbackToken: taskToken,
-   * },
-   * }
-   * client.Create(ctx, execution)
-   * return nil, activity.ErrResultPending
-   * }
-   * ```
-   *
-   * References:
-   * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-   * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-   *
-   * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
    * </pre>
    *
    * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
@@ -707,28 +589,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * When set, the platform notifies the parent workflow about approval
    * requests instead of requiring polling. When empty, approvals are
    * submitted directly via the SubmitApproval RPC.
-   *
-   * &#64;internal
-   *
-   * Signal pattern (identical in both editions — the OSS TypeScript server
-   * and the cloud Java service implement the same sender):
-   * 1. The runner's workflow-execution child workflow passes its own
-   * workflow ID when creating the AgentExecution (engine-core.ts).
-   * 2. The agent-execution workflow's HITL loop signals
-   * "child_approval_required" to this workflow ID on EVERY approval
-   * cycle, carrying only the child execution id as a bare string
-   * (identity-only, cloud#509).
-   * 3. The receiver derives the pending approvals by reading the child
-   * execution record — the signal is never a payload copy that can drift.
-   *
-   * Format:
-   * A Temporal workflow ID; typically the runner's workflow-execution child
-   * workflow ("workflow-exec-{workflow-execution-id}").
-   *
-   * Backward Compatibility:
-   * This field is optional. Agents invoked without a parent workflow ID will
-   * continue to work normally - approval is submitted directly via the
-   * AgentExecution.SubmitApproval RPC.
    * </pre>
    *
    * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -754,28 +614,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * When set, the platform notifies the parent workflow about approval
    * requests instead of requiring polling. When empty, approvals are
    * submitted directly via the SubmitApproval RPC.
-   *
-   * &#64;internal
-   *
-   * Signal pattern (identical in both editions — the OSS TypeScript server
-   * and the cloud Java service implement the same sender):
-   * 1. The runner's workflow-execution child workflow passes its own
-   * workflow ID when creating the AgentExecution (engine-core.ts).
-   * 2. The agent-execution workflow's HITL loop signals
-   * "child_approval_required" to this workflow ID on EVERY approval
-   * cycle, carrying only the child execution id as a bare string
-   * (identity-only, cloud#509).
-   * 3. The receiver derives the pending approvals by reading the child
-   * execution record — the signal is never a payload copy that can drift.
-   *
-   * Format:
-   * A Temporal workflow ID; typically the runner's workflow-execution child
-   * workflow ("workflow-exec-{workflow-execution-id}").
-   *
-   * Backward Compatibility:
-   * This field is optional. Agents invoked without a parent workflow ID will
-   * continue to work normally - approval is submitted directly via the
-   * AgentExecution.SubmitApproval RPC.
    * </pre>
    *
    * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -1073,24 +911,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Explicit Temporal task queue override for activity routing.
-   *
-   * &#64;internal
-   * When set, the agent execution's activities are routed to this queue
-   * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-   * This enables sandbox sharing: a parent workflow execution passes its own
-   * queue so child agents run in the same sandbox without provisioning new VMs.
-   *
-   * When empty: normal dispatch resolution applies (default behavior).
-   *
-   * Security: Only accepted from internal callers (workflow engine's CallAgent
-   * activity). External API callers cannot set this field — the create handler
-   * strips it during input sanitization. Presence of parent_workflow_id is used
-   * as a co-validation signal.
-   *
-   * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-   * sandbox queue). The prefix ensures no collision with session:{id} queues.
-   *
-   * &#64;since Workflow Sandbox Affinity
    * </pre>
    *
    * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
@@ -1112,24 +932,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Explicit Temporal task queue override for activity routing.
-   *
-   * &#64;internal
-   * When set, the agent execution's activities are routed to this queue
-   * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-   * This enables sandbox sharing: a parent workflow execution passes its own
-   * queue so child agents run in the same sandbox without provisioning new VMs.
-   *
-   * When empty: normal dispatch resolution applies (default behavior).
-   *
-   * Security: Only accepted from internal callers (workflow engine's CallAgent
-   * activity). External API callers cannot set this field — the create handler
-   * strips it during input sanitization. Presence of parent_workflow_id is used
-   * as a co-validation signal.
-   *
-   * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-   * sandbox queue). The prefix ensures no collision with session:{id} queues.
-   *
-   * &#64;since Workflow Sandbox Affinity
    * </pre>
    *
    * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
@@ -1164,20 +966,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * lists) keep showing the full record.
    *
    * Empty means this execution is not an edit of another turn.
-   *
-   * &#64;internal
-   *
-   * The link always lives on the successor — the superseded record is never
-   * mutated (append-only execution log, single writer). Chained edits form a
-   * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
-   *
-   * Display-level semantics only: the runner does NOT rewind model context.
-   * Conversation history lives in an opaque session-keyed store (LangGraph
-   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-   * superseded turn's partial messages remain visible to the model. Do not
-   * build features that assume the runner skips superseded turns.
-   *
-   * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
    * </pre>
    *
    * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
@@ -1207,20 +995,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * lists) keep showing the full record.
    *
    * Empty means this execution is not an edit of another turn.
-   *
-   * &#64;internal
-   *
-   * The link always lives on the successor — the superseded record is never
-   * mutated (append-only execution log, single writer). Chained edits form a
-   * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
-   *
-   * Display-level semantics only: the runner does NOT rewind model context.
-   * Conversation history lives in an opaque session-keyed store (LangGraph
-   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-   * superseded turn's partial messages remain visible to the model. Do not
-   * build features that assume the runner skips superseded turns.
-   *
-   * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
    * </pre>
    *
    * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
@@ -1252,16 +1026,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
    * re-enters informed. Absent on every other execution surface.
-   *
-   * &#64;internal
-   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-   * over the DD-004 timeline stitch, windowed by the conversation's
-   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-   * The OSS server never sets it. The runner prepends the framed digest to
-   * the turn's user message on both harnesses (A27) and must never read
-   * window_end. Top-level rather than inside ExecutionConfig by design:
-   * conversation content must not vanish with the execution-profile
-   * kill-switch (DD-006 D-a).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -1280,16 +1044,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
    * re-enters informed. Absent on every other execution surface.
-   *
-   * &#64;internal
-   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-   * over the DD-004 timeline stitch, windowed by the conversation's
-   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-   * The OSS server never sets it. The runner prepends the framed digest to
-   * the turn's user message on both harnesses (A27) and must never read
-   * window_end. Top-level rather than inside ExecutionConfig by design:
-   * conversation content must not vanish with the execution-profile
-   * kill-switch (DD-006 D-a).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -1308,16 +1062,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
    * re-enters informed. Absent on every other execution surface.
-   *
-   * &#64;internal
-   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-   * over the DD-004 timeline stitch, windowed by the conversation's
-   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-   * The OSS server never sets it. The runner prepends the framed digest to
-   * the turn's user message on both harnesses (A27) and must never read
-   * window_end. Top-level rather than inside ExecutionConfig by design:
-   * conversation content must not vanish with the execution-profile
-   * kill-switch (DD-006 D-a).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -1333,20 +1077,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * Standing preferences declared by the organization and the calling user,
    * snapshotted into this execution at create time (optional).
-   *
-   * &#64;internal
-   * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-   * empty for non-eligible callers — overwriting any caller-supplied value,
-   * so external injection is moot by construction. Composed only for
-   * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-   * machine, impersonated, guest, channel, schedule, runner, or
-   * platform-client-user callers). The OSS server composes org_context only
-   * (single-user local mode; no IdentityAccount). A snapshot by design:
-   * preferences are mutable, executions are immutable audit records — this
-   * field records what the model actually saw. Composition is best-effort;
-   * a preference load failure never fails the create. Top-level rather than
-   * inside ExecutionConfig: preference content must not vanish with the
-   * execution-profile kill-switch (same rationale as conversation_catchup).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -1360,20 +1090,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * Standing preferences declared by the organization and the calling user,
    * snapshotted into this execution at create time (optional).
-   *
-   * &#64;internal
-   * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-   * empty for non-eligible callers — overwriting any caller-supplied value,
-   * so external injection is moot by construction. Composed only for
-   * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-   * machine, impersonated, guest, channel, schedule, runner, or
-   * platform-client-user callers). The OSS server composes org_context only
-   * (single-user local mode; no IdentityAccount). A snapshot by design:
-   * preferences are mutable, executions are immutable audit records — this
-   * field records what the model actually saw. Composition is best-effort;
-   * a preference load failure never fails the create. Top-level rather than
-   * inside ExecutionConfig: preference content must not vanish with the
-   * execution-profile kill-switch (same rationale as conversation_catchup).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -1387,20 +1103,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * Standing preferences declared by the organization and the calling user,
    * snapshotted into this execution at create time (optional).
-   *
-   * &#64;internal
-   * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-   * empty for non-eligible callers — overwriting any caller-supplied value,
-   * so external injection is moot by construction. Composed only for
-   * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-   * machine, impersonated, guest, channel, schedule, runner, or
-   * platform-client-user callers). The OSS server composes org_context only
-   * (single-user local mode; no IdentityAccount). A snapshot by design:
-   * preferences are mutable, executions are immutable audit records — this
-   * field records what the model actually saw. Composition is best-effort;
-   * a preference load failure never fails the create. Top-level rather than
-   * inside ExecutionConfig: preference content must not vanish with the
-   * execution-profile kill-switch (same rationale as conversation_catchup).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -1416,30 +1118,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * The caller's confirmed memories, snapshotted into this execution at
    * create time (optional).
-   *
-   * &#64;internal
-   * Every DD-002 D2 invariant carries over from declared_preferences
-   * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-   * field unconditionally — enabled=false with no facts for excluded
-   * callers — overwriting any caller-supplied value, so injection via
-   * the create request is moot by construction); composed only for
-   * first-party human operators with BOTH memory_enabled flags on (org
-   * AND caller; OSS: the org flag alone); confirmed records only —
-   * proposed and rejected are never injected (the consent gate is
-   * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-   * are immutable audit records — this field records the CANDIDATE set
-   * the prompt was built from, and each fact carries its memory_id so
-   * the audit links back to the addressable record; what the model
-   * actually saw is this snapshot joined to
-   * status.recalled_memories_report, whose absence means wholesale —
-   * the full set — by construction, DD-008 D5); best-effort (a memory
-   * load failure degrades to disabled, never fails the create);
-   * top-level rather than inside ExecutionConfig (must not vanish with
-   * the execution-profile kill-switch). The enabled bit doubles as the
-   * runner's signal to offer the remember tool (DD-005 D1) — one
-   * server-owned field, one writer, no parallel flag. Composed by
-   * Stage 2's compose steps; the field is reserved here by Stage 1 so
-   * all Phase 2 contract changes land in one codegen pass.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -1453,30 +1131,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * The caller's confirmed memories, snapshotted into this execution at
    * create time (optional).
-   *
-   * &#64;internal
-   * Every DD-002 D2 invariant carries over from declared_preferences
-   * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-   * field unconditionally — enabled=false with no facts for excluded
-   * callers — overwriting any caller-supplied value, so injection via
-   * the create request is moot by construction); composed only for
-   * first-party human operators with BOTH memory_enabled flags on (org
-   * AND caller; OSS: the org flag alone); confirmed records only —
-   * proposed and rejected are never injected (the consent gate is
-   * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-   * are immutable audit records — this field records the CANDIDATE set
-   * the prompt was built from, and each fact carries its memory_id so
-   * the audit links back to the addressable record; what the model
-   * actually saw is this snapshot joined to
-   * status.recalled_memories_report, whose absence means wholesale —
-   * the full set — by construction, DD-008 D5); best-effort (a memory
-   * load failure degrades to disabled, never fails the create);
-   * top-level rather than inside ExecutionConfig (must not vanish with
-   * the execution-profile kill-switch). The enabled bit doubles as the
-   * runner's signal to offer the remember tool (DD-005 D1) — one
-   * server-owned field, one writer, no parallel flag. Composed by
-   * Stage 2's compose steps; the field is reserved here by Stage 1 so
-   * all Phase 2 contract changes land in one codegen pass.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -1490,30 +1144,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * The caller's confirmed memories, snapshotted into this execution at
    * create time (optional).
-   *
-   * &#64;internal
-   * Every DD-002 D2 invariant carries over from declared_preferences
-   * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-   * field unconditionally — enabled=false with no facts for excluded
-   * callers — overwriting any caller-supplied value, so injection via
-   * the create request is moot by construction); composed only for
-   * first-party human operators with BOTH memory_enabled flags on (org
-   * AND caller; OSS: the org flag alone); confirmed records only —
-   * proposed and rejected are never injected (the consent gate is
-   * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-   * are immutable audit records — this field records the CANDIDATE set
-   * the prompt was built from, and each fact carries its memory_id so
-   * the audit links back to the addressable record; what the model
-   * actually saw is this snapshot joined to
-   * status.recalled_memories_report, whose absence means wholesale —
-   * the full set — by construction, DD-008 D5); best-effort (a memory
-   * load failure degrades to disabled, never fails the create);
-   * top-level rather than inside ExecutionConfig (must not vanish with
-   * the execution-profile kill-switch). The enabled bit doubles as the
-   * runner's signal to offer the remember tool (DD-005 D1) — one
-   * server-owned field, one writer, no parallel flag. Composed by
-   * Stage 2's compose steps; the field is reserved here by Stage 1 so
-   * all Phase 2 contract changes land in one codegen pass.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -2686,14 +2316,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2724,14 +2346,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2766,14 +2380,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2813,14 +2419,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2858,14 +2456,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2910,14 +2500,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2954,14 +2536,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2993,14 +2567,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -3035,14 +2601,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Mutually exclusive with session_id. session_spec.harness_state_id must be
      * empty — it is server-owned harness continuity state, created by the runner
      * after the first execution.
-     *
-     * &#64;internal
-     * The Session resource created from this spec is the single source of truth
-     * for session configuration. The handler clears this field after the session
-     * is created (before persist), so the execution record never carries a
-     * second copy of session config that could drift as the session evolves.
-     * Extends the existing auto-create path in createSessionIfNeededStep rather
-     * than adding a parallel one (stigmer/stigmer#249).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -3370,17 +2928,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3410,17 +2957,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3440,17 +2976,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3476,17 +3001,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3517,17 +3031,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3559,17 +3062,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3595,17 +3087,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3633,17 +3114,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Use case: B2B integrations where secrets are injected at runtime per call.
      * These values are consumed into the ExecutionContext (deleted when the
      * execution completes) and cleared from the persisted execution.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest): resolved Environment values — from the
-     * creating schedule's or agent_call task's environment_refs (when present),
-     * then the instance's environment_refs; a later ref wins — then runtime_env
-     * (this field). The merged map is filtered to the keys declared in
-     * Agent.spec.env (no filtering when the agent declares none); a missing
-     * required key only logs a warning — the run is not failed. The merge is
-     * owned by backend/libs/go/envmerge and the agentexecution controller's
-     * executionContextBuilder, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3671,56 +3141,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When a workflow invokes an agent, this token enables the workflow to
      * wait for the agent to finish without blocking. When empty, the
      * execution runs independently (CLI, API calls, non-workflow triggers).
-     *
-     * &#64;internal
-     *
-     * Enables async completion pattern where the caller (typically a
-     * workflow activity) waits for actual agent completion without blocking
-     * worker threads.
-     *
-     * Flow:
-     * 1. Caller (Go Temporal activity) extracts its task token
-     * 2. Passes token in this field when creating AgentExecution
-     * 3. Returns activity.ErrResultPending (activity paused, thread released)
-     * 4. Agent workflow completes (minutes/hours later)
-     * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
-     * 6. Temporal resumes the paused activity with the result
-     *
-     * Token Format:
-     * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
-     * - Contains: namespace, workflow ID, run ID, activity ID, attempt
-     * - DO NOT parse or modify - treat as opaque handle
-     *
-     * Security:
-     * - Token grants ability to complete the activity (bearer token)
-     * - Should only be passed through trusted internal services
-     * - Logged as Base64-encoded string (truncated for security)
-     *
-     * Timeout:
-     * - Caller should set StartToCloseTimeout (e.g., 24 hours)
-     * - If token callback never arrives, activity times out
-     *
-     * Example Usage (Go):
-     * ```go
-     * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-     * taskToken := activity.GetInfo(ctx).TaskToken
-     * execution := &amp;AgentExecution{
-     * Spec: &amp;AgentExecutionSpec{
-     * AgentId: config.Agent,
-     * Message: config.Message,
-     * CallbackToken: taskToken,
-     * },
-     * }
-     * client.Create(ctx, execution)
-     * return nil, activity.ErrResultPending
-     * }
-     * ```
-     *
-     * References:
-     * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-     * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     *
-     * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
      * </pre>
      *
      * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
@@ -3737,56 +3157,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When a workflow invokes an agent, this token enables the workflow to
      * wait for the agent to finish without blocking. When empty, the
      * execution runs independently (CLI, API calls, non-workflow triggers).
-     *
-     * &#64;internal
-     *
-     * Enables async completion pattern where the caller (typically a
-     * workflow activity) waits for actual agent completion without blocking
-     * worker threads.
-     *
-     * Flow:
-     * 1. Caller (Go Temporal activity) extracts its task token
-     * 2. Passes token in this field when creating AgentExecution
-     * 3. Returns activity.ErrResultPending (activity paused, thread released)
-     * 4. Agent workflow completes (minutes/hours later)
-     * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
-     * 6. Temporal resumes the paused activity with the result
-     *
-     * Token Format:
-     * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
-     * - Contains: namespace, workflow ID, run ID, activity ID, attempt
-     * - DO NOT parse or modify - treat as opaque handle
-     *
-     * Security:
-     * - Token grants ability to complete the activity (bearer token)
-     * - Should only be passed through trusted internal services
-     * - Logged as Base64-encoded string (truncated for security)
-     *
-     * Timeout:
-     * - Caller should set StartToCloseTimeout (e.g., 24 hours)
-     * - If token callback never arrives, activity times out
-     *
-     * Example Usage (Go):
-     * ```go
-     * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-     * taskToken := activity.GetInfo(ctx).TaskToken
-     * execution := &amp;AgentExecution{
-     * Spec: &amp;AgentExecutionSpec{
-     * AgentId: config.Agent,
-     * Message: config.Message,
-     * CallbackToken: taskToken,
-     * },
-     * }
-     * client.Create(ctx, execution)
-     * return nil, activity.ErrResultPending
-     * }
-     * ```
-     *
-     * References:
-     * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-     * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     *
-     * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
      * </pre>
      *
      * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
@@ -3807,56 +3177,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When a workflow invokes an agent, this token enables the workflow to
      * wait for the agent to finish without blocking. When empty, the
      * execution runs independently (CLI, API calls, non-workflow triggers).
-     *
-     * &#64;internal
-     *
-     * Enables async completion pattern where the caller (typically a
-     * workflow activity) waits for actual agent completion without blocking
-     * worker threads.
-     *
-     * Flow:
-     * 1. Caller (Go Temporal activity) extracts its task token
-     * 2. Passes token in this field when creating AgentExecution
-     * 3. Returns activity.ErrResultPending (activity paused, thread released)
-     * 4. Agent workflow completes (minutes/hours later)
-     * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
-     * 6. Temporal resumes the paused activity with the result
-     *
-     * Token Format:
-     * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
-     * - Contains: namespace, workflow ID, run ID, activity ID, attempt
-     * - DO NOT parse or modify - treat as opaque handle
-     *
-     * Security:
-     * - Token grants ability to complete the activity (bearer token)
-     * - Should only be passed through trusted internal services
-     * - Logged as Base64-encoded string (truncated for security)
-     *
-     * Timeout:
-     * - Caller should set StartToCloseTimeout (e.g., 24 hours)
-     * - If token callback never arrives, activity times out
-     *
-     * Example Usage (Go):
-     * ```go
-     * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-     * taskToken := activity.GetInfo(ctx).TaskToken
-     * execution := &amp;AgentExecution{
-     * Spec: &amp;AgentExecutionSpec{
-     * AgentId: config.Agent,
-     * Message: config.Message,
-     * CallbackToken: taskToken,
-     * },
-     * }
-     * client.Create(ctx, execution)
-     * return nil, activity.ErrResultPending
-     * }
-     * ```
-     *
-     * References:
-     * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-     * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     *
-     * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
      * </pre>
      *
      * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
@@ -3972,28 +3292,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When set, the platform notifies the parent workflow about approval
      * requests instead of requiring polling. When empty, approvals are
      * submitted directly via the SubmitApproval RPC.
-     *
-     * &#64;internal
-     *
-     * Signal pattern (identical in both editions — the OSS TypeScript server
-     * and the cloud Java service implement the same sender):
-     * 1. The runner's workflow-execution child workflow passes its own
-     * workflow ID when creating the AgentExecution (engine-core.ts).
-     * 2. The agent-execution workflow's HITL loop signals
-     * "child_approval_required" to this workflow ID on EVERY approval
-     * cycle, carrying only the child execution id as a bare string
-     * (identity-only, cloud#509).
-     * 3. The receiver derives the pending approvals by reading the child
-     * execution record — the signal is never a payload copy that can drift.
-     *
-     * Format:
-     * A Temporal workflow ID; typically the runner's workflow-execution child
-     * workflow ("workflow-exec-{workflow-execution-id}").
-     *
-     * Backward Compatibility:
-     * This field is optional. Agents invoked without a parent workflow ID will
-     * continue to work normally - approval is submitted directly via the
-     * AgentExecution.SubmitApproval RPC.
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4018,28 +3316,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When set, the platform notifies the parent workflow about approval
      * requests instead of requiring polling. When empty, approvals are
      * submitted directly via the SubmitApproval RPC.
-     *
-     * &#64;internal
-     *
-     * Signal pattern (identical in both editions — the OSS TypeScript server
-     * and the cloud Java service implement the same sender):
-     * 1. The runner's workflow-execution child workflow passes its own
-     * workflow ID when creating the AgentExecution (engine-core.ts).
-     * 2. The agent-execution workflow's HITL loop signals
-     * "child_approval_required" to this workflow ID on EVERY approval
-     * cycle, carrying only the child execution id as a bare string
-     * (identity-only, cloud#509).
-     * 3. The receiver derives the pending approvals by reading the child
-     * execution record — the signal is never a payload copy that can drift.
-     *
-     * Format:
-     * A Temporal workflow ID; typically the runner's workflow-execution child
-     * workflow ("workflow-exec-{workflow-execution-id}").
-     *
-     * Backward Compatibility:
-     * This field is optional. Agents invoked without a parent workflow ID will
-     * continue to work normally - approval is submitted directly via the
-     * AgentExecution.SubmitApproval RPC.
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4065,28 +3341,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When set, the platform notifies the parent workflow about approval
      * requests instead of requiring polling. When empty, approvals are
      * submitted directly via the SubmitApproval RPC.
-     *
-     * &#64;internal
-     *
-     * Signal pattern (identical in both editions — the OSS TypeScript server
-     * and the cloud Java service implement the same sender):
-     * 1. The runner's workflow-execution child workflow passes its own
-     * workflow ID when creating the AgentExecution (engine-core.ts).
-     * 2. The agent-execution workflow's HITL loop signals
-     * "child_approval_required" to this workflow ID on EVERY approval
-     * cycle, carrying only the child execution id as a bare string
-     * (identity-only, cloud#509).
-     * 3. The receiver derives the pending approvals by reading the child
-     * execution record — the signal is never a payload copy that can drift.
-     *
-     * Format:
-     * A Temporal workflow ID; typically the runner's workflow-execution child
-     * workflow ("workflow-exec-{workflow-execution-id}").
-     *
-     * Backward Compatibility:
-     * This field is optional. Agents invoked without a parent workflow ID will
-     * continue to work normally - approval is submitted directly via the
-     * AgentExecution.SubmitApproval RPC.
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4108,28 +3362,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When set, the platform notifies the parent workflow about approval
      * requests instead of requiring polling. When empty, approvals are
      * submitted directly via the SubmitApproval RPC.
-     *
-     * &#64;internal
-     *
-     * Signal pattern (identical in both editions — the OSS TypeScript server
-     * and the cloud Java service implement the same sender):
-     * 1. The runner's workflow-execution child workflow passes its own
-     * workflow ID when creating the AgentExecution (engine-core.ts).
-     * 2. The agent-execution workflow's HITL loop signals
-     * "child_approval_required" to this workflow ID on EVERY approval
-     * cycle, carrying only the child execution id as a bare string
-     * (identity-only, cloud#509).
-     * 3. The receiver derives the pending approvals by reading the child
-     * execution record — the signal is never a payload copy that can drift.
-     *
-     * Format:
-     * A Temporal workflow ID; typically the runner's workflow-execution child
-     * workflow ("workflow-exec-{workflow-execution-id}").
-     *
-     * Backward Compatibility:
-     * This field is optional. Agents invoked without a parent workflow ID will
-     * continue to work normally - approval is submitted directly via the
-     * AgentExecution.SubmitApproval RPC.
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4148,28 +3380,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * When set, the platform notifies the parent workflow about approval
      * requests instead of requiring polling. When empty, approvals are
      * submitted directly via the SubmitApproval RPC.
-     *
-     * &#64;internal
-     *
-     * Signal pattern (identical in both editions — the OSS TypeScript server
-     * and the cloud Java service implement the same sender):
-     * 1. The runner's workflow-execution child workflow passes its own
-     * workflow ID when creating the AgentExecution (engine-core.ts).
-     * 2. The agent-execution workflow's HITL loop signals
-     * "child_approval_required" to this workflow ID on EVERY approval
-     * cycle, carrying only the child execution id as a bare string
-     * (identity-only, cloud#509).
-     * 3. The receiver derives the pending approvals by reading the child
-     * execution record — the signal is never a payload copy that can drift.
-     *
-     * Format:
-     * A Temporal workflow ID; typically the runner's workflow-execution child
-     * workflow ("workflow-exec-{workflow-execution-id}").
-     *
-     * Backward Compatibility:
-     * This field is optional. Agents invoked without a parent workflow ID will
-     * continue to work normally - approval is submitted directly via the
-     * AgentExecution.SubmitApproval RPC.
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -5090,24 +4300,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Explicit Temporal task queue override for activity routing.
-     *
-     * &#64;internal
-     * When set, the agent execution's activities are routed to this queue
-     * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-     * This enables sandbox sharing: a parent workflow execution passes its own
-     * queue so child agents run in the same sandbox without provisioning new VMs.
-     *
-     * When empty: normal dispatch resolution applies (default behavior).
-     *
-     * Security: Only accepted from internal callers (workflow engine's CallAgent
-     * activity). External API callers cannot set this field — the create handler
-     * strips it during input sanitization. Presence of parent_workflow_id is used
-     * as a co-validation signal.
-     *
-     * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-     * sandbox queue). The prefix ensures no collision with session:{id} queues.
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
@@ -5128,24 +4320,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Explicit Temporal task queue override for activity routing.
-     *
-     * &#64;internal
-     * When set, the agent execution's activities are routed to this queue
-     * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-     * This enables sandbox sharing: a parent workflow execution passes its own
-     * queue so child agents run in the same sandbox without provisioning new VMs.
-     *
-     * When empty: normal dispatch resolution applies (default behavior).
-     *
-     * Security: Only accepted from internal callers (workflow engine's CallAgent
-     * activity). External API callers cannot set this field — the create handler
-     * strips it during input sanitization. Presence of parent_workflow_id is used
-     * as a co-validation signal.
-     *
-     * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-     * sandbox queue). The prefix ensures no collision with session:{id} queues.
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
@@ -5167,24 +4341,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Explicit Temporal task queue override for activity routing.
-     *
-     * &#64;internal
-     * When set, the agent execution's activities are routed to this queue
-     * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-     * This enables sandbox sharing: a parent workflow execution passes its own
-     * queue so child agents run in the same sandbox without provisioning new VMs.
-     *
-     * When empty: normal dispatch resolution applies (default behavior).
-     *
-     * Security: Only accepted from internal callers (workflow engine's CallAgent
-     * activity). External API callers cannot set this field — the create handler
-     * strips it during input sanitization. Presence of parent_workflow_id is used
-     * as a co-validation signal.
-     *
-     * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-     * sandbox queue). The prefix ensures no collision with session:{id} queues.
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
@@ -5202,24 +4358,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Explicit Temporal task queue override for activity routing.
-     *
-     * &#64;internal
-     * When set, the agent execution's activities are routed to this queue
-     * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-     * This enables sandbox sharing: a parent workflow execution passes its own
-     * queue so child agents run in the same sandbox without provisioning new VMs.
-     *
-     * When empty: normal dispatch resolution applies (default behavior).
-     *
-     * Security: Only accepted from internal callers (workflow engine's CallAgent
-     * activity). External API callers cannot set this field — the create handler
-     * strips it during input sanitization. Presence of parent_workflow_id is used
-     * as a co-validation signal.
-     *
-     * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-     * sandbox queue). The prefix ensures no collision with session:{id} queues.
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
@@ -5234,24 +4372,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Explicit Temporal task queue override for activity routing.
-     *
-     * &#64;internal
-     * When set, the agent execution's activities are routed to this queue
-     * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-     * This enables sandbox sharing: a parent workflow execution passes its own
-     * queue so child agents run in the same sandbox without provisioning new VMs.
-     *
-     * When empty: normal dispatch resolution applies (default behavior).
-     *
-     * Security: Only accepted from internal callers (workflow engine's CallAgent
-     * activity). External API callers cannot set this field — the create handler
-     * strips it during input sanitization. Presence of parent_workflow_id is used
-     * as a co-validation signal.
-     *
-     * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-     * sandbox queue). The prefix ensures no collision with session:{id} queues.
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
@@ -5280,20 +4400,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * lists) keep showing the full record.
      *
      * Empty means this execution is not an edit of another turn.
-     *
-     * &#64;internal
-     *
-     * The link always lives on the successor — the superseded record is never
-     * mutated (append-only execution log, single writer). Chained edits form a
-     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
-     *
-     * Display-level semantics only: the runner does NOT rewind model context.
-     * Conversation history lives in an opaque session-keyed store (LangGraph
-     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-     * superseded turn's partial messages remain visible to the model. Do not
-     * build features that assume the runner skips superseded turns.
-     *
-     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
      * </pre>
      *
      * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
@@ -5322,20 +4428,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * lists) keep showing the full record.
      *
      * Empty means this execution is not an edit of another turn.
-     *
-     * &#64;internal
-     *
-     * The link always lives on the successor — the superseded record is never
-     * mutated (append-only execution log, single writer). Chained edits form a
-     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
-     *
-     * Display-level semantics only: the runner does NOT rewind model context.
-     * Conversation history lives in an opaque session-keyed store (LangGraph
-     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-     * superseded turn's partial messages remain visible to the model. Do not
-     * build features that assume the runner skips superseded turns.
-     *
-     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
      * </pre>
      *
      * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
@@ -5365,20 +4457,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * lists) keep showing the full record.
      *
      * Empty means this execution is not an edit of another turn.
-     *
-     * &#64;internal
-     *
-     * The link always lives on the successor — the superseded record is never
-     * mutated (append-only execution log, single writer). Chained edits form a
-     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
-     *
-     * Display-level semantics only: the runner does NOT rewind model context.
-     * Conversation history lives in an opaque session-keyed store (LangGraph
-     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-     * superseded turn's partial messages remain visible to the model. Do not
-     * build features that assume the runner skips superseded turns.
-     *
-     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
      * </pre>
      *
      * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
@@ -5404,20 +4482,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * lists) keep showing the full record.
      *
      * Empty means this execution is not an edit of another turn.
-     *
-     * &#64;internal
-     *
-     * The link always lives on the successor — the superseded record is never
-     * mutated (append-only execution log, single writer). Chained edits form a
-     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
-     *
-     * Display-level semantics only: the runner does NOT rewind model context.
-     * Conversation history lives in an opaque session-keyed store (LangGraph
-     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-     * superseded turn's partial messages remain visible to the model. Do not
-     * build features that assume the runner skips superseded turns.
-     *
-     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
      * </pre>
      *
      * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
@@ -5440,20 +4504,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * lists) keep showing the full record.
      *
      * Empty means this execution is not an edit of another turn.
-     *
-     * &#64;internal
-     *
-     * The link always lives on the successor — the superseded record is never
-     * mutated (append-only execution log, single writer). Chained edits form a
-     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
-     *
-     * Display-level semantics only: the runner does NOT rewind model context.
-     * Conversation history lives in an opaque session-keyed store (LangGraph
-     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-     * superseded turn's partial messages remain visible to the model. Do not
-     * build features that assume the runner skips superseded turns.
-     *
-     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
      * </pre>
      *
      * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
@@ -5482,16 +4532,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5509,16 +4549,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5540,16 +4570,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5576,16 +4596,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5610,16 +4620,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5651,16 +4651,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5684,16 +4674,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5712,16 +4692,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5743,16 +4713,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * teammate handled the conversation or messages otherwise landed while the
      * agent was not watching, the digest carries what happened so the agent
      * re-enters informed. Absent on every other execution surface.
-     *
-     * &#64;internal
-     * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-     * over the DD-004 timeline stitch, windowed by the conversation's
-     * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-     * The OSS server never sets it. The runner prepends the framed digest to
-     * the turn's user message on both harnesses (A27) and must never read
-     * window_end. Top-level rather than inside ExecutionConfig by design:
-     * conversation content must not vanish with the execution-profile
-     * kill-switch (DD-006 D-a).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -5778,20 +4738,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -5804,20 +4750,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -5834,20 +4766,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -5869,20 +4787,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -5902,20 +4806,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -5942,20 +4832,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -5974,20 +4850,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -6001,20 +4863,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -6031,20 +4879,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Standing preferences declared by the organization and the calling user,
      * snapshotted into this execution at create time (optional).
-     *
-     * &#64;internal
-     * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-     * empty for non-eligible callers — overwriting any caller-supplied value,
-     * so external injection is moot by construction. Composed only for
-     * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-     * machine, impersonated, guest, channel, schedule, runner, or
-     * platform-client-user callers). The OSS server composes org_context only
-     * (single-user local mode; no IdentityAccount). A snapshot by design:
-     * preferences are mutable, executions are immutable audit records — this
-     * field records what the model actually saw. Composition is best-effort;
-     * a preference load failure never fails the create. Top-level rather than
-     * inside ExecutionConfig: preference content must not vanish with the
-     * execution-profile kill-switch (same rationale as conversation_catchup).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
@@ -6070,30 +4904,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6106,30 +4916,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6146,30 +4932,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6191,30 +4953,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6234,30 +4972,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6284,30 +4998,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6326,30 +5016,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6363,30 +5029,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6403,30 +5045,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * The caller's confirmed memories, snapshotted into this execution at
      * create time (optional).
-     *
-     * &#64;internal
-     * Every DD-002 D2 invariant carries over from declared_preferences
-     * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
-     * field unconditionally — enabled=false with no facts for excluded
-     * callers — overwriting any caller-supplied value, so injection via
-     * the create request is moot by construction); composed only for
-     * first-party human operators with BOTH memory_enabled flags on (org
-     * AND caller; OSS: the org flag alone); confirmed records only —
-     * proposed and rejected are never injected (the consent gate is
-     * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records the CANDIDATE set
-     * the prompt was built from, and each fact carries its memory_id so
-     * the audit links back to the addressable record; what the model
-     * actually saw is this snapshot joined to
-     * status.recalled_memories_report, whose absence means wholesale —
-     * the full set — by construction, DD-008 D5); best-effort (a memory
-     * load failure degrades to disabled, never fails the create);
-     * top-level rather than inside ExecutionConfig (must not vanish with
-     * the execution-profile kill-switch). The enabled bit doubles as the
-     * runner's signal to offer the remember tool (DD-005 D1) — one
-     * server-owned field, one writer, no parallel flag. Composed by
-     * Stage 2's compose steps; the field is reserved here by Stage 1 so
-     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>

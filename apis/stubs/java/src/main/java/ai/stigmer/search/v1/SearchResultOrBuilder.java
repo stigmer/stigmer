@@ -58,9 +58,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * Human-readable display name of the resource.
-   *
-   * &#64;internal
-   * From metadata.name.
    * </pre>
    *
    * <code>string name = 3 [json_name = "name"];</code>
@@ -70,9 +67,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * Human-readable display name of the resource.
-   *
-   * &#64;internal
-   * From metadata.name.
    * </pre>
    *
    * <code>string name = 3 [json_name = "name"];</code>
@@ -86,9 +80,6 @@ public interface SearchResultOrBuilder extends
    * URL-friendly identifier, unique within the organization.
    *
    * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-   *
-   * &#64;internal
-   * From metadata.slug.
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -100,9 +91,6 @@ public interface SearchResultOrBuilder extends
    * URL-friendly identifier, unique within the organization.
    *
    * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-   *
-   * &#64;internal
-   * From metadata.slug.
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -144,9 +132,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-   *
-   * &#64;internal
-   * From metadata.org.
    * </pre>
    *
    * <code>string org = 6 [json_name = "org"];</code>
@@ -156,9 +141,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-   *
-   * &#64;internal
-   * From metadata.org.
    * </pre>
    *
    * <code>string org = 6 [json_name = "org"];</code>
@@ -172,15 +154,6 @@ public interface SearchResultOrBuilder extends
    * Brief description of the resource for display in search results.
    *
    * May be empty if the resource has no description.
-   *
-   * &#64;internal
-   * Extracted from the resource spec via the Searchable interface.
-   * The source field varies by resource type:
-   * - Agent: spec.instructions (may be truncated)
-   * - Skill: spec.description
-   * - McpServer: spec.description
-   * - Workflow: spec.description
-   * Truncation for display is a presentation concern (CLI/UI responsibility).
    * </pre>
    *
    * <code>string description = 7 [json_name = "description"];</code>
@@ -192,15 +165,6 @@ public interface SearchResultOrBuilder extends
    * Brief description of the resource for display in search results.
    *
    * May be empty if the resource has no description.
-   *
-   * &#64;internal
-   * Extracted from the resource spec via the Searchable interface.
-   * The source field varies by resource type:
-   * - Agent: spec.instructions (may be truncated)
-   * - Skill: spec.description
-   * - McpServer: spec.description
-   * - Workflow: spec.description
-   * Truncation for display is a presentation concern (CLI/UI responsibility).
    * </pre>
    *
    * <code>string description = 7 [json_name = "description"];</code>
@@ -241,9 +205,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -254,9 +215,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -266,9 +224,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -279,9 +234,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -296,9 +248,6 @@ public interface SearchResultOrBuilder extends
    * When the resource was created.
    *
    * Used for sorting in list mode (when no query is provided).
-   *
-   * &#64;internal
-   * From status.audit.created_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -310,9 +259,6 @@ public interface SearchResultOrBuilder extends
    * When the resource was created.
    *
    * Used for sorting in list mode (when no query is provided).
-   *
-   * &#64;internal
-   * From status.audit.created_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -324,9 +270,6 @@ public interface SearchResultOrBuilder extends
    * When the resource was created.
    *
    * Used for sorting in list mode (when no query is provided).
-   *
-   * &#64;internal
-   * From status.audit.created_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -336,9 +279,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * When the resource was last updated.
-   *
-   * &#64;internal
-   * From status.audit.updated_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -348,9 +288,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * When the resource was last updated.
-   *
-   * &#64;internal
-   * From status.audit.updated_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -360,9 +297,6 @@ public interface SearchResultOrBuilder extends
   /**
    * <pre>
    * When the resource was last updated.
-   *
-   * &#64;internal
-   * From status.audit.updated_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>

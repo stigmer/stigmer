@@ -13,11 +13,6 @@ public interface RecalledMemoryFactOrBuilder extends
   /**
    * <pre>
    * ID of the memory record this fact came from.
-   *
-   * &#64;internal
-   * The transparency link (DD-006 D2): the execution spec shows exactly
-   * which records the model saw, and each links back to the
-   * addressable, deletable memory.
    * </pre>
    *
    * <code>string memory_id = 1 [json_name = "memoryId"];</code>
@@ -27,11 +22,6 @@ public interface RecalledMemoryFactOrBuilder extends
   /**
    * <pre>
    * ID of the memory record this fact came from.
-   *
-   * &#64;internal
-   * The transparency link (DD-006 D2): the execution spec shows exactly
-   * which records the model saw, and each links back to the
-   * addressable, deletable memory.
    * </pre>
    *
    * <code>string memory_id = 1 [json_name = "memoryId"];</code>

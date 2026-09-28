@@ -175,13 +175,6 @@ private static final long serialVersionUID = 0L;
    * secret-named top-level argument (password, token, secret, api_key, apikey,
    * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
    * in args_preview.
-   *
-   * &#64;internal
-   * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-   * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-   * before that may carry the values; clients hide them on display through
-   * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-   * test/fixtures/tool-view/secret-args.json.
    * </pre>
    *
    * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -197,13 +190,6 @@ private static final long serialVersionUID = 0L;
    * secret-named top-level argument (password, token, secret, api_key, apikey,
    * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
    * in args_preview.
-   *
-   * &#64;internal
-   * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-   * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-   * before that may carry the values; clients hide them on display through
-   * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-   * test/fixtures/tool-view/secret-args.json.
    * </pre>
    *
    * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -219,13 +205,6 @@ private static final long serialVersionUID = 0L;
    * secret-named top-level argument (password, token, secret, api_key, apikey,
    * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
    * in args_preview.
-   *
-   * &#64;internal
-   * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-   * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-   * before that may carry the values; clients hide them on display through
-   * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-   * test/fixtures/tool-view/secret-args.json.
    * </pre>
    *
    * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -1098,11 +1077,6 @@ private static final long serialVersionUID = 0L;
    * Identifier of the policy-engine logic that produced approval_policy_source,
    * bumped when the merge/classification semantics change so decisions made by
    * different engine versions stay distinguishable in audits.
-   *
-   * &#64;internal
-   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-   *
-   * Field 24: appended after approval_policy_source (23), the prior maximum.
    * </pre>
    *
    * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -1126,11 +1100,6 @@ private static final long serialVersionUID = 0L;
    * Identifier of the policy-engine logic that produced approval_policy_source,
    * bumped when the merge/classification semantics change so decisions made by
    * different engine versions stay distinguishable in audits.
-   *
-   * &#64;internal
-   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-   *
-   * Field 24: appended after approval_policy_source (23), the prior maximum.
    * </pre>
    *
    * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -1170,13 +1139,6 @@ private static final long serialVersionUID = 0L;
    * already content-exact (shell command, delete path), for read-only tools, and
    * for executions that predate this field (the runner then degrades to the
    * coarse (category, path) identity).
-   *
-   * &#64;internal
-   * Runner-written and carried through update_status exactly like tool_kind /
-   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-   * needed. See the runner's contentDigest() (shared/file-tools.ts).
-   *
-   * Field 25: appended after policy_engine_version (24), the prior maximum.
    * </pre>
    *
    * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
@@ -1211,13 +1173,6 @@ private static final long serialVersionUID = 0L;
    * already content-exact (shell command, delete path), for read-only tools, and
    * for executions that predate this field (the runner then degrades to the
    * coarse (category, path) identity).
-   *
-   * &#64;internal
-   * Runner-written and carried through update_status exactly like tool_kind /
-   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-   * needed. See the runner's contentDigest() (shared/file-tools.ts).
-   *
-   * Field 25: appended after policy_engine_version (24), the prior maximum.
    * </pre>
    *
    * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
@@ -2379,13 +2334,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2400,13 +2348,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2425,13 +2366,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2455,13 +2389,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2483,13 +2410,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2518,13 +2438,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2545,13 +2458,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2567,13 +2473,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -2592,13 +2491,6 @@ private static final long serialVersionUID = 0L;
      * secret-named top-level argument (password, token, secret, api_key, apikey,
      * credentials, auth, authorization; any case) replaced by "[REDACTED]", as
      * in args_preview.
-     *
-     * &#64;internal
-     * Redacted by the runner's transcript builder at creation (stigmer#1119, the
-     * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
-     * before that may carry the values; clients hide them on display through
-     * &#64;stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
-     * test/fixtures/tool-view/secret-args.json.
      * </pre>
      *
      * <code>.google.protobuf.Struct args = 3 [json_name = "args"];</code>
@@ -4647,11 +4539,6 @@ private static final long serialVersionUID = 0L;
      * Identifier of the policy-engine logic that produced approval_policy_source,
      * bumped when the merge/classification semantics change so decisions made by
      * different engine versions stay distinguishable in audits.
-     *
-     * &#64;internal
-     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-     *
-     * Field 24: appended after approval_policy_source (23), the prior maximum.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4674,11 +4561,6 @@ private static final long serialVersionUID = 0L;
      * Identifier of the policy-engine logic that produced approval_policy_source,
      * bumped when the merge/classification semantics change so decisions made by
      * different engine versions stay distinguishable in audits.
-     *
-     * &#64;internal
-     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-     *
-     * Field 24: appended after approval_policy_source (23), the prior maximum.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4702,11 +4584,6 @@ private static final long serialVersionUID = 0L;
      * Identifier of the policy-engine logic that produced approval_policy_source,
      * bumped when the merge/classification semantics change so decisions made by
      * different engine versions stay distinguishable in audits.
-     *
-     * &#64;internal
-     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-     *
-     * Field 24: appended after approval_policy_source (23), the prior maximum.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4726,11 +4603,6 @@ private static final long serialVersionUID = 0L;
      * Identifier of the policy-engine logic that produced approval_policy_source,
      * bumped when the merge/classification semantics change so decisions made by
      * different engine versions stay distinguishable in audits.
-     *
-     * &#64;internal
-     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-     *
-     * Field 24: appended after approval_policy_source (23), the prior maximum.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4747,11 +4619,6 @@ private static final long serialVersionUID = 0L;
      * Identifier of the policy-engine logic that produced approval_policy_source,
      * bumped when the merge/classification semantics change so decisions made by
      * different engine versions stay distinguishable in audits.
-     *
-     * &#64;internal
-     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-     *
-     * Field 24: appended after approval_policy_source (23), the prior maximum.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4785,13 +4652,6 @@ private static final long serialVersionUID = 0L;
      * already content-exact (shell command, delete path), for read-only tools, and
      * for executions that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
-     *
-     * &#64;internal
-     * Runner-written and carried through update_status exactly like tool_kind /
-     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-     * needed. See the runner's contentDigest() (shared/file-tools.ts).
-     *
-     * Field 25: appended after policy_engine_version (24), the prior maximum.
      * </pre>
      *
      * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
@@ -4825,13 +4685,6 @@ private static final long serialVersionUID = 0L;
      * already content-exact (shell command, delete path), for read-only tools, and
      * for executions that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
-     *
-     * &#64;internal
-     * Runner-written and carried through update_status exactly like tool_kind /
-     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-     * needed. See the runner's contentDigest() (shared/file-tools.ts).
-     *
-     * Field 25: appended after policy_engine_version (24), the prior maximum.
      * </pre>
      *
      * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
@@ -4866,13 +4719,6 @@ private static final long serialVersionUID = 0L;
      * already content-exact (shell command, delete path), for read-only tools, and
      * for executions that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
-     *
-     * &#64;internal
-     * Runner-written and carried through update_status exactly like tool_kind /
-     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-     * needed. See the runner's contentDigest() (shared/file-tools.ts).
-     *
-     * Field 25: appended after policy_engine_version (24), the prior maximum.
      * </pre>
      *
      * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
@@ -4903,13 +4749,6 @@ private static final long serialVersionUID = 0L;
      * already content-exact (shell command, delete path), for read-only tools, and
      * for executions that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
-     *
-     * &#64;internal
-     * Runner-written and carried through update_status exactly like tool_kind /
-     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-     * needed. See the runner's contentDigest() (shared/file-tools.ts).
-     *
-     * Field 25: appended after policy_engine_version (24), the prior maximum.
      * </pre>
      *
      * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
@@ -4937,13 +4776,6 @@ private static final long serialVersionUID = 0L;
      * already content-exact (shell command, delete path), for read-only tools, and
      * for executions that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
-     *
-     * &#64;internal
-     * Runner-written and carried through update_status exactly like tool_kind /
-     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-     * needed. See the runner's contentDigest() (shared/file-tools.ts).
-     *
-     * Field 25: appended after policy_engine_version (24), the prior maximum.
      * </pre>
      *
      * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>

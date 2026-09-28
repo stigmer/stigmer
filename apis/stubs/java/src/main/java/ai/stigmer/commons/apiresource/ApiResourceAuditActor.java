@@ -68,12 +68,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique identifier of the actor.
-   *
-   * &#64;internal
-   * Historically, some writers populate this with the actor's email address
-   * rather than the identity-account ID. New writers should use the
-   * identity-account ID and carry the email in the dedicated field below;
-   * renderers must treat this value as an opaque last-resort label.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -95,12 +89,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique identifier of the actor.
-   *
-   * &#64;internal
-   * Historically, some writers populate this with the actor's email address
-   * rather than the identity-account ID. New writers should use the
-   * identity-account ID and carry the email in the dedicated field below;
-   * renderers must treat this value as an opaque last-resort label.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -274,16 +262,6 @@ private static final long serialVersionUID = 0L;
    * The PlatformClient whose minted user token the actor acted through.
    * Empty for every other credential, and on an actor that records no act
    * (an account's profile lookup).
-   *
-   * &#64;internal
-   * Server-stamped from the verified token by the PlatformClient
-   * verifier (CallerIdentity.platformClientId), never from the request.
-   * The account alone cannot name the client: an end user has one account
-   * per organization whichever of its clients they came through, so this
-   * is the one durable record of which client a resource was written
-   * through. The execution-context builder keys the PlatformClient
-   * environment layer on the execution's created_by value (spec.proto,
-   * PlatformClientSpec.environment_refs).
    * </pre>
    *
    * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
@@ -307,16 +285,6 @@ private static final long serialVersionUID = 0L;
    * The PlatformClient whose minted user token the actor acted through.
    * Empty for every other credential, and on an actor that records no act
    * (an account's profile lookup).
-   *
-   * &#64;internal
-   * Server-stamped from the verified token by the PlatformClient
-   * verifier (CallerIdentity.platformClientId), never from the request.
-   * The account alone cannot name the client: an end user has one account
-   * per organization whichever of its clients they came through, so this
-   * is the one durable record of which client a resource was written
-   * through. The execution-context builder keys the PlatformClient
-   * environment layer on the execution's created_by value (spec.proto,
-   * PlatformClientSpec.environment_refs).
    * </pre>
    *
    * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
@@ -740,12 +708,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
-     *
-     * &#64;internal
-     * Historically, some writers populate this with the actor's email address
-     * rather than the identity-account ID. New writers should use the
-     * identity-account ID and carry the email in the dedicated field below;
-     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -766,12 +728,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
-     *
-     * &#64;internal
-     * Historically, some writers populate this with the actor's email address
-     * rather than the identity-account ID. New writers should use the
-     * identity-account ID and carry the email in the dedicated field below;
-     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -793,12 +749,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
-     *
-     * &#64;internal
-     * Historically, some writers populate this with the actor's email address
-     * rather than the identity-account ID. New writers should use the
-     * identity-account ID and carry the email in the dedicated field below;
-     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -816,12 +766,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
-     *
-     * &#64;internal
-     * Historically, some writers populate this with the actor's email address
-     * rather than the identity-account ID. New writers should use the
-     * identity-account ID and carry the email in the dedicated field below;
-     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -836,12 +780,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
-     *
-     * &#64;internal
-     * Historically, some writers populate this with the actor's email address
-     * rather than the identity-account ID. New writers should use the
-     * identity-account ID and carry the email in the dedicated field below;
-     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1150,16 +1088,6 @@ private static final long serialVersionUID = 0L;
      * The PlatformClient whose minted user token the actor acted through.
      * Empty for every other credential, and on an actor that records no act
      * (an account's profile lookup).
-     *
-     * &#64;internal
-     * Server-stamped from the verified token by the PlatformClient
-     * verifier (CallerIdentity.platformClientId), never from the request.
-     * The account alone cannot name the client: an end user has one account
-     * per organization whichever of its clients they came through, so this
-     * is the one durable record of which client a resource was written
-     * through. The execution-context builder keys the PlatformClient
-     * environment layer on the execution's created_by value (spec.proto,
-     * PlatformClientSpec.environment_refs).
      * </pre>
      *
      * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
@@ -1182,16 +1110,6 @@ private static final long serialVersionUID = 0L;
      * The PlatformClient whose minted user token the actor acted through.
      * Empty for every other credential, and on an actor that records no act
      * (an account's profile lookup).
-     *
-     * &#64;internal
-     * Server-stamped from the verified token by the PlatformClient
-     * verifier (CallerIdentity.platformClientId), never from the request.
-     * The account alone cannot name the client: an end user has one account
-     * per organization whichever of its clients they came through, so this
-     * is the one durable record of which client a resource was written
-     * through. The execution-context builder keys the PlatformClient
-     * environment layer on the execution's created_by value (spec.proto,
-     * PlatformClientSpec.environment_refs).
      * </pre>
      *
      * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
@@ -1215,16 +1133,6 @@ private static final long serialVersionUID = 0L;
      * The PlatformClient whose minted user token the actor acted through.
      * Empty for every other credential, and on an actor that records no act
      * (an account's profile lookup).
-     *
-     * &#64;internal
-     * Server-stamped from the verified token by the PlatformClient
-     * verifier (CallerIdentity.platformClientId), never from the request.
-     * The account alone cannot name the client: an end user has one account
-     * per organization whichever of its clients they came through, so this
-     * is the one durable record of which client a resource was written
-     * through. The execution-context builder keys the PlatformClient
-     * environment layer on the execution's created_by value (spec.proto,
-     * PlatformClientSpec.environment_refs).
      * </pre>
      *
      * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
@@ -1244,16 +1152,6 @@ private static final long serialVersionUID = 0L;
      * The PlatformClient whose minted user token the actor acted through.
      * Empty for every other credential, and on an actor that records no act
      * (an account's profile lookup).
-     *
-     * &#64;internal
-     * Server-stamped from the verified token by the PlatformClient
-     * verifier (CallerIdentity.platformClientId), never from the request.
-     * The account alone cannot name the client: an end user has one account
-     * per organization whichever of its clients they came through, so this
-     * is the one durable record of which client a resource was written
-     * through. The execution-context builder keys the PlatformClient
-     * environment layer on the execution's created_by value (spec.proto,
-     * PlatformClientSpec.environment_refs).
      * </pre>
      *
      * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
@@ -1270,16 +1168,6 @@ private static final long serialVersionUID = 0L;
      * The PlatformClient whose minted user token the actor acted through.
      * Empty for every other credential, and on an actor that records no act
      * (an account's profile lookup).
-     *
-     * &#64;internal
-     * Server-stamped from the verified token by the PlatformClient
-     * verifier (CallerIdentity.platformClientId), never from the request.
-     * The account alone cannot name the client: an end user has one account
-     * per organization whichever of its clients they came through, so this
-     * is the one durable record of which client a resource was written
-     * through. The execution-context builder keys the PlatformClient
-     * environment layer on the execution's created_by value (spec.proto,
-     * PlatformClientSpec.environment_refs).
      * </pre>
      *
      * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>

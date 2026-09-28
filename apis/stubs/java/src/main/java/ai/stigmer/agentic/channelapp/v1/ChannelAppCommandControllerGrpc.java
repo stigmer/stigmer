@@ -5,11 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ChannelAppCommandController handles write operations for channel apps.
- * &#64;internal
- * ChannelApps hold provider secrets (client_secret, signing_secret) and
- * are always org-private. There is no updateVisibility RPC — public
- * visibility is intentionally unsupported to prevent credential leakage
- * (the OAuthApp posture).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -206,11 +201,6 @@ public final class ChannelAppCommandControllerGrpc {
   /**
    * <pre>
    * ChannelAppCommandController handles write operations for channel apps.
-   * &#64;internal
-   * ChannelApps hold provider secrets (client_secret, signing_secret) and
-   * are always org-private. There is no updateVisibility RPC — public
-   * visibility is intentionally unsupported to prevent credential leakage
-   * (the OAuthApp posture).
    * </pre>
    */
   public interface AsyncService {
@@ -221,10 +211,6 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the channel app is going to be created or updated, resolved
-     * as part of request execution.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -237,10 +223,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app. The creator is
      * granted the owner role automatically.
-     * &#64;internal
-     * Authorization: requires can_create_channel_app permission in the
-     * organization (admin-gated like can_create_oauth_app — the resource
-     * holds org-wide webhook credentials).
      * </pre>
      */
     default void create(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -253,9 +235,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the channel_app
-     * resource.
      * </pre>
      */
     default void update(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -268,11 +247,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Delete a channel app.
      * Deletion is blocked while any AgentChannel references this app via
      * spec.app_ref — disconnect or delete those channels first.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the channel_app
-     * resource. The referencing-channels block mirrors OAuthApp's
-     * referencing-mcp-servers check and fails with FAILED_PRECONDITION
-     * naming a referencing channel.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -285,11 +259,6 @@ public final class ChannelAppCommandControllerGrpc {
    * Base class for the server implementation of the service ChannelAppCommandController.
    * <pre>
    * ChannelAppCommandController handles write operations for channel apps.
-   * &#64;internal
-   * ChannelApps hold provider secrets (client_secret, signing_secret) and
-   * are always org-private. There is no updateVisibility RPC — public
-   * visibility is intentionally unsupported to prevent credential leakage
-   * (the OAuthApp posture).
    * </pre>
    */
   public static abstract class ChannelAppCommandControllerImplBase
@@ -304,11 +273,6 @@ public final class ChannelAppCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ChannelAppCommandController.
    * <pre>
    * ChannelAppCommandController handles write operations for channel apps.
-   * &#64;internal
-   * ChannelApps hold provider secrets (client_secret, signing_secret) and
-   * are always org-private. There is no updateVisibility RPC — public
-   * visibility is intentionally unsupported to prevent credential leakage
-   * (the OAuthApp posture).
    * </pre>
    */
   public static final class ChannelAppCommandControllerStub
@@ -330,10 +294,6 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the channel app is going to be created or updated, resolved
-     * as part of request execution.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -347,10 +307,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app. The creator is
      * granted the owner role automatically.
-     * &#64;internal
-     * Authorization: requires can_create_channel_app permission in the
-     * organization (admin-gated like can_create_oauth_app — the resource
-     * holds org-wide webhook credentials).
      * </pre>
      */
     public void create(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -364,9 +320,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the channel_app
-     * resource.
      * </pre>
      */
     public void update(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -380,11 +333,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Delete a channel app.
      * Deletion is blocked while any AgentChannel references this app via
      * spec.app_ref — disconnect or delete those channels first.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the channel_app
-     * resource. The referencing-channels block mirrors OAuthApp's
-     * referencing-mcp-servers check and fails with FAILED_PRECONDITION
-     * naming a referencing channel.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -398,11 +346,6 @@ public final class ChannelAppCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ChannelAppCommandController.
    * <pre>
    * ChannelAppCommandController handles write operations for channel apps.
-   * &#64;internal
-   * ChannelApps hold provider secrets (client_secret, signing_secret) and
-   * are always org-private. There is no updateVisibility RPC — public
-   * visibility is intentionally unsupported to prevent credential leakage
-   * (the OAuthApp posture).
    * </pre>
    */
   public static final class ChannelAppCommandControllerBlockingV2Stub
@@ -424,10 +367,6 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the channel app is going to be created or updated, resolved
-     * as part of request execution.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
@@ -440,10 +379,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app. The creator is
      * granted the owner role automatically.
-     * &#64;internal
-     * Authorization: requires can_create_channel_app permission in the
-     * organization (admin-gated like can_create_oauth_app — the resource
-     * holds org-wide webhook credentials).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp create(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
@@ -456,9 +391,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the channel_app
-     * resource.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp update(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
@@ -471,11 +403,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Delete a channel app.
      * Deletion is blocked while any AgentChannel references this app via
      * spec.app_ref — disconnect or delete those channels first.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the channel_app
-     * resource. The referencing-channels block mirrors OAuthApp's
-     * referencing-mcp-servers check and fails with FAILED_PRECONDITION
-     * naming a referencing channel.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -488,11 +415,6 @@ public final class ChannelAppCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ChannelAppCommandController.
    * <pre>
    * ChannelAppCommandController handles write operations for channel apps.
-   * &#64;internal
-   * ChannelApps hold provider secrets (client_secret, signing_secret) and
-   * are always org-private. There is no updateVisibility RPC — public
-   * visibility is intentionally unsupported to prevent credential leakage
-   * (the OAuthApp posture).
    * </pre>
    */
   public static final class ChannelAppCommandControllerBlockingStub
@@ -514,10 +436,6 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the channel app is going to be created or updated, resolved
-     * as part of request execution.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
@@ -530,10 +448,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app. The creator is
      * granted the owner role automatically.
-     * &#64;internal
-     * Authorization: requires can_create_channel_app permission in the
-     * organization (admin-gated like can_create_oauth_app — the resource
-     * holds org-wide webhook credentials).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp create(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
@@ -546,9 +460,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the channel_app
-     * resource.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp update(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
@@ -561,11 +472,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Delete a channel app.
      * Deletion is blocked while any AgentChannel references this app via
      * spec.app_ref — disconnect or delete those channels first.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the channel_app
-     * resource. The referencing-channels block mirrors OAuthApp's
-     * referencing-mcp-servers check and fails with FAILED_PRECONDITION
-     * naming a referencing channel.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -578,11 +484,6 @@ public final class ChannelAppCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ChannelAppCommandController.
    * <pre>
    * ChannelAppCommandController handles write operations for channel apps.
-   * &#64;internal
-   * ChannelApps hold provider secrets (client_secret, signing_secret) and
-   * are always org-private. There is no updateVisibility RPC — public
-   * visibility is intentionally unsupported to prevent credential leakage
-   * (the OAuthApp posture).
    * </pre>
    */
   public static final class ChannelAppCommandControllerFutureStub
@@ -604,10 +505,6 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on
-     * whether the channel app is going to be created or updated, resolved
-     * as part of request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> apply(
@@ -621,10 +518,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app. The creator is
      * granted the owner role automatically.
-     * &#64;internal
-     * Authorization: requires can_create_channel_app permission in the
-     * organization (admin-gated like can_create_oauth_app — the resource
-     * holds org-wide webhook credentials).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> create(
@@ -638,9 +531,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * &#64;internal
-     * Authorization: requires can_edit permission on the channel_app
-     * resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> update(
@@ -654,11 +544,6 @@ public final class ChannelAppCommandControllerGrpc {
      * Delete a channel app.
      * Deletion is blocked while any AgentChannel references this app via
      * spec.app_ref — disconnect or delete those channels first.
-     * &#64;internal
-     * Authorization: requires can_delete permission on the channel_app
-     * resource. The referencing-channels block mirrors OAuthApp's
-     * referencing-mcp-servers check and fails with FAILED_PRECONDITION
-     * naming a referencing channel.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> delete(

@@ -14,11 +14,6 @@ public interface PluginWarningOrBuilder extends
    * <pre>
    * Stable warning kind, e.g. "component-ignored", "member-adopted",
    * "model-hint-unresolved", "sub-agent-name-builtin", "version-not-taggable".
-   *
-   * &#64;internal
-   * The library's PluginWarningKind values plus the server's own; a string
-   * rather than an enum because the library owns most of the vocabulary and
-   * the CLI already renders these kinds offline.
    * </pre>
    *
    * <code>string kind = 1 [json_name = "kind"];</code>
@@ -29,11 +24,6 @@ public interface PluginWarningOrBuilder extends
    * <pre>
    * Stable warning kind, e.g. "component-ignored", "member-adopted",
    * "model-hint-unresolved", "sub-agent-name-builtin", "version-not-taggable".
-   *
-   * &#64;internal
-   * The library's PluginWarningKind values plus the server's own; a string
-   * rather than an enum because the library owns most of the vocabulary and
-   * the CLI already renders these kinds offline.
    * </pre>
    *
    * <code>string kind = 1 [json_name = "kind"];</code>

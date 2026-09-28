@@ -9,13 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * WhatsAppDeliveryContext carries what the WhatsApp deliverer needs to
  * send the reply through the Meta Cloud API.
- *
- * &#64;internal
- * No placeholder field: WhatsApp cannot edit a sent message, so there is
- * no "thinking" message to update (the Slack chat.update UX has no
- * analog). No credentials either — the deliverer loads the channel by
- * agent_channel_id and resolves the access token from its ChannelApp
- * (DD-WA-3), the SlackOutboundDeliverer channel-load pattern.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext}
@@ -326,13 +319,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WhatsAppDeliveryContext carries what the WhatsApp deliverer needs to
    * send the reply through the Meta Cloud API.
-   *
-   * &#64;internal
-   * No placeholder field: WhatsApp cannot edit a sent message, so there is
-   * no "thinking" message to update (the Slack chat.update UX has no
-   * analog). No credentials either — the deliverer loads the channel by
-   * agent_channel_id and resolves the access token from its ChannelApp
-   * (DD-WA-3), the SlackOutboundDeliverer channel-load pattern.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext}

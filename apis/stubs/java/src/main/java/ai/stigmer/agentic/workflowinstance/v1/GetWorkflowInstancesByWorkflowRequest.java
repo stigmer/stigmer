@@ -8,14 +8,6 @@ package ai.stigmer.agentic.workflowinstance.v1;
 /**
  * <pre>
  * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.
- *
- * &#64;internal
- * This allows you to find all configured deployments of a given Workflow.
- * For example, a "deploy-to-cloud" Workflow might have instances:
- * - "prod-deploy" (with production environments)
- * - "staging-deploy" (with staging environments)
- * - "dev-deploy" (with development environments)
- * Supports pagination for efficient retrieval of large result sets.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest}
@@ -159,11 +151,6 @@ private static final long serialVersionUID = 0L;
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Filtering happens in the query/list step of each edition's
-   * handler, never client-side.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -190,11 +177,6 @@ private static final long serialVersionUID = 0L;
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Filtering happens in the query/list step of each edition's
-   * handler, never client-side.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -400,14 +382,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.
-   *
-   * &#64;internal
-   * This allows you to find all configured deployments of a given Workflow.
-   * For example, a "deploy-to-cloud" Workflow might have instances:
-   * - "prod-deploy" (with production environments)
-   * - "staging-deploy" (with staging environments)
-   * - "dev-deploy" (with development environments)
-   * Supports pagination for efficient retrieval of large result sets.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest}
@@ -848,11 +822,6 @@ private static final long serialVersionUID = 0L;
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
-     *
-     * &#64;internal
-     * Optional by design: pre-existing callers rely on the permission-bounded
-     * behavior. Filtering happens in the query/list step of each edition's
-     * handler, never client-side.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -878,11 +847,6 @@ private static final long serialVersionUID = 0L;
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
-     *
-     * &#64;internal
-     * Optional by design: pre-existing callers rely on the permission-bounded
-     * behavior. Filtering happens in the query/list step of each edition's
-     * handler, never client-side.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -909,11 +873,6 @@ private static final long serialVersionUID = 0L;
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
-     *
-     * &#64;internal
-     * Optional by design: pre-existing callers rely on the permission-bounded
-     * behavior. Filtering happens in the query/list step of each edition's
-     * handler, never client-side.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -936,11 +895,6 @@ private static final long serialVersionUID = 0L;
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
-     *
-     * &#64;internal
-     * Optional by design: pre-existing callers rely on the permission-bounded
-     * behavior. Filtering happens in the query/list step of each edition's
-     * handler, never client-side.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -960,11 +914,6 @@ private static final long serialVersionUID = 0L;
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
-     *
-     * &#64;internal
-     * Optional by design: pre-existing callers rely on the permission-bounded
-     * behavior. Filtering happens in the query/list step of each edition's
-     * handler, never client-side.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>

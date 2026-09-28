@@ -8,14 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for agent_call_progress events.
- *
- * &#64;internal
- * Periodic lightweight summary emitted while the child agent is running.
- * Frequency is a runtime decision (T13) — typically on agent phase transitions
- * or at regular intervals. The full agent stream with messages and tool calls
- * is available via AgentExecution.subscribe using child_execution_id.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload}
@@ -443,14 +435,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for agent_call_progress events.
-   *
-   * &#64;internal
-   * Periodic lightweight summary emitted while the child agent is running.
-   * Frequency is a runtime decision (T13) — typically on agent phase transitions
-   * or at regular intervals. The full agent stream with messages and tool calls
-   * is available via AgentExecution.subscribe using child_execution_id.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload}

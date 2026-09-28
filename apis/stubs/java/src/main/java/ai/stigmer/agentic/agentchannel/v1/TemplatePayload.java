@@ -9,14 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * TemplatePayload sends a provider-approved message template, filled
  * with the supplied parameter values.
- *
- * &#64;internal
- * proactive-messaging DD-003 D4. Registry-dependent validation (name
- * exists, status APPROVED, language resolution, parameter arity, header
- * requirement) is deliberately NOT proto-level: it is the cloud
- * handler's courtesy pre-check plus the provider's send-time verdict
- * (D7), mapped to ChannelSendOutcome — never a local approval state
- * machine.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.TemplatePayload}
@@ -132,11 +124,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Template language code (e.g. "en", "en_US"). Optional when the
    * template name exists in exactly one language.
-   *
-   * &#64;internal
-   * Omitted-language resolution echoes SendChannelMessageInput.channel:
-   * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-   * candidate languages in the detail (DD-003 D4).
    * </pre>
    *
    * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>
@@ -159,11 +146,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Template language code (e.g. "en", "en_US"). Optional when the
    * template name exists in exactly one language.
-   *
-   * &#64;internal
-   * Omitted-language resolution echoes SendChannelMessageInput.channel:
-   * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-   * candidate languages in the detail (DD-003 D4).
    * </pre>
    *
    * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>
@@ -536,14 +518,6 @@ java.lang.String defaultValue) {
    * <pre>
    * TemplatePayload sends a provider-approved message template, filled
    * with the supplied parameter values.
-   *
-   * &#64;internal
-   * proactive-messaging DD-003 D4. Registry-dependent validation (name
-   * exists, status APPROVED, language resolution, parameter arity, header
-   * requirement) is deliberately NOT proto-level: it is the cloud
-   * handler's courtesy pre-check plus the provider's send-time verdict
-   * (D7), mapped to ChannelSendOutcome — never a local approval state
-   * machine.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.TemplatePayload}
@@ -852,11 +826,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Template language code (e.g. "en", "en_US"). Optional when the
      * template name exists in exactly one language.
-     *
-     * &#64;internal
-     * Omitted-language resolution echoes SendChannelMessageInput.channel:
-     * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-     * candidate languages in the detail (DD-003 D4).
      * </pre>
      *
      * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>
@@ -878,11 +847,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Template language code (e.g. "en", "en_US"). Optional when the
      * template name exists in exactly one language.
-     *
-     * &#64;internal
-     * Omitted-language resolution echoes SendChannelMessageInput.channel:
-     * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-     * candidate languages in the detail (DD-003 D4).
      * </pre>
      *
      * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>
@@ -905,11 +869,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Template language code (e.g. "en", "en_US"). Optional when the
      * template name exists in exactly one language.
-     *
-     * &#64;internal
-     * Omitted-language resolution echoes SendChannelMessageInput.channel:
-     * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-     * candidate languages in the detail (DD-003 D4).
      * </pre>
      *
      * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>
@@ -928,11 +887,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Template language code (e.g. "en", "en_US"). Optional when the
      * template name exists in exactly one language.
-     *
-     * &#64;internal
-     * Omitted-language resolution echoes SendChannelMessageInput.channel:
-     * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-     * candidate languages in the detail (DD-003 D4).
      * </pre>
      *
      * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>
@@ -948,11 +902,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Template language code (e.g. "en", "en_US"). Optional when the
      * template name exists in exactly one language.
-     *
-     * &#64;internal
-     * Omitted-language resolution echoes SendChannelMessageInput.channel:
-     * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-     * candidate languages in the detail (DD-003 D4).
      * </pre>
      *
      * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>

@@ -527,9 +527,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Provision or retrieve the billing account for an organization.
      * Idempotent: creates the account on first call, returns existing on subsequent calls.
-     * &#64;internal
-     * Called during org creation or first billing interaction.
-     * Initializes balance to zero with default thresholds.
      * </pre>
      */
     default void getOrCreateBillingAccount(ai.stigmer.billing.v1.GetOrCreateBillingAccountInput request,
@@ -542,11 +539,6 @@ public final class BillingCommandControllerGrpc {
      * Manually adjust an org's credit balance.
      * Produces an immutable ledger entry for audit. Requires can_manage_credits
      * on the platform: a platform operator or a credit issuer.
-     * &#64;internal
-     * Checked on platform:stigmer, never on the organization: credit made
-     * without a purchase is the platform's decision, and every person owns an
-     * organization. org_id names the wallet; an org with no billing account
-     * is NOT_FOUND.
      * </pre>
      */
     default void adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request,
@@ -575,9 +567,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
-     * &#64;internal
-     * Called by the Temporal workflow before dispatching to the agent runner.
-     * The runner must not start if authorized is false.
      * </pre>
      */
     default void authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request,
@@ -590,9 +579,6 @@ public final class BillingCommandControllerGrpc {
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
      * LlmCallUsageRecord, and debits credits from the execution's reservation.
-     * &#64;internal
-     * Called by the proxy after each LLM SSE stream completes.
-     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
     default void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -604,8 +590,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Settle billing for a completed execution.
      * Releases unused reservation credits and produces the final billing record.
-     * &#64;internal
-     * Called by the Temporal workflow after the agent runner completes.
      * </pre>
      */
     default void finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request,
@@ -621,9 +605,6 @@ public final class BillingCommandControllerGrpc {
      * reservation id as the fence against settles still in flight from the
      * terminated run. Returns the same shape as authorizeExecution, with
      * the rotated reservation id.
-     * &#64;internal
-     * Called by the recover pipeline after workflow termination, before
-     * re-launch side effects.
      * </pre>
      */
     default void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
@@ -773,9 +754,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Provision or retrieve the billing account for an organization.
      * Idempotent: creates the account on first call, returns existing on subsequent calls.
-     * &#64;internal
-     * Called during org creation or first billing interaction.
-     * Initializes balance to zero with default thresholds.
      * </pre>
      */
     public void getOrCreateBillingAccount(ai.stigmer.billing.v1.GetOrCreateBillingAccountInput request,
@@ -789,11 +767,6 @@ public final class BillingCommandControllerGrpc {
      * Manually adjust an org's credit balance.
      * Produces an immutable ledger entry for audit. Requires can_manage_credits
      * on the platform: a platform operator or a credit issuer.
-     * &#64;internal
-     * Checked on platform:stigmer, never on the organization: credit made
-     * without a purchase is the platform's decision, and every person owns an
-     * organization. org_id names the wallet; an org with no billing account
-     * is NOT_FOUND.
      * </pre>
      */
     public void adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request,
@@ -824,9 +797,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
-     * &#64;internal
-     * Called by the Temporal workflow before dispatching to the agent runner.
-     * The runner must not start if authorized is false.
      * </pre>
      */
     public void authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request,
@@ -840,9 +810,6 @@ public final class BillingCommandControllerGrpc {
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
      * LlmCallUsageRecord, and debits credits from the execution's reservation.
-     * &#64;internal
-     * Called by the proxy after each LLM SSE stream completes.
-     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
     public void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -855,8 +822,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Settle billing for a completed execution.
      * Releases unused reservation credits and produces the final billing record.
-     * &#64;internal
-     * Called by the Temporal workflow after the agent runner completes.
      * </pre>
      */
     public void finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request,
@@ -873,9 +838,6 @@ public final class BillingCommandControllerGrpc {
      * reservation id as the fence against settles still in flight from the
      * terminated run. Returns the same shape as authorizeExecution, with
      * the rotated reservation id.
-     * &#64;internal
-     * Called by the recover pipeline after workflow termination, before
-     * re-launch side effects.
      * </pre>
      */
     public void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
@@ -1015,9 +977,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Provision or retrieve the billing account for an organization.
      * Idempotent: creates the account on first call, returns existing on subsequent calls.
-     * &#64;internal
-     * Called during org creation or first billing interaction.
-     * Initializes balance to zero with default thresholds.
      * </pre>
      */
     public ai.stigmer.billing.v1.BillingAccount getOrCreateBillingAccount(ai.stigmer.billing.v1.GetOrCreateBillingAccountInput request) throws io.grpc.StatusException {
@@ -1030,11 +989,6 @@ public final class BillingCommandControllerGrpc {
      * Manually adjust an org's credit balance.
      * Produces an immutable ledger entry for audit. Requires can_manage_credits
      * on the platform: a platform operator or a credit issuer.
-     * &#64;internal
-     * Checked on platform:stigmer, never on the organization: credit made
-     * without a purchase is the platform's decision, and every person owns an
-     * organization. org_id names the wallet; an org with no billing account
-     * is NOT_FOUND.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreditLedgerEntry adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request) throws io.grpc.StatusException {
@@ -1063,9 +1017,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
-     * &#64;internal
-     * Called by the Temporal workflow before dispatching to the agent runner.
-     * The runner must not start if authorized is false.
      * </pre>
      */
     public ai.stigmer.billing.v1.AuthorizeExecutionResponse authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request) throws io.grpc.StatusException {
@@ -1078,9 +1029,6 @@ public final class BillingCommandControllerGrpc {
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
      * LlmCallUsageRecord, and debits credits from the execution's reservation.
-     * &#64;internal
-     * Called by the proxy after each LLM SSE stream completes.
-     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) throws io.grpc.StatusException {
@@ -1092,8 +1040,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Settle billing for a completed execution.
      * Releases unused reservation credits and produces the final billing record.
-     * &#64;internal
-     * Called by the Temporal workflow after the agent runner completes.
      * </pre>
      */
     public ai.stigmer.billing.v1.FinalizeExecutionResponse finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request) throws io.grpc.StatusException {
@@ -1109,9 +1055,6 @@ public final class BillingCommandControllerGrpc {
      * reservation id as the fence against settles still in flight from the
      * terminated run. Returns the same shape as authorizeExecution, with
      * the rotated reservation id.
-     * &#64;internal
-     * Called by the recover pipeline after workflow termination, before
-     * re-launch side effects.
      * </pre>
      */
     public ai.stigmer.billing.v1.AuthorizeExecutionResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) throws io.grpc.StatusException {
@@ -1243,9 +1186,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Provision or retrieve the billing account for an organization.
      * Idempotent: creates the account on first call, returns existing on subsequent calls.
-     * &#64;internal
-     * Called during org creation or first billing interaction.
-     * Initializes balance to zero with default thresholds.
      * </pre>
      */
     public ai.stigmer.billing.v1.BillingAccount getOrCreateBillingAccount(ai.stigmer.billing.v1.GetOrCreateBillingAccountInput request) {
@@ -1258,11 +1198,6 @@ public final class BillingCommandControllerGrpc {
      * Manually adjust an org's credit balance.
      * Produces an immutable ledger entry for audit. Requires can_manage_credits
      * on the platform: a platform operator or a credit issuer.
-     * &#64;internal
-     * Checked on platform:stigmer, never on the organization: credit made
-     * without a purchase is the platform's decision, and every person owns an
-     * organization. org_id names the wallet; an org with no billing account
-     * is NOT_FOUND.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreditLedgerEntry adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request) {
@@ -1291,9 +1226,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
-     * &#64;internal
-     * Called by the Temporal workflow before dispatching to the agent runner.
-     * The runner must not start if authorized is false.
      * </pre>
      */
     public ai.stigmer.billing.v1.AuthorizeExecutionResponse authorizeExecution(ai.stigmer.billing.v1.AuthorizeExecutionInput request) {
@@ -1306,9 +1238,6 @@ public final class BillingCommandControllerGrpc {
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
      * LlmCallUsageRecord, and debits credits from the execution's reservation.
-     * &#64;internal
-     * Called by the proxy after each LLM SSE stream completes.
-     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) {
@@ -1320,8 +1249,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Settle billing for a completed execution.
      * Releases unused reservation credits and produces the final billing record.
-     * &#64;internal
-     * Called by the Temporal workflow after the agent runner completes.
      * </pre>
      */
     public ai.stigmer.billing.v1.FinalizeExecutionResponse finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request) {
@@ -1337,9 +1264,6 @@ public final class BillingCommandControllerGrpc {
      * reservation id as the fence against settles still in flight from the
      * terminated run. Returns the same shape as authorizeExecution, with
      * the rotated reservation id.
-     * &#64;internal
-     * Called by the recover pipeline after workflow termination, before
-     * re-launch side effects.
      * </pre>
      */
     public ai.stigmer.billing.v1.AuthorizeExecutionResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) {
@@ -1471,9 +1395,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Provision or retrieve the billing account for an organization.
      * Idempotent: creates the account on first call, returns existing on subsequent calls.
-     * &#64;internal
-     * Called during org creation or first billing interaction.
-     * Initializes balance to zero with default thresholds.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.BillingAccount> getOrCreateBillingAccount(
@@ -1487,11 +1408,6 @@ public final class BillingCommandControllerGrpc {
      * Manually adjust an org's credit balance.
      * Produces an immutable ledger entry for audit. Requires can_manage_credits
      * on the platform: a platform operator or a credit issuer.
-     * &#64;internal
-     * Checked on platform:stigmer, never on the organization: credit made
-     * without a purchase is the platform's decision, and every person owns an
-     * organization. org_id names the wallet; an org with no billing account
-     * is NOT_FOUND.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditLedgerEntry> adjustCredits(
@@ -1522,9 +1438,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
-     * &#64;internal
-     * Called by the Temporal workflow before dispatching to the agent runner.
-     * The runner must not start if authorized is false.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeExecutionResponse> authorizeExecution(
@@ -1538,9 +1451,6 @@ public final class BillingCommandControllerGrpc {
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
      * LlmCallUsageRecord, and debits credits from the execution's reservation.
-     * &#64;internal
-     * Called by the proxy after each LLM SSE stream completes.
-     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.RecordLlmCallUsageResponse> recordLlmCallUsage(
@@ -1553,8 +1463,6 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Settle billing for a completed execution.
      * Releases unused reservation credits and produces the final billing record.
-     * &#64;internal
-     * Called by the Temporal workflow after the agent runner completes.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.FinalizeExecutionResponse> finalizeExecution(
@@ -1571,9 +1479,6 @@ public final class BillingCommandControllerGrpc {
      * reservation id as the fence against settles still in flight from the
      * terminated run. Returns the same shape as authorizeExecution, with
      * the rotated reservation id.
-     * &#64;internal
-     * Called by the recover pipeline after workflow termination, before
-     * re-launch side effects.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeExecutionResponse> rearmForRecovery(

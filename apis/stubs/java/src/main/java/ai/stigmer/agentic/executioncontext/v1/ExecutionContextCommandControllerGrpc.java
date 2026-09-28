@@ -5,24 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ExecutionContextCommandController handles write operations for ExecutionContext resources.
- * &#64;internal
- * create and apply use is_skip_authorization with a real handler-level check
- * (the declarative options cannot express the caller-class split); delete
- * carries the declarative can_edit check on the execution_context:
- *   - create: the caller-class differs by transport. Internal in-process
- *     pipeline calls (agent execution, workflow execution, workflow recovery,
- *     MCP connect) are trusted — the parent operation already authorized the
- *     run against its session-or-org, and the EC is created before that parent
- *     is persisted, so it carries no resource to re-check. External callers
- *     must hold can_create_execution_in on metadata.org (the same bar that
- *     gates creating an execution in the org; held by members and guests).
- *     A declarative org option cannot encode the internal/external split.
- *   - apply: intentionally unannotated router — it delegates to create
- *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
- *     pipeline runs under create's handler, authorization included.
- *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
- *     the execution_context model); the server's own cleanup after a run
- *     writes the store directly and never reaches this RPC.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -188,24 +170,6 @@ public final class ExecutionContextCommandControllerGrpc {
   /**
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
-   * &#64;internal
-   * create and apply use is_skip_authorization with a real handler-level check
-   * (the declarative options cannot express the caller-class split); delete
-   * carries the declarative can_edit check on the execution_context:
-   *   - create: the caller-class differs by transport. Internal in-process
-   *     pipeline calls (agent execution, workflow execution, workflow recovery,
-   *     MCP connect) are trusted — the parent operation already authorized the
-   *     run against its session-or-org, and the EC is created before that parent
-   *     is persisted, so it carries no resource to re-check. External callers
-   *     must hold can_create_execution_in on metadata.org (the same bar that
-   *     gates creating an execution in the org; held by members and guests).
-   *     A declarative org option cannot encode the internal/external split.
-   *   - apply: intentionally unannotated router — it delegates to create
-   *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
-   *     pipeline runs under create's handler, authorization included.
-   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
-   *     the execution_context model); the server's own cleanup after a run
-   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public interface AsyncService {
@@ -213,10 +177,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
-     * &#64;internal
-     * Router only: delegates to create when the resource does not exist and
-     * fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
-     * inherited from the delegated create pipeline.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -227,14 +187,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create a new ExecutionContext for an execution.
-     * &#64;internal
-     * Called by the execution pipelines (agent execution, workflow execution,
-     * workflow recovery, MCP connect) as sub-steps, and reachable directly by
-     * API clients. is_skip_authorization because the caller-class split cannot
-     * be a declarative option: the create handler trusts internal in-process
-     * calls (already authorized upstream) and requires external callers to hold
-     * can_create_execution_in on metadata.org. The pipeline additionally grants
-     * the caller the owner tuple, which gates all subsequent reads and delete.
      * </pre>
      */
     default void create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -245,10 +197,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext.
-     * &#64;internal
-     * can_edit on the execution_context resolves to the owner written at
-     * create time. The execution machinery deletes a run's context through the
-     * store when the run completes, not through this RPC.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -261,24 +209,6 @@ public final class ExecutionContextCommandControllerGrpc {
    * Base class for the server implementation of the service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
-   * &#64;internal
-   * create and apply use is_skip_authorization with a real handler-level check
-   * (the declarative options cannot express the caller-class split); delete
-   * carries the declarative can_edit check on the execution_context:
-   *   - create: the caller-class differs by transport. Internal in-process
-   *     pipeline calls (agent execution, workflow execution, workflow recovery,
-   *     MCP connect) are trusted — the parent operation already authorized the
-   *     run against its session-or-org, and the EC is created before that parent
-   *     is persisted, so it carries no resource to re-check. External callers
-   *     must hold can_create_execution_in on metadata.org (the same bar that
-   *     gates creating an execution in the org; held by members and guests).
-   *     A declarative org option cannot encode the internal/external split.
-   *   - apply: intentionally unannotated router — it delegates to create
-   *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
-   *     pipeline runs under create's handler, authorization included.
-   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
-   *     the execution_context model); the server's own cleanup after a run
-   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static abstract class ExecutionContextCommandControllerImplBase
@@ -293,24 +223,6 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
-   * &#64;internal
-   * create and apply use is_skip_authorization with a real handler-level check
-   * (the declarative options cannot express the caller-class split); delete
-   * carries the declarative can_edit check on the execution_context:
-   *   - create: the caller-class differs by transport. Internal in-process
-   *     pipeline calls (agent execution, workflow execution, workflow recovery,
-   *     MCP connect) are trusted — the parent operation already authorized the
-   *     run against its session-or-org, and the EC is created before that parent
-   *     is persisted, so it carries no resource to re-check. External callers
-   *     must hold can_create_execution_in on metadata.org (the same bar that
-   *     gates creating an execution in the org; held by members and guests).
-   *     A declarative org option cannot encode the internal/external split.
-   *   - apply: intentionally unannotated router — it delegates to create
-   *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
-   *     pipeline runs under create's handler, authorization included.
-   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
-   *     the execution_context model); the server's own cleanup after a run
-   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerStub
@@ -329,10 +241,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
-     * &#64;internal
-     * Router only: delegates to create when the resource does not exist and
-     * fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
-     * inherited from the delegated create pipeline.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -344,14 +252,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create a new ExecutionContext for an execution.
-     * &#64;internal
-     * Called by the execution pipelines (agent execution, workflow execution,
-     * workflow recovery, MCP connect) as sub-steps, and reachable directly by
-     * API clients. is_skip_authorization because the caller-class split cannot
-     * be a declarative option: the create handler trusts internal in-process
-     * calls (already authorized upstream) and requires external callers to hold
-     * can_create_execution_in on metadata.org. The pipeline additionally grants
-     * the caller the owner tuple, which gates all subsequent reads and delete.
      * </pre>
      */
     public void create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -363,10 +263,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext.
-     * &#64;internal
-     * can_edit on the execution_context resolves to the owner written at
-     * create time. The execution machinery deletes a run's context through the
-     * store when the run completes, not through this RPC.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -380,24 +276,6 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
-   * &#64;internal
-   * create and apply use is_skip_authorization with a real handler-level check
-   * (the declarative options cannot express the caller-class split); delete
-   * carries the declarative can_edit check on the execution_context:
-   *   - create: the caller-class differs by transport. Internal in-process
-   *     pipeline calls (agent execution, workflow execution, workflow recovery,
-   *     MCP connect) are trusted — the parent operation already authorized the
-   *     run against its session-or-org, and the EC is created before that parent
-   *     is persisted, so it carries no resource to re-check. External callers
-   *     must hold can_create_execution_in on metadata.org (the same bar that
-   *     gates creating an execution in the org; held by members and guests).
-   *     A declarative org option cannot encode the internal/external split.
-   *   - apply: intentionally unannotated router — it delegates to create
-   *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
-   *     pipeline runs under create's handler, authorization included.
-   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
-   *     the execution_context model); the server's own cleanup after a run
-   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerBlockingV2Stub
@@ -416,10 +294,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
-     * &#64;internal
-     * Router only: delegates to create when the resource does not exist and
-     * fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
-     * inherited from the delegated create pipeline.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext apply(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) throws io.grpc.StatusException {
@@ -430,14 +304,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create a new ExecutionContext for an execution.
-     * &#64;internal
-     * Called by the execution pipelines (agent execution, workflow execution,
-     * workflow recovery, MCP connect) as sub-steps, and reachable directly by
-     * API clients. is_skip_authorization because the caller-class split cannot
-     * be a declarative option: the create handler trusts internal in-process
-     * calls (already authorized upstream) and requires external callers to hold
-     * can_create_execution_in on metadata.org. The pipeline additionally grants
-     * the caller the owner tuple, which gates all subsequent reads and delete.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) throws io.grpc.StatusException {
@@ -448,10 +314,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext.
-     * &#64;internal
-     * can_edit on the execution_context resolves to the owner written at
-     * create time. The execution machinery deletes a run's context through the
-     * store when the run completes, not through this RPC.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -464,24 +326,6 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
-   * &#64;internal
-   * create and apply use is_skip_authorization with a real handler-level check
-   * (the declarative options cannot express the caller-class split); delete
-   * carries the declarative can_edit check on the execution_context:
-   *   - create: the caller-class differs by transport. Internal in-process
-   *     pipeline calls (agent execution, workflow execution, workflow recovery,
-   *     MCP connect) are trusted — the parent operation already authorized the
-   *     run against its session-or-org, and the EC is created before that parent
-   *     is persisted, so it carries no resource to re-check. External callers
-   *     must hold can_create_execution_in on metadata.org (the same bar that
-   *     gates creating an execution in the org; held by members and guests).
-   *     A declarative org option cannot encode the internal/external split.
-   *   - apply: intentionally unannotated router — it delegates to create
-   *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
-   *     pipeline runs under create's handler, authorization included.
-   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
-   *     the execution_context model); the server's own cleanup after a run
-   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerBlockingStub
@@ -500,10 +344,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
-     * &#64;internal
-     * Router only: delegates to create when the resource does not exist and
-     * fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
-     * inherited from the delegated create pipeline.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext apply(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) {
@@ -514,14 +354,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create a new ExecutionContext for an execution.
-     * &#64;internal
-     * Called by the execution pipelines (agent execution, workflow execution,
-     * workflow recovery, MCP connect) as sub-steps, and reachable directly by
-     * API clients. is_skip_authorization because the caller-class split cannot
-     * be a declarative option: the create handler trusts internal in-process
-     * calls (already authorized upstream) and requires external callers to hold
-     * can_create_execution_in on metadata.org. The pipeline additionally grants
-     * the caller the owner tuple, which gates all subsequent reads and delete.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) {
@@ -532,10 +364,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext.
-     * &#64;internal
-     * can_edit on the execution_context resolves to the owner written at
-     * create time. The execution machinery deletes a run's context through the
-     * store when the run completes, not through this RPC.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -548,24 +376,6 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController handles write operations for ExecutionContext resources.
-   * &#64;internal
-   * create and apply use is_skip_authorization with a real handler-level check
-   * (the declarative options cannot express the caller-class split); delete
-   * carries the declarative can_edit check on the execution_context:
-   *   - create: the caller-class differs by transport. Internal in-process
-   *     pipeline calls (agent execution, workflow execution, workflow recovery,
-   *     MCP connect) are trusted — the parent operation already authorized the
-   *     run against its session-or-org, and the EC is created before that parent
-   *     is persisted, so it carries no resource to re-check. External callers
-   *     must hold can_create_execution_in on metadata.org (the same bar that
-   *     gates creating an execution in the org; held by members and guests).
-   *     A declarative org option cannot encode the internal/external split.
-   *   - apply: intentionally unannotated router — it delegates to create
-   *     (create-or-fail; ExecutionContext has no update RPC) and the delegated
-   *     pipeline runs under create's handler, authorization included.
-   *   - delete: can_edit on execution_context:&lt;resource_id&gt; (owner-only, per
-   *     the execution_context model); the server's own cleanup after a run
-   *     writes the store directly and never reaches this RPC.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerFutureStub
@@ -584,10 +394,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
-     * &#64;internal
-     * Router only: delegates to create when the resource does not exist and
-     * fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
-     * inherited from the delegated create pipeline.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> apply(
@@ -599,14 +405,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create a new ExecutionContext for an execution.
-     * &#64;internal
-     * Called by the execution pipelines (agent execution, workflow execution,
-     * workflow recovery, MCP connect) as sub-steps, and reachable directly by
-     * API clients. is_skip_authorization because the caller-class split cannot
-     * be a declarative option: the create handler trusts internal in-process
-     * calls (already authorized upstream) and requires external callers to hold
-     * can_create_execution_in on metadata.org. The pipeline additionally grants
-     * the caller the owner tuple, which gates all subsequent reads and delete.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> create(
@@ -618,10 +416,6 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext.
-     * &#64;internal
-     * can_edit on the execution_context resolves to the owner written at
-     * create time. The execution machinery deletes a run's context through the
-     * store when the run completes, not through this RPC.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> delete(

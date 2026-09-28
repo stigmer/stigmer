@@ -12,12 +12,6 @@ package ai.stigmer.agentic.session.v1;
  * Each entry is a separate directory or repository that the agent can
  * operate on. The name serves as the entry's identity and must be unique
  * within a session's workspace_entries list.
- *
- * &#64;internal
- * In a multi-root workspace (VS Code model), the name appears in the system
- * prompt and in cloud mode it becomes the subdirectory name under the
- * workspace root. Names are auto-derived by the CLI from the repository
- * name (last URL path segment sans ".git") or the directory basename.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceEntry}
@@ -328,12 +322,6 @@ private static final long serialVersionUID = 0L;
    * Each entry is a separate directory or repository that the agent can
    * operate on. The name serves as the entry's identity and must be unique
    * within a session's workspace_entries list.
-   *
-   * &#64;internal
-   * In a multi-root workspace (VS Code model), the name appears in the system
-   * prompt and in cloud mode it becomes the subdirectory name under the
-   * workspace root. Names are auto-derived by the CLI from the repository
-   * name (last URL path segment sans ".git") or the directory basename.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceEntry}

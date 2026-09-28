@@ -8,13 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * WorkflowSpec defines the configurable properties of a workflow.
- *
- * &#64;internal
- * Follows the "kind + Struct" pattern from CloudResource (Planton).
- * This replaces the old `synthesized_yaml` field with structured proto definitions.
- * Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
- * providing maximum flexibility and extensibility.
- * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowSpec}
@@ -611,13 +604,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * WorkflowSpec defines the configurable properties of a workflow.
-   *
-   * &#64;internal
-   * Follows the "kind + Struct" pattern from CloudResource (Planton).
-   * This replaces the old `synthesized_yaml` field with structured proto definitions.
-   * Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
-   * providing maximum flexibility and extensibility.
-   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowSpec}

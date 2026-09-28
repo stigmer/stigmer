@@ -9,19 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ChannelOutboundOrigin records which trust context authorized a
  * business-initiated send.
- *
- * &#64;internal
- * DD-002 D9: the calling contexts carry different trust levels, so
- * recipient policy is surface-aware — channel-conversation sends are
- * bounded to known senders, operator-authored sends to caps. Stamped
- * server-side for audit, never caller-supplied. Writers, one per value:
- * the reach resolver stamps channel_conversation and operator; the
- * takeover acknowledger stamps platform (channel-conversations DD-005
- * D-d); the conversation reply handler stamps participant
- * (channel-conversations DD-009, amended at T03 Sitting 1). The
- * proactive caps count only channel_conversation and operator rows —
- * platform and participant are reply traffic inside the open service
- * window, outside the proactive levers by design.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin}
@@ -59,11 +46,6 @@ public enum ChannelOutboundOrigin
    * <pre>
    * Platform-authored conversation-context copy (e.g. the takeover
    * acknowledgment), neither the agent's words nor a human's.
-   *
-   * &#64;internal
-   * channel-conversations DD-005 D-d: reply traffic inside the open
-   * service window — exempt from the proactive caps and the proactive
-   * consent lever. Renders as author_platform on the timeline.
    * </pre>
    *
    * <code>platform = 3;</code>
@@ -73,14 +55,6 @@ public enum ChannelOutboundOrigin
    * <pre>
    * A staff member's reply inside a live conversation, sent through the
    * conversation-scoped reply command.
-   *
-   * &#64;internal
-   * channel-conversations DD-009 (T03 Sitting 1 amendment): distinct
-   * from operator because a console cold-send and a staff reply both
-   * carry an empty session — origin is the only durable discriminator
-   * the cap predicate and the timeline author mapping can key on.
-   * Renders as author_teammate on the timeline. First written by the
-   * reply handler (T03 Sitting 2).
    * </pre>
    *
    * <code>participant = 4;</code>
@@ -128,11 +102,6 @@ public enum ChannelOutboundOrigin
    * <pre>
    * Platform-authored conversation-context copy (e.g. the takeover
    * acknowledgment), neither the agent's words nor a human's.
-   *
-   * &#64;internal
-   * channel-conversations DD-005 D-d: reply traffic inside the open
-   * service window — exempt from the proactive caps and the proactive
-   * consent lever. Renders as author_platform on the timeline.
    * </pre>
    *
    * <code>platform = 3;</code>
@@ -142,14 +111,6 @@ public enum ChannelOutboundOrigin
    * <pre>
    * A staff member's reply inside a live conversation, sent through the
    * conversation-scoped reply command.
-   *
-   * &#64;internal
-   * channel-conversations DD-009 (T03 Sitting 1 amendment): distinct
-   * from operator because a console cold-send and a staff reply both
-   * carry an empty session — origin is the only durable discriminator
-   * the cap predicate and the timeline author mapping can key on.
-   * Renders as author_teammate on the timeline. First written by the
-   * reply handler (T03 Sitting 2).
    * </pre>
    *
    * <code>participant = 4;</code>

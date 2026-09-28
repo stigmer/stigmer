@@ -9,36 +9,6 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * OAuthAppOverride binds a specific OAuthApp to an API resource within an
  * organization, overriding the platform-default OAuthApp for that resource.
- *
- * &#64;internal
- * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
- * no CRUD RPCs. Stored in the backend's database, keyed by the composite
- * of (resource_id, resource_kind, org_id).
- *
- * This is the "Bring Your Own App" (BYOA) binding: it records that org Z
- * wants resource Y to use OAuthApp X instead of the platform default
- * referenced by McpServerAuth.oauth_app_ref.
- *
- * Separation of concerns:
- * - OAuthApp (credential resource): holds client_id, client_secret, and
- * vendor endpoint URLs. Reusable — may be referenced by multiple overrides
- * or MCP servers.
- * - OAuthAppOverride (binding document): maps (resource, org) to an OAuthApp.
- * Analogous to OAuthGrant, which maps (user, resource, org) to token metadata.
- *
- * Resolution chain (evaluated at connect time and token refresh):
- * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) — org override
- * 2. McpServerAuth.oauth_app_ref on the resource spec — platform default
- * 3. None — no OAuth app available (manual token or DCR only)
- *
- * Edition scoping: the override binding — and the whole resolution chain
- * above it — exists only on the hosted platform. OSS resolves the
- * oauth_app_ref directly against its flat OAuthApp store (the ref IS the
- * whole resolution) and answers UNIMPLEMENTED for the org-OAuth-app RPCs;
- * see McpServerQueryController.getOrgOAuthApp for the contract.
- *
- * The override is resource-agnostic: currently used for MCP servers, but the
- * composite key supports any API resource kind that needs BYOA (e.g., workflows).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride}
@@ -479,36 +449,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * OAuthAppOverride binds a specific OAuthApp to an API resource within an
    * organization, overriding the platform-default OAuthApp for that resource.
-   *
-   * &#64;internal
-   * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
-   * no CRUD RPCs. Stored in the backend's database, keyed by the composite
-   * of (resource_id, resource_kind, org_id).
-   *
-   * This is the "Bring Your Own App" (BYOA) binding: it records that org Z
-   * wants resource Y to use OAuthApp X instead of the platform default
-   * referenced by McpServerAuth.oauth_app_ref.
-   *
-   * Separation of concerns:
-   * - OAuthApp (credential resource): holds client_id, client_secret, and
-   * vendor endpoint URLs. Reusable — may be referenced by multiple overrides
-   * or MCP servers.
-   * - OAuthAppOverride (binding document): maps (resource, org) to an OAuthApp.
-   * Analogous to OAuthGrant, which maps (user, resource, org) to token metadata.
-   *
-   * Resolution chain (evaluated at connect time and token refresh):
-   * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) — org override
-   * 2. McpServerAuth.oauth_app_ref on the resource spec — platform default
-   * 3. None — no OAuth app available (manual token or DCR only)
-   *
-   * Edition scoping: the override binding — and the whole resolution chain
-   * above it — exists only on the hosted platform. OSS resolves the
-   * oauth_app_ref directly against its flat OAuthApp store (the ref IS the
-   * whole resolution) and answers UNIMPLEMENTED for the org-OAuth-app RPCs;
-   * see McpServerQueryController.getOrgOAuthApp for the contract.
-   *
-   * The override is resource-agnostic: currently used for MCP servers, but the
-   * composite key supports any API resource kind that needs BYOA (e.g., workflows).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride}

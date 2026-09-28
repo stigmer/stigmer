@@ -12,21 +12,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * Each entry represents one tool call waiting for a user decision (approve, skip,
  * or reject). Sub-agent approvals are included with from_sub_agent set to true
  * and sub_agent_name identifying the origin.
- *
- * &#64;internal
- *
- * Computed server-side by the UpdateStatus handlers on every write. The handler
- * scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,
- * collecting entries where status == WAITING_APPROVAL &amp;&amp; requires_approval == true.
- * Because the list is recomputed rather than merged, it is always consistent
- * with the authoritative tool call state embedded in messages.
- *
- * Lifecycle:
- * 1. Tool with requires_approval=true is about to execute
- * 2. The runner sets ToolCall.status = WAITING_APPROVAL on the message
- * 3. Server recomputes pending_approvals, entry appears
- * 4. User calls SubmitApproval RPC with their decision
- * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.PendingApproval}
@@ -1088,21 +1073,6 @@ private static final long serialVersionUID = 0L;
    * Each entry represents one tool call waiting for a user decision (approve, skip,
    * or reject). Sub-agent approvals are included with from_sub_agent set to true
    * and sub_agent_name identifying the origin.
-   *
-   * &#64;internal
-   *
-   * Computed server-side by the UpdateStatus handlers on every write. The handler
-   * scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,
-   * collecting entries where status == WAITING_APPROVAL &amp;&amp; requires_approval == true.
-   * Because the list is recomputed rather than merged, it is always consistent
-   * with the authoritative tool call state embedded in messages.
-   *
-   * Lifecycle:
-   * 1. Tool with requires_approval=true is about to execute
-   * 2. The runner sets ToolCall.status = WAITING_APPROVAL on the message
-   * 3. Server recomputes pending_approvals, entry appears
-   * 4. User calls SubmitApproval RPC with their decision
-   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.PendingApproval}

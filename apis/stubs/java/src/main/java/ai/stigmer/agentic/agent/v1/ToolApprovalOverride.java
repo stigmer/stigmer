@@ -17,16 +17,6 @@ package ai.stigmer.agentic.agent.v1;
  *
  * An override is scoped to the McpServer referenced by its parent usage:
  * it never affects a same-named tool on another server.
- *
- * &#64;internal
- * Policy chain (lowest to highest priority):
- * 1. McpServerStatus.tool_approvals — system-generated defaults
- * 2. McpServerSpec.pinned_tool_approvals — manual overrides
- * 3. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
- * 4. AgentExecution.auto_approve_all — runtime bypass
- *
- * Invalid tool names are silently ignored (no approval applied).
- * This allows forward-compatibility when MCP servers add/remove tools.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.ToolApprovalOverride}
@@ -378,16 +368,6 @@ private static final long serialVersionUID = 0L;
    *
    * An override is scoped to the McpServer referenced by its parent usage:
    * it never affects a same-named tool on another server.
-   *
-   * &#64;internal
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals — system-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals — manual overrides
-   * 3. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
-   * 4. AgentExecution.auto_approve_all — runtime bypass
-   *
-   * Invalid tool names are silently ignored (no approval applied).
-   * This allows forward-compatibility when MCP servers add/remove tools.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.ToolApprovalOverride}

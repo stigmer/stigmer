@@ -13,9 +13,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>

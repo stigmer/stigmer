@@ -8,26 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * SubscribeEventsRequest opens a real-time event stream for a workflow execution.
- *
- * &#64;internal
- * Unlike subscribe() which streams full WorkflowExecution snapshots, this
- * streams individual WorkflowExecutionEvent messages as they occur.
- * Lightweight and incremental — suitable for the execution viewer timeline.
- *
- * Replay + Live Tail:
- * When after_sequence is set, the server first replays persisted events
- * with sequence_number &gt; after_sequence, then switches to live streaming.
- * This enables seamless reconnection without missing events.
- *
- * Stream Lifecycle:
- * 1. Client sends SubscribeEventsRequest with execution_id
- * 2. Server validates authorization
- * 3. If after_sequence &gt; 0: Server replays missed events
- * 4. Server streams new events in real-time as they occur
- * 5. Server closes stream when execution reaches a terminal phase
- * 6. Client can close stream early (e.g., user navigates away)
- *
- * &#64;since T06 (Execution Event Stream Model)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest}
@@ -80,9 +60,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -104,9 +81,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -132,13 +106,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resume from this sequence number (replay + live tail).
-   *
-   * &#64;internal
-   * 0 = start from the beginning (replay all events then live tail).
-   * N = replay events with sequence_number &gt; N, then live tail.
-   *
-   * Use the latest_sequence from a previous getEventLog response or
-   * the last received event's sequence_number for reconnection.
    * </pre>
    *
    * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -165,10 +132,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -182,10 +145,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -198,10 +157,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -215,10 +170,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -232,10 +183,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -444,26 +391,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SubscribeEventsRequest opens a real-time event stream for a workflow execution.
-   *
-   * &#64;internal
-   * Unlike subscribe() which streams full WorkflowExecution snapshots, this
-   * streams individual WorkflowExecutionEvent messages as they occur.
-   * Lightweight and incremental — suitable for the execution viewer timeline.
-   *
-   * Replay + Live Tail:
-   * When after_sequence is set, the server first replays persisted events
-   * with sequence_number &gt; after_sequence, then switches to live streaming.
-   * This enables seamless reconnection without missing events.
-   *
-   * Stream Lifecycle:
-   * 1. Client sends SubscribeEventsRequest with execution_id
-   * 2. Server validates authorization
-   * 3. If after_sequence &gt; 0: Server replays missed events
-   * 4. Server streams new events in real-time as they occur
-   * 5. Server closes stream when execution reaches a terminal phase
-   * 6. Client can close stream early (e.g., user navigates away)
-   *
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest}
@@ -651,9 +578,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -674,9 +598,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -698,9 +619,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -718,9 +636,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -735,9 +650,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Execution ID to subscribe to.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -758,13 +670,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resume from this sequence number (replay + live tail).
-     *
-     * &#64;internal
-     * 0 = start from the beginning (replay all events then live tail).
-     * N = replay events with sequence_number &gt; N, then live tail.
-     *
-     * Use the latest_sequence from a previous getEventLog response or
-     * the last received event's sequence_number for reconnection.
      * </pre>
      *
      * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -777,13 +682,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resume from this sequence number (replay + live tail).
-     *
-     * &#64;internal
-     * 0 = start from the beginning (replay all events then live tail).
-     * N = replay events with sequence_number &gt; N, then live tail.
-     *
-     * Use the latest_sequence from a previous getEventLog response or
-     * the last received event's sequence_number for reconnection.
      * </pre>
      *
      * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -800,13 +698,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resume from this sequence number (replay + live tail).
-     *
-     * &#64;internal
-     * 0 = start from the beginning (replay all events then live tail).
-     * N = replay events with sequence_number &gt; N, then live tail.
-     *
-     * Use the latest_sequence from a previous getEventLog response or
-     * the last received event's sequence_number for reconnection.
      * </pre>
      *
      * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -829,10 +720,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -845,10 +732,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -860,10 +743,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -876,10 +755,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -898,10 +773,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -918,10 +789,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -940,10 +807,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -958,10 +821,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -975,10 +834,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -991,10 +846,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1012,10 +863,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -1032,10 +879,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional filter: stream only events of these types.
-     *
-     * &#64;internal
-     * When empty, all event types are streamed.
-     * Applied to both replayed and live events.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>

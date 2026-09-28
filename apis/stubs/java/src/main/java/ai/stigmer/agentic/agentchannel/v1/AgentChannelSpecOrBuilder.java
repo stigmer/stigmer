@@ -13,12 +13,6 @@ public interface AgentChannelSpecOrBuilder extends
   /**
    * <pre>
    * Reference to the agent this channel serves.
-   *
-   * &#64;internal
-   * Invariant (enforced in create/update/apply handlers of both editions,
-   * mirroring AgentShare's Phase A rule): agent_ref.org must equal
-   * metadata.org — the connection-owning org is the billing org and
-   * provider credentials resolve in that org (decision 004; T06 invariant).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -28,12 +22,6 @@ public interface AgentChannelSpecOrBuilder extends
   /**
    * <pre>
    * Reference to the agent this channel serves.
-   *
-   * &#64;internal
-   * Invariant (enforced in create/update/apply handlers of both editions,
-   * mirroring AgentShare's Phase A rule): agent_ref.org must equal
-   * metadata.org — the connection-owning org is the billing org and
-   * provider credentials resolve in that org (decision 004; T06 invariant).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -43,12 +31,6 @@ public interface AgentChannelSpecOrBuilder extends
   /**
    * <pre>
    * Reference to the agent this channel serves.
-   *
-   * &#64;internal
-   * Invariant (enforced in create/update/apply handlers of both editions,
-   * mirroring AgentShare's Phase A rule): agent_ref.org must equal
-   * metadata.org — the connection-owning org is the billing org and
-   * provider credentials resolve in that org (decision 004; T06 invariant).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -62,11 +44,6 @@ public interface AgentChannelSpecOrBuilder extends
    * Disabling is a config-preserving pause: the connection keeps its
    * install state and credentials, but inbound events are refused until
    * re-enabled. Delete the channel instead for a full teardown.
-   *
-   * &#64;internal
-   * Decision 001 D-d. Pause must never drop the install: re-installing a
-   * Slack app to re-auth is painful. The per-turn gate re-reads this live
-   * (decision 003), so disabling takes effect on the next message.
    * </pre>
    *
    * <code>bool enabled = 2 [json_name = "enabled"];</code>
@@ -137,22 +114,6 @@ public interface AgentChannelSpecOrBuilder extends
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
    * runtime. The agent and its default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
-   * a channel — both connection kinds carry their own credentials).
-   * Resolved in the channel's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy): each referenced environment must be
-   * visibility_org in the channel's org, or the merge skips it with a
-   * diagnostic. Merged at channel execution-context build time only,
-   * lowest priority (instance refs and runtime_env override on key
-   * conflicts) — never bound to the agent's system-managed default
-   * instance. No write-time existence or visibility check, matching the
-   * share: enforcement lives solely at runtime resolution, which fails
-   * closed. Unlike the share there is no audience CEL — channels have no
-   * audience concept, and the same-org invariant (agent_ref.org ==
-   * metadata.org) already scopes resolution.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -168,22 +129,6 @@ public interface AgentChannelSpecOrBuilder extends
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
    * runtime. The agent and its default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
-   * a channel — both connection kinds carry their own credentials).
-   * Resolved in the channel's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy): each referenced environment must be
-   * visibility_org in the channel's org, or the merge skips it with a
-   * diagnostic. Merged at channel execution-context build time only,
-   * lowest priority (instance refs and runtime_env override on key
-   * conflicts) — never bound to the agent's system-managed default
-   * instance. No write-time existence or visibility check, matching the
-   * share: enforcement lives solely at runtime resolution, which fails
-   * closed. Unlike the share there is no audience CEL — channels have no
-   * audience concept, and the same-org invariant (agent_ref.org ==
-   * metadata.org) already scopes resolution.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -198,22 +143,6 @@ public interface AgentChannelSpecOrBuilder extends
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
    * runtime. The agent and its default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
-   * a channel — both connection kinds carry their own credentials).
-   * Resolved in the channel's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy): each referenced environment must be
-   * visibility_org in the channel's org, or the merge skips it with a
-   * diagnostic. Merged at channel execution-context build time only,
-   * lowest priority (instance refs and runtime_env override on key
-   * conflicts) — never bound to the agent's system-managed default
-   * instance. No write-time existence or visibility check, matching the
-   * share: enforcement lives solely at runtime resolution, which fails
-   * closed. Unlike the share there is no audience CEL — channels have no
-   * audience concept, and the same-org invariant (agent_ref.org ==
-   * metadata.org) already scopes resolution.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -228,22 +157,6 @@ public interface AgentChannelSpecOrBuilder extends
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
    * runtime. The agent and its default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
-   * a channel — both connection kinds carry their own credentials).
-   * Resolved in the channel's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy): each referenced environment must be
-   * visibility_org in the channel's org, or the merge skips it with a
-   * diagnostic. Merged at channel execution-context build time only,
-   * lowest priority (instance refs and runtime_env override on key
-   * conflicts) — never bound to the agent's system-managed default
-   * instance. No write-time existence or visibility check, matching the
-   * share: enforcement lives solely at runtime resolution, which fails
-   * closed. Unlike the share there is no audience CEL — channels have no
-   * audience concept, and the same-org invariant (agent_ref.org ==
-   * metadata.org) already scopes resolution.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -259,22 +172,6 @@ public interface AgentChannelSpecOrBuilder extends
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
    * runtime. The agent and its default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
-   * a channel — both connection kinds carry their own credentials).
-   * Resolved in the channel's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy): each referenced environment must be
-   * visibility_org in the channel's org, or the merge skips it with a
-   * diagnostic. Merged at channel execution-context build time only,
-   * lowest priority (instance refs and runtime_env override on key
-   * conflicts) — never bound to the agent's system-managed default
-   * instance. No write-time existence or visibility check, matching the
-   * share: enforcement lives solely at runtime resolution, which fails
-   * closed. Unlike the share there is no audience CEL — channels have no
-   * audience concept, and the same-org invariant (agent_ref.org ==
-   * metadata.org) already scopes resolution.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -292,16 +189,6 @@ public interface AgentChannelSpecOrBuilder extends
    * and each app is its own bot identity, so multiple agents can serve
    * one workspace. For WhatsApp the reference is required — every
    * WhatsApp channel installs through your own Meta app (DD-WA-2).
-   *
-   * &#64;internal
-   * T04 item 2. Invariants (enforced in handlers of both editions):
-   * app_ref.org must equal metadata.org (secrets never cross orgs — the
-   * agent_ref rule), and the ref is immutable while install_state ==
-   * installed (the workspace granted THAT app; switching apps requires
-   * re-install, so pending/revoked channels may rebind freely). No
-   * write-time existence or provider-match check, matching the
-   * environment_refs posture: the install flow resolves the app and
-   * fails closed on a missing or wrong-provider reference.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -318,16 +205,6 @@ public interface AgentChannelSpecOrBuilder extends
    * and each app is its own bot identity, so multiple agents can serve
    * one workspace. For WhatsApp the reference is required — every
    * WhatsApp channel installs through your own Meta app (DD-WA-2).
-   *
-   * &#64;internal
-   * T04 item 2. Invariants (enforced in handlers of both editions):
-   * app_ref.org must equal metadata.org (secrets never cross orgs — the
-   * agent_ref rule), and the ref is immutable while install_state ==
-   * installed (the workspace granted THAT app; switching apps requires
-   * re-install, so pending/revoked channels may rebind freely). No
-   * write-time existence or provider-match check, matching the
-   * environment_refs posture: the install flow resolves the app and
-   * fails closed on a missing or wrong-provider reference.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -344,16 +221,6 @@ public interface AgentChannelSpecOrBuilder extends
    * and each app is its own bot identity, so multiple agents can serve
    * one workspace. For WhatsApp the reference is required — every
    * WhatsApp channel installs through your own Meta app (DD-WA-2).
-   *
-   * &#64;internal
-   * T04 item 2. Invariants (enforced in handlers of both editions):
-   * app_ref.org must equal metadata.org (secrets never cross orgs — the
-   * agent_ref rule), and the ref is immutable while install_state ==
-   * installed (the workspace granted THAT app; switching apps requires
-   * re-install, so pending/revoked channels may rebind freely). No
-   * write-time existence or provider-match check, matching the
-   * environment_refs posture: the install flow resolves the app and
-   * fails closed on a missing or wrong-provider reference.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -365,16 +232,6 @@ public interface AgentChannelSpecOrBuilder extends
    * Whether the serving agent may send business-initiated (proactive)
    * messages on this channel. Off by default: a channel is reply-only
    * until its owner grants this.
-   *
-   * &#64;internal
-   * proactive-messaging DD-002 D5, the DD-014 two-consents operator
-   * lever, living where `enabled` lives (the surface owns the grant).
-   * Existing channels keep reply-only behavior on deploy. Tuning knobs
-   * (rate caps) stay platform config (DD-006 posture); what owners
-   * control is this grant. The runner attaches the send_channel_message
-   * tool only when getByAgent finds an installed + enabled channel with
-   * this flag set — an agent with no proactive channel never sees the
-   * tool.
    * </pre>
    *
    * <code>bool proactive_messaging_enabled = 7 [json_name = "proactiveMessagingEnabled"];</code>
@@ -391,18 +248,6 @@ public interface AgentChannelSpecOrBuilder extends
    * platform model outright, while max_cost_usd and max_tool_rounds can
    * only lower the platform caps — a channel owner can reduce what one
    * turn may spend, never raise it past the platform profile.
-   *
-   * &#64;internal
-   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
-   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
-   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
-   * the shared message exists to end. Merged at the single broker write
-   * site (ChannelSessionBroker — the promise recorded on
-   * ChannelExecutionProfileProperties), per field: bounds clamp
-   * min(owner, platform), model replaces outright, service_tier stamps
-   * when set (validated fail-closed at execution create), approval_mode
-   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
-   * no channel serving runtime and stores/echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -418,18 +263,6 @@ public interface AgentChannelSpecOrBuilder extends
    * platform model outright, while max_cost_usd and max_tool_rounds can
    * only lower the platform caps — a channel owner can reduce what one
    * turn may spend, never raise it past the platform profile.
-   *
-   * &#64;internal
-   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
-   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
-   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
-   * the shared message exists to end. Merged at the single broker write
-   * site (ChannelSessionBroker — the promise recorded on
-   * ChannelExecutionProfileProperties), per field: bounds clamp
-   * min(owner, platform), model replaces outright, service_tier stamps
-   * when set (validated fail-closed at execution create), approval_mode
-   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
-   * no channel serving runtime and stores/echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -445,18 +278,6 @@ public interface AgentChannelSpecOrBuilder extends
    * platform model outright, while max_cost_usd and max_tool_rounds can
    * only lower the platform caps — a channel owner can reduce what one
    * turn may spend, never raise it past the platform profile.
-   *
-   * &#64;internal
-   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
-   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
-   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
-   * the shared message exists to end. Merged at the single broker write
-   * site (ChannelSessionBroker — the promise recorded on
-   * ChannelExecutionProfileProperties), per field: bounds clamp
-   * min(owner, platform), model replaces outright, service_tier stamps
-   * when set (validated fail-closed at execution create), approval_mode
-   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
-   * no channel serving runtime and stores/echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>

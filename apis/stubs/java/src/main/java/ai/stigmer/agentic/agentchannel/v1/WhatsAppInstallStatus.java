@@ -9,14 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
  * number was connected through the Meta Cloud API.
- *
- * &#64;internal
- * Written by the direct-install path (sole writer, DD-WA-1): the installer
- * validates spec.whatsapp.phone_number_id against the Graph API and echoes
- * it here alongside the observed display facts. The echo is deliberate —
- * routing and uniqueness read STATUS (the install fact), mirroring
- * status.slack.team_id, so a later spec edit can never silently re-route
- * live traffic; the number binding changes only through a re-install.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus}
@@ -72,13 +64,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Phone number ID the install validated and bound, e.g. "106540352242922".
-   *
-   * &#64;internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's metadata.phone_number_id. One
-   * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-   * a compound partial-unique index on installed rows — the
-   * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
    * </pre>
    *
    * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -100,13 +85,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Phone number ID the install validated and bound, e.g. "106540352242922".
-   *
-   * &#64;internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's metadata.phone_number_id. One
-   * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-   * a compound partial-unique index on installed rows — the
-   * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
    * </pre>
    *
    * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -228,10 +206,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ID of the ChannelApp the install went through. Always set for
    * WhatsApp — every WhatsApp channel installs through your own Meta app.
-   *
-   * &#64;internal
-   * Same discriminator role as SlackInstallStatus.channel_app_id; never
-   * empty because WhatsApp has no platform app (DD-WA-2).
    * </pre>
    *
    * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>
@@ -254,10 +228,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ID of the ChannelApp the install went through. Always set for
    * WhatsApp — every WhatsApp channel installs through your own Meta app.
-   *
-   * &#64;internal
-   * Same discriminator role as SlackInstallStatus.channel_app_id; never
-   * empty because WhatsApp has no platform app (DD-WA-2).
    * </pre>
    *
    * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>
@@ -522,14 +492,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
    * number was connected through the Meta Cloud API.
-   *
-   * &#64;internal
-   * Written by the direct-install path (sole writer, DD-WA-1): the installer
-   * validates spec.whatsapp.phone_number_id against the Graph API and echoes
-   * it here alongside the observed display facts. The echo is deliberate —
-   * routing and uniqueness read STATUS (the install fact), mirroring
-   * status.slack.team_id, so a later spec edit can never silently re-route
-   * live traffic; the number binding changes only through a re-install.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus}
@@ -744,13 +706,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Phone number ID the install validated and bound, e.g. "106540352242922".
-     *
-     * &#64;internal
-     * The inbound routing key: the webhook receiver resolves the
-     * AgentChannel from the event payload's metadata.phone_number_id. One
-     * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-     * a compound partial-unique index on installed rows — the
-     * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
      * </pre>
      *
      * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -771,13 +726,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Phone number ID the install validated and bound, e.g. "106540352242922".
-     *
-     * &#64;internal
-     * The inbound routing key: the webhook receiver resolves the
-     * AgentChannel from the event payload's metadata.phone_number_id. One
-     * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-     * a compound partial-unique index on installed rows — the
-     * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
      * </pre>
      *
      * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -799,13 +747,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Phone number ID the install validated and bound, e.g. "106540352242922".
-     *
-     * &#64;internal
-     * The inbound routing key: the webhook receiver resolves the
-     * AgentChannel from the event payload's metadata.phone_number_id. One
-     * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-     * a compound partial-unique index on installed rows — the
-     * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
      * </pre>
      *
      * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -823,13 +764,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Phone number ID the install validated and bound, e.g. "106540352242922".
-     *
-     * &#64;internal
-     * The inbound routing key: the webhook receiver resolves the
-     * AgentChannel from the event payload's metadata.phone_number_id. One
-     * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-     * a compound partial-unique index on installed rows — the
-     * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
      * </pre>
      *
      * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -844,13 +778,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Phone number ID the install validated and bound, e.g. "106540352242922".
-     *
-     * &#64;internal
-     * The inbound routing key: the webhook receiver resolves the
-     * AgentChannel from the event payload's metadata.phone_number_id. One
-     * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-     * a compound partial-unique index on installed rows — the
-     * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
      * </pre>
      *
      * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -1056,10 +983,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the ChannelApp the install went through. Always set for
      * WhatsApp — every WhatsApp channel installs through your own Meta app.
-     *
-     * &#64;internal
-     * Same discriminator role as SlackInstallStatus.channel_app_id; never
-     * empty because WhatsApp has no platform app (DD-WA-2).
      * </pre>
      *
      * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>
@@ -1081,10 +1004,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the ChannelApp the install went through. Always set for
      * WhatsApp — every WhatsApp channel installs through your own Meta app.
-     *
-     * &#64;internal
-     * Same discriminator role as SlackInstallStatus.channel_app_id; never
-     * empty because WhatsApp has no platform app (DD-WA-2).
      * </pre>
      *
      * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>
@@ -1107,10 +1026,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the ChannelApp the install went through. Always set for
      * WhatsApp — every WhatsApp channel installs through your own Meta app.
-     *
-     * &#64;internal
-     * Same discriminator role as SlackInstallStatus.channel_app_id; never
-     * empty because WhatsApp has no platform app (DD-WA-2).
      * </pre>
      *
      * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>
@@ -1129,10 +1044,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the ChannelApp the install went through. Always set for
      * WhatsApp — every WhatsApp channel installs through your own Meta app.
-     *
-     * &#64;internal
-     * Same discriminator role as SlackInstallStatus.channel_app_id; never
-     * empty because WhatsApp has no platform app (DD-WA-2).
      * </pre>
      *
      * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>
@@ -1148,10 +1059,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ID of the ChannelApp the install went through. Always set for
      * WhatsApp — every WhatsApp channel installs through your own Meta app.
-     *
-     * &#64;internal
-     * Same discriminator role as SlackInstallStatus.channel_app_id; never
-     * empty because WhatsApp has no platform app (DD-WA-2).
      * </pre>
      *
      * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>

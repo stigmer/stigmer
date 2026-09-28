@@ -8,13 +8,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * A terminal failure in the file-review lifecycle.
- *
- * &#64;internal
- * Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set
- * from becoming approvable (the diff cannot be shown completely); the others
- * record capture/reconcile/verification failures for audit and resume.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewFailure}
@@ -363,13 +356,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * A terminal failure in the file-review lifecycle.
-   *
-   * &#64;internal
-   * Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set
-   * from becoming approvable (the diff cannot be shown completely); the others
-   * record capture/reconcile/verification failures for audit and resume.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewFailure}

@@ -5,13 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * McpServerCommandController provides write operations for MCP server resources.
- * &#64;internal
- * Authorization model for writes: an MCP server is an organization's
- * blueprint. create asks can_create_mcp_server on the organization (the
- * admin bar every blueprint kind takes); update, delete and the connect
- * lanes ask the row's own permission (can_edit, can_delete, can_connect).
- * Primary interface: The `apply` method provides Kubernetes-style idempotent
- * create-or-update semantics, which is the recommended approach for CLI usage.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -456,13 +449,6 @@ public final class McpServerCommandControllerGrpc {
   /**
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
-   * &#64;internal
-   * Authorization model for writes: an MCP server is an organization's
-   * blueprint. create asks can_create_mcp_server on the organization (the
-   * admin bar every blueprint kind takes); update, delete and the connect
-   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
-   * Primary interface: The `apply` method provides Kubernetes-style idempotent
-   * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
    */
   public interface AsyncService {
@@ -472,11 +458,6 @@ public final class McpServerCommandControllerGrpc {
      * Create or update an MCP server resource.
      * If the resource doesn't exist, creates it. If it exists, updates it.
      * The resource is identified by its (scope, org, slug) combination.
-     * &#64;internal
-     * The handler determines whether this is a create or update operation
-     * and performs appropriate scope-aware authorization:
-     * - Create: Requires permission to create in the target scope
-     * - Update: Requires can_edit on the existing resource
      * </pre>
      */
     default void apply(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -489,9 +470,6 @@ public final class McpServerCommandControllerGrpc {
      * Create an MCP server resource.
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
-     * &#64;internal
-     * Authorization: can_create_mcp_server on the organization named by
-     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     default void create(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -502,12 +480,6 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing MCP server resource.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * Only the owner (based on scope) can update:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     default void update(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -520,12 +492,6 @@ public final class McpServerCommandControllerGrpc {
      * Delete an MCP server resource.
      * Permanently removes the MCP server definition.
      * Agents referencing this server will need to be updated.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the mcp_server resource.
-     * Only the owner can delete:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -538,10 +504,6 @@ public final class McpServerCommandControllerGrpc {
      * Update the visibility of an existing MCP server.
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched.
-     * &#64;internal
-     * Authorization: can_edit on the mcp_server for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind).
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -563,18 +525,6 @@ public final class McpServerCommandControllerGrpc {
      * so a blocking connect can appear to fail while succeeding server-side.
      * This RPC remains for callers that want synchronous semantics (and for
      * backends that do not yet serve startConnect).
-     * &#64;internal
-     * Typical flows:
-     * - Runner backfill: the runner calls connect on first use when
-     *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context (shared/connect-backfill.ts).
-     * - CLI / web console: legacy callers, and the fallback lane when
-     *   startConnect answers UNIMPLEMENTED (a backend predating it).
-     * Errors:
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-     * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     default void connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
@@ -598,20 +548,6 @@ public final class McpServerCommandControllerGrpc {
      * runtime_env wins) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
-     * &#64;internal
-     * The async lane exists because every budget stretch inside the blocking
-     * shape hit a client transport limit eventually (stigmer/stigmer#425):
-     * browser fetch drops no-bytes unary responses (~300s), classification
-     * budgets scale with tool count past any flat ceiling, and dead-runner
-     * feedback rode the same timer. Setup that needs the caller's identity
-     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
-     * happens synchronously in this RPC; only awaiting the workflow moves to
-     * the background.
-     * Errors (start-time only — post-start failures land in connect_status):
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - NOT_FOUND: MCP server does not exist
-     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     default void startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
@@ -626,18 +562,6 @@ public final class McpServerCommandControllerGrpc {
      * generation) and returns an authorization URL for the frontend to
      * redirect the user to. The frontend calls completeOAuthConnect after
      * the user authorizes.
-     * &#64;internal
-     * Two auth modes determined by the MCP server's spec.auth block:
-     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-     *   discovers the authorization server, registers a client via DCR,
-     *   and builds the auth URL automatically.
-     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-     *   OAuthApp for client credentials and endpoint URLs.
-     * Errors:
-     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-     *   without oauth_app_ref (DCR requires HTTP transport)
-     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     default void initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request,
@@ -655,13 +579,6 @@ public final class McpServerCommandControllerGrpc {
      * record for pre-flight expiry checks.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
-     * &#64;internal
-     * Errors:
-     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-     *   not match the mcp_server_id
-     * - UNAVAILABLE: Token exchange with the authorization server failed
-     * - NOT_FOUND: No pending OAuth state found for the given state param
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     default void completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request,
@@ -680,10 +597,6 @@ public final class McpServerCommandControllerGrpc {
      * Idempotent: returns disconnected=true when a grant was deleted,
      * disconnected=false when no grant existed. Never returns an error
      * for a missing grant.
-     * &#64;internal
-     * Authorization: Requires can_connect permission on the mcp_server resource.
-     * Uses the same permission as connect/initiateOAuthConnect — if you can
-     * establish a connection, you can tear it down.
      * </pre>
      */
     default void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
@@ -703,14 +616,6 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * This is an org-admin operation — setting credentials that affect all users
-     * in the org who connect to this resource.
-     * Errors:
-     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-     *   (BYOA requires a platform template to clone from)
-     * - NOT_FOUND: Resource does not exist
      * </pre>
      */
     default void setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request,
@@ -731,11 +636,6 @@ public final class McpServerCommandControllerGrpc {
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
-     * Errors:
-     * - NOT_FOUND: No override exists for this resource + org
      * </pre>
      */
     default void deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request,
@@ -748,13 +648,6 @@ public final class McpServerCommandControllerGrpc {
    * Base class for the server implementation of the service McpServerCommandController.
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
-   * &#64;internal
-   * Authorization model for writes: an MCP server is an organization's
-   * blueprint. create asks can_create_mcp_server on the organization (the
-   * admin bar every blueprint kind takes); update, delete and the connect
-   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
-   * Primary interface: The `apply` method provides Kubernetes-style idempotent
-   * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
    */
   public static abstract class McpServerCommandControllerImplBase
@@ -769,13 +662,6 @@ public final class McpServerCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service McpServerCommandController.
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
-   * &#64;internal
-   * Authorization model for writes: an MCP server is an organization's
-   * blueprint. create asks can_create_mcp_server on the organization (the
-   * admin bar every blueprint kind takes); update, delete and the connect
-   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
-   * Primary interface: The `apply` method provides Kubernetes-style idempotent
-   * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
    */
   public static final class McpServerCommandControllerStub
@@ -796,11 +682,6 @@ public final class McpServerCommandControllerGrpc {
      * Create or update an MCP server resource.
      * If the resource doesn't exist, creates it. If it exists, updates it.
      * The resource is identified by its (scope, org, slug) combination.
-     * &#64;internal
-     * The handler determines whether this is a create or update operation
-     * and performs appropriate scope-aware authorization:
-     * - Create: Requires permission to create in the target scope
-     * - Update: Requires can_edit on the existing resource
      * </pre>
      */
     public void apply(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -814,9 +695,6 @@ public final class McpServerCommandControllerGrpc {
      * Create an MCP server resource.
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
-     * &#64;internal
-     * Authorization: can_create_mcp_server on the organization named by
-     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public void create(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -828,12 +706,6 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing MCP server resource.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * Only the owner (based on scope) can update:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public void update(ai.stigmer.agentic.mcpserver.v1.McpServer request,
@@ -847,12 +719,6 @@ public final class McpServerCommandControllerGrpc {
      * Delete an MCP server resource.
      * Permanently removes the MCP server definition.
      * Agents referencing this server will need to be updated.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the mcp_server resource.
-     * Only the owner can delete:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -866,10 +732,6 @@ public final class McpServerCommandControllerGrpc {
      * Update the visibility of an existing MCP server.
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched.
-     * &#64;internal
-     * Authorization: can_edit on the mcp_server for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind).
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -892,18 +754,6 @@ public final class McpServerCommandControllerGrpc {
      * so a blocking connect can appear to fail while succeeding server-side.
      * This RPC remains for callers that want synchronous semantics (and for
      * backends that do not yet serve startConnect).
-     * &#64;internal
-     * Typical flows:
-     * - Runner backfill: the runner calls connect on first use when
-     *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context (shared/connect-backfill.ts).
-     * - CLI / web console: legacy callers, and the fallback lane when
-     *   startConnect answers UNIMPLEMENTED (a backend predating it).
-     * Errors:
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-     * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public void connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
@@ -928,20 +778,6 @@ public final class McpServerCommandControllerGrpc {
      * runtime_env wins) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
-     * &#64;internal
-     * The async lane exists because every budget stretch inside the blocking
-     * shape hit a client transport limit eventually (stigmer/stigmer#425):
-     * browser fetch drops no-bytes unary responses (~300s), classification
-     * budgets scale with tool count past any flat ceiling, and dead-runner
-     * feedback rode the same timer. Setup that needs the caller's identity
-     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
-     * happens synchronously in this RPC; only awaiting the workflow moves to
-     * the background.
-     * Errors (start-time only — post-start failures land in connect_status):
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - NOT_FOUND: MCP server does not exist
-     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public void startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
@@ -957,18 +793,6 @@ public final class McpServerCommandControllerGrpc {
      * generation) and returns an authorization URL for the frontend to
      * redirect the user to. The frontend calls completeOAuthConnect after
      * the user authorizes.
-     * &#64;internal
-     * Two auth modes determined by the MCP server's spec.auth block:
-     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-     *   discovers the authorization server, registers a client via DCR,
-     *   and builds the auth URL automatically.
-     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-     *   OAuthApp for client credentials and endpoint URLs.
-     * Errors:
-     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-     *   without oauth_app_ref (DCR requires HTTP transport)
-     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public void initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request,
@@ -987,13 +811,6 @@ public final class McpServerCommandControllerGrpc {
      * record for pre-flight expiry checks.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
-     * &#64;internal
-     * Errors:
-     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-     *   not match the mcp_server_id
-     * - UNAVAILABLE: Token exchange with the authorization server failed
-     * - NOT_FOUND: No pending OAuth state found for the given state param
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public void completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request,
@@ -1013,10 +830,6 @@ public final class McpServerCommandControllerGrpc {
      * Idempotent: returns disconnected=true when a grant was deleted,
      * disconnected=false when no grant existed. Never returns an error
      * for a missing grant.
-     * &#64;internal
-     * Authorization: Requires can_connect permission on the mcp_server resource.
-     * Uses the same permission as connect/initiateOAuthConnect — if you can
-     * establish a connection, you can tear it down.
      * </pre>
      */
     public void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
@@ -1037,14 +850,6 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * This is an org-admin operation — setting credentials that affect all users
-     * in the org who connect to this resource.
-     * Errors:
-     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-     *   (BYOA requires a platform template to clone from)
-     * - NOT_FOUND: Resource does not exist
      * </pre>
      */
     public void setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request,
@@ -1066,11 +871,6 @@ public final class McpServerCommandControllerGrpc {
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
-     * Errors:
-     * - NOT_FOUND: No override exists for this resource + org
      * </pre>
      */
     public void deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request,
@@ -1084,13 +884,6 @@ public final class McpServerCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service McpServerCommandController.
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
-   * &#64;internal
-   * Authorization model for writes: an MCP server is an organization's
-   * blueprint. create asks can_create_mcp_server on the organization (the
-   * admin bar every blueprint kind takes); update, delete and the connect
-   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
-   * Primary interface: The `apply` method provides Kubernetes-style idempotent
-   * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
    */
   public static final class McpServerCommandControllerBlockingV2Stub
@@ -1111,11 +904,6 @@ public final class McpServerCommandControllerGrpc {
      * Create or update an MCP server resource.
      * If the resource doesn't exist, creates it. If it exists, updates it.
      * The resource is identified by its (scope, org, slug) combination.
-     * &#64;internal
-     * The handler determines whether this is a create or update operation
-     * and performs appropriate scope-aware authorization:
-     * - Create: Requires permission to create in the target scope
-     * - Update: Requires can_edit on the existing resource
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer apply(ai.stigmer.agentic.mcpserver.v1.McpServer request) throws io.grpc.StatusException {
@@ -1128,9 +916,6 @@ public final class McpServerCommandControllerGrpc {
      * Create an MCP server resource.
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
-     * &#64;internal
-     * Authorization: can_create_mcp_server on the organization named by
-     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer create(ai.stigmer.agentic.mcpserver.v1.McpServer request) throws io.grpc.StatusException {
@@ -1141,12 +926,6 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing MCP server resource.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * Only the owner (based on scope) can update:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer update(ai.stigmer.agentic.mcpserver.v1.McpServer request) throws io.grpc.StatusException {
@@ -1159,12 +938,6 @@ public final class McpServerCommandControllerGrpc {
      * Delete an MCP server resource.
      * Permanently removes the MCP server definition.
      * Agents referencing this server will need to be updated.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the mcp_server resource.
-     * Only the owner can delete:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -1177,10 +950,6 @@ public final class McpServerCommandControllerGrpc {
      * Update the visibility of an existing MCP server.
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched.
-     * &#64;internal
-     * Authorization: can_edit on the mcp_server for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind).
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -1202,18 +971,6 @@ public final class McpServerCommandControllerGrpc {
      * so a blocking connect can appear to fail while succeeding server-side.
      * This RPC remains for callers that want synchronous semantics (and for
      * backends that do not yet serve startConnect).
-     * &#64;internal
-     * Typical flows:
-     * - Runner backfill: the runner calls connect on first use when
-     *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context (shared/connect-backfill.ts).
-     * - CLI / web console: legacy callers, and the fallback lane when
-     *   startConnect answers UNIMPLEMENTED (a backend predating it).
-     * Errors:
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-     * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) throws io.grpc.StatusException {
@@ -1237,20 +994,6 @@ public final class McpServerCommandControllerGrpc {
      * runtime_env wins) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
-     * &#64;internal
-     * The async lane exists because every budget stretch inside the blocking
-     * shape hit a client transport limit eventually (stigmer/stigmer#425):
-     * browser fetch drops no-bytes unary responses (~300s), classification
-     * budgets scale with tool count past any flat ceiling, and dead-runner
-     * feedback rode the same timer. Setup that needs the caller's identity
-     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
-     * happens synchronously in this RPC; only awaiting the workflow moves to
-     * the background.
-     * Errors (start-time only — post-start failures land in connect_status):
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - NOT_FOUND: MCP server does not exist
-     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) throws io.grpc.StatusException {
@@ -1265,18 +1008,6 @@ public final class McpServerCommandControllerGrpc {
      * generation) and returns an authorization URL for the frontend to
      * redirect the user to. The frontend calls completeOAuthConnect after
      * the user authorizes.
-     * &#64;internal
-     * Two auth modes determined by the MCP server's spec.auth block:
-     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-     *   discovers the authorization server, registers a client via DCR,
-     *   and builds the auth URL automatically.
-     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-     *   OAuthApp for client credentials and endpoint URLs.
-     * Errors:
-     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-     *   without oauth_app_ref (DCR requires HTTP transport)
-     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request) throws io.grpc.StatusException {
@@ -1294,13 +1025,6 @@ public final class McpServerCommandControllerGrpc {
      * record for pre-flight expiry checks.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
-     * &#64;internal
-     * Errors:
-     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-     *   not match the mcp_server_id
-     * - UNAVAILABLE: Token exchange with the authorization server failed
-     * - NOT_FOUND: No pending OAuth state found for the given state param
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request) throws io.grpc.StatusException {
@@ -1319,10 +1043,6 @@ public final class McpServerCommandControllerGrpc {
      * Idempotent: returns disconnected=true when a grant was deleted,
      * disconnected=false when no grant existed. Never returns an error
      * for a missing grant.
-     * &#64;internal
-     * Authorization: Requires can_connect permission on the mcp_server resource.
-     * Uses the same permission as connect/initiateOAuthConnect — if you can
-     * establish a connection, you can tear it down.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) throws io.grpc.StatusException {
@@ -1342,14 +1062,6 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * This is an org-admin operation — setting credentials that affect all users
-     * in the org who connect to this resource.
-     * Errors:
-     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-     *   (BYOA requires a platform template to clone from)
-     * - NOT_FOUND: Resource does not exist
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request) throws io.grpc.StatusException {
@@ -1370,11 +1082,6 @@ public final class McpServerCommandControllerGrpc {
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
-     * Errors:
-     * - NOT_FOUND: No override exists for this resource + org
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request) throws io.grpc.StatusException {
@@ -1387,13 +1094,6 @@ public final class McpServerCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service McpServerCommandController.
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
-   * &#64;internal
-   * Authorization model for writes: an MCP server is an organization's
-   * blueprint. create asks can_create_mcp_server on the organization (the
-   * admin bar every blueprint kind takes); update, delete and the connect
-   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
-   * Primary interface: The `apply` method provides Kubernetes-style idempotent
-   * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
    */
   public static final class McpServerCommandControllerBlockingStub
@@ -1414,11 +1114,6 @@ public final class McpServerCommandControllerGrpc {
      * Create or update an MCP server resource.
      * If the resource doesn't exist, creates it. If it exists, updates it.
      * The resource is identified by its (scope, org, slug) combination.
-     * &#64;internal
-     * The handler determines whether this is a create or update operation
-     * and performs appropriate scope-aware authorization:
-     * - Create: Requires permission to create in the target scope
-     * - Update: Requires can_edit on the existing resource
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer apply(ai.stigmer.agentic.mcpserver.v1.McpServer request) {
@@ -1431,9 +1126,6 @@ public final class McpServerCommandControllerGrpc {
      * Create an MCP server resource.
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
-     * &#64;internal
-     * Authorization: can_create_mcp_server on the organization named by
-     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer create(ai.stigmer.agentic.mcpserver.v1.McpServer request) {
@@ -1444,12 +1136,6 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing MCP server resource.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * Only the owner (based on scope) can update:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer update(ai.stigmer.agentic.mcpserver.v1.McpServer request) {
@@ -1462,12 +1148,6 @@ public final class McpServerCommandControllerGrpc {
      * Delete an MCP server resource.
      * Permanently removes the MCP server definition.
      * Agents referencing this server will need to be updated.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the mcp_server resource.
-     * Only the owner can delete:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -1480,10 +1160,6 @@ public final class McpServerCommandControllerGrpc {
      * Update the visibility of an existing MCP server.
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched.
-     * &#64;internal
-     * Authorization: can_edit on the mcp_server for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind).
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -1505,18 +1181,6 @@ public final class McpServerCommandControllerGrpc {
      * so a blocking connect can appear to fail while succeeding server-side.
      * This RPC remains for callers that want synchronous semantics (and for
      * backends that do not yet serve startConnect).
-     * &#64;internal
-     * Typical flows:
-     * - Runner backfill: the runner calls connect on first use when
-     *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context (shared/connect-backfill.ts).
-     * - CLI / web console: legacy callers, and the fallback lane when
-     *   startConnect answers UNIMPLEMENTED (a backend predating it).
-     * Errors:
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-     * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
@@ -1540,20 +1204,6 @@ public final class McpServerCommandControllerGrpc {
      * runtime_env wins) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
-     * &#64;internal
-     * The async lane exists because every budget stretch inside the blocking
-     * shape hit a client transport limit eventually (stigmer/stigmer#425):
-     * browser fetch drops no-bytes unary responses (~300s), classification
-     * budgets scale with tool count past any flat ceiling, and dead-runner
-     * feedback rode the same timer. Setup that needs the caller's identity
-     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
-     * happens synchronously in this RPC; only awaiting the workflow moves to
-     * the background.
-     * Errors (start-time only — post-start failures land in connect_status):
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - NOT_FOUND: MCP server does not exist
-     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
@@ -1568,18 +1218,6 @@ public final class McpServerCommandControllerGrpc {
      * generation) and returns an authorization URL for the frontend to
      * redirect the user to. The frontend calls completeOAuthConnect after
      * the user authorizes.
-     * &#64;internal
-     * Two auth modes determined by the MCP server's spec.auth block:
-     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-     *   discovers the authorization server, registers a client via DCR,
-     *   and builds the auth URL automatically.
-     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-     *   OAuthApp for client credentials and endpoint URLs.
-     * Errors:
-     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-     *   without oauth_app_ref (DCR requires HTTP transport)
-     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request) {
@@ -1597,13 +1235,6 @@ public final class McpServerCommandControllerGrpc {
      * record for pre-flight expiry checks.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
-     * &#64;internal
-     * Errors:
-     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-     *   not match the mcp_server_id
-     * - UNAVAILABLE: Token exchange with the authorization server failed
-     * - NOT_FOUND: No pending OAuth state found for the given state param
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request) {
@@ -1622,10 +1253,6 @@ public final class McpServerCommandControllerGrpc {
      * Idempotent: returns disconnected=true when a grant was deleted,
      * disconnected=false when no grant existed. Never returns an error
      * for a missing grant.
-     * &#64;internal
-     * Authorization: Requires can_connect permission on the mcp_server resource.
-     * Uses the same permission as connect/initiateOAuthConnect — if you can
-     * establish a connection, you can tear it down.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) {
@@ -1645,14 +1272,6 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * This is an org-admin operation — setting credentials that affect all users
-     * in the org who connect to this resource.
-     * Errors:
-     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-     *   (BYOA requires a platform template to clone from)
-     * - NOT_FOUND: Resource does not exist
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request) {
@@ -1673,11 +1292,6 @@ public final class McpServerCommandControllerGrpc {
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
-     * Errors:
-     * - NOT_FOUND: No override exists for this resource + org
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request) {
@@ -1690,13 +1304,6 @@ public final class McpServerCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service McpServerCommandController.
    * <pre>
    * McpServerCommandController provides write operations for MCP server resources.
-   * &#64;internal
-   * Authorization model for writes: an MCP server is an organization's
-   * blueprint. create asks can_create_mcp_server on the organization (the
-   * admin bar every blueprint kind takes); update, delete and the connect
-   * lanes ask the row's own permission (can_edit, can_delete, can_connect).
-   * Primary interface: The `apply` method provides Kubernetes-style idempotent
-   * create-or-update semantics, which is the recommended approach for CLI usage.
    * </pre>
    */
   public static final class McpServerCommandControllerFutureStub
@@ -1717,11 +1324,6 @@ public final class McpServerCommandControllerGrpc {
      * Create or update an MCP server resource.
      * If the resource doesn't exist, creates it. If it exists, updates it.
      * The resource is identified by its (scope, org, slug) combination.
-     * &#64;internal
-     * The handler determines whether this is a create or update operation
-     * and performs appropriate scope-aware authorization:
-     * - Create: Requires permission to create in the target scope
-     * - Update: Requires can_edit on the existing resource
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> apply(
@@ -1735,9 +1337,6 @@ public final class McpServerCommandControllerGrpc {
      * Create an MCP server resource.
      * Returns an error if a resource with the same (scope, org, slug) already exists.
      * Use `apply` for idempotent create-or-update semantics.
-     * &#64;internal
-     * Authorization: can_create_mcp_server on the organization named by
-     * metadata.org — the blueprint bar, as for agents, workflows and skills.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> create(
@@ -1749,12 +1348,6 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing MCP server resource.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * Only the owner (based on scope) can update:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> update(
@@ -1768,12 +1361,6 @@ public final class McpServerCommandControllerGrpc {
      * Delete an MCP server resource.
      * Permanently removes the MCP server definition.
      * Agents referencing this server will need to be updated.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the mcp_server resource.
-     * Only the owner can delete:
-     * - Platform: Platform operators
-     * - Organization: Org admins or resource owner
-     * - Identity Account: The owner
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> delete(
@@ -1787,10 +1374,6 @@ public final class McpServerCommandControllerGrpc {
      * Update the visibility of an existing MCP server.
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched.
-     * &#64;internal
-     * Authorization: can_edit on the mcp_server for every transition. The
-     * level is checked against the kind's VisibilityConfig (visibility_public
-     * is refused for every kind).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> updateVisibility(
@@ -1813,18 +1396,6 @@ public final class McpServerCommandControllerGrpc {
      * so a blocking connect can appear to fail while succeeding server-side.
      * This RPC remains for callers that want synchronous semantics (and for
      * backends that do not yet serve startConnect).
-     * &#64;internal
-     * Typical flows:
-     * - Runner backfill: the runner calls connect on first use when
-     *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context (shared/connect-backfill.ts).
-     * - CLI / web console: legacy callers, and the fallback lane when
-     *   startConnect answers UNIMPLEMENTED (a backend predating it).
-     * Errors:
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-     * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> connect(
@@ -1849,20 +1420,6 @@ public final class McpServerCommandControllerGrpc {
      * runtime_env wins) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
-     * &#64;internal
-     * The async lane exists because every budget stretch inside the blocking
-     * shape hit a client transport limit eventually (stigmer/stigmer#425):
-     * browser fetch drops no-bytes unary responses (~300s), classification
-     * budgets scale with tool count past any flat ceiling, and dead-runner
-     * feedback rode the same timer. Setup that needs the caller's identity
-     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
-     * happens synchronously in this RPC; only awaiting the workflow moves to
-     * the background.
-     * Errors (start-time only — post-start failures land in connect_status):
-     * - FAILED_PRECONDITION: Required credentials missing from personal environment
-     * - NOT_FOUND: MCP server does not exist
-     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> startConnect(
@@ -1878,18 +1435,6 @@ public final class McpServerCommandControllerGrpc {
      * generation) and returns an authorization URL for the frontend to
      * redirect the user to. The frontend calls completeOAuthConnect after
      * the user authorizes.
-     * &#64;internal
-     * Two auth modes determined by the MCP server's spec.auth block:
-     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-     *   discovers the authorization server, registers a client via DCR,
-     *   and builds the auth URL automatically.
-     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-     *   OAuthApp for client credentials and endpoint URLs.
-     * Errors:
-     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-     *   without oauth_app_ref (DCR requires HTTP transport)
-     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> initiateOAuthConnect(
@@ -1908,13 +1453,6 @@ public final class McpServerCommandControllerGrpc {
      * record for pre-flight expiry checks.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
-     * &#64;internal
-     * Errors:
-     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-     *   not match the mcp_server_id
-     * - UNAVAILABLE: Token exchange with the authorization server failed
-     * - NOT_FOUND: No pending OAuth state found for the given state param
-     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> completeOAuthConnect(
@@ -1934,10 +1472,6 @@ public final class McpServerCommandControllerGrpc {
      * Idempotent: returns disconnected=true when a grant was deleted,
      * disconnected=false when no grant existed. Never returns an error
      * for a missing grant.
-     * &#64;internal
-     * Authorization: Requires can_connect permission on the mcp_server resource.
-     * Uses the same permission as connect/initiateOAuthConnect — if you can
-     * establish a connection, you can tear it down.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> disconnectOAuth(
@@ -1958,14 +1492,6 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * This is an org-admin operation — setting credentials that affect all users
-     * in the org who connect to this resource.
-     * Errors:
-     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-     *   (BYOA requires a platform template to clone from)
-     * - NOT_FOUND: Resource does not exist
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> setOrgOAuthApp(
@@ -1987,11 +1513,6 @@ public final class McpServerCommandControllerGrpc {
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission on the organization.
-     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
-     * Errors:
-     * - NOT_FOUND: No override exists for this resource + org
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput> deleteOrgOAuthApp(

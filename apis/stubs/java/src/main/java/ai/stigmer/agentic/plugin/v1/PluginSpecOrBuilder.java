@@ -33,10 +33,6 @@ public interface PluginSpecOrBuilder extends
   /**
    * <pre>
    * Version string as written in the manifest, typically Semantic Versioning.
-   *
-   * &#64;internal
-   * Also the plugin's single-holder audit tag when it matches the tag
-   * pattern; the archive digest, not this string, is the version identity.
    * </pre>
    *
    * <code>string version = 2 [json_name = "version"];</code>
@@ -46,10 +42,6 @@ public interface PluginSpecOrBuilder extends
   /**
    * <pre>
    * Version string as written in the manifest, typically Semantic Versioning.
-   *
-   * &#64;internal
-   * Also the plugin's single-holder audit tag when it matches the tag
-   * pattern; the archive digest, not this string, is the version identity.
    * </pre>
    *
    * <code>string version = 2 [json_name = "version"];</code>

@@ -13,9 +13,6 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
   /**
    * <pre>
    * Workflow execution ID to cancel.
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
   /**
    * <pre>
    * Workflow execution ID to cancel.
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>

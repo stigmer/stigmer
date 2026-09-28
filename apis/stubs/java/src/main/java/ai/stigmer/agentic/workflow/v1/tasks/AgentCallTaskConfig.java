@@ -8,96 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
- *
- * &#64;internal
- * This message is the workflow DSL's adoption of the shared
- * AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
- * the TYPE level — issue stigmer/stigmer#358, per DD-018
- * (whatsapp-proactive-messaging, stigmer-cloud). Because
- * WorkflowTask.task_config is a "kind + Struct" envelope, this message
- * IS the authoring schema: its field names are the YAML keys workflow
- * authors write. Embedding AgentInvocation as a nested message would
- * force either a nested `invocation:` authoring block or
- * flatten/unflatten rewrites in every Struct consumer, so the DSL
- * stays flat and shares the vocabulary type-by-type instead.
- *
- * Field-by-field correspondence to AgentInvocation (keep in lockstep;
- * a field added there must be consciously adopted or consciously
- * excluded here, with the reason recorded):
- * - agent      ↔ agent_ref  — the DSL string form ("org/slug"); the
- * workflow runner parses it into an agent reference.
- * - message    ↔ message    — expression-carrying in the DSL.
- * - harness    ↔ harness    — same shared enum, same semantics.
- * - run_config ↔ run_config — the shared message, embedded directly.
- * - workspace_entries ↔ workspace_entries — same shared type; git
- * sources only (no client is connected to serve a
- * local_path when a workflow task fires).
- * - environment_refs ↔ environment_refs — same shared type; resolved
- * server-side at execution create, never carried in the
- * create request (the schedule/channel/share posture).
- *
- * Surface-specific fields with their reasons (the DD-017/018 bucket
- * discipline):
- * - env: the workflow's context-forwarding channel. Values are JQ
- * expressions resolved from workflow state/secrets at run time, not
- * plaintext literals in a manifest — which is why AgentInvocation's
- * runtime_env exclusion does not apply to it.
- * - output: the structured-output contract is a workflow-routing
- * concern (switch_case on typed fields), meaningless to other
- * invocation surfaces.
- *
- * Deleted in the #358 clean break (no reserved numbers; task configs
- * are stored as JSON Structs, so field numbers never hit a wire):
- * - org: redundant with the "org/slug" form of `agent`, and the
- * proto→YAML converter never emitted it.
- * - AgentExecutionConfig (timeout, temperature, context_management,
- * max_cost_micros): declared knobs the runtime silently ignored.
- * The cost cap lives on run_config.max_cost_usd and is now actually
- * enforced; timeout/temperature had no runtime counterpart at all.
- *
- * The agent string has three forms (the `agent` field's comment). The
- * runner resolves it in two phases, jq expressions on the workflow side
- * and ${.secrets.*} / ${.env_vars.*} placeholders in the CallAgent
- * activity, then reads "org/slug" in that organization and a bare slug
- * in the organization the execution runs in.
- *
- * YAML Example (without structured output):
- * - analyze:
- * call: agent
- * with:
- * agent: "code-reviewer"
- * message: "Review this code: ${ $context.fetchCode.body }"
- * env:
- * GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
- * run_config:
- * model_name: "claude-sonnet-4-6"
- * max_cost_usd: 0.50
- *
- * YAML Example (with structured output):
- * - triage_ticket:
- * call: agent
- * with:
- * agent: "support-triage"
- * message: "${ .ticket.description }"
- * output:
- * schema:
- * type: object
- * required: [severity, category, customer_impact]
- * properties:
- * severity:
- * type: string
- * enum: [low, medium, high, critical]
- * category:
- * type: string
- * customer_impact:
- * type: boolean
- * rationale:
- * type: string
- * on_invalid: ON_INVALID_RETRY
- * max_retries: 2
- * fallback_task: human_review
- * export:
- * as: "${ .structured }"
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig}
@@ -175,20 +85,6 @@ private static final long serialVersionUID = 0L;
    * the workflow
    * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
    * Required field.
-   *
-   * &#64;internal
-   * The DSL string form of AgentInvocation.agent_ref. The structured
-   * ApiResourceReference shape is deliberately not used here: the
-   * authoring surface is YAML written by hand, and "org/slug" is its
-   * idiom.
-   *
-   * A bare slug is relative: the runner resolves it in the execution's
-   * organization (`__stigmer_org_id`), which is not the workflow's when a
-   * person runs the workflow from another organization by id. The
-   * server's reference rule judges a bare slug in the workflow's own
-   * organization with its visibility floor capped at org, and collects
-   * nothing for a value containing "${", which no slug can contain
-   * (stigmer-server domain/workflow/agent-call-references.ts).
    * </pre>
    *
    * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -219,20 +115,6 @@ private static final long serialVersionUID = 0L;
    * the workflow
    * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
    * Required field.
-   *
-   * &#64;internal
-   * The DSL string form of AgentInvocation.agent_ref. The structured
-   * ApiResourceReference shape is deliberately not used here: the
-   * authoring surface is YAML written by hand, and "org/slug" is its
-   * idiom.
-   *
-   * A bare slug is relative: the runner resolves it in the execution's
-   * organization (`__stigmer_org_id`), which is not the workflow's when a
-   * person runs the workflow from another organization by id. The
-   * server's reference rule judges a bare slug in the workflow's own
-   * organization with its visibility floor capped at org, and collects
-   * nothing for a value containing "${", which no slug can contain
-   * (stigmer-server domain/workflow/agent-call-references.ts).
    * </pre>
    *
    * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -423,18 +305,6 @@ java.lang.String defaultValue) {
    * <pre>
    * Per-call model choice and run bounds. Unset fields inherit the
    * platform defaults.
-   *
-   * &#64;internal
-   * The shared RunConfig (DD-018 D-2) — the same message schedules
-   * embed, so the run-bound vocabulary cannot drift between
-   * triggering surfaces. Semantics at the workflow surface:
-   * model_name replaces the agent's default outright; max_cost_usd
-   * maps to ExecutionConfig.max_cost_usd and is enforced by the
-   * runner's harness-generic cost guards; max_tool_rounds maps to
-   * ExecutionConfig.max_tool_rounds (native harness only — inert on
-   * cursor, whose sole bound is cost). No platform clamp profile is
-   * applied at this surface yet: per the RunConfig contract, an unset
-   * platform cap means the owner value stands.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -448,18 +318,6 @@ java.lang.String defaultValue) {
    * <pre>
    * Per-call model choice and run bounds. Unset fields inherit the
    * platform defaults.
-   *
-   * &#64;internal
-   * The shared RunConfig (DD-018 D-2) — the same message schedules
-   * embed, so the run-bound vocabulary cannot drift between
-   * triggering surfaces. Semantics at the workflow surface:
-   * model_name replaces the agent's default outright; max_cost_usd
-   * maps to ExecutionConfig.max_cost_usd and is enforced by the
-   * runner's harness-generic cost guards; max_tool_rounds maps to
-   * ExecutionConfig.max_tool_rounds (native harness only — inert on
-   * cursor, whose sole bound is cost). No platform clamp profile is
-   * applied at this surface yet: per the RunConfig contract, an unset
-   * platform cap means the owner value stands.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -473,18 +331,6 @@ java.lang.String defaultValue) {
    * <pre>
    * Per-call model choice and run bounds. Unset fields inherit the
    * platform defaults.
-   *
-   * &#64;internal
-   * The shared RunConfig (DD-018 D-2) — the same message schedules
-   * embed, so the run-bound vocabulary cannot drift between
-   * triggering surfaces. Semantics at the workflow surface:
-   * model_name replaces the agent's default outright; max_cost_usd
-   * maps to ExecutionConfig.max_cost_usd and is enforced by the
-   * runner's harness-generic cost guards; max_tool_rounds maps to
-   * ExecutionConfig.max_tool_rounds (native harness only — inert on
-   * cursor, whose sole bound is cost). No platform clamp profile is
-   * applied at this surface yet: per the RunConfig contract, an unset
-   * platform cap means the owner value stands.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -629,17 +475,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Workspace the child run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * The shared WorkspaceEntry type (AgentInvocation correspondence).
-   * Maps onto SessionSpec.workspace_entries of the session each call
-   * creates. Surface constraint, enforced in workflow validation (both
-   * editions): sources must be git_repo — no client is connected to
-   * serve a local_path when a workflow task fires. Credentials follow
-   * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-   * environment; for private repos the supported contract is an
-   * org-visibility Environment holding GITHUB_TOKEN bound via
-   * environment_refs. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -651,17 +486,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Workspace the child run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * The shared WorkspaceEntry type (AgentInvocation correspondence).
-   * Maps onto SessionSpec.workspace_entries of the session each call
-   * creates. Surface constraint, enforced in workflow validation (both
-   * editions): sources must be git_repo — no client is connected to
-   * serve a local_path when a workflow task fires. Credentials follow
-   * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-   * environment; for private repos the supported contract is an
-   * org-visibility Environment holding GITHUB_TOKEN bound via
-   * environment_refs. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -674,17 +498,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Workspace the child run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * The shared WorkspaceEntry type (AgentInvocation correspondence).
-   * Maps onto SessionSpec.workspace_entries of the session each call
-   * creates. Surface constraint, enforced in workflow validation (both
-   * editions): sources must be git_repo — no client is connected to
-   * serve a local_path when a workflow task fires. Credentials follow
-   * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-   * environment; for private repos the supported contract is an
-   * org-visibility Environment holding GITHUB_TOKEN bound via
-   * environment_refs. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -696,17 +509,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Workspace the child run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * The shared WorkspaceEntry type (AgentInvocation correspondence).
-   * Maps onto SessionSpec.workspace_entries of the session each call
-   * creates. Surface constraint, enforced in workflow validation (both
-   * editions): sources must be git_repo — no client is connected to
-   * serve a local_path when a workflow task fires. Credentials follow
-   * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-   * environment; for private repos the supported contract is an
-   * org-visibility Environment holding GITHUB_TOKEN bound via
-   * environment_refs. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -718,17 +520,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Workspace the child run's session operates on. Empty means no workspace.
-   *
-   * &#64;internal
-   * The shared WorkspaceEntry type (AgentInvocation correspondence).
-   * Maps onto SessionSpec.workspace_entries of the session each call
-   * creates. Surface constraint, enforced in workflow validation (both
-   * editions): sources must be git_repo — no client is connected to
-   * serve a local_path when a workflow task fires. Credentials follow
-   * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-   * environment; for private repos the supported contract is an
-   * org-visibility Environment holding GITHUB_TOKEN bound via
-   * environment_refs. Public repos need no token.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -751,18 +542,6 @@ java.lang.String defaultValue) {
    * bind an org-shared environment holding the needed credentials, and
    * the child runs receive its values at runtime. The agent and its
    * default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-   * Never carried in the execution create request and never emitted
-   * into execution YAML: CreateExecutionContextStep resolves them from
-   * the Workflow row, gated on the trusted runner caller identity and
-   * keyed by parent_workflow_id + task label — prepended at LOWEST
-   * merge priority (instance refs and runtime_env override on key
-   * conflicts). No write-time existence or visibility check:
-   * enforcement lives solely at runtime resolution, which fails closed.
-   * When kind is unset in YAML, the DSL normalizer defaults it to
-   * environment.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -780,18 +559,6 @@ java.lang.String defaultValue) {
    * bind an org-shared environment holding the needed credentials, and
    * the child runs receive its values at runtime. The agent and its
    * default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-   * Never carried in the execution create request and never emitted
-   * into execution YAML: CreateExecutionContextStep resolves them from
-   * the Workflow row, gated on the trusted runner caller identity and
-   * keyed by parent_workflow_id + task label — prepended at LOWEST
-   * merge priority (instance refs and runtime_env override on key
-   * conflicts). No write-time existence or visibility check:
-   * enforcement lives solely at runtime resolution, which fails closed.
-   * When kind is unset in YAML, the DSL normalizer defaults it to
-   * environment.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -810,18 +577,6 @@ java.lang.String defaultValue) {
    * bind an org-shared environment holding the needed credentials, and
    * the child runs receive its values at runtime. The agent and its
    * default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-   * Never carried in the execution create request and never emitted
-   * into execution YAML: CreateExecutionContextStep resolves them from
-   * the Workflow row, gated on the trusted runner caller identity and
-   * keyed by parent_workflow_id + task label — prepended at LOWEST
-   * merge priority (instance refs and runtime_env override on key
-   * conflicts). No write-time existence or visibility check:
-   * enforcement lives solely at runtime resolution, which fails closed.
-   * When kind is unset in YAML, the DSL normalizer defaults it to
-   * environment.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -839,18 +594,6 @@ java.lang.String defaultValue) {
    * bind an org-shared environment holding the needed credentials, and
    * the child runs receive its values at runtime. The agent and its
    * default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-   * Never carried in the execution create request and never emitted
-   * into execution YAML: CreateExecutionContextStep resolves them from
-   * the Workflow row, gated on the trusted runner caller identity and
-   * keyed by parent_workflow_id + task label — prepended at LOWEST
-   * merge priority (instance refs and runtime_env override on key
-   * conflicts). No write-time existence or visibility check:
-   * enforcement lives solely at runtime resolution, which fails closed.
-   * When kind is unset in YAML, the DSL normalizer defaults it to
-   * environment.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -868,18 +611,6 @@ java.lang.String defaultValue) {
    * bind an org-shared environment holding the needed credentials, and
    * the child runs receive its values at runtime. The agent and its
    * default instance stay untouched.
-   *
-   * &#64;internal
-   * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-   * Never carried in the execution create request and never emitted
-   * into execution YAML: CreateExecutionContextStep resolves them from
-   * the Workflow row, gated on the trusted runner caller identity and
-   * keyed by parent_workflow_id + task label — prepended at LOWEST
-   * merge priority (instance refs and runtime_env override on key
-   * conflicts). No write-time existence or visibility check:
-   * enforcement lives solely at runtime resolution, which fails closed.
-   * When kind is unset in YAML, the DSL normalizer defaults it to
-   * environment.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1159,96 +890,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
-   *
-   * &#64;internal
-   * This message is the workflow DSL's adoption of the shared
-   * AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
-   * the TYPE level — issue stigmer/stigmer#358, per DD-018
-   * (whatsapp-proactive-messaging, stigmer-cloud). Because
-   * WorkflowTask.task_config is a "kind + Struct" envelope, this message
-   * IS the authoring schema: its field names are the YAML keys workflow
-   * authors write. Embedding AgentInvocation as a nested message would
-   * force either a nested `invocation:` authoring block or
-   * flatten/unflatten rewrites in every Struct consumer, so the DSL
-   * stays flat and shares the vocabulary type-by-type instead.
-   *
-   * Field-by-field correspondence to AgentInvocation (keep in lockstep;
-   * a field added there must be consciously adopted or consciously
-   * excluded here, with the reason recorded):
-   * - agent      ↔ agent_ref  — the DSL string form ("org/slug"); the
-   * workflow runner parses it into an agent reference.
-   * - message    ↔ message    — expression-carrying in the DSL.
-   * - harness    ↔ harness    — same shared enum, same semantics.
-   * - run_config ↔ run_config — the shared message, embedded directly.
-   * - workspace_entries ↔ workspace_entries — same shared type; git
-   * sources only (no client is connected to serve a
-   * local_path when a workflow task fires).
-   * - environment_refs ↔ environment_refs — same shared type; resolved
-   * server-side at execution create, never carried in the
-   * create request (the schedule/channel/share posture).
-   *
-   * Surface-specific fields with their reasons (the DD-017/018 bucket
-   * discipline):
-   * - env: the workflow's context-forwarding channel. Values are JQ
-   * expressions resolved from workflow state/secrets at run time, not
-   * plaintext literals in a manifest — which is why AgentInvocation's
-   * runtime_env exclusion does not apply to it.
-   * - output: the structured-output contract is a workflow-routing
-   * concern (switch_case on typed fields), meaningless to other
-   * invocation surfaces.
-   *
-   * Deleted in the #358 clean break (no reserved numbers; task configs
-   * are stored as JSON Structs, so field numbers never hit a wire):
-   * - org: redundant with the "org/slug" form of `agent`, and the
-   * proto→YAML converter never emitted it.
-   * - AgentExecutionConfig (timeout, temperature, context_management,
-   * max_cost_micros): declared knobs the runtime silently ignored.
-   * The cost cap lives on run_config.max_cost_usd and is now actually
-   * enforced; timeout/temperature had no runtime counterpart at all.
-   *
-   * The agent string has three forms (the `agent` field's comment). The
-   * runner resolves it in two phases, jq expressions on the workflow side
-   * and ${.secrets.*} / ${.env_vars.*} placeholders in the CallAgent
-   * activity, then reads "org/slug" in that organization and a bare slug
-   * in the organization the execution runs in.
-   *
-   * YAML Example (without structured output):
-   * - analyze:
-   * call: agent
-   * with:
-   * agent: "code-reviewer"
-   * message: "Review this code: ${ $context.fetchCode.body }"
-   * env:
-   * GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
-   * run_config:
-   * model_name: "claude-sonnet-4-6"
-   * max_cost_usd: 0.50
-   *
-   * YAML Example (with structured output):
-   * - triage_ticket:
-   * call: agent
-   * with:
-   * agent: "support-triage"
-   * message: "${ .ticket.description }"
-   * output:
-   * schema:
-   * type: object
-   * required: [severity, category, customer_impact]
-   * properties:
-   * severity:
-   * type: string
-   * enum: [low, medium, high, critical]
-   * category:
-   * type: string
-   * customer_impact:
-   * type: boolean
-   * rationale:
-   * type: string
-   * on_invalid: ON_INVALID_RETRY
-   * max_retries: 2
-   * fallback_task: human_review
-   * export:
-   * as: "${ .structured }"
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig}
@@ -1633,20 +1274,6 @@ java.lang.String defaultValue) {
      * the workflow
      * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
      * Required field.
-     *
-     * &#64;internal
-     * The DSL string form of AgentInvocation.agent_ref. The structured
-     * ApiResourceReference shape is deliberately not used here: the
-     * authoring surface is YAML written by hand, and "org/slug" is its
-     * idiom.
-     *
-     * A bare slug is relative: the runner resolves it in the execution's
-     * organization (`__stigmer_org_id`), which is not the workflow's when a
-     * person runs the workflow from another organization by id. The
-     * server's reference rule judges a bare slug in the workflow's own
-     * organization with its visibility floor capped at org, and collects
-     * nothing for a value containing "${", which no slug can contain
-     * (stigmer-server domain/workflow/agent-call-references.ts).
      * </pre>
      *
      * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -1676,20 +1303,6 @@ java.lang.String defaultValue) {
      * the workflow
      * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
      * Required field.
-     *
-     * &#64;internal
-     * The DSL string form of AgentInvocation.agent_ref. The structured
-     * ApiResourceReference shape is deliberately not used here: the
-     * authoring surface is YAML written by hand, and "org/slug" is its
-     * idiom.
-     *
-     * A bare slug is relative: the runner resolves it in the execution's
-     * organization (`__stigmer_org_id`), which is not the workflow's when a
-     * person runs the workflow from another organization by id. The
-     * server's reference rule judges a bare slug in the workflow's own
-     * organization with its visibility floor capped at org, and collects
-     * nothing for a value containing "${", which no slug can contain
-     * (stigmer-server domain/workflow/agent-call-references.ts).
      * </pre>
      *
      * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -1720,20 +1333,6 @@ java.lang.String defaultValue) {
      * the workflow
      * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
      * Required field.
-     *
-     * &#64;internal
-     * The DSL string form of AgentInvocation.agent_ref. The structured
-     * ApiResourceReference shape is deliberately not used here: the
-     * authoring surface is YAML written by hand, and "org/slug" is its
-     * idiom.
-     *
-     * A bare slug is relative: the runner resolves it in the execution's
-     * organization (`__stigmer_org_id`), which is not the workflow's when a
-     * person runs the workflow from another organization by id. The
-     * server's reference rule judges a bare slug in the workflow's own
-     * organization with its visibility floor capped at org, and collects
-     * nothing for a value containing "${", which no slug can contain
-     * (stigmer-server domain/workflow/agent-call-references.ts).
      * </pre>
      *
      * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -1760,20 +1359,6 @@ java.lang.String defaultValue) {
      * the workflow
      * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
      * Required field.
-     *
-     * &#64;internal
-     * The DSL string form of AgentInvocation.agent_ref. The structured
-     * ApiResourceReference shape is deliberately not used here: the
-     * authoring surface is YAML written by hand, and "org/slug" is its
-     * idiom.
-     *
-     * A bare slug is relative: the runner resolves it in the execution's
-     * organization (`__stigmer_org_id`), which is not the workflow's when a
-     * person runs the workflow from another organization by id. The
-     * server's reference rule judges a bare slug in the workflow's own
-     * organization with its visibility floor capped at org, and collects
-     * nothing for a value containing "${", which no slug can contain
-     * (stigmer-server domain/workflow/agent-call-references.ts).
      * </pre>
      *
      * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -1797,20 +1382,6 @@ java.lang.String defaultValue) {
      * the workflow
      * Examples: "code-reviewer", "acme/data-analyst", "${.env_vars.TEAM_ORG}/assistant"
      * Required field.
-     *
-     * &#64;internal
-     * The DSL string form of AgentInvocation.agent_ref. The structured
-     * ApiResourceReference shape is deliberately not used here: the
-     * authoring surface is YAML written by hand, and "org/slug" is its
-     * idiom.
-     *
-     * A bare slug is relative: the runner resolves it in the execution's
-     * organization (`__stigmer_org_id`), which is not the workflow's when a
-     * person runs the workflow from another organization by id. The
-     * server's reference rule judges a bare slug in the workflow's own
-     * organization with its visibility floor capped at org, and collects
-     * nothing for a value containing "${", which no slug can contain
-     * (stigmer-server domain/workflow/agent-call-references.ts).
      * </pre>
      *
      * <code>string agent = 1 [json_name = "agent", (.buf.validate.field) = { ... }</code>
@@ -2124,18 +1695,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2148,18 +1707,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2176,18 +1723,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2209,18 +1744,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2240,18 +1763,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2278,18 +1789,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2308,18 +1807,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2333,18 +1820,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2361,18 +1836,6 @@ java.lang.String defaultValue) {
      * <pre>
      * Per-call model choice and run bounds. Unset fields inherit the
      * platform defaults.
-     *
-     * &#64;internal
-     * The shared RunConfig (DD-018 D-2) — the same message schedules
-     * embed, so the run-bound vocabulary cannot drift between
-     * triggering surfaces. Semantics at the workflow surface:
-     * model_name replaces the agent's default outright; max_cost_usd
-     * maps to ExecutionConfig.max_cost_usd and is enforced by the
-     * runner's harness-generic cost guards; max_tool_rounds maps to
-     * ExecutionConfig.max_tool_rounds (native harness only — inert on
-     * cursor, whose sole bound is cost). No platform clamp profile is
-     * applied at this surface yet: per the RunConfig contract, an unset
-     * platform cap means the owner value stands.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -2811,17 +2274,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -2836,17 +2288,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -2861,17 +2302,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -2886,17 +2316,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -2918,17 +2337,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -2947,17 +2355,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -2978,17 +2375,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3010,17 +2396,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3039,17 +2414,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3068,17 +2432,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3098,17 +2451,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3126,17 +2468,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3154,17 +2485,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3176,17 +2496,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3201,17 +2510,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3227,17 +2525,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3249,17 +2536,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3272,17 +2548,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Workspace the child run's session operates on. Empty means no workspace.
-     *
-     * &#64;internal
-     * The shared WorkspaceEntry type (AgentInvocation correspondence).
-     * Maps onto SessionSpec.workspace_entries of the session each call
-     * creates. Surface constraint, enforced in workflow validation (both
-     * editions): sources must be git_repo — no client is connected to
-     * serve a local_path when a workflow task fires. Credentials follow
-     * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-     * environment; for private repos the supported contract is an
-     * org-visibility Environment holding GITHUB_TOKEN bound via
-     * environment_refs. Public repos need no token.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
@@ -3327,18 +2592,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3359,18 +2612,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3391,18 +2632,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3423,18 +2652,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3462,18 +2679,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3498,18 +2703,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3536,18 +2729,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3575,18 +2756,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3611,18 +2780,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3647,18 +2804,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3684,18 +2829,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3719,18 +2852,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3754,18 +2875,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3783,18 +2892,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3815,18 +2912,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3848,18 +2933,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3877,18 +2950,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -3907,18 +2968,6 @@ java.lang.String defaultValue) {
      * bind an org-shared environment holding the needed credentials, and
      * the child runs receive its values at runtime. The agent and its
      * default instance stay untouched.
-     *
-     * &#64;internal
-     * The AgentShare/AgentChannel/Schedule environment_refs lineage.
-     * Never carried in the execution create request and never emitted
-     * into execution YAML: CreateExecutionContextStep resolves them from
-     * the Workflow row, gated on the trusted runner caller identity and
-     * keyed by parent_workflow_id + task label — prepended at LOWEST
-     * merge priority (instance refs and runtime_env override on key
-     * conflicts). No write-time existence or visibility check:
-     * enforcement lives solely at runtime resolution, which fails closed.
-     * When kind is unset in YAML, the DSL normalizer defaults it to
-     * environment.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

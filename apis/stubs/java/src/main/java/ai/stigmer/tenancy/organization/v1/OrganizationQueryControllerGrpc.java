@@ -208,8 +208,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * Get an organization by ID.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     default void get(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -220,8 +218,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * List organizations with pagination and filtering.
-     * &#64;internal
-     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     default void find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request,
@@ -233,8 +229,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Find organizations the authenticated user is a member of.
      * Returns only organizations the caller has access to.
-     * &#64;internal
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     default void findMyOrganizations(com.google.protobuf.Empty request,
@@ -246,9 +240,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-     * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider,
-     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     default void getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
@@ -293,8 +284,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * Get an organization by ID.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public void get(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -306,8 +295,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * List organizations with pagination and filtering.
-     * &#64;internal
-     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public void find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request,
@@ -320,8 +307,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Find organizations the authenticated user is a member of.
      * Returns only organizations the caller has access to.
-     * &#64;internal
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public void findMyOrganizations(com.google.protobuf.Empty request,
@@ -334,9 +319,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-     * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider,
-     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public void getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
@@ -368,8 +350,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * Get an organization by ID.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization get(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
@@ -380,8 +360,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * List organizations with pagination and filtering.
-     * &#64;internal
-     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.OrganizationList find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request) throws io.grpc.StatusException {
@@ -393,8 +371,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Find organizations the authenticated user is a member of.
      * Returns only organizations the caller has access to.
-     * &#64;internal
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organizations findMyOrganizations(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -406,9 +382,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-     * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider,
-     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) throws io.grpc.StatusException {
@@ -439,8 +412,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * Get an organization by ID.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization get(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
@@ -451,8 +422,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * List organizations with pagination and filtering.
-     * &#64;internal
-     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.OrganizationList find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request) {
@@ -464,8 +433,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Find organizations the authenticated user is a member of.
      * Returns only organizations the caller has access to.
-     * &#64;internal
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organizations findMyOrganizations(com.google.protobuf.Empty request) {
@@ -477,9 +444,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-     * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider,
-     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) {
@@ -510,8 +474,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * Get an organization by ID.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> get(
@@ -523,8 +485,6 @@ public final class OrganizationQueryControllerGrpc {
     /**
      * <pre>
      * List organizations with pagination and filtering.
-     * &#64;internal
-     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.OrganizationList> find(
@@ -537,8 +497,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Find organizations the authenticated user is a member of.
      * Returns only organizations the caller has access to.
-     * &#64;internal
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organizations> findMyOrganizations(
@@ -551,9 +509,6 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-     * &#64;internal
-     * Authorization: custom — checks can_view on the referenced IdentityProvider,
-     * and resolves the external org ID within that IdentityProvider alone.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> getByExternalOrgId(

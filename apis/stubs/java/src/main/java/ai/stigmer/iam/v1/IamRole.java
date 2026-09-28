@@ -65,12 +65,6 @@ public enum IamRole
    * Conversation participant on an agent channel: may read the channel's
    * conversations and speak to its customers as the business (reply, take
    * over, hand back, clear attention). Not a channel configurator.
-   *
-   * &#64;internal
-   * channel-conversations DD-010. Grantable only on agent_channel — the
-   * second kind-scoped role after organization's admin/member; the
-   * grantable_roles subsetting is the mechanism, not a new one. A team may
-   * hold it too (agent_channel's team_grantable_roles).
    * </pre>
    *
    * <code>participant = 5;</code>
@@ -129,12 +123,6 @@ public enum IamRole
    * Conversation participant on an agent channel: may read the channel's
    * conversations and speak to its customers as the business (reply, take
    * over, hand back, clear attention). Not a channel configurator.
-   *
-   * &#64;internal
-   * channel-conversations DD-010. Grantable only on agent_channel — the
-   * second kind-scoped role after organization's admin/member; the
-   * grantable_roles subsetting is the mechanism, not a new one. A team may
-   * hold it too (agent_channel's team_grantable_roles).
    * </pre>
    *
    * <code>participant = 5;</code>

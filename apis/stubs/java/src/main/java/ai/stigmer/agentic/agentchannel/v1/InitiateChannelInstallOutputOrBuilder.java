@@ -38,10 +38,6 @@ public interface InitiateChannelInstallOutputOrBuilder extends
    * <pre>
    * Single-use opaque state parameter bound to this install attempt.
    * Empty when the install completed directly.
-   *
-   * &#64;internal
-   * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
-   * atomically by completeInstall; expired or replayed states are rejected.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state"];</code>
@@ -52,10 +48,6 @@ public interface InitiateChannelInstallOutputOrBuilder extends
    * <pre>
    * Single-use opaque state parameter bound to this install attempt.
    * Empty when the install completed directly.
-   *
-   * &#64;internal
-   * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
-   * atomically by completeInstall; expired or replayed states are rejected.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state"];</code>
@@ -70,11 +62,6 @@ public interface InitiateChannelInstallOutputOrBuilder extends
    * (direct-installed providers). Clients branch on this field — never on
    * provider knowledge of their own — so the server stays the single
    * source of install-style truth.
-   *
-   * &#64;internal
-   * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
-   * AuthorizationRedirectInstaller populates authorization_url + state;
-   * DirectInstaller populates completed.
    * </pre>
    *
    * <code>bool completed = 3 [json_name = "completed"];</code>

@@ -12,21 +12,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * Recovery preserves completed work: tasks that succeeded in the failed run are
  * skipped (their outputs restored into workflow context), and execution resumes
  * from the first incomplete or failed task.
- *
- * &#64;internal
- * Terminates the existing Temporal orchestrator and child workflows, recreates
- * the ExecutionContext with freshly resolved environment variables, and starts a
- * new orchestrator with recoveryMode enabled. The workflow engine reads completed
- * task outputs from the persisted event log, skips those tasks (emitting
- * task_skipped events), and begins execution at the first non-completed task.
- * Event sequence numbers continue from the high-water mark of the previous run.
- *
- * Preconditions:
- * - Execution must be in EXECUTION_FAILED phase
- * - TERMINATED and CANCELLED executions cannot be recovered
- * - User must have can_edit permission
- *
- * Idempotent: if recovery is already in progress, returns current state as a no-op.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput}
@@ -79,9 +64,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow execution ID to recover (must be in FAILED phase).
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -103,9 +85,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow execution ID to recover (must be in FAILED phase).
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -346,21 +325,6 @@ private static final long serialVersionUID = 0L;
    * Recovery preserves completed work: tasks that succeeded in the failed run are
    * skipped (their outputs restored into workflow context), and execution resumes
    * from the first incomplete or failed task.
-   *
-   * &#64;internal
-   * Terminates the existing Temporal orchestrator and child workflows, recreates
-   * the ExecutionContext with freshly resolved environment variables, and starts a
-   * new orchestrator with recoveryMode enabled. The workflow engine reads completed
-   * task outputs from the persisted event log, skips those tasks (emitting
-   * task_skipped events), and begins execution at the first non-completed task.
-   * Event sequence numbers continue from the high-water mark of the previous run.
-   *
-   * Preconditions:
-   * - Execution must be in EXECUTION_FAILED phase
-   * - TERMINATED and CANCELLED executions cannot be recovered
-   * - User must have can_edit permission
-   *
-   * Idempotent: if recovery is already in progress, returns current state as a no-op.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput}
@@ -518,9 +482,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to recover (must be in FAILED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -541,9 +502,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to recover (must be in FAILED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -565,9 +523,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to recover (must be in FAILED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -585,9 +540,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to recover (must be in FAILED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -602,9 +554,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow execution ID to recover (must be in FAILED phase).
-     *
-     * &#64;internal
-     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>

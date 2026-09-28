@@ -60,11 +60,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The configuration or secret string.
-   *
-   * &#64;internal
-   * When is_secret is true the value is encrypted at rest and redacted in logs.
-   * When is_secret is false the value is stored as plaintext.
-   * Value can be empty when pre-declaring keys whose values are injected at runtime.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>
@@ -86,11 +81,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The configuration or secret string.
-   *
-   * &#64;internal
-   * When is_secret is true the value is encrypted at rest and redacted in logs.
-   * When is_secret is false the value is stored as plaintext.
-   * Value can be empty when pre-declaring keys whose values are injected at runtime.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>
@@ -116,10 +106,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this value should be treated as a secret.
-   *
-   * &#64;internal
-   * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
-   * When false: stored as plaintext, visible in audit logs.
    * </pre>
    *
    * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -527,11 +513,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The configuration or secret string.
-     *
-     * &#64;internal
-     * When is_secret is true the value is encrypted at rest and redacted in logs.
-     * When is_secret is false the value is stored as plaintext.
-     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -552,11 +533,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The configuration or secret string.
-     *
-     * &#64;internal
-     * When is_secret is true the value is encrypted at rest and redacted in logs.
-     * When is_secret is false the value is stored as plaintext.
-     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -578,11 +554,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The configuration or secret string.
-     *
-     * &#64;internal
-     * When is_secret is true the value is encrypted at rest and redacted in logs.
-     * When is_secret is false the value is stored as plaintext.
-     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -600,11 +571,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The configuration or secret string.
-     *
-     * &#64;internal
-     * When is_secret is true the value is encrypted at rest and redacted in logs.
-     * When is_secret is false the value is stored as plaintext.
-     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -619,11 +585,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The configuration or secret string.
-     *
-     * &#64;internal
-     * When is_secret is true the value is encrypted at rest and redacted in logs.
-     * When is_secret is false the value is stored as plaintext.
-     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -644,10 +605,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     *
-     * &#64;internal
-     * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
-     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -660,10 +617,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     *
-     * &#64;internal
-     * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
-     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -680,10 +633,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     *
-     * &#64;internal
-     * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
-     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>

@@ -13,16 +13,6 @@ package ai.stigmer.agentic.channelapp.v1;
  * The values come from the app's dashboard on developers.facebook.com.
  * The app's webhook must be configured with this ChannelApp's events URL
  * and verify token — the console shows both after the app is registered.
- *
- * &#64;internal
- * DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud
- * API has no per-install OAuth), so they all live here — no managed
- * Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
- * stays empty for WhatsApp channels. Webhook attribution is by the per-app
- * request path (/webhook/whatsapp/{channelAppId}), matching Slack's
- * per-app URL posture: Meta's GET verification handshake carries no app
- * identity, and the POST signature (X-Hub-Signature-256, HMAC over the
- * raw body with app_secret) must verify before any parse.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig}
@@ -465,16 +455,6 @@ private static final long serialVersionUID = 0L;
    * The values come from the app's dashboard on developers.facebook.com.
    * The app's webhook must be configured with this ChannelApp's events URL
    * and verify token — the console shows both after the app is registered.
-   *
-   * &#64;internal
-   * DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud
-   * API has no per-install OAuth), so they all live here — no managed
-   * Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
-   * stays empty for WhatsApp channels. Webhook attribution is by the per-app
-   * request path (/webhook/whatsapp/{channelAppId}), matching Slack's
-   * per-app URL posture: Meta's GET verification handshake carries no app
-   * identity, and the POST signature (X-Hub-Signature-256, HMAC over the
-   * raw body with app_secret) must verify before any parse.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig}
