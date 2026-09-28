@@ -55,9 +55,14 @@ BACKUP_DIR="$(mktemp -d)"
 TMP_FILES=()
 TMP_DIRS=()
 MUTATED=()
+TEMPORAL_PID=""
 
 cleanup() {
   local f
+  if [ -n "$TEMPORAL_PID" ]; then
+    kill "$TEMPORAL_PID" 2>/dev/null || true
+    wait "$TEMPORAL_PID" 2>/dev/null || true
+  fi
   for f in "${MUTATED[@]:-}"; do
     [ -n "$f" ] && [ -f "$BACKUP_DIR/$f" ] && cp "$BACKUP_DIR/$f" "$ROOT/$f"
   done
@@ -152,6 +157,39 @@ p.write_text(text)
 PY
 }
 
+# ─── Temporal for the server's consumer smoke ─────────────────────────────
+# @stigmer/server's consumer-install smoke (scripts/verify-consumer-install.mjs,
+# run by publish-standalone.mjs) boots the staged install and requires every
+# Temporal worker to start, against TEMPORAL_HOST_PORT (default
+# 127.0.0.1:7233) — release.dev.yaml's publish-npm-server runs it on a dev
+# server too. One already answering there is used as it is; otherwise a
+# headless dev server runs for the command and is stopped after it (and by
+# cleanup, when the command fails).
+with_temporal() {
+  local address="${TEMPORAL_HOST_PORT:-127.0.0.1:7233}"
+  command -v temporal >/dev/null 2>&1 \
+    || die "temporal CLI not found — the @stigmer/server consumer smoke boots against a Temporal dev server on $address."
+  if temporal operator cluster health --address "$address" >/dev/null 2>&1; then
+    "$@"
+    return
+  fi
+  [ -z "${TEMPORAL_HOST_PORT:-}" ] \
+    || die "no Temporal answers on TEMPORAL_HOST_PORT=$TEMPORAL_HOST_PORT — start it, or unset the variable to run a dev server on 127.0.0.1:7233."
+  log "npm: starting a headless Temporal dev server for the server's consumer smoke"
+  temporal server start-dev --headless --log-level error >/dev/null 2>&1 &
+  TEMPORAL_PID=$!
+  local i
+  for i in $(seq 1 30); do
+    temporal operator cluster health --address "$address" >/dev/null 2>&1 && break
+    [ "$i" = 30 ] && die "the Temporal dev server did not answer on $address within 30 s."
+    sleep 1
+  done
+  "$@"
+  kill "$TEMPORAL_PID" 2>/dev/null || true
+  wait "$TEMPORAL_PID" 2>/dev/null || true
+  TEMPORAL_PID=""
+}
+
 # ─── npm ──────────────────────────────────────────────────────────────────
 publish_npm() {
   log "npm: building stubs and publishing @stigmer/* under the 'dev' tag"
@@ -162,32 +200,9 @@ publish_npm() {
 
   NPM_TOKEN="$token" node scripts/publish-libs.mjs --version "$NPM_VERSION" --tag dev
 
-  log "npm: building and publishing @stigmer/runner@$NPM_VERSION"
-  make build-runner
-
-  local runner_dir="backend/services/runner"
-  snapshot "$runner_dir/package.json"
-  VERSION="$NPM_VERSION" node -e "
-    const fs = require('node:fs');
-    const path = 'backend/services/runner/package.json';
-    const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-    pkg.version = process.env.VERSION;
-    pkg.dependencies['@stigmer/protos'] = process.env.VERSION;
-    fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-  "
-
-  # Wait for the just-published protos to be queryable (runner pins it exactly).
-  log "npm: waiting for @stigmer/protos@$NPM_VERSION to be visible"
-  local i
-  for i in $(seq 1 30); do
-    npm view "@stigmer/protos@$NPM_VERSION" version >/dev/null 2>&1 && break
-    [ "$i" = 30 ] && die "@stigmer/protos@$NPM_VERSION not visible on npm after 5 minutes."
-    sleep 10
-  done
-
   # npm reads the project .npmrc from the *publish* directory and does not walk
-  # up to parent directories. The fat runner and each slim sub-package live in
-  # different dirs (dist-slim-pkgs/runner-slim-*/ each carry their own
+  # up to parent directories. The standalone packages and each slim sub-package
+  # live in different dirs (dist-slim-pkgs/runner-slim-*/ each carry their own
   # package.json), so a single project .npmrc could never cover them all. Mirror
   # what actions/setup-node does in CI: write one auth file and point npm at it
   # via NPM_CONFIG_USERCONFIG, which npm honors from any working directory. The
@@ -196,7 +211,21 @@ publish_npm() {
   local npmrc; npmrc="$(mktemp)"; TMP_FILES+=("$npmrc")
   printf '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n' > "$npmrc"
   export NPM_CONFIG_USERCONFIG="$npmrc" NODE_AUTH_TOKEN="$token"
-  ( cd "$runner_dir" && npm publish --access public --tag dev )
+
+  # The standalone publish sequence release.dev.yaml runs
+  # (scripts/publish-standalone.mjs): stamp the dev version, pin EVERY
+  # workspace-lib file: link to it, wait until the pinned libs are installable
+  # from npm, run the consumer-install smoke (#786) over the stamped manifest,
+  # publish under `dev`. The inline stamp this replaced pinned @stigmer/protos
+  # only, so a local dev runner shipped three unresolvable file: links
+  # (stigmer/stigmer#1381). The manifest stays stamped for the slim steps
+  # below; cleanup restores it from the snapshot.
+  log "npm: building and publishing @stigmer/runner@$NPM_VERSION"
+  make build-runner
+
+  local runner_dir="backend/services/runner"
+  snapshot "$runner_dir/package.json"
+  node scripts/publish-standalone.mjs --package "$runner_dir" --version "$NPM_VERSION" --tag dev
 
   # The slim embedding artifact (stigmer/stigmer#170): @stigmer/runner-slim plus
   # its per-platform native-bridge packages. Self-contained — its bundle does
@@ -226,7 +255,16 @@ publish_npm() {
   done
   ( cd "$slim_pkgs/runner-slim" && npm publish --access public --tag dev )
 
-  ok "npm: published @stigmer/*, @stigmer/runner, and @stigmer/runner-slim at $NPM_VERSION (tag dev)"
+  # @stigmer/server as a library, the dev twin of release.dev.yaml's
+  # publish-npm-server: the build a consumer pinning the library (every
+  # @stigmer/* at this exact version) installs from another machine.
+  log "npm: building and publishing @stigmer/server@$NPM_VERSION"
+  make build-server
+  snapshot "backend/services/stigmer-server/package.json"
+  with_temporal node scripts/publish-standalone.mjs \
+    --package backend/services/stigmer-server --version "$NPM_VERSION" --tag dev
+
+  ok "npm: published @stigmer/*, @stigmer/runner, @stigmer/runner-slim and @stigmer/server at $NPM_VERSION (tag dev)"
 }
 
 # ─── Maven ─────────────────────────────────────────────────────────────────
@@ -331,6 +369,7 @@ fi
 if want npm; then
   echo "npm (React/TS):    npm install @stigmer/react@dev          # exact: @stigmer/react@${NPM_VERSION}"
   echo "npm (embed runner): npm install @stigmer/runner-slim@dev   # exact: @stigmer/runner-slim@${NPM_VERSION}"
+  echo "npm (server lib):   pin @stigmer/server and every other @stigmer/* dependency at exactly ${NPM_VERSION}"
 fi
 if want python; then
   echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==${PY_VERSION}'"

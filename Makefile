@@ -579,6 +579,17 @@ smoke-all-in-one: build-runner build-server build-web ## Stage, build and boot-s
 stage-compose-runner-cli: build-libs ## Stage the CLI tarballs the compose-runner image installs (from this checkout, dev version)
 	node scripts/stage-compose-runner-cli.mjs --skip-build
 
+# The @stigmer/server library as a consumer installs it: the server and the
+# @stigmer/* closure of its file: links, packed from THIS checkout at one
+# 0.0.0-local.<stamp> version into backend/services/stigmer-server/stage/library
+# (scripts/stage-server-library.mjs; out=<dir> moves it). A consumer that
+# pins the library installs the set with `npm install --no-save` and runs its
+# own suite against an unreleased server change, with nothing published. The
+# script builds the stubs, the linked libs and the server first.
+.PHONY: stage-server-library
+stage-server-library: node_modules ## Stage @stigmer/server and its @stigmer/* libs as tarballs from this checkout, no registry (out=<dir>)
+	node scripts/stage-server-library.mjs $(if $(out),--out=$(out))
+
 # The compose gate (DD-013, Phase-2 P5): build both images from source and
 # prove the full self-host stack — server + Postgres + Temporal + runner —
 # up to one end-to-end workflow run. The same script the PR gate

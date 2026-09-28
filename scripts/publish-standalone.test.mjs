@@ -24,6 +24,11 @@
 // pinned here on a fake fetch: it HEADs the tarball the document names,
 // every way an install can still fall short has its own words, and the
 // wait holds a lib that is listed but not downloadable and says why.
+//
+// And --pack-dir is publish-libs.mjs's flag, word for word: a directory,
+// resolved against the caller's cwd, refused beside --tag and --dry-run.
+// The pack lane stages the server beside libs packed by publish-libs.mjs,
+// so a script driving both must not learn two vocabularies.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -104,6 +109,7 @@ test("parseArgs requires --package and a semver --version", () => {
       version: "3.14.0",
       tag: undefined,
       dryRun: false,
+      packDir: undefined,
     },
   );
   assert.deepEqual(
@@ -116,13 +122,64 @@ test("parseArgs requires --package and a semver --version", () => {
       "dev",
       "--dry-run",
     ]),
-    { packageDir: "x", version: "3.14.1-dev.1", tag: "dev", dryRun: true },
+    {
+      packageDir: "x",
+      version: "3.14.1-dev.1",
+      tag: "dev",
+      dryRun: true,
+      packDir: undefined,
+    },
   );
   assert.throws(() => parseArgs(["--version", "3.14.0"]), /usage/);
   assert.throws(() => parseArgs(["--package", "x"]), /usage/);
   assert.throws(
     () => parseArgs(["--package", "x", "--version", "v3.14.0"]),
     /semver/,
+  );
+});
+
+test("parseArgs takes --pack-dir as publish-libs does: a directory, resolved, never with --tag or --dry-run", () => {
+  // The pack lane (scripts/stage-server-library.mjs) packs the server beside
+  // libs packed by publish-libs.mjs --pack-dir, so the two scripts refuse the
+  // same combinations in the same words: a directory has no dist-tag, and a
+  // pack is already a run with no registry side effects.
+  assert.deepEqual(
+    parseArgs([
+      "--package",
+      "backend/services/stigmer-server",
+      "--version",
+      "0.0.0-local.20260929120000",
+      "--pack-dir",
+      "/tmp/pkgs",
+    ]),
+    {
+      packageDir: "backend/services/stigmer-server",
+      version: "0.0.0-local.20260929120000",
+      tag: undefined,
+      dryRun: false,
+      packDir: "/tmp/pkgs",
+    },
+  );
+  const base = ["--package", "x", "--version", "3.14.0"];
+  assert.equal(
+    parseArgs([...base, "--pack-dir", "out/pkgs"]).packDir,
+    join(process.cwd(), "out", "pkgs"),
+  );
+  assert.throws(
+    () => parseArgs([...base, "--pack-dir", "out", "--tag", "dev"]),
+    /--pack-dir cannot be combined with --tag or --dry-run/,
+  );
+  assert.throws(
+    () => parseArgs([...base, "--pack-dir", "out", "--dry-run"]),
+    /--pack-dir cannot be combined with --tag or --dry-run/,
+  );
+  assert.throws(
+    () => parseArgs([...base, "--pack-dir"]),
+    /--pack-dir requires a directory/,
+  );
+  assert.throws(
+    () => parseArgs([...base, "--pack-dir", "--dry-run"]),
+    /--pack-dir requires a directory/,
   );
 });
 

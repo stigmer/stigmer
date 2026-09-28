@@ -125,8 +125,10 @@ make publish-dev-local base=3.1.0         # pin the base version
 (`make publish-dev-maven-local` is kept as an alias for `targets=maven`.)
 
 It derives the same dev versions, publishes to the same channels (npm `dev` tag,
-Maven SNAPSHOT, TestPyPI, GHCR), and prints the same consumer coordinates. It is
-backed by [`scripts/publish-dev-local.sh`](../../../scripts/publish-dev-local.sh).
+Maven SNAPSHOT, TestPyPI, GHCR), and prints the same consumer coordinates. Its
+npm target publishes the runner and `@stigmer/server` through the same
+`scripts/publish-standalone.mjs` sequence as the workflow. It is backed by
+[`scripts/publish-dev-local.sh`](../../../scripts/publish-dev-local.sh).
 
 **Credentials come from Planton secrets**, fetched at runtime and never written
 to disk (GitHub Actions secrets are write-only and cannot be read back, so they
@@ -214,7 +216,13 @@ npm install @stigmer/react@dev     # dev (latest dev build)
 `@dev` always resolves to the newest dev build. To pin an exact dev build, use the
 full `3.0.1-dev.<stamp>` version from the run summary.
 
-**`@stigmer/server` (the library a composition pins).** This is the lane a cross-repository seam change rides: dispatch this workflow from the OSS feature branch (`targets=npm`), and the composition's PR branch pins the exact dev version the summary prints — `@stigmer/server`, `@stigmer/protos` and `@stigmer/temporal-codecs` all at the same `X.Y.Z-dev.<stamp>`, never by the `dev` tag. A production manifest never carries a dev build: the composition's `main` pins released versions only (its pin guard keeps a PR red until it re-pins after the release).
+**`@stigmer/server` (the library a composition pins).** A composition that pins the library at an exact release has three ways to run against an unreleased server change, fastest first:
+
+1. **No publish at all: `make stage-server-library`.** It packs the server and the `@stigmer/*` libraries it links from your working tree, at one `0.0.0-local.<stamp>` version, into `backend/services/stigmer-server/stage/library` (`out=<dir>` moves it). The consumer installs every tarball in one `npm install --no-save <dir>/pkgs/*.tgz`, which changes neither its `package.json` nor its lockfile; its next `npm ci` puts the pinned release back. This is the everyday loop: minutes from an edit to the consumer's own suite, and nothing leaves your machine. `npm link` is not a substitute: a linked package resolves its dependencies from this repository's `node_modules`, which gives the consumer a second copy of every package the server declares in `stigmerPublish.consumerCheck.singleCopy`.
+2. **A dev build from your working tree: `make publish-dev-local targets=npm`.** It publishes `@stigmer/server` with the libs and the runner, through the same `scripts/publish-standalone.mjs` sequence as the workflow, consumer smoke included (it needs the `temporal` CLI, and uses a Temporal already answering on `127.0.0.1:7233` or starts a dev server for the step). Use it when another machine or session must install the build.
+3. **A dev build of a pushed commit: dispatch this workflow** from the OSS feature branch (`targets=npm`), when the build must trace to a commit.
+
+A dev build is pinned by its exact version, never by the `dev` tag: `@stigmer/server` and every other `@stigmer/*` dependency at the same `X.Y.Z-dev.<stamp>`. A production manifest never carries a dev build: the composition's `main` pins released versions only (its pin guard keeps a PR red until it re-pins after the release).
 
 ### Python (TestPyPI)
 

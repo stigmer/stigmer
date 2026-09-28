@@ -181,9 +181,30 @@ test("packageClosure follows dependencies and peers, in PACKAGES order", () => {
   assert.deepEqual(packageClosure("@stigmer/protos", syntheticManifests), ["apis/stubs/ts"]);
 });
 
+test("packageClosure of several names is the union of their closures, once each, in PACKAGES order", () => {
+  // A standalone package outside the publish set names its file:-linked libs
+  // one --only each; overlapping closures (ink and sdk both reach protos)
+  // must not pack a package twice, and the order stays the publish order
+  // whatever order the names arrive in.
+  assert.deepEqual(packageClosure(["@stigmer/embed", "@stigmer/ink"], syntheticManifests), [
+    "apis/stubs/ts",
+    "sdk/typescript",
+    "sdk/embed",
+    "sdk/ink",
+  ]);
+  assert.deepEqual(
+    packageClosure(["@stigmer/ink", "@stigmer/embed"], syntheticManifests),
+    packageClosure(["@stigmer/embed", "@stigmer/ink"], syntheticManifests),
+  );
+  // One name in a list is the single-name closure.
+  assert.deepEqual(packageClosure(["@stigmer/cli"], syntheticManifests), packageClosure("@stigmer/cli", syntheticManifests));
+});
+
 test("packageClosure refuses a name outside the publish set", () => {
   // A typo must not pack an empty set that an image then installs "successfully".
   assert.throws(() => packageClosure("@stigmer/clii", syntheticManifests), /not a publishable workspace package/);
+  // In a list too, and it names the one that is wrong.
+  assert.throws(() => packageClosure(["@stigmer/protos", "@stigmer/clii"], syntheticManifests), /--only @stigmer\/clii: not a publishable/);
 });
 
 test("packageClosure refuses an @stigmer/* edge that leaves the publish set", () => {

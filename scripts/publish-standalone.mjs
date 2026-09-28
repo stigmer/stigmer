@@ -51,20 +51,35 @@
  * nobody has published cannot install), then stamp, pack list and
  * `npm publish --dry-run`, and the manifest and LICENSE are restored.
  *
+ * `--pack-dir <dir>` "publishes" to a directory instead of the registry,
+ * as publish-libs.mjs's flag of the same name does for the workspace libs:
+ * steps 1 and 2, then `npm pack` into <dir>, and the manifest and LICENSE
+ * are restored. The tarball is the one step 6 would upload, pinned to libs
+ * at the same version, so a consumer installs it together with the libs
+ * packed by `publish-libs.mjs --pack-dir` at that version and our graph
+ * resolves among the tarballs (scripts/stage-server-library.mjs). There is
+ * no registry wait and no consumer smoke: the smoke installs the pinned
+ * libs from npm, where a pack-only version never exists, and the PR lanes
+ * already run it over the committed manifest; the consumer that installs
+ * the tarballs runs its own suite over its own tree. Mutually exclusive
+ * with --dry-run and --tag (no dist-tag exists for a directory).
+ *
  * Usage:
  *   node scripts/publish-standalone.mjs --package backend/services/runner --version 3.14.0
  *   node scripts/publish-standalone.mjs --package backend/services/stigmer-server --version 3.14.1-dev.20260910 --tag dev
  *   node scripts/publish-standalone.mjs --package ... --version ... --dry-run
+ *   node scripts/publish-standalone.mjs --package backend/services/stigmer-server --version 0.0.0-local.20260929120000 --pack-dir out/pkgs
  *
  * Authentication is npm's own (NODE_AUTH_TOKEN with setup-node's
- * registry-url, as the workflows configure). Needs a prior build of the
- * package and of the workspace libs it links.
+ * registry-url, as the workflows configure); a --pack-dir run needs none.
+ * Needs a prior build of the package and of the workspace libs it links.
  */
 
 import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
+  mkdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -130,7 +145,7 @@ export function parseArgs(argv) {
   const version = value("--version");
   if (!packageDir || !version) {
     throw new Error(
-      "usage: publish-standalone.mjs --package <dir> --version <semver> [--tag <tag>] [--dry-run]",
+      "usage: publish-standalone.mjs --package <dir> --version <semver> [--tag <tag>] [--dry-run | --pack-dir <dir>]",
     );
   }
   if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
@@ -138,11 +153,21 @@ export function parseArgs(argv) {
       `--version must be a semver or semver pre-release, got '${version}'`,
     );
   }
+  const tag = value("--tag");
+  const dryRun = argv.includes("--dry-run");
+  const packDir = value("--pack-dir");
+  if (argv.includes("--pack-dir") && (!packDir || packDir.startsWith("--"))) {
+    throw new Error("--pack-dir requires a directory");
+  }
+  if (packDir && (tag || dryRun)) {
+    throw new Error("--pack-dir cannot be combined with --tag or --dry-run");
+  }
   return {
     packageDir,
     version,
-    tag: value("--tag"),
-    dryRun: argv.includes("--dry-run"),
+    tag,
+    dryRun,
+    packDir: packDir ? resolve(packDir) : undefined,
   };
 }
 
@@ -316,6 +341,7 @@ async function main() {
     version,
     tag: explicitTag,
     dryRun,
+    packDir,
   } = parseArgs(process.argv.slice(2));
   const packageDir = isAbsolute(packageArg)
     ? packageArg
@@ -327,11 +353,16 @@ async function main() {
 
   console.log(`\n  package: ${manifest.name} (${packageDir})`);
   console.log(`  version: ${version}`);
-  console.log(`  tag:     ${tag}`);
+  if (packDir) {
+    console.log(`  pack to: ${packDir} (no registry)`);
+  } else {
+    console.log(`  tag:     ${tag}`);
+  }
   console.log(
     `  pinned:  ${pinned.length > 0 ? pinned.map((n) => `${n}@${version}`).join(", ") : "(none)"}`,
   );
-  console.log(`  dry-run: ${dryRun}\n`);
+  if (!packDir) console.log(`  dry-run: ${dryRun}`);
+  console.log("");
 
   const licensePath = join(packageDir, "LICENSE");
   const licenseCopied =
@@ -347,6 +378,16 @@ async function main() {
 
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
     if (licenseCopied) copyFileSync(join(repoRoot, "LICENSE"), licensePath);
+
+    if (packDir) {
+      console.log("\n=== Pack ===");
+      mkdirSync(packDir, { recursive: true });
+      run("npm", ["pack", "--pack-destination", packDir], packageDir);
+      console.log(
+        `\n=== Done: ${manifest.name}@${version} (packed to ${packDir}) ===\n`,
+      );
+      return;
+    }
 
     console.log("\n=== Published file list ===");
     run("npm", ["pack", "--dry-run"], packageDir);
@@ -375,7 +416,10 @@ async function main() {
       `\n=== Done: ${manifest.name}@${version} (${tag}${dryRun ? ", dry-run" : ""}) ===\n`,
     );
   } finally {
-    if (dryRun) {
+    // A real publish leaves the manifest stamped for the slim steps that
+    // follow in the same job (step 1); a rehearsal or a pack leaves the
+    // checkout as it found it.
+    if (dryRun || packDir) {
       writeFileSync(manifestPath, original);
       if (licenseCopied) rmSync(licensePath, { force: true });
     }
