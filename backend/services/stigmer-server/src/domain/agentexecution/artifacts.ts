@@ -57,6 +57,7 @@ import {
   invalidArgumentError,
 } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { casBlobContentMismatch } from "./filereview/cas-blob.js";
 
@@ -254,18 +255,22 @@ export async function getArtifactContent(
     throw invalidArgumentError("storage_key does not belong to this execution");
   }
 
-  // Existence check (Go answers NotFound for any load failure here).
+  // Existence check: only a missing execution is NotFound; any other store
+  // failure is an infrastructure fault.
   try {
     await deps.store.getResource(
       ApiResourceKind.agent_execution,
       req.executionId,
       AgentExecutionSchema,
     );
-  } catch {
-    throw new ConnectError(
-      `execution not found: ${req.executionId}`,
-      Code.NotFound,
-    );
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw new ConnectError(
+        `execution not found: ${req.executionId}`,
+        Code.NotFound,
+      );
+    }
+    throw internalError(error, "failed to load agent execution");
   }
 
   let maxBytes = Number(req.maxBytes);
@@ -424,7 +429,8 @@ export async function getArtifactDownloadUrl(
   );
 
   // Load BEFORE the key check: the attachment arm needs spec.attachments,
-  // and this doubles as the existence check.
+  // and this doubles as the existence check (a missing execution is
+  // NotFound; any other store failure is an infrastructure fault).
   let execution: AgentExecution;
   try {
     execution = await deps.store.getResource(
@@ -432,11 +438,14 @@ export async function getArtifactDownloadUrl(
       req.executionId,
       AgentExecutionSchema,
     );
-  } catch {
-    throw new ConnectError(
-      `execution not found: ${req.executionId}`,
-      Code.NotFound,
-    );
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw new ConnectError(
+        `execution not found: ${req.executionId}`,
+        Code.NotFound,
+      );
+    }
+    throw internalError(error, "failed to load agent execution");
   }
 
   // Same normalize-before-check posture as getArtifactContent

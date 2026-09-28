@@ -135,9 +135,11 @@ function newLoadExecutionByIdStep<Desc extends DescMessage>(
           executionId,
           AgentExecutionSchema,
         );
-      } catch {
-        // Go converts every load failure here to the same NotFound.
-        throw notFoundError("agent_execution", executionId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("agent_execution", executionId);
+        }
+        throw internalError(error, "failed to load agent execution");
       }
       ctx.set(LOADED_EXECUTION_KEY, execution);
     },

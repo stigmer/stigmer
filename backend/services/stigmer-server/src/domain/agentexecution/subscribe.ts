@@ -46,10 +46,12 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import {
+  internalError,
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
 import { isTranscriptTerminalPhase } from "./phases.js";
@@ -97,9 +99,11 @@ export async function* subscribeExecution(
         id,
         AgentExecutionSchema,
       );
-    } catch {
-      // Go converts every load failure here to the same NotFound.
-      throw notFoundError("AgentExecution", id);
+    } catch (error) {
+      if (error instanceof ResourceNotFoundError) {
+        throw notFoundError("AgentExecution", id);
+      }
+      throw internalError(error, "failed to load agent execution");
     }
 
     yield snapshot;
