@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -14,11 +14,11 @@ import {
   getUserMessage,
   iamRoleFromString,
   iamRoleToString,
+  isPlatformClientAccount,
 } from "@stigmer/sdk";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useOwnerAssignment } from "./useOwnerAssignment.js";
 import { useResourceAccess } from "./useResourceAccess.js";
-import { usePrincipalsCount } from "./usePrincipalsCount.js";
 import { useWhoAmI } from "./useWhoAmI.js";
 import { useRevokeOrgAccess } from "./useRevokeOrgAccess.js";
 import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
@@ -44,14 +44,13 @@ export interface OrgMembersPanelProps {
 /**
  * Self-contained panel for managing organization members.
  *
- * Displays all principals with access to the organization, their
- * role grants, and provides actions to change roles and remove
- * members. New members arrive through invitations where the edition
- * serves them (Enterprise and Cloud); on open source people join the
- * organization the first time they sign in and the server records their
- * role. The current user is identified via
- * `identityAccount.whoAmI()` for self-protection (disabling
- * destructive actions on yourself).
+ * Displays the organization's members, their role grants, and
+ * provides actions to change roles and remove members. New members
+ * arrive through invitations where the edition serves them (Enterprise
+ * and Cloud); on open source people join the organization the first
+ * time they sign in and the server records their role. The current user
+ * is identified via `identityAccount.whoAmI()` for self-protection
+ * (disabling destructive actions on yourself).
  *
  * Owner is assigned by owners: the server asks `can_assign_roles` on the
  * organization before any change to the owner role. The panel asks the
@@ -59,6 +58,14 @@ export interface OrgMembersPanelProps {
  * role picker and no change or removal on an owner's row. A role change
  * grants the new role before it revokes the old one, so a refused step
  * leaves the member with the role they had.
+ *
+ * The accounts a PlatformClient provisioned for the organization's own
+ * product also hold a role here (a client's auto-grant), but they are that
+ * product's users, not the organization's people. The panel lists them
+ * apart, in a collapsed "Users from your product" group, and leaves them
+ * out of the member count; the server authorizes the same actions on them.
+ * The count is the number of member rows, read from the one access list
+ * the panel fetches, so it always equals what is shown.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -74,21 +81,49 @@ export function OrgMembersPanel({
 }: OrgMembersPanelProps) {
   const resource = orgId ? { kind: "organization", id: orgId } : null;
   const { members, isLoading, error, refetch } = useResourceAccess(resource);
-  const { count, refetch: refetchCount } = usePrincipalsCount(orgId || null);
   const { account: currentAccount } = useWhoAmI();
   const currentAccountId = currentAccount?.metadata?.id ?? null;
   const { canAssignOwner, unassignable } = useOwnerAssignment(orgId || null);
 
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
+  const [productUsersOpen, setProductUsersOpen] = useState(false);
+  const productUsersId = useId();
 
-  const handleRefetch = useCallback(() => {
-    refetch();
-    refetchCount();
-  }, [refetch, refetchCount]);
+  const { people, productUsers } = useMemo(() => {
+    const people: PrincipalAccess[] = [];
+    const productUsers: PrincipalAccess[] = [];
+    for (const entry of members) {
+      if (entry.principal && isPlatformClientAccount(entry.principal)) {
+        productUsers.push(entry);
+      } else {
+        people.push(entry);
+      }
+    }
+    return { people, productUsers };
+  }, [members]);
 
   if (onRefetchRef) {
-    onRefetchRef(handleRefetch);
+    onRefetchRef(refetch);
   }
+
+  const renderRow = (entry: PrincipalAccess, audience: MemberAudience) => {
+    const memberId = entry.principal?.id ?? "";
+    return (
+      <MemberRow
+        key={memberId}
+        entry={entry}
+        orgId={orgId}
+        audience={audience}
+        isSelf={memberId === currentAccountId}
+        canAssignOwner={canAssignOwner}
+        unassignable={unassignable}
+        isActioning={actionMemberId === memberId}
+        onStartAction={() => setActionMemberId(memberId)}
+        onEndAction={() => setActionMemberId(null)}
+        onMutated={refetch}
+      />
+    );
+  };
 
   if (isLoading) {
     return (
@@ -120,42 +155,68 @@ export function OrgMembersPanel({
       {/* Header */}
       <div className="stg:flex stg:items-center stg:gap-2">
         <span className="stg:text-sm stg:font-semibold stg:text-foreground">Members</span>
-        {count > 0 && (
+        {people.length > 0 && (
           <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
-            {count}
+            {people.length}
           </span>
         )}
       </div>
 
       {/* Members list */}
-      {members.length === 0 ? (
+      {people.length === 0 ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           No members found.
         </p>
       ) : (
         <div role="list" aria-label="Organization members" className="stg:space-y-2">
-          {members.map((entry) => {
-            const memberId = entry.principal?.id ?? "";
-            return (
-              <MemberRow
-                key={memberId}
-                entry={entry}
-                orgId={orgId}
-                isSelf={memberId === currentAccountId}
-                canAssignOwner={canAssignOwner}
-                unassignable={unassignable}
-                isActioning={actionMemberId === memberId}
-                onStartAction={() => setActionMemberId(memberId)}
-                onEndAction={() => setActionMemberId(null)}
-                onMutated={handleRefetch}
-              />
-            );
-          })}
+          {people.map((entry) => renderRow(entry, "member"))}
+        </div>
+      )}
+
+      {/* The product's users: provisioned by a platform client, not members */}
+      {productUsers.length > 0 && (
+        <div className="stg:space-y-2 stg:pt-1">
+          <button
+            type="button"
+            onClick={() => setProductUsersOpen((open) => !open)}
+            aria-expanded={productUsersOpen}
+            aria-controls={productUsersId}
+            className="stg:flex stg:items-center stg:gap-2 stg:rounded stg:text-left stg:hover:text-foreground stg:transition-colors"
+          >
+            <ChevronIcon expanded={productUsersOpen} />
+            <span className="stg:text-xs stg:font-medium stg:text-foreground">
+              Users from your product
+            </span>
+            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+              {productUsers.length}
+            </span>
+          </button>
+          <p className="stg:text-muted-foreground stg:text-xs">
+            Signed in through your platform clients. They use Stigmer through
+            your product and are not members of this organization.
+          </p>
+          {productUsersOpen && (
+            <div
+              id={productUsersId}
+              role="list"
+              aria-label="Users from your product"
+              className="stg:space-y-2"
+            >
+              {productUsers.map((entry) => renderRow(entry, "productUser"))}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
+
+/**
+ * Whose row a {@link MemberRow} is: one of the organization's people, or a
+ * user of its product that a platform client provisioned. The actions are
+ * the same; what removing one of them means is not.
+ */
+type MemberAudience = "member" | "productUser";
 
 // ---------------------------------------------------------------------------
 // MemberRow (internal)
@@ -164,6 +225,7 @@ export function OrgMembersPanel({
 function MemberRow({
   entry,
   orgId,
+  audience,
   isSelf,
   canAssignOwner,
   unassignable,
@@ -174,6 +236,7 @@ function MemberRow({
 }: {
   entry: PrincipalAccess;
   orgId: string;
+  audience: MemberAudience;
   isSelf: boolean;
   /** Whether the caller may grant, revoke or remove the owner role here. */
   canAssignOwner: boolean;
@@ -216,6 +279,7 @@ function MemberRow({
         memberId={memberId}
         memberName={name}
         orgId={orgId}
+        audience={audience}
         onDone={() => {
           cancelAction();
           onMutated();
@@ -346,12 +410,14 @@ function RemoveConfirmation({
   memberId,
   memberName,
   orgId,
+  audience,
   onDone,
   onCancel,
 }: {
   memberId: string;
   memberName: string;
   orgId: string;
+  audience: MemberAudience;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -373,8 +439,7 @@ function RemoveConfirmation({
     >
       <div className="stg:min-w-0 stg:flex-1">
         <p className="stg:text-xs stg:text-foreground">
-          Remove <span className="stg:font-medium">{memberName}</span> from this
-          organization? This revokes all their access.
+          <RemoveCopy audience={audience} memberName={memberName} />
         </p>
         {error && (
           <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
@@ -412,6 +477,41 @@ function RemoveConfirmation({
       </div>
     </div>
   );
+}
+
+/**
+ * What removing someone does, said before it is done. A product user's
+ * account keeps existing after the revoke, and the product's next sign-in
+ * reuses it as it is, so the access does not come back on its own.
+ */
+function RemoveCopy({
+  audience,
+  memberName,
+}: {
+  audience: MemberAudience;
+  memberName: string;
+}) {
+  const name = <span className="stg:font-medium">{memberName}</span>;
+  switch (audience) {
+    case "member":
+      return (
+        <>
+          Remove {name} from this organization? This revokes all their access.
+        </>
+      );
+    case "productUser":
+      return (
+        <>
+          Remove {name}? They lose access to this organization through your
+          product, and signing in through it again does not restore it. Grant
+          them a role to bring them back.
+        </>
+      );
+    default: {
+      const unreachable: never = audience;
+      return unreachable;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -555,6 +655,28 @@ function ChangeRoleRow({
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={cn(
+        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
+      )}
+    >
+      <path d="M6 4l4 4-4 4" />
+    </svg>
+  );
+}
 
 function EditIcon() {
   return (

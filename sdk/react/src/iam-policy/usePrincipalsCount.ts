@@ -23,8 +23,15 @@ export interface UsePrincipalsCountReturn {
  * Data hook that fetches the count of principals with access to an
  * organization.
  *
- * Wraps `iamPolicy.getPrincipalsCount()`. Useful for member count
- * badges in navigation and summary statistics.
+ * Wraps `iamPolicy.getPrincipalsCount()`: every principal of the kind
+ * that holds a role on the organization. For identity accounts that
+ * includes the accounts a PlatformClient provisioned for the
+ * organization's own product and any machine account granted a role, so
+ * it is the size of the access list, not the number of the
+ * organization's people. A member count reads the organization's access
+ * list ({@link useResourceAccess}) and leaves out the entries
+ * `isPlatformClientAccount` (from `@stigmer/sdk`) marks, as
+ * `OrgMembersPanel` does.
  *
  * Pass `null` as `orgId` to skip fetching (stable no-op).
  *

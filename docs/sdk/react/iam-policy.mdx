@@ -226,8 +226,15 @@ const { people, teams } = useGranteeCandidates({
 Data hook that fetches the count of principals with access to an
 organization.
 
-Wraps `iamPolicy.getPrincipalsCount()`. Useful for member count
-badges in navigation and summary statistics.
+Wraps `iamPolicy.getPrincipalsCount()`: every principal of the kind
+that holds a role on the organization. For identity accounts that
+includes the accounts a PlatformClient provisioned for the
+organization's own product and any machine account granted a role, so
+it is the size of the access list, not the number of the
+organization's people. A member count reads the organization's access
+list ([`useResourceAccess`](#useresourceaccess)) and leaves out the entries
+`isPlatformClientAccount` (from `@stigmer/sdk`) marks, as
+`OrgMembersPanel` does.
 
 Pass `null` as `orgId` to skip fetching (stable no-op).
 
@@ -530,14 +537,13 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Self-contained panel for managing organization members.
 
-Displays all principals with access to the organization, their
-role grants, and provides actions to change roles and remove
-members. New members arrive through invitations where the edition
-serves them (Enterprise and Cloud); on open source people join the
-organization the first time they sign in and the server records their
-role. The current user is identified via
-`identityAccount.whoAmI()` for self-protection (disabling
-destructive actions on yourself).
+Displays the organization's members, their role grants, and
+provides actions to change roles and remove members. New members
+arrive through invitations where the edition serves them (Enterprise
+and Cloud); on open source people join the organization the first
+time they sign in and the server records their role. The current user
+is identified via `identityAccount.whoAmI()` for self-protection
+(disabling destructive actions on yourself).
 
 Owner is assigned by owners: the server asks `can_assign_roles` on the
 organization before any change to the owner role. The panel asks the
@@ -545,6 +551,14 @@ same question once, and for a caller without it offers no owner in the
 role picker and no change or removal on an owner's row. A role change
 grants the new role before it revokes the old one, so a refused step
 leaves the member with the role they had.
+
+The accounts a PlatformClient provisioned for the organization's own
+product also hold a role here (a client's auto-grant), but they are that
+product's users, not the organization's people. The panel lists them
+apart, in a collapsed "Users from your product" group, and leaves them
+out of the member count; the server authorizes the same actions on them.
+The count is the number of member rows, read from the one access list
+the panel fetches, so it always equals what is shown.
 
 All visual properties flow through `--stgm-*` design tokens.
 

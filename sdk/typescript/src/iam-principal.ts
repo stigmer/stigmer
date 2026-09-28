@@ -14,10 +14,20 @@
  * `member`), so a client never acts on a principal it would misname. A
  * revoke built from the returned grantee names the exact row the list
  * showed, because the server's revoke matches the qualifier exactly.
+ *
+ * `isPlatformClientAccount` reads the other thing a client needs from an
+ * entry: whether the person is one the organization's own product brought
+ * in through a PlatformClient. Such an account holds a real role on the
+ * organization (a client's auto-grant), yet it is a user of that product,
+ * not a person of the organization, and the server's own membership rules
+ * skip it for that reason. A members view lists and counts the
+ * organization's people without these accounts; an access audit still
+ * shows everyone who holds a role.
  */
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import {
   type ApiResourceRef,
   ApiResourceRefSchema,
@@ -84,6 +94,20 @@ export function granteeFromView(
     return teamGrantee(view.id);
   }
   return undefined;
+}
+
+/**
+ * Whether an access-list entry is an account a PlatformClient provisioned:
+ * a person kind whose identity origin is `platform_client`. An entry the
+ * server could not resolve carries no origin and reads `false`.
+ */
+export function isPlatformClientAccount(
+  view: Pick<ApiResourceRefView, "kind" | "identityOrigin">,
+): boolean {
+  return (
+    view.kind === PERSON_KIND &&
+    view.identityOrigin?.provisioningMode === IdentityAccountProvisioningMode.platform_client
+  );
 }
 
 /** A stable key for a grantee: its kind and id. */

@@ -25,6 +25,10 @@
 //     created_by actor, beside that one account;
 //   - an auto-provisioned user holds exactly the auto-grant role on the
 //     owning organization and sees that organization alone;
+//   - the owning organization's access list names that user as
+//     provisioned by a PlatformClient (identity origin `platform_client`)
+//     and its founder as not, which is how a members view tells the
+//     product's users from the organization's people;
 //   - a wrong secret, an org_id that is not the owning organization, and a
 //     client that does not provision users are refused with the pinned copy;
 //   - rotating the secret stops the old one minting and leaves minted tokens
@@ -44,6 +48,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -312,6 +317,42 @@ describe.skipIf(!enforcementServed)(
       expect(
         mine.entries.map((organization) => organization.metadata?.slug),
       ).toEqual([context.org]);
+    });
+
+    it("the owning organization's access list names an auto-provisioned user as provisioned by a PlatformClient", async () => {
+      const context = await tenancy();
+      const client = await platformClient(context.org, {
+        autoGrantRole: IamRole.viewer,
+      });
+      const minted = lane.clientsPresenting(
+        await mintUserToken(lane.clients, client.credentials, uniqueName("enforcement-user")),
+      );
+      const userId = await lane.accountIdOf(minted);
+      const founderId = await lane.accountIdOf(lane.clients);
+      // The minted user sees exactly the owning organization; its id is the
+      // row the grant names (the id and the slug differ on some editions).
+      const [owning] = (await minted.organizationQuery.findMyOrganizations({})).entries;
+      const orgId = owning?.metadata?.id ?? "";
+      expect(orgId, "the minted user sees its owning organization").not.toBe("");
+
+      const access = await lane.clients.iamPolicyQuery.listResourceAccessByPrincipal({
+        resource: { kind: "organization", id: orgId },
+      });
+      const originOf = (id: string) =>
+        access.entries.find((entry) => entry.principal?.id === id)?.principal?.identityOrigin
+          ?.provisioningMode;
+
+      expect(
+        originOf(userId),
+        `the minted user ${userId} is on ${orgId}'s access list as provisioned by a PlatformClient`,
+      ).toBe(IdentityAccountProvisioningMode.platform_client);
+      expect(
+        access.entries.some((entry) => entry.principal?.id === founderId),
+        `the founder ${founderId} is on ${orgId}'s access list`,
+      ).toBe(true);
+      expect(originOf(founderId), "the founder is not a PlatformClient's account").not.toBe(
+        IdentityAccountProvisioningMode.platform_client,
+      );
     });
 
     it("a wrong secret and an org_id other than the owning organization are refused with the pinned copy", async () => {

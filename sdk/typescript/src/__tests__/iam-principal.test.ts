@@ -9,13 +9,20 @@
  *   - reading an access-list entry back is the inverse of building one,
  *     and anything else (a structural principal, another team qualifier)
  *     is refused rather than guessed at;
+ *   - an entry is a PlatformClient-provisioned account only when it is a
+ *     person whose identity origin says `platform_client`; every other
+ *     origin, a missing origin (an entry the server could not resolve) and
+ *     any other kind read as not one;
  *   - a team may only ever be offered a subset of a person's roles, never
  *     `owner`, and nothing on `organization` (the circular grant the
  *     model's membership bound forbids).
  */
 import { describe, expect, it } from "vitest";
+import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityOriginSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 
 import {
   getGrantableRoles,
@@ -27,6 +34,7 @@ import { TEAM_GRANTABLE_ROLES } from "../gen/authorization-config";
 import {
   granteeFromView,
   granteeRef,
+  isPlatformClientAccount,
   personGrantee,
   teamGrantee,
 } from "../iam-principal";
@@ -56,6 +64,37 @@ describe("granteeFromView — reading an access-list entry back", () => {
     expect(granteeFromView({ kind: "identity_account", id: "ida_alice", relation: "member" })).toBeUndefined();
     expect(granteeFromView({ kind: "organization", id: "acme", relation: "" })).toBeUndefined();
     expect(granteeFromView({ kind: "identity_account", id: "", relation: "" })).toBeUndefined();
+  });
+});
+
+describe("isPlatformClientAccount — telling a product's users from the organization's people", () => {
+  const origin = (provisioningMode: IdentityAccountProvisioningMode) =>
+    create(IdentityOriginSchema, { provisioningMode });
+  const person = (provisioningMode: IdentityAccountProvisioningMode) => ({
+    kind: "identity_account",
+    identityOrigin: origin(provisioningMode),
+  });
+
+  it("is true for a person a PlatformClient provisioned", () => {
+    expect(isPlatformClientAccount(person(IdentityAccountProvisioningMode.platform_client))).toBe(true);
+  });
+
+  it("is false for every other origin, for an entry with no origin, and for any other kind", () => {
+    for (const mode of [
+      IdentityAccountProvisioningMode.direct,
+      IdentityAccountProvisioningMode.federated,
+      IdentityAccountProvisioningMode.machine,
+      IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
+    ]) {
+      expect(isPlatformClientAccount(person(mode)), IdentityAccountProvisioningMode[mode]).toBe(false);
+    }
+    expect(isPlatformClientAccount({ kind: "identity_account", identityOrigin: undefined })).toBe(false);
+    expect(
+      isPlatformClientAccount({
+        kind: "team",
+        identityOrigin: origin(IdentityAccountProvisioningMode.platform_client),
+      }),
+    ).toBe(false);
   });
 });
 
