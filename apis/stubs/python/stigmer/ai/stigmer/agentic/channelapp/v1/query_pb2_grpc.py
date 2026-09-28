@@ -59,9 +59,9 @@ class ChannelAppQueryControllerServicer(object):
     def listByOrg(self, request, context):
         """List all channel apps belonging to an organization.
 
-        Returns every ChannelApp whose metadata.org matches the input org,
-        with secret fields redacted. Typically a small set, so results are
-        not paginated.
+        Returns the ChannelApps of the input org that the caller may view,
+        newest first, with secret fields redacted. Typically a small set, so
+        results are not paginated.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

@@ -6,6 +6,9 @@
  *
  *   - session.list (restrict verb, no org intersection — census lane 1),
  *   - apikey.findAll (restrict verb through the direct-read tail, lane 9),
+ *   - channelapp.listByOrg (restrict verb behind the domain's own org
+ *     predicate: the scope is offered the request org's rows only, the
+ *     listByOrg family's shape; stigmer/stigmer#1384),
  *   - workflowexecution.list (restrict verb + the org arm: non-blank
  *     narrows, blank spans orgs — lane 6),
  *   - activity.listRecentActivity (enumeration verb, two kinds — lane 22),
@@ -40,6 +43,8 @@ import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -76,11 +81,13 @@ describe("list read scope (composed server, fake scope)", () => {
    * The switchable fake: "keep" narrows to `allowed` (both verbs, the
    * cloud driver's shape), "throw" simulates the FGA outage. Kinds seen
    * are recorded so the enumeration-lane assertions can verify which
-   * kind each consumer asked for.
+   * kind each consumer asked for, and the ids each restrict call was
+   * offered so a lane can show which rows reached the scope.
    */
   let mode: "keep" | "throw" = "keep";
   let allowed: ReadonlySet<string> = new Set();
   const seenKinds: ApiResourceKind[] = [];
+  const offeredIds: string[][] = [];
   const fakeScope: ListReadScope = {
     authorizedResourceIds(_caller, kind) {
       seenKinds.push(kind);
@@ -91,6 +98,7 @@ describe("list read scope (composed server, fake scope)", () => {
     },
     restrictListEntries(_caller, kind, entries) {
       seenKinds.push(kind);
+      offeredIds.push(entries.map((e) => e.id));
       if (mode === "throw") {
         return Promise.reject(new Error("fga unreachable"));
       }
@@ -202,6 +210,22 @@ describe("list read scope (composed server, fake scope)", () => {
         }),
       );
     }
+    for (const [id, org] of [
+      ["chap_mine", "acme"],
+      ["chap_foreign", "acme"],
+      ["chap_other_org", "rival"],
+    ] as const) {
+      await server.store.saveResource(
+        ApiResourceKind.channel_app,
+        id,
+        ChannelAppSchema,
+        create(ChannelAppSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "ChannelApp",
+          metadata: { id, name: id, org },
+        }),
+      );
+    }
     // The search lane: resources plus their index rows (list mode).
     for (const id of ["agt_mine", "agt_foreign"]) {
       await server.store.saveResource(
@@ -233,6 +257,7 @@ describe("list read scope (composed server, fake scope)", () => {
   beforeEach(() => {
     mode = "keep";
     seenKinds.length = 0;
+    offeredIds.length = 0;
   });
 
   it("session.list narrows to the scope's kept ids (org not consulted — lane 1)", async () => {
@@ -247,6 +272,19 @@ describe("list read scope (composed server, fake scope)", () => {
     const query = createClient(ApiKeyQueryController, transport);
     const keys = await query.findAll({});
     expect(keys.entries.map((k) => k.metadata?.id)).toEqual(["key_mine"]);
+  });
+
+  it("channelapp.listByOrg narrows the request org's apps to the scope's kept ids; no other org's app is offered (stigmer/stigmer#1384)", async () => {
+    // Allowing the other org's app too proves the org predicate is the
+    // domain's own, applied before the scope ever sees a row.
+    allowed = new Set(["chap_mine", "chap_other_org"]);
+    const query = createClient(ChannelAppQueryController, transport);
+    const list = await query.listByOrg({ org: "acme" });
+    expect(list.entries.map((a) => a.metadata?.id)).toEqual(["chap_mine"]);
+    expect(seenKinds).toEqual([ApiResourceKind.channel_app]);
+    expect(offeredIds.map((ids) => [...ids].sort())).toEqual([
+      ["chap_foreign", "chap_mine"],
+    ]);
   });
 
   it("workflowexecution.list: non-blank org narrows AFTER the scope; blank org spans orgs (lane 6)", async () => {

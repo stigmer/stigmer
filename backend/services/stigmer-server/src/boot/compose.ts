@@ -1467,6 +1467,7 @@ export async function composeServer(
       authorizer,
       secretService,
       authorizationLifecycle,
+      listReadScope,
     });
     // Schedule registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —

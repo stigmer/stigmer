@@ -18,6 +18,7 @@ import {
   whatsappChannelAppWebhookUrl,
 } from "./whatsappAppSetup.js";
 import { CopyBlock, CopyRow, FormField } from "./internal.js";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
@@ -66,6 +67,11 @@ export interface ChannelAppDetailPanelProps {
  * untouched preserves the stored values (rotate one secret without
  * re-entering the others). Deletion is refused server-side while any
  * agent channel still installs through this app.
+ *
+ * The credentials form is offered to a caller who may edit the app
+ * (`can_edit`) and the deletion section to one who may delete it
+ * (`can_delete`): its creator and the organization's admins. Someone
+ * granted viewer on an app sees its setup values with no actions.
  */
 export function ChannelAppDetailPanel({
   channelApp,
@@ -127,50 +133,55 @@ export function ChannelAppDetailPanel({
       ) : null}
 
       {/* Deletion */}
-      <section className="stg:border-t stg:border-border stg:pt-3" aria-label="Danger zone">
-        {deleteError && (
-          <p className="stg:text-destructive stg:mb-2 stg:text-[0.65rem]" role="alert">
-            {getUserMessage(deleteError)}
-          </p>
-        )}
-        {confirmingDelete ? (
-          <div className="stg:flex stg:items-center stg:gap-2">
-            <p className="stg:text-xs stg:text-foreground">
-              Delete this channel app? Channels installing through it must be
-              disconnected first.
+      <PermissionGate
+        resource={{ kind: "channel_app", id: appId }}
+        relation="can_delete"
+      >
+        <section className="stg:border-t stg:border-border stg:pt-3" aria-label="Danger zone">
+          {deleteError && (
+            <p className="stg:text-destructive stg:mb-2 stg:text-[0.65rem]" role="alert">
+              {getUserMessage(deleteError)}
             </p>
+          )}
+          {confirmingDelete ? (
+            <div className="stg:flex stg:items-center stg:gap-2">
+              <p className="stg:text-xs stg:text-foreground">
+                Delete this channel app? Channels installing through it must be
+                disconnected first.
+              </p>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className={cn(
+                  "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                  "stg:bg-destructive stg:text-destructive-foreground stg:hover:opacity-90",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-40",
+                )}
+              >
+                {isDeleting && <SpinnerIcon size={12} />}
+                Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                disabled={isDeleting}
+                className="stg:text-muted-foreground stg:hover:text-foreground stg:text-xs stg:transition-colors"
+              >
+                Keep
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                "stg:bg-destructive stg:text-destructive-foreground stg:hover:opacity-90",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-              )}
+              onClick={() => setConfirmingDelete(true)}
+              className="stg:text-destructive stg:text-xs stg:font-medium stg:hover:opacity-80"
             >
-              {isDeleting && <SpinnerIcon size={12} />}
-              Delete
+              Delete channel app
             </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={isDeleting}
-              className="stg:text-muted-foreground stg:hover:text-foreground stg:text-xs stg:transition-colors"
-            >
-              Keep
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmingDelete(true)}
-            className="stg:text-destructive stg:text-xs stg:font-medium stg:hover:opacity-80"
-          >
-            Delete channel app
-          </button>
-        )}
-      </section>
+          )}
+        </section>
+      </PermissionGate>
     </div>
   );
 }
@@ -270,63 +281,68 @@ function SlackAppDetail({
       </section>
 
       {/* Credential rotation */}
-      <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
-        <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
-        <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
-          Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
-          leave a field untouched to keep its stored value, or paste a new
-          one to rotate it.
-        </p>
-
-        <FormField
-          id={`${baseId}-client-id`}
-          label="Client ID"
-          value={clientId}
-          onChange={setClientId}
-          placeholder="1234567890.0987654321"
-          disabled={isUpdating}
-          required
-        />
-        <FormField
-          id={`${baseId}-client-secret`}
-          label="Client secret"
-          value={clientSecret}
-          onChange={setClientSecret}
-          placeholder="Client secret"
-          type="password"
-          disabled={isUpdating}
-          required
-        />
-        <FormField
-          id={`${baseId}-signing-secret`}
-          label="Signing secret"
-          value={signingSecret}
-          onChange={setSigningSecret}
-          placeholder="Signing secret"
-          type="password"
-          disabled={isUpdating}
-          required
-        />
-
-        {updateError && (
-          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-            {getUserMessage(updateError)}
+      <PermissionGate
+        resource={{ kind: "channel_app", id: appId }}
+        relation="can_edit"
+      >
+        <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
+          <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
+          <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
+            Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
+            leave a field untouched to keep its stored value, or paste a new
+            one to rotate it.
           </p>
-        )}
 
-        <button
-          type="submit"
-          disabled={!canSave}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
+          <FormField
+            id={`${baseId}-client-id`}
+            label="Client ID"
+            value={clientId}
+            onChange={setClientId}
+            placeholder="1234567890.0987654321"
+            disabled={isUpdating}
+            required
+          />
+          <FormField
+            id={`${baseId}-client-secret`}
+            label="Client secret"
+            value={clientSecret}
+            onChange={setClientSecret}
+            placeholder="Client secret"
+            type="password"
+            disabled={isUpdating}
+            required
+          />
+          <FormField
+            id={`${baseId}-signing-secret`}
+            label="Signing secret"
+            value={signingSecret}
+            onChange={setSigningSecret}
+            placeholder="Signing secret"
+            type="password"
+            disabled={isUpdating}
+            required
+          />
+
+          {updateError && (
+            <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+              {getUserMessage(updateError)}
+            </p>
           )}
-        >
-          {isUpdating && <SpinnerIcon size={12} />}
-          Save credentials
-        </button>
-      </form>
+
+          <button
+            type="submit"
+            disabled={!canSave}
+            className={cn(
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
+            )}
+          >
+            {isUpdating && <SpinnerIcon size={12} />}
+            Save credentials
+          </button>
+        </form>
+      </PermissionGate>
     </>
   );
 }
@@ -440,74 +456,79 @@ function WhatsAppAppDetail({
       </section>
 
       {/* Credential rotation */}
-      <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
-        <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
-        <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
-          Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
-          leave a field untouched to keep its stored value, or paste a new
-          one to rotate it.
-        </p>
-
-        <FormField
-          id={`${baseId}-app-id`}
-          label="App ID"
-          value={metaAppId}
-          onChange={setMetaAppId}
-          placeholder="1234567890123456"
-          disabled={isUpdating}
-          required
-        />
-        <FormField
-          id={`${baseId}-app-secret`}
-          label="App secret"
-          value={appSecret}
-          onChange={setAppSecret}
-          placeholder="App secret"
-          type="password"
-          disabled={isUpdating}
-          required
-        />
-        <FormField
-          id={`${baseId}-access-token`}
-          label="Access token"
-          value={accessToken}
-          onChange={setAccessToken}
-          placeholder="Long-lived system-user access token"
-          type="password"
-          disabled={isUpdating}
-          required
-        />
-        <FormField
-          id={`${baseId}-verify-token`}
-          label="Verify token"
-          value={verifyToken}
-          onChange={setVerifyToken}
-          placeholder="Verify token"
-          type="password"
-          hint="Rotating it? Update Meta's webhook configuration to the same value."
-          disabled={isUpdating}
-          required
-        />
-
-        {updateError && (
-          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-            {getUserMessage(updateError)}
+      <PermissionGate
+        resource={{ kind: "channel_app", id: appId }}
+        relation="can_edit"
+      >
+        <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
+          <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
+          <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
+            Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
+            leave a field untouched to keep its stored value, or paste a new
+            one to rotate it.
           </p>
-        )}
 
-        <button
-          type="submit"
-          disabled={!canSave}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
+          <FormField
+            id={`${baseId}-app-id`}
+            label="App ID"
+            value={metaAppId}
+            onChange={setMetaAppId}
+            placeholder="1234567890123456"
+            disabled={isUpdating}
+            required
+          />
+          <FormField
+            id={`${baseId}-app-secret`}
+            label="App secret"
+            value={appSecret}
+            onChange={setAppSecret}
+            placeholder="App secret"
+            type="password"
+            disabled={isUpdating}
+            required
+          />
+          <FormField
+            id={`${baseId}-access-token`}
+            label="Access token"
+            value={accessToken}
+            onChange={setAccessToken}
+            placeholder="Long-lived system-user access token"
+            type="password"
+            disabled={isUpdating}
+            required
+          />
+          <FormField
+            id={`${baseId}-verify-token`}
+            label="Verify token"
+            value={verifyToken}
+            onChange={setVerifyToken}
+            placeholder="Verify token"
+            type="password"
+            hint="Rotating it? Update Meta's webhook configuration to the same value."
+            disabled={isUpdating}
+            required
+          />
+
+          {updateError && (
+            <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+              {getUserMessage(updateError)}
+            </p>
           )}
-        >
-          {isUpdating && <SpinnerIcon size={12} />}
-          Save credentials
-        </button>
-      </form>
+
+          <button
+            type="submit"
+            disabled={!canSave}
+            className={cn(
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
+            )}
+          >
+            {isUpdating && <SpinnerIcon size={12} />}
+            Save credentials
+          </button>
+        </form>
+      </PermissionGate>
     </>
   );
 }

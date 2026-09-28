@@ -17,9 +17,10 @@
  * Every chain opens with Authorize; create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle; getByReference
  * loads, then authorizes the loaded app exactly as `get` would
- * (AuthorizeResolvedTarget). listByOrg does not yet narrow through the
- * list read scope, although the model restricts viewing to owners,
- * explicit grants and organization admins
+ * (AuthorizeResolvedTarget). listByOrg narrows the organization's apps
+ * through the composed list read scope to the ones a `get` would return:
+ * the model shows a channel app to its owners, explicit grants and the
+ * organization's admins, never to plain members or viewers
  * (fga/model/agentic/channel_app.fga, stigmer/stigmer#1384). Per-RPC
  * posture: docs/authorization-coverage.md §13.
  *
@@ -47,6 +48,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -111,6 +114,8 @@ export interface ChannelAppControllerDeps {
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly secretService: SecretService;
+  /** The composed list read scope — listByOrg narrows through it; undefined = the OSS full scan (stigmer/stigmer#1384). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both channelapp services on the router (routes stage). */
@@ -394,8 +399,8 @@ async function getByReference(
 const LIST_RESULT_KEY = "listResult";
 
 /**
- * ListByOrg — all ChannelApps of an organization, newest-first, every
- * entry redacted. No pagination — the set is small by nature (typically
+ * ListByOrg — the ChannelApps of an organization the caller may view,
+ * newest-first, every entry redacted. No pagination — the set is small by nature (typically
  * one app per provider per org), the OAuthApp listByOrg posture.
  */
 async function listByOrg(
@@ -420,7 +425,7 @@ async function listByOrg(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgStep(deps.store, deps.logger))
+    .addStep(newListByOrgStep(deps.store, deps.listReadScope, deps.logger))
     .build()
     .execute(reqCtx);
 
@@ -436,12 +441,19 @@ async function listByOrg(
 
 /**
  * ListByOrg — Go list_by_org.go's domain step: full scan, malformed rows
- * skipped with a warning, org equality filter, per-item redaction, sorted
- * by spec-audit created_at descending (seconds then nanos; timestamped
- * entries before untimestamped ones).
+ * skipped with a warning, org equality filter, narrowed to the caller's
+ * apps, per-item redaction, sorted by spec-audit created_at descending
+ * (seconds then nanos; timestamped entries before untimestamped ones).
+ * The org predicate stays the step's own because with no scope composed
+ * the helper returns its input unchanged and never reads the org (the
+ * trusted-local full scan); with one, the scope is the last per-row
+ * predicate, so a composed driver is asked about the org's apps, never
+ * every tenant's, and only the kept apps are redacted (the OAuthApp
+ * list's order).
  */
 function newListByOrgStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
   logger: Logger,
 ): PipelineStep<typeof ChannelAppQueryController.method.listByOrg.input> {
   return {
@@ -460,7 +472,7 @@ function newListByOrgStep(
         throw internalError(error, "failed to list ChannelApps");
       }
 
-      const apps: ChannelApp[] = [];
+      const requested: ChannelApp[] = [];
       for (const bytes of rows) {
         let app: ChannelApp;
         try {
@@ -472,8 +484,18 @@ function newListByOrgStep(
         if ((app.metadata?.org ?? "") !== org) {
           continue;
         }
+        requested.push(app);
+      }
+
+      const apps = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.channel_app,
+        requested,
+        "",
+      );
+      for (const app of apps) {
         redactChannelApp(app);
-        apps.push(app);
       }
 
       apps.sort((a, b) =>

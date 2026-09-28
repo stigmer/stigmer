@@ -8,9 +8,11 @@ import {
   type ChannelAppCreateHandoff,
 } from "../channel-app/CreateChannelAppForm.js";
 import { ChannelAppDetailPanel } from "../channel-app/ChannelAppDetailPanel.js";
+import { CHANNEL_APPS_MANAGED_BY_ADMINS } from "../channel-app/copy.js";
 import { useDeploymentMode } from "../deployment-mode.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
-import { useActiveOrgSlug } from "../organization/OrgProvider.js";
+import { useActiveOrgId, useActiveOrgSlug } from "../organization/OrgProvider.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -36,13 +38,27 @@ type FlowState =
  *
  * After registering an app here, the connect dialog on any agent's
  * Channels tab offers it as the serving app.
+ *
+ * "New channel app" is offered once the server confirms the caller holds
+ * `can_create_channel_app` on the organization. The list shows only the
+ * apps the caller may view (their creator, anyone granted viewer on one,
+ * and the organization's admins), so a caller who may not create channel
+ * apps is told that the organization's admins manage them rather than that
+ * none is registered.
  */
 export function ChannelAppsSection() {
   const headingId = useId();
   const org = useActiveOrgSlug();
+  const orgId = useActiveOrgId();
   // Channel installs (the consumer of these credentials) are cloud-only;
   // gate the whole section the way the Channels tab gates connects.
   const installsAvailable = useDeploymentMode() === "cloud";
+  const createCheck = useCheckPermission(
+    installsAvailable && orgId ? { kind: "organization", id: orgId } : null,
+    "can_create_channel_app",
+  );
+  const canCreate = !createCheck.isLoading && createCheck.allowed;
+  const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);
@@ -82,7 +98,7 @@ export function ChannelAppsSection() {
           Channel Apps
         </h2>
 
-        {installsAvailable && org && flow.phase === "idle" && (
+        {installsAvailable && org && canCreate && flow.phase === "idle" && (
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
@@ -127,6 +143,7 @@ export function ChannelAppsSection() {
           org={org}
           onEdit={(app) => setFlow({ phase: "editing", channelApp: app })}
           onRefetchRef={handleRefetchRef}
+          emptyState={deniedCreate ? CHANNEL_APPS_MANAGED_BY_ADMINS : undefined}
         />
       )}
     </section>

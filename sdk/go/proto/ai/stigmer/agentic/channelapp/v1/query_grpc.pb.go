@@ -41,9 +41,9 @@ type ChannelAppQueryControllerClient interface {
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*ChannelApp, error)
 	// List all channel apps belonging to an organization.
 	//
-	// Returns every ChannelApp whose metadata.org matches the input org,
-	// with secret fields redacted. Typically a small set, so results are
-	// not paginated.
+	// Returns the ChannelApps of the input org that the caller may view,
+	// newest first, with secret fields redacted. Typically a small set, so
+	// results are not paginated.
 	ListByOrg(ctx context.Context, in *ListChannelAppsByOrgInput, opts ...grpc.CallOption) (*ChannelApps, error)
 }
 
@@ -101,9 +101,9 @@ type ChannelAppQueryControllerServer interface {
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*ChannelApp, error)
 	// List all channel apps belonging to an organization.
 	//
-	// Returns every ChannelApp whose metadata.org matches the input org,
-	// with secret fields redacted. Typically a small set, so results are
-	// not paginated.
+	// Returns the ChannelApps of the input org that the caller may view,
+	// newest first, with secret fields redacted. Typically a small set, so
+	// results are not paginated.
 	ListByOrg(context.Context, *ListChannelAppsByOrgInput) (*ChannelApps, error)
 }
 

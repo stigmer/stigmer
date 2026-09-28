@@ -206,7 +206,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ChannelAppCommandController.delete | config: can_delete on channel_app (field resource_id), error_msg yes | chain-with-Authorize |
 | ChannelAppQueryController.get | config: can_view on channel_app (field value), error_msg yes | chain-with-Authorize |
 | ChannelAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; response redacted) |
-| ChannelAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
+| ChannelAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (a composed ListReadScope narrows to the apps the caller may view) |
 
 ## 14. Schedule (`src/domain/schedule/controller.ts`)
 

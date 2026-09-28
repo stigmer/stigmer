@@ -199,9 +199,9 @@ public final class ChannelAppQueryControllerGrpc {
     /**
      * <pre>
      * List all channel apps belonging to an organization.
-     * Returns every ChannelApp whose metadata.org matches the input org,
-     * with secret fields redacted. Typically a small set, so results are
-     * not paginated.
+     * Returns the ChannelApps of the input org that the caller may view,
+     * newest first, with secret fields redacted. Typically a small set, so
+     * results are not paginated.
      * </pre>
      */
     default void listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request,
@@ -270,9 +270,9 @@ public final class ChannelAppQueryControllerGrpc {
     /**
      * <pre>
      * List all channel apps belonging to an organization.
-     * Returns every ChannelApp whose metadata.org matches the input org,
-     * with secret fields redacted. Typically a small set, so results are
-     * not paginated.
+     * Returns the ChannelApps of the input org that the caller may view,
+     * newest first, with secret fields redacted. Typically a small set, so
+     * results are not paginated.
      * </pre>
      */
     public void listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request,
@@ -326,9 +326,9 @@ public final class ChannelAppQueryControllerGrpc {
     /**
      * <pre>
      * List all channel apps belonging to an organization.
-     * Returns every ChannelApp whose metadata.org matches the input org,
-     * with secret fields redacted. Typically a small set, so results are
-     * not paginated.
+     * Returns the ChannelApps of the input org that the caller may view,
+     * newest first, with secret fields redacted. Typically a small set, so
+     * results are not paginated.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApps listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request) throws io.grpc.StatusException {
@@ -381,9 +381,9 @@ public final class ChannelAppQueryControllerGrpc {
     /**
      * <pre>
      * List all channel apps belonging to an organization.
-     * Returns every ChannelApp whose metadata.org matches the input org,
-     * with secret fields redacted. Typically a small set, so results are
-     * not paginated.
+     * Returns the ChannelApps of the input org that the caller may view,
+     * newest first, with secret fields redacted. Typically a small set, so
+     * results are not paginated.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApps listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request) {
@@ -438,9 +438,9 @@ public final class ChannelAppQueryControllerGrpc {
     /**
      * <pre>
      * List all channel apps belonging to an organization.
-     * Returns every ChannelApp whose metadata.org matches the input org,
-     * with secret fields redacted. Typically a small set, so results are
-     * not paginated.
+     * Returns the ChannelApps of the input org that the caller may view,
+     * newest first, with secret fields redacted. Typically a small set, so
+     * results are not paginated.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApps> listByOrg(

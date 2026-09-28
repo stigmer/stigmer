@@ -21,6 +21,11 @@ function createMockStigmer(overrides: {
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
       delete: vi.fn().mockResolvedValue({}),
     },
+    // The detail panel gates its credentials form and deletion on the
+    // caller's permissions; these cases are the creator's view.
+    iamPolicy: {
+      checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }),
+    },
   } as never;
 }
 
@@ -221,7 +226,7 @@ describe("ChannelAppDetailPanel — WhatsApp branch", () => {
 
     // Rotate one secret; the others keep the redaction marker, which the
     // server treats as "keep the stored value".
-    fireEvent.change(screen.getByLabelText(/access token/i), {
+    fireEvent.change(await screen.findByLabelText(/access token/i), {
       target: { value: "EAAG-new-token" },
     });
     fireEvent.click(screen.getByRole("button", { name: /save credentials/i }));

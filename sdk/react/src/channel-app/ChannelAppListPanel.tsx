@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -22,14 +23,22 @@ export interface ChannelAppListPanelProps {
   readonly onEdit?: (app: ChannelApp) => void;
   /** Re-expose refetch so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
+  /**
+   * Shown when the list is empty. Defaults to "No channel apps registered
+   * yet." The list holds only the apps the caller may view (their creator,
+   * anyone granted viewer on one, and the organization's admins), so a host
+   * that knows the caller may not manage channel apps should say who does
+   * instead.
+   */
+  readonly emptyState?: ReactNode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
- * Displays the {@link ChannelApp} resources owned by an organization —
- * the customer's own provider apps (Slack, Meta/WhatsApp) that agent
- * channels can install through.
+ * Displays the {@link ChannelApp} resources of an organization that the
+ * caller may view — the customer's own provider apps (Slack,
+ * Meta/WhatsApp) that agent channels can install through.
  *
  * Each row shows the app name, provider, the provider's non-secret app
  * identifier, and creation date. Secret fields never appear (they
@@ -49,6 +58,7 @@ export function ChannelAppListPanel({
   org,
   onEdit,
   onRefetchRef,
+  emptyState = "No channel apps registered yet.",
   className,
 }: ChannelAppListPanelProps) {
   const { channelApps, isLoading, error, refetch } = useChannelAppList(org);
@@ -87,7 +97,7 @@ export function ChannelAppListPanel({
           className,
         )}
       >
-        No channel apps registered yet.
+        {emptyState}
       </p>
     );
   }
