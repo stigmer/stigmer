@@ -17,13 +17,24 @@ Gather these values from your OIDC provider before starting:
 | ------------ | --------------------------------------------------------- | ------------------------------------------------- |
 | **JWKS URI** | Your provider's well-known configuration or admin console | `https://acme.us.auth0.com/.well-known/jwks.json` |
 | **Issuer**   | The `iss` claim in JWTs your provider issues              | `https://acme.us.auth0.com/`                      |
-| **Audience** | The `aud` claim in JWTs intended for Stigmer              | `https://api.stigmer.ai/`                         |
+| **Audience** | The `aud` claim in JWTs intended for Stigmer              | `https://api.acme.com/stigmer`                    |
 
 <Callout type="tip">
   Every OIDC provider publishes a discovery document at `https://
   {provider - base - url}/.well-known/openid-configuration`. Open that URL in
   your browser and look for the `issuer` and `jwks_uri` fields—they give you two
-  of the three values you need.
+  of the three values you need. Stigmer reads the same document when you save:
+  the JWKS URI (and the userinfo endpoint, if you set one) must be the values it
+  names, so that only your provider's own keys can sign tokens for its issuer.
+</Callout>
+
+<Callout type="info">
+  **Use an audience that belongs to your organization.** An Identity Provider is
+  identified by its issuer and its audience together, so several Organizations
+  can federate with the same provider, such as a shared Auth0 tenant or Google,
+  each with its own registration. An audience that another Identity Provider
+  already registered at the same issuer is refused, so register one of your own
+  for Stigmer (an API identifier or a client ID) instead of a shared value.
 </Callout>
 
 <Accordions>
@@ -129,7 +140,7 @@ const idp = await stigmer.identityProvider.create({
   displayName: "Acme Cloud Auth",
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
-  expectedAudience: "https://api.stigmer.ai/",
+  expectedAudience: "https://api.acme.com/stigmer",
 });
 
 console.log(`Created IdP: ${idp.metadata.id}`);
@@ -146,7 +157,7 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
   DisplayName:      "Acme Cloud Auth",
   JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
   AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience: "https://api.stigmer.ai/",
+  ExpectedAudience: "https://api.acme.com/stigmer",
 })
 if err != nil {
   log.Fatal(err)
@@ -165,7 +176,7 @@ idp = client.identity_providers.create(IdentityProviderInput(
     display_name="Acme Cloud Auth",
     jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
     allowed_issuers=["https://acme.us.auth0.com/"],
-    expected_audience="https://api.stigmer.ai/",
+    expected_audience="https://api.acme.com/stigmer",
 ))
 
 print(f"Created IdP: {idp.metadata.id}")
@@ -182,7 +193,7 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .displayName("Acme Cloud Auth")
     .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
-    .expectedAudience("https://api.stigmer.ai/")
+    .expectedAudience("https://api.acme.com/stigmer")
     .build());
 
 System.out.println("Created IdP: " + idp.getMetadata().getId());
@@ -198,9 +209,9 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 | `name`                  | Yes      | Human-readable name shown in the console                                                                                                                                  |
 | `org`                   | Yes      | The Organization slug that owns this Identity Provider                                                                                                                    |
 | `slug`                  | No       | URL-friendly identifier, unique within the Organization. Generated from `name` if omitted                                                                                 |
-| `jwksUri`               | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures                                                                                         |
-| `allowedIssuers`        | Yes      | List of `iss` values Stigmer accepts. Tokens with a different issuer are rejected                                                                                         |
-| `expectedAudience`      | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected                                                                                                |
+| `jwksUri`               | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                          |
+| `allowedIssuers`        | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                     |
+| `expectedAudience`      | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                     |
 | `displayName`           | No       | Display name in the UI. Defaults to `name` if omitted                                                                                                                     |
 | `isSsoProvider`         | No       | Set to `true` only when configuring SSO for a self-managed Organization. Defaults to `false`                                                                              |
 | `oidcClientId`          | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`                                                                                        |
@@ -237,7 +248,7 @@ const idp = await stigmer.identityProvider.create({
   displayName: "Acme Cloud Auth",
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
-  expectedAudience: "https://api.stigmer.ai/",
+  expectedAudience: "https://api.acme.com/stigmer",
   autoProvisionAccounts: true,
   autoGrantOnOrg: true,
 });
@@ -256,7 +267,7 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
   DisplayName:           "Acme Cloud Auth",
   JwksUri:               "https://acme.us.auth0.com/.well-known/jwks.json",
   AllowedIssuers:        []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience:      "https://api.stigmer.ai/",
+  ExpectedAudience:      "https://api.acme.com/stigmer",
   AutoProvisionAccounts: true,
   AutoGrantOnOrg:        true,
 })
@@ -277,7 +288,7 @@ idp = client.identity_providers.create(IdentityProviderInput(
     display_name="Acme Cloud Auth",
     jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
     allowed_issuers=["https://acme.us.auth0.com/"],
-    expected_audience="https://api.stigmer.ai/",
+    expected_audience="https://api.acme.com/stigmer",
     auto_provision_accounts=True,
     auto_grant_on_org=True,
 ))
@@ -296,7 +307,7 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .displayName("Acme Cloud Auth")
     .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
-    .expectedAudience("https://api.stigmer.ai/")
+    .expectedAudience("https://api.acme.com/stigmer")
     .autoProvisionAccounts(true)
     .autoGrantOnOrg(true)
     .build());

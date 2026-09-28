@@ -4,7 +4,7 @@ The rules a Stigmer process follows when it dials a URL a user supplied, shared 
 
 Two entry points:
 
-- `@stigmer/outbound/egress`: which addresses a process refuses to dial (`blockedReason`, two postures, `strict` for managed cloud processes and `relaxed` for a machine that belongs to the user), the check that applies a policy to a URL after resolving every address it has (`checkEgress`), and the fetch that applies it to every redirect hop (`guardedFetch`). A process composes one guarded fetch at its root and hands it to every module that dials; the modules hold no `fetch` of their own.
+- `@stigmer/outbound/egress`: which addresses a process refuses to dial (`blockedReason`, two postures, `strict` for managed cloud processes and `relaxed` for a machine that belongs to the user), the check that applies a policy to a URL after resolving every address it has (`checkEgress`), and the fetch that applies it to every redirect hop and bounds every response body (`guardedFetch`). A process composes one guarded fetch at its root and hands it to every module that dials; the modules hold no `fetch` of their own.
 - `@stigmer/outbound/mcp-oauth`: how an MCP endpoint's authentication is read without a credential (`isOAuthChallenge`, the complete `initializeRequest`, `probeEndpointAuth`) and how its login server is found (`resolveAuthorizationServers` over RFC 9728, `readAuthorizationServerMetadata` over RFC 8414 with the issuer's path and OpenID's document).
 
 ## Why one library

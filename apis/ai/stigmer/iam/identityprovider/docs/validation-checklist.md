@@ -16,9 +16,11 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 
 - [ ] `spec.jwks_uri` is an HTTPS URL pointing to the provider's JWKS endpoint
 - [ ] `spec.jwks_uri` is reachable from Stigmer's servers (publicly accessible)
+- [ ] `spec.jwks_uri` is the `jwks_uri` that each issuer's OIDC discovery document names
 - [ ] `spec.allowed_issuers` contains at least one entry
 - [ ] Each entry in `spec.allowed_issuers` exactly matches the `iss` claim in tokens from this provider (copy directly from the provider's OIDC discovery document)
 - [ ] `spec.expected_audience` exactly matches the `aud` claim in tokens (copy directly from the provider's configuration)
+- [ ] `spec.expected_audience` is your organization's own registration at the issuer (an API identifier or client ID), not a value shared with others
 - [ ] `spec.userinfo_endpoint` is an HTTPS URL pointing to the OIDC UserInfo endpoint
 - [ ] `spec.userinfo_endpoint` accepts a Bearer token and returns standard OIDC profile claims
 
@@ -55,6 +57,14 @@ expected_audience: "https://my-tenant.us.auth0.com/"
 # Correct — using the API identifier
 expected_audience: "https://api.myplatform.com/"
 ```
+
+### A Shared or Borrowed `expected_audience`
+
+An issuer and an audience together identify an identity provider across the platform, so an audience another identity provider already registered at the same issuer is refused with `ALREADY_EXISTS`. Register an API identifier or client ID of your own for Stigmer at the issuer. The audience also cannot be a URL the issuer's discovery document names, such as its userinfo endpoint, because the issuer may add that audience to every token it mints.
+
+### Endpoints That Are Not the Issuer's Own
+
+Stigmer reads each issuer's discovery document when the identity provider is saved, and refuses a `jwks_uri` or `userinfo_endpoint` other than the one it names. Copy both values from the discovery document rather than from another deployment.
 
 ### Using an HTTP (Non-HTTPS) Endpoint
 

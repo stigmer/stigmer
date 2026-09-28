@@ -20,6 +20,17 @@
  * one host never travels to another. A 303, or a 301/302 answering a
  * non-GET, becomes a GET without a body; 307 and 308 keep method and body.
  *
+ * Every response body is bounded (`maxResponseBytes`, a mebibyte by
+ * default). The URLs these callers dial are written by users, so a document
+ * that never ends is an attack on the process that reads it, and every
+ * caller today reads a small document: a JWKS, a discovery or metadata
+ * document, a token response. The bound applies to the body, not the dial:
+ * the response resolves as it came, and reading past the bound rejects with
+ * an `EgressError` whose refusal is `response-too-large`, so each caller's
+ * existing "could not read the document" arm answers it. A declared
+ * `Content-Length` over the bound rejects on the first read, before any byte
+ * is buffered. A caller that streams passes `Number.POSITIVE_INFINITY`.
+ *
  * `OutboundFetch` takes a string or a URL, never a `Request`: a Request
  * carries its own headers and body that a wrapper would have to merge, and
  * no caller here builds one. The global `fetch` is assignable to it, so a
@@ -38,12 +49,20 @@ export interface GuardedFetchOptions {
   readonly lookup: LookupFn;
   /** Hops followed before refusing; default 3. */
   readonly maxRedirects?: number;
+  /** Bytes of a response body read before refusing; default one mebibyte. */
+  readonly maxResponseBytes?: number;
 }
 
 /** The default hop budget: a scheme upgrade and a canonicalisation, with one to spare. */
 export const DEFAULT_MAX_REDIRECTS = 3;
 
+/** The default body bound: a thousand times a large JWKS, far below what a pod can buffer. */
+export const DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024;
+
 const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
+
+/** Statuses whose responses carry no body, which `new Response` refuses to give one. */
+const NULL_BODY_STATUSES: ReadonlySet<number> = new Set([101, 204, 205, 304]);
 
 /**
  * An `OutboundFetch` in the global `fetch`'s shape, for a seam typed
@@ -62,6 +81,7 @@ export function asFetch(outbound: OutboundFetch): typeof fetch {
 /** Compose a fetch that judges every URL and every hop under `policy`. */
 export function guardedFetch(policy: EgressPolicy, options: GuardedFetchOptions): OutboundFetch {
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
+  const maxResponseBytes = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
 
   return async (input, init) => {
     let url = new URL(input);
@@ -78,7 +98,7 @@ export function guardedFetch(policy: EgressPolicy, options: GuardedFetchOptions)
 
       const location = response.headers.get("location");
       if (!REDIRECT_STATUSES.has(response.status) || location === null || callerRedirect === "manual") {
-        return response;
+        return boundedResponse(response, url, maxResponseBytes);
       }
       if (callerRedirect === "error") {
         await response.body?.cancel();
@@ -101,4 +121,34 @@ export function guardedFetch(policy: EgressPolicy, options: GuardedFetchOptions)
       url = next;
     }
   };
+}
+
+/**
+ * The response with its body bounded: the same status and headers over a
+ * body that errors once it passes `maxBytes`, or at once when the declared
+ * length already does.
+ */
+function boundedResponse(response: Response, url: URL, maxBytes: number): Response {
+  if (response.body === null || NULL_BODY_STATUSES.has(response.status) || !Number.isFinite(maxBytes)) {
+    return response;
+  }
+  const tooLarge = (): EgressError => new EgressError({ kind: "response-too-large", url, maxBytes });
+  const declared = Number(response.headers.get("content-length") ?? Number.NaN);
+  let read = 0;
+  const body = response.body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      start(controller) {
+        if (Number.isFinite(declared) && declared > maxBytes) controller.error(tooLarge());
+      },
+      transform(chunk, controller) {
+        read += chunk.byteLength;
+        if (read > maxBytes) {
+          controller.error(tooLarge());
+          return;
+        }
+        controller.enqueue(chunk);
+      },
+    }),
+  );
+  return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }

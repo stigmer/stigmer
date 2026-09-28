@@ -7,6 +7,7 @@ import { getUserMessage, toIdentityProviderUpdateInput } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
+import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
 import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -277,7 +278,8 @@ export function IdentityProviderDetailPanel({
             label="Expected audience"
             value={audience}
             onChange={setAudience}
-            placeholder="stigmer-api"
+            placeholder={EXPECTED_AUDIENCE_PLACEHOLDER}
+            hint={EXPECTED_AUDIENCE_HINT}
             disabled={isUpdating}
             required
           />

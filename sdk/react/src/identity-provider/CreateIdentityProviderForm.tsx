@@ -6,6 +6,7 @@ import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
 import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
@@ -193,7 +194,8 @@ export function CreateIdentityProviderForm({
           label="Expected audience"
           value={audience}
           onChange={setAudience}
-          placeholder="stigmer-api"
+          placeholder={EXPECTED_AUDIENCE_PLACEHOLDER}
+          hint={EXPECTED_AUDIENCE_HINT}
           disabled={isCreating}
           required
         />

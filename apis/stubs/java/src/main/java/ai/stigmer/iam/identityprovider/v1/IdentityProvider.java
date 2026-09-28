@@ -23,9 +23,9 @@ package ai.stigmer.iam.identityprovider.v1;
  * org: planton
  * spec:
  * display_name: "Planton"
- * jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
- * allowed_issuers: ["planton"]
- * expected_audience: "stigmer-api"
+ * jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+ * allowed_issuers: ["https://planton-prod.us.auth0.com/"]
+ * expected_audience: "https://api.planton.ai/"
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProvider}
@@ -520,9 +520,9 @@ private static final long serialVersionUID = 0L;
    * org: planton
    * spec:
    * display_name: "Planton"
-   * jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
-   * allowed_issuers: ["planton"]
-   * expected_audience: "stigmer-api"
+   * jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+   * allowed_issuers: ["https://planton-prod.us.auth0.com/"]
+   * expected_audience: "https://api.planton.ai/"
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProvider}

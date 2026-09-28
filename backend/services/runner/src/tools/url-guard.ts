@@ -108,6 +108,9 @@ export async function validateFetchUrl(
       // The check itself never follows a redirect; web_fetch walks hops
       // one validateFetchUrl at a time, so this refusal cannot arise here.
       throw new UrlGuardError(`Refusing to follow more than ${refusal.hops} redirects.`);
+    case "response-too-large":
+      // Only the guarded fetch reads a body; the check never does.
+      throw new UrlGuardError(`Refusing to read more than ${refusal.maxBytes} bytes.`);
     default: {
       const exhaustive: never = refusal;
       throw new UrlGuardError(String(exhaustive));
