@@ -36,6 +36,7 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/autho
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 
+import type { ChannelRuntime } from "../channel-runtime.js";
 import { registerAgentChannelServices } from "../controller.js";
 
 const silentLogger = createLogger({
@@ -69,7 +70,7 @@ function channelCommand(store: Store): ChannelCommand {
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
         modelRegistry: untouchable("modelRegistry"),
-        channelRuntime: untouchable("channelRuntime"),
+        channelRuntime: untouchable<ChannelRuntime>("channelRuntime"),
         listReadScope: undefined,
       });
     },
