@@ -8,21 +8,36 @@ module iam
 # inbound authentication via the mintUserToken RPC.
 # Scoped to organization — each platform client is owned by an org.
 #
-# Access model: RESTRICTED
-# Platform clients contain sensitive credential material (client_secret_hash).
-# Only owners and org admins can see them. Regular org members have no access.
-# Public visibility is intentionally unsupported to prevent credential leakage.
+# Access model: RESTRICTED, managed by the organization's current admins
+# Platform clients contain sensitive credential material (client_secret_hash)
+# and mint tokens for the organization's product users, so they are the
+# organization's credential, not a person's. Plain members and viewer-role
+# members of the organization see nothing. `owner` is computed, never
+# stored: it is the organization's admins, as an identity provider is
+# managed, so a client stays manageable whoever created it, and a creator
+# who is demoted below admin or removed loses control of it with the role.
+# Rotating a secret hands out a credential that mints into the
+# organization, so that control must end when the role that granted it
+# does. The creator is recorded in the audit trail (kind_meta `owner_type`
+# NONE). Public visibility is intentionally unsupported to prevent
+# credential leakage.
 #
 # Permission pattern:
-# - Org Admin: Can view (administrative visibility — fingerprint, rotation
-#   history, provisioning config). The plaintext secret and hash are never
-#   returned by the API layer.
-# - Creator (Owner): Full CRUD access + secret rotation
-# - Org Members: No access (administrative resource)
+# - Org Admin (and org owner, through admin): full management, secret
+#   rotation included. The plaintext secret and hash are never returned by
+#   the API layer.
+# - Direct viewer grant: can see the client and who has access to it
+# - Org Members and Viewers: no access (administrative resource)
 #
-# FGA tuples on creation:
+# FGA tuple on creation (the kind's creation event: organization scope, no
+# owner; private, so no visibility tuple):
 # - platform_client:pcl_abc#organization@organization:acme
-# - platform_client:pcl_abc#owner@identity_account:alice
+#
+# Checks the handlers make: `can_create_platform_client` on the
+# organization to create; `can_view` to get, get by reference, and to keep
+# a row in the organization's list; `can_edit` to update and to rotate the
+# secret; `can_delete` to delete. Minting authenticates the client by its
+# credentials and asks nothing of this type.
 
 type platform_client
   relations
@@ -34,14 +49,15 @@ type platform_client
     # ========================================
     # OWNERSHIP
     # ========================================
-    define owner: [identity_account]
+    # Every current admin of the client's organization, and nobody else.
+    define owner: admin from organization
     
     # ========================================
     # VIEWER ACCESS
     # ========================================
-    # Restricted: only owner and org admins can view
-    # Regular org members cannot see platform clients
-    define viewer: [identity_account] or owner or admin from organization
+    # Owners (admins included) and direct viewer grants. Organization
+    # members and viewers are deliberately absent.
+    define viewer: [identity_account] or owner
     
     # ========================================
     # PERMISSIONS

@@ -37,9 +37,9 @@ type FlowState =
  *
  * The button also needs the caller to hold `can_create_platform_client` on
  * the organization, which the model gives its admins. The list shows only
- * the clients the caller may view (each client's creator and the
- * organization's admins), so a caller who may not create them is told that
- * the organization's admins manage them rather than that none is
+ * the clients the caller may view (the organization's admins, and anyone
+ * granted viewer on a client), so a caller who may not create them is told
+ * that the organization's admins manage them rather than that none is
  * configured.
  */
 export function PlatformClientsSection() {

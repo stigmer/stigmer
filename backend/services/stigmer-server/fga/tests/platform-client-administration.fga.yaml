@@ -1,0 +1,118 @@
+# A platform client is managed by its organization's current admins, and is
+# invisible to the organization's other people.
+# The kind records no owner: `owner` is `admin from organization` and nothing
+# else, so creating one confers nothing that outlives the creator's role.
+# A client mints tokens into its organization, so rotating its secret must
+# end with the role that allowed it.
+#
+# Cast (organization acme unless named):
+#   root  - acme owner (an admin through the role hierarchy)
+#   ana   - acme admin; created nothing
+#   carol - acme admin; created client `web`
+#   cody  - created `web` too as an acme admin, since demoted to member
+#   rex   - created `web` too, since removed from acme
+#   dave  - acme member-role member
+#   vera  - acme viewer-role member
+#   vince - acme member with a direct viewer grant on `web`
+#   zara  - admin of the unrelated organization other
+#
+# `web` carries its creation tuple, the organization link. `unowned` carries
+# the same single link and never had a creator recorded: the two are managed
+# alike, which is the point. `ghost` carries no tuple at all: nobody manages
+# it.
+name: platform-client-administration
+model_file: ../../src/authorization/model/data/authorization-model.json
+tuples:
+  - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:carol, relation: admin, object: organization:acme}
+  - {user: identity_account:cody, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:vince, relation: member, object: organization:acme}
+  - {user: identity_account:zara, relation: admin, object: organization:other}
+  - {user: organization:acme, relation: organization, object: platform_client:web}
+  - {user: identity_account:vince, relation: viewer, object: platform_client:web}
+  - {user: organization:acme, relation: organization, object: platform_client:unowned}
+tests:
+  - name: every org admin manages the client, its creator through the same role
+    check:
+      - user: identity_account:carol
+        object: platform_client:web
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true, can_view_access: true}
+      - user: identity_account:ana
+        object: platform_client:web
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true, can_view_access: true}
+      - user: identity_account:root
+        object: platform_client:web
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true}
+  - name: a creator who is no longer an admin, or no longer a member, has nothing on the client
+    check:
+      - user: identity_account:cody
+        object: platform_client:web
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false, can_grant_access: false}
+      - user: identity_account:rex
+        object: platform_client:web
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false, can_grant_access: false}
+  - name: a client with no recorded creator is still managed by its organization's admins
+    check:
+      - user: identity_account:ana
+        object: platform_client:unowned
+        assertions: {owner: true, can_view: true, can_edit: true, can_delete: true, can_grant_access: true}
+      - user: identity_account:dave
+        object: platform_client:unowned
+        assertions: {can_view: false}
+  - name: the organization's members and viewers see nothing
+    check:
+      - user: identity_account:dave
+        object: platform_client:web
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false, can_view_access: false}
+      - user: identity_account:vera
+        object: platform_client:web
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_view_access: false}
+  - name: a direct viewer grant reads the client and its access list, and manages nothing
+    check:
+      - user: identity_account:vince
+        object: platform_client:web
+        assertions: {viewer: true, can_view: true, can_view_access: true, owner: false, can_edit: false, can_delete: false, can_grant_access: false}
+  - name: an admin of another organization has nothing
+    check:
+      - user: identity_account:zara
+        object: platform_client:web
+        assertions: {owner: false, can_view: false, can_edit: false, can_delete: false}
+  - name: a client with no tuples is managed by nobody
+    check:
+      - user: identity_account:ana
+        object: platform_client:ghost
+        assertions: {can_view: false, can_edit: false, can_delete: false}
+  - name: only admins may create a client
+    check:
+      - user: identity_account:ana
+        object: organization:acme
+        assertions: {can_create_platform_client: true}
+      - user: identity_account:dave
+        object: organization:acme
+        assertions: {can_create_platform_client: false}
+      - user: identity_account:vera
+        object: organization:acme
+        assertions: {can_create_platform_client: false}
+  - name: the organization's list holds only what each caller could get
+    list_objects:
+      - user: identity_account:ana
+        type: platform_client
+        assertions: {can_view: [platform_client:web, platform_client:unowned]}
+      - user: identity_account:vince
+        type: platform_client
+        assertions: {can_view: [platform_client:web]}
+      - user: identity_account:cody
+        type: platform_client
+        assertions: {can_view: []}
+      - user: identity_account:dave
+        type: platform_client
+        assertions: {can_view: []}
+      - user: identity_account:vera
+        type: platform_client
+        assertions: {can_view: []}
+      - user: identity_account:zara
+        type: platform_client
+        assertions: {can_view: []}

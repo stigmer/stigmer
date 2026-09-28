@@ -232,8 +232,8 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Create an OAuth app.
-     * The creator's organization owns the OAuth app. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the OAuth app, and the organization's
+     * current admins manage it.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
@@ -332,8 +332,8 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Create an OAuth app.
-     * The creator's organization owns the OAuth app. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the OAuth app, and the organization's
+     * current admins manage it.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
@@ -416,8 +416,8 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Create an OAuth app.
-     * The creator's organization owns the OAuth app. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the OAuth app, and the organization's
+     * current admins manage it.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
@@ -497,8 +497,8 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Create an OAuth app.
-     * The creator's organization owns the OAuth app. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the OAuth app, and the organization's
+     * current admins manage it.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
@@ -579,8 +579,8 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Create an OAuth app.
-     * The creator's organization owns the OAuth app. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the OAuth app, and the organization's
+     * current admins manage it.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>

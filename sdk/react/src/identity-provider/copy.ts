@@ -3,7 +3,7 @@
  * list and the organization profile summary say the same thing.
  *
  * Identity providers are administrative infrastructure: an organization's
- * admins (and each provider's creator) manage them, and other members may
+ * admins manage them, and other members may
  * not see them at all. An empty list is therefore not evidence that none is
  * configured, so a caller who may not create providers is told who manages
  * them instead of being told that nothing exists.

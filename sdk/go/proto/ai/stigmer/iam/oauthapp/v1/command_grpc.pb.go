@@ -39,8 +39,8 @@ type OAuthAppCommandControllerClient interface {
 	Apply(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Create an OAuth app.
 	//
-	// The creator's organization owns the OAuth app. The creator is granted
-	// the owner role automatically.
+	// The creator's organization owns the OAuth app, and the organization's
+	// current admins manage it.
 	Create(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Update an existing OAuth app.
 	Update(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
@@ -113,8 +113,8 @@ type OAuthAppCommandControllerServer interface {
 	Apply(context.Context, *OAuthApp) (*OAuthApp, error)
 	// Create an OAuth app.
 	//
-	// The creator's organization owns the OAuth app. The creator is granted
-	// the owner role automatically.
+	// The creator's organization owns the OAuth app, and the organization's
+	// current admins manage it.
 	Create(context.Context, *OAuthApp) (*OAuthApp, error)
 	// Update an existing OAuth app.
 	Update(context.Context, *OAuthApp) (*OAuthApp, error)

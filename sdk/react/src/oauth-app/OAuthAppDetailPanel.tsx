@@ -38,9 +38,9 @@ export interface OAuthAppDetailPanelProps {
  * In **view mode**, displays all OAuth configuration fields in a
  * structured label/value layout, with an "Edit" button for a caller who
  * may edit the app (`can_edit`) and a "Delete" button for one who may
- * delete it (`can_delete`). Both belong to the app's creator alone: the
- * organization's admins may view an app they did not create, never change
- * it.
+ * delete it (`can_delete`). Both belong to the organization's admins,
+ * whoever created the app; someone granted viewer on an app sees it with no
+ * actions.
  *
  * In **edit mode**, fields become editable inputs. The client secret
  * field shows a placeholder — leave it empty to keep the existing

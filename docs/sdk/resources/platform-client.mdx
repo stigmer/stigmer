@@ -299,7 +299,7 @@ Create a platform client.
 
 Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix). The raw client_secret is included in the response and is never returned again. Store it securely before discarding the response.
 
-The creator's organization owns the platform client. The creator is granted the owner role automatically.
+The creator's organization owns the platform client, and the organization's current admins manage it.
 
 The slug `system-share-client` is platform-reserved (it identifies the org's system-managed share client) and is rejected with INVALID_ARGUMENT — including when derived from the resource name.
 
@@ -656,7 +656,7 @@ MintUserTokenResponse mintUserTokenResponse = client.platformclients().mintUserT
 
 Rotate the client secret.
 
-Generates a new client_secret, invalidates the old one immediately, and returns the new raw secret in the response. The client_id remains unchanged — platform builders do not need to update their client_id configuration after rotation. Tokens already minted stay valid until they expire; delete the client to revoke them. Rotating does not change expires_at: a client whose expiry has passed mints again only once its owner sets a later expires_at or never_expires with update. A system-managed client's secret cannot be rotated.
+Generates a new client_secret, invalidates the old one immediately, and returns the new raw secret in the response. The client_id remains unchanged — platform builders do not need to update their client_id configuration after rotation. Tokens already minted stay valid until they expire; delete the client to revoke them. Rotating does not change expires_at: a client whose expiry has passed mints again only once an admin of its organization sets a later expires_at or never_expires with update. A system-managed client's secret cannot be rotated.
 
 <SDKTabs>
 <Tab value="TypeScript">

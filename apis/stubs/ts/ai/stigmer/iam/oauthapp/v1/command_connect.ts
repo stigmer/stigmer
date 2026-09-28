@@ -32,8 +32,8 @@ export const OAuthAppCommandController = {
     /**
      * Create an OAuth app.
      *
-     * The creator's organization owns the OAuth app. The creator is granted
-     * the owner role automatically.
+     * The creator's organization owns the OAuth app, and the organization's
+     * current admins manage it.
      *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.create
      */

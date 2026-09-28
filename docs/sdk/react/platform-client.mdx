@@ -307,8 +307,9 @@ In **view mode**, displays all configuration fields in a structured
 label/value layout, with when the client last minted a token, and
 "Edit", "Rotate Secret", and "Delete" actions offered only to a caller
 the server allows: `can_edit` for Edit and Rotate, `can_delete` for
-Delete. The organization's admins may view a client they did not
-create, and see no actions on it.
+Delete. The organization's admins manage every client of the
+organization, whoever created it; someone granted viewer on a client sees
+it with no actions.
 
 In **edit mode**, mutable spec fields become editable: JIT
 provisioning toggles, expiry, auto-grant role, and allowed
@@ -366,7 +367,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No platform clients configured.\" The list holds only the clients the caller may view (each client's creator and the organization's admins), so a host that knows the caller may not manage platform clients should say who does instead." },
+    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No platform clients configured.\" The list holds only the clients the caller may view (the organization's admins, and anyone granted viewer on a client), so a host that knows the caller may not manage platform clients should say who does instead." },
     now: { type: "Date", description: "Reference instant for the \"last used\" relative stamp. Defaults to the live clock. **Deterministic hosts (documentation embeds, video export) must pass a frozen instant** — otherwise a depicted client's \"2h ago\" drifts with every replay." },
     onEdit: { type: "(pc: PlatformClient) => void", description: "Fired when the user wants to edit a platform client." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Expose the refetch function so parents can trigger a list refresh." },

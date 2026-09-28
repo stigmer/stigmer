@@ -51,8 +51,9 @@ export interface PlatformClientDetailPanelProps {
  * label/value layout, with when the client last minted a token, and
  * "Edit", "Rotate Secret", and "Delete" actions offered only to a caller
  * the server allows: `can_edit` for Edit and Rotate, `can_delete` for
- * Delete. The organization's admins may view a client they did not
- * create, and see no actions on it.
+ * Delete. The organization's admins manage every client of the
+ * organization, whoever created it; someone granted viewer on a client sees
+ * it with no actions.
  *
  * In **edit mode**, mutable spec fields become editable: JIT
  * provisioning toggles, expiry, auto-grant role, and allowed

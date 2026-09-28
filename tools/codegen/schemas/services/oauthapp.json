@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Create an OAuth app.\n\n The creator's organization owns the OAuth app. The creator is granted\n the owner role automatically."
+          "description": "Create an OAuth app.\n\n The creator's organization owns the OAuth app, and the organization's\n current admins manage it."
         },
         {
           "name": "Update",
