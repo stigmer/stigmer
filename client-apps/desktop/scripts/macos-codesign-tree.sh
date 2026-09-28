@@ -27,6 +27,16 @@
 #                               code, so it would pass an app whose rg is still
 #                               ad-hoc. This is the check the notary applies.
 #
+# Both verbs take --entitlements <plist> before <dir>. sign then applies the
+# plist to every executable (libraries never carry entitlements), and verify
+# asserts every executable carries each of its keys with its value. The option
+# is scoped to the directory it is given, so it is meant for a directory whose
+# executables all need the same grants: stage-node-runtime.sh signs the bundled
+# Node runtime this way (macos-entitlements/node-runtime.plist; V8 needs
+# allow-jit under the hardened runtime), and macos-notarize-dmg.sh verifies
+# that runtime directory alone, since the runner's rg and cursorsandbox carry
+# no entitlements and must not be asked to.
+#
 # The identity "-" is codesign's ad-hoc identity. It is accepted by both verbs
 # (sign uses it without --timestamp, which needs a real identity; verify then
 # expects Signature=adhoc) so the walk can be tested on any Mac without a
@@ -43,12 +53,14 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-usage: macos-codesign-tree.sh sign <dir>
-       macos-codesign-tree.sh verify <dir> <authority>
+usage: macos-codesign-tree.sh sign [--entitlements <plist>] <dir>
+       macos-codesign-tree.sh verify [--entitlements <plist>] <dir> <authority>
 
   sign    reads the identity from APPLE_SIGNING_IDENTITY ("-" for ad-hoc)
   verify  <authority> is the identity string expected in every signature,
           or "-" to expect ad-hoc signatures
+  --entitlements  sign: entitle every executable with <plist>;
+                  verify: require every executable to carry each of its keys
 EOF
   exit 2
 }
@@ -89,6 +101,7 @@ sign_one() {
   local path="$1" kind="$2"
   local -a args=(--force --sign "$IDENTITY")
   [ "$kind" = executable ] && args+=(--options runtime)
+  [ "$kind" = executable ] && [ -n "$ENTITLEMENTS" ] && args+=(--entitlements "$ENTITLEMENTS")
   [ "$IDENTITY" != "-" ] && args+=(--timestamp)
   echo "sign   [$kind] $path"
   codesign "${args[@]}" "$path"
@@ -110,13 +123,39 @@ verify_one() {
   if [ "$kind" = executable ]; then
     grep -E '^CodeDirectory .*flags=.*\(.*runtime.*\)' -q <<<"$details" \
       || fail "hardened runtime not enabled on executable: $path"
+    [ -z "$ENTITLEMENTS" ] || verify_entitlements "$path"
   fi
   echo "verify [$kind] $path"
+}
+
+# Each "key" => value line of the expected plist must appear, byte for byte, in
+# the binary's own entitlements as plutil prints them: the key and its value
+# both, so a grant that is present but false does not pass.
+verify_entitlements() {
+  local path="$1" actual line
+  actual="$(codesign -d --entitlements - --xml "$path" 2>/dev/null | plutil -p - 2>/dev/null)" \
+    || fail "no entitlements on executable: $path"
+  while IFS= read -r line; do
+    case "$line" in
+      *'=>'*) grep -qF -- "$line" <<<"$actual" || fail "missing entitlement $line on executable: $path" ;;
+    esac
+  done < <(plutil -p "$ENTITLEMENTS" | sed -e 's/^ *//')
 }
 
 [ "$(uname -s)" = Darwin ] || fail "codesign is a macOS tool; nothing to do on $(uname -s)"
 [ $# -ge 2 ] || usage
 VERB="$1"
+shift
+ENTITLEMENTS=""
+if [ "${1:-}" = "--entitlements" ]; then
+  [ $# -ge 2 ] || usage
+  ENTITLEMENTS="$2"
+  shift 2
+  [ -f "$ENTITLEMENTS" ] || fail "entitlements file not found: $ENTITLEMENTS"
+  plutil -lint -s "$ENTITLEMENTS" || fail "not a valid plist: $ENTITLEMENTS"
+fi
+set -- "$VERB" "$@"
+[ $# -ge 2 ] || usage
 DIR="$2"
 [ -d "$DIR" ] || fail "not a directory: $DIR"
 

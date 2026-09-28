@@ -36,15 +36,41 @@
  * Usage:
  *   node scripts/verify-slim-artifact.mjs               # full suite (needs Temporal)
  *   node scripts/verify-slim-artifact.mjs --no-temporal # size + authed guard only
+ *
+ * By default the subject is this package's dist-slim/, booted by `node` from
+ * PATH. Two options point the same checks at the artifact as an embedder ships
+ * it, run by the engine it ships with:
+ *
+ *   --node <path>        the Node binary that boots the runner
+ *   --artifact <dir>     the staged artifact directory (default: dist-slim/)
+ *   --entry <relative>   the entry inside it (default: main.js)
+ *
+ * The desktop app runs exactly that after staging its bundle
+ * (client-apps/desktop/scripts/verify-staged-runtime.mjs): its pinned Node
+ * runtime against resources/runner, whose entry is dist/main.js.
  */
 
 import { spawn } from "node:child_process";
 import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
-const distSlimDir = fileURLToPath(new URL("../dist-slim", import.meta.url));
+const { values: options } = parseArgs({
+  options: {
+    "no-temporal": { type: "boolean", default: false },
+    node: { type: "string", default: "node" },
+    artifact: { type: "string" },
+    entry: { type: "string", default: "main.js" },
+  },
+});
+
+const artifactDir = options.artifact
+  ? resolve(options.artifact)
+  : fileURLToPath(new URL("../dist-slim", import.meta.url));
+const nodeBinary = options.node;
+const entry = options.entry;
 const temporalAddress = process.env.TEMPORAL_SERVICE_ADDRESS ?? "localhost:7233";
 const sizeBudgetMb = Number(process.env.SLIM_SIZE_BUDGET_MB ?? 120);
 
@@ -52,8 +78,7 @@ const sizeBudgetMb = Number(process.env.SLIM_SIZE_BUDGET_MB ?? 120);
 // and the authenticated boot guard. This is the slice the dev-publish fast path
 // (publish-dev-local.sh) runs, so a slim build can never reach the dev channel
 // without at least proving its interceptor load order survived bundling.
-const skipTemporalBoots =
-  process.argv.includes("--no-temporal") || process.env.SLIM_VERIFY_SKIP_TEMPORAL === "1";
+const skipTemporalBoots = options["no-temporal"] || process.env.SLIM_VERIFY_SKIP_TEMPORAL === "1";
 
 const BOOT_TIMEOUT_MS = 90_000;
 
@@ -70,8 +95,12 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!existsSync(join(distSlimDir, "main.js"))) {
-  fail("dist-slim/main.js not found — run `npm run build:slim` first");
+if (!existsSync(join(artifactDir, entry))) {
+  fail(
+    options.artifact
+      ? `${join(artifactDir, entry)} not found`
+      : "dist-slim/main.js not found — run `npm run build:slim` first",
+  );
 }
 
 // ─── 1. Size budget ──────────────────────────────────────────────────────────
@@ -88,7 +117,7 @@ function runtimeSize(path) {
   return total;
 }
 
-const sizeMb = runtimeSize(distSlimDir) / 1024 / 1024;
+const sizeMb = runtimeSize(artifactDir) / 1024 / 1024;
 if (sizeMb > sizeBudgetMb) {
   fail(
     `artifact runtime payload is ${sizeMb.toFixed(1)} MB, over the ${sizeBudgetMb} MB budget. ` +
@@ -100,7 +129,7 @@ console.log(`[size]   OK: ${sizeMb.toFixed(1)} MB <= ${sizeBudgetMb} MB (sourcem
 // ─── Isolated copy ───────────────────────────────────────────────────────────
 
 const isolatedDir = mkdtempSync(join(tmpdir(), "stigmer-slim-verify-"));
-cpSync(distSlimDir, isolatedDir, { recursive: true });
+cpSync(artifactDir, isolatedDir, { recursive: true });
 const cleanup = () => rmSync(isolatedDir, { recursive: true, force: true });
 process.on("exit", cleanup);
 
@@ -111,7 +140,7 @@ const baseEnv = {
 };
 
 function bootRunner(extraEnv) {
-  return spawn("node", [join(isolatedDir, "main.js")], {
+  return spawn(nodeBinary, [join(isolatedDir, entry)], {
     cwd: isolatedDir,
     env: { ...baseEnv, ...extraEnv },
     stdio: ["pipe", "pipe", "pipe"],

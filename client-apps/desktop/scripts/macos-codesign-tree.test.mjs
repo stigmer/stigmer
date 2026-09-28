@@ -138,3 +138,65 @@ test('sign without an identity, or with bad arguments, fails before touching any
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// The bundled Node runtime's plist (stage-node-runtime.sh signs with it): the
+// real file, so a test failure means the shipped grants no longer sign.
+const NODE_RUNTIME_PLIST = join(dirname(fileURLToPath(import.meta.url)), 'macos-entitlements', 'node-runtime.plist');
+
+function entitlementsOf(path) {
+  const xml = spawnSync('codesign', ['-d', '--entitlements', '-', '--xml', path], { encoding: 'utf8' });
+  if (!xml.stdout) return '';
+  return spawnSync('plutil', ['-p', '-'], { input: xml.stdout, encoding: 'utf8' }).stdout;
+}
+
+test('sign --entitlements entitles executables and never libraries', { skip: !onMacOS }, () => {
+  const { root, tree, hasDylib } = scratchTree();
+  try {
+    const result = run(['sign', '--entitlements', NODE_RUNTIME_PLIST, tree], { APPLE_SIGNING_IDENTITY: '-' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(entitlementsOf(join(tree, 'bin', 'tool')), /"com\.apple\.security\.cs\.allow-jit" => true/);
+    assert.match(reportOf(join(tree, 'bin', 'tool')), /flags=0x[0-9a-f]+\([^)]*runtime[^)]*\)/);
+    if (hasDylib) {
+      assert.doesNotMatch(entitlementsOf(join(tree, 'native.node')), /allow-jit/, 'a library carries no entitlements');
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('verify --entitlements accepts an entitled tree and refuses an executable missing a grant', { skip: !onMacOS }, () => {
+  const { root, tree } = scratchTree();
+  try {
+    assert.equal(run(['sign', '--entitlements', NODE_RUNTIME_PLIST, tree], { APPLE_SIGNING_IDENTITY: '-' }).status, 0);
+    const accepted = run(['verify', '--entitlements', NODE_RUNTIME_PLIST, tree, '-']);
+    assert.equal(accepted.status, 0, accepted.stderr);
+
+    // Re-signed the plain way (the pre-entitlements walk): hardened, ad-hoc, no grants.
+    // This is the regression that would ship a Node which cannot start.
+    assert.equal(run(['sign', tree], { APPLE_SIGNING_IDENTITY: '-' }).status, 0);
+    assert.equal(run(['verify', tree, '-']).status, 0, 'without --entitlements the tree still verifies');
+    const refused = run(['verify', '--entitlements', NODE_RUNTIME_PLIST, tree, '-']);
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /entitlement.* on executable: .*\/bin\/tool/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('--entitlements refuses a missing or malformed plist before touching anything', { skip: !onMacOS }, () => {
+  const { root, tree } = scratchTree();
+  try {
+    const missing = run(['sign', '--entitlements', join(root, 'none.plist'), tree], { APPLE_SIGNING_IDENTITY: '-' });
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /entitlements file not found/);
+    const bad = join(root, 'bad.plist');
+    writeFileSync(bad, 'not a plist\n');
+    const malformed = run(['sign', '--entitlements', bad, tree], { APPLE_SIGNING_IDENTITY: '-' });
+    assert.notEqual(malformed.status, 0);
+    assert.match(malformed.stderr, /not a valid plist/);
+    assert.equal(run(['sign', '--entitlements']).status, 2, 'usage');
+    assert.doesNotMatch(reportOf(join(tree, 'bin', 'tool')), /runtime/, 'the fixture was left unsigned by us');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

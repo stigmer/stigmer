@@ -318,17 +318,23 @@ full lifecycle as an async API:
 use stigmer_runner_host::{RunnerHost, RunnerConfig};
 use tauri::{Manager, path::BaseDirectory};
 
-// Resolve the bundled entry to an ABSOLUTE path. `node` resolves a relative
-// script argument against the process working directory, which for an app
-// launched from Finder or the Start menu is `/` — not your resource directory.
+// Resolve both halves your app ships to ABSOLUTE paths (see "Ship the runner
+// and its engine" below). The engine: an app launched from Finder or the Start
+// menu does not inherit the shell's PATH, so a bare "node" usually resolves to
+// nothing. The entry: `node` resolves a relative script argument against the
+// working directory, which for such an app is `/`, not your resource directory.
 // `app` here is your `tauri::App` or `AppHandle`.
+let node_binary = app.path().resolve(
+    format!("resources/runtime/node{}", std::env::consts::EXE_SUFFIX),
+    BaseDirectory::Resource,
+)?;
 let runner_entry = app
     .path()
     .resolve("resources/runner/dist/main.js", BaseDirectory::Resource)?;
 
 let host = RunnerHost::new();
 host.start(RunnerConfig {
-    node_binary: "node".into(),
+    node_binary: node_binary.to_string_lossy().into_owned(),
     runner_entry: runner_entry.to_string_lossy().into_owned(),
     // Token-only: leave the address unset and the runner discovers it from the
     // control plane. Pass Some("host:7233") to pin it for local development.
@@ -407,13 +413,19 @@ immediate `SIGKILL` and reaps the child without a timer, so it cannot park.
 Reserve `stop()` for an explicit in-app stop (a "stop runner" action) while the
 event loop is still healthy.
 
-### Stage the runner in a packaged app
+### Ship the runner and its engine
 
-The Rust crate _drives_ the runner, but it does not contain it: the subprocess
-path launches the runner's compiled JavaScript with `node`. Those files must
-travel **inside** your installable app, because the end user's machine has no
-Stigmer checkout. Get them from npm rather than cloning the monorepo —
-specifically, from the **slim embedding build**:
+The Rust crate _drives_ the runner, but it does not contain it. A packaged app
+ships two things the end user's machine does not have: the runner's JavaScript,
+and the Node runtime that runs it. Neither can be assumed. The user has no
+Stigmer checkout, may never have installed Node, and an app launched from
+Finder, the Dock or the Start menu does not see the Node they did install,
+because it does not inherit the shell's `PATH`.
+
+#### The runner
+
+Get the runner's files from npm rather than cloning the monorepo — specifically,
+from the **slim embedding build**:
 
 1. **Add the package.** `npm install @stigmer/runner-slim`. This is the
    bundle-friendly build of the runner, made for exactly this use case: a
@@ -466,23 +478,64 @@ specifically, from the **slim embedding build**:
   identical either way.
 </Callout>
 
-<Callout type="warn">
-  **`node` must be resolvable.** The subprocess runner is launched with `node`.
-  A GUI app started from the dock or Start menu does **not** inherit the user's
-  shell `PATH`, so a bare `node` command can fail to resolve even when Node is
-  installed. Resolve an absolute path to `node` at startup (or bundle a Node
-  runtime with the app) rather than relying on `PATH`.
+#### The engine
+
+Ship a pinned Node runtime inside the app and start the runner with it, by
+absolute path. This is what the Stigmer desktop app does, and its scripts are
+the reference implementation
+(`client-apps/desktop/scripts/stage-node-runtime.sh` and its neighbours):
+
+1. **Pin one version, with its digests.** Choose a Node the runner supports (it
+   needs the built-in `node:sqlite`: 22.13 or later on the 22.x line, 23.4 or
+   later on 23.x) and commit the SHA-256 of each platform's official asset from
+   the release's `SHASUMS256.txt` (`node-v<version>-<os>-<arch>.tar.gz`, or the
+   bare `win-x64/node.exe` on Windows). The desktop keeps them in
+   `client-apps/desktop/node-runtime.json`, equal to the repository's `.nvmrc`.
+   A committed digest turns an upstream byte change into a failed build, not a
+   binary you ship under your signature.
+2. **Stage only the engine.** At build time, download the asset for the platform
+   you are building on, refuse it unless its digest matches, and copy just
+   `bin/node` (or `node.exe`) into your resources, for example
+   `resources/runtime/node`. The npm client and headers are not needed.
+3. **On macOS, re-sign it.** The upstream binary is signed by the Node.js
+   Foundation with entitlements that include `get-task-allow`, which Apple's
+   notary refuses. Tauri signs neither this file nor anything else under
+   `Resources/`. Sign it yourself before bundling, with your Developer ID, the
+   hardened runtime and a timestamp, and with an entitlements file granting
+   `com.apple.security.cs.allow-jit`, without which V8 cannot start under the
+   hardened runtime. Signing it with the same identity as the runner's native
+   modules (Temporal's core bridge and the others) is what lets library
+   validation load them without granting `disable-library-validation`.
+4. **Pass its absolute path.** Resolve it from the resource directory at
+   runtime, as the snippet above does, and set `node_binary` to it. A missing
+   engine fails with `NodeBinaryNotFound`, which names the `PATH` a bare name
+   was looked up on.
+
+Once both halves are staged, prove the pair before you ship: run the staged
+engine against the staged runner. The desktop runs
+`client-apps/desktop/scripts/verify-staged-runtime.mjs` with its bundled Node,
+and it checks the version, `node:sqlite`, WebAssembly, every native module, and
+the runner's own boot guard.
+
+<Callout type="info">
+  **Fetching on demand instead.** A host that prefers a small installer can
+  acquire the runtime on first use rather than bundle it: pin the versions,
+  download into a version-keyed cache, verify, then point the host at the
+  result. The Stigmer CLI acquires `@stigmer/runner-slim` this way
+  (`client-apps/cli/src/local/runtime/runner.ts`, into
+  `~/.stigmer/runtimes/<version>/`). The cost is a first launch that needs the
+  network, and on macOS a downloaded engine that your app's notarization did
+  not cover.
 </Callout>
 
 <Callout type="warn">
-  **`runner_entry` must be absolute in a packaged app.** Same root cause as
-  above: `node` resolves the entry script against the process working directory,
-  which for a Finder/dock-launched app is `/`, not your resource directory. A
-  relative entry like `resources/runner/dist/main.js` only resolves under `tauri
-  dev`. Resolve it from the resource directory at runtime
-  (`app.path().resolve(..., BaseDirectory::Resource)`). If the path does not
-  resolve, the host fails fast with a `RunnerEntryNotFound` error naming the
-  working directory it tried.
+  **`runner_entry` must be absolute in a packaged app.** `node` resolves the
+  entry script against the process working directory, which for a
+  Finder/dock-launched app is `/`, not your resource directory. A relative entry
+  like `resources/runner/dist/main.js` only resolves under `tauri dev`. Resolve
+  it from the resource directory at runtime (`app.path().resolve(...,
+  BaseDirectory::Resource)`). If the path does not resolve, the host fails fast
+  with a `RunnerEntryNotFound` error naming the working directory it tried.
 </Callout>
 
 ### How the two paths run

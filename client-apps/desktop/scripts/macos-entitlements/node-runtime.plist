@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements for the Node runtime the desktop bundles (stage-node-runtime.sh).
+
+  The hardened runtime refuses writable-then-executable memory unless the
+  binary is entitled to it, and V8 compiles JavaScript and WebAssembly into
+  exactly that; allow-jit is the one grant it needs on Apple Silicon.
+
+  Deliberately absent, though the upstream nodejs.org binary carries them:
+  get-task-allow (a debugging grant Apple's notary refuses), and
+  disable-library-validation (every native module the runner loads is signed
+  with the same identity as this binary, so validation passes as it is).
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+</dict>
+</plist>
