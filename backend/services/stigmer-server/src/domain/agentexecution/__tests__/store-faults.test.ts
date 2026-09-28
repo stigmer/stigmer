@@ -36,7 +36,12 @@ import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";
 import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
-import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import {
+  errorOf,
+  failingStore,
+  testCallerIdentity,
+  untouchable,
+} from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
@@ -64,34 +69,9 @@ const EXECUTION_ID = "aex_storefault";
 
 const LOAD_FAULT_COPY = "failed to load agent execution";
 
-/** A dependency the call must never reach once its load has failed. */
-function untouchable<T extends object>(name: string): T {
-  return new Proxy({} as T, {
-    get(_target, prop) {
-      throw new Error(`${name}.${String(prop)} reached after a failed load`);
-    },
-  });
-}
-
-/** A store whose every read fails with the given error. */
-function failingStore(error: Error): Store {
-  return {
-    getResource: () => Promise.reject(error),
-  } as unknown as Store;
-}
-
 const MISSING = (): Error =>
   new ResourceNotFoundError(`agent_execution/${EXECUTION_ID}`);
 const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
-
-async function errorOf(call: () => Promise<unknown>): Promise<ConnectError> {
-  const error = await call().then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  expect(error, "the call must fail").toBeInstanceOf(ConnectError);
-  return error as ConnectError;
-}
 
 function lifecycleDeps(store: Store): LifecycleDeps {
   return {

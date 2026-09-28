@@ -45,7 +45,12 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { createLogger } from "../../../boot/logger.js";
 import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
-import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import {
+  errorOf,
+  failingStore,
+  testCallerIdentity,
+  untouchable,
+} from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
@@ -80,34 +85,9 @@ const WORKFLOW_ID = "wfl_storefault";
 const EXECUTION_FAULT_COPY = "failed to load workflow execution";
 const WORKFLOW_FAULT_COPY = "failed to load workflow";
 
-/** A dependency the call must never reach once its load has failed. */
-function untouchable<T extends object>(name: string): T {
-  return new Proxy({} as T, {
-    get(_target, prop) {
-      throw new Error(`${name}.${String(prop)} reached after a failed load`);
-    },
-  });
-}
-
-/** A store whose every read fails with the given error. */
-function failingStore(error: Error): Store {
-  return {
-    getResource: () => Promise.reject(error),
-  } as unknown as Store;
-}
-
 const MISSING = (): Error =>
   new ResourceNotFoundError(`workflow_execution/${EXECUTION_ID}`);
 const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
-
-async function errorOf(call: () => Promise<unknown>): Promise<ConnectError> {
-  const error = await call().then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  expect(error, "the call must fail").toBeInstanceOf(ConnectError);
-  return error as ConnectError;
-}
 
 function handlerContext(): HandlerContext {
   const values = createContextValues();

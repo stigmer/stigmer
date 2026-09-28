@@ -106,6 +106,7 @@ import {
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import { completeOAuthConnect } from "./complete-oauth-connect.js";
 import { connect, startBestEffortConnect } from "./connect.js";
 import type { McpServerConnectDeps } from "./connect.js";
@@ -479,7 +480,7 @@ async function updateVisibility(
   return reqCtx.get(UPDATE_VISIBILITY_MCP_SERVER_KEY) as McpServer;
 }
 
-/** Loads the server by resource_id; ANY load failure → NotFound. */
+/** Loads the server by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadMcpServerForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -494,8 +495,11 @@ function newLoadMcpServerForVisibilityUpdateStep(
           input.resourceId,
           McpServerSchema,
         );
-      } catch {
-        throw notFoundError("mcp_server", input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("mcp_server", input.resourceId);
+        }
+        throw internalError(error, "failed to load mcp server");
       }
       ctx.set(UPDATE_VISIBILITY_MCP_SERVER_KEY, mcpServer);
     },

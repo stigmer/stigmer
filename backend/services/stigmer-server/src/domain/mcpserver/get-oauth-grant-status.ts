@@ -10,7 +10,7 @@
  *
  * Proven by mcpserver-oauth.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and
- * __tests__/get-oauth-grant-status.test.ts.
+ * __tests__/oauth-handshake.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 
