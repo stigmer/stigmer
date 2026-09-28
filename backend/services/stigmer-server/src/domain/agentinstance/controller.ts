@@ -7,8 +7,8 @@
  * refuses default instances outright (stigmer/stigmer#556).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by agentinstance.conformance.test.ts (CONFORMANCE_TARGET=local)
- * and __tests__/agentinstance.test.ts.
+ * Proven by agentinstance.conformance.test.ts (CONFORMANCE_TARGET=local),
+ * __tests__/agentinstance.test.ts and __tests__/store-faults.test.ts.
  *
  * Versus Stigmer Cloud, OSS excludes the CreateIamPolicies and Publish
  * steps. Deliberately NO same-org rule on create, unlike WorkflowInstance:
@@ -98,6 +98,7 @@ import {
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { agentInstanceSearchExtractor } from "./search-extractor.js";
 import {
@@ -398,7 +399,7 @@ async function updateVisibility(
   return reqCtx.get(UPDATE_VISIBILITY_INSTANCE_KEY) as AgentInstance;
 }
 
-/** Loads the agent instance by resource_id; ANY load failure → NotFound. */
+/** Loads the agent instance by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadInstanceForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -413,8 +414,11 @@ function newLoadInstanceForVisibilityUpdateStep(
           input.resourceId,
           AgentInstanceSchema,
         );
-      } catch {
-        throw notFoundError("agent instance", input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("agent instance", input.resourceId);
+        }
+        throw internalError(error, "failed to load agent instance");
       }
       ctx.set(UPDATE_VISIBILITY_INSTANCE_KEY, instance);
     },
