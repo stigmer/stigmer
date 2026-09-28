@@ -1407,15 +1407,20 @@ export const ServiceTierSchema: GenEnum<ServiceTier> = /*@__PURE__*/
  * exactly the fast variant rate). Thinking costs more only by generating
  * additional reasoning tokens, billed as ordinary output. Selectability is
  * therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for
- * models whose registry entry declares the thinking capability
- * (capabilities.thinking), refused at create time otherwise.
+ * models whose registry entry on the execution's harness declares a
+ * thinking capability (capabilities.thinking or capabilities.adaptive_thinking),
+ * refused at create time otherwise. ENABLED means "the model reasons before
+ * it answers", in the form its entry declares: a fixed budget or adaptive
+ * depth.
  *
  * The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to
  * THINKING_MODE_DISABLED — never the provider account default. Several
  * catalog default variants are thinking=true (claude-haiku-4-5), so an
  * unpinned selection would silently follow an out-of-band account setting;
  * the runner always sends an explicit thinking pin where the model declares
- * the parameter.
+ * the parameter. The one exception is a model whose entry declares
+ * capabilities.thinking_required: it always thinks, so an explicit DISABLED
+ * is refused at create and UNSPECIFIED runs with thinking on.
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.ThinkingMode
  */
@@ -1431,6 +1436,7 @@ export enum ThinkingMode {
   /**
    * Extended reasoning off: the model's base variant, requested explicitly
    * (thinking=false pinned where the model declares the parameter).
+   * Refused at execution create for a model that requires thinking.
    *
    * @generated from enum value: THINKING_MODE_DISABLED = 1;
    */
@@ -1440,8 +1446,8 @@ export enum ThinkingMode {
    * Extended reasoning on: the model's thinking variant, billed at base
    * per-token rates (reasoning tokens bill as output tokens).
    *
-   * Valid only for models whose registry entry declares the thinking
-   * capability; refused at execution create otherwise.
+   * Valid only for models whose registry entry on the execution's harness
+   * declares a thinking capability; refused at execution create otherwise.
    *
    * @generated from enum value: THINKING_MODE_ENABLED = 2;
    */

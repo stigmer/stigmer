@@ -34,6 +34,8 @@
 //   --tasks <path>           the quality tasks file (default: scripts/benchmark-harnesses/quality-tasks.yaml)
 //   --include-placeholders   run the tasks marked placeholder
 //   --pr N                   the pull request the measuring checkout belongs to, recorded on the report
+//   --thinking enabled       every execution asks for thinking (the judge's does not); the cells on a
+//                            harness's default model are refused, since the server refuses thinking on Auto
 //   --out <dir>              where the report lands (default: .test-output/benchmark-harnesses)
 import { execFile } from "node:child_process";
 import { accessSync, constants } from "node:fs";
@@ -107,6 +109,12 @@ function parseFlags(argv: readonly string[]): Flags {
       case "--include-placeholders":
         flags.includePlaceholders = true;
         break;
+      case "--thinking": {
+        const mode = value();
+        if (mode !== "enabled") throw new Error("--thinking needs enabled");
+        flags.thinking = mode;
+        break;
+      }
       case "--pr": {
         const pr = Number(value());
         if (!Number.isInteger(pr) || pr < 1) throw new Error("--pr needs a positive integer");
@@ -185,7 +193,13 @@ async function main(): Promise<void> {
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
   try {
-    const report = await runBenchmark(stack, plan, { reps: flags.reps, qualityReps: flags.qualityReps, git, titlingSuppressed: true }, {
+    const report = await runBenchmark(stack, plan, {
+      reps: flags.reps,
+      qualityReps: flags.qualityReps,
+      git,
+      titlingSuppressed: true,
+      ...(flags.thinking !== undefined ? { thinking: flags.thinking } : {}),
+    }, {
       now: Date.now,
       log: (line) => console.error(line),
     });

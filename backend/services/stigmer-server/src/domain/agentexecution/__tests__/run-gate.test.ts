@@ -7,7 +7,10 @@
  * denial leaves no execution row AND creates no default instance — the
  * "no side effect precedes the check" property; (3) the gate precedes the
  * engine gate: an ALLOWED create on this engineless server answers the
- * engine's UNAVAILABLE, a DENIED one PERMISSION_DENIED. The authorizer
+ * engine's UNAVAILABLE, a DENIED one PERMISSION_DENIED; (4) the
+ * thinking-mode validation, which may read the stored session, runs behind
+ * the gate (stigmer/stigmer#1280): a DENIED create with an invalid thinking
+ * mode answers PERMISSION_DENIED, an ALLOWED one INVALID_ARGUMENT. The authorizer
  * under test answers only run-gate checks (runGateOnlyAuthorizer), so every
  * refusal here is the run gate's and nobody else's.
  */
@@ -25,6 +28,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -134,6 +138,7 @@ function createInput(spec: {
   agentId?: string;
   sessionId?: string;
   sessionSpec?: { agentInstanceId: string };
+  executionConfig?: { modelName?: string; thinkingMode?: ThinkingMode };
 }) {
   return {
     apiVersion: API_VERSION,
@@ -241,5 +246,41 @@ describe("agent-execution-create run gate (composed server)", () => {
     expect(err.code).toBe(Code.Unavailable);
     expect(err.rawMessage).toBe(ENGINE_UNAVAILABLE_MESSAGE);
     expect(gate.runGateChecks.map((c) => c.resourceId)).toEqual([agentId]);
+  });
+
+  it("thinking-mode validation runs behind the gate: a denied caller learns nothing about the session", async () => {
+    decision = { kind: "deny", reason: "" };
+    gate.runGateChecks.length = 0;
+
+    const err = await captureError(() =>
+      command.create(
+        createInput({
+          sessionId: "ses_01someoneelses",
+          executionConfig: { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
+        }),
+      ),
+    );
+
+    expect(err.code).toBe(Code.PermissionDenied);
+    expect(err.rawMessage).toBe(addExecutionToSessionDeniedMessage("ses_01someoneelses"));
+  });
+
+  it("an allowed create with an invalid thinking mode is refused by the validation, before the engine gate", async () => {
+    decision = { kind: "allow" };
+    const agentId = await createAgentWithoutDefaultInstance("Thinking agent");
+    const instancesBefore = await count(ApiResourceKind.agent_instance);
+
+    const err = await captureError(() =>
+      command.create(
+        createInput({
+          agentId,
+          executionConfig: { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
+        }),
+      ),
+    );
+
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toContain("no thinking capability");
+    expect(await count(ApiResourceKind.agent_instance)).toBe(instancesBefore);
   });
 });

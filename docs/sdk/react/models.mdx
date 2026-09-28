@@ -128,7 +128,8 @@ variant, where it would be refused at create time.
 **Thinking mode (#772).** The same options-area pattern for the second
 variant dimension: opting in via
 `ModelSelectorProps.onThinkingModeChange` renders a "Thinking"
-switch for cursor-harness models declaring the thinking capability.
+switch for models declaring a thinking form, on either harness, shown on
+and locked for a model that always thinks.
 Capability-gated rather than priced-variant-gated — thinking bills at
 base per-token rates and costs more only through extra reasoning
 (output) tokens. Persistence and reset rules mirror the fast tier's.
@@ -148,7 +149,7 @@ base per-token rates and costs more only through extra reasoning
     onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when user changes harness in the dropdown." },
     onHarnessResolved: { type: "(harness: HarnessOption) => void", description: "" },
     onServiceTierChange: { type: "(tier: ServiceTierOption) => void", description: "Called when the user toggles the fast tier. Providing this enables the \"Fast tier\" switch in the popover's options area (top of the popover, beside the harness row — the Cursor options-panel convention), which renders ONLY while the selected model prices a fast variant (ModelInfo.serviceTiers) — no dead controls.  An active fast tier persists across switches between fast-capable models (the tier is always visible: trigger badge + options switch), so \"fast, but on that other model\" is one action, not a re-toggle. Selecting a model without a fast tier resets to \"standard\" through this callback — an unsupported combination can never be submitted (#357, refused at create time)." },
-    onThinkingModeChange: { type: "(mode: ThinkingModeOption) => void", description: "Called when the user toggles extended reasoning. Providing this enables the \"Thinking\" switch as a sibling of the fast-tier switch in the popover's options area, which renders ONLY while the selected model is a cursor-harness model declaring the thinking capability (ModelInfo.thinkingCapable) — no dead controls, and v1 honors the selection on the cursor harness only.  The same persistence rule as the fast tier: an active thinking mode survives switches between thinking-capable models (trigger badge + options switch keep it visible) and resets to \"disabled\" only when the new model lacks the capability — an unsupported combination can never be submitted (#772, refused at create time). Unlike fast, thinking bills at base per-token rates; enabled turns consume more output (reasoning) tokens." },
+    onThinkingModeChange: { type: "(mode: ThinkingModeOption) => void", description: "Called when the user toggles extended reasoning. Providing this enables the \"Thinking\" switch as a sibling of the fast-tier switch in the popover's options area, which renders ONLY while the selected model declares a thinking form (ModelInfo.thinkingCapable), on either harness — no dead controls. For a model that always thinks (ModelInfo.thinkingRequired) the switch shows on and disabled, whatever `thinkingMode` holds; the callback is not called for it.  The same persistence rule as the fast tier: an active thinking mode survives switches between thinking-capable models (trigger badge + options switch keep it visible) and resets to \"disabled\" only when the new model lacks the capability — an unsupported combination can never be submitted (#772, refused at create time). Unlike fast, thinking bills at base per-token rates; enabled turns consume more output (reasoning) tokens." },
     onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the `modelId`.", required: true },
     placeholderLabel: { type: "string", description: "Trigger label shown while `value` is empty, instead of falling back to the registry's default model. Lets a form distinguish \"nothing pinned — the platform default applies\" from an actual selection (the schedule form's contract: an unset model inherits the surface's platform default). The harness prefix is hidden while the placeholder shows, since no engine is pinned either." },
     serviceTier: { type: "ServiceTierOption", description: "Current service tier for the selected model (stigmer/stigmer#357). Defaults to \"standard\". Only meaningful together with onServiceTierChange." },
@@ -270,7 +271,8 @@ UI-relevant metadata for a single platform-supported LLM model.
     serviceTiers: { type: "readonly string[]", description: "Pricing-variant keys the registry prices for this model (e.g. `[\"fast\"]`). A priced variant is a *selectable* service tier (stigmer/stigmer#357): the fast-tier switch in the model popover's options area renders only while the selected model's `serviceTiers` includes it. Empty for models with no variants.  Distinct from speedTier, which is a static latency badge, not a selectable option.", required: true },
     shortDescription: { type: "string", description: "3-6 word pitch explaining why to pick this model. Shown in the curated view.", required: true },
     speedTier: { type: "SpeedTier", description: "Latency characteristic shown as a badge (Fastest / Fast / Balanced / Slow).", required: true },
-    thinkingCapable: { type: "boolean", description: "Tri-state thinking capability from the registry's `capabilities` block (stigmer/stigmer#772), the same absence convention as visionCapability:  - `true` — the model declares an extended-reasoning (thinking) variant;   the thinking switch in the model popover's options area may render - `false` — explicitly assessed as having none - `undefined` — never assessed; **stay silent, never treat as false**  Capability-gated, not pricing-gated (unlike serviceTiers): thinking bills at base per-token rates, so no priced variant exists to key on. v1 honors the selection on the cursor harness only — gate any control on `harness === \"cursor\"` as well as this flag." },
+    thinkingCapable: { type: "boolean", description: "Tri-state thinking capability from the registry's `capabilities` block (stigmer/stigmer#772, stigmer/stigmer#1280), the same absence convention as visionCapability:  - `true` — the model can be asked to think: its entry declares a   thinking form, a fixed budget (`thinking`) or adaptive depth   (`adaptiveThinking`); the thinking switch in the model popover's   options area may render - `false` — explicitly assessed as having neither - `undefined` — never assessed; **stay silent, never treat as false**  Capability-gated, not pricing-gated (unlike serviceTiers): thinking bills at base per-token rates, so no priced variant exists to key on. The entry is per harness, so the flag already describes the harness this model runs on; `thinkingSelectable` is the gate to use." },
+    thinkingRequired: { type: "boolean", description: "Tri-state: `true` for a model that always thinks and refuses a request to turn thinking off (the server refuses an explicit \"disabled\" for it), `false` for one that may turn it off, `undefined` when never assessed. A control shows thinking on and locked for a `true` model (`thinkingLocked`); absence is never read as `false`." },
     visionCapability: { type: "boolean", description: "Tri-state vision capability from the registry's `capabilities` block (stigmer/stigmer#386). The registry serializes `capabilities` only for models whose capabilities were actually assessed, so:  - `true` — images sent with a turn reach the model - `false` — explicitly assessed as blind; warn at selection/send time - `undefined` — never assessed; **stay silent, never treat as false**  Mirrors the runner's `parseVisionCapability` convention (backend/services/runner/src/shared/model-registry.ts) — both sides parse the same document and must agree on what absence means." },
   }}
 />
@@ -389,6 +391,32 @@ LLM provider identifier. Each provider maps to a distinct inference
 backend (or intermediary, in the case of Cursor-served third-party
 models). The model registry uses this for grouping in the
 "Show All" expanded view.
+
+
+### thinkingLocked
+
+Whether the model always thinks (`ModelInfo.thinkingRequired`):
+its switch shows on and cannot be turned off, and a submit carries
+"enabled" for it, never "disabled", which the server refuses for such a
+model.
+
+```tsx
+function thinkingLocked(model: ModelInfo): boolean
+```
+
+
+### thinkingSelectable
+
+Whether the thinking switch may act on this model: the model's registry
+entry declares a thinking form (`ModelInfo.thinkingCapable`). The
+entry belongs to the harness the model runs on, so the answer holds on
+either harness; there is no separate harness check. The one gate every
+control and submit path uses, so a switch never renders where the server
+would refuse the selection.
+
+```tsx
+function thinkingSelectable(model: ModelInfo): boolean
+```
 
 
 ### toProtoHarness

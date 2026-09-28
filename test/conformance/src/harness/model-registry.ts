@@ -4,8 +4,11 @@
 // Domain: conformance harness (execution engine).
 //
 // The harness reads only the fields the arms compare on — the id pair for
-// resolution and the three the runner's economy-tier pick keys on — so
-// registry schema growth (pricing, capabilities) never touches this module. A
+// resolution, the three the runner's economy-tier pick keys on, and the
+// native request facts a row states (its output ceiling and thinking form,
+// runner shared/model-registry.ts getNativeRequestProfile) — so other
+// registry schema growth (pricing, the remaining capabilities) never
+// touches this module. A
 // document with no `models` array is refused by name: the arms would otherwise
 // "pass" against an empty registry exactly the way the runner silently
 // degrades against one.
@@ -15,6 +18,12 @@ export interface ModelRegistryRow {
   provider: string | undefined;
   costTier: string | undefined;
   harness: string | undefined;
+  maxOutputTokens: number | undefined;
+  // The thinking form the row declares, read as the runner reads it:
+  // adaptive wins over a fixed budget; "none" when it declares neither.
+  thinkingForm: "budget" | "adaptive" | "none";
+  // Tri-state `capabilities.thinkingRequired`: undefined when never stated.
+  thinkingRequired: boolean | undefined;
 }
 
 export interface ModelRegistryDocument {
@@ -49,7 +58,19 @@ export function parseModelRegistryDocument(json: unknown, source = "(inline)"): 
         const value = (row as Record<string, unknown>)[key];
         return typeof value === "string" ? value : undefined;
       };
-      return [{ id, apiModelId: text("apiModelId"), provider: text("provider"), costTier: text("costTier"), harness: text("harness") }];
+      const record = row as Record<string, unknown>;
+      const ceiling = record.maxOutputTokens;
+      const flags = (typeof record.capabilities === "object" && record.capabilities !== null ? record.capabilities : {}) as Record<string, unknown>;
+      return [{
+        id,
+        apiModelId: text("apiModelId"),
+        provider: text("provider"),
+        costTier: text("costTier"),
+        harness: text("harness"),
+        maxOutputTokens: typeof ceiling === "number" && Number.isInteger(ceiling) && ceiling > 0 ? ceiling : undefined,
+        thinkingForm: flags.adaptiveThinking === true ? "adaptive" : flags.thinking === true ? "budget" : "none",
+        thinkingRequired: typeof flags.thinkingRequired === "boolean" ? flags.thinkingRequired : undefined,
+      }];
     }),
   };
 }
@@ -60,6 +81,17 @@ export function requireRegistryRow(document: ModelRegistryDocument, id: string):
   const row = document.models.find((model) => model.id === id);
   if (row === undefined) {
     throw new Error(`model registry has no row with id ${JSON.stringify(id)} (${document.models.length} rows)`);
+  }
+  return row;
+}
+
+// The native-harness row for a registry id, or a named failure. An id can
+// carry a row on each harness (claude-sonnet-5 does); the native request is
+// described by the native one only.
+export function requireNativeRow(document: ModelRegistryDocument, id: string): ModelRegistryRow {
+  const row = document.models.find((model) => model.harness === "native" && model.id === id);
+  if (row === undefined) {
+    throw new Error(`model registry has no native row with id ${JSON.stringify(id)} (${document.models.length} rows)`);
   }
   return row;
 }

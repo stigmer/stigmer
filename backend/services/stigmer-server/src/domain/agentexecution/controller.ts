@@ -279,12 +279,16 @@ export function registerAgentExecutionServices(
 
 /**
  * Create — create.go buildCreatePipeline, step-for-step: validation
- * (proto → visibility → tier #357 → thinking #772) → the run gate
+ * (proto → visibility → tier #357) → the run gate
  * (AuthorizeRunTarget, P1 sp.run-gate: asking the target's own permission
  * by request shape — session, instance or blueprint; the all-empty shape
  * is the built-in assistant, admitted by Authorize's organization check
  * and gated on nothing further — before the engine gate so a denied caller
- * learns nothing about engine state, and before every side effect) → the standard build
+ * learns nothing about engine state, and before every side effect) → the
+ * thinking-mode validation (#772), which judges the model on the harness
+ * the execution will run on and so may read the stored session: it runs
+ * behind the run gate, so nothing about a session is read or disclosed
+ * before the caller may add a turn to it (#1280) → the standard build
  * → the engine gate (fail fast BEFORE the first side effect, so a down
  * engine orphans nothing) → the pre-side-effect gate slot (O4; empty in OSS) → the
  * side-effecting steps (default instance, session bootstrap,
@@ -317,10 +321,10 @@ async function createExecution(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newValidateServiceTierStep(deps.modelRegistry))
-    .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(
       newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget),
     )
+    .addStep(newValidateThinkingModeStep(deps.modelRegistry, deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
     // Vouches the runner-stamped workflow lineage labels (or refuses a

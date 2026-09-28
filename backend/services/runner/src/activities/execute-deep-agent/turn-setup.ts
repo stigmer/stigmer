@@ -40,6 +40,8 @@ import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
+import { providerStrategy } from "langchain";
+import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import type { Config } from "../../config.js";
@@ -60,8 +62,9 @@ import { createThinkTool, createWebFetchTool, resolveGuardPosture } from "../../
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing } from "../../shared/model-pricing.js";
-import { getDefaultModel } from "../../shared/model-registry.js";
+import { getDefaultModel, getNativeRequestProfile } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
+import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { isUnattendedApprovalMode, type MergedToolPolicy } from "../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { alsoAvailableSkillsNote, selectSkillsForPrompt, visionPromptInfoOf } from "../../shared/prompt-sections.js";
@@ -75,7 +78,7 @@ import { mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv } from "./shell-env.js";
-import { modelHasNativeThinking, transformAndCompileSubagents } from "./subagent-transformer.js";
+import { transformAndCompileSubagents } from "./subagent-transformer.js";
 import { createTodoListMiddleware } from "./todo-list.js";
 
 /**
@@ -89,6 +92,14 @@ export type DeepAgentAdapterConfig = Pick<
   Config,
   "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode"
 >;
+
+/**
+ * A JSON object schema, the shape langchain's provider strategy takes for a
+ * plain schema (its own type for it is not exported). An execution's
+ * structured output schema is an object schema; the SDK's transform keeps
+ * its root `type`.
+ */
+type ObjectJsonSchema = { type: "object"; [key: string]: unknown };
 
 /** The deepagents graph as this module holds it; deepagents exports no stable type for the compiled agent. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,7 +140,7 @@ export interface DeepAgentEngine {
   readonly graph: AgentGraph;
   readonly checkpointer: BaseCheckpointSaver;
   readonly langgraphConfig: Record<string, unknown>;
-  /** The registry id the turn runs on (pricing, the thinking heuristic, sub-agent inheritance key on it). */
+  /** The registry id the turn runs on (pricing and sub-agent inheritance key on it). */
   readonly modelName: string;
   readonly pricing: ModelPricing;
   readonly gate: DeepAgentGateState;
@@ -310,9 +321,10 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
  * Build the engine: the model, the middleware stack with the gate, the
  * tools, the compiled sub-agents, the system prompt and `createDeepAgent`.
  *
- * The service tier resolved ONCE by the runtime rides every model this
- * execution constructs — the primary AND the sub-agent factory — so the
- * provider account's default can never pick the price of any turn (#361).
+ * The service tier and the thinking mode resolved ONCE by the runtime ride
+ * every model this execution constructs — the primary AND the sub-agent
+ * factory — so the provider account's default can never pick the price of
+ * any turn (#361), and every graph thinks in its own model's form.
  * `max_tool_rounds` resolves to one recursion limit that feeds BOTH the hard
  * stop on the invoke config and the budget middleware's ~80% advisory, so
  * the warning and the enforcement can never disagree.
@@ -341,25 +353,45 @@ export async function buildEngine(
   const primaryDir = input.workspace.primaryDir;
 
   // The model. Resolution to the provider API id happens inside
-  // buildChatModel; modelName stays the registry id for pricing, the
-  // native-thinking heuristic, and sub-agent inheritance. The credential is
-  // read from the ref at build, once per turn: a LangChain client carries
-  // its headers for its life, so this is the freshest a turn's model can be.
+  // buildChatModel; modelName stays the registry id for pricing and
+  // sub-agent inheritance. The credential is read from the ref at build,
+  // once per turn: a LangChain client carries its headers for its life, so
+  // this is the freshest a turn's model can be.
   //
-  // No temperature: current Anthropic models refuse one other than their
-  // default (claude-opus-4.7 and later and claude-fable-5 inside
-  // @langchain/anthropic, before any request; claude-sonnet-5 at the
-  // provider), and the Cursor harness sends none (stigmer/stigmer#1341).
-  const buildModelFor = async (name: string) =>
-    (await buildChatModel({
+  // What the request tells the provider about a model comes from the
+  // model's native registry row, never from a model name or a library's
+  // table, and is read here, the one place the execution's choices meet the
+  // row. The same factory builds every sub-agent's model, so each graph
+  // follows the row of the model it runs on:
+  // - no temperature: current Anthropic models refuse one other than their
+  //   default, and the Cursor harness sends none (stigmer/stigmer#1341);
+  // - the row's output ceiling, where LangChain's per-model default falls to
+  //   4096 on models its table does not know (stigmer/stigmer#1343), and
+  //   streaming on every call because the SDK refuses a non-streaming
+  //   request at that ceiling;
+  // - the execution's thinking mode in the form the row declares
+  //   (thinking-mode.ts toAnthropicThinking).
+  // A model with no native row (an unreachable registry) keeps the library
+  // defaults and sends no thinking parameter, as before.
+  const buildModelFor = async (name: string) => {
+    const profile = await getNativeRequestProfile(name);
+    return (await buildChatModel({
       modelName: name,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
       stigmerToken: config.stigmerTokenRef.current ?? undefined,
       headerScope: { executionId },
       serviceTier: input.model.serviceTier,
       temperature: null,
+      maxTokens: profile?.maxOutputTokens,
+      streaming: true,
+      thinking: toAnthropicThinking(input.model.thinkingMode, profile?.thinking),
     })).model;
+  };
   const model = await buildModelFor(modelName);
+  // Whether this graph reasons natively, derived from the same mapping the
+  // request carries: it decides the `think` tool and the structured-output
+  // strategy below, so neither can disagree with the wire.
+  const parentThinks = graphThinks(input.model.thinkingMode, (await getNativeRequestProfile(modelName))?.thinking);
   sink.setupTiming.mark("build_model");
 
   await ensurePricingLoaded();
@@ -426,7 +458,13 @@ export async function buildEngine(
   // Cursor harness); its URL guard posture — strict on managed cloud runners,
   // relaxed on user-owned machines — is derived from the runner mode.
   const webFetchPosture = resolveGuardPosture(config.mode);
-  const graphTools = [...tools.mcpTools, createThinkTool(), createWebFetchTool({ posture: webFetchPosture })];
+  // `think` is a reasoning aid for a graph that does not reason natively;
+  // a graph that thinks has no use for it.
+  const graphTools = [
+    ...tools.mcpTools,
+    ...(parentThinks ? [] : [createThinkTool()]),
+    createWebFetchTool({ posture: webFetchPosture }),
+  ];
 
   await sink.reportProgress("Configuring sub-agents…");
   const compiledSubagents = await transformAndCompileSubagents({
@@ -441,7 +479,8 @@ export async function buildEngine(
     // to the SAME per-turn observer as the parent (Session 26, DD-19).
     casObserver: workspace.casObserver,
     parentModelName: modelName,
-    parentHasNativeThinking: modelHasNativeThinking(modelName),
+    parentThinks,
+    thinkingMode: input.model.thinkingMode,
     webFetchPosture,
     costAdvisory: costAdvisory ?? undefined,
     modelFactory: buildModelFor,
@@ -456,8 +495,20 @@ export async function buildEngine(
   // status the first time it is pulled, before this turn's first persist.
   const systemPrompt = composeSystemPrompt(input, await input.standing.selectRecalledMemories());
 
+  // Structured output takes one of langchain's two strategies, chosen here
+  // explicitly. A graph that thinks uses the provider strategy: Anthropic's
+  // own JSON output (`output_config.format`), which forces no tool, because
+  // forced tool use and thinking do not combine on every platform and
+  // model. Its schema goes through the SDK's own transform (the one
+  // @langchain/anthropic's withStructuredOutput applies): Anthropic accepts
+  // only closed objects, and the runner's zod keeps them open. A graph that
+  // does not think keeps the tool strategy, the raw zod, unchanged.
   const outputSchema = input.structuredOutputSchema;
-  const responseFormat = outputSchema ? jsonSchemaToZod(outputSchema) : undefined;
+  const responseFormat = outputSchema === undefined
+    ? undefined
+    : parentThinks
+      ? providerStrategy({ schema: transformJSONSchema(outputSchema) as ObjectJsonSchema })
+      : jsonSchemaToZod(outputSchema);
 
   // File capture point: the CAS-observing backend — git-tracked edits flow to
   // disk (the boundary's git diff is authoritative) and the shared observer

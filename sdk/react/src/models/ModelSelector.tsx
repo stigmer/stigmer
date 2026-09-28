@@ -9,7 +9,7 @@ import { useModelRegistry } from "./useModelRegistry.js";
 import type { ModelInfo, CostTier, SpeedTier } from "./registry.js";
 import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness.js";
 import { FAST_SERVICE_TIER, type ServiceTierOption } from "./service-tier.js";
-import type { ThinkingModeOption } from "./thinking-mode.js";
+import { thinkingLocked, thinkingSelectable, type ThinkingModeOption } from "./thinking-mode.js";
 
 const COST_TIER_LABEL: Record<CostTier, string> = {
   economy: "$",
@@ -23,17 +23,6 @@ const SPEED_TIER_LABEL: Record<SpeedTier, string> = {
   balanced: "Balanced",
   slow: "Powerful",
 };
-
-/**
- * Whether the thinking switch may act on this model (stigmer/stigmer#772):
- * the registry declares the capability AND the model is cursor-harness —
- * the only harness with a thinking translation in v1. Native models
- * truthfully declare the capability too, but selecting it there would be
- * refused at create time, so the control never renders for them.
- */
-function supportsThinking(model: ModelInfo): boolean {
-  return model.harness === "cursor" && model.thinkingCapable === true;
-}
 
 /** Props for {@link ModelSelector}. */
 export interface ModelSelectorProps {
@@ -116,10 +105,11 @@ export interface ModelSelectorProps {
   /**
    * Called when the user toggles extended reasoning. Providing this enables
    * the "Thinking" switch as a sibling of the fast-tier switch in the
-   * popover's options area, which renders ONLY while the selected model is
-   * a cursor-harness model declaring the thinking capability
-   * ({@link ModelInfo.thinkingCapable}) — no dead controls, and v1 honors
-   * the selection on the cursor harness only.
+   * popover's options area, which renders ONLY while the selected model
+   * declares a thinking form ({@link ModelInfo.thinkingCapable}), on either
+   * harness — no dead controls. For a model that always thinks
+   * ({@link ModelInfo.thinkingRequired}) the switch shows on and disabled,
+   * whatever `thinkingMode` holds; the callback is not called for it.
    *
    * The same persistence rule as the fast tier: an active thinking mode
    * survives switches between thinking-capable models (trigger badge +
@@ -164,7 +154,8 @@ export interface ModelSelectorProps {
  * **Thinking mode (#772).** The same options-area pattern for the second
  * variant dimension: opting in via
  * {@link ModelSelectorProps.onThinkingModeChange} renders a "Thinking"
- * switch for cursor-harness models declaring the thinking capability.
+ * switch for models declaring a thinking form, on either harness, shown on
+ * and locked for a model that always thinks.
  * Capability-gated rather than priced-variant-gated — thinking bills at
  * base per-token rates and costs more only through extra reasoning
  * (output) tokens. Persistence and reset rules mirror the fast tier's.
@@ -324,12 +315,12 @@ export function ModelSelector({
         onServiceTierChange("standard");
       }
       // The identical persistence rule for the thinking mode (#772):
-      // survives between thinking-capable cursor models, resets only
-      // where the selection would be refused at create time.
+      // survives between thinking-capable models, resets only where the
+      // selection would be refused at create time.
       if (
         thinkingMode === "enabled"
         && onThinkingModeChange
-        && !supportsThinking(model)
+        && !thinkingSelectable(model)
       ) {
         onThinkingModeChange("disabled");
       }
@@ -399,10 +390,14 @@ export function ModelSelector({
   const showThinkingToggle =
     onThinkingModeChange !== undefined
     && selectedModel !== undefined
-    && supportsThinking(selectedModel);
+    && thinkingSelectable(selectedModel);
+  // A model that always thinks shows the switch on and locked: what the
+  // switch shows is what the model does.
+  const thinkingIsLocked = selectedModel !== undefined && thinkingLocked(selectedModel);
   const thinkingActive =
-    thinkingMode === "enabled"
-    && (selectedModel !== undefined && supportsThinking(selectedModel));
+    thinkingIsLocked
+    || (thinkingMode === "enabled"
+      && (selectedModel !== undefined && thinkingSelectable(selectedModel)));
 
   const usingPlaceholder = !value && placeholderLabel !== undefined;
   const triggerLabel = usingPlaceholder
@@ -563,11 +558,14 @@ export function ModelSelector({
                 <div className="stg:flex stg:flex-col">
                   <span className="stg:text-xs stg:text-foreground">Thinking</span>
                   <span className="stg:text-[0.65rem] stg:text-muted-foreground">
-                    Extended reasoning; uses more output tokens
+                    {thinkingIsLocked
+                      ? "This model always reasons before it answers"
+                      : "Extended reasoning; uses more output tokens"}
                   </span>
                 </div>
                 <Switch
                   checked={thinkingActive}
+                  disabled={thinkingIsLocked}
                   onCheckedChange={(next) =>
                     onThinkingModeChange?.(next ? "enabled" : "disabled")
                   }

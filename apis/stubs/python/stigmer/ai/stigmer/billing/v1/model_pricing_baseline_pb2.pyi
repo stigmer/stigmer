@@ -61,18 +61,20 @@ class SummarizationConfig(_message.Message):
     def __init__(self, trigger_threshold: _Optional[int] = ..., target_tokens: _Optional[int] = ..., max_summary_tokens: _Optional[int] = ...) -> None: ...
 
 class ModelCapabilities(_message.Message):
-    __slots__ = ("tool_use", "vision", "streaming", "thinking", "adaptive_thinking")
+    __slots__ = ("tool_use", "vision", "streaming", "thinking", "adaptive_thinking", "thinking_required")
     TOOL_USE_FIELD_NUMBER: _ClassVar[int]
     VISION_FIELD_NUMBER: _ClassVar[int]
     STREAMING_FIELD_NUMBER: _ClassVar[int]
     THINKING_FIELD_NUMBER: _ClassVar[int]
     ADAPTIVE_THINKING_FIELD_NUMBER: _ClassVar[int]
+    THINKING_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     tool_use: bool
     vision: bool
     streaming: bool
     thinking: bool
     adaptive_thinking: bool
-    def __init__(self, tool_use: bool = ..., vision: bool = ..., streaming: bool = ..., thinking: bool = ..., adaptive_thinking: bool = ...) -> None: ...
+    thinking_required: bool
+    def __init__(self, tool_use: bool = ..., vision: bool = ..., streaming: bool = ..., thinking: bool = ..., adaptive_thinking: bool = ..., thinking_required: bool = ...) -> None: ...
 
 class ModelPricingBaseline(_message.Message):
     __slots__ = ("baseline_id", "model_id", "api_model_id", "provider", "harness", "display_name", "short_description", "speed_tier", "cost_tier", "featured", "pricing", "pricing_variants", "wire_ids", "context_window_tokens", "max_output_tokens", "token_counter_method", "summarization", "capabilities", "status", "supersedes_baseline_id", "decided_by", "decided_at", "revision_note", "created_at")

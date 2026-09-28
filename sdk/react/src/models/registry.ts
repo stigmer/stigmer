@@ -116,20 +116,30 @@ export interface ModelInfo {
   readonly visionCapability?: boolean;
   /**
    * Tri-state thinking capability from the registry's `capabilities` block
-   * (stigmer/stigmer#772), the same absence convention as
-   * {@link visionCapability}:
+   * (stigmer/stigmer#772, stigmer/stigmer#1280), the same absence
+   * convention as {@link visionCapability}:
    *
-   * - `true` — the model declares an extended-reasoning (thinking) variant;
-   *   the thinking switch in the model popover's options area may render
-   * - `false` — explicitly assessed as having none
+   * - `true` — the model can be asked to think: its entry declares a
+   *   thinking form, a fixed budget (`thinking`) or adaptive depth
+   *   (`adaptiveThinking`); the thinking switch in the model popover's
+   *   options area may render
+   * - `false` — explicitly assessed as having neither
    * - `undefined` — never assessed; **stay silent, never treat as false**
    *
    * Capability-gated, not pricing-gated (unlike {@link serviceTiers}):
    * thinking bills at base per-token rates, so no priced variant exists to
-   * key on. v1 honors the selection on the cursor harness only — gate any
-   * control on `harness === "cursor"` as well as this flag.
+   * key on. The entry is per harness, so the flag already describes the
+   * harness this model runs on; `thinkingSelectable` is the gate to use.
    */
   readonly thinkingCapable?: boolean;
+  /**
+   * Tri-state: `true` for a model that always thinks and refuses a request
+   * to turn thinking off (the server refuses an explicit "disabled" for
+   * it), `false` for one that may turn it off, `undefined` when never
+   * assessed. A control shows thinking on and locked for a `true` model
+   * (`thinkingLocked`); absence is never read as `false`.
+   */
+  readonly thinkingRequired?: boolean;
 }
 
 /**
@@ -246,14 +256,29 @@ function parseVisionCapability(capabilities: unknown): boolean | undefined {
 }
 
 /**
- * Extract `capabilities.thinking` with the same tri-state convention as
- * {@link parseVisionCapability} (stigmer/stigmer#772): a missing or
- * malformed `capabilities` block stays `undefined`, never coerced to false.
+ * Whether the model can be asked to think: `capabilities.thinking` (a fixed
+ * budget) or `capabilities.adaptiveThinking` (adaptive depth), with the
+ * same tri-state convention as {@link parseVisionCapability}
+ * (stigmer/stigmer#772): a missing or malformed `capabilities` block, or
+ * one stating neither flag as a boolean, stays `undefined`, never coerced
+ * to false.
  */
 function parseThinkingCapability(capabilities: unknown): boolean | undefined {
   if (!capabilities || typeof capabilities !== "object") return undefined;
-  const thinking = (capabilities as Record<string, unknown>).thinking;
-  return typeof thinking === "boolean" ? thinking : undefined;
+  const { thinking, adaptiveThinking } = capabilities as Record<string, unknown>;
+  if (thinking === true || adaptiveThinking === true) return true;
+  return typeof thinking === "boolean" || typeof adaptiveThinking === "boolean" ? false : undefined;
+}
+
+/**
+ * Extract `capabilities.thinkingRequired`, tri-state: only a boolean
+ * states it. The runner reads the same flag (`shared/model-registry.ts`);
+ * both sides must agree that absence means "never assessed".
+ */
+function parseThinkingRequired(capabilities: unknown): boolean | undefined {
+  if (!capabilities || typeof capabilities !== "object") return undefined;
+  const required = (capabilities as Record<string, unknown>).thinkingRequired;
+  return typeof required === "boolean" ? required : undefined;
 }
 
 /**
@@ -312,6 +337,7 @@ export function parseRegistryDocument(data: unknown): ModelRegistryDocument {
     .map((m) => {
       const visionCapability = parseVisionCapability(m.capabilities);
       const thinkingCapable = parseThinkingCapability(m.capabilities);
+      const thinkingRequired = parseThinkingRequired(m.capabilities);
       return {
         modelId: m.id,
         provider: m.provider as Provider,
@@ -329,6 +355,7 @@ export function parseRegistryDocument(data: unknown): ModelRegistryDocument {
         // (tri-state absence, not an explicit undefined).
         ...(visionCapability !== undefined ? { visionCapability } : {}),
         ...(thinkingCapable !== undefined ? { thinkingCapable } : {}),
+        ...(thinkingRequired !== undefined ? { thinkingRequired } : {}),
       };
     });
 

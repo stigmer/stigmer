@@ -143,12 +143,14 @@ export interface SharedAgentExecutionFields {
    * Thinking mode for this execution's model calls (stigmer/stigmer#772).
    *
    * - `"disabled"` (default): the model's base variant, pinned explicitly —
-   *   never the provider account default.
+   *   never the provider account default. Refused for a model that always
+   *   thinks (`ModelInfo.thinkingRequired`); leave the mode unset or send
+   *   `"enabled"` for it.
    * - `"enabled"`: the model's extended-reasoning variant, billed at base
    *   per-token rates (reasoning tokens bill as output). Valid only for
-   *   cursor-harness models whose registry entry declares the thinking
-   *   capability — the backend refuses the create otherwise, so gate the
-   *   option on `ModelInfo.thinkingCapable`.
+   *   models whose registry entry, on the harness the execution runs on,
+   *   declares a thinking form — the backend refuses the create otherwise,
+   *   so gate the option on `thinkingSelectable(model)`.
    *
    * Maps to `ExecutionConfig.thinking_mode` in the proto.
    */

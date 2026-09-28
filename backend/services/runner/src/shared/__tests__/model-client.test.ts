@@ -388,6 +388,78 @@ describe("buildChatModel", () => {
       .rejects.toThrow(/STIGMER_ANTHROPIC_BACKEND="verteks" is not a supported backend/);
   });
 
+  describe("thinking and streaming (the native execution turn)", () => {
+    it("Anthropic: the mapped thinking parameter is the wrapper's own `thinking` field", async () => {
+      mockRegistryResponse([
+        { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-sonnet-5", thinking: { type: "adaptive", display: "summarized" } });
+
+      expect(lastAnthropicArgs()).toMatchObject({ thinking: { type: "adaptive", display: "summarized" } });
+    });
+
+    it("an explicit disabled rides the same field, so the provider's default cannot turn thinking on", async () => {
+      mockRegistryResponse([
+        { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-sonnet-5", thinking: { type: "disabled" } });
+
+      expect(lastAnthropicArgs()).toMatchObject({ thinking: { type: "disabled" } });
+    });
+
+    it("an omitted thinking parameter sends none, and streaming is off unless asked for", async () => {
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-haiku-4.5" });
+
+      expect(lastAnthropicArgs()).not.toHaveProperty("thinking");
+      expect(lastAnthropicArgs()).not.toHaveProperty("streaming");
+    });
+
+    it("streaming and the row's ceiling reach the wrapper when the caller sets them", async () => {
+      mockRegistryResponse([
+        { id: "claude-opus-4.8", apiModelId: "claude-opus-4-8", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-opus-4.8", maxTokens: 128000, streaming: true });
+
+      expect(lastAnthropicArgs()).toMatchObject({ maxTokens: 128000, streaming: true });
+    });
+
+    it("thinking rides a backend request too — unlike the tier, it exists on every Anthropic platform", async () => {
+      process.env.STIGMER_ANTHROPIC_BACKEND = "vertex";
+      process.env.CLOUD_ML_REGION = "asia-south1";
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({
+        modelName: "claude-sonnet-4.5",
+        thinking: { type: "enabled", budget_tokens: 16000 },
+        serviceTier: ServiceTier.STANDARD,
+      });
+
+      const args = lastAnthropicArgs();
+      expect(args).toMatchObject({ thinking: { type: "enabled", budget_tokens: 16000 } });
+      expect(args).not.toHaveProperty("invocationKwargs");
+    });
+
+    it("a thinking parameter for a non-Anthropic model is refused, never silently dropped", async () => {
+      mockRegistryResponse([
+        { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
+      ]);
+
+      await expect(
+        buildChatModel({ modelName: "gpt-4.1", thinking: { type: "adaptive" } }),
+      ).rejects.toThrow(/only Anthropic models have a native thinking mapping/);
+      expect(mockOpenAICtor).not.toHaveBeenCalled();
+    });
+  });
+
   describe("service tier (stigmer/stigmer#361)", () => {
     // The #357 contract on the native harness: when the caller passes the
     // execution's effective tier, every provider request pins it

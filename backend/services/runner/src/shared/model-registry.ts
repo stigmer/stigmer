@@ -7,7 +7,8 @@
  * model-pricing-data.ts) and uses `costTier` + `harness` fields to
  * dynamically resolve economy-tier models for extraction/summarization,
  * plus `capabilities` catalog metadata for per-model capability lookups
- * (getModelVisionCapability).
+ * (getModelVisionCapability) and the request facts a native row states
+ * (getNativeRequestProfile).
  */
 
 import {
@@ -38,6 +39,46 @@ interface RegistryModel {
    * Consumers gate only on the explicit `false` (see attachment-vision.ts).
    */
   visionCapability?: boolean;
+  /**
+   * The model's output ceiling in tokens, as the row states it. `undefined`
+   * when the row carries none or a value that is not a positive integer;
+   * the caller then keeps its own default.
+   */
+  maxOutputTokens?: number;
+  /** The thinking form the row declares; see {@link NativeThinkingProfile}. */
+  thinking: NativeThinkingProfile;
+}
+
+/**
+ * How a model reasons, as its registry row declares it (the proto's
+ * `ModelCapabilities`):
+ *
+ * - `shape` is `"adaptive"` when the row declares `adaptiveThinking` (depth
+ *   adapts; Anthropic `{type: "adaptive"}`), `"budget"` when it declares only
+ *   `thinking` (a fixed token budget; `{type: "enabled", budget_tokens}`),
+ *   and `"none"` otherwise. Adaptive wins where a row declares both: it is
+ *   the current form, and the budget form is deprecated on models that take
+ *   both.
+ * - `required` is the row's `thinkingRequired`, tri-state: `true` for a
+ *   model that always thinks and refuses to be told not to, `false` for one
+ *   that accepts an explicit `{type: "disabled"}`, `undefined` for a row that
+ *   was never assessed. The absence matters: a runner that read it as
+ *   `false` would send `disabled` to a model that refuses it.
+ */
+export interface NativeThinkingProfile {
+  readonly shape: "budget" | "adaptive" | "none";
+  readonly required: boolean | undefined;
+}
+
+/**
+ * The request facts a native-harness model's registry row states, read by
+ * the native execution turn when it builds its model client. One home for
+ * what the provider needs to be told about a model (the runner never names
+ * models in code); a field is `undefined` when the row does not state it.
+ */
+export interface NativeRequestProfile {
+  readonly maxOutputTokens: number | undefined;
+  readonly thinking: NativeThinkingProfile;
 }
 
 let cache: { models: readonly RegistryModel[]; expiresAt: number } | null = null;
@@ -58,7 +99,26 @@ function parseRegistry(json: unknown): RegistryModel[] {
       harness: (m.harness as string) ?? "native",
       featured: !!m.featured,
       visionCapability: parseVisionCapability(m.capabilities),
+      maxOutputTokens: parsePositiveInteger(m.maxOutputTokens),
+      thinking: parseThinkingProfile(m.capabilities),
     }));
+}
+
+function parsePositiveInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+/**
+ * The row's thinking form. A missing or malformed `capabilities` block
+ * declares no shape and leaves `required` unknown, the same tri-state
+ * posture as {@link parseVisionCapability}.
+ */
+function parseThinkingProfile(capabilities: unknown): NativeThinkingProfile {
+  if (!capabilities || typeof capabilities !== "object") return { shape: "none", required: undefined };
+  const flags = capabilities as Record<string, unknown>;
+  const shape = flags.adaptiveThinking === true ? "adaptive" : flags.thinking === true ? "budget" : "none";
+  const required = typeof flags.thinkingRequired === "boolean" ? flags.thinkingRequired : undefined;
+  return { shape, required };
 }
 
 /**
@@ -262,6 +322,28 @@ export async function getModelVisionCapability(
     (m) => m.id === modelName || m.apiModelId === modelName,
   );
   return entry?.visionCapability;
+}
+
+/**
+ * The native-harness row's request facts for a model, matched by registry
+ * `id` or `apiModelId` (the execution config carries the former, the
+ * registry default the latter) and filtered to `harness: native`: ids such
+ * as `claude-sonnet-5` exist on both harnesses, and only the native row
+ * describes the native request. `undefined` when the registry is
+ * unreachable, the name is empty or Auto, or no native row matches — the
+ * caller then sends what it sent before.
+ */
+export async function getNativeRequestProfile(
+  modelName: string,
+): Promise<NativeRequestProfile | undefined> {
+  if (!modelName || modelName === "default") return undefined;
+
+  const registry = await getRegistry();
+  const entry = registry.find(
+    (m) => m.harness === "native" && (m.id === modelName || m.apiModelId === modelName),
+  );
+  if (!entry) return undefined;
+  return { maxOutputTokens: entry.maxOutputTokens, thinking: entry.thinking };
 }
 
 /** Exposed for testing — resets the in-memory cache. */

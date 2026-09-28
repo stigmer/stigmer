@@ -63,6 +63,19 @@ export const FAST_VARIANT_KEY = "fast";
  */
 export const THINKING_CAPABILITY_KEY = "thinking";
 
+/**
+ * The registry capability key of adaptive thinking, the second form that
+ * makes THINKING_MODE_ENABLED selectable (stigmer/stigmer#1280).
+ */
+export const ADAPTIVE_THINKING_CAPABILITY_KEY = "adaptiveThinking";
+
+/**
+ * The registry capability key naming a model that always thinks and refuses
+ * a request to turn thinking off: an explicit THINKING_MODE_DISABLED is
+ * refused for it at create.
+ */
+export const THINKING_REQUIRED_CAPABILITY_KEY = "thinkingRequired";
+
 export interface ModelRegistryStoreOptions {
   /** Bundled build-time snapshot; MUST pass the sanity gate at boot. */
   bundledDocument: string;
@@ -202,9 +215,9 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * "thinking") true under the given harness. Capability flags are
    * harness-scoped facts (they describe what works through that serving
    * path), so there is no any-harness form: THINKING_MODE_ENABLED validates
-   * against the cursor harness specifically — the only harness with a
-   * thinking translation in v1 (oss#772) — and native entries declaring the
-   * same capability stay unselectable until a native wire mapping exists.
+   * against the entry of the harness the execution runs on (oss#772,
+   * stigmer/stigmer#1280), because an id with an entry on both harnesses
+   * can declare different capabilities on each.
    */
   hasCapabilityForHarness(
     harness: string,

@@ -25,7 +25,7 @@
 // the rest: they are recorded as failed at create, never skipped silently.
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileDecisionAction, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
@@ -58,6 +58,8 @@ export interface SessionPlan {
   harness: BenchmarkHarness;
   /** The registry id pinned on every turn, or `null` for the harness's default. */
   modelRequested: string | null;
+  /** "enabled" pins thinking on every turn; absent sends no mode (the platform default). */
+  thinking?: "enabled";
   /** The session the first turn creates: its harness, subject and any workspace. */
   sessionSpec: MessageInitShape<typeof SessionSpecSchema>;
   /** One prompt per turn, sent in order in ONE session. */
@@ -104,7 +106,12 @@ interface TurnRequest {
 async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnRequest, io: SessionIo): Promise<MeasuredTurn> {
   const { clients } = stack;
   const executionConfig: MessageInitShape<typeof ExecutionConfigSchema> | undefined =
-    plan.modelRequested === null ? undefined : { modelName: plan.modelRequested };
+    plan.modelRequested === null
+      ? undefined
+      : {
+          modelName: plan.modelRequested,
+          ...(plan.thinking === "enabled" ? { thinkingMode: ThinkingMode.ENABLED } : {}),
+        };
   const startedAtMs = Date.now();
 
   let created: AgentExecution;
