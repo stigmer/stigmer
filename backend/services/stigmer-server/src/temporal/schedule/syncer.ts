@@ -34,12 +34,13 @@ import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ScheduleArtifact } from "./artifact.js";
 import { desiredPaused, note } from "./artifact.js";
 import { artifactId } from "./names.js";
-import { bumpStatusAudit, ensureStatus } from "./status-writes.js";
+import { ensureStatus } from "./status-writes.js";
 
 /**
  * The syncer's answer when no Temporal client exists right now (Go

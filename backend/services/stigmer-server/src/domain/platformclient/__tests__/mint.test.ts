@@ -15,13 +15,17 @@
  *     nothing; a failed create leaves the grant, and the next mint completes
  *     the account; a concurrent winner is read back;
  *   - the default role is viewer, owner is refused, and the token carries
- *     the cloud's claim set for the account.
+ *     the cloud's claim set for the account;
+ *   - a successful mint stamps the client's last use through the port's
+ *     atomic modifyById (never the whole-row update), once per resolution;
+ *     a refused mint records nothing; a stamp that cannot be written is
+ *     logged and the token is still answered (stigmer/stigmer#1255).
  */
 import { generateKeyPairSync } from "node:crypto";
 
 import { Code, ConnectError } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
-import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { clone, create } from "@bufbuild/protobuf";
+import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
 
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -30,12 +34,18 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import {
+  PlatformClientSchema,
+  PlatformClientStatusSchema,
+} from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { MintUserTokenRequestSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+import { createLogger } from "../../../boot/logger.js";
+import type { Logger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
+import { LAST_USED_RESOLUTION_MS } from "../../../identity/credential-use.js";
 import { verifyPlatformToken } from "../../../platformtoken/envelope.js";
 import { platformTokenKeyRingFromPem } from "../../../platformtoken/key-ring.js";
 import type { PlatformTokenKeyRing } from "../../../platformtoken/key-ring.js";
@@ -101,6 +111,10 @@ interface Harness {
   }>;
   readonly granted: Array<{ spec: IamPolicySpec; caller: CallerIdentity }>;
   readonly accounts: Map<string, IdentityAccount>;
+  /** The client row as the port holds it; modifyById writes here. */
+  readonly stored: { client: PlatformClient };
+  /** Every port write, by method: the stamp must ride modifyById alone. */
+  readonly clientWrites: string[];
 }
 
 function harness(
@@ -109,9 +123,12 @@ function harness(
     keys?: PlatformTokenKeyRing | undefined;
     failGrant?: boolean;
     failCreate?: "fault" | "lost-race";
+    failStamp?: boolean;
+    logger?: Logger;
   } = {},
 ): Harness {
-  const client = options.client ?? platformClient();
+  const stored = { client: options.client ?? platformClient() };
+  const clientWrites: string[] = [];
   const events: string[] = [];
   const created: Harness["created"] = [];
   const granted: Harness["granted"] = [];
@@ -126,12 +143,25 @@ function harness(
   };
   const deps: PlatformClientMintDeps = {
     clients: {
-      save: async () => {},
-      update: async () => {},
+      save: async () => {
+        clientWrites.push("save");
+      },
+      update: async () => {
+        clientWrites.push("update");
+      },
+      modifyById: async (id, modify) => {
+        clientWrites.push("modifyById");
+        if (options.failStamp === true) throw new Error("client store down");
+        if (id !== stored.client.metadata?.id) return undefined;
+        const next = clone(PlatformClientSchema, stored.client);
+        modify(next);
+        stored.client = next;
+        return next;
+      },
       deleteById: async () => {},
-      findById: async () => client,
+      findById: async () => stored.client,
       findByClientId: async (clientId) =>
-        clientId === client.spec?.clientId ? client : undefined,
+        clientId === stored.client.spec?.clientId ? stored.client : undefined,
       findByOrgAndSlug: async () => undefined,
       findByOrg: async () => [],
     },
@@ -156,10 +186,10 @@ function harness(
     },
     grantPath,
     keys: "keys" in options ? options.keys : RING,
-    logger: silentLogger,
+    logger: options.logger ?? silentLogger,
     now: () => NOW,
   };
-  return { deps, events, created, granted, accounts };
+  return { deps, events, created, granted, accounts, stored, clientWrites };
 }
 
 function request(
@@ -417,5 +447,61 @@ describe("mintUserToken — the user", () => {
     expect(verified.outcome === "verified" && verified.token.subject).toBe(
       accountIdFor(SUBJECT),
     );
+  });
+});
+
+describe("mintUserToken — the client's last use", () => {
+  it("a successful mint stamps the client's last use at the mint's clock, through modifyById alone", async () => {
+    const h = harness();
+    await mintUserToken(h.deps, request());
+    expect(h.clientWrites).toEqual(["modifyById"]);
+    expect(timestampDate(h.stored.client.status!.lastUsedAt!)).toEqual(NOW);
+    expect(h.stored.client.status?.audit?.statusAudit?.event).toBe("updated");
+    expect(
+      h.stored.client.spec?.clientSecretHash,
+      "the stamp never rewrites the credential",
+    ).toBe(hashClientSecret(SECRET));
+  });
+
+  it("a mint inside the resolution writes nothing", async () => {
+    const recent = platformClient();
+    recent.status = create(PlatformClientStatusSchema, {
+      lastUsedAt: timestampFromDate(
+        new Date(NOW.getTime() - LAST_USED_RESOLUTION_MS / 2),
+      ),
+    });
+    const h = harness({ client: recent });
+    await mintUserToken(h.deps, request());
+    expect(h.clientWrites).toEqual([]);
+  });
+
+  it("a refused mint records nothing", async () => {
+    const h = harness();
+    await refusal(mintUserToken(h.deps, request({ clientSecret: "wrong" })));
+    await refusal(mintUserToken(h.deps, request({ orgId: "globex" })));
+    expect(h.clientWrites).toEqual([]);
+    expect(h.stored.client.status?.lastUsedAt).toBeUndefined();
+  });
+
+  it("a stamp that cannot be written is logged with the client's id and the token is still answered", async () => {
+    const lines: string[] = [];
+    const h = harness({
+      failStamp: true,
+      logger: createLogger({
+        level: "warn",
+        pretty: false,
+        write: (line) => lines.push(line),
+      }),
+    });
+    const response = await mintUserToken(h.deps, request());
+    expect(response.accessToken).not.toBe("");
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0]!)).toMatchObject({
+      level: "warn",
+      credential: "platform client",
+      id: "pcl_dashboard",
+      error: "client store down",
+    });
+    expect(lines[0], "the secret is never logged").not.toContain(SECRET);
   });
 });

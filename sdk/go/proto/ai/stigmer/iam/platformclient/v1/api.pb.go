@@ -142,8 +142,9 @@ type PlatformClientStatus struct {
 	// Standard audit information (created_at, updated_at, created_by, etc.).
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	// Timestamp of the most recent successful mintUserToken call using this
-	// platform client's credentials. Used for security monitoring — credentials
-	// that have not been used recently may be candidates for rotation or deletion.
+	// platform client's credentials, recorded at most once a minute. Used for
+	// security monitoring — credentials that have not been used recently may be
+	// candidates for rotation or deletion. Unset until the first mint.
 	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -13,6 +13,14 @@
  * duplicate check), by organization (listByOrg). A port carries nothing
  * only one edition calls.
  *
+ * One write is atomic: `modifyById`, the port's rendering of
+ * `Store.updateResource`, for the status the platform writes on its own
+ * (the mint's last-use stamp, identity/credential-use.ts). `update` stays
+ * a whole-row replace for the chains that load, edit and persist; a stamp
+ * written that way would race them and could restore a rotated secret. The
+ * driver supplies only the atomicity; what `modify` does stays the
+ * domain's, written once for every edition.
+ *
  * Contract every implementation must satisfy — proven by the port-contract
  * kit (store-contract.ts, exported), which the OSS adapter's test iterates
  * on both drivers and a composition's driver test iterates too:
@@ -21,6 +29,10 @@
  *     overwrite;
  *   - `update` replaces by id and never creates: an unknown id writes
  *     nothing;
+ *   - `modifyById` reads the row, applies `modify` and persists the result
+ *     in one atomic step, so no concurrent write is lost; it answers the
+ *     persisted row, an unknown id answers `undefined` and writes nothing,
+ *     and a `modify` that throws writes nothing and rejects with its error;
  *   - `deleteById` of an unknown id resolves;
  *   - `findByOrg` answers every client of the organization and no other,
  *     in no promised order (the chain sorts);
@@ -49,6 +61,17 @@ export interface PlatformClientStore {
   save(client: PlatformClient): Promise<void>;
   /** Full-row replace by id; an unknown id writes nothing. */
   update(client: PlatformClient): Promise<void>;
+  /**
+   * Atomic read-modify-write by id: `modify` mutates the stored client in
+   * place and the result is persisted, or nothing is. `modify` MUST be
+   * synchronous (Store.updateResource's rule: a driver may hold a write
+   * transaction or a row lock while it runs). Answers the persisted client;
+   * an unknown id answers `undefined`.
+   */
+  modifyById(
+    id: string,
+    modify: (client: PlatformClient) => void,
+  ): Promise<PlatformClient | undefined>;
   /** Removes the row; no error when it does not exist. */
   deleteById(id: string): Promise<void>;
   findById(id: string): Promise<PlatformClient | undefined>;

@@ -165,7 +165,7 @@
         "type": {
           "kind": "timestamp"
         },
-        "description": "Timestamp of the most recent API call made with this key.",
+        "description": "Timestamp of the most recent API call made with this key, recorded at most\n once a minute. Unset until the key is first used.",
         "required": false
       }
     ]

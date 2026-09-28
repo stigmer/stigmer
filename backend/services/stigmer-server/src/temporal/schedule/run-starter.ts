@@ -49,12 +49,13 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ScheduleFireCallerMint } from "../../extensions/schedule-fire-caller.js";
 import { ScheduleFireCallerRefusedError } from "../../extensions/schedule-fire-caller.js";
+import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ScheduleTemporalConfig } from "./config.js";
 import { scheduleModelPinningRefusal } from "./model-pinning.js";
-import { ensureStatus, bumpStatusAudit } from "./status-writes.js";
+import { ensureStatus } from "./status-writes.js";
 
 /**
  * The scheduled session's pinned subject prefix — cross-edition contract

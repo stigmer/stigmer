@@ -15,6 +15,12 @@
  * SpecAudit for definition changes (search recency, version "pushed at"),
  * StatusAudit for operational changes (Recents, lifecycle metadata).
  *
+ * A write the PLATFORM makes on its own (a schedule's clock, a credential's
+ * last-use stamp) takes the narrower `bumpStatusAudit` instead: status-audit
+ * updated_at + event only, never an actor, because no caller made it (Go's
+ * clock bump, "the same two leaves every cloud runtime patch bumps"). Two
+ * flavors, two writers, both wire-visible — keep them distinct.
+ *
  * This module is also the one home of how an id is SPELLED. `generateId`
  * mints `{prefix}_{ulid}`; `derivedId` is its sibling for the kinds
  * metadata.proto names as deriving their id from a natural key instead
@@ -173,6 +179,27 @@ export function setAuditFieldsForUpdate(
     slot,
     updatedAuditInfo(createdBy, createdAt, actor, now),
   );
+}
+
+/**
+ * Stamps the status-audit slot for a write the platform makes on its own —
+ * updated_at + event "updated", nothing else (see the module header for why
+ * this is not setAuditFieldsForUpdate). Like that helper it SETS a newly
+ * allocated slot rather than assigning into the existing one (#540); the
+ * slot's created_by/created_at/updated_by carry over unchanged.
+ */
+export function bumpStatusAudit(status: { audit?: ApiResourceAudit }): void {
+  if (status.audit === undefined) {
+    status.audit = create(ApiResourceAuditSchema);
+  }
+  const prior = status.audit.statusAudit;
+  const next =
+    prior === undefined
+      ? create(ApiResourceAuditInfoSchema)
+      : clone(ApiResourceAuditInfoSchema, prior);
+  next.updatedAt = timestampNow();
+  next.event = "updated";
+  status.audit.statusAudit = next;
 }
 
 // Operator identity (stigmer/stigmer#400): installed once at boot — before

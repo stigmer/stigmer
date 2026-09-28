@@ -20,6 +20,8 @@
  * (org, slug) or client_id; `update` writes nothing for an unknown id; the
  * residual window between the read and the write is the platform-wide
  * CheckDuplicate-then-upsert window, not this adapter's to close.
+ * `modifyById` has no such window: it IS Store.updateResource, the generic
+ * store's own atomic read-modify-write, its not-found read as `undefined`.
  *
  * Store faults follow the ratified mapping: a typed ResourceNotFoundError
  * reads as `undefined`; anything else propagates — an outage must never
@@ -133,6 +135,22 @@ export function newResourcePlatformClientStore(
         return;
       }
       await store.saveResource(KIND, id, PlatformClientSchema, client);
+    },
+
+    async modifyById(id, modify): Promise<PlatformClient | undefined> {
+      try {
+        return await store.updateResource(
+          KIND,
+          id,
+          PlatformClientSchema,
+          modify,
+        );
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          return undefined;
+        }
+        throw error;
+      }
     },
 
     async deleteById(id): Promise<void> {

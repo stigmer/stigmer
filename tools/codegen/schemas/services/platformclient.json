@@ -757,7 +757,7 @@
         "type": {
           "kind": "timestamp"
         },
-        "description": "Timestamp of the most recent successful mintUserToken call using this\n platform client's credentials. Used for security monitoring — credentials\n that have not been used recently may be candidates for rotation or deletion.",
+        "description": "Timestamp of the most recent successful mintUserToken call using this\n platform client's credentials, recorded at most once a minute. Used for\n security monitoring — credentials that have not been used recently may be\n candidates for rotation or deletion. Unset until the first mint.",
         "required": false
       }
     ]

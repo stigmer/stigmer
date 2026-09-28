@@ -1693,7 +1693,14 @@ export async function composeServer(
   //     own (the cloud's sandbox lanes).
   const identityVerifiers = [
     ...(requireAuthentication
-      ? [newApiKeyIdentityVerifier({ store, accounts: identityAccounts })]
+      ? [
+          newApiKeyIdentityVerifier({
+            store,
+            accounts: identityAccounts,
+            logger,
+            now: () => new Date(),
+          }),
+        ]
       : []),
     // The PlatformClient user-token lane rides the ring, which the keys
     // stage resolves only under an authentication posture. It sits before

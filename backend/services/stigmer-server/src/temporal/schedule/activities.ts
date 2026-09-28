@@ -20,6 +20,7 @@ import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ScheduleTemporalConfig } from "./config.js";
@@ -64,7 +65,7 @@ import {
 } from "./run-ledger.js";
 import type { RunStarter } from "./run-starter.js";
 import type { ScheduleSyncer } from "./syncer.js";
-import { bumpStatusAudit, ensureStatus } from "./status-writes.js";
+import { ensureStatus } from "./status-writes.js";
 
 export interface ScheduleTickActivityDeps {
   readonly store: Store;

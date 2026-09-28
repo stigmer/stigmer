@@ -833,7 +833,7 @@ PlatformClientStatus contains system-managed state for a platform client.
 <TypeTable
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
-    lastUsedAt: { type: "string", description: "Timestamp of the most recent successful mintUserToken call using this platform client's credentials." },
+    lastUsedAt: { type: "string", description: "Timestamp of the most recent successful mintUserToken call using this platform client's credentials, recorded at most once a minute." },
   }}
 />
 

@@ -95,7 +95,8 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp lastUsedAt_;
   /**
    * <pre>
-   * Timestamp of the most recent API call made with this key.
+   * Timestamp of the most recent API call made with this key, recorded at most
+   * once a minute. Unset until the key is first used.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -107,7 +108,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Timestamp of the most recent API call made with this key.
+   * Timestamp of the most recent API call made with this key, recorded at most
+   * once a minute. Unset until the key is first used.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -119,7 +121,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Timestamp of the most recent API call made with this key.
+   * Timestamp of the most recent API call made with this key, recorded at most
+   * once a minute. Unset until the key is first used.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -648,7 +651,8 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> lastUsedAtBuilder_;
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -659,7 +663,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -674,7 +679,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -694,7 +700,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -712,7 +719,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -737,7 +745,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -754,7 +763,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -766,7 +776,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -781,7 +792,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Timestamp of the most recent API call made with this key.
+     * Timestamp of the most recent API call made with this key, recorded at most
+     * once a minute. Unset until the key is first used.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>

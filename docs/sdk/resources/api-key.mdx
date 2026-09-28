@@ -390,7 +390,7 @@ ApiKeyStatus contains system-managed state for an API key.
 <TypeTable
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
-    lastUsedAt: { type: "string", description: "Timestamp of the most recent API call made with this key." },
+    lastUsedAt: { type: "string", description: "Timestamp of the most recent API call made with this key, recorded at most once a minute." },
   }}
 />
 

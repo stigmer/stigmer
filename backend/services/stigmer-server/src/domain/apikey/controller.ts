@@ -58,6 +58,7 @@ import {
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
+import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
@@ -289,7 +290,10 @@ async function getByKeyHash(
  * 9) the list narrows to the caller's can_view keys — the Java
  * ApiKeyFindAllHandler baseline (no guest arm, no org intersection).
  * Stored hashes ride the response exactly as the cloud's do — the
- * plaintext exists nowhere.
+ * plaintext exists nowhere. Newest first, as PlatformClient's listByOrg
+ * answers: the store's scan has no order, and a key's own last-use stamp
+ * rewrites its row, so an unsorted list would reorder as keys are used
+ * (stigmer/stigmer#1255).
  */
 async function findAll(
   deps: ApiKeyControllerDeps,
@@ -319,12 +323,18 @@ async function findAll(
   } catch (error) {
     throw internalError(error, "failed to list api keys");
   }
-  const entries = await restrictListByReadScope(
+  const visible = await restrictListByReadScope(
     deps.listReadScope,
     identity,
     ApiResourceKind.api_key,
     rows.map((row) => fromBinary(ApiKeySchema, row)),
     "",
+  );
+  const entries = [...visible].sort((a, b) =>
+    compareCreatedAtDesc(
+      a.status?.audit?.specAudit?.createdAt,
+      b.status?.audit?.specAudit?.createdAt,
+    ),
   );
   return create(ApiKeysSchema, { entries });
 }

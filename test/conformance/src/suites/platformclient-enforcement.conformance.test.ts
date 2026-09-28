@@ -28,7 +28,9 @@
 //   - a wrong secret, an org_id that is not the owning organization, and a
 //     client that does not provision users are refused with the pinned copy;
 //   - rotating the secret stops the old one minting and leaves minted tokens
-//     valid until they expire.
+//     valid until they expire;
+//   - a successful mint records when the client was last used, readable by
+//     its owner; a refused mint records nothing (stigmer/stigmer#1255).
 //
 // Reads of the client itself: an outsider can neither read a client by
 // reference nor list the organization's clients, and a member — who may
@@ -38,6 +40,7 @@
 // Out of scope here: the CRUD contract on the primary
 // (platformclient.conformance.test.ts) and the server that trusts every
 // request, which refuses the mint (same file).
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -418,6 +421,40 @@ describe.skipIf(!enforcementServed)(
       await lane
         .clientsPresenting(token)
         .organizationQuery.findMyOrganizations({});
+    });
+
+    it("a successful mint records the client's last use; a refused mint records nothing", async () => {
+      const context = await tenancy();
+      const client = await platformClient(context.org);
+      const lastUsed = async () =>
+        (await lane.clients.platformClientQuery.get({ value: client.id }))
+          .status?.lastUsedAt;
+
+      expect(await lastUsed(), "a new client has never been used").toBeUndefined();
+
+      await expectGrpcCode(
+        () =>
+          mintUserToken(
+            lane.clients,
+            { ...client.credentials, clientSecret: "stgm_cs_not-the-secret" },
+            uniqueName("enforcement-user"),
+          ),
+        Code.Unauthenticated,
+        "mint with a wrong secret",
+      );
+      expect(await lastUsed(), "a refused mint records nothing").toBeUndefined();
+
+      await mintUserToken(
+        lane.clients,
+        client.credentials,
+        uniqueName("enforcement-user"),
+      );
+      const stamp = await lastUsed();
+      expect(stamp, "a successful mint records the client's last use").toBeDefined();
+      // Two clocks meet here (this process's and the server's), so the
+      // stamp is held to the day, not to the second.
+      const ageMs = Date.now() - timestampDate(stamp!).getTime();
+      expect(Math.abs(ageMs)).toBeLessThan(86_400_000);
     });
   },
 );

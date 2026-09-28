@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { LastUsedLabel } from "../internal/LastUsedLabel.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { usePlatformClientList } from "./usePlatformClientList.js";
 import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
@@ -19,8 +22,22 @@ export interface PlatformClientListPanelProps {
   readonly onEdit?: (pc: PlatformClient) => void;
   /** Expose the refetch function so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
+  /**
+   * Shown when the list is empty. Defaults to "No platform clients
+   * configured." The list holds only the clients the caller may view (each
+   * client's creator and the organization's admins), so a host that knows
+   * the caller may not manage platform clients should say who does instead.
+   */
+  readonly emptyState?: ReactNode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Reference instant for the "last used" relative stamp. Defaults to
+   * the live clock. **Deterministic hosts (documentation embeds, video
+   * export) must pass a frozen instant** — otherwise a depicted client's
+   * "2h ago" drifts with every replay.
+   */
+  readonly now?: Date;
 }
 
 /**
@@ -28,8 +45,9 @@ export interface PlatformClientListPanelProps {
  * organization with inline delete confirmation.
  *
  * Each row shows the client name, `client_id` (monospace), secret
- * fingerprint, expiry status, and creation date. A delete button
- * triggers an inline confirmation flow.
+ * fingerprint, expiry status, creation date and when the client last
+ * minted a token. Edit and delete are offered only to a caller the
+ * server allows (`can_edit`, `can_delete`); delete confirms inline.
  *
  * Platform clients are admin-level resources with small cardinality
  * (typically 1–5 per org), so the list is rendered without pagination.
@@ -54,7 +72,9 @@ export function PlatformClientListPanel({
   org,
   onEdit,
   onRefetchRef,
+  emptyState = "No platform clients configured.",
   className,
+  now,
 }: PlatformClientListPanelProps) {
   const { platformClients, isLoading, error, refetch } =
     usePlatformClientList(org);
@@ -97,7 +117,7 @@ export function PlatformClientListPanel({
           className,
         )}
       >
-        No platform clients configured.
+        {emptyState}
       </p>
     );
   }
@@ -115,6 +135,7 @@ export function PlatformClientListPanel({
             key={id}
             platformClient={pc}
             isConfirming={confirmingId === id}
+            now={now}
             onEdit={onEdit ? () => onEdit(pc) : undefined}
             onConfirmDelete={() => setConfirmingId(id)}
             onCancelDelete={() => setConfirmingId(null)}
@@ -136,6 +157,7 @@ export function PlatformClientListPanel({
 function PlatformClientRow({
   platformClient,
   isConfirming,
+  now,
   onEdit,
   onConfirmDelete,
   onCancelDelete,
@@ -143,6 +165,7 @@ function PlatformClientRow({
 }: {
   platformClient: PlatformClient;
   isConfirming: boolean;
+  now?: Date;
   onEdit?: () => void;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
@@ -158,6 +181,7 @@ function PlatformClientRow({
   const fingerprint = spec?.secretFingerprint ?? "";
   const createdAt =
     platformClient.status?.audit?.specAudit?.createdAt;
+  const lastUsedAt = platformClient.status?.lastUsedAt;
 
   const handleDelete = useCallback(async () => {
     try {
@@ -269,35 +293,46 @@ function PlatformClientRow({
             </TooltipContent>
           </Tooltip>
         )}
+        <LastUsedLabel at={lastUsedAt} now={now} />
       </div>
 
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
         {onEdit && (
+          <PermissionGate
+            resource={{ kind: "platform_client", id }}
+            relation="can_edit"
+          >
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label={`Edit ${name}`}
+              className={cn(
+                "stg:shrink-0 stg:rounded stg:p-1",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:transition-colors",
+              )}
+            >
+              <PencilIcon />
+            </button>
+          </PermissionGate>
+        )}
+        <PermissionGate
+          resource={{ kind: "platform_client", id }}
+          relation="can_delete"
+        >
           <button
             type="button"
-            onClick={onEdit}
-            aria-label={`Edit ${name}`}
+            onClick={onConfirmDelete}
+            aria-label={`Delete ${name}`}
             className={cn(
               "stg:shrink-0 stg:rounded stg:p-1",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
               "stg:transition-colors",
             )}
           >
-            <PencilIcon />
+            <TrashIcon />
           </button>
-        )}
-        <button
-          type="button"
-          onClick={onConfirmDelete}
-          aria-label={`Delete ${name}`}
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:p-1",
-            "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
-            "stg:transition-colors",
-          )}
-        >
-          <TrashIcon />
-        </button>
+        </PermissionGate>
       </div>
     </div>
   );
