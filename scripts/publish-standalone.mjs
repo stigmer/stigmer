@@ -22,14 +22,17 @@
  *   2. Copy the repo-root LICENSE beside the manifest so the tarball
  *      carries it (the libs' publish does the same).
  *   3. `npm pack --dry-run` — the published file list, in the log.
- *   4. Wait until npm serves every pinned lib at that version to an
- *      install. The `publish` job already put them there (it is this job's
+ *   4. Wait until every pinned lib at that version is installable from
+ *      npm. The `publish` job already put them there (it is this job's
  *      hard `needs:`), so the wait only absorbs the registry's propagation
- *      lag, and the install below cannot race it. "Served" is read from the
- *      document `npm install` itself resolves against, the abbreviated
- *      install metadata (`installDocumentServes`), because npm caches it
- *      apart from the full document `npm view` reads, so the two can
- *      disagree while a version propagates. The libs publish together, so
+ *      lag, and the install below cannot race it. "Installable" is what an
+ *      install needs, in the order it needs it (`installGap`): the
+ *      abbreviated install metadata lists the version (the document
+ *      `npm install` resolves against, which npm caches apart from the full
+ *      document `npm view` reads, so the two can disagree while a version
+ *      propagates), and the tarball that metadata names answers. npm serves
+ *      the tarball separately, so a version the metadata already lists can
+ *      still 404 on download (stigmer#1325). The libs publish together, so
  *      they share one deadline and every lib still missing is polled each
  *      round (`waitForRegistry`).
  *   5. `npm run verify:consumer` — the package's consumer-install smoke
@@ -84,6 +87,16 @@ const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 export const WAIT_BUDGET_MS = 20 * 60_000;
 export const WAIT_FIRST_INTERVAL_MS = 10_000;
 export const WAIT_MAX_INTERVAL_MS = 60_000;
+
+/**
+ * How long one registry request may take before it counts as "not yet".
+ * The deadline is checked between rounds, so without a bound one stalled
+ * connection would hold the job past it. A round probes the libs in
+ * parallel and each lib's two requests (install document, then tarball) in
+ * sequence, so a refusal lands at most two timeouts, 60 s, after the
+ * deadline.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000;
 
 /**
  * Returns the manifest with the release version stamped and every
@@ -143,29 +156,78 @@ export const INSTALL_METADATA_ACCEPT =
   "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
 
 /**
- * Whether the registry's install metadata for `name` lists `version`: the
- * document an install resolves the pin against. A scoped name keeps its `@`
- * and encodes its `/`, as npm's own client does. A version the document
- * does not list, a 404 and a fault all answer false: the wait asks again
- * until its deadline, and its refusal names what is still missing.
+ * What an install of `name@version` still lacks from the registry, or
+ * `null` when an install would get it. The checks run in the order an
+ * install needs them, and the first one that fails is named:
+ *
+ *   registry unreachable: <fault>           the install document request failed
+ *   install document answers HTTP <status>  it answered, not with a success
+ *   install document unreadable: <fault>    its body is not JSON
+ *   not listed in its install document      it does not list the version
+ *   no tarball in its install document      the version names no tarball
+ *   tarball unreachable: <fault>            the HEAD on the tarball failed
+ *   tarball answers HTTP <status>           it answered, not with a success
+ *
+ * The install document is the abbreviated metadata an install resolves the
+ * pin against; a scoped name keeps its `@` and encodes its `/`, as npm's own
+ * client does. The tarball is probed at the URL that document names,
+ * because that is the URL the install downloads, and npm can still answer
+ * it 404 after the document lists the version (stigmer#1325). Every gap
+ * means "not yet": the wait asks again until its deadline, and its refusal
+ * names the gap. Each request gives up after `REQUEST_TIMEOUT_MS`.
  */
-export async function installDocumentServes(
+export async function installGap(
   name,
   version,
   { registry, fetchImpl = fetch },
 ) {
   const base = registry.endsWith("/") ? registry : `${registry}/`;
   const url = `${base}${name.replace("/", "%2f")}`;
+  let response;
   try {
-    const response = await fetchImpl(url, {
+    response = await fetchImpl(url, {
       headers: { accept: INSTALL_METADATA_ACCEPT },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) return false;
-    const document = await response.json();
-    return Object.hasOwn(document?.versions ?? {}, version);
-  } catch {
-    return false;
+  } catch (error) {
+    return `registry unreachable: ${faultOf(error)}`;
   }
+  if (!response.ok) return `install document answers HTTP ${response.status}`;
+  let document;
+  try {
+    document = await response.json();
+  } catch (error) {
+    return `install document unreadable: ${faultOf(error)}`;
+  }
+  const versions = document?.versions ?? {};
+  if (!Object.hasOwn(versions, version)) {
+    return "not listed in its install document";
+  }
+  const tarball = versions[version]?.dist?.tarball;
+  if (typeof tarball !== "string" || tarball === "") {
+    return "no tarball in its install document";
+  }
+  try {
+    const head = await fetchImpl(tarball, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    return head.ok ? null : `tarball answers HTTP ${head.status}`;
+  } catch (error) {
+    return `tarball unreachable: ${faultOf(error)}`;
+  }
+}
+
+/**
+ * A fetch fault as one line. Node's fetch rejects a network failure with
+ * a bare "fetch failed" and puts the reason (ENOTFOUND, ECONNRESET) in
+ * `cause`, so the cause is appended when there is one.
+ */
+function faultOf(error) {
+  if (!(error instanceof Error)) return String(error);
+  return error.cause instanceof Error
+    ? `${error.message}: ${error.cause.message}`
+    : error.message;
 }
 
 /** The registry the job's npm is configured for (setup-node writes it). */
@@ -175,34 +237,42 @@ function configuredRegistry() {
   }).trim();
 }
 
+/** Each lib the wait still misses, with what it misses: `name@v (gap), ...`. */
+function describeGaps(gaps, version) {
+  return gaps.map(({ name, gap }) => `${name}@${version} (${gap})`).join(", ");
+}
+
 /**
  * The wait's refusal: the libs are published (the libs job is this job's
- * hard dependency) and npm has not served them yet. It names the recovery,
- * rerunning only the failed job, which resumes here with the libs in place.
+ * hard dependency) and npm does not yet serve an install of them. It names
+ * each lib with what npm still lacks for it (`installGap`), and the
+ * recovery, rerunning only the failed job, which resumes here with the libs
+ * in place.
  */
-export function registryLagMessage(names, version, budgetMs, runId) {
-  const libs = names.map((name) => `${name}@${version}`).join(", ");
+export function registryLagMessage(gaps, version, budgetMs, runId) {
   const rerun = `gh run rerun ${runId ?? "<run-id>"} --failed`;
   return (
-    `${libs} published by the libs job but not served by npm after ` +
-    `${budgetMs / 60_000} minutes; the registry is lagging. ` +
-    `Rerun the failed job once npm serves ${names.length === 1 ? "it" : "them"}: ${rerun}`
+    `${describeGaps(gaps, version)} published by the libs job but not ` +
+    `installable from npm after ${budgetMs / 60_000} minutes; the registry is lagging. ` +
+    `Rerun the failed job once npm serves ${gaps.length === 1 ? "it" : "them"}: ${rerun}`
   );
 }
 
 /**
- * Polls until npm serves every name at `version` or the budget is spent.
- * All names share one deadline and each round asks only about the ones
- * still missing. The interval doubles from `firstIntervalMs` to
- * `maxIntervalMs`, and the last sleep is cut to the deadline. The clock,
- * the sleep and the registry query are parameters, so the schedule is
- * tested without a registry or real time.
+ * Polls until every name at `version` is installable from npm or the
+ * budget is spent. `gapOf(name, version)` answers what an install still
+ * lacks, or `null` (`installGap` in the release). All names share one
+ * deadline and each round asks only about the ones still missing. The
+ * interval doubles from `firstIntervalMs` to `maxIntervalMs`, and the last
+ * sleep is cut to the deadline. The clock, the sleep and the registry query
+ * are parameters, so the schedule is tested without a registry or real
+ * time.
  */
 export async function waitForRegistry(
   names,
   version,
   {
-    isVisible,
+    gapOf,
     sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
     now = () => Date.now(),
     log = (line) => console.log(line),
@@ -216,22 +286,23 @@ export async function waitForRegistry(
   let pending = [...names];
   let interval = firstIntervalMs;
   for (;;) {
-    const served = await Promise.all(
-      pending.map((name) => isVisible(name, version)),
+    const answers = await Promise.all(
+      pending.map((name) => gapOf(name, version)),
     );
-    pending = pending.filter((name, i) => {
-      if (!served[i]) return true;
-      log(`  served: ${name}@${version}`);
-      return false;
+    const gaps = [];
+    pending.forEach((name, i) => {
+      if (answers[i] === null) log(`  installable: ${name}@${version}`);
+      else gaps.push({ name, gap: answers[i] });
     });
-    if (pending.length === 0) return;
+    if (gaps.length === 0) return;
+    pending = gaps.map(({ name }) => name);
     const remaining = deadline - now();
     if (remaining <= 0) {
-      throw new Error(registryLagMessage(pending, version, budgetMs, runId));
+      throw new Error(registryLagMessage(gaps, version, budgetMs, runId));
     }
     const wait = Math.min(interval, remaining);
     log(
-      `  not yet served: ${pending.map((name) => `${name}@${version}`).join(", ")}; ` +
+      `  not yet installable: ${describeGaps(gaps, version)}; ` +
         `next check in ${Math.ceil(wait / 1000)}s (${Math.ceil(remaining / 60_000)} min left)`,
     );
     await sleep(wait);
@@ -282,10 +353,12 @@ async function main() {
 
     if (!dryRun) {
       if (pinned.length > 0) {
-        console.log("\n=== Waiting for the pinned libs on npm ===");
+        console.log(
+          "\n=== Waiting until the pinned libs are installable from npm ===",
+        );
         const registry = configuredRegistry();
         await waitForRegistry(pinned, version, {
-          isVisible: (name, v) => installDocumentServes(name, v, { registry }),
+          gapOf: (name, v) => installGap(name, v, { registry }),
         });
       }
       console.log(
