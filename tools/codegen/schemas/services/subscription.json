@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.billing.subscription.v1.ChangePlanInput",
           "outputType": "Subscription",
           "outputFullType": "ai.stigmer.billing.subscription.v1.Subscription",
-          "description": "Move the organization onto a plan.\n\n Subscribes an organization that has no subscription, or changes the plan\n of one that does. The plan must be active and bought through a\n subscription. Returns the subscription as it stands after the change."
+          "description": "Move the organization onto a plan.\n\n Subscribes an organization that has no subscription, or changes the plan\n of one that does. The plan must be active and bought through a\n subscription. Returns the subscription as it stands after the change.\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds\n     no saved payment method, which every period is collected from;\n     BillingCommandController.createPaymentMethodSetupSession saves one.\n     Metadata: org_id."
         },
         {
           "name": "Cancel",
@@ -46,6 +46,14 @@
           "outputType": "GetEntitlementsOutput",
           "outputFullType": "ai.stigmer.billing.subscription.v1.GetEntitlementsOutput",
           "description": "Resolve what the organization is permitted right now.\n\n The answer is derived, never stored: the entitlements of the plan the\n organization's active subscription names, else the Free plan's with an\n empty plan_id. A platform-managed organization has no subscription of\n its own; its entitlements resolve through its identity provider to the\n integrator organization, whose plan counts the managed organization\n against the managed organizations it includes."
+        },
+        {
+          "name": "GetPeriodEstimate",
+          "inputType": "GetPeriodEstimateInput",
+          "inputFullType": "ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput",
+          "outputType": "PeriodEstimate",
+          "outputFullType": "ai.stigmer.billing.subscription.v1.PeriodEstimate",
+          "description": "Estimate what the organization's current period will be invoiced.\n\n The estimate is the invoice the period would close with if no further\n usage occurred before its end: the plan's cost over the whole period\n (its minimum is not prorated to the time elapsed), less the commission\n already collected on the period's usage, plus the managed organizations\n beyond those the plan includes. It is rated by the same rule the\n monthly close invoices by, over the same usage, so an estimate read at\n a period's end equals that period's invoice. Every other read derives\n it the same way; nothing is stored.\n\n NOT_FOUND when the organization has no live subscription: it is on\n Free, or it is platform-managed and on its integrator's plan, and\n neither is invoiced a plan of its own."
         }
       ]
     }
@@ -176,6 +184,119 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "GetPeriodEstimateInput",
+      "description": "GetPeriodEstimateInput names the organization whose current period is\n estimated.",
+      "protoType": "ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput",
+      "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's id.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "PeriodEstimate",
+      "description": "PeriodEstimate is what an organization's current subscription period\n would be invoiced at its end if no further usage occurred.\n\n Money is in micros (1 USD = 1,000,000). Each line is rounded to whole\n cents the way the invoice rounds it, and total_micros is the sum of the\n rounded lines, so the estimate and the invoice agree to the cent.",
+      "protoType": "ai.stigmer.billing.subscription.v1.PeriodEstimate",
+      "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
+      "fields": [
+        {
+          "name": "PlanId",
+          "jsonName": "planId",
+          "protoField": "plan_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The id of the Plan the period is on.",
+          "required": false
+        },
+        {
+          "name": "PeriodStart",
+          "jsonName": "periodStart",
+          "protoField": "period_start",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the period began.",
+          "required": false
+        },
+        {
+          "name": "PeriodEnd",
+          "jsonName": "periodEnd",
+          "protoField": "period_end",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the period ends and is invoiced.",
+          "required": false
+        },
+        {
+          "name": "ProviderCostMicros",
+          "jsonName": "providerCostMicros",
+          "protoField": "provider_cost_micros",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "What the period's usage has cost in provider charges so far, across\n the organization and the managed organizations it pays for.",
+          "required": false
+        },
+        {
+          "name": "CommissionCollectedMicros",
+          "jsonName": "commissionCollectedMicros",
+          "protoField": "commission_collected_micros",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "The commission the wallet has already collected on that usage. It\n counts toward the plan's cost instead of adding to it.",
+          "required": false
+        },
+        {
+          "name": "ManagedOrganizationCount",
+          "jsonName": "managedOrganizationCount",
+          "protoField": "managed_organization_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The managed organizations counted against the plan this period.",
+          "required": false
+        },
+        {
+          "name": "Lines",
+          "jsonName": "lines",
+          "protoField": "lines",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PeriodEstimateLine"
+            }
+          },
+          "description": "The invoice's lines in the order they print, zero lines omitted.",
+          "required": false
+        },
+        {
+          "name": "TotalMicros",
+          "jsonName": "totalMicros",
+          "protoField": "total_micros",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "The estimated invoice total: the sum of the lines.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -267,6 +388,28 @@
           "name": "managed_organizations",
           "number": 7,
           "description": "Creating platform-managed organizations under the tenant's identity\n provider, the organizations an integrator runs for its own customers.\n A plan lists it together with included_managed_organizations: the\n feature admits new managed organizations, and the limit is how many\n the plan includes before the per-organization fee. Without it, existing\n managed organizations keep working and no new one is admitted. It tiers\n the Cloud runtime and is not an edition gate; a license never lists it."
+        }
+      ]
+    },
+    {
+      "name": "PeriodEstimateLineKind",
+      "description": "PeriodEstimateLineKind names what an estimated invoice line is for.",
+      "protoType": "ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind",
+      "values": [
+        {
+          "name": "plan",
+          "number": 1,
+          "description": "The plan's cost: the greater of its monthly minimum and its usage\n share of the period's provider cost."
+        },
+        {
+          "name": "commission_credit",
+          "number": 2,
+          "description": "The commission already collected on the period's usage, credited\n against the plan's cost and never more than it."
+        },
+        {
+          "name": "managed_organizations",
+          "number": 3,
+          "description": "The managed organizations beyond those the plan includes, at the\n plan's fee for each."
         }
       ]
     }

@@ -11,6 +11,7 @@ import (
 	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,6 +23,65 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// PeriodEstimateLineKind names what an estimated invoice line is for.
+type PeriodEstimateLineKind int32
+
+const (
+	PeriodEstimateLineKind_period_estimate_line_kind_unspecified PeriodEstimateLineKind = 0
+	// The plan's cost: the greater of its monthly minimum and its usage
+	// share of the period's provider cost.
+	PeriodEstimateLineKind_plan PeriodEstimateLineKind = 1
+	// The commission already collected on the period's usage, credited
+	// against the plan's cost and never more than it.
+	PeriodEstimateLineKind_commission_credit PeriodEstimateLineKind = 2
+	// The managed organizations beyond those the plan includes, at the
+	// plan's fee for each.
+	PeriodEstimateLineKind_managed_organizations PeriodEstimateLineKind = 3
+)
+
+// Enum value maps for PeriodEstimateLineKind.
+var (
+	PeriodEstimateLineKind_name = map[int32]string{
+		0: "period_estimate_line_kind_unspecified",
+		1: "plan",
+		2: "commission_credit",
+		3: "managed_organizations",
+	}
+	PeriodEstimateLineKind_value = map[string]int32{
+		"period_estimate_line_kind_unspecified": 0,
+		"plan":                                  1,
+		"commission_credit":                     2,
+		"managed_organizations":                 3,
+	}
+)
+
+func (x PeriodEstimateLineKind) Enum() *PeriodEstimateLineKind {
+	p := new(PeriodEstimateLineKind)
+	*p = x
+	return p
+}
+
+func (x PeriodEstimateLineKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PeriodEstimateLineKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[0].Descriptor()
+}
+
+func (PeriodEstimateLineKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[0]
+}
+
+func (x PeriodEstimateLineKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PeriodEstimateLineKind.Descriptor instead.
+func (PeriodEstimateLineKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{0}
+}
 
 // GetSubscriptionForOrganizationInput names the organization whose
 // subscription is read.
@@ -276,11 +336,230 @@ func (x *CancelSubscriptionInput) GetOrgId() string {
 	return ""
 }
 
+// GetPeriodEstimateInput names the organization whose current period is
+// estimated.
+type GetPeriodEstimateInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The organization's id.
+	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPeriodEstimateInput) Reset() {
+	*x = GetPeriodEstimateInput{}
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPeriodEstimateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPeriodEstimateInput) ProtoMessage() {}
+
+func (x *GetPeriodEstimateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPeriodEstimateInput.ProtoReflect.Descriptor instead.
+func (*GetPeriodEstimateInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetPeriodEstimateInput) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+// PeriodEstimate is what an organization's current subscription period
+// would be invoiced at its end if no further usage occurred.
+//
+// Money is in micros (1 USD = 1,000,000). Each line is rounded to whole
+// cents the way the invoice rounds it, and total_micros is the sum of the
+// rounded lines, so the estimate and the invoice agree to the cent.
+type PeriodEstimate struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The id of the Plan the period is on.
+	PlanId string `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	// When the period began.
+	PeriodStart *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=period_start,json=periodStart,proto3" json:"period_start,omitempty"`
+	// When the period ends and is invoiced.
+	PeriodEnd *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=period_end,json=periodEnd,proto3" json:"period_end,omitempty"`
+	// What the period's usage has cost in provider charges so far, across
+	// the organization and the managed organizations it pays for.
+	ProviderCostMicros int64 `protobuf:"varint,4,opt,name=provider_cost_micros,json=providerCostMicros,proto3" json:"provider_cost_micros,omitempty"`
+	// The commission the wallet has already collected on that usage. It
+	// counts toward the plan's cost instead of adding to it.
+	CommissionCollectedMicros int64 `protobuf:"varint,5,opt,name=commission_collected_micros,json=commissionCollectedMicros,proto3" json:"commission_collected_micros,omitempty"`
+	// The managed organizations counted against the plan this period.
+	ManagedOrganizationCount int32 `protobuf:"varint,6,opt,name=managed_organization_count,json=managedOrganizationCount,proto3" json:"managed_organization_count,omitempty"`
+	// The invoice's lines in the order they print, zero lines omitted.
+	Lines []*PeriodEstimateLine `protobuf:"bytes,7,rep,name=lines,proto3" json:"lines,omitempty"`
+	// The estimated invoice total: the sum of the lines.
+	TotalMicros   int64 `protobuf:"varint,8,opt,name=total_micros,json=totalMicros,proto3" json:"total_micros,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeriodEstimate) Reset() {
+	*x = PeriodEstimate{}
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeriodEstimate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeriodEstimate) ProtoMessage() {}
+
+func (x *PeriodEstimate) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeriodEstimate.ProtoReflect.Descriptor instead.
+func (*PeriodEstimate) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PeriodEstimate) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+func (x *PeriodEstimate) GetPeriodStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PeriodStart
+	}
+	return nil
+}
+
+func (x *PeriodEstimate) GetPeriodEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PeriodEnd
+	}
+	return nil
+}
+
+func (x *PeriodEstimate) GetProviderCostMicros() int64 {
+	if x != nil {
+		return x.ProviderCostMicros
+	}
+	return 0
+}
+
+func (x *PeriodEstimate) GetCommissionCollectedMicros() int64 {
+	if x != nil {
+		return x.CommissionCollectedMicros
+	}
+	return 0
+}
+
+func (x *PeriodEstimate) GetManagedOrganizationCount() int32 {
+	if x != nil {
+		return x.ManagedOrganizationCount
+	}
+	return 0
+}
+
+func (x *PeriodEstimate) GetLines() []*PeriodEstimateLine {
+	if x != nil {
+		return x.Lines
+	}
+	return nil
+}
+
+func (x *PeriodEstimate) GetTotalMicros() int64 {
+	if x != nil {
+		return x.TotalMicros
+	}
+	return 0
+}
+
+// PeriodEstimateLine is one line of an estimated invoice.
+type PeriodEstimateLine struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// What the line charges or credits.
+	Kind PeriodEstimateLineKind `protobuf:"varint,1,opt,name=kind,proto3,enum=ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind" json:"kind,omitempty"`
+	// The line's amount in micros, a whole number of cents. The commission
+	// credit is negative.
+	AmountMicros  int64 `protobuf:"varint,2,opt,name=amount_micros,json=amountMicros,proto3" json:"amount_micros,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeriodEstimateLine) Reset() {
+	*x = PeriodEstimateLine{}
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeriodEstimateLine) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeriodEstimateLine) ProtoMessage() {}
+
+func (x *PeriodEstimateLine) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeriodEstimateLine.ProtoReflect.Descriptor instead.
+func (*PeriodEstimateLine) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *PeriodEstimateLine) GetKind() PeriodEstimateLineKind {
+	if x != nil {
+		return x.Kind
+	}
+	return PeriodEstimateLineKind_period_estimate_line_kind_unspecified
+}
+
+func (x *PeriodEstimateLine) GetAmountMicros() int64 {
+	if x != nil {
+		return x.AmountMicros
+	}
+	return 0
+}
+
 var File_ai_stigmer_billing_subscription_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/subscription/v1/io.proto\x12\"ai.stigmer.billing.subscription.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"D\n" +
+	"+ai/stigmer/billing/subscription/v1/io.proto\x12\"ai.stigmer.billing.subscription.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"D\n" +
 	"#GetSubscriptionForOrganizationInput\x12\x1d\n" +
 	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"5\n" +
 	"\x14GetEntitlementsInput\x12\x1d\n" +
@@ -292,7 +571,27 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x1f\n" +
 	"\aplan_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06planId\"8\n" +
 	"\x17CancelSubscriptionInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgIdB\xbc\x02\n" +
+	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"7\n" +
+	"\x16GetPeriodEstimateInput\x12\x1d\n" +
+	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xc4\x03\n" +
+	"\x0ePeriodEstimate\x12\x17\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12=\n" +
+	"\fperiod_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vperiodStart\x129\n" +
+	"\n" +
+	"period_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tperiodEnd\x120\n" +
+	"\x14provider_cost_micros\x18\x04 \x01(\x03R\x12providerCostMicros\x12>\n" +
+	"\x1bcommission_collected_micros\x18\x05 \x01(\x03R\x19commissionCollectedMicros\x12<\n" +
+	"\x1amanaged_organization_count\x18\x06 \x01(\x05R\x18managedOrganizationCount\x12L\n" +
+	"\x05lines\x18\a \x03(\v26.ai.stigmer.billing.subscription.v1.PeriodEstimateLineR\x05lines\x12!\n" +
+	"\ftotal_micros\x18\b \x01(\x03R\vtotalMicros\"\x89\x01\n" +
+	"\x12PeriodEstimateLine\x12N\n" +
+	"\x04kind\x18\x01 \x01(\x0e2:.ai.stigmer.billing.subscription.v1.PeriodEstimateLineKindR\x04kind\x12#\n" +
+	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros*\x7f\n" +
+	"\x16PeriodEstimateLineKind\x12)\n" +
+	"%period_estimate_line_kind_unspecified\x10\x00\x12\b\n" +
+	"\x04plan\x10\x01\x12\x15\n" +
+	"\x11commission_credit\x10\x02\x12\x19\n" +
+	"\x15managed_organizations\x10\x03B\xbc\x02\n" +
 	"&com.ai.stigmer.billing.subscription.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var (
@@ -307,22 +606,32 @@ func file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_billing_subscription_v1_io_proto_goTypes = []any{
-	(*GetSubscriptionForOrganizationInput)(nil), // 0: ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput
-	(*GetEntitlementsInput)(nil),                // 1: ai.stigmer.billing.subscription.v1.GetEntitlementsInput
-	(*GetEntitlementsOutput)(nil),               // 2: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
-	(*ChangePlanInput)(nil),                     // 3: ai.stigmer.billing.subscription.v1.ChangePlanInput
-	(*CancelSubscriptionInput)(nil),             // 4: ai.stigmer.billing.subscription.v1.CancelSubscriptionInput
-	(*v1.Entitlements)(nil),                     // 5: ai.stigmer.platform.v1.Entitlements
+	(PeriodEstimateLineKind)(0),                 // 0: ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind
+	(*GetSubscriptionForOrganizationInput)(nil), // 1: ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput
+	(*GetEntitlementsInput)(nil),                // 2: ai.stigmer.billing.subscription.v1.GetEntitlementsInput
+	(*GetEntitlementsOutput)(nil),               // 3: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
+	(*ChangePlanInput)(nil),                     // 4: ai.stigmer.billing.subscription.v1.ChangePlanInput
+	(*CancelSubscriptionInput)(nil),             // 5: ai.stigmer.billing.subscription.v1.CancelSubscriptionInput
+	(*GetPeriodEstimateInput)(nil),              // 6: ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput
+	(*PeriodEstimate)(nil),                      // 7: ai.stigmer.billing.subscription.v1.PeriodEstimate
+	(*PeriodEstimateLine)(nil),                  // 8: ai.stigmer.billing.subscription.v1.PeriodEstimateLine
+	(*v1.Entitlements)(nil),                     // 9: ai.stigmer.platform.v1.Entitlements
+	(*timestamppb.Timestamp)(nil),               // 10: google.protobuf.Timestamp
 }
 var file_ai_stigmer_billing_subscription_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput.entitlements:type_name -> ai.stigmer.platform.v1.Entitlements
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	9,  // 0: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput.entitlements:type_name -> ai.stigmer.platform.v1.Entitlements
+	10, // 1: ai.stigmer.billing.subscription.v1.PeriodEstimate.period_start:type_name -> google.protobuf.Timestamp
+	10, // 2: ai.stigmer.billing.subscription.v1.PeriodEstimate.period_end:type_name -> google.protobuf.Timestamp
+	8,  // 3: ai.stigmer.billing.subscription.v1.PeriodEstimate.lines:type_name -> ai.stigmer.billing.subscription.v1.PeriodEstimateLine
+	0,  // 4: ai.stigmer.billing.subscription.v1.PeriodEstimateLine.kind:type_name -> ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_subscription_v1_io_proto_init() }
@@ -335,13 +644,14 @@ func file_ai_stigmer_billing_subscription_v1_io_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc), len(file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   5,
+			NumEnums:      1,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_billing_subscription_v1_io_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_billing_subscription_v1_io_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_billing_subscription_v1_io_proto = out.File

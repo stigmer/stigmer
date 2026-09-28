@@ -43,6 +43,11 @@ func (s *SubscriptionClient) GetEntitlements(ctx context.Context, input *subscri
 	return resp, wrapErr(err)
 }
 
+func (s *SubscriptionClient) GetPeriodEstimate(ctx context.Context, input *subscriptionv1.GetPeriodEstimateInput) (*subscriptionv1.PeriodEstimate, error) {
+	resp, err := s.query.GetPeriodEstimate(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // SubscriptionInput holds the fields for creating/updating a Subscription.
 type SubscriptionInput struct {
 	// Id is the resource's metadata.id, for exact update addressing when

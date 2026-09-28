@@ -24,9 +24,10 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.platform.v1 import entitlement_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_entitlement__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/billing/subscription/v1/io.proto\x12\"ai.stigmer.billing.subscription.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1b\x62uf/validate/validate.proto\"D\n#GetSubscriptionForOrganizationInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"5\n\x14GetEntitlementsInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"z\n\x15GetEntitlementsOutput\x12H\n\x0c\x65ntitlements\x18\x01 \x01(\x0b\x32$.ai.stigmer.platform.v1.EntitlementsR\x0c\x65ntitlements\x12\x17\n\x07plan_id\x18\x02 \x01(\tR\x06planId\"Q\n\x0f\x43hangePlanInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x1f\n\x07plan_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06planId\"8\n\x17\x43\x61ncelSubscriptionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgIdB\xde\x01\n&com.ai.stigmer.billing.subscription.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/billing/subscription/v1/io.proto\x12\"ai.stigmer.billing.subscription.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"D\n#GetSubscriptionForOrganizationInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"5\n\x14GetEntitlementsInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"z\n\x15GetEntitlementsOutput\x12H\n\x0c\x65ntitlements\x18\x01 \x01(\x0b\x32$.ai.stigmer.platform.v1.EntitlementsR\x0c\x65ntitlements\x12\x17\n\x07plan_id\x18\x02 \x01(\tR\x06planId\"Q\n\x0f\x43hangePlanInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x1f\n\x07plan_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06planId\"8\n\x17\x43\x61ncelSubscriptionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"7\n\x16GetPeriodEstimateInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xc4\x03\n\x0ePeriodEstimate\x12\x17\n\x07plan_id\x18\x01 \x01(\tR\x06planId\x12=\n\x0cperiod_start\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x0bperiodStart\x12\x39\n\nperiod_end\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tperiodEnd\x12\x30\n\x14provider_cost_micros\x18\x04 \x01(\x03R\x12providerCostMicros\x12>\n\x1b\x63ommission_collected_micros\x18\x05 \x01(\x03R\x19\x63ommissionCollectedMicros\x12<\n\x1amanaged_organization_count\x18\x06 \x01(\x05R\x18managedOrganizationCount\x12L\n\x05lines\x18\x07 \x03(\x0b\x32\x36.ai.stigmer.billing.subscription.v1.PeriodEstimateLineR\x05lines\x12!\n\x0ctotal_micros\x18\x08 \x01(\x03R\x0btotalMicros\"\x89\x01\n\x12PeriodEstimateLine\x12N\n\x04kind\x18\x01 \x01(\x0e\x32:.ai.stigmer.billing.subscription.v1.PeriodEstimateLineKindR\x04kind\x12#\n\ramount_micros\x18\x02 \x01(\x03R\x0c\x61mountMicros*\x7f\n\x16PeriodEstimateLineKind\x12)\n%period_estimate_line_kind_unspecified\x10\x00\x12\x08\n\x04plan\x10\x01\x12\x15\n\x11\x63ommission_credit\x10\x02\x12\x19\n\x15managed_organizations\x10\x03\x42\xde\x01\n&com.ai.stigmer.billing.subscription.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,14 +45,24 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CHANGEPLANINPUT'].fields_by_name['plan_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_CANCELSUBSCRIPTIONINPUT'].fields_by_name['org_id']._loaded_options = None
   _globals['_CANCELSUBSCRIPTIONINPUT'].fields_by_name['org_id']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_GETSUBSCRIPTIONFORORGANIZATIONINPUT']._serialized_start=154
-  _globals['_GETSUBSCRIPTIONFORORGANIZATIONINPUT']._serialized_end=222
-  _globals['_GETENTITLEMENTSINPUT']._serialized_start=224
-  _globals['_GETENTITLEMENTSINPUT']._serialized_end=277
-  _globals['_GETENTITLEMENTSOUTPUT']._serialized_start=279
-  _globals['_GETENTITLEMENTSOUTPUT']._serialized_end=401
-  _globals['_CHANGEPLANINPUT']._serialized_start=403
-  _globals['_CHANGEPLANINPUT']._serialized_end=484
-  _globals['_CANCELSUBSCRIPTIONINPUT']._serialized_start=486
-  _globals['_CANCELSUBSCRIPTIONINPUT']._serialized_end=542
+  _globals['_GETPERIODESTIMATEINPUT'].fields_by_name['org_id']._loaded_options = None
+  _globals['_GETPERIODESTIMATEINPUT'].fields_by_name['org_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_PERIODESTIMATELINEKIND']._serialized_start=1229
+  _globals['_PERIODESTIMATELINEKIND']._serialized_end=1356
+  _globals['_GETSUBSCRIPTIONFORORGANIZATIONINPUT']._serialized_start=187
+  _globals['_GETSUBSCRIPTIONFORORGANIZATIONINPUT']._serialized_end=255
+  _globals['_GETENTITLEMENTSINPUT']._serialized_start=257
+  _globals['_GETENTITLEMENTSINPUT']._serialized_end=310
+  _globals['_GETENTITLEMENTSOUTPUT']._serialized_start=312
+  _globals['_GETENTITLEMENTSOUTPUT']._serialized_end=434
+  _globals['_CHANGEPLANINPUT']._serialized_start=436
+  _globals['_CHANGEPLANINPUT']._serialized_end=517
+  _globals['_CANCELSUBSCRIPTIONINPUT']._serialized_start=519
+  _globals['_CANCELSUBSCRIPTIONINPUT']._serialized_end=575
+  _globals['_GETPERIODESTIMATEINPUT']._serialized_start=577
+  _globals['_GETPERIODESTIMATEINPUT']._serialized_end=632
+  _globals['_PERIODESTIMATE']._serialized_start=635
+  _globals['_PERIODESTIMATE']._serialized_end=1087
+  _globals['_PERIODESTIMATELINE']._serialized_start=1090
+  _globals['_PERIODESTIMATELINE']._serialized_end=1227
 # @@protoc_insertion_point(module_scope)

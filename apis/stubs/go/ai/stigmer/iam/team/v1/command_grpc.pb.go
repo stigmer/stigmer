@@ -35,6 +35,13 @@ const (
 // the member role on it, through the IAM policy service, like any other grant.
 type TeamCommandControllerClient interface {
 	// Create a team in an organization.
+	//
+	// On Stigmer Cloud, teams are a plan feature. An organization whose plan
+	// lacks them is refused with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+	//     the feature. Metadata: feature ("teams"), org_id.
 	Create(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
 	// Update a team's name or description.
 	Update(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
@@ -92,6 +99,13 @@ func (c *teamCommandControllerClient) Delete(ctx context.Context, in *apiresourc
 // the member role on it, through the IAM policy service, like any other grant.
 type TeamCommandControllerServer interface {
 	// Create a team in an organization.
+	//
+	// On Stigmer Cloud, teams are a plan feature. An organization whose plan
+	// lacks them is refused with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+	//     the feature. Metadata: feature ("teams"), org_id.
 	Create(context.Context, *Team) (*Team, error)
 	// Update a team's name or description.
 	Update(context.Context, *Team) (*Team, error)

@@ -29,6 +29,13 @@ export const TeamCommandController: GenService<{
   /**
    * Create a team in an organization.
    *
+   * On Stigmer Cloud, teams are a plan feature. An organization whose plan
+   * lacks them is refused with FAILED_PRECONDITION carrying a
+   * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+   *     the feature. Metadata: feature ("teams"), org_id.
+   *
    * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.create
    */
   create: {

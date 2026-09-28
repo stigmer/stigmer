@@ -169,6 +169,13 @@ public final class SubscriptionCommandControllerGrpc {
      * Subscribes an organization that has no subscription, or changes the plan
      * of one that does. The plan must be active and bought through a
      * subscription. Returns the subscription as it stands after the change.
+     * Refusals a client should branch on carry a google.rpc.ErrorInfo
+     * detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+     * trailer, alongside the human-readable FAILED_PRECONDITION message:
+     *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
+     *     no saved payment method, which every period is collected from;
+     *     BillingCommandController.createPaymentMethodSetupSession saves one.
+     *     Metadata: org_id.
      * </pre>
      */
     default void changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request,
@@ -248,6 +255,13 @@ public final class SubscriptionCommandControllerGrpc {
      * Subscribes an organization that has no subscription, or changes the plan
      * of one that does. The plan must be active and bought through a
      * subscription. Returns the subscription as it stands after the change.
+     * Refusals a client should branch on carry a google.rpc.ErrorInfo
+     * detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+     * trailer, alongside the human-readable FAILED_PRECONDITION message:
+     *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
+     *     no saved payment method, which every period is collected from;
+     *     BillingCommandController.createPaymentMethodSetupSession saves one.
+     *     Metadata: org_id.
      * </pre>
      */
     public void changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request,
@@ -305,6 +319,13 @@ public final class SubscriptionCommandControllerGrpc {
      * Subscribes an organization that has no subscription, or changes the plan
      * of one that does. The plan must be active and bought through a
      * subscription. Returns the subscription as it stands after the change.
+     * Refusals a client should branch on carry a google.rpc.ErrorInfo
+     * detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+     * trailer, alongside the human-readable FAILED_PRECONDITION message:
+     *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
+     *     no saved payment method, which every period is collected from;
+     *     BillingCommandController.createPaymentMethodSetupSession saves one.
+     *     Metadata: org_id.
      * </pre>
      */
     public ai.stigmer.billing.subscription.v1.Subscription changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request) throws io.grpc.StatusException {
@@ -360,6 +381,13 @@ public final class SubscriptionCommandControllerGrpc {
      * Subscribes an organization that has no subscription, or changes the plan
      * of one that does. The plan must be active and bought through a
      * subscription. Returns the subscription as it stands after the change.
+     * Refusals a client should branch on carry a google.rpc.ErrorInfo
+     * detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+     * trailer, alongside the human-readable FAILED_PRECONDITION message:
+     *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
+     *     no saved payment method, which every period is collected from;
+     *     BillingCommandController.createPaymentMethodSetupSession saves one.
+     *     Metadata: org_id.
      * </pre>
      */
     public ai.stigmer.billing.subscription.v1.Subscription changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request) {
@@ -415,6 +443,13 @@ public final class SubscriptionCommandControllerGrpc {
      * Subscribes an organization that has no subscription, or changes the plan
      * of one that does. The plan must be active and bought through a
      * subscription. Returns the subscription as it stands after the change.
+     * Refusals a client should branch on carry a google.rpc.ErrorInfo
+     * detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+     * trailer, alongside the human-readable FAILED_PRECONDITION message:
+     *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
+     *     no saved payment method, which every period is collected from;
+     *     BillingCommandController.createPaymentMethodSetupSession saves one.
+     *     Metadata: org_id.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.subscription.v1.Subscription> changePlan(

@@ -36,6 +36,15 @@ export const OrganizationCommandController: GenService<{
   /**
    * Create an organization.
    *
+   * On Stigmer Cloud, creating a platform-managed organization is a plan
+   * feature of its integrator. An integrator whose plan lacks it is refused
+   * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+   * "stigmer.ai"):
+   *
+   *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
+   *     include the feature. Metadata: feature ("managed_organizations"),
+   *     org_id (the integrator organization).
+   *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.create
    */
   create: {

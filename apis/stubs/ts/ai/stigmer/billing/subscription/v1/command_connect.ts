@@ -28,6 +28,15 @@ export const SubscriptionCommandController = {
      * of one that does. The plan must be active and bought through a
      * subscription. Returns the subscription as it stands after the change.
      *
+     * Refusals a client should branch on carry a google.rpc.ErrorInfo
+     * detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+     * trailer, alongside the human-readable FAILED_PRECONDITION message:
+     *
+     *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
+     *     no saved payment method, which every period is collected from;
+     *     BillingCommandController.createPaymentMethodSetupSession saves one.
+     *     Metadata: org_id.
+     *
      * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionCommandController.changePlan
      */
     changePlan: {

@@ -26,26 +26,31 @@ var File_ai_stigmer_billing_subscription_v1_query_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_billing_subscription_v1_query_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/billing/subscription/v1/query.proto\x12\"ai.stigmer.billing.subscription.v1\x1a,ai/stigmer/billing/subscription/v1/api.proto\x1a+ai/stigmer/billing/subscription/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd0\x03\n" +
+	".ai/stigmer/billing/subscription/v1/query.proto\x12\"ai.stigmer.billing.subscription.v1\x1a,ai/stigmer/billing/subscription/v1/api.proto\x1a+ai/stigmer/billing/subscription/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa2\x05\n" +
 	"\x1bSubscriptionQueryController\x12\xd8\x01\n" +
 	"\x12getForOrganization\x12G.ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\"G¸\x18C\b\x1b\x10\x1e\"\x06org_id*5unauthorized to view this organization's subscription\x12\xcf\x01\n" +
-	"\x0fgetEntitlements\x128.ai.stigmer.billing.subscription.v1.GetEntitlementsInput\x1a9.ai.stigmer.billing.subscription.v1.GetEntitlementsOutput\"G¸\x18C\b\x1b\x10\x1e\"\x06org_id*5unauthorized to view this organization's entitlements\x1a\x04\xa0\xff+GB\xbf\x02\n" +
+	"\x0fgetEntitlements\x128.ai.stigmer.billing.subscription.v1.GetEntitlementsInput\x1a9.ai.stigmer.billing.subscription.v1.GetEntitlementsOutput\"G¸\x18C\b\x1b\x10\x1e\"\x06org_id*5unauthorized to view this organization's entitlements\x12\xcf\x01\n" +
+	"\x11getPeriodEstimate\x12:.ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput\x1a2.ai.stigmer.billing.subscription.v1.PeriodEstimate\"J¸\x18F\b\x1b\x10\x1e\"\x06org_id*8unauthorized to view this organization's period estimate\x1a\x04\xa0\xff+GB\xbf\x02\n" +
 	"&com.ai.stigmer.billing.subscription.v1B\n" +
 	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var file_ai_stigmer_billing_subscription_v1_query_proto_goTypes = []any{
 	(*GetSubscriptionForOrganizationInput)(nil), // 0: ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput
 	(*GetEntitlementsInput)(nil),                // 1: ai.stigmer.billing.subscription.v1.GetEntitlementsInput
-	(*Subscription)(nil),                        // 2: ai.stigmer.billing.subscription.v1.Subscription
-	(*GetEntitlementsOutput)(nil),               // 3: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
+	(*GetPeriodEstimateInput)(nil),              // 2: ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput
+	(*Subscription)(nil),                        // 3: ai.stigmer.billing.subscription.v1.Subscription
+	(*GetEntitlementsOutput)(nil),               // 4: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
+	(*PeriodEstimate)(nil),                      // 5: ai.stigmer.billing.subscription.v1.PeriodEstimate
 }
 var file_ai_stigmer_billing_subscription_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getForOrganization:input_type -> ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput
 	1, // 1: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getEntitlements:input_type -> ai.stigmer.billing.subscription.v1.GetEntitlementsInput
-	2, // 2: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getForOrganization:output_type -> ai.stigmer.billing.subscription.v1.Subscription
-	3, // 3: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getEntitlements:output_type -> ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 2: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getPeriodEstimate:input_type -> ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput
+	3, // 3: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getForOrganization:output_type -> ai.stigmer.billing.subscription.v1.Subscription
+	4, // 4: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getEntitlements:output_type -> ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
+	5, // 5: ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getPeriodEstimate:output_type -> ai.stigmer.billing.subscription.v1.PeriodEstimate
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

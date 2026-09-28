@@ -2,18 +2,20 @@
 // @generated from file ai/stigmer/billing/subscription/v1/io.proto (package ai.stigmer.billing.subscription.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Entitlements } from "../../../platform/v1/entitlement_pb.js";
 import { file_ai_stigmer_platform_v1_entitlement } from "../../../platform/v1/entitlement_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/billing/subscription/v1/io.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIj0KI0dldFN1YnNjcmlwdGlvbkZvck9yZ2FuaXphdGlvbklucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBIi4KFEdldEVudGl0bGVtZW50c0lucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIkIKD0NoYW5nZVBsYW5JbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiMQoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQFiBnByb3RvMw", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIj0KI0dldFN1YnNjcmlwdGlvbkZvck9yZ2FuaXphdGlvbklucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBIi4KFEdldEVudGl0bGVtZW50c0lucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIkIKD0NoYW5nZVBsYW5JbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiMQoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQEiMAoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBASLHAgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAQgASgDEiMKG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcxgFIAEoAxIiChptYW5hZ2VkX29yZ2FuaXphdGlvbl9jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoAyJ1ChJQZXJpb2RFc3RpbWF0ZUxpbmUSSAoEa2luZBgBIAEoDjI6LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIVCg1hbW91bnRfbWljcm9zGAIgASgDKn8KFlBlcmlvZEVzdGltYXRlTGluZUtpbmQSKQolcGVyaW9kX2VzdGltYXRlX2xpbmVfa2luZF91bnNwZWNpZmllZBAAEggKBHBsYW4QARIVChFjb21taXNzaW9uX2NyZWRpdBACEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxADYgZwcm90bzM", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * GetSubscriptionForOrganizationInput names the organization whose
@@ -138,4 +140,174 @@ export type CancelSubscriptionInput = Message<"ai.stigmer.billing.subscription.v
  */
 export const CancelSubscriptionInputSchema: GenMessage<CancelSubscriptionInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_subscription_v1_io, 4);
+
+/**
+ * GetPeriodEstimateInput names the organization whose current period is
+ * estimated.
+ *
+ * @generated from message ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput
+ */
+export type GetPeriodEstimateInput = Message<"ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput"> & {
+  /**
+   * The organization's id.
+   *
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput.
+ * Use `create(GetPeriodEstimateInputSchema)` to create a new message.
+ */
+export const GetPeriodEstimateInputSchema: GenMessage<GetPeriodEstimateInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_subscription_v1_io, 5);
+
+/**
+ * PeriodEstimate is what an organization's current subscription period
+ * would be invoiced at its end if no further usage occurred.
+ *
+ * Money is in micros (1 USD = 1,000,000). Each line is rounded to whole
+ * cents the way the invoice rounds it, and total_micros is the sum of the
+ * rounded lines, so the estimate and the invoice agree to the cent.
+ *
+ * @generated from message ai.stigmer.billing.subscription.v1.PeriodEstimate
+ */
+export type PeriodEstimate = Message<"ai.stigmer.billing.subscription.v1.PeriodEstimate"> & {
+  /**
+   * The id of the Plan the period is on.
+   *
+   * @generated from field: string plan_id = 1;
+   */
+  planId: string;
+
+  /**
+   * When the period began.
+   *
+   * @generated from field: google.protobuf.Timestamp period_start = 2;
+   */
+  periodStart?: Timestamp;
+
+  /**
+   * When the period ends and is invoiced.
+   *
+   * @generated from field: google.protobuf.Timestamp period_end = 3;
+   */
+  periodEnd?: Timestamp;
+
+  /**
+   * What the period's usage has cost in provider charges so far, across
+   * the organization and the managed organizations it pays for.
+   *
+   * @generated from field: int64 provider_cost_micros = 4;
+   */
+  providerCostMicros: bigint;
+
+  /**
+   * The commission the wallet has already collected on that usage. It
+   * counts toward the plan's cost instead of adding to it.
+   *
+   * @generated from field: int64 commission_collected_micros = 5;
+   */
+  commissionCollectedMicros: bigint;
+
+  /**
+   * The managed organizations counted against the plan this period.
+   *
+   * @generated from field: int32 managed_organization_count = 6;
+   */
+  managedOrganizationCount: number;
+
+  /**
+   * The invoice's lines in the order they print, zero lines omitted.
+   *
+   * @generated from field: repeated ai.stigmer.billing.subscription.v1.PeriodEstimateLine lines = 7;
+   */
+  lines: PeriodEstimateLine[];
+
+  /**
+   * The estimated invoice total: the sum of the lines.
+   *
+   * @generated from field: int64 total_micros = 8;
+   */
+  totalMicros: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.subscription.v1.PeriodEstimate.
+ * Use `create(PeriodEstimateSchema)` to create a new message.
+ */
+export const PeriodEstimateSchema: GenMessage<PeriodEstimate> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_subscription_v1_io, 6);
+
+/**
+ * PeriodEstimateLine is one line of an estimated invoice.
+ *
+ * @generated from message ai.stigmer.billing.subscription.v1.PeriodEstimateLine
+ */
+export type PeriodEstimateLine = Message<"ai.stigmer.billing.subscription.v1.PeriodEstimateLine"> & {
+  /**
+   * What the line charges or credits.
+   *
+   * @generated from field: ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind kind = 1;
+   */
+  kind: PeriodEstimateLineKind;
+
+  /**
+   * The line's amount in micros, a whole number of cents. The commission
+   * credit is negative.
+   *
+   * @generated from field: int64 amount_micros = 2;
+   */
+  amountMicros: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.subscription.v1.PeriodEstimateLine.
+ * Use `create(PeriodEstimateLineSchema)` to create a new message.
+ */
+export const PeriodEstimateLineSchema: GenMessage<PeriodEstimateLine> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_subscription_v1_io, 7);
+
+/**
+ * PeriodEstimateLineKind names what an estimated invoice line is for.
+ *
+ * @generated from enum ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind
+ */
+export enum PeriodEstimateLineKind {
+  /**
+   * @generated from enum value: period_estimate_line_kind_unspecified = 0;
+   */
+  period_estimate_line_kind_unspecified = 0,
+
+  /**
+   * The plan's cost: the greater of its monthly minimum and its usage
+   * share of the period's provider cost.
+   *
+   * @generated from enum value: plan = 1;
+   */
+  plan = 1,
+
+  /**
+   * The commission already collected on the period's usage, credited
+   * against the plan's cost and never more than it.
+   *
+   * @generated from enum value: commission_credit = 2;
+   */
+  commission_credit = 2,
+
+  /**
+   * The managed organizations beyond those the plan includes, at the
+   * plan's fee for each.
+   *
+   * @generated from enum value: managed_organizations = 3;
+   */
+  managed_organizations = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind.
+ */
+export const PeriodEstimateLineKindSchema: GenEnum<PeriodEstimateLineKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_billing_subscription_v1_io, 0);
 
