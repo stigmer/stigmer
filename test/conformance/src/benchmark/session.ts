@@ -10,7 +10,8 @@
 // (the benchmark measures the agent, not a reviewer), and the watch follows
 // the reconcile to the terminal phase. Then the status facts, the runner's
 // timing lines (re-read from the log until present) and the Temporal history
-// are joined by execution id.
+// are joined by execution id, and each root tool call is placed on its round
+// (`tool-call-facts.ts`).
 //
 // The next turn is sent only after the previous one is terminal. That is a
 // correctness rule, not a convenience: the platform accepts a follow-up while
@@ -36,6 +37,7 @@ import { finalReply, nullAxes, statusFacts } from "./status-facts";
 import { subscribeTo, watchExecution, type WatchedExecution } from "./stream-watch";
 import { executeActivityNameFor, historyAxes, invokeWorkflowIdFor, showWorkflow } from "./temporal-history";
 import { awaitTimingLines, axesFromTiming, type ExecutionTiming } from "./timing-lines";
+import { todoCounts, toolCallFacts } from "./tool-call-facts";
 
 /** How long one turn may take before the sample is a `timeout`: a live edit turn outlives the poll core's default. */
 export const EXECUTION_BUDGET_MS = 10 * 60_000;
@@ -203,6 +205,8 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
     cost_source: "runner-rate-card-estimate",
     server: facts.server,
     timing,
+    tool_calls: toolCallFacts(terminal, timing.turn_phases),
+    todos: todoCounts(terminal),
     outcome,
     ...(failure !== undefined ? { failure } : {}),
   };
@@ -224,6 +228,8 @@ export function failedAtCreate(modelRequested: string | null, message: string): 
     cost_source: "runner-rate-card-estimate",
     server: { created_at: "", started_at: "", completed_at: "" },
     timing: { turn_phases: null, execution_setup: null, turn_first_event: null },
+    tool_calls: [],
+    todos: { pending: 0, in_progress: 0, completed: 0, cancelled: 0 },
     outcome: "failed",
     failure: { stage: "create", message },
   };

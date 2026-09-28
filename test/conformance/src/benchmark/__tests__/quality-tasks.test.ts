@@ -6,7 +6,7 @@
 // not a placeholder); every malformed field is refused by name, before
 // anything runs (a missing turn, a path outside the workspace, an unknown
 // check, an empty or duplicated criterion, a non-positive weight, a
-// duplicated id). The real file parses into the nine tasks. Every reference
+// duplicated id). The real file parses into the ten tasks. Every reference
 // fact a rubric states agrees with the source it was taken from: the order
 // fixture, the organization's facts and the workspace's files. So a change to
 // either side without the other fails here, never silently in a paid run.
@@ -74,7 +74,7 @@ describe("the checked-in task file", () => {
   }
   const workspaceFile = (path: string): Promise<string> => readFile(join(WORKSPACE, path), "utf8");
 
-  it("is the nine tasks, none a placeholder, each naming only files the workspace has", async () => {
+  it("is the ten tasks, none a placeholder, each naming only files the workspace has", async () => {
     const tasks = await load();
     expect([...tasks.keys()]).toEqual([
       "repo-question",
@@ -86,6 +86,7 @@ describe("the checked-in task file", () => {
       "data-summary",
       "memory-recall",
       "refine-over-turns",
+      "multi-part-change",
     ]);
     for (const task of tasks.values()) {
       expect(task.placeholder, task.id).toBe(false);
@@ -108,6 +109,13 @@ describe("the checked-in task file", () => {
     expect(await workspaceFile("config/sync.yaml")).toContain("timout: 30s");
     expect(await workspaceFile("syncer/syncer.go")).toContain("DefaultMaxAttempts = 5");
     expect(tasks.get("repo-question")!.rubric).toContain("sync.retry.max_attempts to 50");
+    const multiPart = tasks.get("multi-part-change")!.rubric;
+    expect(multiPart).toContain("sync.retry.max_attempts to 50");
+    expect(multiPart).toContain('misspells timeout as "timout" (value 30s)');
+    const store = await workspaceFile("orders/store.go");
+    expect(store).toContain("offset := page * pageSize");
+    expect(store).toContain("WHERE customer = '%s'");
+    expect(multiPart).toContain("computes the offset as page * pageSize");
 
     const policy = await workspaceFile("policies/returns.md");
     expect(policy).toContain("within 30 days of delivery");

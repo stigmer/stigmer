@@ -197,10 +197,14 @@ Per execution it reads its sources and joins them by execution id:
   offered for review, when the turn ended;
 - the terminal status: `streaming_usage` (tokens and the runner's rate-card
   cost ESTIMATE), `status.error` on a failure, memory on the spec as the
-  platform attachment;
+  platform attachment, each root tool call's target and outcome (a failed
+  native edit is a returned string, so the outcome is read from the result),
+  and the final to-do list by state;
 - the runner's `turn_phases`, `execution_setup` and Cursor-only
   `turn_first_event` timing lines, from its tee'd log (rounds, tool calls,
-  MCP connect on native, the SDK's send window on Cursor, the declared counts);
+  MCP connect on native, the SDK's send window on Cursor, the declared counts;
+  each tool call is placed on the model round that issued it from the
+  timeline's spans, `src/benchmark/tool-call-facts.ts`);
 - the Temporal history, through the `temporal` CLI (the wait before the
   runner's activity started, the `EnsureThread` hop).
 

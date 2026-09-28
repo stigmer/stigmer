@@ -54,6 +54,8 @@ export function makeSample(
     cost_source: "runner-rate-card-estimate",
     server: { created_at: "2026-09-19T00:00:00Z", started_at: "2026-09-19T00:00:00Z", completed_at: "2026-09-19T00:00:01Z" },
     timing: { turn_phases: null, execution_setup: null, turn_first_event: null },
+    tool_calls: [],
+    todos: { pending: 0, in_progress: 0, completed: 0, cancelled: 0 },
     outcome: "completed",
     ...rest,
   };

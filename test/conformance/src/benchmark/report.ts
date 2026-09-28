@@ -53,8 +53,13 @@
 // - Every latency axis names its clock in the type's comment. The client
 //   axes start at the create call; the Temporal axes are on Temporal's clock;
 //   the runner axes are on the runner's own origin (the activity's start).
+// - Every sample carries its root tool calls (`tool_calls`), each placed on
+//   the model round that issued it, with its target and how it ended, and the
+//   turn's final to-do list by state (`todos`), because the counts alone say
+//   how many rounds a turn took and never why (schema v4; the derivation is
+//   `tool-call-facts.ts`'s). Targets are kept, results and file contents never.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 3;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 4;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
@@ -184,6 +189,37 @@ export interface BenchmarkMeasures extends BenchmarkAxes {
 }
 
 /**
+ * How one tool call ended. `not_found` and `not_unique` are the native
+ * engine's failed edits, which it returns as a result rather than an error;
+ * `failed` is any other error; `skipped` a call the approval gate or a
+ * reviewer declined; `unsettled` a call the turn left pending or interrupted.
+ */
+export type ToolCallOutcome = "ok" | "failed" | "not_found" | "not_unique" | "skipped" | "unsettled";
+
+/** One root tool call of a turn, in start order. */
+export interface ToolCallFact {
+  /** The 1-based model round that issued it, from the turn timeline; `null` where the timeline cannot place it. */
+  round: number | null;
+  name: string;
+  /** The call's `file_path`, `path` or `pattern`, or the head of its `command`; "" when it names none. */
+  target: string;
+  /** A paged read's window, present only when the call set it. */
+  offset?: number;
+  limit?: number;
+  /** The row's `ToolCallStatus`, as `completed`, `failed`, ... */
+  status: string;
+  outcome: ToolCallOutcome;
+}
+
+/** The turn's to-do list at its end, by state: what the user's progress card showed. */
+export interface TodoCounts {
+  pending: number;
+  in_progress: number;
+  completed: number;
+  cancelled: number;
+}
+
+/**
  * A turn of a sampled session other than the sampled one. `turn_seq` is the
  * turn's place in the session (1-based); the runner's own `turn_seq` field on
  * its timing lines is an approval-cycle index within one execution, a
@@ -194,6 +230,8 @@ export interface SiblingTurn {
   execution_id: string;
   measures: BenchmarkMeasures;
   timing: SampleTiming;
+  tool_calls: ToolCallFact[];
+  todos: TodoCounts;
   outcome: SampleOutcome;
   failure?: SampleFailure;
 }
@@ -217,6 +255,9 @@ export interface BenchmarkSample {
   /** The server's own stamps, kept raw. */
   server: { created_at: string; started_at: string; completed_at: string };
   timing: SampleTiming;
+  /** The turn's root tool calls in start order; empty on an attempt that never ran. */
+  tool_calls: ToolCallFact[];
+  todos: TodoCounts;
   outcome: SampleOutcome;
   /** Present on every attempt whose outcome is not `completed`. */
   failure?: SampleFailure;
@@ -507,7 +548,7 @@ export function costRatio(native: BenchmarkStat | undefined, cursor: BenchmarkSt
 // ─── The reader ─────────────────────────────────────────────────────────────
 
 /**
- * Refuses, by naming the field, a body that is not a v2 benchmark report. It
+ * Refuses, by naming the field, a body that is not a current benchmark report. It
  * checks the discriminating fields and the shape every consumer walks
  * (`comparisons[].{native,cursor}.median`, `git.main_sha`, `methodology.reps`)
  * and trusts the rest to the producer: a full structural check would be a

@@ -17,7 +17,10 @@
 # repository, fixing a bug with its test, reviewing code without touching
 # it, support answers from a written policy and from an order system,
 # repairing a config, summarising data, using what the organization's memory
-# holds, and refining an edit over several turns. Each rubric states the
+# holds, refining an edit over several turns, and one request of several
+# independent parts, the kind of work the agent's to-do list is for (each
+# turn's sample records its tool calls and its final list, so a reader sees
+# whether the list was kept; the judge grades the work, not the list). Each rubric states the
 # reference facts the grade rests on, taken from the fixture, so the judge
 # grades against the source and not against its own guess.
 #
@@ -290,3 +293,51 @@ tasks:
       - name: reply_matches_file
         weight: 1
         description: The third turn's reply shows the Unreleased section as it actually is in the file.
+
+  - id: multi-part-change
+    turns:
+      - >-
+        Before Friday's release: fix both problems in FindByCustomer in
+        orders/store.go (the customer is formatted straight into the SQL, and
+        page 1 skips the first page of results), fix config/sync.yaml so the
+        service starts (it rejects max_attempts 50, the limit is 10, and the
+        misspelled "timout" key), and add a line for each fix to the
+        changelog.
+    files:
+      - orders/store.go
+      - config/sync.yaml
+      - CHANGELOG.md
+    rubric: >-
+      Grade a change of several independent parts in one request. Reference
+      facts: FindByCustomer formats the customer string into its SQL, which
+      is SQL injection (the fix is a parameterised query with the customer
+      passed as an argument), and computes the offset as page * pageSize
+      although pages are numbered from 1 (the fix is (page - 1) * pageSize,
+      with page < 1 refused). config/sync.yaml sets sync.retry.max_attempts
+      to 50, above the limit of 10, and misspells timeout as "timout" (value
+      30s). The changelog's "## [Unreleased]" section should gain a
+      "### Fixed" section, after "### Added" (the Keep a Changelog order),
+      with an entry for each fix, and the released 1.4.0 section must be
+      unchanged. No other file needs to change.
+    criteria:
+      - name: every_part_done
+        weight: 3
+        description: >-
+          After the turn, the injection, the pagination offset, both config
+          errors and the changelog entries are all addressed; a part left
+          undone fails this criterion.
+      - name: each_part_correct
+        weight: 3
+        description: >-
+          The query is parameterised, the offset is (page - 1) * pageSize
+          with page < 1 refused, max_attempts is between 1 and 10, "timeout"
+          replaces "timout" with its value of 30s, and the entries sit under
+          Fixed in Unreleased.
+      - name: no_unrelated_edits
+        weight: 1
+        description: >-
+          Only orders/store.go, config/sync.yaml and CHANGELOG.md differ from
+          the starting state, and nothing else in them changed.
+      - name: reports_what_changed
+        weight: 1
+        description: The reply says what was changed in each file.

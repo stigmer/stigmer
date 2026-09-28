@@ -314,6 +314,8 @@ async function measureCell(stack: BenchmarkStack, cell: BenchmarkCell, attempt: 
       execution_id: turn.sample.execution_id,
       measures: turn.sample.measures,
       timing: turn.sample.timing,
+      tool_calls: turn.sample.tool_calls,
+      todos: turn.sample.todos,
       outcome: turn.sample.outcome,
       ...(turn.sample.failure !== undefined ? { failure: turn.sample.failure } : {}),
     });
