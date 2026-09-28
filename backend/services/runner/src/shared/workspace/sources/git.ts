@@ -83,13 +83,22 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
     rootDir: cloneDir,
     sourceType: "git_repo",
     consumedKeys,
-    workspaceDescription:
-      `Your workspace is a git clone of ${url}` +
-      (metadata.branch ? ` (branch: ${metadata.branch})` : "") +
-      `.\nBase commit: ${metadata.baseCommit}`,
+    workspaceDescription: describeClone(url, metadata.branch),
     gitMetadata: metadata,
     entryName: "",
   };
+}
+
+/**
+ * The model's description of a cloned workspace, the same on the turn that
+ * clones and on every turn that reuses the clone: the native system prompt
+ * carries it and must not change from one message to the next. So it names
+ * the repository and the branch, never the commit (write-back commits move
+ * `HEAD` on every approved turn) and never whether the clone was reused. The
+ * branch changes only when a branch really changes, and the text says so.
+ */
+function describeClone(url: string, branch: string): string {
+  return `Your workspace is a git clone of ${url}` + (branch ? ` (branch: ${branch})` : "") + ".";
 }
 
 async function reuseExistingRepo(
@@ -114,10 +123,7 @@ async function reuseExistingRepo(
     rootDir: cloneDir,
     sourceType: "git_repo",
     consumedKeys: [],
-    workspaceDescription:
-      `Your workspace is a git clone of ${url}` +
-      (metadata.branch ? ` (branch: ${metadata.branch})` : "") +
-      ` (existing repo detected).\nBase commit: ${metadata.baseCommit}`,
+    workspaceDescription: describeClone(url, metadata.branch),
     gitMetadata: metadata,
     entryName: "",
   };

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { buildEnhancedSystemPrompt, composeUserMessage } from "../prompt-builder.js";
+import { buildEnhancedSystemPrompt, composeUserMessage, type TurnMessageInput } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
 
@@ -22,9 +22,6 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt.startsWith("You are a helpful assistant.")).toBe(true);
@@ -36,9 +33,6 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).toContain("## Response rules");
@@ -50,9 +44,6 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).toContain("## Working with tools");
@@ -66,9 +57,6 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
       interactionMode: InteractionMode.PLAN,
     });
 
@@ -82,9 +70,6 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [makeProvisionResult()],
       containerRoot: "/workspace",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).toContain("## Workspace");
@@ -100,9 +85,6 @@ describe("buildEnhancedSystemPrompt", () => {
       ],
       containerRoot: "/workspace",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).toContain("2 workspace entries");
@@ -118,9 +100,6 @@ describe("buildEnhancedSystemPrompt", () => {
       })],
       containerRoot: "/workspace",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).toContain("src/");
@@ -133,149 +112,10 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "\n\n## Skills\n\n- coding-standards",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).toContain("## Skills");
     expect(prompt).toContain("coding-standards");
-  });
-
-  it("includes referenced files section", () => {
-    const prompt = buildEnhancedSystemPrompt({
-      instructions: "Test",
-      provisionResults: [],
-      containerRoot: "",
-      skillsPromptSection: "",
-      workspaceFileRefs: ["src/config.yaml", "README.md"],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
-    });
-
-    expect(prompt).toContain("## Referenced Files");
-    expect(prompt).toContain("`src/config.yaml`");
-    expect(prompt).toContain("`README.md`");
-  });
-
-  it("includes injected files section with size info", () => {
-    // The section renders the injector's own result type (sizeBytes). A local
-    // structural twin with a `size` field used to live in the prompt builder,
-    // and production wiring silently dropped the size — this pin holds the
-    // real field name so that drift class cannot return.
-    const prompt = buildEnhancedSystemPrompt({
-      instructions: "Test",
-      provisionResults: [],
-      containerRoot: "",
-      skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [
-        { filename: "data.csv", relativePath: ".stigmer/inputs/data.csv", sizeBytes: 1024 },
-        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
-      ],
-    });
-
-    expect(prompt).toContain("## Input Files");
-    expect(prompt).toContain("`.stigmer/inputs/data.csv` (1024 bytes)");
-    expect(prompt).toContain("`.stigmer/inputs/notes.md` (12 bytes)");
-  });
-
-  it("discloses a duplicate-renamed injected file's original name", () => {
-    const prompt = buildEnhancedSystemPrompt({
-      instructions: "Test",
-      provisionResults: [],
-      containerRoot: "",
-      skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [
-        { filename: "report.pdf", relativePath: ".stigmer/inputs/report.pdf", sizeBytes: 10 },
-        {
-          filename: "report-2.pdf",
-          relativePath: ".stigmer/inputs/report-2.pdf",
-          sizeBytes: 20,
-          renamedFrom: "report.pdf",
-        },
-      ],
-    });
-
-    expect(prompt).toContain(
-      "`.stigmer/inputs/report-2.pdf` (20 bytes) (renamed from duplicate 'report.pdf')",
-    );
-    // The first file keeps a clean entry — no disclosure noise.
-    expect(prompt).toContain("`.stigmer/inputs/report.pdf` (10 bytes)\n");
-  });
-
-  it("lists a minted download URL beside its file with the presigned hand-off line (issue #532)", () => {
-    const prompt = buildEnhancedSystemPrompt({
-      instructions: "Test",
-      provisionResults: [],
-      containerRoot: "",
-      skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [
-        {
-          filename: "lease.pdf",
-          relativePath: ".stigmer/inputs/lease.pdf",
-          sizeBytes: 2048,
-          downloadUrl: "https://r2.example/lease?sig=abc",
-        },
-        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
-      ],
-      downloadUrlKind: "presigned",
-    });
-
-    expect(prompt).toContain(
-      "`.stigmer/inputs/lease.pdf` (2048 bytes) — download URL: https://r2.example/lease?sig=abc",
-    );
-    // The URL-less file keeps a clean entry.
-    expect(prompt).toContain("`.stigmer/inputs/notes.md` (12 bytes)\n");
-    expect(prompt).toContain("These URLs are time-limited");
-  });
-
-  it("words a local-serve URL honestly — reachable only from this machine", () => {
-    const prompt = buildEnhancedSystemPrompt({
-      instructions: "Test",
-      provisionResults: [],
-      containerRoot: "",
-      skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [
-        {
-          filename: "lease.pdf",
-          relativePath: ".stigmer/inputs/lease.pdf",
-          sizeBytes: 2048,
-          downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf",
-        },
-      ],
-      downloadUrlKind: "local-serve",
-    });
-
-    expect(prompt).toContain("download URL: http://localhost:7235/attachments/01A/lease.pdf");
-    expect(prompt).toContain("reachable only from this machine");
-    expect(prompt).not.toContain("time-limited");
-  });
-
-  it("renders no hand-off line when no listed file carries a URL (kind alone is not enough)", () => {
-    const prompt = buildEnhancedSystemPrompt({
-      instructions: "Test",
-      provisionResults: [],
-      containerRoot: "",
-      skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [
-        { filename: "local.csv", relativePath: ".stigmer/inputs/local.csv", sizeBytes: 5 },
-      ],
-      downloadUrlKind: "presigned",
-    });
-
-    expect(prompt).toContain("## Input Files");
-    expect(prompt).not.toContain("download URL");
-    expect(prompt).not.toContain("time-limited");
   });
 
   it("produces a git repo description for git workspace entries", () => {
@@ -301,13 +141,10 @@ describe("buildEnhancedSystemPrompt", () => {
       ],
       containerRoot: "/workspace",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
-    expect(prompt).toContain("https://github.com/org/my-repo");
-    expect(prompt).toContain("abc1234");
+    expect(prompt).toContain("https://github.com/org/my-repo (branch: main)");
+    expect(prompt, "no commit: the clone's HEAD moves with every write-back commit").not.toContain("abc1234");
     expect(prompt).toContain("empty workspace");
   });
 
@@ -317,9 +154,6 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).not.toContain("## Workspace");
@@ -331,9 +165,7 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
       workspaceRoot: "",
-      inputFiles: [],
     };
 
     it("appends the bridge as standing session context (every-turn injection)", () => {
@@ -360,9 +192,7 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
       workspaceRoot: "",
-      inputFiles: [],
     };
 
     it("appends the sender as standing session context (every-turn injection)", () => {
@@ -389,9 +219,7 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
       workspaceRoot: "",
-      inputFiles: [],
     };
 
     it("appends the context as standing session context (every-turn injection)", () => {
@@ -434,9 +262,7 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
       workspaceRoot: "",
-      inputFiles: [],
     };
 
     it("appends the preferences with per-scope attribution (every-turn injection)", () => {
@@ -486,9 +312,7 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
       workspaceRoot: "",
-      inputFiles: [],
     };
 
     it("appends the confirmed facts with the defensive framing (every-turn injection)", () => {
@@ -534,9 +358,6 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     };
 
     it("appends the shared plan-mode directive plus the native-only read-boundary line as the final section", () => {
@@ -576,21 +397,14 @@ describe("buildEnhancedSystemPrompt", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     };
-    const planFile = {
-      filename: "plan.md",
-      relativePath: ".stigmer/inputs/plan.md",
-      sizeBytes: 1024,
-    };
+    const planPath = ".stigmer/inputs/plan.md";
 
     it("appends the implement-plan directive pointing at the injected plan", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         buildFromPlan: true,
-        inputFiles: [planFile],
+        approvedPlanPath: planPath,
       });
 
       expect(prompt).toContain("## Implement the approved plan");
@@ -612,7 +426,7 @@ describe("buildEnhancedSystemPrompt", () => {
     it("omits the directive for an ordinary execution", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
-        inputFiles: [planFile],
+        approvedPlanPath: planPath,
       });
 
       expect(prompt).not.toContain("## Implement the approved plan");
@@ -622,7 +436,7 @@ describe("buildEnhancedSystemPrompt", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         buildFromPlan: true,
-        inputFiles: [planFile],
+        approvedPlanPath: planPath,
       });
 
       expect(prompt).toContain("to-do list");
@@ -635,9 +449,11 @@ describe("composeUserMessage (conversation catchup, cloud DD-006 / A27)", () => 
   const MESSAGE = "where is my order?";
   const DIGEST =
     "Customer: I want a refund\nTeammate: I've refunded you in full.";
+  const withCatchup = (conversationCatchup: string | undefined): string =>
+    composeUserMessage({ message: MESSAGE, inputFiles: [], workspaceFileRefs: [], ...(conversationCatchup !== undefined ? { conversationCatchup } : {}) });
 
   it("prepends the framed catchup to the turn's user message — history durability rides the checkpointer, not the rebuilt system prompt", () => {
-    const composed = composeUserMessage(MESSAGE, DIGEST);
+    const composed = withCatchup(DIGEST);
 
     expect(composed.endsWith(MESSAGE)).toBe(true);
     expect(composed).toContain(DIGEST);
@@ -646,11 +462,11 @@ describe("composeUserMessage (conversation catchup, cloud DD-006 / A27)", () => 
   });
 
   it("separates the catchup from the customer's message with a horizontal rule", () => {
-    expect(composeUserMessage(MESSAGE, DIGEST)).toContain("\n\n---\n\n");
+    expect(withCatchup(DIGEST)).toContain("\n\n---\n\n");
   });
 
   it("leaves the message untouched when there is no catchup — most turns carry none", () => {
-    expect(composeUserMessage(MESSAGE, undefined)).toBe(MESSAGE);
+    expect(withCatchup(undefined)).toBe(MESSAGE);
   });
 
   it("never renders in the system prompt — the rebuilt-per-invocation lane would forget the digest one turn later", () => {
@@ -659,12 +475,124 @@ describe("composeUserMessage (conversation catchup, cloud DD-006 / A27)", () => 
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/workspace",
-      inputFiles: [],
     });
 
     expect(prompt).not.toContain("Conversation catchup");
     expect(prompt).not.toContain("you have not seen");
+  });
+});
+
+describe("composeUserMessage (the turn's payload rides the turn's message)", () => {
+  const MESSAGE = "Review the attached report.";
+  const message = (overrides: Partial<TurnMessageInput>): string =>
+    composeUserMessage({ message: MESSAGE, inputFiles: [], workspaceFileRefs: [], ...overrides });
+
+  it("names the referenced workspace paths, one bullet each, before the message", () => {
+    const composed = message({ workspaceFileRefs: ["src/config.yaml", "README.md"] });
+
+    expect(composed).toContain("## Referenced Files");
+    expect(composed).toContain("- `src/config.yaml`\n- `README.md`");
+    expect(composed.endsWith(`\n\n---\n\n${MESSAGE}`)).toBe(true);
+  });
+
+  it("lists the input files with their size", () => {
+    // The section renders the injector's own result type (sizeBytes). A local
+    // structural twin with a `size` field used to live in the prompt builder,
+    // and production wiring silently dropped the size — this pin holds the
+    // real field name so that drift class cannot return.
+    const composed = message({
+      inputFiles: [
+        { filename: "data.csv", relativePath: ".stigmer/inputs/data.csv", sizeBytes: 1024 },
+        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
+      ],
+    });
+
+    expect(composed).toContain("## Input Files");
+    expect(composed).toContain("`.stigmer/inputs/data.csv` (1024 bytes)");
+    expect(composed).toContain("`.stigmer/inputs/notes.md` (12 bytes)");
+  });
+
+  it("discloses a duplicate-renamed input file's original name", () => {
+    const composed = message({
+      inputFiles: [
+        { filename: "report.pdf", relativePath: ".stigmer/inputs/report.pdf", sizeBytes: 10 },
+        { filename: "report-2.pdf", relativePath: ".stigmer/inputs/report-2.pdf", sizeBytes: 20, renamedFrom: "report.pdf" },
+      ],
+    });
+
+    expect(composed).toContain("`.stigmer/inputs/report-2.pdf` (20 bytes) (renamed from duplicate 'report.pdf')");
+    // The first file keeps a clean entry — no disclosure noise.
+    expect(composed).toContain("`.stigmer/inputs/report.pdf` (10 bytes)\n");
+  });
+
+  it("lists a minted download URL beside its file with the presigned hand-off line (issue #532)", () => {
+    const composed = message({
+      inputFiles: [
+        { filename: "lease.pdf", relativePath: ".stigmer/inputs/lease.pdf", sizeBytes: 2048, downloadUrl: "https://r2.example/lease?sig=abc" },
+        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
+      ],
+      downloadUrlKind: "presigned",
+    });
+
+    expect(composed).toContain("`.stigmer/inputs/lease.pdf` (2048 bytes) — download URL: https://r2.example/lease?sig=abc");
+    // The URL-less file keeps a clean entry.
+    expect(composed).toContain("`.stigmer/inputs/notes.md` (12 bytes)\n");
+    expect(composed).toContain("These URLs are time-limited");
+  });
+
+  it("words a local-serve URL honestly — reachable only from this machine", () => {
+    const composed = message({
+      inputFiles: [
+        {
+          filename: "lease.pdf",
+          relativePath: ".stigmer/inputs/lease.pdf",
+          sizeBytes: 2048,
+          downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf",
+        },
+      ],
+      downloadUrlKind: "local-serve",
+    });
+
+    expect(composed).toContain("download URL: http://localhost:7235/attachments/01A/lease.pdf");
+    expect(composed).toContain("reachable only from this machine");
+    expect(composed).not.toContain("time-limited");
+  });
+
+  it("renders no hand-off line when no listed file carries a URL (kind alone is not enough)", () => {
+    const composed = message({
+      inputFiles: [{ filename: "local.csv", relativePath: ".stigmer/inputs/local.csv", sizeBytes: 5 }],
+      downloadUrlKind: "presigned",
+    });
+
+    expect(composed).toContain("## Input Files");
+    expect(composed).not.toContain("download URL");
+    expect(composed).not.toContain("time-limited");
+  });
+
+  it("orders the payload first, the catchup next and what the user typed last, each set off by a rule", () => {
+    const composed = message({
+      inputFiles: [{ filename: "a.txt", relativePath: ".stigmer/inputs/a.txt", sizeBytes: 1 }],
+      workspaceFileRefs: ["src/a.ts"],
+      conversationCatchup: "Customer: hello",
+    });
+    const parts = composed.split("\n\n---\n\n");
+
+    expect(parts).toHaveLength(4);
+    expect(parts[0]).toMatch(/^## Input Files/);
+    expect(parts[1]).toMatch(/^## Referenced Files/);
+    expect(parts[2]).toContain("Customer: hello");
+    expect(parts[3]).toBe(MESSAGE);
+  });
+
+  it("never renders the payload in the system prompt, which is the session's", () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+    });
+
+    expect(prompt).not.toContain("## Input Files");
+    expect(prompt).not.toContain("## Referenced Files");
   });
 });

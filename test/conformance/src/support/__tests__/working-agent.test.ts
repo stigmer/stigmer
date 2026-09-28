@@ -1,11 +1,11 @@
 // Unit arms for the working agent's fixture and seeding, with no server.
 // Domain: conformance support.
 //
-// Pinned: the fixture carries exactly eight skills, the count at which the
-// native harness starts choosing by relevance; each skill's frontmatter name
-// is its directory's (the server names a pushed skill from the frontmatter,
-// so a mismatch would push a skill the agent's references never find) and
-// carries a description (what the relevance filter reads); seeding copies
+// Pinned: the fixture carries exactly eight skills, the count the benchmark's
+// baselines were taken with; each skill's frontmatter name is its directory's
+// (the server names a pushed skill from the frontmatter, so a mismatch would
+// push a skill the agent's references never find) and carries a description
+// (what the agent reads to choose one); seeding copies
 // the workspace byte for byte into a fresh directory and replaces a
 // previous session's edits; a directory that is not named for the workspace
 // is refused, so a wrong argument can never empty an unrelated tree; the

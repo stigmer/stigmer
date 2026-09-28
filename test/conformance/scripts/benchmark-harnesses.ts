@@ -4,10 +4,10 @@
 // Domain: conformance benchmark (the live instrument's entrypoint).
 //
 // THIS IS AN EXPERIMENT, NOT A TEST. It makes live model calls and spends
-// real money: at the defaults, eight scenarios on two harnesses, one warm-up
-// plus five samples each, three turns per sample on the two three-turn
-// scenarios (the bare turn-2 cell and the working agent's read-edit cell) —
-// 144 executions — plus every quality task's turns, three graded attempts
+// real money: at the defaults, nine scenarios on two harnesses, one warm-up
+// plus five samples each, three turns per sample on the three three-turn
+// scenarios (the bare turn-2 cell and the working agent's read-edit and
+// cross-turn cells) — 180 executions — plus every quality task's turns, three graded attempts
 // per task per harness, each with one judge call. It is in no vitest config and
 // `npm test` cannot reach it. Its numbers are a new baseline for the machine,
 // the model versions and the runner they were taken on, never a comparison

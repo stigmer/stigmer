@@ -9,8 +9,12 @@
  * `attachment-download-urls.ts`). What the two prompt builders duplicated
  * until #1096 was the glue around those bodies: the order
  * the five standing sections read in, with the same doctrine comments written
- * twice; the input-files bullet and disclosure lines; which skills a prompt
- * highlights when there are many. This module is that glue, written once.
+ * twice; the input-files bullet and disclosure lines. This module is that
+ * glue, written once. It also chose which skills a prompt highlighted when
+ * there were many, until the native harness stopped choosing skills by the
+ * turn's message: a system prompt that follows the message misses the
+ * provider's prompt cache on every turn, so every harness now describes every
+ * mounted skill.
  *
  * What stays with each harness, on purpose:
  *  - Framing and placement. The native harness renders `## Heading` sections
@@ -43,9 +47,6 @@ import { formatDeclaredPreferencesText, type DeclaredPreferencesContent } from "
 import { formatRecalledMemoriesText, type RecalledMemoriesContent } from "./recalled-memories.js";
 import { formatSenderIdentityText, type SenderIdentity } from "./sender-identity.js";
 import { formatSessionContextText } from "./session-context.js";
-import { filterSkills } from "./skill-relevance.js";
-import type { SkillMetadata } from "./skill-resolver.js";
-import { STIGMER_LOCAL_STATE_DIR } from "./workspace/stigmer-link.js";
 
 // ---------------------------------------------------------------------------
 // The standing context: five sections, one order
@@ -203,54 +204,4 @@ export function inputFileLines(
     urlHandoff,
     vision: vision ? visionDisclosureLines(vision.inlineFilenames, vision.notViewable) : [],
   };
-}
-
-// ---------------------------------------------------------------------------
-// The skills: which to highlight
-// ---------------------------------------------------------------------------
-
-/** Which mounted skills a prompt highlights, and which it only names. */
-export interface SkillSelection {
-  /** The skills the prompt describes in full, in the filter's order. */
-  readonly highlighted: readonly SkillMetadata[];
-  /** The names of the skills left out of the highlighted set; empty below the threshold. */
-  readonly alsoAvailable: readonly string[];
-}
-
-/**
- * The relevance selection over the turn's message (`skill-relevance.ts`):
- * below `SKILL_COUNT_THRESHOLD` every skill is highlighted; at and above it,
- * the skills the message's terms reach are highlighted and the rest are
- * named, so the agent can still activate one on its own judgement (the Agent
- * Skills spec's progressive disclosure: metadata up front, instructions on
- * demand). The native harness calls this on every turn; the Cursor harness
- * lists every skill today; adopting the selection there is an open item.
- */
-export function selectSkillsForPrompt(userMessage: string, skills: readonly SkillMetadata[]): SkillSelection {
-  const filter = filterSkills(
-    userMessage,
-    skills.map((s) => s.name),
-    skills.map((s) => s.description),
-  );
-  return {
-    highlighted: filter.includedIndices.map((i) => skills[i]),
-    alsoAvailable: filter.excludedNames,
-  };
-}
-
-/**
- * The tool-neutral sentence that names the skills a prompt did not highlight
- * (`SkillSelection.alsoAvailable`), so the agent can activate one by reading
- * its SKILL.md at the mounted path. The sentence names no tool, so it serves
- * any harness; the heading above it is the builder's framing. Empty for no
- * names.
- */
-export function alsoAvailableSkillsNote(excludedNames: readonly string[]): string {
-  if (excludedNames.length === 0) return "";
-  const names = excludedNames.map((n) => `\`${n}\``).join(", ");
-  return (
-    `These skills are installed but were not highlighted above: ${names}. ` +
-    "If you determine one of them is relevant to your task, " +
-    `read its SKILL.md at \`${STIGMER_LOCAL_STATE_DIR}/skills/<name>/SKILL.md\` to activate it.`
-  );
 }

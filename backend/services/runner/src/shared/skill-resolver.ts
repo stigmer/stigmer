@@ -14,9 +14,8 @@
  * into its prompt in its own placement. Moved from
  * `activities/execute-cursor/` in #1070; the native harness's twin
  * (`skill-writer.ts` `fetchSkillsByRefs` + `mountSkills`) retired in #1096,
- * and the module itself with it — the one renderer it kept is
- * `shared/prompt-sections.ts` `alsoAvailableSkillsNote`. This is the one
- * skills path for every harness.
+ * and the module itself with it. This is the one skills path for every
+ * harness.
  *
  * The mount is cached by the skill's content-addressed version hash
  * (stigmer/stigmer#672): metadata is fetched on every execution (that keeps

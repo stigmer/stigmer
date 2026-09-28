@@ -67,7 +67,8 @@ import { buildChatModel } from "../../shared/model-client.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { isUnattendedApprovalMode, type MergedToolPolicy } from "../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
-import { alsoAvailableSkillsNote, selectSkillsForPrompt, visionPromptInfoOf } from "../../shared/prompt-sections.js";
+import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
+import { findApprovedPlanPath } from "../../shared/implement-plan-prompt.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
 import { resolveRecursionLimit, UNBOUNDED_ADVISORY_RECURSION_LIMIT } from "../../shared/tool-rounds.js";
@@ -261,25 +262,6 @@ export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgen
 }
 
 /**
- * The `## Skills` section of the root prompt: the skills the shared selection
- * highlights for this turn's message (`shared/prompt-sections.ts`
- * `selectSkillsForPrompt`: every skill below the threshold, the relevant ones
- * at and above it), rendered with this engine's activation protocol, plus —
- * when the selection left any out — an `### Also Available` note naming them
- * (the sentence is the shared, tool-neutral one; the heading is this
- * harness's markdown framing).
- */
-export function renderRootSkillsSection(input: TurnInput): string {
-  const { highlighted, alsoAvailable } = selectSkillsForPrompt(input.execution.spec?.message ?? "", input.skills.root);
-  if (alsoAvailable.length === 0) return renderSkillsSection(highlighted);
-  console.log(
-    `[turn-setup] Skill relevance filter: ${highlighted.length} included, ` +
-    `${alsoAvailable.length} excluded: ${alsoAvailable.join(", ")}`,
-  );
-  return renderSkillsSection(highlighted) + "\n### Also Available\n\n" + alsoAvailableSkillsNote(alsoAvailable) + "\n";
-}
-
-/**
  * The system prompt over the runtime's resolved record: every input the
  * builder renders is read from `TurnInput` here, in one place, so the mapping
  * is a pure step a test can pin whole (`__tests__/prompt-goldens.test.ts`
@@ -287,6 +269,12 @@ export function renderRootSkillsSection(input: TurnInput): string {
  * that is not on the record is the memoized memory selection, which the
  * caller awaits (the runtime stamps the report on the status the first time
  * it is pulled, before this turn's first persist).
+ *
+ * Nothing here reads the turn's message or payload: the system prompt is the
+ * session's (`prompt-builder.ts` says why), so every mounted skill is
+ * described and the turn's files ride its message (`composeTurnMessage`).
+ * The approved plan's path is the one fact taken from the attachments, and
+ * only on a build-from-plan turn, where the mode already changes the prompt.
  */
 export function composeSystemPrompt(input: TurnInput, recalledMemories: RecalledMemoriesContent | undefined): string {
   const spec = input.execution.spec!;
@@ -296,24 +284,41 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     instructions: input.blueprint.instructions,
     provisionResults: input.workspace.provision.provisionResults,
     containerRoot: primaryDir,
-    skillsPromptSection: renderRootSkillsSection(input),
+    skillsPromptSection: renderSkillsSection(input.skills.root),
     // "" (nothing sendable) threads as undefined: the tool alone still serves
     // text sends inside a 24-hour window (DD-006 D6).
     channelTemplatesPromptSection: input.mcp.channelMessaging.length > 0
       ? formatChannelTemplatesSection(input.mcp.channelMessaging) || undefined
       : undefined,
-    workspaceFileRefs: spec.workspaceFileRefs ?? [],
-    workspaceRoot: primaryDir,
-    inputFiles: input.attachments.results,
-    vision: visionPromptInfoOf(input.attachments),
-    downloadUrlKind: input.artifactStorage?.downloadUrlKind,
     interactionMode: execConfig?.interactionMode,
     buildFromPlan: execConfig?.buildFromPlan,
+    ...(execConfig?.buildFromPlan
+      ? { approvedPlanPath: findApprovedPlanPath(input.attachments.results.map((f) => f.relativePath)) }
+      : {}),
     contextBridge: input.standing.contextBridge,
     senderIdentity: input.standing.senderIdentity,
     sessionContext: input.standing.sessionContext,
     declaredPreferences: input.standing.declaredPreferences,
     recalledMemories,
+  });
+}
+
+/**
+ * The turn's user message over the runtime's resolved record: what the user
+ * typed, with this turn's payload (its input files and referenced paths) and
+ * the conversation catchup composed around it (`prompt-builder.ts`
+ * `composeUserMessage`). The twin of `composeSystemPrompt` for the turn's
+ * half, so the goldens pin this mapping and not a copy of it.
+ */
+export function composeTurnMessage(input: TurnInput): string {
+  const spec = input.execution.spec!;
+  return composeUserMessage({
+    message: spec.message,
+    conversationCatchup: input.standing.conversationCatchup,
+    inputFiles: input.attachments.results,
+    vision: visionPromptInfoOf(input.attachments),
+    downloadUrlKind: input.artifactStorage?.downloadUrlKind,
+    workspaceFileRefs: spec.workspaceFileRefs ?? [],
   });
 }
 
@@ -577,9 +582,10 @@ export async function buildEngine(
  * What the graph is invoked with. The checkpoint is read once (on the
  * durable http saver an extra `getState` is a network round-trip): pending
  * interrupts that the runtime's decisions answer make a `Command(resume)`;
- * anything else is the turn's user message — the conversation catchup
- * framed before it (cloud DD-006; in the USER MESSAGE so it enters the
- * checkpointer with the turn), the structured-output contract appended, and
+ * anything else is the turn's user message — this turn's payload and the
+ * conversation catchup framed before it (`composeTurnMessage`; in the USER
+ * MESSAGE so it enters the checkpointer with the turn and the system prompt
+ * stays the session's), the structured-output contract appended, and
  * the inline images FIRST as content blocks when the turn carries any (per
  * Anthropic's images-before-text guidance; a plain string otherwise).
  */
@@ -590,8 +596,7 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
     return { kind: "resume", command: resume.graphInput };
   }
 
-  const spec = input.execution.spec!;
-  let userMessage = composeUserMessage(spec.message, input.standing.conversationCatchup);
+  let userMessage = composeTurnMessage(input);
   if (engine.hasStructuredOutput) {
     userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
   }

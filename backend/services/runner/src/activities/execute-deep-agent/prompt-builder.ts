@@ -1,19 +1,32 @@
 /**
- * The native harness's system prompt: what `createDeepAgent` receives as
- * `systemPrompt`, rebuilt on EVERY invocation (never checkpointed with the
- * message history), so every standing fact is injected on every turn by
- * design — a first-turn-only injection would vanish from turn 2 onward.
+ * The native harness's prompt: the system prompt `createDeepAgent` receives
+ * as `systemPrompt`, and the turn's user message.
+ *
+ * The system prompt is rebuilt on EVERY invocation (never checkpointed with
+ * the message history), so every standing fact is injected on every turn by
+ * design — a first-turn-only injection would vanish from turn 2 onward. It is
+ * a function of the session and of the execution's settings (its mode), never
+ * of the turn. The provider caches tools, system and messages as one prefix,
+ * so a system byte that follows the message re-writes the cached prompt and
+ * the whole conversation after it, on every turn, at the cache-write price.
+ * What belongs to one turn — its input files, the workspace paths it
+ * references, the conversation catchup — rides that turn's user message
+ * (`composeUserMessage`), which enters the checkpointer with the turn and
+ * stays in history. That is the Cursor harness's resumed-turn placement
+ * (`execute-cursor/prompt-builder.ts` `buildPrompt`) and the runner's rule
+ * that user content goes in user messages, never the system prompt.
  *
  * Pure functions: no side effects, no I/O. `turn-setup.ts` gathers the
  * inputs from the runtime's resolved record and this module renders them.
  *
  * What is this harness's and what is shared (since #1096):
  *  - Shared through `shared/prompt-sections.ts`: WHICH standing sections
- *    render and in WHAT order (`standingContextSections`), the input-files
- *    bullet and disclosure lines (`inputFileLines`), which skills a prompt
- *    highlights (`selectSkillsForPrompt`, called from `turn-setup.ts`) and
- *    the also-available sentence. Their WORDS come from each fact's own
- *    module; this builder only frames them.
+ *    render and in WHAT order (`standingContextSections`) and the
+ *    input-files bullet and disclosure lines (`inputFileLines`). Their WORDS
+ *    come from each fact's own module; this builder only frames them. Every
+ *    mounted skill is described on every turn, as the Cursor harness does:
+ *    choosing skills by the message made the system prompt follow the
+ *    message.
  *  - This harness's: the framing — `## Heading` markdown sections, the house
  *    style for a system prompt — and every text that quotes this engine's
  *    tools: the `## Skills` activation protocol, the response rules, the
@@ -24,7 +37,8 @@
  *
  * The rendered bytes are load-bearing for the hermetic tests: `ScriptedModel`
  * tells its scripted roles apart by the system prompt's text, so this
- * module's whole output is pinned by `__tests__/prompt-goldens.test.ts`.
+ * module's whole output — the system prompt and the turn's message — is
+ * pinned by `__tests__/prompt-goldens.test.ts`.
  */
 
 import { relative } from "node:path";
@@ -43,10 +57,7 @@ import {
 } from "../../shared/prompt-sections.js";
 import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
-import {
-  buildImplementPlanDirective,
-  findApprovedPlanPath,
-} from "../../shared/implement-plan-prompt.js";
+import { buildImplementPlanDirective } from "../../shared/implement-plan-prompt.js";
 import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
@@ -131,22 +142,6 @@ export interface PromptBuilderInput {
    * when the agent serves no proactive channel or nothing is sendable.
    */
   channelTemplatesPromptSection?: string;
-  workspaceFileRefs: string[];
-  workspaceRoot: string;
-  /** The turn's resolved input files, as the runtime's attachment phase returns them. */
-  inputFiles: readonly ResolvedAttachment[];
-  /**
-   * Vision facts about this turn's attachments (T04): which images the model
-   * sees inline in the user message and which degraded to path-only.
-   * Rendered inside the Input Files section.
-   */
-  vision?: VisionPromptInfo;
-  /**
-   * What kind of URL the turn's storage backend mints (issue #532) — keys
-   * the Input Files section's hand-off wording (attachment-download-urls.ts).
-   * One turn-level fact: all attachments ride the one configured storage.
-   */
-  downloadUrlKind?: DownloadUrlKind;
   /**
    * The execution's interaction mode. PLAN appends the shared plan-mode
    * directive so the model knows the turn's deliverable is a plan document.
@@ -163,6 +158,14 @@ export interface PromptBuilderInput {
    * message itself is just a short label ("Build from plan").
    */
   buildFromPlan?: boolean;
+  /**
+   * The approved plan's path among the turn's input files
+   * (`implement-plan-prompt.ts` `findApprovedPlanPath`), read only under
+   * `buildFromPlan`. Absent when the plan did not materialize, which selects
+   * the directive's conversation-plan variant. The Input Files section
+   * itself rides the turn's message (`composeUserMessage`).
+   */
+  approvedPlanPath?: string;
   /**
    * Rollover context bridge (cloud DD-013): a digest of the previous
    * session's conversation, read from `SessionSpec.metadata`. Injected on
@@ -252,22 +255,6 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
     prompt += "\n\n" + input.channelTemplatesPromptSection;
   }
 
-  if (input.workspaceFileRefs.length > 0) {
-    const refSection = buildReferencedFilesSection(
-      input.workspaceFileRefs,
-      input.workspaceRoot,
-    );
-    if (refSection) {
-      prompt += refSection;
-    }
-  }
-
-  if (input.inputFiles.length > 0) {
-    prompt += buildInputFilesSection(
-      input.inputFiles, input.vision, input.downloadUrlKind,
-    );
-  }
-
   // The standing context, in the shared order (the doctrine is stated once,
   // on `standingContextSections`); this harness only frames each section.
   for (const section of standingContextSections(input)) {
@@ -296,34 +283,67 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   }
 
   if (input.buildFromPlan) {
-    const planPath = findApprovedPlanPath(
-      input.inputFiles.map((f) => f.relativePath),
-    );
     prompt +=
       "\n\n## Implement the approved plan\n\n" +
-      buildImplementPlanDirective(planPath);
+      buildImplementPlanDirective(input.approvedPlanPath);
   }
 
   return prompt;
 }
 
+/** The turn's own content, composed around what the user typed. */
+export interface TurnMessageInput {
+  /** What the user typed (`spec.message`); never mutated. */
+  readonly message: string;
+  /** The conversation catchup digest (cloud DD-006), when the turn carries one. */
+  readonly conversationCatchup?: string;
+  /** This turn's resolved input files, as the runtime's attachment phase returns them. */
+  readonly inputFiles: readonly ResolvedAttachment[];
+  /**
+   * Vision facts about this turn's attachments (T04): which images the model
+   * sees inline in this same message and which degraded to path-only.
+   * Rendered inside the Input Files section.
+   */
+  readonly vision?: VisionPromptInfo;
+  /**
+   * What kind of URL the turn's storage backend mints (issue #532) — keys
+   * the Input Files section's hand-off wording (attachment-download-urls.ts).
+   * One turn-level fact: all attachments ride the one configured storage.
+   */
+  readonly downloadUrlKind?: DownloadUrlKind;
+  /** The workspace paths the user highlighted for this message (`spec.workspace_file_refs`). */
+  readonly workspaceFileRefs: readonly string[];
+}
+
 /**
- * Compose the turn's USER MESSAGE for the graph invocation: the framed
- * conversation catchup (cloud DD-006), when present, prepended to the
- * customer's message. In the user message and never the system prompt (A27):
- * the system prompt is rebuilt per invocation and would forget the digest one
- * turn later, while a message enters the checkpointer with the turn and
- * persists in history — the same durability the cursor harness gets from its
- * prompt prefix. The caller's `spec.message` is never mutated; the prepend
- * exists only in the graph input.
+ * Compose the turn's USER MESSAGE for the graph invocation: this turn's
+ * payload (its input files, then the workspace paths it references), then the
+ * framed conversation catchup (cloud DD-006), then what the user typed, each
+ * set off by a horizontal rule. Payload first and context closest to the task
+ * is the Cursor harness's resumed-turn order.
+ *
+ * In the user message and never the system prompt (A27, and the module
+ * header): the system prompt is rebuilt per invocation, so a turn's content
+ * there would vanish one turn later and, while it lasted, change the cached
+ * prefix; a message enters the checkpointer with the turn and persists in
+ * history, so a later turn still knows which files an earlier one carried.
+ * An approval resume sends no new message and needs none: the payload is
+ * already in the checkpointed one. The caller's `spec.message` is never
+ * mutated; the composition exists only in the graph input.
  */
-export function composeUserMessage(
-  message: string,
-  conversationCatchup: string | undefined,
-): string {
-  return conversationCatchup
-    ? `${formatConversationCatchupText(conversationCatchup)}\n\n---\n\n${message}`
-    : message;
+export function composeUserMessage(input: TurnMessageInput): string {
+  const parts: string[] = [];
+  if (input.inputFiles.length > 0) {
+    parts.push(buildInputFilesSection(input.inputFiles, input.vision, input.downloadUrlKind));
+  }
+  if (input.workspaceFileRefs.length > 0) {
+    parts.push(buildReferencedFilesSection(input.workspaceFileRefs));
+  }
+  if (input.conversationCatchup) {
+    parts.push(formatConversationCatchupText(input.conversationCatchup));
+  }
+  parts.push(input.message);
+  return parts.join("\n\n---\n\n");
 }
 
 /**
@@ -454,14 +474,14 @@ function formatEntryDescription(result: ProvisionResult): string {
     );
   }
 
+  // No commit: the clone's HEAD moves with every write-back commit, and a
+  // system prompt that names it would change on every such turn
+  // (`shared/workspace/sources/git.ts` says the same for one entry).
   if (result.sourceType === "git_repo" && result.gitMetadata) {
     const meta: GitMetadata = result.gitMetadata;
-    const shortSha = meta.baseCommit.length >= 7
-      ? meta.baseCommit.slice(0, 7)
-      : meta.baseCommit;
+    const branch = meta.branch ? ` (branch: ${meta.branch})` : "";
     return (
-      `Workspace entry **${name}** was initialized from ` +
-      `${meta.repoUrl} (branch: ${meta.branch}, commit: ${shortSha}).\n` +
+      `Workspace entry **${name}** was initialized from ${meta.repoUrl}${branch}.\n` +
       "Changes you make will be captured as artifacts when execution completes."
     );
   }
@@ -476,36 +496,29 @@ function formatEntryDescription(result: ProvisionResult): string {
   return result.workspaceDescription;
 }
 
-function buildReferencedFilesSection(
-  workspaceFileRefs: string[],
-  _workspaceRoot: string,
-): string {
-  if (workspaceFileRefs.length === 0) return "";
-
-  let section =
-    "\n\n## Referenced Files\n\n" +
+/** The `## Referenced Files` part of the turn's message: the paths the user highlighted, one bullet each. */
+function buildReferencedFilesSection(workspaceFileRefs: readonly string[]): string {
+  return (
+    "## Referenced Files\n\n" +
     "The user has highlighted the following workspace paths for your " +
-    `attention. Use \`${ENGINE_TOOL.readFile}\` to access file contents.\n\n`;
-
-  for (const refPath of workspaceFileRefs) {
-    section += `- \`${refPath}\`\n`;
-  }
-
-  return section;
+    `attention. Use \`${ENGINE_TOOL.readFile}\` to access file contents.\n\n` +
+    workspaceFileRefs.map((refPath) => `- \`${refPath}\``).join("\n")
+  );
 }
 
 /**
- * The `## Input Files` section: this harness's intro (it names this engine's
- * file-reading tool) around the shared lines (`prompt-sections.ts` `inputFileLines`
- * says what each bullet and disclosure carries and why). Each disclosure
- * group is set off by a blank line, the markdown idiom.
+ * The `## Input Files` part of the turn's message: this harness's intro (it
+ * names this engine's file-reading tool) around the shared lines
+ * (`prompt-sections.ts` `inputFileLines` says what each bullet and disclosure
+ * carries and why). Each disclosure group is set off by a blank line, the
+ * markdown idiom.
  */
 function buildInputFilesSection(
   files: readonly ResolvedAttachment[],
   vision?: VisionPromptInfo,
   downloadUrlKind?: DownloadUrlKind,
 ): string {
-  let section = "\n\n## Input Files\n\n";
+  let section = "## Input Files\n\n";
   section +=
     "The following files have been provided as read-only reference " +
     "material for your task. They live under `.stigmer/inputs/` and " +
@@ -526,7 +539,6 @@ function buildInputFilesSection(
     section += "\n" + lines.vision.join("\n") + "\n";
   }
 
-  // Every section opens with its own blank line ("\n\n## ..."), so this one
-  // ends on its last line rather than adding a second blank (#1127).
+  // The part ends on its last line; the message's rule sets it off (#1127).
   return section.replace(/\n+$/, "");
 }

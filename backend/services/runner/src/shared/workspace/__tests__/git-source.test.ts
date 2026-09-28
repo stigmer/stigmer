@@ -73,14 +73,17 @@ describe("provisionGit", () => {
     expect(cmds.some((c) => c.includes("git checkout 'develop'"))).toBe(true);
   });
 
-  it("sets workspace description with repo URL and branch", async () => {
+  it("describes the clone by repo URL and branch, never by its commit", async () => {
     const backend = mockWorkspaceBackend({
       execute: routingExecute({ branch: "main\n", sha: "sha789\n" }),
     });
     const result = await provisionGit(makeOptions({ backend }));
     expect(result.workspaceDescription).toContain("github.com/org/repo.git");
-    expect(result.workspaceDescription).toContain("main");
-    expect(result.workspaceDescription).toContain("sha789");
+    expect(result.workspaceDescription).toContain("(branch: main)");
+    // The native system prompt carries this text on every turn; write-back
+    // commits move HEAD every approved turn, so a commit here would change it.
+    expect(result.workspaceDescription).not.toContain("sha789");
+    expect(result.gitMetadata?.baseCommit, "the commit stays in the metadata write-back reads").toBe("sha789");
   });
 
   // ── Default-branch resolution ─────────────────────────────────────
@@ -120,7 +123,10 @@ describe("provisionGit", () => {
 
     const result = await provisionGit(makeOptions({ backend }));
     expect(result.sourceType).toBe("git_repo");
-    expect(result.workspaceDescription).toContain("existing repo detected");
+    const fresh = await provisionGit(
+      makeOptions({ backend: mockWorkspaceBackend({ execute: routingExecute() }) }),
+    );
+    expect(result.workspaceDescription, "a reused clone is described exactly as a fresh one").toBe(fresh.workspaceDescription);
 
     expect(calls(backend).some((c) => c.includes("git init"))).toBe(false);
     expect(calls(backend).some((c) => c.includes("git fetch"))).toBe(false);
@@ -395,7 +401,7 @@ describe("provisionGit", () => {
     }));
 
     expect(result.gitMetadata!.gitCredentialsConfigured).toBe(true);
-    expect(result.workspaceDescription).toContain("existing repo detected");
+    expect(calls(backend).some((c) => c.includes("git init")), "the reuse path, not a fresh clone").toBe(false);
   });
 
   it("handles credential setup failure gracefully", async () => {

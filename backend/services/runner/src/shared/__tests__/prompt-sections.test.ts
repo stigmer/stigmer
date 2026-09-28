@@ -1,8 +1,6 @@
 /**
- * The shared prompt glue (`shared/prompt-sections.ts`): the standing order,
- * the input-files lines, the skill selection and the also-available sentence
- * (the sentence's arms came from `skill-writer.test.ts`, retired with its
- * module in #1096). What each harness renders AROUND these is pinned whole by
+ * The shared prompt glue (`shared/prompt-sections.ts`): the standing order
+ * and the input-files lines. What each harness renders AROUND these is pinned whole by
  * the two builders' prompt goldens (`execute-deep-agent/__tests__/
  * prompt-goldens.test.ts`, `execute-cursor/__tests__/prompt-goldens.test.ts`);
  * this file pins the glue's own contract, harness-free.
@@ -10,16 +8,12 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  alsoAvailableSkillsNote,
   inputFileLines,
-  selectSkillsForPrompt,
   standingContextSections,
   visionPromptInfoOf,
   type StandingSectionKind,
 } from "../prompt-sections.js";
 import type { ResolvedAttachment } from "../attachment-resolver.js";
-import type { SkillMetadata } from "../skill-resolver.js";
-import { SKILL_COUNT_THRESHOLD } from "../skill-relevance.js";
 import { formatDeclaredPreferencesText } from "../declared-preferences.js";
 
 describe("standingContextSections", () => {
@@ -117,51 +111,5 @@ describe("visionPromptInfoOf", () => {
       inlineFilenames: ["b.png", "a.jpg"],
       notViewable: [{ path: ".stigmer/inputs/big.png", reason: "too_large" }],
     });
-  });
-});
-
-describe("selectSkillsForPrompt", () => {
-  const skill = (name: string, description: string): SkillMetadata => ({ name, description, path: `.stigmer/skills/${name}/SKILL.md` });
-
-  it("highlights every skill below the threshold, in mount order, and names none as also-available", () => {
-    const skills = [skill("alpha", "Deploy to kubernetes"), skill("beta", "Reshape CSV exports")];
-    const selection = selectSkillsForPrompt("deploy the service", skills);
-    expect(selection.highlighted).toEqual(skills);
-    expect(selection.alsoAvailable).toEqual([]);
-  });
-
-  it("at the threshold, highlights the skills the message reaches and names the rest", () => {
-    const skills = Array.from({ length: SKILL_COUNT_THRESHOLD }, (_, i) =>
-      i === 0 ? skill("k8s-deploy", "Deploy services to kubernetes clusters") : skill(`other-${i}`, `Unrelated thing number ${i}`),
-    );
-    const selection = selectSkillsForPrompt("Deploy the payments service to kubernetes", skills);
-    expect(selection.highlighted.map((s) => s.name)).toContain("k8s-deploy");
-    expect(selection.alsoAvailable.length).toBeGreaterThan(0);
-    expect(selection.highlighted.length + selection.alsoAvailable.length).toBe(SKILL_COUNT_THRESHOLD);
-  });
-
-  it("selects nothing from nothing", () => {
-    expect(selectSkillsForPrompt("anything", [])).toEqual({ highlighted: [], alsoAvailable: [] });
-  });
-});
-
-describe("alsoAvailableSkillsNote", () => {
-  it("returns empty for no excluded names", () => {
-    expect(alsoAvailableSkillsNote([])).toBe("");
-  });
-
-  it("lists excluded skills with backtick formatting", () => {
-    const note = alsoAvailableSkillsNote(["alpha", "beta", "gamma"]);
-    expect(note).toContain("`alpha`");
-    expect(note).toContain("`beta`");
-    expect(note).toContain("`gamma`");
-  });
-
-  it("includes activation instructions that name no tool, so any harness can carry it", () => {
-    const note = alsoAvailableSkillsNote(["some-skill"]);
-    expect(note).toContain(".stigmer/skills/<name>/SKILL.md");
-    expect(note).toContain("relevant to your task");
-    expect(note).not.toMatch(/\b(read|Read) tool\b/);
-    expect(note.startsWith("#")).toBe(false);
   });
 });

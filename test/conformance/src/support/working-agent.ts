@@ -15,8 +15,8 @@
 //   is the platform's stdio attachment: the runner spawns `stigmer
 //   mcp-server` per turn (runner shared/memory-attachment.ts), so the
 //   `stigmer` CLI must be on PATH wherever this agent runs;
-// - eight skills, the count at which the native harness starts choosing
-//   skills by relevance (runner shared/skill-relevance.ts);
+// - eight skills, the count at which the native harness once began choosing
+//   skills by the message (it now describes every one on every turn);
 // - one declared sub-agent with no skills of its own. The Cursor harness
 //   mounts but never reads a sub-agent's skills (stigmer#1288), so giving it
 //   some would measure that defect instead of the harness;

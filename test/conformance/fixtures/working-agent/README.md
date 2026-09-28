@@ -53,8 +53,8 @@ under their own names. Five serve a task: `repo-conventions`, `code-review`,
 `customer-support`, `data-analysis`, `changelog`. Three are distractors:
 `brand-voice`, `incident-postmortem`, `sql-migrations`.
 
-Eight is deliberate. It is the count at which the native harness starts
-choosing skills by relevance to the message
-(`backend/services/runner/src/shared/skill-relevance.ts`,
-`SKILL_COUNT_THRESHOLD`), while the Cursor harness lists every skill. That
-difference is part of what the benchmark measures, so it is not normalised.
+Eight is deliberate. It is the count at which the native harness once began
+choosing skills by relevance to the message, describing only the ones a
+message's words reached. It now describes every mounted skill on every turn,
+as the Cursor harness does, and the count stays so that the benchmark's
+baselines stay comparable.

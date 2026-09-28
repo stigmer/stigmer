@@ -1,11 +1,10 @@
 /**
- * The native system prompt, whole, as goldens.
+ * The native system prompt and the turn's user message, whole, as goldens.
  *
  * Every other prompt test in this directory asserts with `toContain`; the
  * hermetic goldens are status JSON and never see a prompt. So until #1096 no
- * test pinned a rendered prompt byte for byte, and the relevance-filtered
- * `## Skills` section (eight or more skills, `turn-setup.ts`
- * `renderRootSkillsSection`) had no test at all. These goldens are the
+ * test pinned a rendered prompt byte for byte, and the `## Skills` section at
+ * eight or more skills had no test at all. These goldens are the
  * photograph taken BEFORE the shared prompt glue moved into
  * `shared/prompt-sections.ts` (#1096), so the move could be proven
  * byte-identical — the same discipline the hermetic net applied to the
@@ -16,17 +15,17 @@
  * `systemPromptOf`), so a changed byte can silently re-route a scripted reply
  * in the sub-agent delegation golden.
  *
- * The shapes: everything at once (the multi-entry workspace, nine skills so
- * the filter fires, channel templates, referenced files, three input files
- * with a rename and a download URL, the vision disclosure, all five standing
- * sections); the below-threshold skills branch; plan mode; build-from-plan;
- * and the minimal prompt (no instructions, so the built-in assistant's). Plan
- * mode and build-from-plan are mutually exclusive in production, so each has
- * its own golden.
+ * The shapes: everything at once (the multi-entry workspace, nine skills,
+ * channel templates, all five standing sections); plan mode; build-from-plan;
+ * the minimal prompt (no instructions, so the built-in assistant's); and the
+ * turn's user message for the everything shape (its input files with a
+ * rename and a download URL, the vision disclosure, its referenced files and
+ * a catchup). Plan mode and build-from-plan are mutually exclusive in
+ * production, so each has its own golden.
  *
- * The goldens are taken through `turn-setup.ts` `composeSystemPrompt`, the
- * production mapping from the runtime's resolved record to the builder's
- * input, so they pin the mapping too, not a copy of it. (The first cut
+ * The goldens are taken through `turn-setup.ts` `composeSystemPrompt` and
+ * `composeTurnMessage`, the production mappings from the runtime's resolved
+ * record to the builder's input, so they pin the mappings too, not copies. (The first cut
  * photographed the prompt through a field-for-field copy of the mapping as
  * it then sat inline in `buildEngine`; the next extracted it and re-took the
  * goldens through the
@@ -43,6 +42,12 @@
  *   a local-path entry names no host path; the multi-entry path sentence
  *   names the virtual root; an entry's tree and the Input Files section end
  *   with one blank line before the next heading.
+ * - 2026-09-29 (the native system prompt is the session's, never the turn's):
+ *   every mounted skill is described whatever the count, so the relevance
+ *   filter's `### Also Available` note and the below-threshold golden are
+ *   gone; the Referenced Files and Input Files sections leave the system
+ *   prompt for the turn's message, which has its own golden; a cloned entry
+ *   names its branch and no commit.
  */
 
 import { describe, it, expect } from "vitest";
@@ -62,7 +67,7 @@ import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import type { RecalledMemoriesContent } from "../../../shared/recalled-memories.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
-import { composeSystemPrompt } from "../turn-setup.js";
+import { composeSystemPrompt, composeTurnMessage } from "../turn-setup.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures — every value is a plain fact a golden can name.
@@ -74,7 +79,7 @@ function skill(name: string, description: string): SkillMetadata {
   return { name, description, path: `.stigmer/skills/${name}/SKILL.md` };
 }
 
-/** Nine skills: three the message's terms reach, six it does not — the filter has something to exclude. */
+/** Nine skills, past the eight at which the native harness once described only those the message reached: every one is described. */
 const NINE_SKILLS: readonly SkillMetadata[] = [
   skill("k8s-deploy", "Deploy services to kubernetes clusters with helm charts"),
   skill("release-notes", "Draft release notes from the merged pull requests"),
@@ -152,6 +157,7 @@ interface EverythingShape {
   readonly interactionMode?: InteractionMode;
   readonly buildFromPlan?: boolean;
   readonly inputFiles?: readonly ResolvedAttachment[];
+  readonly conversationCatchup?: string;
 }
 
 /**
@@ -205,7 +211,7 @@ function everythingInput(shape: EverythingShape): TurnInput {
       senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
       sessionContext: "The user is the on-call engineer this week.",
       declaredPreferences: { orgContext: "We deploy to eu-west-1.", userContext: "Keep answers terse." },
-      conversationCatchup: undefined,
+      conversationCatchup: shape.conversationCatchup,
       selectRecalledMemories: async () => RECALLED,
     },
   });
@@ -221,14 +227,9 @@ async function systemPromptOf(input: TurnInput): Promise<string> {
 // ---------------------------------------------------------------------------
 
 describe("native system prompt goldens", () => {
-  it("everything at once, nine skills so the relevance filter fires", async () => {
+  it("everything at once, nine skills, every one described", async () => {
     const prompt = await systemPromptOf(everythingInput({ skills: NINE_SKILLS }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.everything.prompt.md");
-  });
-
-  it("three skills, below the relevance threshold: every skill listed, no also-available note", async () => {
-    const prompt = await systemPromptOf(everythingInput({ skills: THREE_SKILLS }));
-    await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.skills-below-threshold.prompt.md");
   });
 
   it("plan mode appends the shared directive plus the native read-boundary sentence, last", async () => {
@@ -249,10 +250,14 @@ describe("native system prompt goldens", () => {
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",
-      workspaceFileRefs: [],
-      workspaceRoot: "/ws",
-      inputFiles: [],
     });
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.minimal.prompt.md");
+  });
+
+  it("the turn's user message: the payload first, then the catchup, then what the user typed", async () => {
+    const message = composeTurnMessage(
+      everythingInput({ skills: NINE_SKILLS, conversationCatchup: "Customer: is the staging deploy done?\nTeammate: Yes, it went out at noon." }),
+    );
+    await expect(message).toMatchFileSnapshot("./goldens/user-message.everything.md");
   });
 });
