@@ -3,19 +3,22 @@
  * the activity tells them apart — the throw-vs-return table the control
  * plane's workflow keys on. Since #1096 the activity is the turn runtime
  * over the native adapter, and the shapes below are the runtime's terminal
- * table (`harness/terminal-table.ts`; the pause copy is Cursor's) and
- * stigmer#1071 ("persist a thrown terminal once").
+ * table (`harness/terminal-table.ts`) and stigmer#1071 ("persist a thrown
+ * terminal once").
  *
- *  1. USER PAUSE: the activity's `cancellationSignal` aborts. Whether the
+ *  1. ORCHESTRATOR STOP (a user's Pause or Cancel; the turn cannot tell
+ *     them apart): the activity's `cancellationSignal` aborts. Whether the
  *     abort lands inside a model call (staged from the scripted model's
  *     `onTurn`) or while the loop is persisting (staged from the control
  *     plane's persist channel, the record's `controlSignal`), the runtime's
  *     stop controller aborts the adapter's signal, the adapter cancels the
- *     graph run and settles `interrupted`, and the runtime persists PAUSED
- *     ONCE — WITH the transcript and the row "Execution paused by user. Use
- *     resume to continue." (the runtime's pause copy is Cursor's; the
- *     orchestrator's said "… from this checkpoint.") — then throws
- *     `CancelledFailure("Activity paused by orchestrator")`. Until #1096 the
+ *     graph run and settles `interrupted`, and the runtime persists the
+ *     transcript ONCE with no phase and no row, then throws
+ *     `CancelledFailure("Activity paused by orchestrator")` (bytes kept:
+ *     wire copy). The invoke workflow writes the phase and the stop row, and
+ *     the server's merge keeps the row last (stigmer#980); until then this
+ *     write carried PAUSED and "Execution paused by user. Use resume to
+ *     continue.", which a cancelled run showed too. Until #1096 the
  *     orchestrator persisted PAUSED TWICE, the second write bare and erasing
  *     the transcript (stigmer#1054's double persist);
  *     `pause.bare.status.json` recorded that write and is gone with it. The
@@ -132,30 +135,33 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
       },
       loopGolden: "./goldens/pause.loop.mid-tool.status.json",
     },
-  ])("user pause $staging", ({ begin, controlSignal, loopGolden }) => {
-    it("persists PAUSED once, with the transcript and the row, and throws as a pause", async () => {
+  ])("orchestrator stop $staging", ({ begin, controlSignal, loopGolden }) => {
+    it("settles the transcript once, with no phase and no row, and throws as the stop", async () => {
       clock.reset();
       const record = deepAgentExecutionRecord({ message: "Look at my notes.", controlSignal });
       inFlight = begin(record);
 
       const invocation = await runDeepAgentTurn(inFlight);
 
-      expect(threwCancelledFailure(invocation.outcome), "a pause THROWS CancelledFailure").toBe(true);
+      expect(threwCancelledFailure(invocation.outcome), "an orchestrator stop THROWS CancelledFailure").toBe(true);
       expect((invocation.outcome as { error: Error }).error.message).toBe("Activity paused by orchestrator");
-      expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_PAUSED]);
+      expect(record.persistedPhases, "the stop writes no phase").toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS]);
 
-      const pausedWrites = record.persisted.filter((s) => s.phase === ExecutionPhase.EXECUTION_PAUSED);
-      expect(pausedWrites, "PAUSED is persisted exactly once (stigmer#1071)").toHaveLength(1);
-      const [paused] = pausedWrites;
-      expect(paused.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
-        "Execution paused by user. Use resume to continue.",
-      ]);
+      const settleWrites = record.persisted.filter(
+        (s) => s.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED && s.messages.length > 0,
+      );
+      expect(settleWrites, "the stop is settled exactly once (stigmer#1071)").toHaveLength(1);
+      const [paused] = settleWrites;
+      expect(
+        paused.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
+        "no stop row: the workflow writes it (stigmer#980)",
+      ).toEqual([]);
       expect(
         paused.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name),
-        "the read that landed before the pause is in the one write",
+        "the read that landed before the stop is in the one write",
       ).toEqual(["read_file"]);
       expect(paused.completedAt).toBe("");
-      expect(record.lastFullStatus, "the wire ends on the write that carries the transcript").toEqual(paused);
+      expect(record.persisted.at(-1), "the wire ends on the write that carries the transcript").toEqual(paused);
 
       const json = JSON.stringify(toJson(AgentExecutionStatusSchema, paused), null, 2) + "\n";
       await expect(json).toMatchFileSnapshot(loopGolden);

@@ -31,6 +31,16 @@
  *     context): CANCELLED persist (quiet terminal, NO status.error —
  *     stigmer#282), callback completion with "execution cancelled", EC
  *     delete.
+ *   - Stop and failure copy (stigmer#980): the runner cannot tell a Pause
+ *     from a Cancel (both reach its activity as the same cancellation), so
+ *     this workflow, which knows which stop it runs, writes the stop row
+ *     (platform-rows.ts) and the merge keeps it last. When the runner
+ *     reported the turn FAILED it already explained the failure in the
+ *     transcript, so the failure-path write adds no lines; only a flow
+ *     that broke without a runner verdict gets the platform's two lines.
+ *     Both are payload changes to activities scheduled as before, pinned
+ *     by the runner-failed, user-cancel and pause-resume replay
+ *     histories.
  *   - Recovery is terminate-and-start-fresh ONLY (stigmer#200); no
  *     version gates (OD-6 — no Go-era history can replay here).
  *
@@ -42,8 +52,9 @@
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this file runs in Temporal's
  * deterministic sandbox. Only @temporalio/workflow, @temporalio/common,
  * @bufbuild/protobuf, generated protos, and verified-pure domain modules
- * (filereview/gate.js by DIRECT path — its sibling digest.ts pulls
- * node:crypto) may be imported. The SDK bundler hard-fails otherwise.
+ * (filereview/gate.js and platform-rows.js by DIRECT path — gate.js's
+ * sibling digest.ts pulls node:crypto) may be imported. The SDK bundler
+ * hard-fails otherwise.
  */
 import { create, fromJson, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -84,6 +95,10 @@ import {
   unresolvedGateCount,
 } from "../../../domain/agentexecution/filereview/gate.js";
 import {
+  CANCEL_STOP_ROW,
+  PAUSE_STOP_ROW,
+} from "../../../domain/agentexecution/platform-rows.js";
+import {
   isWorkerShutdown,
   WORKER_SHUTDOWN_STATUS_ERROR,
 } from "../../runner-failure.js";
@@ -107,6 +122,7 @@ import {
 import {
   getErrorFromResult,
   getPhaseFromResult,
+  RunnerReportedFailure,
   type RunnerActivityResult,
 } from "../runner-result.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
@@ -764,13 +780,16 @@ async function runWithPauseAndRecovery(
         pauseCycle,
       });
 
-      // Defense-in-depth: the Pause RPC already set PAUSED in the DB, but
-      // this also folds the latest messages/tool_calls from the
-      // activity's final gRPC update.
+      // Defense-in-depth for the phase (the Pause RPC already set PAUSED)
+      // and the one writer of the pause row: the runner settles its
+      // transcript without a row because it cannot tell this stop from a
+      // cancel, and the merge appends the row and keeps it last across
+      // the runner's settle write, whichever lands first (stigmer#980).
       await persistFinalStatus(
         executionId,
         create(AgentExecutionStatusSchema, {
           phase: ExecutionPhase.EXECUTION_PAUSED,
+          messages: [{ type: MessageType.MESSAGE_SYSTEM, content: PAUSE_STOP_ROW }],
         }),
         "Failed to persist PAUSED status (non-fatal)",
       );
@@ -850,7 +869,7 @@ async function runWithPauseAndRecovery(
       }),
       "Failed to persist fallback FAILED status",
     );
-    throw new Error(`agent execution failed: ${finalError}`);
+    throw new RunnerReportedFailure(finalError);
   }
 
   return finalResult;
@@ -1130,7 +1149,11 @@ async function executeWithHitlLoop(
  * persist the honest platform-failure copy instead of raw Temporal
  * internals ("Worker is shutting down and this activity did not complete
  * in time" reached users in the 2026-08-08 incident, #776) — the raw text
- * stays in the workflow log; status.error is a user surface.
+ * stays in the workflow log; status.error is a user surface. The two
+ * transcript lines are the platform's explanation, sent only when the
+ * flow broke without the runner's verdict: a RunnerReportedFailure's
+ * transcript already carries the runner's own (stigmer#980), and the
+ * merge appends these rather than replacing the transcript.
  */
 async function updateStatusOnFailure(
   executionId: string,
@@ -1145,17 +1168,20 @@ async function updateStatusOnFailure(
   const failedStatus = create(AgentExecutionStatusSchema, {
     phase: ExecutionPhase.EXECUTION_FAILED,
     error: statusError,
-    messages: [
-      {
-        type: MessageType.MESSAGE_SYSTEM,
-        content:
-          "Internal system error occurred during execution. Please contact support if this issue persists.",
-      },
-      {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: `Error details: ${statusError}`,
-      },
-    ],
+    messages:
+      originalError instanceof RunnerReportedFailure
+        ? []
+        : [
+            {
+              type: MessageType.MESSAGE_SYSTEM,
+              content:
+                "Internal system error occurred during execution. Please contact support if this issue persists.",
+            },
+            {
+              type: MessageType.MESSAGE_SYSTEM,
+              content: `Error details: ${statusError}`,
+            },
+          ],
   });
 
   await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
@@ -1200,9 +1226,10 @@ async function handleCancellation(
  * CANCELLED persist. Deliberately sets NO status.error: a user-initiated
  * cancel is a quiet terminal state, not a failure (stigmer#282) — display
  * layers key error styling on phase, so a sentinel here would render the
- * stop as a red failure. The muted MESSAGE_SYSTEM line is the durable
- * in-transcript marker. Regular activity for the same replay-safety
- * reasons as updateStatusOnFailure.
+ * stop as a red failure. The muted stop row is the durable in-transcript
+ * marker, written only here (stigmer#980): the merge appends it and keeps
+ * it last across the runner's settle write. Regular activity for the same
+ * replay-safety reasons as updateStatusOnFailure.
  */
 async function updateStatusOnCancellation(executionId: string): Promise<void> {
   const cancelledStatus = create(AgentExecutionStatusSchema, {
@@ -1210,7 +1237,7 @@ async function updateStatusOnCancellation(executionId: string): Promise<void> {
     messages: [
       {
         type: MessageType.MESSAGE_SYSTEM,
-        content: "Execution was cancelled.",
+        content: CANCEL_STOP_ROW,
       },
     ],
   });

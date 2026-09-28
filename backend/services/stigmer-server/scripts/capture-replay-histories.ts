@@ -201,6 +201,48 @@ async function main(): Promise<void> {
     },
   );
 
+  // 5. Runner-reported failure: the turn RETURNS a FAILED slim result,
+  //    so the workflow persists the phase-only FAILED fallback, throws,
+  //    and runs the failure-path status write. Pins the command shape of
+  //    that path, whose status payload (not its command sequence) is
+  //    what stigmer#980 changes.
+  executeBehaviors = [
+    async () => ({ phase: "EXECUTION_FAILED", error: "replay capture failure" }),
+  ];
+  loadResults = [];
+  await capture(
+    "runner-failed",
+    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    async (handle) => {
+      await handle.result().catch(() => {});
+    },
+  );
+
+  // 6. User cancel while the turn runs: the workflow's cancellation
+  //    cleanup (the CANCELLED status write, then the ExecutionContext
+  //    delete) on a non-cancellable scope, without waiting for the
+  //    runner activity to acknowledge (the proxy's default TRY_CANCEL).
+  //    The held turn is released afterwards so worker shutdown, which
+  //    waits for in-flight activities, can complete.
+  let releaseCancelHold: (() => void) | undefined;
+  executeBehaviors = [
+    () =>
+      new Promise<Record<string, unknown>>((resolve) => {
+        releaseCancelHold = () => resolve(slim("EXECUTION_CANCELLED"));
+      }),
+  ];
+  loadResults = [];
+  await capture(
+    "user-cancel",
+    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    async (handle) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await handle.cancel();
+      await handle.result().catch(() => {});
+    },
+  );
+  releaseCancelHold?.();
+
   worker.shutdown();
   await runPromise.catch(() => {});
   await env.teardown();

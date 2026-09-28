@@ -54,8 +54,8 @@ describe("classifyTurnInterruption", () => {
     expect(classifyTurnInterruption({ cancellationReason: undefined, shutdownSignalAborted: true })).toBe("none");
   });
 
-  it("a workflow-requested cancellation without a shutdown signal is the orchestrator's pause", () => {
-    expect(classifyTurnInterruption({ cancellationReason: "CANCELLED", shutdownSignalAborted: false })).toBe("pause");
+  it("a workflow-requested cancellation without a shutdown signal is the orchestrator's stop (a Pause or a Cancel, indistinguishable here)", () => {
+    expect(classifyTurnInterruption({ cancellationReason: "CANCELLED", shutdownSignalAborted: false })).toBe("orchestrator-stop");
   });
 
   it("a delivered cancellation WITH the shutdown signal aborted is a worker shutdown, not a pause (the #776 misclassification)", () => {

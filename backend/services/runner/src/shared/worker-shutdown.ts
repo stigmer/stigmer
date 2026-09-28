@@ -1,12 +1,12 @@
 /**
  * Per-task-queue worker-shutdown signals — the classification channel that
  * lets an in-flight activity distinguish "my worker is shutting down" from
- * "the orchestrator cancelled me" (a user pause).
+ * "the orchestrator cancelled me" (a user's Pause or Cancel).
  *
  * The signal carries NO lifecycle authority: aborting it never stops a
  * worker or an activity (Temporal's own drain does that). It exists purely
  * so the activity's cancellation handling can classify the interruption
- * honestly — a shutdown is not a pause, and must surface as the
+ * honestly — a shutdown is not a user's stop, and must surface as the
  * worker-shutdown failure shape the control planes recognize (issue #776).
  *
  * Ownership contract:
@@ -88,13 +88,18 @@ export interface TurnInterruptionEvidence {
  * How Temporal's cancellation reads to the turn:
  *  - `worker-shutdown`: the runner is draining (the queue's signal, or the
  *    SDK's own `WORKER_SHUTDOWN`); FAILED with the shutdown copy, thrown.
- *  - `pause`: the workflow asked (`CANCELLED`, the Pause RPC's path);
- *    PAUSED, thrown.
+ *  - `orchestrator-stop`: the workflow asked (`CANCELLED`). That is a Pause
+ *    or a Cancel, and the turn cannot tell which: both reach the activity
+ *    as the same workflow-requested cancellation, and both RPCs signal the
+ *    engine before they persist the phase, so no stored fact tells them
+ *    apart in time. The turn settles its transcript with no phase and no
+ *    row, thrown; the workflow, which knows which stop it runs, writes the
+ *    phase and the stop row (stigmer#980).
  *  - `infrastructure`: the platform cancelled for its own reason (a heartbeat
  *    timeout, a closed run); FAILED with the unresponsive copy, thrown.
  *  - `none`: nothing was delivered.
  */
-export type TurnInterruption = "worker-shutdown" | "pause" | "infrastructure" | "none";
+export type TurnInterruption = "worker-shutdown" | "orchestrator-stop" | "infrastructure" | "none";
 
 /**
  * Classify how (whether) Temporal interrupted the turn, from the two live
@@ -125,5 +130,5 @@ export function classifyTurnInterruption(evidence: TurnInterruptionEvidence): Tu
   if (shutdownSignalAborted || cancellationReason === "WORKER_SHUTDOWN") {
     return "worker-shutdown";
   }
-  return cancellationReason === "CANCELLED" ? "pause" : "infrastructure";
+  return cancellationReason === "CANCELLED" ? "orchestrator-stop" : "infrastructure";
 }

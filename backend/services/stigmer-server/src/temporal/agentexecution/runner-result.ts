@@ -56,3 +56,19 @@ export function getErrorFromResult(
   const error = result["error"];
   return typeof error === "string" ? error : "";
 }
+
+/**
+ * The runner reported the turn FAILED (its result's phase), as opposed to
+ * the flow breaking around it. The runner has then already persisted the
+ * failed transcript with its own explanation rows (the runner's terminal
+ * table), so the workflow's failure-path status write carries phase and
+ * error only and adds no second explanation (stigmer#980). The message is
+ * the one the workflow always threw here, so the parent callback and the
+ * workflow failure read as before.
+ */
+export class RunnerReportedFailure extends Error {
+  constructor(runnerError: string) {
+    super(`agent execution failed: ${runnerError}`);
+    this.name = "RunnerReportedFailure";
+  }
+}
