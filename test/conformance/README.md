@@ -191,8 +191,14 @@ the July cost benchmark's seven scenarios. The **working** agent
   fixed directory outside the repository (`fixtures/working-agent/README.md`
   says why and what is planted in it).
 
-It runs one timing scenario, `working-read-edit` (read, edit, follow up, three
-turns in one session with the edit sampled), and every quality task.
+It runs two timing scenarios, each three turns in one session with the second
+sampled:
+- `working-read-edit`: read, edit, follow up;
+- `working-cross-turn`: three read-only questions, each reaching a different
+  skill, so its later turns' cache writes show whether the native system
+  prompt held from one message to the next.
+
+It also runs every quality task.
 
 A turn that edits files parks for review before it ends. The benchmark
 approves the change set whole at once, stamps when the agent's work was done

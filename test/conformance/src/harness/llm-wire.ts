@@ -309,7 +309,10 @@ export interface AnthropicToolDeclaration {
 
 // The fields of a `messages` request the suites assert on. `messages` itself
 // is deliberately not modelled: the conversation is the transcript facet's
-// business, read from execution status, not from the wire.
+// business, read from execution status, not from the wire. The one wire fact
+// about it a suite needs is where a turn's own payload rides, which status
+// cannot show (it records the message the user typed); `readLastUserText`
+// reads exactly that.
 export interface AnthropicRequestBody {
   model: string;
   system?: string | AnthropicSystemBlock[];
@@ -400,6 +403,34 @@ function readTools(tools: unknown): AnthropicToolDeclaration[] {
       input_schema: candidate.input_schema,
     };
   });
+}
+
+// The text of a captured request's LAST user message, its text blocks joined
+// by a newline (an image block contributes nothing). On a turn's first model
+// call that message is the turn's own: what the runner composed around what
+// the user typed. Refuses by name when the body has no user message.
+export function readLastUserText(body: unknown): string {
+  const messages = (body as { messages?: unknown } | null)?.messages;
+  if (!Array.isArray(messages)) {
+    throw new Error(`not an Anthropic messages body: found ${describeValue(body)}`);
+  }
+  const last = [...messages].reverse().find((message) => (message as { role?: unknown } | null)?.role === "user") as
+    | { content?: unknown }
+    | undefined;
+  if (last === undefined) {
+    throw new Error(`the request carries no user message among its ${messages.length}`);
+  }
+  if (typeof last.content === "string") return last.content;
+  if (!Array.isArray(last.content)) {
+    throw new Error(`a user message's content must be a string or blocks, found ${describeValue(last.content)}`);
+  }
+  return last.content
+    .filter((block): block is { type: "text"; text: string } => {
+      const candidate = block as { type?: unknown; text?: unknown } | null;
+      return candidate?.type === "text" && typeof candidate.text === "string";
+    })
+    .map((block) => block.text)
+    .join("\n");
 }
 
 // A short, safe description of a value for a refusal message: the type, and

@@ -53,9 +53,14 @@
 //   (runner shared/thinking-mode.ts).
 // - Byte-stability: a second turn in the same session sends `system` and
 //   `tools` byte-identical to the first's when the standing facts have not
-//   changed. The arm for an agent with many skills or a written file is
-//   deliberately NOT here: today's contract for that case is "may vary", and
-//   a conformance test asserts the intended contract, never the accident.
+//   changed. The system prompt is a function of the session, never of the
+//   turn: an agent with nine skills sends the same bytes on three turns whose
+//   messages reach different skills, one of which carries an attachment and
+//   another a referenced workspace file. What belongs to one turn (its input
+//   files and the paths it references) rides that turn's user message, where
+//   the arm finds it. A changed system byte re-writes the provider's cached
+//   prompt and the whole conversation after it, so this is a cost and
+//   latency contract, not a matter of taste.
 //
 // The goldens depend on two things the header names so a moved golden is
 // diagnosed, not guessed at: (1) the model the runner resolves for a bare
@@ -72,16 +77,19 @@
 // the number of model rounds a task takes (the mock's script fixes it, so
 // only a live run can measure it); the model id the provider received
 // (agentexecution-messages' model-resolution arm); the `messages` array (the
-// transcript facet's, read from status).
+// transcript facet's, read from status), except for the one fact status
+// cannot show: which user message a turn's payload rides.
 //
 // A golden moves only under a ruling quoted in the PR that moves it, with
 // every hunk explained; never a quiet `vitest -u`.
+import { create } from "@bufbuild/protobuf";
 import { ExecutionPhase, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { readAnthropicRequest, type AnthropicMessageBody, type AnthropicRequestBody } from "../harness/llm-wire";
+import { readAnthropicRequest, readLastUserText, type AnthropicMessageBody, type AnthropicRequestBody } from "../harness/llm-wire";
 import { requireNativeRow, wireModelIdOf, type ModelRegistryDocument } from "../harness/model-registry";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import { anthropicText } from "../harness/mock-llm";
@@ -89,6 +97,7 @@ import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
+import { makeSkillArtifact } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -118,19 +127,23 @@ afterAll(async () => {
 // sentence and nothing else of the suite's choosing.
 const BARE_AGENT_MESSAGE = "Say hello.";
 
-// One turn of a bare agent, scripted as a single text reply, on a fresh
-// session (no sessionId) or an existing one. Returns the terminal execution
-// and the request the agent loop sent — the scripted one, never the
-// background titling call the mock answers out of band.
-async function runBareAgentTurn(
+// One turn of an agent, scripted as a single text reply, on a fresh session
+// (no sessionId) or an existing one. Returns the terminal execution, the
+// request the agent loop sent — the scripted one, never the background
+// titling call the mock answers out of band — and that request's raw body,
+// for the one arm that reads its last user message.
+async function runAgentTurn(
   org: string,
   agentId: string,
   sessionId?: string,
   turn: {
+    message?: string;
+    attachments?: Parameters<typeof makeAgentExecution>[0]["attachments"];
+    workspaceFileRefs?: string[];
     executionConfig?: Parameters<typeof makeAgentExecution>[0]["executionConfig"];
     reply?: AnthropicMessageBody;
   } = {},
-): Promise<{ final: AgentExecution; request: AnthropicRequestBody }> {
+): Promise<{ final: AgentExecution; request: AnthropicRequestBody; body: unknown }> {
   const scriptedBefore = mock.scriptedRequests().length;
   mock.enqueue(turn.reply ?? anthropicText("Hello."));
   const execution = await clients.agentExecutionCommand.create(
@@ -138,8 +151,10 @@ async function runBareAgentTurn(
       org,
       name: uniqueName("aex-shape"),
       ...(sessionId === undefined ? { agentId } : { sessionId }),
-      message: BARE_AGENT_MESSAGE,
+      message: turn.message ?? BARE_AGENT_MESSAGE,
       autoApproveAll: true,
+      ...(turn.attachments !== undefined ? { attachments: turn.attachments } : {}),
+      ...(turn.workspaceFileRefs !== undefined ? { workspaceFileRefs: turn.workspaceFileRefs } : {}),
       ...(turn.executionConfig !== undefined ? { executionConfig: turn.executionConfig } : {}),
     }),
   );
@@ -155,7 +170,8 @@ async function runBareAgentTurn(
 
   const scripted = mock.scriptedRequests();
   expect(scripted.length, "one scripted text turn is exactly one request from the agent loop").toBe(scriptedBefore + 1);
-  return { final, request: readAnthropicRequest(scripted[scriptedBefore]!.body) };
+  const body = scripted[scriptedBefore]!.body;
+  return { final, request: readAnthropicRequest(body), body };
 }
 
 async function createBareAgent(): Promise<{ org: string; agentId: string }> {
@@ -197,7 +213,7 @@ const THINKING_REQUIRED_MODEL = "claude-fable-5";
 describe("AgentExecution request shape — what the native harness sends the model for a bare agent", () => {
   it("the system prompt blocks, as the provider receives them, match the golden", async () => {
     const { org, agentId } = await createBareAgent();
-    const { request } = await runBareAgentTurn(org, agentId);
+    const { request } = await runAgentTurn(org, agentId);
 
     expect(Array.isArray(request.system), "the engine sends the system prompt as an array of blocks, not one string").toBe(
       true,
@@ -209,7 +225,7 @@ describe("AgentExecution request shape — what the native harness sends the mod
 
   it("the tool surface — names, descriptions and schemas in wire order — matches the golden", async () => {
     const { org, agentId } = await createBareAgent();
-    const { request } = await runBareAgentTurn(org, agentId);
+    const { request } = await runAgentTurn(org, agentId);
 
     expect(request.tools?.length ?? 0, "a bare native agent still binds the engine's built-in tools").toBeGreaterThan(0);
     await expect(renderToolSurface(request)).toMatchFileSnapshot(
@@ -219,7 +235,7 @@ describe("AgentExecution request shape — what the native harness sends the mod
 
   it("an unpinned turn sends an explicit disabled, no temperature, and the row's ceiling on a streamed request", async () => {
     const { org, agentId } = await createBareAgent();
-    const { request } = await runBareAgentTurn(org, agentId);
+    const { request } = await runAgentTurn(org, agentId);
     const row = nativeRowOnTheWire(await registry(), request.model);
 
     expect(row.thinkingRequired, "the bare agent's default model may turn thinking off").toBe(false);
@@ -231,11 +247,11 @@ describe("AgentExecution request shape — what the native harness sends the mod
 
   it("a second turn in the same session sends byte-identical system blocks and tools", async () => {
     const { org, agentId } = await createBareAgent();
-    const first = await runBareAgentTurn(org, agentId);
+    const first = await runAgentTurn(org, agentId);
     const sessionId = first.final.spec?.sessionId;
     expect(sessionId, "the first turn's session is where the second turn runs").toBeTruthy();
 
-    const second = await runBareAgentTurn(org, agentId, sessionId);
+    const second = await runAgentTurn(org, agentId, sessionId);
 
     expect(JSON.stringify(second.request.system), "the system prompt is rebuilt to the same bytes").toBe(
       JSON.stringify(first.request.system),
@@ -246,13 +262,90 @@ describe("AgentExecution request shape — what the native harness sends the mod
   });
 });
 
+// The cross-turn arm's skills: nine, one past the eight at which the native
+// harness once chose which skills to describe by the turn's message. Each of
+// the arm's three messages reaches a different skill by its words (forecast,
+// invoices and on-call, glossary), so a system prompt that depended on the
+// message would differ on every turn. Fixed names are legal because each arm
+// provisions a fresh organization. A description is YAML frontmatter, so it
+// carries no colon.
+const CROSS_TURN_SKILLS: readonly { name: string; description: string }[] = [
+  { name: "api-design", description: "Design REST endpoints - resource names, status codes and pagination." },
+  { name: "billing", description: "Explain a customer's bill - plan, usage, credits and proration." },
+  { name: "changelog", description: "Write changelog entries in the Keep a Changelog format." },
+  { name: "deploys", description: "Roll a service out and back - canary, health checks, rollback." },
+  { name: "forecast", description: "Project next quarter's revenue from the monthly run rate." },
+  { name: "glossary", description: "Define the team's domain terms in one plain sentence each." },
+  { name: "hiring", description: "Write a job description and an interview loop for a role." },
+  { name: "invoices", description: "Reconcile invoices against payments and flag mismatches." },
+  { name: "oncall", description: "Hand over an on-call shift - open incidents, alerts and follow-ups." },
+];
+
+const CROSS_TURN_MESSAGES = [
+  "Draft the forecast for next quarter.",
+  "Reconcile the open invoices.",
+  "Define the glossary terms for the team.",
+] as const;
+
+async function createAgentWithSkills(): Promise<{ org: string; agentId: string }> {
+  const { org } = await target.provisionTenancy();
+  const skillRefs: string[] = [];
+  for (const skill of CROSS_TURN_SKILLS) {
+    const pushed = await clients.skillCommand.push({ org, artifact: makeSkillArtifact(skill) });
+    fixtures.defer(() => clients.skillCommand.delete({ value: pushed.metadata!.id }));
+    skillRefs.push(pushed.metadata!.slug);
+  }
+  const agent = await clients.agentCommand.create(
+    makeAgent({ org, name: uniqueName("agent-shape-skills"), instructions: BARE_AGENT_INSTRUCTIONS, skillRefs }),
+  );
+  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+  return { org, agentId: agent.metadata!.id };
+}
+
+describe("AgentExecution request shape — the system prompt is the session's, the payload the turn's", () => {
+  it("nine skills, three turns with different messages, an attachment and a referenced file: system and tools stay byte-identical", async () => {
+    const { org, agentId } = await createAgentWithSkills();
+    const filename = "cross-turn-notes.txt";
+    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
+      create(UploadAttachmentRequestSchema, { filename, content: Buffer.from("cross-turn attachment"), contentType: "text/plain" }),
+    );
+    const referenced = "docs/glossary.md";
+
+    const first = await runAgentTurn(org, agentId, undefined, { message: CROSS_TURN_MESSAGES[0] });
+    const sessionId = first.final.spec?.sessionId;
+    expect(sessionId, "the first turn's session is where the later turns run").toBeTruthy();
+    const second = await runAgentTurn(org, agentId, sessionId, {
+      message: CROSS_TURN_MESSAGES[1],
+      attachments: [{ filename, storageKey: uploaded.storageKey }],
+    });
+    const third = await runAgentTurn(org, agentId, sessionId, { message: CROSS_TURN_MESSAGES[2], workspaceFileRefs: [referenced] });
+
+    for (const [turn, later] of [[2, second], [3, third]] as const) {
+      expect(JSON.stringify(later.request.system), `turn ${turn} rebuilds the system prompt to turn 1's bytes`).toBe(
+        JSON.stringify(first.request.system),
+      );
+      expect(JSON.stringify(later.request.tools), `turn ${turn} binds turn 1's tool surface`).toBe(
+        JSON.stringify(first.request.tools),
+      );
+    }
+    const system = renderSystemPrompt(first.request);
+    for (const skill of CROSS_TURN_SKILLS) {
+      expect(system, `every mounted skill is described on every turn: ${skill.name}`).toContain(skill.description);
+    }
+    expect(readLastUserText(second.body), "the attachment is named in the message of the turn that carries it").toContain(filename);
+    expect(readLastUserText(third.body), "the referenced path is named in the message of the turn that references it").toContain(
+      referenced,
+    );
+  });
+});
+
 describe("AgentExecution request shape — thinking, per the model's native registry row", () => {
   it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and drops the think tool", async () => {
     const row = requireNativeRow(await registry(), ADAPTIVE_MODEL);
     expect(row.thinkingForm, `${ADAPTIVE_MODEL} is the adaptive row this arm pins`).toBe("adaptive");
     const { org, agentId } = await createBareAgent();
 
-    const { request } = await runBareAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentId, undefined, {
       executionConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
@@ -266,7 +359,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     expect(row.thinkingForm, `${BUDGET_MODEL} is the budget row this arm pins`).toBe("budget");
     const { org, agentId } = await createBareAgent();
 
-    const { request } = await runBareAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentId, undefined, {
       executionConfig: { modelName: BUDGET_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
@@ -278,7 +371,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
   it("DISABLED binds the think tool: a graph that does not think keeps its reasoning aid", async () => {
     const { org, agentId } = await createBareAgent();
 
-    const { request } = await runBareAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentId, undefined, {
       executionConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.DISABLED },
     });
 
@@ -291,7 +384,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     expect(row.thinkingRequired, `${THINKING_REQUIRED_MODEL} is the row that requires thinking`).toBe(true);
     const { org, agentId } = await createBareAgent();
 
-    const { request } = await runBareAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentId, undefined, {
       executionConfig: { modelName: THINKING_REQUIRED_MODEL },
     });
 
@@ -303,7 +396,7 @@ describe("AgentExecution request shape — thinking, per the model's native regi
     const { org, agentId } = await createBareAgent();
     const answer = { summary: "hello", score: 1 };
 
-    const { final, request } = await runBareAgentTurn(org, agentId, undefined, {
+    const { final, request } = await runAgentTurn(org, agentId, undefined, {
       executionConfig: {
         modelName: ADAPTIVE_MODEL,
         thinkingMode: ThinkingMode.ENABLED,

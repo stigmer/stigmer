@@ -54,6 +54,9 @@ export interface AgentExecutionOptions {
   // Input attachments (spec.attachments). Each carries a storage_key from
   // uploadAttachment; the runner materializes them under .stigmer/inputs/.
   attachments?: MessageInitShape<typeof AttachmentSchema>[];
+  // Workspace paths the user highlighted for this message
+  // (spec.workspace_file_refs): named to the agent, never uploaded.
+  workspaceFileRefs?: string[];
 }
 
 // A complete, valid AgentExecution create request. execution_config is left unset
@@ -73,6 +76,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
       ...(opts.executionConfig !== undefined ? { executionConfig: opts.executionConfig } : {}),
       ...(opts.attachments !== undefined ? { attachments: opts.attachments } : {}),
+      ...(opts.workspaceFileRefs !== undefined ? { workspaceFileRefs: opts.workspaceFileRefs } : {}),
     },
   };
 }

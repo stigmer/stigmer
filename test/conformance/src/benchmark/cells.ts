@@ -6,10 +6,13 @@
 //
 // Two agents are measured. The bare agent's cells are the July cost
 // benchmark's, below. The working agent (support/working-agent.ts) carries an
-// MCP server, memory, eight skills, a sub-agent and a seeded repository; its
-// one timing cell reads, then edits, then follows up, three turns in one
-// session with the edit turn sampled, and the quality tasks
-// (quality-tasks.ts) run on it too.
+// MCP server, memory, eight skills, a sub-agent and a seeded repository. Its
+// two timing cells are three turns in one session with the second sampled:
+// one reads, then edits, then follows up; the other asks three read-only
+// questions that each reach a different skill, the session whose later turns
+// show whether the system prompt, and so the provider's prompt cache, held
+// from one message to the next. The quality tasks (quality-tasks.ts) run on
+// it too.
 //
 // The six first-turn scenarios and their prompts are the July cost benchmark's,
 // verbatim, so a category keeps its meaning from one run to the next:
@@ -70,6 +73,20 @@ export const WORKING_READ_EDIT_PROMPTS: readonly string[] = [
   "Run the tests and tell me the result in one line.",
 ];
 
+/**
+ * The working agent's cross-turn session: three read-only questions, each
+ * reaching a different one of the fixture's skills by its words (an order and
+ * a customer, a data summary, the Go tests), so a native system prompt that
+ * chose skills by the message would change on every turn. The sampled second
+ * turn and its siblings record their cache writes; a turn whose system prompt
+ * held writes only its own new tokens.
+ */
+export const WORKING_CROSS_TURN_PROMPTS: readonly string[] = [
+  "What is the status of order ORD-4821, and can the customer still return it?",
+  "Summarise data/signups.csv in two sentences: the key finding and its baseline.",
+  "Run go test ./... and tell me in one line whether it passes.",
+];
+
 export interface Scenario {
   name: string;
   mode: ComparisonMode;
@@ -87,6 +104,7 @@ export const SCENARIOS: readonly Scenario[] = [
   { name: "report-parity-codegen", mode: "parity", sessionShape: "fresh-per-execution", agent: "bare", prompts: [CODEGEN_PROMPT] },
   { name: "report-parity-turn-2", mode: "turn-2", sessionShape: "one-session-three-turns", agent: "bare", prompts: TURN_2_PROMPTS },
   { name: "working-read-edit", mode: "working-agent", sessionShape: "one-session-three-turns", agent: "working", prompts: WORKING_READ_EDIT_PROMPTS },
+  { name: "working-cross-turn", mode: "working-agent", sessionShape: "one-session-three-turns", agent: "working", prompts: WORKING_CROSS_TURN_PROMPTS },
 ];
 
 export const HARNESSES: readonly BenchmarkHarness[] = ["deep-agent", "cursor"];

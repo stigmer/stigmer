@@ -2,7 +2,7 @@
 // refused by name, before anything boots.
 // Domain: conformance benchmark.
 //
-// Pinned: the matrix is eight scenarios (seven on the bare agent, one on the
+// Pinned: the matrix is nine scenarios (seven on the bare agent, two on the
 // working agent) by two harnesses; a missing Anthropic key refuses every
 // native cell and every quality cell of either harness; a missing Cursor key
 // refuses Cursor cells alone; a missing `stigmer` CLI refuses every cell on
@@ -23,9 +23,9 @@ const TASKS: QualityTask[] = [task("placeholder-1", true), task("real-1", false)
 const ALL = { anthropicKey: true, cursorKey: true, stigmerCli: true };
 
 describe("benchmarkCells", () => {
-  it("is eight scenarios on two harnesses, parity and working cells pinned per harness", () => {
+  it("is nine scenarios on two harnesses, parity and working cells pinned per harness", () => {
     const cells = benchmarkCells();
-    expect(cells).toHaveLength(16);
+    expect(cells).toHaveLength(18);
     expect(cells.find((cell) => cell.id === "report-parity-simple/deep-agent")?.modelRequested).toBe("claude-sonnet-4.6");
     expect(cells.find((cell) => cell.id === "report-parity-simple/cursor")?.modelRequested).toBe("claude-sonnet-4-6");
     expect(cells.find((cell) => cell.id === "report-simple/cursor")?.modelRequested).toBeNull();
@@ -34,13 +34,18 @@ describe("benchmarkCells", () => {
     expect(working?.scenario.agent).toBe("working");
     expect(working?.scenario.prompts).toHaveLength(3);
     expect(working?.modelRequested).toBe("claude-sonnet-4-6");
+    const crossTurn = cells.find((cell) => cell.id === "working-cross-turn/deep-agent");
+    expect(crossTurn?.scenario.agent).toBe("working");
+    expect(crossTurn?.scenario.sessionShape).toBe("one-session-three-turns");
+    expect(new Set(crossTurn?.scenario.prompts).size, "three different questions").toBe(3);
+    expect(crossTurn?.modelRequested).toBe("claude-sonnet-4.6");
   });
 });
 
 describe("planCells", () => {
   it("with both keys runs every benchmark cell and the real quality tasks, skipping placeholders", () => {
     const plan = planCells(TASKS, ALL, { includePlaceholders: false });
-    expect(plan.cells).toHaveLength(16);
+    expect(plan.cells).toHaveLength(18);
     expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/real-1/deep-agent", "quality/real-1/cursor"]);
     expect(plan.refused).toEqual([]);
   });
@@ -58,6 +63,7 @@ describe("planCells", () => {
       "report-parity-codegen/deep-agent",
       "report-parity-turn-2/deep-agent",
       "working-read-edit/deep-agent",
+      "working-cross-turn/deep-agent",
       "quality/placeholder-1/deep-agent",
       "quality/placeholder-1/cursor",
       "quality/real-1/deep-agent",
@@ -68,7 +74,7 @@ describe("planCells", () => {
   it("a thinking run refuses the cells on a harness's default model and keeps every pinned cell", () => {
     const plan = planCells(TASKS, ALL, { includePlaceholders: false, thinking: "enabled" });
     expect(plan.cells.every((cell) => cell.modelRequested !== null)).toBe(true);
-    expect(plan.cells).toHaveLength(10);
+    expect(plan.cells).toHaveLength(12);
     expect(plan.refused.filter((r) => r.reason === "thinking needs a pinned model").map((r) => r.cell)).toEqual([
       "report-simple/deep-agent",
       "report-simple/cursor",
@@ -85,7 +91,7 @@ describe("planCells", () => {
     expect(plan.cells.every((cell) => cell.harness === "deep-agent")).toBe(true);
     expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/real-1/deep-agent"]);
     expect(plan.refused.every((r) => r.reason === "missing CURSOR_API_KEY")).toBe(true);
-    expect(plan.refused).toHaveLength(9);
+    expect(plan.refused).toHaveLength(10);
   });
 
   it("without the stigmer CLI refuses the working cells and every quality cell, and runs the bare cells", () => {
@@ -96,6 +102,8 @@ describe("planCells", () => {
     expect(plan.refused).toEqual([
       { cell: "working-read-edit/deep-agent", reason: "missing stigmer CLI" },
       { cell: "working-read-edit/cursor", reason: "missing stigmer CLI" },
+      { cell: "working-cross-turn/deep-agent", reason: "missing stigmer CLI" },
+      { cell: "working-cross-turn/cursor", reason: "missing stigmer CLI" },
       { cell: "quality/real-1/deep-agent", reason: "missing stigmer CLI" },
       { cell: "quality/real-1/cursor", reason: "missing stigmer CLI" },
     ]);
