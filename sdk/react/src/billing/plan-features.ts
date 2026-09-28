@@ -14,6 +14,10 @@ import { Feature, type Entitlements } from "@stigmer/protos/ai/stigmer/platform/
 import { FEATURE_COPY, isNamedFeature, type NamedFeature } from "../internal/features.js";
 import { formatCreditBalance } from "./format.js";
 
+// BigInt(0), not a literal: the docs site compiles this source for a
+// target below ES2020, which has no BigInt literal syntax.
+const ZERO = BigInt(0);
+
 /**
  * Features a plan may list ahead of the gate that serves them, which
  * Stigmer Cloud does not offer yet. The console leaves them out of every
@@ -40,7 +44,7 @@ export function offeredFeatures(entitlements: Entitlements | undefined): readonl
 
 /** A plan's monthly minimum, e.g. "$99.00/month". */
 export function formatMonthlyMinimum(terms: PlanTerms | undefined): string {
-  return `${formatCreditBalance(terms?.monthlyMinimumMicros ?? 0n)}/month`;
+  return `${formatCreditBalance(terms?.monthlyMinimumMicros ?? ZERO)}/month`;
 }
 
 /**
@@ -67,11 +71,11 @@ export function formatManagedOrganizations(
     return "";
   }
   const included = entitlements?.limits?.includedManagedOrganizations;
-  const fee = terms?.perExtraOrganizationMicros ?? 0n;
+  const fee = terms?.perExtraOrganizationMicros ?? ZERO;
   if (included === undefined) {
     return "Unlimited managed organizations";
   }
-  const beyond = fee > 0n ? `, then ${formatCreditBalance(fee)}/month each` : "";
+  const beyond = fee > ZERO ? `, then ${formatCreditBalance(fee)}/month each` : "";
   return `${included} managed organization${included === 1 ? "" : "s"} included${beyond}`;
 }
 

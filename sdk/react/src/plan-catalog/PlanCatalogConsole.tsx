@@ -176,7 +176,7 @@ function PlanRow({ plan, onRetire, busy }: { readonly plan: Plan; readonly onRet
           <p className="stg:text-xs stg:text-muted-foreground">
             {license
               ? "Issued as a license"
-              : `${formatCreditBalance(terms?.monthlyMinimumMicros ?? 0n)}/month ${formatUsageShare(terms)}`}
+              : `${formatCreditBalance(terms?.monthlyMinimumMicros ?? BigInt(0))}/month ${formatUsageShare(terms)}`}
           </p>
         </div>
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">

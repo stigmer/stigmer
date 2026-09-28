@@ -135,7 +135,7 @@ function EstimateLines({ planName, estimate }: { planName: string; estimate: Per
           <div key={line.kind} className="stg:flex stg:justify-between stg:gap-3 stg:text-xs">
             <dt className="stg:text-muted-foreground">{lineLabel(line, planName, estimate)}</dt>
             <dd className="stg:tabular-nums stg:text-foreground">
-              {line.amountMicros < 0n ? formatLedgerAmount(line.amountMicros) : formatCreditBalance(line.amountMicros)}
+              {line.amountMicros < BigInt(0) ? formatLedgerAmount(line.amountMicros) : formatCreditBalance(line.amountMicros)}
             </dd>
           </div>
         ))}

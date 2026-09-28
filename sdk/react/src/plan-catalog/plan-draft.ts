@@ -7,7 +7,10 @@ import type { PlanInput } from "@stigmer/sdk";
 import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 
-const MICROS_PER_CENT = 10_000n;
+// BigInt(...), not literals: the docs site compiles this source for a
+// target below ES2020, which has no BigInt literal syntax.
+const MICROS_PER_CENT = BigInt(10_000);
+const CENTS_PER_USD = BigInt(100);
 
 /** What an operator types to create a subscription plan. */
 export interface PlanDraft {
@@ -44,7 +47,7 @@ export function parseUsd(text: string): bigint | null {
   if (match === null) {
     return null;
   }
-  const cents = BigInt(match[1] ?? "0") * 100n + BigInt((match[2] ?? "").padEnd(2, "0"));
+  const cents = BigInt(match[1] ?? "0") * CENTS_PER_USD + BigInt((match[2] ?? "").padEnd(2, "0"));
   return cents * MICROS_PER_CENT;
 }
 
