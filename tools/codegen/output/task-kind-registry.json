@@ -1286,7 +1286,7 @@
     {
       "kind": "run_workflow",
       "displayName": "Run Workflow",
-      "description": "Execute a sub-workflow as a child of the current workflow.",
+      "description": "Execute a sub-workflow as a child of the current workflow. Not supported yet: a Workflow containing this task is refused when it is saved.",
       "category": "invocation",
       "icon": "workflow",
       "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig",
@@ -1307,7 +1307,7 @@
         {
           "name": "input",
           "displayName": "Input",
-          "description": "Sub-workflow input (optional). Can be any JSON structure. Supports expressions in string values.",
+          "description": "Sub-workflow input (optional). Can be any JSON structure.",
           "type": "struct",
           "required": false,
           "groupId": "core",
@@ -1325,7 +1325,7 @@
         "additionalProperties": false,
         "properties": {
           "input": {
-            "description": "Sub-workflow input (optional). Can be any JSON structure. Supports expressions in string values.",
+            "description": "Sub-workflow input (optional). Can be any JSON structure.",
             "type": "object"
           },
           "workflow": {

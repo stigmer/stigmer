@@ -315,7 +315,7 @@ type RaiseTaskConfigInput = z.infer<typeof RaiseTaskConfigInputSchema>;
 
 const RunTaskConfigInputSchema = z.object({
   workflow: z.string().describe("Sub-workflow name/identifier to execute."),
-  input: z.record(z.unknown()).optional().describe("Sub-workflow input (optional). Can be any JSON structure. Supports expressions in string values."),
+  input: z.record(z.unknown()).optional().describe("Sub-workflow input (optional). Can be any JSON structure."),
 });
 type RunTaskConfigInput = z.infer<typeof RunTaskConfigInputSchema>;
 
@@ -447,7 +447,7 @@ const WorkflowTaskInputSchema: z.ZodType<WorkflowTaskInput> = z.lazy(() => z.obj
   llm_call: z.lazy(() => LlmCallTaskConfigInputSchema).optional().describe("Required when kind='llm_call'. LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation."),
   notification: z.lazy(() => NotificationTaskConfigInputSchema).optional().describe("Required when kind='notification'. NotificationTaskConfig defines the configuration for notification tasks that send messages to humans through channels like Slack, email, Discord, Microsoft Teams, or webhooks."),
   raise_error: z.lazy(() => RaiseTaskConfigInputSchema).optional().describe("Required when kind='raise_error'. RaiseTaskConfig defines the configuration for raise_error tasks that raise errors."),
-  run_workflow: z.lazy(() => RunTaskConfigInputSchema).optional().describe("Required when kind='run_workflow'. RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows."),
+  run_workflow: z.lazy(() => RunTaskConfigInputSchema).optional().describe("Required when kind='run_workflow'. RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows. The run_workflow kind is not supported yet: a Workflow that contains one is refused when it is saved, because nothing resolves the child name to a Workflow the platform can run."),
   set_vars: z.lazy(() => SetTaskConfigInputSchema).optional().describe("Required when kind='set_vars'. SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state."),
   switch_case: z.lazy(() => SwitchTaskConfigInputSchema).optional().describe("Required when kind='switch_case'. SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally."),
   transform: z.lazy(() => TransformTaskConfigInputSchema).optional().describe("Required when kind='transform'. TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls."),

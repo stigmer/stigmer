@@ -557,7 +557,9 @@ describe("per-kind emission", () => {
     });
   });
 
-  it("run_workflow: name plus optional with", () => {
+  // The runner's run task reads the child's input from inside the workflow
+  // reference; a `run.with` sibling is read by nothing (stigmer#1311).
+  it("run_workflow: the input rides inside the workflow reference", () => {
     const def = taskDef(
       makeSpec([
         {
@@ -569,8 +571,22 @@ describe("per-kind emission", () => {
       "sub",
     );
     expect(def).toEqual({
-      run: { workflow: { name: "child" }, with: { a: 1 } },
+      run: { workflow: { name: "child", input: { a: 1 } } },
     });
+  });
+
+  it("run_workflow: an absent input is omitted", () => {
+    const def = taskDef(
+      makeSpec([
+        {
+          name: "sub",
+          kind: WorkflowTaskKind.run_workflow,
+          taskConfig: { workflow: "child" },
+        },
+      ]),
+      "sub",
+    );
+    expect(def).toEqual({ run: { workflow: { name: "child" } } });
   });
 
   it("llm_call: full field-presence contract incl. int64 caps and enum names", () => {

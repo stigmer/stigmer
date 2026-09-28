@@ -13,6 +13,11 @@
 // constraint violations → structured INVALID with the cross-edition lockstep
 // error rendering.
 //
+// The run_workflow arm pins the refusal at write of a task that cannot run
+// (stigmer#1311): at validateSpec as a structured INVALID and at create as
+// InvalidArgument, for an ordinary child name, for each platform workflow
+// type, and for the task nested in a for_each.
+//
 // The agent_call reference arm pins the reference rule over the `agent`
 // string at write, in both editions: another organization's agent only at
 // platform visibility, refused otherwise with the one cross-organization
@@ -531,6 +536,68 @@ describe("Workflow conformance — validateSpec", () => {
     expect(result.errors).toContain(
       "task 'conditional_wait' (wait): duration \u2013 at least one duration field must be non-zero",
     );
+  });
+});
+
+// The run_workflow refusal (stigmer#1311): nothing resolves a child name to
+// a workflow the platform can run, so a workflow carrying the task is
+// refused at write, naming the task, wherever the task sits. The same
+// refusal covers names in the platform's `stigmer/` namespace, which would
+// otherwise reach the runner's own workflow types: the gate is the write,
+// and the runner's refusal of those names stays as its own defence.
+const RUN_WORKFLOW_REFUSAL = (task: string) =>
+  `task '${task}' (run_workflow): running a child workflow is not supported yet \u2014 the child name cannot be resolved to a workflow the platform can run`;
+
+describe("Workflow conformance — run_workflow is refused at write", () => {
+  it.each([
+    "data-enrichment",
+    "stigmer/workflow/execute",
+    "stigmer/workflow/execute-from-execution",
+    "stigmer/mcp-server/connect",
+  ])("refuses a run_workflow naming %s at validateSpec and at create", async (childWorkflow) => {
+    const { org } = await target.provisionTenancy();
+    const workflow = makeWorkflow({ org, name: uniqueName("wf-run") });
+    workflow.spec!.tasks = [
+      {
+        name: "runChild",
+        kind: WorkflowTaskKind.run_workflow,
+        taskConfig: { workflow: childWorkflow, input: { user_id: "u1" } },
+      },
+    ];
+
+    const result = await clients.workflowCommand.validateSpec(workflow);
+    expect(result.state, JSON.stringify(result.errors)).toBe(ValidationState.INVALID);
+    expect(result.errors).toContain(RUN_WORKFLOW_REFUSAL("runChild"));
+
+    const err = await expectGrpcCode(
+      () => clients.workflowCommand.create(workflow),
+      Code.InvalidArgument,
+      "create with run_workflow",
+    );
+    expect(err.message).toContain(RUN_WORKFLOW_REFUSAL("runChild"));
+  });
+
+  it("refuses a run_workflow nested in a for_each", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflow = makeWorkflow({ org, name: uniqueName("wf-run") });
+    workflow.spec!.tasks = [
+      {
+        name: "loop",
+        kind: WorkflowTaskKind.for_each,
+        taskConfig: {
+          in: "${ .items }",
+          each: "item",
+          do: [{ name: "runEach", kind: "run_workflow", task_config: { workflow: "child" } }],
+        },
+      },
+    ];
+
+    const err = await expectGrpcCode(
+      () => clients.workflowCommand.create(workflow),
+      Code.InvalidArgument,
+      "create with a nested run_workflow",
+    );
+    expect(err.message).toContain(RUN_WORKFLOW_REFUSAL("runEach"));
   });
 });
 

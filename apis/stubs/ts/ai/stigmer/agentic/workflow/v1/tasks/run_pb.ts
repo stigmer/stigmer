@@ -18,6 +18,10 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_run: GenFile = /*@__PURE_
 /**
  * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
  *
+ * The run_workflow kind is not supported yet: a Workflow that contains one is
+ * refused when it is saved, because nothing resolves the child name to a
+ * Workflow the platform can run.
+ *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
  */
 export type RunTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig"> & {
@@ -31,7 +35,6 @@ export type RunTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.RunTas
   /**
    * Sub-workflow input (optional).
    * Can be any JSON structure.
-   * Supports expressions in string values.
    *
    * @generated from field: google.protobuf.Struct input = 2;
    */

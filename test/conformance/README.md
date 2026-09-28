@@ -34,7 +34,13 @@ Covered against the `local` target:
 - **Workflow** — the first **versioned** domain (CRUD, apply create/update
   branching, the version-history surface `listVersions` / `getVersion` /
   `getByReference` resolution by hash and apply-time tag, and the `validateSpec`
-  clean contract).
+  clean contract). It also pins that a workflow carrying a `run_workflow` task
+  is refused at write (stigmer#1311): `validateSpec` answers `INVALID` and
+  `create` answers `InvalidArgument`, naming the task, wherever the task sits.
+  Nothing resolves a child name to a workflow the platform can run, and a name
+  in the platform's `stigmer/` namespace would reach the runner's own workflow
+  types, so the write is the gate. The runner's own refusal of those names
+  stays as defence in depth, pinned by the runner's unit tests.
 - **Agent** and **McpServer** — flat (non-versioned) agentic blueprints (CRUD &
   identity, apply create/update branching, slug semantics, `getByReference`
   resolution, default-instance provisioning for Agent, and Layer-1 protovalidate
@@ -629,15 +635,6 @@ UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a runn
 (not a false green) where the sender or the mock fixtures are absent, and RUNS
 on `local-execution`. See the project's
 `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`.
-
-`workflowexecution-run-workflow.conformance.test.ts` pins what a `run_workflow`
-task may name as its child. A child runs on the parent's own task queue. So a
-name in the platform's `stigmer/` namespace would reach the runner's own
-workflow types outside the run the server dispatched. The runner refuses such
-a name when it reaches the task, before any child starts, and the execution
-ends `EXECUTION_FAILED` with the task and the type in `status.error`. The
-runner's registered set itself is pinned at the Temporal wire by the runner's
-own tests, not here.
 
 **The runner-behavior facets** (stigmer-cloud entry 20260910.02, DD-001)
 replaced the Go `test/integration-offline` suite, arm for arm, with its

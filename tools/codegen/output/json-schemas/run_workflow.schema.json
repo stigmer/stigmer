@@ -3,7 +3,7 @@
   "additionalProperties": false,
   "properties": {
     "input": {
-      "description": "Sub-workflow input (optional). Can be any JSON structure. Supports expressions in string values.",
+      "description": "Sub-workflow input (optional). Can be any JSON structure.",
       "type": "object"
     },
     "workflow": {

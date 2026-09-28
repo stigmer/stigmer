@@ -368,15 +368,21 @@ function convertRaiseTask(cfg: RaiseTaskConfig): YamlMap {
   return { raise: { error: errorDef } };
 }
 
+// The input rides inside the workflow reference (`run.workflow.input`), the
+// Serverless Workflow shape the runner's run task reads. The Go port wrote
+// it beside the reference as `run.with`, which nothing reads, so every
+// child started with no input (stigmer/stigmer#1311). The server refuses a
+// run_workflow task at write today (validation/crossref.ts); this shape is
+// what the runner receives once a child name can be resolved.
 function convertRunTask(cfg: RunTaskConfig): YamlMap {
-  const run: YamlMap = { workflow: { name: cfg.workflow } };
+  const workflow: YamlMap = { name: cfg.workflow };
 
   const input = structAsMap(cfg.input);
   if (input !== undefined) {
-    run["with"] = input;
+    workflow["input"] = input;
   }
 
-  return { run };
+  return { run: { workflow } };
 }
 
 function convertLlmCallTask(cfg: LlmCallTaskConfig): YamlMap {

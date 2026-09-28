@@ -377,10 +377,15 @@ export interface ScriptRunConfig {
   readonly environment?: Record<string, string>;
 }
 
+/**
+ * The Serverless Workflow child reference. The server's converter emits
+ * `name` and, when set, `input`; RunTaskConfig carries no namespace or
+ * version, so both are optional here and nothing reads them.
+ */
 export interface WorkflowRunConfig {
-  readonly namespace: string;
+  readonly namespace?: string;
   readonly name: string;
-  readonly version: string;
+  readonly version?: string;
   readonly input?: unknown;
 }
 

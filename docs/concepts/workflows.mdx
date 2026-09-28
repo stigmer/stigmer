@@ -149,6 +149,9 @@ Stigmer provides 20 task types organized into six categories:
 | **External** | `http_call`, `grpc_call`, `activity_call`                                             | HTTP/gRPC requests, Temporal activities           |
 | **Events**   | `listen`, `emit_event`, `notification`                                                | Wait for signals, emit CloudEvents, notify humans |
 
+`run_workflow` is not supported yet: a Workflow that contains it is refused when
+it is saved, and the error names the task.
+
 For details on each task type, see the
 [Task Type Overview](/docs/guides/workflows/task-types). For exhaustive
 field-level reference, see the

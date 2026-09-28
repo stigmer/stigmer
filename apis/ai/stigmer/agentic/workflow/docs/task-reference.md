@@ -40,7 +40,7 @@ Every task in `spec.tasks` has the same outer shape:
 | [`listen`](#listen) | Wait for external signals | `to.mode`, `to.signals` (≥1) |
 | [`wait`](#wait) | Delay/sleep | `duration` or `until` |
 | [`raise_error`](#raise_error) | Raise an error and terminate | `error`, `message` |
-| [`run_workflow`](#run_workflow) | Execute a sub-workflow | `workflow` |
+| [`run_workflow`](#run_workflow) | Execute a sub-workflow (not supported yet) | `workflow` |
 | [`agent_call`](#agent_call) | Invoke an AI agent | `agent`, `message` |
 
 ---
@@ -496,29 +496,16 @@ Raises an error, terminating the current workflow execution path. Use this to si
 
 ## run_workflow
 
-Executes another workflow as a child Temporal workflow. The parent workflow waits for the child to complete before continuing.
+Declares a sub-workflow to run as a child of the current workflow.
+
+**Not supported yet.** A Workflow that contains a `run_workflow` task, at the top level or nested in a `for_each`, `fork`, `try_catch` or compensate list, is refused when it is created, updated or validated. The error names the task. Nothing resolves the child name to a Workflow the platform can run today; stigmer/stigmer#1322 tracks the feature.
 
 **Proto**: `ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig`
 
 | Field | Required | Description |
 |---|---|---|
-| `workflow` | Yes | Workflow name/slug to execute. Must be an existing workflow in the same org. |
-| `input` | No | Input data to pass to the sub-workflow as JSON. Supports expressions. |
-
-```yaml
-- name: runOnboardingFlow
-  kind: run_workflow
-  task_config:
-    workflow: "user-onboarding"
-    input:
-      userId: "${$context.newUser.id}"
-      email: "${$context.newUser.email}"
-      planTier: "${$context.subscription.tier}"
-  export:
-    as: "${.}"
-  flow:
-    then: sendWelcomeEmail
-```
+| `workflow` | Yes | Name of the sub-workflow to execute. |
+| `input` | No | Input data to pass to the sub-workflow as JSON. |
 
 ---
 

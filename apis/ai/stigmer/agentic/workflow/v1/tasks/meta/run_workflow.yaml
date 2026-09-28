@@ -1,6 +1,6 @@
 kind: run_workflow
 display_name: "Run Workflow"
-description: "Execute a sub-workflow as a child of the current workflow."
+description: "Execute a sub-workflow as a child of the current workflow. Not supported yet: a Workflow containing this task is refused when it is saved."
 category: invocation
 icon: "workflow"
 is_ai_native: false

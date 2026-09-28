@@ -34,7 +34,6 @@ public interface RunTaskConfigOrBuilder extends
    * <pre>
    * Sub-workflow input (optional).
    * Can be any JSON structure.
-   * Supports expressions in string values.
    * </pre>
    *
    * <code>.google.protobuf.Struct input = 2 [json_name = "input"];</code>
@@ -45,7 +44,6 @@ public interface RunTaskConfigOrBuilder extends
    * <pre>
    * Sub-workflow input (optional).
    * Can be any JSON structure.
-   * Supports expressions in string values.
    * </pre>
    *
    * <code>.google.protobuf.Struct input = 2 [json_name = "input"];</code>
@@ -56,7 +54,6 @@ public interface RunTaskConfigOrBuilder extends
    * <pre>
    * Sub-workflow input (optional).
    * Can be any JSON structure.
-   * Supports expressions in string values.
    * </pre>
    *
    * <code>.google.protobuf.Struct input = 2 [json_name = "input"];</code>
