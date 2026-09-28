@@ -23,6 +23,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
 import { toast } from "../feedback/toast.js";
+import { useStigmer } from "../hooks.js";
 import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { useBillingAccount } from "../billing/useBillingAccount.js";
@@ -1507,12 +1508,24 @@ function MessageField({
 // Developer tab — the graduation ladder to the full SDK
 // ---------------------------------------------------------------------------
 
-function buildDeveloperSnippet(org: string, slug: string): string {
+/**
+ * The platform client snippet, aimed at the server the console is connected
+ * to (`stigmer.baseUrl`) — a self-hosted admin copies code for their own
+ * server, not Stigmer Cloud. The base URL is normalised as the channel-app
+ * webhook URLs normalise it, and JSON-quoted so the line is always a valid
+ * string literal.
+ */
+function buildDeveloperSnippet(
+  apiBaseUrl: string,
+  org: string,
+  slug: string,
+): string {
+  const baseUrl = JSON.stringify(apiBaseUrl.replace(/\/+$/, ""));
   return [
     `import { createPlatformClientAuth } from "@stigmer/sdk/node";`,
     ``,
     `const auth = createPlatformClientAuth({`,
-    `  baseUrl: "https://api.stigmer.ai",`,
+    `  baseUrl: ${baseUrl},`,
     `  clientId: process.env.STIGMER_CLIENT_ID,`,
     `  clientSecret: process.env.STIGMER_CLIENT_SECRET,`,
     `});`,
@@ -1531,7 +1544,11 @@ function DeveloperTab({
   readonly org: string;
   readonly slug: string;
 }) {
-  const snippet = useMemo(() => buildDeveloperSnippet(org, slug), [org, slug]);
+  const stigmer = useStigmer();
+  const snippet = useMemo(
+    () => buildDeveloperSnippet(stigmer.baseUrl, org, slug),
+    [stigmer.baseUrl, org, slug],
+  );
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-3">

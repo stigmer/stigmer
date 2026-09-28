@@ -32,10 +32,14 @@ interface MockOverrides {
   rotateShareLink?: (input: unknown) => Promise<unknown>;
   getOrCreateBillingAccount?: (orgId: string) => Promise<unknown>;
   environments?: unknown[];
+  baseUrl?: string;
 }
+
+const CLOUD_API_BASE_URL = "https://api.stigmer.ai";
 
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
+    baseUrl: overrides.baseUrl ?? CLOUD_API_BASE_URL,
     agentShare: {
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
       rotateShareLink:
@@ -866,6 +870,27 @@ describe("ShareAgentDialog", () => {
       expect(screen.getByText(/createPlatformClientAuth/)).toBeTruthy();
       const link = screen.getByText(/platform client guide/);
       expect(link.getAttribute("href")).toContain("platform-client");
+    });
+
+    function openDeveloperSnippet(baseUrl?: string): string {
+      renderOpenDialog(createMockStigmer({ baseUrl }), {
+        share: makeShare({ enabled: true }),
+      });
+      fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
+      return screen.getByText(/createPlatformClientAuth/).textContent ?? "";
+    }
+
+    it("targets the server the console is connected to, not Stigmer Cloud", () => {
+      const snippet = openDeveloperSnippet("https://stigmer.acme.internal:8443/");
+
+      expect(snippet).toContain(`baseUrl: "https://stigmer.acme.internal:8443",`);
+      expect(snippet).not.toContain("api.stigmer.ai");
+    });
+
+    it("keeps the Stigmer Cloud snippet unchanged when connected to Cloud", () => {
+      const snippet = openDeveloperSnippet(CLOUD_API_BASE_URL);
+
+      expect(snippet).toContain(`baseUrl: "https://api.stigmer.ai",`);
     });
   });
 
