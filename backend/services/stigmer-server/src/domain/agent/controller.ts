@@ -8,8 +8,8 @@
  * agent to serve: a session with no agent runs the built-in assistant.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local) and
- * __tests__/agent.test.ts.
+ * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local),
+ * __tests__/agent.test.ts and __tests__/store-faults.test.ts.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and
  * Publish steps (no multi-tenant auth, IAM/FGA, or event publishing here).
@@ -91,6 +91,7 @@ import {
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { agentSearchExtractor } from "./search-extractor.js";
 import {
@@ -382,7 +383,7 @@ async function updateVisibility(
   return reqCtx.get(UPDATE_VISIBILITY_AGENT_KEY) as Agent;
 }
 
-/** Loads the agent by resource_id; ANY load failure → NotFound. */
+/** Loads the agent by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadAgentForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -397,8 +398,11 @@ function newLoadAgentForVisibilityUpdateStep(
           input.resourceId,
           AgentSchema,
         );
-      } catch {
-        throw notFoundError("agent", input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("agent", input.resourceId);
+        }
+        throw internalError(error, "failed to load agent");
       }
       ctx.set(UPDATE_VISIBILITY_AGENT_KEY, agent);
     },

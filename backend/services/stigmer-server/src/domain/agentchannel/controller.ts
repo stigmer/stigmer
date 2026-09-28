@@ -23,8 +23,8 @@
  * (only same-org shares are) — a dangling channel is tolerated because
  * OSS has no serving runtime and cloud fails closed elsewhere.
  *
- * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local)
- * and __tests__/agentchannel.test.ts.
+ * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local),
+ * __tests__/agentchannel.test.ts and __tests__/store-faults.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
@@ -108,6 +108,7 @@ import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
@@ -395,9 +396,10 @@ async function completeInstall(
 }
 
 /**
- * Loads the install target — cloud's LoadChannel NOT_FOUND, verbatim.
- * Returns the loaded channel so a composed runtime receives it without a
- * second load (the load-then-X contract stays OSS-owned).
+ * Loads the install target — cloud's LoadChannel NOT_FOUND, verbatim, for
+ * a missing channel; a store fault answers Internal. Returns the loaded
+ * channel so a composed runtime receives it without a second load (the
+ * load-then-X contract stays OSS-owned).
  */
 async function loadChannelForInstall(
   deps: AgentChannelControllerDeps,
@@ -410,8 +412,11 @@ async function loadChannelForInstall(
       resourceId,
       AgentChannelSchema,
     );
-  } catch {
-    throw notFoundError("AgentChannel", resourceId);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("AgentChannel", resourceId);
+    }
+    throw internalError(error, "failed to load agent channel");
   }
 }
 
