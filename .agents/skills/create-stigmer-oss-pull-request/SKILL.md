@@ -86,12 +86,26 @@ the rest:
 
 - <what could go wrong and how to roll back>
 
+## Verify at train
+
+- <a behaviour only a released build or the hosted service can show, with the
+  read that proves it; omit the section when there is none>
+
 Closes #<issue>
 ```
 
 The test plan quotes evidence, not intentions: the summary line of each check
 that ran, as the root guide's verification map asks. A PR that fixes an issue
 carries `Closes #N` in the body, where it survives a squash merge.
+
+`Verify at train` lists only what the local checks cannot show, one line each
+with the read that proves it. The release train is the batched release
+(`.agents/skills/release-stigmer-oss/SKILL.md`): after it ships, every merged
+PR's section is read against the released build and the hosted service, so a
+clause left out is a clause nobody checks.
+
+The PR's own GitHub checks are not awaited before a merge: the local checks the
+test plan quotes are the gate, and the push-to-`main` runs are the backstop.
 
 ## Opening it
 

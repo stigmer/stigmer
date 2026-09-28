@@ -17,6 +17,15 @@ performs the mechanics with a plain tag message; this skill wraps it with the
 judgement the Makefile cannot make (the bump, the notes) and runs the same
 preflight it does.
 
+Releases are batched. Finishing an issue or a pull request never cuts one: the
+change merges to `main` and ships with the next release, which the maintainer
+cuts on the release train (on a fixed weekly day, or whenever the maintainer
+asks for a train), and every change merged since the previous `v*` tag ships in
+it. A plan names a release of its own only when the maintainer rules that its
+change cannot wait for the train. On 2026-09-28 ten releases were cut in one
+day, one per change, each running the whole release fleet; the train replaces
+that.
+
 ## 0. Preflight: the hold and the working tree
 
 ```bash
