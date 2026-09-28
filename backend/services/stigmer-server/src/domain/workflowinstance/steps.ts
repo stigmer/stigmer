@@ -8,7 +8,7 @@
  * the family test ../workflow/__tests__/workflow.test.ts (the mutual edge
  * makes the two domains one testable unit).
  */
-import { ConnectError } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
@@ -55,9 +55,11 @@ export type ParentWorkflowLoaderProvider = () => ParentWorkflowLoader;
 
 /**
  * LoadParentWorkflow — create.go: loads the workflow the instance
- * materializes and stashes it for the same-org rule. ANY load failure maps
- * to NotFound("Workflow", id) — Go folds every client error into that arm
- * (capital-W copy is the wire contract).
+ * materializes and stashes it for the same-org rule. The workflow is read
+ * through the in-process query client, so a missing one arrives as a Connect
+ * NotFound and answers NotFound("Workflow", id) (the capital-W copy is the
+ * wire contract); any other failure is a fault answered as Internal, never a
+ * missing parent.
  */
 export function newLoadParentWorkflowStep(
   loaderProvider: ParentWorkflowLoaderProvider,
@@ -74,12 +76,14 @@ export function newLoadParentWorkflowStep(
       try {
         parent = await loaderProvider().get(workflowId);
       } catch (error) {
-        logger.warn("Parent workflow not found", {
-          error:
-            error instanceof ConnectError ? error.rawMessage : String(error),
-          workflowId,
-        });
-        throw notFoundError("Workflow", workflowId);
+        if (error instanceof ConnectError && error.code === Code.NotFound) {
+          logger.warn("Parent workflow not found", {
+            error: error.rawMessage,
+            workflowId,
+          });
+          throw notFoundError("Workflow", workflowId);
+        }
+        throw internalError(error, "failed to load parent workflow");
       }
 
       ctx.set(PARENT_WORKFLOW_KEY, parent);

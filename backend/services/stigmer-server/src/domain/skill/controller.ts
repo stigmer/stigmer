@@ -99,6 +99,7 @@ import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityUpdateStep } from "../../pipeline/steps/validate-visibility.js";
 import { newDeleteVersionArchivesStep } from "../../pipeline/steps/version-archive.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { MAX_ZIP_SIZE, TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
 import {
@@ -463,7 +464,7 @@ async function updateVisibility(
   return reqCtx.get(UPDATE_VISIBILITY_SKILL_KEY) as Skill;
 }
 
-/** Loads the skill by resource_id; ANY load failure → NotFound. */
+/** Loads the skill by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadSkillForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -478,8 +479,11 @@ function newLoadSkillForVisibilityUpdateStep(
           input.resourceId,
           SkillSchema,
         );
-      } catch {
-        throw notFoundError("skill", input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("skill", input.resourceId);
+        }
+        throw internalError(error, "failed to load skill");
       }
       ctx.set(UPDATE_VISIBILITY_SKILL_KEY, skill);
     },

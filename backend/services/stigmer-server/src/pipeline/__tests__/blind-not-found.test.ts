@@ -20,9 +20,8 @@
  *
  * The scan parses each module with the TypeScript compiler API rather than a
  * regular expression, because a catch block's extent (nested braces, a log
- * line before the throw) is a syntax question. `PENDING` is the list of known
- * blind sites still to be fixed; the scan must equal it exactly, so a new
- * blind site fails here, and so does a fixed site still listed.
+ * line before the throw) is a syntax question. The scan must find no blind
+ * site at all, so a new one fails here with its module and line.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -33,19 +32,6 @@ import { describe, expect, it } from "vitest";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.resolve(HERE, "../..");
-
-/** Known blind sites by module (relative to `src`), with their count. */
-const PENDING: ReadonlyMap<string, number> = new Map([
-  // Store loads, stigmer/stigmer#1345 (fixed domain by domain).
-  ["domain/plugin/controller.ts", 1],
-  ["domain/skill/controller.ts", 1],
-  ["domain/workflow/controller.ts", 1],
-  ["domain/workflowinstance/controller.ts", 1],
-  // Parent loads through the in-process chain that fold every RPC error,
-  // validation included, stigmer/stigmer#1351.
-  ["domain/agentinstance/steps.ts", 1],
-  ["domain/workflowinstance/steps.ts", 1],
-]);
 
 interface BlindSite {
   readonly module: string;
@@ -258,7 +244,7 @@ describe("the blind-NotFound rule", () => {
 });
 
 describe("the server source", () => {
-  it("has no blind NotFound beyond the pending list, and the list names only live sites", () => {
+  it("has no blind NotFound", () => {
     const sources = serverSources();
     const constructors = notFoundConstructors(sources);
     const found = new Map<string, number[]>();
@@ -278,8 +264,6 @@ describe("the server source", () => {
     const where = [...found]
       .flatMap(([module, lines]) => lines.map((line) => `${module}:${line}`))
       .join("\n");
-    expect(counts, `blind NotFound sites found:\n${where}`).toEqual(
-      Object.fromEntries(PENDING),
-    );
+    expect(counts, `blind NotFound sites found:\n${where}`).toEqual({});
   });
 });

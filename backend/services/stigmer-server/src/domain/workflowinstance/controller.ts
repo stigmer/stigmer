@@ -13,8 +13,8 @@
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by workflowinstance.conformance.test.ts
- * (CONFORMANCE_TARGET=local) and the family test
- * ../workflow/__tests__/workflow.test.ts (the mutual edge makes the two
+ * (CONFORMANCE_TARGET=local), __tests__/store-faults.test.ts and the family
+ * test ../workflow/__tests__/workflow.test.ts (the mutual edge makes the two
  * domains one testable unit).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -104,6 +104,7 @@ import {
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { workflowInstanceSearchExtractor } from "./search-extractor.js";
 import {
@@ -573,9 +574,10 @@ function newSetInstanceExecutionVisibilityStep(): PipelineStep<UpdateExecutionVi
 // ---------------------------------------------------------------------------
 
 /**
- * Loads the instance by resource_id; ANY load failure → NotFound. The
- * accessor keeps the input shape compiler-checked (both targeted-update
- * inputs carry resource_id, but the compiler should prove it, not a cast).
+ * Loads the instance by resource_id; a missing one answers NotFound, a store
+ * fault Internal. The accessor keeps the input shape compiler-checked (both
+ * targeted-update inputs carry resource_id, but the compiler should prove it,
+ * not a cast).
  */
 function newLoadInstanceStep<Desc extends DescMessage>(
   store: Store,
@@ -594,8 +596,11 @@ function newLoadInstanceStep<Desc extends DescMessage>(
           resourceId,
           WorkflowInstanceSchema,
         );
-      } catch {
-        throw notFoundError("workflow instance", resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("workflow instance", resourceId);
+        }
+        throw internalError(error, "failed to load workflow instance");
       }
       ctx.set(instanceKey, instance);
     },

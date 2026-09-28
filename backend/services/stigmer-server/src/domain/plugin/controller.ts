@@ -16,8 +16,9 @@
  * in-process clients it rides exist only after the routes this controller
  * is registered in.
  *
- * Proven by __tests__/plugin.test.ts (composed-server round-trips) and
- * plugin.conformance.test.ts (CONFORMANCE_TARGET=local, local-postgres).
+ * Proven by __tests__/plugin.test.ts (composed-server round-trips),
+ * __tests__/store-faults.test.ts and plugin.conformance.test.ts
+ * (CONFORMANCE_TARGET=local, local-postgres).
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -104,6 +105,7 @@ import {
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import type { VersionHistoryBinding } from "../../pipeline/steps/version-history.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type {
   ArchiveStaging,
@@ -386,7 +388,7 @@ async function updateVisibility(
   return reqCtx.get(UPDATE_VISIBILITY_PLUGIN_KEY) as Plugin;
 }
 
-/** Loads the plugin by resource_id; ANY load failure → NotFound. */
+/** Loads the plugin by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadPluginByIdStep(
   store: Store,
   key: string,
@@ -401,8 +403,11 @@ function newLoadPluginByIdStep(
           ctx.input.resourceId,
           PluginSchema,
         );
-      } catch {
-        throw notFoundError("plugin", ctx.input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("plugin", ctx.input.resourceId);
+        }
+        throw internalError(error, "failed to load plugin");
       }
       ctx.set(key, plugin);
     },

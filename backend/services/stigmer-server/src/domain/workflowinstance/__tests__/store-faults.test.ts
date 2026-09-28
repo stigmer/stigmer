@@ -1,20 +1,21 @@
 /**
- * Pins the store-fault contract of the agent instance's two loads. The
- * visibility-update load: a typed ResourceNotFoundError answers NotFound with
- * the domain's pinned copy (`agent instance not found: <id>`), and any other
- * store failure is an infrastructure fault answered as a sanitized Internal,
- * never a NotFound that tells a client the instance does not exist
- * (stigmer/stigmer#1345). Create's parent-agent load reads the agent through
- * the in-process query client, so the store's typed miss arrives as a Connect
- * NotFound: that answers the pinned `Agent not found: <id>`, and any other
- * failure an Internal, never a missing parent (stigmer/stigmer#1351).
+ * Pins the store-fault contract of the workflow instance's loads. The shared
+ * targeted-update load (updateVisibility and updateExecutionVisibility): a
+ * typed ResourceNotFoundError answers NotFound with the domain's pinned copy
+ * (`workflow instance not found: <id>`), and any other store failure is an
+ * infrastructure fault answered as a sanitized Internal, never a NotFound that
+ * tells a client the instance does not exist (stigmer/stigmer#1345). Create's
+ * parent-workflow load reads the workflow through the in-process query
+ * client, so the store's typed miss arrives as a Connect NotFound: that
+ * answers the pinned `Workflow not found: <id>`, and any other failure an
+ * Internal, never a missing parent (stigmer/stigmer#1351).
  *
- * Both surfaces are reached through the registered handler on an in-process
+ * Every surface is reached through the registered handler on an in-process
  * router. The composed suites reach only a real store, which cannot fail
- * selectively, so the visibility update runs against a store whose read
- * throws and create against a parent loader whose read throws. Whatever the
- * surface does not need is untouchable: a load that fails must stop the call
- * before anything past it runs.
+ * selectively, so the updates run against a store whose read throws and
+ * create against a parent loader whose read throws. Whatever the surface does
+ * not need is untouchable: a load that fails must stop the call before
+ * anything past it runs.
  *
  * Out of scope: the NotFound copies themselves (wire contract).
  */
@@ -27,7 +28,8 @@ import {
 } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -43,8 +45,8 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/autho
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 
-import { registerAgentInstanceServices } from "../controller.js";
-import type { ParentAgentLoaderProvider } from "../steps.js";
+import { registerWorkflowInstanceServices } from "../controller.js";
+import type { ParentWorkflowLoaderProvider } from "../steps.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -52,21 +54,21 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-const INSTANCE_ID = "ain_storefault";
-const AGENT_ID = "agt_storefault";
+const INSTANCE_ID = "win_storefault";
+const WORKFLOW_ID = "wfl_storefault";
 
-const NOT_FOUND_COPY = `agent instance not found: ${INSTANCE_ID}`;
-const LOAD_FAULT_COPY = "failed to load agent instance";
-const PARENT_NOT_FOUND_COPY = `Agent not found: ${AGENT_ID}`;
-const PARENT_LOAD_FAULT_COPY = "failed to load parent agent";
+const NOT_FOUND_COPY = `workflow instance not found: ${INSTANCE_ID}`;
+const LOAD_FAULT_COPY = "failed to load workflow instance";
+const PARENT_NOT_FOUND_COPY = `Workflow not found: ${WORKFLOW_ID}`;
+const PARENT_LOAD_FAULT_COPY = "failed to load parent workflow";
 
 const MISSING = (): Error =>
-  new ResourceNotFoundError(`agent_instance/${INSTANCE_ID}`);
+  new ResourceNotFoundError(`workflow_instance/${INSTANCE_ID}`);
 const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
 
-/** What the agent query's `get` answers for a missing and a faulted agent. */
+/** What the workflow query's `get` answers for a missing and a faulted workflow. */
 const PARENT_MISSING = (): Error =>
-  new ConnectError(`Agent not found: ${AGENT_ID}`, Code.NotFound);
+  new ConnectError(`Workflow not found: ${WORKFLOW_ID}`, Code.NotFound);
 const PARENT_FAULTED = (): Error =>
   new ConnectError(INTERNAL_FALLBACK_MESSAGE, Code.Internal);
 
@@ -78,18 +80,18 @@ const PARENT_FAULTED = (): Error =>
  */
 function instanceCommand(
   store: Store,
-  parentAgentLoader: ParentAgentLoaderProvider = untouchable(
-    "parentAgentLoader",
+  parentWorkflowLoader: ParentWorkflowLoaderProvider = untouchable(
+    "parentWorkflowLoader",
   ),
-): Client<typeof AgentInstanceCommandController> {
+): Client<typeof WorkflowInstanceCommandController> {
   const transport = createRouterTransport(
     (router) => {
-      registerAgentInstanceServices(router, {
+      registerWorkflowInstanceServices(router, {
         store,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
-        parentAgentLoader,
+        parentWorkflowLoader,
         listReadScope: undefined,
       });
     },
@@ -102,50 +104,59 @@ function instanceCommand(
       },
     },
   );
-  return createClient(AgentInstanceCommandController, transport);
+  return createClient(WorkflowInstanceCommandController, transport);
 }
 
-describe("updateVisibility — LoadInstanceForVisibilityUpdate", () => {
-  function surfaceError(store: Store): Promise<ConnectError> {
-    return errorOf(() =>
+describe.each([
+  {
+    surface: "updateVisibility — LoadInstanceForVisibilityUpdate",
+    call: (store: Store) =>
       instanceCommand(store).updateVisibility({
         resourceId: INSTANCE_ID,
         visibility: ApiResourceVisibility.visibility_private,
       }),
-    );
-  }
-
-  it("a missing agent instance answers NotFound with the domain's copy", async () => {
-    const error = await surfaceError(failingStore(MISSING()));
+  },
+  {
+    surface:
+      "updateExecutionVisibility — LoadInstanceForExecutionVisibilityUpdate",
+    call: (store: Store) =>
+      instanceCommand(store).updateExecutionVisibility({
+        resourceId: INSTANCE_ID,
+        executionVisibility: WorkflowExecutionVisibility.private,
+      }),
+  },
+])("$surface", ({ call }) => {
+  it("a missing workflow instance answers NotFound with the domain's copy", async () => {
+    const error = await errorOf(() => call(failingStore(MISSING())));
 
     expect(error.code).toBe(Code.NotFound);
     expect(error.rawMessage).toBe(NOT_FOUND_COPY);
   });
 
   it("any other store failure answers a sanitized Internal", async () => {
-    const error = await surfaceError(failingStore(LOCKED()));
+    const error = await errorOf(() => call(failingStore(LOCKED())));
 
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe(LOAD_FAULT_COPY);
   });
 });
 
-describe("create — LoadParentAgent", () => {
+describe("create — LoadParentWorkflow", () => {
   function surfaceError(parentError: Error): Promise<ConnectError> {
-    const failingParent: ParentAgentLoaderProvider = () => ({
+    const failingParent: ParentWorkflowLoaderProvider = () => ({
       get: () => Promise.reject(parentError),
     });
     return errorOf(() =>
       instanceCommand(untouchable("store"), failingParent).create({
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentInstance",
+        kind: "WorkflowInstance",
         metadata: { name: "Store Fault Instance", org: "org_storefault" },
-        spec: { agentId: AGENT_ID },
+        spec: { workflowId: WORKFLOW_ID },
       }),
     );
   }
 
-  it("a missing parent agent answers NotFound with the pinned copy", async () => {
+  it("a missing parent workflow answers NotFound with the pinned copy", async () => {
     const error = await surfaceError(PARENT_MISSING());
 
     expect(error.code).toBe(Code.NotFound);

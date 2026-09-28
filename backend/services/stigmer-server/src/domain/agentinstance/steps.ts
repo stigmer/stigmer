@@ -6,6 +6,7 @@
  * contracts: the parent-agent edge, the immutable agent_id, the
  * default-instance visibility guard, and the org/label list filters.
  */
+import { Code, ConnectError } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -69,7 +70,9 @@ export const PARENT_AGENT_KEY = "parent_agent";
  * an agent is a shareable blueprint and one agent legitimately has
  * instances in several orgs (the marketplace case) — the instance's
  * organization is the caller's, and the check below asks the caller's
- * standing there.
+ * standing there. The agent is read through the in-process query client, so
+ * a missing one arrives as a Connect NotFound; any other failure is a fault
+ * answered as Internal, never a missing parent.
  */
 export function newLoadParentAgentStep(
   agentLoader: ParentAgentLoaderProvider,
@@ -88,11 +91,14 @@ export function newLoadParentAgentStep(
       try {
         parentAgent = await agentLoader().get(agentId);
       } catch (error) {
-        logger.warn("Parent agent not found", {
-          agentId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw notFoundError("Agent", agentId);
+        if (error instanceof ConnectError && error.code === Code.NotFound) {
+          logger.warn("Parent agent not found", {
+            agentId,
+            error: error.rawMessage,
+          });
+          throw notFoundError("Agent", agentId);
+        }
+        throw internalError(error, "failed to load parent agent");
       }
 
       logger.debug("Loaded parent agent", {

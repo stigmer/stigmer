@@ -492,7 +492,7 @@ async function updateVisibility(
   return reqCtx.get(UPDATE_VISIBILITY_WORKFLOW_KEY) as Workflow;
 }
 
-/** Loads the workflow by resource_id; ANY load failure → NotFound. */
+/** Loads the workflow by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadWorkflowForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -507,8 +507,11 @@ function newLoadWorkflowForVisibilityUpdateStep(
           input.resourceId,
           WorkflowSchema,
         );
-      } catch {
-        throw notFoundError("workflow", input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("workflow", input.resourceId);
+        }
+        throw internalError(error, "failed to load workflow");
       }
       ctx.set(UPDATE_VISIBILITY_WORKFLOW_KEY, workflow);
     },
