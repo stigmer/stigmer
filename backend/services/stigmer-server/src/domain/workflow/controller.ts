@@ -217,7 +217,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * created via the in-process client AFTER Persist (children need the
  * parent's id), status.default_instance_id lands in an explicit second
  * persist, and v1 archives LAST so the snapshot captures it (the audit
- * step re-persists on revert because no Persist follows it here).
+ * step re-persists either of its reverts, a stripped hash or a cleared
+ * tag, because no Persist follows it here).
  */
 async function createWorkflow(
   deps: WorkflowControllerDeps,

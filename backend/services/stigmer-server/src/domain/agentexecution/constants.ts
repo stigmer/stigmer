@@ -15,21 +15,6 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
   "The execution engine is temporarily unavailable. Please try again shortly.";
 
 /**
- * getExecutionUsageReport's unknown-execution refusal. Go
- * (get_execution_usage_report.go) calls
- * NotFoundError("agent execution '%s' not found", executionID) — but that
- * helper's signature is (resource, id) rendering "%s not found: %s", so
- * the literal '%s' and the doubled "not found" reach the wire. Ported
- * byte-faithfully per sub-project DD-001 (owner-ratified 2026-08-24);
- * the both-editions fix is stigmer/stigmer#859.
- */
-export function executionUsageReportNotFoundMessage(
-  executionId: string,
-): string {
-  return `agent execution '%s' not found not found: ${executionId}`;
-}
-
-/**
  * The run gate's deny copy per request shape (P1 sp.run-gate, ruling
  * Q-RG-4; wire once merged, asserted by the conformance run-gate suite).
  * NEW copy quotes the handle single-quoted (the ratified 2026-08-26 rule).

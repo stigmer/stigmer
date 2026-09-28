@@ -232,7 +232,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     // Single-user arm: the multi-tenant edition's authorization fails
     // closed on an unresolvable id (PermissionDenied, no existence leak).
     if (target.capabilities.enforcingAuthorizer) return;
-    await expectGrpcCode(
+    const err = await expectGrpcCode(
       () =>
         clients.agentExecutionQuery.getExecutionUsageReport({
           executionId: "aexec_01conformancemissing",
@@ -240,6 +240,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
       Code.NotFound,
       "execution usage report for an unknown execution",
     );
+    expect(err.rawMessage).toBe("agent_execution not found: aexec_01conformancemissing");
   });
 
   it("the session/agent/org usage reports answer zero-valued SHAPES with no existence check", async (ctx) => {

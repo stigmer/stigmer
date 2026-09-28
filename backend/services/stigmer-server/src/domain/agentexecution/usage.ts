@@ -13,8 +13,6 @@
  * the ONE report that 404s (it verifies the execution exists).
  *
  * Faithful-port notes:
- *   - The unknown-execution message is Go's mangled helper output,
- *     byte-for-byte (constants.ts, sub-project DD-001).
  *   - Org matching is case-insensitive (Go strings.EqualFold); slug-shaped
  *     orgs make the exotic Unicode fold edges unreachable, so toLowerCase
  *     comparison sits inside Go's envelope.
@@ -26,7 +24,6 @@
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { Duration } from "@bufbuild/protobuf/wkt";
 import { DurationSchema } from "@bufbuild/protobuf/wkt";
-import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -68,17 +65,21 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
-import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import {
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { listIndexInstantOfMillis } from "../../store/list-index.js";
 import type { ListIndexRow } from "../../store/list-index.js";
 
-import { executionUsageReportNotFoundMessage } from "./constants.js";
 import { agentExecutionListIndex } from "./list-index.js";
 import { EXECUTION_LIST_KEY, loadAllAgentExecutions } from "./steps.js";
 
@@ -457,9 +458,11 @@ export async function getExecutionUsageReport(
 }
 
 /**
- * LoadExecution — verifies existence; any load failure answers the
- * (mangled, DD-001) NotFound exactly as Go's step converts every
- * GetResource error.
+ * LoadExecution — verifies existence. A missing execution answers the
+ * domain's agent_execution NotFound (stigmer/stigmer#859); any other store
+ * failure is an infrastructure fault answered as a sanitized Internal, as
+ * the approval loads do (submit-approval.ts), never a NotFound that tells
+ * the client the execution does not exist.
  */
 function newLoadExecutionStep(store: Store): PipelineStep<ExecutionReportDesc> {
   return {
@@ -473,11 +476,11 @@ function newLoadExecutionStep(store: Store): PipelineStep<ExecutionReportDesc> {
           executionId,
           AgentExecutionSchema,
         );
-      } catch {
-        throw new ConnectError(
-          executionUsageReportNotFoundMessage(executionId),
-          Code.NotFound,
-        );
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("agent_execution", executionId);
+        }
+        throw internalError(error, "failed to load agent execution");
       }
       ctx.set(EXECUTION_KEY, execution);
     },

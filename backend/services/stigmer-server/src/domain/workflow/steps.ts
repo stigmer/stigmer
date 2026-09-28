@@ -354,10 +354,13 @@ export function newPopulateVersionHashStep(
  * duplicate row beats a failed apply.
  *
  * On archive failure the version hash is stripped from the workflow so a
- * set hash always resolves to an audit entry (the revert invariant);
- * persistOnRevert re-persists when this step runs AFTER the final persist
- * (the create path archives last so default_instance_id is captured; the
- * update path has a Persist step following that flushes the revert).
+ * set hash always resolves to an audit entry (the revert invariant); on
+ * tag-assignment failure the live tag is cleared so the head never
+ * advertises a tag the audit column cannot resolve (stigmer/stigmer#855).
+ * persistOnRevert flushes either revert to the stored row, for a chain in
+ * which no Persist step follows this one (the create path archives last so
+ * default_instance_id is captured; the update path has a Persist step
+ * following that flushes the revert itself).
  */
 export function newSaveVersionAuditStep(
   store: Store,
@@ -384,6 +387,27 @@ export function newSaveVersionAuditStep(
         ctx.apiResourceKind !== ApiResourceKind.api_resource_kind_unknown
           ? ctx.apiResourceKind
           : ApiResourceKind.workflow;
+
+      // A revert changes the head after the chain's last write, so it
+      // reaches the stored row only through this re-persist. A failure here
+      // is logged, never a failed apply: the response is already consistent
+      // and the next apply rewrites the row.
+      const flushRevert = async (revert: string): Promise<void> => {
+        if (!persistOnRevert) {
+          return;
+        }
+        try {
+          await store.saveResource(kind, workflowId, WorkflowSchema, wf);
+        } catch (persistError) {
+          logger.error(`failed to re-persist workflow after ${revert}`, {
+            error:
+              persistError instanceof Error
+                ? persistError.message
+                : String(persistError),
+            workflowId,
+          });
+        }
+      };
 
       let alreadyArchived = false;
       try {
@@ -428,20 +452,7 @@ export function newSaveVersionAuditStep(
             wf.metadata.version.id = "";
           }
           ctx.setNewState(wf);
-
-          if (persistOnRevert) {
-            try {
-              await store.saveResource(kind, workflowId, WorkflowSchema, wf);
-            } catch (persistError) {
-              logger.error("failed to re-persist workflow after reverting version hash", {
-                error:
-                  persistError instanceof Error
-                    ? persistError.message
-                    : String(persistError),
-                workflowId,
-              });
-            }
-          }
+          await flushRevert("reverting version hash");
           return;
         }
       }
@@ -468,6 +479,7 @@ export function newSaveVersionAuditStep(
           if (wf.metadata?.version !== undefined) {
             wf.metadata.version.tag = "";
             ctx.setNewState(wf);
+            await flushRevert("clearing its tag");
           }
         }
       }

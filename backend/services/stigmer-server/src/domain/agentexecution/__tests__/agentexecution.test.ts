@@ -66,7 +66,6 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
-import { executionUsageReportNotFoundMessage } from "../constants.js";
 import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
 import type {
   ConnectedExecutionEngine,
@@ -485,7 +484,7 @@ describe("update / delete over the wire", () => {
 });
 
 describe("usage reports over the wire", () => {
-  it("getExecutionUsageReport pins the mangled NotFound copy byte-for-byte (DD-001)", async () => {
+  it("getExecutionUsageReport answers the domain's NotFound copy for an unknown execution (#859)", async () => {
     await expectCode(
       () => query.getExecutionUsageReport({ executionId: "" }),
       Code.InvalidArgument,
@@ -495,12 +494,7 @@ describe("usage reports over the wire", () => {
       () => query.getExecutionUsageReport({ executionId: "aexec_missing" }),
       Code.NotFound,
     );
-    expect(err.rawMessage).toBe(
-      executionUsageReportNotFoundMessage("aexec_missing"),
-    );
-    expect(err.rawMessage).toBe(
-      "agent execution '%s' not found not found: aexec_missing",
-    );
+    expect(err.rawMessage).toBe("agent_execution not found: aexec_missing");
   });
 
   it("getExecutionUsageReport answers the zero aggregate for a seeded execution", async () => {
