@@ -8,10 +8,17 @@
 // second consumer until the server became an npm artifact.) The tar reader is a
 // tiny POSIX/ustar implementation: no native `tar` dependency, which keeps the
 // base install lean (DD-002).
+//
+// Retrying a transient failure is part of the contract. A connection that resets
+// before or during the body, a 5xx or a 429 is tried again with a doubling wait,
+// so a network blip does not fail a first `stigmer up`, a CI lane or an image
+// build. Any other HTTP status and a checksum mismatch are answers: they fail at
+// once.
 
 import { createHash } from "node:crypto";
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { gunzipSync } from "fflate";
 import { CliExitError } from "../errors/cli-exit-error.js";
 import { ExitCode } from "../errors/exit-codes.js";
@@ -59,21 +66,30 @@ export interface TarballBinarySource {
   label: string;
   /** Override the fetch implementation (tests). */
   fetchImpl?: typeof fetch;
+  /** Override the wait between download attempts (tests). */
+  sleep?: (ms: number) => Promise<void>;
 }
+
+/** Attempts per download before a transient failure is reported. */
+export const DOWNLOAD_ATTEMPTS = 4;
+
+/** The wait before the second attempt; it doubles before each later one (1 s, 2 s, 4 s). */
+export const DOWNLOAD_RETRY_BASE_DELAY_MS = 1_000;
 
 /**
  * Download a `.tar.gz`, optionally verify its sha256, extract the named entry,
- * and write it to `binPath` with executable permissions. Throws a
- * {@link CliExitError} with the URL on any network, checksum, or extraction
- * failure.
+ * and write it to `binPath` with executable permissions. Transient network
+ * failures are retried (see the module header). Throws a {@link CliExitError}
+ * with the URL on a persistent network failure, a non-transient HTTP status, a
+ * checksum mismatch, or an extraction failure.
  */
 export async function fetchTarballBinary(src: TarballBinarySource): Promise<void> {
-  const doFetch = src.fetchImpl ?? fetch;
-  const archive = await fetchBytes(doFetch, src.url, src.label);
+  const net: Download = { doFetch: src.fetchImpl ?? fetch, sleep: src.sleep ?? delay };
+  const archive = await fetchBytes(net, src.url, src.label);
 
   if (src.checksumUrl !== undefined) {
     const archiveName = archiveBasename(src.url);
-    const expected = parseShasum(await fetchText(doFetch, src.checksumUrl, `${src.label} checksum`), archiveName);
+    const expected = parseShasum(await fetchText(net, src.checksumUrl, `${src.label} checksum`), archiveName);
     const actual = sha256Hex(archive);
     if (expected === "" || expected !== actual) {
       throw new CliExitError(`${src.label} checksum mismatch — refusing to use the download`, ExitCode.General, [
@@ -102,27 +118,69 @@ export function sha256Hex(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-async function fetchBytes(doFetch: typeof fetch, url: string, label: string): Promise<Uint8Array> {
-  const res = await doFetchOrThrow(doFetch, url, label);
-  return new Uint8Array(await res.arrayBuffer());
+// The network a download runs over: the fetch it calls and the wait between attempts.
+interface Download {
+  doFetch: typeof fetch;
+  sleep: (ms: number) => Promise<void>;
 }
 
-async function fetchText(doFetch: typeof fetch, url: string, label: string): Promise<string> {
-  const res = await doFetchOrThrow(doFetch, url, label);
-  return res.text();
+async function fetchBytes(net: Download, url: string, label: string): Promise<Uint8Array> {
+  return fetchWithRetry(net, url, label, async (res) => new Uint8Array(await res.arrayBuffer()));
 }
 
-async function doFetchOrThrow(doFetch: typeof fetch, url: string, label: string): Promise<Response> {
-  let res: Response;
-  try {
-    res = await doFetch(url);
-  } catch (err) {
-    throw new CliExitError(`failed to download ${label} from ${url}`, ExitCode.General, [String(err)]);
+async function fetchText(net: Download, url: string, label: string): Promise<string> {
+  return fetchWithRetry(net, url, label, (res) => res.text());
+}
+
+// One download, with its body read inside the attempt: a connection that drops
+// after the headers is as transient as one that never connects, and is retried
+// the same way. The error after the last attempt carries the last failure's
+// cause, which for Node's fetch is the socket error behind "fetch failed".
+async function fetchWithRetry<T>(
+  net: Download,
+  url: string,
+  label: string,
+  read: (res: Response) => Promise<T>,
+): Promise<T> {
+  let lastFailure = "";
+  for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+    if (attempt > 1) await net.sleep(DOWNLOAD_RETRY_BASE_DELAY_MS * 2 ** (attempt - 2));
+
+    let res: Response;
+    try {
+      res = await net.doFetch(url);
+    } catch (err) {
+      lastFailure = describeFailure(err);
+      continue;
+    }
+    if (!res.ok) {
+      if (!isTransientStatus(res.status)) {
+        throw new CliExitError(`failed to download ${label}: HTTP ${res.status} from ${url}`, ExitCode.General);
+      }
+      lastFailure = `HTTP ${res.status}`;
+      continue;
+    }
+    try {
+      return await read(res);
+    } catch (err) {
+      lastFailure = describeFailure(err);
+    }
   }
-  if (!res.ok) {
-    throw new CliExitError(`failed to download ${label}: HTTP ${res.status} from ${url}`, ExitCode.General);
-  }
-  return res;
+  throw new CliExitError(
+    `failed to download ${label} from ${url} after ${DOWNLOAD_ATTEMPTS} attempts: ${lastFailure}`,
+    ExitCode.General,
+    ["check the network connection, then run the command again"],
+  );
+}
+
+// A server error or a rate limit may clear on its own; any other status will not.
+function isTransientStatus(status: number): boolean {
+  return status >= 500 || status === 429;
+}
+
+function describeFailure(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  return err.cause instanceof Error ? `${err.message}: ${err.cause.message}` : err.message;
 }
 
 /**

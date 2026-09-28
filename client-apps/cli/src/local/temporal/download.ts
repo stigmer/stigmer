@@ -18,7 +18,11 @@ import { fetchTarballBinary, mapReleaseArch, mapReleaseOs } from "../artifact.js
 // importing the tar reader from here.
 export { extractTarEntry } from "../artifact.js";
 
-/** Default Temporal CLI version (matches the Go CLI's `DefaultTemporalVersion`). */
+/**
+ * The Temporal CLI version every channel runs: `stigmer up`, the all-in-one
+ * image, and the CI lanes and developer machines that install it with
+ * `make install-temporal-cli`. Bump it deliberately; it moves all of them.
+ */
 export const DEFAULT_TEMPORAL_VERSION = "1.5.1";
 
 /** The release's `sha256sum`-format digest file, one line per published asset. */
@@ -35,6 +39,8 @@ export interface TemporalDownloadTarget {
   arch?: string;
   /** Override the fetch implementation (tests). */
   fetchImpl?: typeof fetch;
+  /** Override the wait between download attempts (tests). */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /** The release asset name for a version on a platform, as Temporal publishes it. */
@@ -58,6 +64,7 @@ export async function downloadTemporalCli(target: TemporalDownloadTarget): Promi
     binPath: target.binPath,
     label: "Temporal CLI",
     fetchImpl: target.fetchImpl,
+    sleep: target.sleep,
   });
 }
 

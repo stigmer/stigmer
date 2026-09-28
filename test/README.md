@@ -19,7 +19,7 @@ There is no Go test harness any more. The five Go suites under `test/integration
 | Dependency | Purpose | Install |
 |------------|---------|---------|
 | Node (`.nvmrc`) | The conformance suite, the runner, the fixtures | `nvm use` |
-| `temporal` CLI | The execution class (a dev server backs the runner) | `curl -sSf https://temporal.download/cli.sh \| sh` |
+| `temporal` CLI | The execution class (a dev server backs the runner) | `make install-temporal-cli` (writes `~/bin/temporal`, the version `stigmer up` runs) |
 | `git` | The execution class's file-review suites (a capture-mode workspace is a real work tree) | preinstalled on macOS and `ubuntu-latest` |
 
 ## CI workflows

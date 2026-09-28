@@ -27,7 +27,7 @@ async function assertTemporalCli(): Promise<void> {
   } catch (err) {
     throw new Error(
       "the `temporal` CLI is required for the execution suites but was not found on PATH " +
-        "(install it with `brew install temporal`, or see https://docs.temporal.io/cli). " +
+        "(install the version `stigmer up` runs with `make install-temporal-cli`, which writes ~/bin/temporal). " +
         `underlying error: ${String(err)}`,
     );
   }

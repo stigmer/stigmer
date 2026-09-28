@@ -135,10 +135,11 @@ plus the unified runner — and drive a real execution end-to-end.
 npm run test:execution -w @stigmer/conformance
 ```
 
-This needs the **`temporal` CLI** on `PATH` (`brew install temporal`, or see
-the [Temporal CLI docs](https://docs.temporal.io/cli)). The execution
-`globalSetup` builds the server and the runner from source and fails fast with
-an install hint if the CLI is missing. The default target is
+This needs the **`temporal` CLI** on `PATH`. `make install-temporal-cli` writes
+`~/bin/temporal` at the version `stigmer up` pins, so the suite runs the
+Temporal users run (a package manager's `temporal` may be another version).
+The execution `globalSetup` builds the server and the runner from source and
+fails fast with an install hint if the CLI is missing. The default target is
 `local-execution`.
 
 **Reproducing a timing-shaped flake.** An execution arm that passes on a fast

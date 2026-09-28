@@ -1,9 +1,17 @@
+// The Temporal CLI download end to end over a scripted `fetch`: asset naming,
+// verification against the release's checksums.txt, extraction, and the retry
+// contract `../artifact.ts` gives every release download. The retry cases pin
+// which failures are transient (a dropped connection before or during the body,
+// a 5xx, a 429) and which are answers (a 404, a bad digest), the backoff, and
+// the error a persistent failure ends in. A recording `sleep` keeps them instant.
+
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
+import { CliExitError } from "../../errors/cli-exit-error.js";
 import {
   TEMPORAL_CHECKSUMS_FILE,
   downloadTemporalCli,
@@ -128,5 +136,113 @@ describe("downloadTemporalCli", () => {
     const fetchImpl = release("9.9.9", {}, "");
     const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-temporal-")), "temporal");
     await expect(downloadTemporalCli({ version: "9.9.9", binPath, fetchImpl })).rejects.toThrow(/HTTP 404/);
+  });
+});
+
+type Failure = "reject" | "body" | number;
+
+// Wraps a release so requests for one asset fail as scripted before the real
+// release answers: each entry of `failures` is consumed by one request for
+// `asset`. "reject" is a connection that never answers (Node's fetch rejects
+// with the socket error as `cause`), "body" one that drops after the headers,
+// a number an HTTP status. `calls` counts the requests for `asset`.
+function flaky(inner: typeof fetch, asset: string, failures: Failure[]): { fetchImpl: typeof fetch; calls: () => number } {
+  let calls = 0;
+  const fetchImpl = (async (input: string | URL | Request) => {
+    const url = String(input);
+    if (!url.endsWith(`/${asset}`)) return inner(input);
+    calls += 1;
+    const failure = failures[calls - 1];
+    if (failure === "reject") throw new TypeError("fetch failed", { cause: new Error("read ECONNRESET") });
+    if (failure === "body") {
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => {
+          throw new TypeError("terminated", { cause: new Error("other side closed") });
+        },
+      } as unknown as Response;
+    }
+    if (typeof failure === "number") {
+      return { ok: false, status: failure, arrayBuffer: async () => new ArrayBuffer(0) } as unknown as Response;
+    }
+    return inner(input);
+  }) as unknown as typeof fetch;
+  return { fetchImpl, calls: () => calls };
+}
+
+describe("downloadTemporalCli over an unreliable network", () => {
+  const linuxArm = temporalArchiveName("1.5.1", "linux", "arm64");
+  const arm = archiveFor(Buffer.from("the-arm64-binary"));
+  const good = release("1.5.1", { [linuxArm]: arm }, `${sha256(arm)}  ${linuxArm}\n`);
+
+  function install(fetchImpl: typeof fetch): { binPath: string; delays: number[]; run: Promise<void> } {
+    const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-temporal-")), "temporal");
+    const delays: number[] = [];
+    const sleep = async (ms: number): Promise<void> => {
+      delays.push(ms);
+    };
+    const run = downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", fetchImpl, sleep });
+    return { binPath, delays, run };
+  }
+
+  it("retries a connection that never answers, then installs the verified binary", async () => {
+    const net = flaky(good, linuxArm, ["reject"]);
+    const { binPath, delays, run } = install(net.fetchImpl);
+    await run;
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(net.calls()).toBe(2);
+    expect(delays).toEqual([1000]);
+  });
+
+  it("retries a connection that drops after the headers", async () => {
+    const net = flaky(good, linuxArm, ["body"]);
+    const { binPath, run } = install(net.fetchImpl);
+    await run;
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(net.calls()).toBe(2);
+  });
+
+  it("retries a 5xx and a 429, doubling the wait", async () => {
+    const net = flaky(good, linuxArm, [503, 429]);
+    const { binPath, delays, run } = install(net.fetchImpl);
+    await run;
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(net.calls()).toBe(3);
+    expect(delays).toEqual([1000, 2000]);
+  });
+
+  it("retries the checksums.txt fetch the same way", async () => {
+    const net = flaky(good, TEMPORAL_CHECKSUMS_FILE, ["reject"]);
+    const { binPath, run } = install(net.fetchImpl);
+    await run;
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(net.calls()).toBe(2);
+  });
+
+  it("takes a 404 as the answer and does not retry it", async () => {
+    const net = flaky(good, linuxArm, [404]);
+    const { delays, run } = install(net.fetchImpl);
+    await expect(run).rejects.toThrow(/HTTP 404/);
+    expect(net.calls()).toBe(1);
+    expect(delays).toEqual([]);
+  });
+
+  it("gives up after four attempts, saying what failed and what to do", async () => {
+    const net = flaky(good, linuxArm, ["reject", "reject", "reject", "reject"]);
+    const { binPath, delays, run } = install(net.fetchImpl);
+    const err: unknown = await run.then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(CliExitError);
+    const exit = err as CliExitError;
+    expect(exit.message).toBe(
+      `failed to download Temporal CLI from ${temporalReleaseAssetUrl("1.5.1", linuxArm)} after 4 attempts: fetch failed: read ECONNRESET`,
+    );
+    expect(exit.hints).toEqual(["check the network connection, then run the command again"]);
+    expect(net.calls()).toBe(4);
+    expect(delays).toEqual([1000, 2000, 4000]);
+    expect(existsSync(binPath)).toBe(false);
   });
 });

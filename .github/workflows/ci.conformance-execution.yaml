@@ -18,6 +18,10 @@ on:
       - "backend/**"
       - "test/conformance/**"
       - "apis/**"
+      # The Temporal CLI the suites run against: its pin, downloader and installer.
+      - "client-apps/cli/src/local/artifact.ts"
+      - "client-apps/cli/src/local/temporal/download.ts"
+      - "client-apps/cli/scripts/install-temporal-cli.ts"
       - ".github/workflows/ci.conformance-execution.yaml"
   push:
     branches: [main]
@@ -25,6 +29,10 @@ on:
       - "backend/**"
       - "test/conformance/**"
       - "apis/**"
+      # The Temporal CLI the suites run against: its pin, downloader and installer.
+      - "client-apps/cli/src/local/artifact.ts"
+      - "client-apps/cli/src/local/temporal/download.ts"
+      - "client-apps/cli/scripts/install-temporal-cli.ts"
       - ".github/workflows/ci.conformance-execution.yaml"
 
 concurrency:
@@ -63,10 +71,14 @@ jobs:
         run: npm ci
 
       # Install the Temporal CLI; the dev server backs the execution harness.
+      # `make install-temporal-cli` fetches the version `stigmer up` pins,
+      # verified against the release's checksums.txt and retried on a dropped
+      # connection, so the suites run the Temporal users run.
       - name: Install Temporal CLI
         run: |
-          curl -sSf https://temporal.download/cli.sh | sh
-          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+          make install-temporal-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/temporal" --version
 
       # Build the runner explicitly so a runner build break is an isolated,
       # legible failure rather than a confusing globalSetup error.
@@ -138,8 +150,9 @@ jobs:
 
       - name: Install Temporal CLI
         run: |
-          curl -sSf https://temporal.download/cli.sh | sh
-          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+          make install-temporal-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/temporal" --version
 
       - name: Build unified runner
         run: make build-runner
